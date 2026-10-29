@@ -1,28 +1,19 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { Window } from "happy-dom";
 import { harness } from "../fixtures.ts";
+import { postForm } from "../../../src/specs-client/press.ts";
 
 // --- A pressed button keeps its width -----------------------------
 
-// --- A press locks the row -----------------------------------------
+// --- A press locks the spec ----------------------------------------
 //
-// Seen 2026-08-21: Run was pressed, nothing on the row changed, so it
-// was pressed again — and the second press was refused because the
-// first had already started the job. The first press worked; the row
-// never said so.
-//
-// Two things were wrong, and the second is why the first went
-// unnoticed for so long. The Run button is written OUTSIDE its form
-// and tied to it by `form="…"`, so `form.querySelectorAll("button")`
-// — descendants only — found nothing to lock or to make busy. And the
-// harness above used to hard-code `() => [button]` for every form,
-// asserting by construction the very thing the markup breaks.
-//
-// The requirement is wider than the bug: a press locks EVERY control
-// on that row at once — its own button, the other buttons in the
-// stack, the phase boxes and the model/AI selects on the phase lines
-// — and nothing is unlocked until the row has been redrawn from the
-// server.
-describe("a press locks every control on its row", () => {
+// A press locks EVERY control on its spec at once — its own button, the
+// other buttons, the phase boxes and the model/AI selects on the phase
+// lines — and nothing is unlocked until the rows have been redrawn from
+// the server. The Run button is written OUTSIDE its form and tied to it
+// by `form="…"`, so a lookup of the form's descendants finds nothing to
+// lock or to make busy.
+describe("a press locks every control on its spec", () => {
   const OK = { ok: true, job: { id: "job-1" } };
   /** Every control the row has, as the press must leave them. */
   const rowState = (h: ReturnType<typeof harness>) => ({
@@ -33,23 +24,6 @@ describe("a press locks every control on its row", () => {
     ai: h.aiSelects[0]!.disabled,
     otherRow: h.otherRowSelect.disabled,
   });
-
-  for (const control of ["rowrun", "actionform"] as const) {
-    test(`${control} locks the whole row, and only its own row`, async () => {
-      let seen = {} as ReturnType<typeof rowState>;
-      const h = harness((url) => {
-        if (url.includes("/api/queue")) seen = rowState(h);
-        return { ok: true, body: OK };
-      }, control);
-      await h.submit();
-      expect(seen).toEqual({
-        run: true, cancel: true, box: true, model: true, ai: true,
-        // The other row's select names another form. A press that
-        // reached it would grey out a spec nobody touched.
-        otherRow: false,
-      });
-    });
-  }
 
   // The bug itself, stated as its own case: Run's button is not a
   // descendant of the form it submits, so the old descendants-only
@@ -122,26 +96,6 @@ describe("a press locks every control on its row", () => {
     expect(h.stepBoxes[1]!.disabled).toBe(true);
   });
 
-  // A SHUT row used to be the case with no scope at all: it drew its
-  // one control in the header's last cell, that control's button was
-  // inside its own form, and `td.stackcell` — an open row's cell —
-  // found nothing. Every row's control is drawn in the head row,
-  // open or shut, so a shut row's press locks exactly what an open
-  // one's does. Nothing is left that has a row and no scope.
-  test("a shut row's control locks the whole row too", async () => {
-    let seen = {} as ReturnType<typeof rowState>;
-    const h = harness((url) => {
-      if (url.includes("/api/queue")) seen = rowState(h);
-      return { ok: true, body: OK };
-    }, "actionform");
-    await h.submit();
-    expect(seen).toEqual({
-      run: true, cancel: true, box: true, model: true, ai: true, otherRow: false,
-    });
-    expect(h.button.disabled).toBe(false);
-    expect(h.button.classList.contains("busy")).toBe(false);
-  });
-
   // What the fallback describes now: a form on no spec row at all —
   // the New-spec page, the Projects panel. Its own button is inside
   // it, and there is nothing to widen the scope to.
@@ -168,8 +122,7 @@ describe("a press locks every control on its row", () => {
     expect(h.button.classList.contains("busy")).toBe(false);
   });
 
-  // The row's one button sits inside
-  // `tr.spechead` now, and the fold's chevron is a `<a data-nav>` on
+  // The fold's chevron is a `<a data-nav>` on
   // the same delegated listener. A press must RUN, never open the row
   // underneath the request — and it cannot, structurally: `navigate`
   // acts only on `closest("a[data-nav]")`, which a `<button>` does not
@@ -194,4 +147,137 @@ describe("a press locks every control on its row", () => {
     h.clickFold();
     expect(h.replaced).toEqual(["/?open=aide%2F127-one-ai"]);
   });
+});
+
+// A Save is out, and the page is looked at meanwhile: real rows in a real
+// DOM, since which rows are a spec's is the thing under test.
+describe("a Save locks every control on its spec, and only its spec", () => {
+  const real = {
+    document: (globalThis as { document?: unknown }).document,
+    location: (globalThis as { location?: unknown }).location,
+    fetch: globalThis.fetch,
+    FormData: globalThis.FormData,
+  };
+  let win: Window | null = null;
+  afterEach(async () => {
+    (globalThis as { document?: unknown }).document = real.document;
+    (globalThis as { location?: unknown }).location = real.location;
+    globalThis.fetch = real.fetch;
+    globalThis.FormData = real.FormData;
+    await win?.happyDOM.close();
+    win = null;
+  });
+
+  const head = (key: string) => `<tr class="spechead" id="spec-${key}"><td><a href="#">${key}</a></td></tr>`;
+  const gap = `<tr class="specgap" aria-hidden="true"><td></td></tr>`;
+  const checks = (key: string) =>
+    `<tr class="specnotice"><td><form class="rowchecks" id="rowchecks-${key}" method="post" action="http://dash.test/api/specs/${key}/checks">` +
+    `<input type="hidden" name="phase" value="x"><input type="checkbox" name="tick" value="AC-1">` +
+    `<button type="submit" class="btn primary" id="checks-save-${key}">Save</button></form></td></tr>`;
+  const caption = (key: string) =>
+    `<tr class="subrow" data-caption><td>` +
+    `<form class="rowrun" id="rowrun-${key}" method="post" action="http://dash.test/api/queue"><input type="hidden" name="spec" value="${key}"></form>` +
+    `<button type="submit" form="rowrun-${key}" class="btn primary">Run</button>` +
+    `<select form="rowrun-${key}" name="ai.analyze"><option>claude</option></select>` +
+    `<select form="rowrun-${key}" name="model.analyze"><option>opus</option></select></td></tr>` +
+    `<tr class="subrow"><td><input type="checkbox" form="rowrun-${key}" name="steps" value="analyze" checked>` +
+    `<input type="checkbox" form="rowrun-${key}" name="steps" value="implement"></td></tr>`;
+  const depends = (key: string) =>
+    `<tr class="subrow" data-depends-line><td><form class="dependsform" id="depends-${key}" method="post" action="http://dash.test/api/specs/${key}/depends">` +
+    `<input type="checkbox" name="dependsOn" value="aide/9-z"><button type="submit" class="btn primary" id="depends-save-${key}">Save</button>` +
+    `<button type="button" class="btn" id="depends-cancel-${key}">Cancel</button></form></td></tr>`;
+  /** The open spec's detail row: its own update form, a Close button and
+   *  the Description tab's form inside a table of its own. */
+  const detail = (key: string) =>
+    `<tr class="specdetail"><td><form class="reloadform" id="update-${key}" method="post" action="http://dash.test/api/specs/${key}/update">` +
+    `<button type="submit" class="btn">Update</button></form><button type="button" class="btn">Close</button>` +
+    `<table><tbody><tr><td><form class="specform" id="desc-${key}" method="post" action="http://dash.test/api/specs/${key}/file">` +
+    `<textarea name="text">old</textarea><button type="submit" class="btn primary" id="desc-save-${key}">Save</button>` +
+    `<button type="button" class="btn">Cancel</button></form></td></tr></tbody></table></td></tr>`;
+
+  const running = (key: string) => head(key) + caption(key) + depends(key) + checks(key) + gap;
+  const listed = (key: string) => head(key) + checks(key) + detail(key) + gap;
+
+  /** The page, with a fetch that stays open until `answer` is called. */
+  function page(rows: string) {
+    win = new Window({ url: "http://dash.test/" });
+    win.document.write(`<div id="jobrows"><table><tbody>${rows}</tbody></table></div>`);
+    (globalThis as { document?: unknown }).document = win.document;
+    (globalThis as { location?: unknown }).location = win.location;
+    (globalThis as unknown as { FormData: unknown }).FormData = win.FormData;
+    let answer: (r: { ok: boolean; body: unknown }) => void = () => {};
+    const held = new Promise<{ ok: boolean; body: unknown }>((resolve) => { answer = resolve; });
+    globalThis.fetch = (async () => {
+      const r = await held;
+      return { ok: r.ok, status: r.ok ? 200 : 409, json: async () => r.body };
+    }) as unknown as typeof fetch;
+    return { doc: win.document as unknown as Document, answer };
+  }
+
+  const PRESSABLE = "button, select, textarea, input:not([type=hidden])";
+  /** Every control on one spec's rows: its head row and the rows after it
+   *  up to the next spec's, with nested tables. */
+  function controlsOf(doc: Document, key: string): (HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement)[] {
+    const out: Element[] = [];
+    for (let el: Element | null = doc.getElementById(`spec-${key}`); el; el = el.nextElementSibling) {
+      if (el.className === "spechead" && el.id !== `spec-${key}`) break;
+      out.push(...Array.from(el.querySelectorAll(PRESSABLE)));
+    }
+    return out as never;
+  }
+  const disabledOf = (els: { disabled: boolean }[]) => els.map((el) => el.disabled);
+  const press = (doc: Document, id: string) => {
+    const save = doc.getElementById(id) as HTMLButtonElement;
+    const sent = postForm(save.closest("form")!, () => {}, () => {});
+    return { save, sent };
+  };
+
+  const pages = {
+    "the Running tab": { rows: () => running("aide/a") + running("aide/b"), saves: ["checks-save-aide/a", "depends-save-aide/a"] },
+    "the Specs list": { rows: () => listed("aide/a") + listed("aide/b"), saves: ["checks-save-aide/a", "desc-save-aide/a"] },
+  };
+
+  for (const [name, { rows, saves }] of Object.entries(pages)) {
+    for (const saveId of saves) {
+      test(`on ${name}, ${saveId} locks all of spec A and none of spec B while it is out (AC-1, AC-2, AC-3)`, async () => {
+        const { doc, answer } = page(rows());
+        const a = controlsOf(doc, "aide/a");
+        const b = controlsOf(doc, "aide/b");
+        expect(a.length).toBeGreaterThan(5);
+        const bBefore = disabledOf(b);
+        const { save, sent } = press(doc, saveId);
+        expect(disabledOf(a).every(Boolean)).toBe(true);
+        expect(disabledOf(b)).toEqual(bBefore);
+        expect(save.classList.contains("busy")).toBe(true);
+        expect(save.classList.contains("primary")).toBe(false);
+        answer({ ok: true, body: { ok: true } });
+        await sent;
+        expect(save.classList.contains("busy")).toBe(false);
+        expect(save.classList.contains("primary")).toBe(true);
+      });
+    }
+  }
+
+  for (const [label, reply] of [
+    ["succeeded with nothing redrawn", { ok: true, body: { ok: true } }],
+    ["was refused", { ok: false, body: { ok: false, error: "no" } }],
+  ] as const) {
+    test(`when the answer ${label}, every control is as it was found (AC-4)`, async () => {
+      const { doc, answer } = page(running("aide/a") + running("aide/b"));
+      const a = controlsOf(doc, "aide/a");
+      // One phase box and Depends on's Cancel are drawn disabled: the
+      // answer leaves them so.
+      (doc.querySelector('input[name="steps"][value="implement"]') as HTMLInputElement).disabled = true;
+      (doc.getElementById("depends-cancel-aide/a") as HTMLButtonElement).disabled = true;
+      const before = disabledOf(a);
+      const { sent } = press(doc, "checks-save-aide/a");
+      const run = a.find((el) => el.textContent === "Run")!;
+      expect(run.disabled).toBe(true);
+      answer(reply);
+      await sent;
+      expect(disabledOf(a)).toEqual(before);
+      expect(run.disabled).toBe(false);
+      expect(before.filter(Boolean)).toHaveLength(2);
+    });
+  }
 });

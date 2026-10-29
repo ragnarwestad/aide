@@ -32,6 +32,12 @@ const PROMPT = "docs/nightly.md";
 const COMMITTED = "# Nightly\n\nThe committed text.\n";
 const OTHER = "# Other\n\nA second committed file.\n";
 
+/** Rewrites the job's prompt in the config the store reads fresh on every call. */
+function setPrompt(prompt: string): void {
+  const since = new Date(Date.now() + 3_600_000).toISOString();
+  writeFileSync(cfg, JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt, since }] } }));
+}
+
 const start = () => harness.start({ extra: { queueConfigFile: cfg } });
 
 function parse(html: string): Document {
@@ -59,6 +65,26 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     expect(doc.querySelector("#spec-editor-host")).not.toBeNull();
     expect(html).not.toContain("Uncommitted");
     expect(html).toContain("/spec-viewer.js");
+  });
+
+  test("shows the file whichever way its path was typed when saved (AC-3)", async () => {
+    const { base, dir } = start();
+    projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED });
+    setPrompt("docs//nightly.md");
+    const doc = parse(await (await fetch(`${base}/schedule/aide/nightly-report/prompt`)).text());
+    expect(doc.querySelector("pre.spec-editor-raw")?.textContent).toBe(COMMITTED);
+  });
+
+  test("a prompt that names a directory gives the cannot-be-read sentence, never a listing (AC-4)", async () => {
+    const { base, dir } = start();
+    projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED });
+    setPrompt("docs");
+    const res = await fetch(`${base}/schedule/aide/nightly-report/prompt`);
+    expect(res.status).toBe(200);
+    const doc = parse(await res.text());
+    expect(doc.body.textContent).toContain("The prompt file docs cannot be read");
+    expect(doc.querySelector("pre.spec-editor-raw")).toBeNull();
+    expect(doc.querySelector("#spec-editor-host")).toBeNull();
   });
 
   test("names the file and the job, and links back to the job's Settings tab", async () => {
