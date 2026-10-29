@@ -24,12 +24,12 @@ _core_bin_scripts() {
   done
 }
 COMMON_BIN_SCRIPTS="$(_core_bin_scripts "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")"
-# The hook body aide-install-spec-hook writes into a target repo (spec
-# 219). Kept as its own file under core/scripts/hooks/, not embedded in
+# The hook body aide-install-spec-hook writes into a target repo.
+# Kept as its own file under core/scripts/hooks/, not embedded in
 # the installer, so it can be tested standalone — which means it needs
 # its own copy step, since the loop above only copies flat files.
 COMMON_BIN_HOOK_SCRIPTS="$(_core_bin_scripts "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/hooks")"
-# status-progress.sh (spec 285): sourced by aide-run-spec and
+# status-progress.sh: sourced by aide-run-spec and
 # aide-archive-spec via "$SCRIPT_DIR/lib/status-progress.sh". Missing
 # from COMMON_BIN_SCRIPTS (a flat-file copy into ~/.local/bin/ itself)
 # and never given its own copy step here either, so no installed
@@ -38,7 +38,7 @@ COMMON_BIN_HOOK_SCRIPTS="$(_core_bin_scripts "$(cd "$(dirname "${BASH_SOURCE[0]}
 # every call to it a "command not found" that crashes aide-run-spec
 # under set -u before it can write a result.
 #
-# workflow-steps.json (spec 349): the one file holding the workflow's
+# workflow-steps.json: the one file holding the workflow's
 # step lists, read by aide-run-spec (jq) and imported by the dashboard.
 # Unlike status-progress.sh above, a missing copy here is refused loudly
 # by aide-run-spec rather than silently no-op'd.
@@ -56,7 +56,7 @@ COMMON_BIN_LIB_SCRIPTS="$(_core_lib_files "$(cd "$(dirname "${BASH_SOURCE[0]}")"
 # core/tests/specs/unit/core/validation/test_core_scripts.py enforces it.
 #
 # Every external CLI aide's own scripts shell out to, declared once so
-# every machine that runs aide's installer has it (spec 334). A tool
+# every machine that runs aide's installer has it. A tool
 # with no mise-manageable backend (mise itself: it cannot declare
 # itself) is checked instead of declared — its absence still reaches
 # the installed-files warning banner via install_mise_declared_tools's
@@ -100,7 +100,7 @@ install_common_bin() {
   done
   # Records which repo checkout and commit this ~/.local/bin copy came
   # from, so a later aide-preflight run can tell it apart from the
-  # repo's current HEAD (REQ-7).
+  # repo's current HEAD.
   local repo_root sha
   repo_root="$(cd "$_CORE_SCRIPTS_DIR/../.." && pwd)"
   sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || echo unknown)"
@@ -157,7 +157,7 @@ uninstall_common_bin() {
   done
 }
 
-# --- PATH for non-interactive shells (spec 175) ------------------------------
+# --- PATH for non-interactive shells ------------------------------
 #
 # `ssh host 'command'` starts a NON-INTERACTIVE shell, which reads neither
 # .zprofile, .zshrc nor .bash_profile — so tools in these directories are

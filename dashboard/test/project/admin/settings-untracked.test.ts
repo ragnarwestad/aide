@@ -1,4 +1,4 @@
-// Spec 512: a Settings save commits and pushes only where the project's
+// A Settings save commits and pushes only where the project's
 // manifest is tracked. Elsewhere it goes to the dashboard's own settings
 // file, and nothing reaches the project's repository.
 
@@ -26,7 +26,7 @@ const seam = { run, resolveBase: async () => "main" };
 const saveManifest = (dir: string) => (edits: { key: string; value: string }[]) => commitManifestEdits(seam, dir, edits);
 
 describe("Settings save by whether the manifest is tracked", () => {
-  test("no tracked manifest: the settings file holds it, origin and the checkout are untouched (AC-2)", async () => {
+  test("no tracked manifest: the settings file holds it, origin and the checkout are untouched", async () => {
     const f = fixture();
     const head = git(f.dir, "rev-parse", "HEAD");
     const originHead = git(f.origin, "rev-parse", "main");
@@ -41,7 +41,7 @@ describe("Settings save by whether the manifest is tracked", () => {
     expect(git(f.dir, "status", "--porcelain")).not.toContain("project.yaml");
   });
 
-  test("git cannot say: the previewCmd step fails with git's words and the install command still saves (AC-2)", async () => {
+  test("git cannot say: the previewCmd step fails with git's words and the install command still saves", async () => {
     const f = fixture();
     const broken: GitRunner = async (dir, args, timeout) =>
       args.includes("ls-files") ? { code: 128, stdout: "", stderr: "fatal: unable to read the index" } : run(dir, args, timeout);
@@ -57,7 +57,7 @@ describe("Settings save by whether the manifest is tracked", () => {
     expect(readFileSync(join(f.dir, ".aide", "config"), "utf-8")).toContain("AIDE_INSTALL_CMD=make setup");
   });
 
-  test("a tracked manifest is committed and pushed, and no settings file appears (AC-3)", async () => {
+  test("a tracked manifest is committed and pushed, and no settings file appears", async () => {
     const f = fixture({ ".aide/project.yaml": "name: demo\n" });
     const result = await updateProjectSettings(run, f.dir, { previewCmd: "make check" }, {
       saveManifest: saveManifest(f.dir),
@@ -69,7 +69,7 @@ describe("Settings save by whether the manifest is tracked", () => {
     expect(existsSync(dashboardSettingsFile(f.base, "demo"))).toBe(false);
   });
 
-  test("an untracked project saves previewFrom to the settings file, and origin and the checkout are untouched (AC-4)", async () => {
+  test("an untracked project saves previewFrom to the settings file, and origin and the checkout are untouched", async () => {
     const f = fixture();
     const head = git(f.dir, "rev-parse", "HEAD");
     const originHead = git(f.origin, "rev-parse", "main");
@@ -85,7 +85,7 @@ describe("Settings save by whether the manifest is tracked", () => {
     expect(git(f.dir, "rev-parse", "HEAD")).toBe(head);
   });
 
-  test("the value the manifest already holds writes nothing, and none against no key writes nothing (AC-5)", async () => {
+  test("the value the manifest already holds writes nothing, and none against no key writes nothing", async () => {
     const manifest = "name: demo\ndeployment:\n  host: Cloudflare Pages\n  previewFrom: command\n";
     const tracked = fixture({ ".aide/project.yaml": manifest });
     const options = { saveManifest: saveManifest(tracked.dir), settingsFile: dashboardSettingsFile(tracked.base, "demo") };
@@ -107,7 +107,7 @@ describe("Settings save by whether the manifest is tracked", () => {
     expect(git(bare.origin, "rev-parse", "main")).toBe(bareHead);
   });
 
-  test("a word that is not one of the three is refused and no file is written (AC-3)", async () => {
+  test("a word that is not one of the three is refused and no file is written", async () => {
     const f = fixture();
     const result = await updateProjectSettings(run, f.dir, { previewFrom: "vercel" }, {
       saveManifest: saveManifest(f.dir),
@@ -121,7 +121,7 @@ describe("Settings save by whether the manifest is tracked", () => {
     expect(existsSync(join(f.dir, ".aide", "project.yaml"))).toBe(false);
   });
 
-  test("a criterion prefix is set, changed and removed in the settings file of an untracked project (AC-5)", async () => {
+  test("a criterion prefix is set, changed and removed in the settings file of an untracked project", async () => {
     const f = fixture();
     const originHead = git(f.origin, "rev-parse", "main");
     const options = { saveManifest: saveManifest(f.dir), settingsFile: dashboardSettingsFile(f.base, "demo") };
@@ -136,7 +136,7 @@ describe("Settings save by whether the manifest is tracked", () => {
     expect(git(f.origin, "rev-parse", "main")).toBe(originHead);
   });
 
-  test("a criterion prefix is set, changed and removed in a tracked manifest on origin (AC-5)", async () => {
+  test("a criterion prefix is set, changed and removed in a tracked manifest on origin", async () => {
     const f = fixture({ ".aide/project.yaml": "name: demo\n" });
     const options = { saveManifest: saveManifest(f.dir), settingsFile: dashboardSettingsFile(f.base, "demo") };
     const onOrigin = () => git(f.origin, "show", "main:.aide/project.yaml");

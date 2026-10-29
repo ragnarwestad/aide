@@ -31,7 +31,7 @@ async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<str
 }
 
 // A phase's own page shows what that phase made, and nothing else of
-// the spec (criteria 5-7).
+// the spec.
 describe("a phase job's page shows that phase's file", () => {
   const SPEC = "81-queue-and-runner";
 
@@ -44,7 +44,7 @@ describe("a phase job's page shows that phase's file", () => {
     );
   };
 
-  // Spec 181: the plan and the review of it are one step's work, so
+  // The plan and the review of it are one step's work, so
   // the analyze job's page is 3-solution.md whole — both sections, and
   // not the analysis the step wrote on the way there.
   test("an analyze job shows 3-solution.md, review section and all", async () => {
@@ -67,7 +67,7 @@ describe("a phase job's page shows that phase's file", () => {
   });
 });
 
-// --- criteria 3, 4: the Update button ---------------------------------------
+// --- the Update button -------------------------------------------------------
 
 describe("POST the Update action", () => {
   const SPEC = "81-queue-and-runner";
@@ -86,7 +86,7 @@ describe("POST the Update action", () => {
   /** A specs checkout that is clean, on its default branch and behind.
    *
    *  `rev-parse HEAD`'s before/after answer is counted PER DIRECTORY, not
-   *  globally (spec 269): the server now reads its own boot-time commit
+   *  globally: the server now reads its own boot-time commit
    *  with the same bare command, in `process.cwd()` — a global counter
    *  would let that one extra call shift the specs checkout's own
    *  before/after pair by one and report "already up to date".
@@ -147,7 +147,7 @@ describe("POST the Update action", () => {
     ["a checkout that has diverged", { "merge-base --is-ancestor": { code: 1 } }, "fast-forward"],
     ["a directory that is not a git tree", { "rev-parse --show-toplevel": { code: 128 } }, "git working tree"],
   ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
-    test(`${what} changes nothing and says which one applied (criterion 4)`, async () => {
+    test(`${what} changes nothing and says which one applied`, async () => {
       const { base } = start({ gitRun: pullable(extra) });
       const { status, body } = await press(base);
       expect(status).toBe(400);
@@ -181,7 +181,7 @@ describe("POST the Update action", () => {
   });
 });
 
-// --- spec 210: the phase report reaches the row that is running -------------
+// --- The phase report reaches the row that is running -------------
 //
 // `wordPhase` and `pips()` can be asked about a `tddPhase` in a fixture;
 // nothing but a running server can say whether the JOIN is wired — the
@@ -206,7 +206,7 @@ describe("a running implement's TDD phase reaches the page", () => {
       body: JSON.stringify({ host: "laptop", sessionId, command: "implement", phase }),
     });
 
-  // Criterion 2 and criterion 8 in one: the fetch happens IMMEDIATELY
+  // The fetch happens IMMEDIATELY
   // after the report, with no wait. The store write and the row's lookup
   // are both synchronous, so nothing in this feature adds a delay of its
   // own on top of whatever already carries a queue change to a reader.
@@ -224,7 +224,7 @@ describe("a running implement's TDD phase reaches the page", () => {
     expect(html).toContain('data-third="1"');
   });
 
-  // Criterion 5, where the rule that decides it actually lives: only
+  // Where the rule that decides it actually lives: only
   // `implement` reports its thirds, and only `implement` is looked up.
   // An analyze step running in a session the store HAS an answer for is
   // the case that would go wrong quietly — the join key is the session,

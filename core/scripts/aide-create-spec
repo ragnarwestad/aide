@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # aide-create-spec — four Bash-only modes on the same file, all keeping
 # specs-repo writes off the Write/Edit tool (see below): the mechanical
-# step of /aide-create's Step 4 (spec 248), creating a spec's directory
+# step of /aide-create's Step 4, creating a spec's directory
 # and its 5 files given specs-root/number/slug/title/description/
 # depends-on; --folder-name, the same creation with no number or slug
 # computed at all — a caller-given literal folder name, for a headless
-# run whose real number is assigned later, at landing (spec 453);
+# run whose real number is assigned later, at landing;
 # --assign-number, landing's own finalize step that renumbers such a
-# folder in place once it is known to be the only one landing (spec
-# 453); and --stamp-outcome, /aide-create's Step 5 patching an
+# folder in place once it is known to be the only one landing;
+# and --stamp-outcome, /aide-create's Step 5 patching an
 # already-created 1-description.md's Tracking info with that phase's
-# own Model/Time spent for an interactive run (spec 274) — the
+# own Model/Time spent for an interactive run — the
 # counterpart to aide-run-spec's own "outcome record" block, which only
 # ever runs for a headless create.
 #
@@ -55,9 +55,9 @@ depends_on=""; depends_on_given="no"; result_file=""
 stamp_outcome="no"; folder=""; start_epoch=""; model=""
 folder_name=""; assign_number="no"
 # Whether this spec's Tracking info should say acceptance ticking is not
-# required (spec 394). A bare flag, like --pull/--dry-run elsewhere:
+# required. A bare flag, like --pull/--dry-run elsewhere:
 # there is nothing to validate, and its absence is the byte-for-byte
-# behaviour every caller before this flag existed already has (REQ-11).
+# behaviour every caller before this flag existed already has.
 acceptance_not_required="no"
 # The description as /aide-create received it, before it added criteria.
 # A flag of its own, so an empty value still counts as given.
@@ -128,7 +128,7 @@ emit_ok() {
 if [ "$stamp_outcome" = "yes" ]; then
   # Patches an already-created 1-description.md's Tracking info with this
   # phase's own Model/Time spent — the interactive counterpart to
-  # aide-run-spec's own "outcome record" block (spec 245), which only
+  # aide-run-spec's own "outcome record" block, which only
   # ever runs for a headless create. See core/skills/aide-create/SKILL.md
   # Step 5.
   [ -n "$folder" ] || refuse "missing --folder"
@@ -186,13 +186,13 @@ if [ "$stamp_outcome" = "yes" ]; then
 fi
 
 if [ "$assign_number" = "yes" ]; then
-  # Landing's own finalize step (spec 453): a create job's folder exists
+  # Landing's own finalize step: a create job's folder exists
   # only under its literal provisional key (`new-<8 hex>`) until this
   # runs, under the specs repo's own merge lock, where two landings for
   # the same repo are already serialized by construction — the one place
   # two concurrent creates cannot collide over a number. Reuses
   # aide_next_spec_number/aide_slug_from_title, the same two functions
-  # every other caller in this file already shares (spec 82's invariant:
+  # every other caller in this file already shares (the invariant:
   # one rule, one place) — never a second, hand-rolled count.
   [ -n "$folder" ] || refuse "missing --folder"
   src="$specs_root/$folder"
@@ -253,7 +253,7 @@ fi
 # the race takes the next free number and tries again.
 #
 # --folder-name is a THIRD shape, for a headless run whose real number
-# is not decided here at all any more (spec 453): the caller already
+# is not decided here at all any more: the caller already
 # has a unique name (the job's own provisional key), so there is
 # nothing to race over and no lock to take — `--number`'s validation
 # and the auto-pick lock below are both skipped entirely.

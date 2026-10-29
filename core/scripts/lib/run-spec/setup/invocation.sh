@@ -216,7 +216,7 @@ When the step ends, the same line ending in one of these:
 N is the step's number, X how many steps there are, and the title says what the step does."
 if [ "$command_name" = "schedule" ]; then
   # The prompt is the file's contents, verbatim — no aide skill, no spec
-  # id, nothing invented on either side (spec 259). Read as committed at
+  # id, nothing invented on either side. Read as committed at
   # $project_root's HEAD, pulled to origin/<base> a few lines above, never
   # off the disk: a step's shell may write the main checkout, and a
   # schedule entry may run without the sandbox.
@@ -226,7 +226,7 @@ if [ "$command_name" = "schedule" ]; then
 $schedule_step_note
 $headless_note"
 elif [ -n "$spec_folder" ]; then
-  # Spec 406: stated to the skill the same way depends_line
+  # Stated to the skill the same way depends_line
   # is — a CLI flag alone is invisible to the skill's own reasoning, and
   # Step 1 hands this straight to `aide-close-spec --reason`.
   reason_line=""
@@ -281,7 +281,7 @@ else
   depends_line=""
   [ -n "$depends_on" ] && depends_line="
 Use exactly this Depends-on value in Tracking info: $depends_on"
-  # Spec 394: stated to the skill beside depends_line, for the same
+  # Stated to the skill beside depends_line, for the same
   # reason — Step 4 is the step that actually writes the file, so the
   # instruction names it by number.
   #
@@ -299,7 +299,7 @@ Record this spec's Tracking info with an explicit acceptance-not-required line (
     accept_line="
 Acceptance ticking IS required for this spec: do not pass --acceptance-not-required, and write no acceptance line into Tracking info (Step 4)."
   fi
-  # Spec 453: the folder's real number and slug are no longer this
+  # The folder's real number and slug are no longer this
   # session's to compute — landing assigns both once this branch merges,
   # under the one lock two concurrent creates cannot both miss. Stated
   # to the skill the same way depends_line/accept_line already are, so
@@ -408,6 +408,6 @@ fi
 # EVERY root goes on the branch, not just the project. An `analyze`
 # step changes only the specs repo, and branching just the project left
 # that work committed on main and pushed there — the one thing `push
-# branch` exists to prevent. Measured 2026-08-16 on spec 84.
+# branch` exists to prevent. Measured 2026-08-16.
 branch="aide/$spec_label"
 

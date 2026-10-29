@@ -18,7 +18,7 @@ from ..run_spec_results import (
 
 
 def test_a_codex_run_records_tool_and_tokens_but_no_cost(runner, workspace, fake_codex):
-    """Criterion 1. Codex reports tokens and NO dollar figure anywhere in
+    """Codex reports tokens and NO dollar figure anywhere in
     its output, so `costUsd` is absent — not zero, and not a stand-in for
     a cost that was never there to measure."""
     codex = fake_codex(emits(CODEX_STREAM_OK))
@@ -56,7 +56,7 @@ def test_a_claude_run_still_says_which_tool_ran_it(runner, workspace, fake_claud
     assert out["costUsd"] == pytest.approx(0.5357)
 
 def test_bypass_permissions_becomes_codex_s_one_bypass_flag(runner, workspace, fake_codex):
-    """Criterion 2. Codex's safety is TWO axes where Claude's is one
+    """Codex's safety is TWO axes where Claude's is one
     string, and its single all-off flag replaces both — passing
     `--sandbox` beside it would be saying two things at once."""
     codex = fake_codex(emits(CODEX_STREAM_OK))
@@ -68,7 +68,7 @@ def test_bypass_permissions_becomes_codex_s_one_bypass_flag(runner, workspace, f
     assert "--sandbox" not in argv
 
 def test_accept_edits_becomes_a_writable_workspace(runner, workspace, fake_codex):
-    """Criterion 3. `codex exec` is non-interactive and has no
+    """`codex exec` is non-interactive and has no
     `--ask-for-approval` flag at all (verified against codex-cli 0.147.0
     — that flag is the interactive command's); the sandbox mode is the
     whole of what it takes."""
@@ -89,7 +89,7 @@ def test_plan_mode_becomes_a_read_only_sandbox(runner, workspace, fake_codex):
     assert argv[argv.index("--sandbox") + 1] == "read-only"
 
 def test_an_unrecognised_permission_mode_refuses_before_codex_starts(runner, workspace, fake_codex):
-    """Criterion 4. The same "typed out or the run does not start"
+    """The same "typed out or the run does not start"
     discipline `--permission-mode` already has for Claude: a mode with no
     entry in the table is refused rather than guessed at, because
     guessing wrong means a step running in the wrong sandbox."""
@@ -131,7 +131,7 @@ def test_no_effort_flag_at_all_when_none_is_chosen(runner, workspace, fake_claud
     assert "--effort" not in argv
 
 def test_effort_is_dropped_silently_for_a_codex_run(runner, workspace, fake_codex):
-    """REQ-3: Codex has no `--effort` equivalent, and a chosen effort for
+    """Codex has no `--effort` equivalent, and a chosen effort for
     a Codex-run phase is accepted and dropped, the same "ignored, not
     refused" treatment the script already gives Codex's other
     Claude-only knobs."""
@@ -142,7 +142,7 @@ def test_effort_is_dropped_silently_for_a_codex_run(runner, workspace, fake_code
     assert "--effort" not in argv
 
 def test_a_codex_run_past_its_deadline_is_killed_the_same_way(runner, workspace, fake_codex):
-    """Criterion 5. The timeout loop operates on a PID and a process
+    """The timeout loop operates on a PID and a process
     group, never on a tool — so the only thing worth proving here is that
     a Codex step reaches it, and that a killed Codex step still reports
     no dollar figure (Claude's over-charge rule has nothing to work
@@ -272,7 +272,7 @@ def test_a_codex_usage_limit_with_no_time_to_try_again_has_no_reset(runner, work
     assert out["providerLimit"] == {"tool": "codex", "window": "usage"}
 
 
-def test_a_codex_model_at_capacity_is_its_own_stop_and_the_commit_says_so_AC_1(runner, workspace, fake_codex):
+def test_a_codex_model_at_capacity_is_its_own_stop_and_the_commit_says_so(runner, workspace, fake_codex):
     """Codex says the model is full in its stream and exits 1. That is the
     provider having no room, not the CLI failing: the step stops with a
     reason of its own, and it reaches the commit subject."""
@@ -296,14 +296,14 @@ def test_a_codex_model_at_capacity_is_its_own_stop_and_the_commit_says_so_AC_1(r
     assert subject_line.endswith("(stopped: model-at-capacity)"), subject_line
 
 
-def test_a_codex_at_capacity_error_with_no_failed_turn_is_the_same_stop_AC_1(runner, workspace, fake_codex):
+def test_a_codex_at_capacity_error_with_no_failed_turn_is_the_same_stop(runner, workspace, fake_codex):
     codex = fake_codex(emits(CODEX_STREAM_AT_CAPACITY_NO_TURN) + "; exit 1")
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["ok"] is False
     assert out["terminalReason"] == "model-at-capacity", out
 
 
-def test_a_codex_at_capacity_error_the_turn_got_past_is_not_a_stop_AC_1(runner, workspace, fake_codex):
+def test_a_codex_at_capacity_error_the_turn_got_past_is_not_a_stop(runner, workspace, fake_codex):
     """"Ends with" is the condition: an earlier error in a turn that then
     completed is not how the step ended."""
     codex = fake_codex(emits(CODEX_STREAM_RECOVERED))
@@ -313,7 +313,7 @@ def test_a_codex_at_capacity_error_the_turn_got_past_is_not_a_stop_AC_1(runner, 
     assert out["terminalReason"] == "completed"
 
 
-def test_a_codex_at_capacity_error_a_later_error_followed_is_a_cli_error_AC_6(runner, workspace, fake_codex):
+def test_a_codex_at_capacity_error_a_later_error_followed_is_a_cli_error(runner, workspace, fake_codex):
     """The last error decides: a different one after the at-capacity one is
     what the step ended on."""
     stream = CODEX_STREAM_AT_CAPACITY_NO_TURN + "\n" + CODEX_STREAM_FAILED.split("\n", 1)[1]
@@ -322,13 +322,13 @@ def test_a_codex_at_capacity_error_a_later_error_followed_is_a_cli_error_AC_6(ru
     assert out["terminalReason"] == "cli-error"
 
 
-def test_a_codex_exit_1_with_no_at_capacity_error_is_a_cli_error_AC_6(runner, workspace, fake_codex):
+def test_a_codex_exit_1_with_no_at_capacity_error_is_a_cli_error(runner, workspace, fake_codex):
     codex = fake_codex(emits(CODEX_STREAM_FAILED) + "; exit 1")
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["terminalReason"] == "cli-error"
 
 
-def test_a_codex_turn_at_capacity_with_a_full_window_keeps_the_provider_limit_AC_5(
+def test_a_codex_turn_at_capacity_with_a_full_window_keeps_the_provider_limit(
         runner, workspace, fake_codex, tmp_path, monkeypatch):
     home = tmp_path / "codex-home"
     _codex_session(home, {

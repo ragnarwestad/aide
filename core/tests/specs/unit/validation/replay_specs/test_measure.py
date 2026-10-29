@@ -8,7 +8,7 @@ from .conftest import commit, init_repo, write
 FENCE = "`" * 3
 
 
-def test_the_newest_plan_review_gives_the_counts_and_a_fenced_example_is_not_one_AC_5():
+def test_the_newest_plan_review_gives_the_counts_and_a_fenced_example_is_not_one():
     text = "\n".join([
         "## Plan review", "", "**Findings:** 5 must-fix, 9 should-fix, 14 acted on", "",
         "## Round 2", "", "## Plan review", "", FENCE + "text", "**Findings:** 9 must-fix, 9 should-fix, 9 acted on", FENCE, "",
@@ -20,7 +20,7 @@ def test_the_newest_plan_review_gives_the_counts_and_a_fenced_example_is_not_one
     assert (counts.must, counts.should) == (1, 4)
 
 
-def test_a_plan_with_no_review_or_no_counts_says_which_AC_5():
+def test_a_plan_with_no_review_or_no_counts_says_which():
     assert measure.plan_review_counts("# Plan\n\n## Risk analysis\n").note == "no plan review"
     no_counts = measure.plan_review_counts("## Plan review\n\n**Verdicts.** fine\n")
     assert (no_counts.must, no_counts.should, no_counts.note) == (None, None, "no counts")
@@ -33,18 +33,18 @@ def solution(*bullets):
     return "\n".join(["## Testing", "", "### Where the tests sit", "", *bullets, "", "### Unit tests", "", "- AC-9 is not a place"])
 
 
-def test_every_criterion_has_a_place_when_the_bullets_name_them_all_wrapped_or_not_AC_5():
+def test_every_criterion_has_a_place_when_the_bullets_name_them_all_wrapped_or_not():
     wrapped = "- **`parse`** in `t.py` (new) — AC-1,\n  AC-3"
     assert measure.unplaced_criteria(DESCRIPTION, solution(wrapped)) == "no: AC-2"
     assert measure.unplaced_criteria(DESCRIPTION, solution(wrapped, "- **`x`** in `u.py` (new) — AC-2")) == "yes"
 
 
-def test_a_plan_without_the_subsection_or_a_description_without_criteria_says_so_AC_5():
+def test_a_plan_without_the_subsection_or_a_description_without_criteria_says_so():
     assert measure.unplaced_criteria(DESCRIPTION, "## Testing\n\n### Unit tests\n") == "no such subsection"
     assert measure.unplaced_criteria("No criteria here.\n", solution("- x")) == "no criteria"
 
 
-def test_implement_rounds_are_one_plus_every_hand_back_the_log_names_AC_6():
+def test_implement_rounds_are_one_plus_every_hand_back_the_log_names():
     log = "\n".join([
         "aide-run-spec 10:00:00 +1s preparing",
         "aide-run-spec 10:20:00 +1200s error: the review found 2 defect(s)",
@@ -56,14 +56,14 @@ def test_implement_rounds_are_one_plus_every_hand_back_the_log_names_AC_6():
     assert measure.implement_rounds("aide-run-spec 10:00:00 +1s preparing\n") == 1
 
 
-def test_a_step_is_green_when_it_completed_with_a_green_run_of_its_own_AC_6():
+def test_a_step_is_green_when_it_completed_with_a_green_run_of_its_own():
     assert measure.implement_green({"terminalReason": "completed", "testedGreen": {"tree": "x"}}) == "yes"
     assert measure.implement_green({"terminalReason": "tests-red"}) == "no"
     assert measure.implement_green({"terminalReason": "completed"}) == "no test command"
     assert measure.implement_green({"terminalReason": "timeout"}) == "–"
 
 
-def test_the_original_tests_are_the_test_files_a_landing_added_or_changed_AC_6(tmp_path):
+def test_the_original_tests_are_the_test_files_a_landing_added_or_changed(tmp_path):
     repo = init_repo(tmp_path / "code")
     before = commit(repo, {"test_b.py": "def test_b(): pass\n", "src/b.py": "b = 0\n"})
     landed = commit(repo, {"test/a.test.ts": "x", "src/a.ts": "a", "test_b.py": "def test_b(): assert 1\n"})
@@ -76,7 +76,7 @@ def junit(*cases):
     return f'<?xml version="1.0"?><testsuites><testsuite name="s">{body}</testsuite></testsuites>'
 
 
-def test_junit_counts_add_the_cases_that_passed_of_those_that_ran_and_leave_skipped_ones_out_AC_6(tmp_path):
+def test_junit_counts_add_the_cases_that_passed_of_those_that_ran_and_leave_skipped_ones_out(tmp_path):
     pytest_xml = write_file(tmp_path / "py.xml", junit(("a", ""), ("b", ""), ("c", "<failure>no</failure>")))
     bun_xml = write_file(tmp_path / "bun.xml", junit(("d", ""), ("e", "<skipped/>")))
 
@@ -88,7 +88,7 @@ def write_file(path, text):
     return str(path)
 
 
-def test_a_test_file_is_run_on_its_own_and_its_cases_counted_AC_6(tmp_path):
+def test_a_test_file_is_run_on_its_own_and_its_cases_counted(tmp_path):
     work = tmp_path / "work"
     write(work / "test_two.py", "def test_a():\n    pass\n\n\ndef test_b():\n    assert False\n")
     write(work / "notes.sh", "echo hi\n")
@@ -127,7 +127,7 @@ def test_the_note_names_each_missing_test_runner_and_how_many_files_it_left_unru
     assert measure.missing_programs_note({}) == ""
 
 
-def test_step_tokens_sum_every_turn_in_the_stream_not_the_last_AC_8(tmp_path):
+def test_step_tokens_sum_every_turn_in_the_stream_not_the_last(tmp_path):
     claude = tmp_path / "claude.jsonl"
     claude.write_text("\n".join(json.dumps(e) for e in [
         {"type": "assistant", "usage": {"input_tokens": 99999}},

@@ -46,7 +46,7 @@ export function buildNavigation(
   /** A plain CLICK on the row's own button, through the delegated
    *  listener `#jobrows` carries. The fold's chevron is on that same
    *  listener, which is why a button that now sits on the head row
-   *  (spec 157) has to be shown not to reach it. */
+   *  has to be shown not to reach it. */
   const click = () => {
     button.closest = form.closest;
     return fire("click", button);
@@ -66,7 +66,7 @@ export function buildNavigation(
     isConnected: true,
   };
   const clickFold = () => fire("click", foldLink);
-  /** A press on any `a[data-nav]` link, by its own href (spec 500: the
+  /** A press on any `a[data-nav]` link, by its own href (the
    *  phase's ›, whose address decides what the stream is asked for). */
   const clickHref = (href: string) => {
     const link = {
@@ -81,8 +81,8 @@ export function buildNavigation(
 
 /** `document.querySelectorAll`, as `harness()`'s fake document answers
  *  it: form-scoped selects, the AI/model pairs, and everything written
- *  outside a form and tied to it by name. Spec 112 binds the Projects
- *  panel's forms as a SET, so a form-scoped selector answers only the
+ *  outside a form and tied to it by name. The Projects
+ *  panel's forms are bound as a SET, so a form-scoped selector answers only the
  *  selects that name that form — the DOM's own answer, and the one
  *  thing a fake that handed back every select on the page could not
  *  tell apart. The `data-ai` branch is asked FIRST on purpose: an AI
@@ -125,7 +125,7 @@ export function resolveDocumentQuerySelectorAll(
         (sel.includes('name^="model."') || sel.includes(`name="${s.name}"`)),
     );
   }
-  // Spec 151: everything written OUTSIDE a form and tied to it by
+  // Everything written OUTSIDE a form and tied to it by
   // name — the Run button, the four phase boxes, the five model
   // selects and the five AI selects. Another row's select names
   // another form and is not answered here, which is what "the press

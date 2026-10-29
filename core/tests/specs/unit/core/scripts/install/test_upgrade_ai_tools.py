@@ -3,7 +3,7 @@ keeps every AI CLI current via mise (see .claude/rules/development.md).
 
 Before this spec, `--help` (like every other argument) was silently
 ignored and the real upgrade ran regardless — the starkest case this
-spec's AC-2 covers, since today's behaviour for `--help` is "do the
+check covers, since today's behaviour for `--help` is "do the
 thing", not "refuse the thing".
 """
 import stat
@@ -26,7 +26,7 @@ def _stub(directory, name, marker):
 
 
 def test_help_flag_never_invokes_mise_or_claude(script, tmp_path):
-    """AC-2: a stub `mise`/`claude` put first on PATH must never be
+    """A stub `mise`/`claude` put first on PATH must never be
     called when --help is given."""
     marker = tmp_path / "called.txt"
     bin_dir = tmp_path / "bin"

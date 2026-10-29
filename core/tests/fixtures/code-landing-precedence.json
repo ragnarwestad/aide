@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Spec 220: how a project's code-landing choice resolves, as one table both",
+    "How a project's code-landing choice resolves, as one table both",
     "implementations are checked against. `aide-run-spec` (bash) and the dashboard's",
     "resolveCodeLanding() (TypeScript) read it independently — the pair is hand-kept,",
     "like WORKFLOW_STEPS, DEPENDENCY_GATED_STEPS and the worktree links, so the",

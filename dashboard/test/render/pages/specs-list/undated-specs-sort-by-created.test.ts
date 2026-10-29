@@ -11,7 +11,7 @@ const group = (over: Partial<SpecGroup>): SpecGroup =>
 const byCreated = (dir: "asc" | "desc"): SpecsFilter => ({ sort: "created", dir }) as SpecsFilter;
 
 describe("specs without a creation date", () => {
-  test("an archived one sorts as the oldest, while a live undated spec sorts as the newest (AC-3)", () => {
+  test("an archived one sorts as the oldest, while a live undated spec sorts as the newest", () => {
     const old = group({ specFolder: "24-old", state: "archived" });
     const dated = group({ specFolder: "300-dated", state: "archived", createdAt: "2026-09-01T00:00:00Z" });
     const fresh = group({ specFolder: "430-fresh", state: "not-started" });

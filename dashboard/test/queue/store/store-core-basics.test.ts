@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  // Per step since spec 152: an implement is not an analyze, and one
-  // number for both stopped 149 mid-sentence with its tests green.
+  // Per step: an implement is not an analyze, and one number for both
+  // stopped an implement mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -81,7 +81,7 @@ describe("QueueStore", () => {
     expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).list()).toEqual([]);
   });
 
-  // Criterion 11 (spec 149). Three jobs on this machine were posted with
+  // Three jobs on this machine were posted with
   // a gate before the stop between steps was removed, and their records
   // are still in the mirror. A retired FIELD is ignored, like every
   // other unknown key; a retired STATE fails the state check and takes
@@ -117,7 +117,7 @@ describe("QueueStore", () => {
   });
 });
 
-// Criterion 3's data layer (spec 02): the session of the step that is
+// The data layer: the session of the step that is
 // running right now. It is worth nothing unless it survives a restart —
 // the very case where the run is still going and the page has to say
 // what it is doing.
@@ -160,7 +160,7 @@ describe("the running step's session", () => {
   });
 });
 
-// Spec 89: which repos does this spec have a branch in RIGHT NOW? A
+// Which repos does this spec have a branch in RIGHT NOW? A
 // spec is taken through its steps as several jobs, and each job knows
 // only about the repos its own steps pushed to. The merge route needs
 // the union — and never trusts the browser for it.
@@ -219,7 +219,7 @@ describe("branchesFor", () => {
   });
 });
 
-// Spec 319: the row-level sibling of `pullRequestFor` — newest job wins,
+// The row-level sibling of `pullRequestFor` — newest job wins,
 // and a spec no job ever recorded one for reads as absent rather than as
 // a claim.
 describe("branchDeleteErrorFor", () => {

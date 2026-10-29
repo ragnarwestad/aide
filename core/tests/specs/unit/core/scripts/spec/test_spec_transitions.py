@@ -1,5 +1,5 @@
 """Tests for `may_apply_spec_transition`/`apply_spec_transition`
-(core/scripts/lib/spec-transitions.sh), spec 356's one table and one
+(core/scripts/lib/spec-transitions.sh), the one table and one
 function pair for moving a spec between phases: created, analyzed,
 implemented, archived.
 """
@@ -75,7 +75,7 @@ def write_stamp_and_mirror(status_file, kind, value=""):
     return proc
 
 
-# --- REQ-1, REQ-3: forward moves and their refusals ------------------------
+# --- Forward moves and their refusals ------------------------
 
 
 def test_analyze_is_legal_from_created(tmp_path):
@@ -118,7 +118,7 @@ def test_archive_is_legal_from_implemented(tmp_path):
     assert result["RC"] == "0"
 
 
-# --- REQ-9: backward moves are refused, naming the way back ----------------
+# --- Backward moves are refused, naming the way back ----------------
 
 
 def test_analyze_may_run_again_once_implemented(tmp_path):
@@ -158,7 +158,7 @@ def test_reopen_is_legal_only_from_archived(tmp_path):
     assert result["RC"] == "0"
 
 
-# --- close: legal from any pre-archive phase, unlike archive (REQ-1, REQ-13) --
+# --- close: legal from any pre-archive phase, unlike archive --
 
 
 def test_close_is_legal_from_created_with_no_step_completed(tmp_path):
@@ -226,7 +226,7 @@ def test_write_phase_stamp_writes_the_closed_stamp_with_its_reason(tmp_path):
     assert state["closed"]["date"]
 
 
-# --- may_apply never writes (REQ-3) -----------------------------------------
+# --- may_apply never writes -----------------------------------------
 
 
 def test_may_apply_leaves_the_file_byte_for_byte_unchanged_on_refusal(tmp_path):
@@ -280,7 +280,7 @@ def test_apply_writes_the_reset_stamp_with_its_boundary_sha(tmp_path):
     assert state["completedPhases"] == []
 
 
-# --- spec 511: a stamp with a later boundary after it is history -----------
+# --- A stamp with a later boundary after it is history -----------
 
 
 def _status_with(tmp_path, folder, lines, workflow_line="create, analyze, implement"):
@@ -309,45 +309,45 @@ def _phase(status_file):
 ROUND = "- **Round boundary:** 2026-09-19 (history before `abc1234` does not count)"
 
 
-def test_implement_is_legal_on_an_archived_spec_reopened_without_reset_AC_2(tmp_path):
+def test_implement_is_legal_on_an_archived_spec_reopened_without_reset(tmp_path):
     status_file = _status_with(tmp_path, "5-x", ["", "**Archived:** 2026-09-01", "", ROUND])
     assert _phase(status_file) == "implemented"
     assert may_apply(status_file, "implement")["RC"] == "0"
 
 
-def test_an_archived_spec_that_was_not_reopened_still_refuses_implement_AC_2(tmp_path):
+def test_an_archived_spec_that_was_not_reopened_still_refuses_implement(tmp_path):
     status_file = _status_with(tmp_path, "5-x", ["", "**Archived:** 2026-09-01"])
     assert _phase(status_file) == "archived"
     result = may_apply(status_file, "implement")
     assert result["RC"] == "1"
 
 
-def test_a_closed_spec_reopened_without_reset_no_longer_reads_closed_AC_2(tmp_path):
+def test_a_closed_spec_reopened_without_reset_no_longer_reads_closed(tmp_path):
     status_file = _status_with(
         tmp_path, "5-x", ["", "**Closed:** 2026-09-01 — no", "", ROUND], workflow_line="create, analyze")
     assert _phase(status_file) == "analyzed"
 
 
-def test_an_archive_stamp_after_the_boundary_counts_again_AC_2(tmp_path):
+def test_an_archive_stamp_after_the_boundary_counts_again(tmp_path):
     status_file = _status_with(
         tmp_path, "5-x", ["", "**Archived:** 2026-09-01", "", ROUND, "", "**Archived:** 2026-09-20"])
     assert _phase(status_file) == "archived"
 
 
-def test_a_closed_stamp_after_the_boundary_counts_again_AC_2(tmp_path):
+def test_a_closed_stamp_after_the_boundary_counts_again(tmp_path):
     status_file = _status_with(
         tmp_path, "5-x", ["", "**Archived:** 2026-09-01", "", ROUND, "", "**Closed:** 2026-09-20 — no"])
     assert _phase(status_file) == "closed"
 
 
-def test_a_reopened_or_reset_mark_after_the_stamp_is_history_too_AC_2(tmp_path):
+def test_a_reopened_or_reset_mark_after_the_stamp_is_history_too(tmp_path):
     for mark in ("Reopened", "Reset"):
         line = f"- **{mark}:** 2026-09-19 (history before `abc1234` does not count)"
         status_file = _status_with(tmp_path, f"5-{mark}", ["", "**Archived:** 2026-09-01", "", line])
         assert _phase(status_file) == "implemented", mark
 
 
-def test_reopen_keep_takes_archive_off_the_line_and_the_state_and_stamps_the_boundary_AC_2(tmp_path):
+def test_reopen_keep_takes_archive_off_the_line_and_the_state_and_stamps_the_boundary(tmp_path):
     status_file = _status_with(
         tmp_path, "5-x", ["", "**Archived:** 2026-09-01"], workflow_line="create, analyze, implement, archive")
     script = (
@@ -366,7 +366,7 @@ def test_reopen_keep_takes_archive_off_the_line_and_the_state_and_stamps_the_bou
     assert state["archived"] is None
 
 
-# --- A Failed row goes back to open on Reopen (spec 510) ---------------------
+# --- A Failed row goes back to open on Reopen ---------------------
 
 _FAILED_STATUS = (
     "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n"
@@ -389,7 +389,7 @@ def _reopen_keep(tmp_path, body):
     return status_file
 
 
-def test_reopen_keep_unticks_failed_acceptance_rows_and_keeps_their_notes_AC_9(tmp_path):
+def test_reopen_keep_unticks_failed_acceptance_rows_and_keeps_their_notes(tmp_path):
     status_file = _reopen_keep(tmp_path, _FAILED_STATUS)
     text = status_file.read_text()
     assert "| AC-1: one | ⬜ | Failed: the log shows no row for $& |" in text
@@ -401,7 +401,7 @@ def test_reopen_keep_unticks_failed_acceptance_rows_and_keeps_their_notes_AC_9(t
     assert [r.get("failed") for r in state["acceptanceCriteria"]] == [None, None, None, None]
 
 
-def test_reopen_keep_without_a_failed_row_changes_no_row_AC_9(tmp_path):
+def test_reopen_keep_without_a_failed_row_changes_no_row(tmp_path):
     body = _FAILED_STATUS.replace("❌ Failed", "✅").replace("| Failed |", "| ✅ |")
     status_file = _reopen_keep(tmp_path, body)
     assert body in status_file.read_text()
@@ -428,7 +428,7 @@ def _rebuild(tmp_path, status_body, description_body, mark="⬜"):
     return status_file
 
 
-def test_rebuild_acceptance_rows_writes_one_unticked_row_per_criterion_AC_2(tmp_path):
+def test_rebuild_acceptance_rows_writes_one_unticked_row_per_criterion(tmp_path):
     status_file = _rebuild(
         tmp_path,
         "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD
@@ -441,7 +441,7 @@ def test_rebuild_acceptance_rows_writes_one_unticked_row_per_criterion_AC_2(tmp_
     )
 
 
-def test_rebuild_acceptance_rows_a_second_call_changes_nothing_AC_2(tmp_path):
+def test_rebuild_acceptance_rows_a_second_call_changes_nothing(tmp_path):
     status_file = _rebuild(
         tmp_path,
         "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD + "| AC-1: old | ✅ | |\n",
@@ -453,7 +453,7 @@ def test_rebuild_acceptance_rows_a_second_call_changes_nothing_AC_2(tmp_path):
     assert status_file.read_text() == first
 
 
-def test_rebuild_acceptance_rows_replaces_only_the_first_table_under_the_first_heading_AC_2(tmp_path):
+def test_rebuild_acceptance_rows_replaces_only_the_first_table_under_the_first_heading(tmp_path):
     body = (
         "# X\n\n## Phase 1: RED\n\n" + _TABLE_HEAD + "| a task | ✅ | |\n\n"
         "## Acceptance criteria\n\n" + _TABLE_HEAD + "| AC-1: old | ✅ | |\n\n"
@@ -466,7 +466,7 @@ def test_rebuild_acceptance_rows_replaces_only_the_first_table_under_the_first_h
     assert "| AC-1: kept | ✅ | |" in text
 
 
-def test_rebuild_acceptance_rows_takes_the_first_line_of_a_duplicated_id_AC_2(tmp_path):
+def test_rebuild_acceptance_rows_takes_the_first_line_of_a_duplicated_id(tmp_path):
     text = _rebuild(
         tmp_path,
         "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD + "| AC-1: old | ✅ | |\n",
@@ -476,7 +476,7 @@ def test_rebuild_acceptance_rows_takes_the_first_line_of_a_duplicated_id_AC_2(tm
     assert "second" not in text
 
 
-def test_rebuild_acceptance_rows_reads_the_misplaced_colon_form_AC_2(tmp_path):
+def test_rebuild_acceptance_rows_reads_the_misplaced_colon_form(tmp_path):
     text = _rebuild(
         tmp_path,
         "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD + "| AC-1: old | ✅ | |\n",
@@ -485,7 +485,7 @@ def test_rebuild_acceptance_rows_reads_the_misplaced_colon_form_AC_2(tmp_path):
     assert "| AC-1: the wording | ⬜ | |" in text
 
 
-def test_rebuild_acceptance_rows_keeps_a_note_only_while_the_wording_is_unchanged_AC_2(tmp_path):
+def test_rebuild_acceptance_rows_keeps_a_note_only_while_the_wording_is_unchanged(tmp_path):
     text = _rebuild(
         tmp_path,
         "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD
@@ -496,12 +496,12 @@ def test_rebuild_acceptance_rows_keeps_a_note_only_while_the_wording_is_unchange
     assert "| AC-2: after | ⬜ | |" in text
 
 
-def test_rebuild_acceptance_rows_leaves_a_section_without_a_table_alone_AC_1_AC_5(tmp_path):
+def test_rebuild_acceptance_rows_leaves_a_section_without_a_table_alone(tmp_path):
     body = "# X\n\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n"
     assert _rebuild(tmp_path, body, "- **AC-1:** one\n").read_text() == body
 
 
-def test_rebuild_acceptance_rows_without_a_criterion_line_only_clears_the_status_AC_3(tmp_path):
+def test_rebuild_acceptance_rows_without_a_criterion_line_only_clears_the_status(tmp_path):
     text = _rebuild(
         tmp_path,
         "# X\n\n## Acceptance criteria\n\n" + _TABLE_HEAD
@@ -512,7 +512,7 @@ def test_rebuild_acceptance_rows_without_a_criterion_line_only_clears_the_status
     assert "| AC-2: two | ⬜ | |" in text
 
 
-def test_rebuild_marks_reworded_and_new_rows_and_keeps_matching_notes_AC_1_AC_2(tmp_path):
+def test_rebuild_marks_reworded_and_new_rows_and_keeps_matching_notes(tmp_path):
     text = _rebuild(
         tmp_path, "## Acceptance criteria\n\n" + _TABLE_HEAD
         + "| AC-1: same | ✅ | Failed: check again |\n| AC-2: old | ⬜ | old note |\n",
@@ -524,7 +524,7 @@ def test_rebuild_marks_reworded_and_new_rows_and_keeps_matching_notes_AC_1_AC_2(
 
 
 @pytest.mark.parametrize("criteria", ["- **AC-1:** first\n", ""])
-def test_rebuild_replaces_legacy_sentence_only_with_readable_criteria_AC_1(tmp_path, criteria):
+def test_rebuild_replaces_legacy_sentence_only_with_readable_criteria(tmp_path, criteria):
     body = "## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n"
     tail = "\n## Notation\n\nKeep this.\n"
     text = _rebuild(tmp_path, body + tail, criteria, "Not verified").read_text()
@@ -533,7 +533,7 @@ def test_rebuild_replaces_legacy_sentence_only_with_readable_criteria_AC_1(tmp_p
     assert text == expected + tail
 
 
-def test_rebuild_without_criteria_marks_existing_rows_and_keeps_notes_AC_2(tmp_path):
+def test_rebuild_without_criteria_marks_existing_rows_and_keeps_notes(tmp_path):
     text = _rebuild(
         tmp_path, "## Acceptance criteria\n\n" + _TABLE_HEAD
         + "| AC-1: first | ✅ | note |\n", "# No readable criteria\n", "Not verified",

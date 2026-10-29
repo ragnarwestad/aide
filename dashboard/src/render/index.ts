@@ -22,7 +22,7 @@
 export {
   NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody,
   navEntries,
-  // `/projects/<name>` — the project's own page, served (spec 185), so
+  // `/projects/<name>` — the project's own page, served, so
   // what it says about the config file is true when it is read rather
   // than at some earlier time.
   projectPagePath, projectScheduleTab, renderProjectPage,
@@ -55,12 +55,12 @@ export {
 } from "./pages/settings-page/models.ts";
 export type { ModelsPanel, OfferedModel, ToolModels } from "./pages/settings-page/models.ts";
 
-// /test-servers (spec 425, REQ-3/REQ-4): every tracked test server,
+// /test-servers: every tracked test server,
 // across every project, in one place.
 export { renderTestServersPage, TEST_SERVERS_ROUTE } from "./pages/test-servers-page.ts";
 export type { TestServerRow, TestServersPageOptions } from "./pages/test-servers-page.ts";
 
-// /schedule (spec 272): the aggregate page listing every allowed
+// /schedule: the aggregate page listing every allowed
 // project's scheduled jobs, an entry's own page, and the page that
 // makes an entry.
 export {
@@ -74,8 +74,8 @@ export type {
   SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, SchedulePromptPageOptions, ScheduleTab,
 } from "./pages/schedule-page";
 
-// The eight answers that make the dashboard an app you install (spec
-// 173). Unlike every other export here they are not pages: they are
+// The eight answers that make the dashboard an app you install.
+// Unlike every other export here they are not pages: they are
 // what `serve.ts` puts behind /manifest.webmanifest, /sw.js and the
 // icon paths, computed rather than read from disk like the rest
 // of this file.
@@ -115,8 +115,8 @@ export { jobsShown, jobsTabHasRows, renderJobsPage, renderJobsRows, renderJobsSp
 export type { JobsView } from "./pages/jobs-page";
 export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./pages/job-page";
 
-// `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec
-// 150). It shares the job page's tab bar and steps table rather than
+// `/specs/<project>/<specFolder>` — the SPEC, not one of its runs.
+// It shares the job page's tab bar and steps table rather than
 // carrying copies of them.
 export {
   EDITABLE_SPEC_FILE,

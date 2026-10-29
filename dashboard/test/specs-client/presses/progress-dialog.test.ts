@@ -132,7 +132,7 @@ describe("submitProgress from inside the ask", () => {
     expect(io.gone).toEqual(["/"]);
   });
 
-  test("a refusal is written in the box, which stays open, is not standing, and nothing navigates (AC-3)", async () => {
+  test("a refusal is written in the box, which stays open, is not standing, and nothing navigates", async () => {
     stubPost(400, { error: "Give a reason." });
     const a = fakeAsk();
     const io = fakeIo();
@@ -150,7 +150,7 @@ describe("standOpen, the one hold", () => {
     return io;
   };
 
-  test("opens the dialog as a modal, marks it standing and empties its line (AC-2)", () => {
+  test("opens the dialog as a modal, marks it standing and empties its line", () => {
     const a = fakeAsk();
     a.line.textContent = "old";
     standOpen(a.ask as unknown as HTMLDialogElement, restoring());
@@ -160,14 +160,14 @@ describe("standOpen, the one hold", () => {
     expect(a.line.textContent).toBe("");
   });
 
-  test("a dialog already open is not opened again (AC-2)", () => {
+  test("a dialog already open is not opened again", () => {
     const a = fakeAsk();
     a.ask.open = true;
     standOpen(a.ask as unknown as HTMLDialogElement, restoring());
     expect(a.ask.shows).toBe(0);
   });
 
-  test("Escape is prevented while it is held, and not once it is released (AC-2)", () => {
+  test("Escape is prevented while it is held, and not once it is released", () => {
     const a = fakeAsk();
     const hold = standOpen(a.ask as unknown as HTMLDialogElement, restoring());
     expect(a.ask.fire("cancel").defaultPrevented).toBe(true);
@@ -176,7 +176,7 @@ describe("standOpen, the one hold", () => {
     expect(isStanding(a.ask as unknown as HTMLDialogElement)).toBe(false);
   });
 
-  test("a browser that closes the held dialog anyway gets it shown again, and a close after release is left alone (AC-2)", () => {
+  test("a browser that closes the held dialog anyway gets it shown again, and a close after release is left alone", () => {
     const a = fakeAsk();
     const hold = standOpen(a.ask as unknown as HTMLDialogElement, restoring());
     a.ask.close();
@@ -190,7 +190,7 @@ describe("standOpen, the one hold", () => {
     expect(a.ask.open).toBe(false);
   });
 
-  test("two holds of one dialog attach one listener of each kind (AC-2)", () => {
+  test("two holds of one dialog attach one listener of each kind", () => {
     const a = fakeAsk();
     const io = restoring();
     let restores = 0;
@@ -202,7 +202,7 @@ describe("standOpen, the one hold", () => {
     expect(restores).toBe(1);
   });
 
-  test("a restore from the cache closes it, releases it and empties its line (AC-2)", () => {
+  test("a restore from the cache closes it, releases it and empties its line", () => {
     const a = fakeAsk();
     const io = restoring();
     standOpen(a.ask as unknown as HTMLDialogElement, io);
@@ -215,7 +215,7 @@ describe("standOpen, the one hold", () => {
     expect(a.ask.fire("cancel").defaultPrevented).toBe(false);
   });
 
-  test("release with a reason writes it in the dialog's own line; release without one leaves the line (AC-3)", () => {
+  test("release with a reason writes it in the dialog's own line; release without one leaves the line", () => {
     const a = fakeAsk();
     standOpen(a.ask as unknown as HTMLDialogElement, restoring()).release("Not on the allowlist.");
     expect(a.line.textContent).toBe("Not on the allowlist.");

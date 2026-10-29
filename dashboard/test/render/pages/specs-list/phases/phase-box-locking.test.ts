@@ -8,10 +8,10 @@ import {
 import { row, openKeys } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
-// --- spec 94: a spec's phases are ticked and run from its own row ------------
+// --- A spec's phases are ticked and run from its own row ------------
 //
 // Split out of row-status-and-controls.test.ts by theme: the phase
-// box's own ticking/locking rules (specs 267, 160, 225). The rest of
+// box's own ticking/locking rules. The rest of
 // "a spec's row runs its own phases" — folding, the row summary, the
 // top form, refusals — is in phase-row-rendering.test.ts.
 //
@@ -32,7 +32,7 @@ describe("a spec's row runs its own phases", () => {
     ...extra,
   });
 
-  // The run control belongs to an OPEN row since spec 103, so this
+  // The run control belongs to an OPEN row, so this
   // block opens every spec it renders unless a test says otherwise —
   // it is about what that control holds, which has not changed.
   const rows = (
@@ -51,7 +51,7 @@ describe("a spec's row runs its own phases", () => {
       Date.parse("2026-08-18T12:00:00Z"),
     );
 
-  /** The line the run control is on — since spec 109 a `<tr>` of its
+  /** The line the run control is on — a `<tr>` of its
    *  own under the header, rather than the header's last cell. */
   const runLine = (html: string, folder: string) =>
     html.match(
@@ -60,7 +60,7 @@ describe("a spec's row runs its own phases", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** A phase's own line — an ordinary row of six cells since spec 157,
+  /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
@@ -99,13 +99,13 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "implement")).toContain('value="implement" checked');
   });
 
-  // Spec 200: a press takes the spec as far as it can go, so every
+  // A press takes the spec as far as it can go, so every
   // phase that has not run starts ticked. Whether a job has ever run
   // for the spec makes no difference to that — `explore` is outside
   // the phase steps, so a spec that has only explored has the same
   // empty done-set, and the same three ticks, as one nothing has run
   // at all. That distinction used to be two tests here.
-  test("a spec nothing has run pre-ticks every phase (criterion 1)", () => {
+  test("a spec nothing has run pre-ticks every phase", () => {
     const lines = [
       runLine(rows([], [target("94-never-run")]), "94-never-run"),
       runLine(rows([job("j1", "explore")], [target("94-row-runs-it")]), "94-row-runs-it"),
@@ -117,7 +117,7 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  test("pre-ticking never re-ticks a phase already done on disk (criterion 2)", () => {
+  test("pre-ticking never re-ticks a phase already done on disk", () => {
     // Nothing was ever queued for this spec, but its 2-analysis.md is
     // filled in: `done` is read off the files, not off job history.
     // `analyze` is done, so its box is not pre-ticked; the two phases
@@ -129,10 +129,10 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "archive")).toContain('value="archive" checked');
   });
 
-  // Criterion 2, as spec 105 rewrote it: the siblings lock too. The
+  // The siblings lock too. The
   // rule is read off the spec — one job in flight on it, so no second
   // job from this row — not off the one step that job happens to name.
-  test("a phase in flight locks every box on the row, not only its own (criterion 2)", () => {
+  test("a phase in flight locks every box on the row, not only its own", () => {
     for (const state of ["queued", "running"] as const) {
       const line = runLine(
         rows([job("j1", "implement", { state })], [target("94-row-runs-it")]),
@@ -144,13 +144,13 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  // Spec 160 narrowed the rule above, and did not replace it: the tail
+  // This narrows the rule above, and does not replace it: the tail
   // of a RUNNING job is editable, and everything else on a busy row is
   // as locked as it ever was. `editableSteps` is the server's own
   // answer for which those are — worked out in `queue.ts` against the
   // job as it stands, so the box and the route that takes its tick can
   // never disagree about the boundary.
-  test("a later phase's box stays live while the job runs (spec 160, criterion 1)", () => {
+  test("a later phase's box stays live while the job runs", () => {
     const line = runLine(
       rows(
         [job("j1", "analyze", { state: "running", editableSteps: ["implement", "archive"] })],
@@ -169,7 +169,7 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  test("a step the server did not name stays locked (spec 160, criterion 9)", () => {
+  test("a step the server did not name stays locked", () => {
     const line = runLine(
       rows(
         [
@@ -193,7 +193,7 @@ describe("a spec's row runs its own phases", () => {
   // The window between two steps is under two seconds long and is not a
   // job that is running: the server names no editable step for it, and
   // the row goes back to what it looks like today.
-  test("a job merely queued between two steps locks everything (spec 160, criterion 8)", () => {
+  test("a job merely queued between two steps locks everything", () => {
     const line = runLine(
       rows([job("j1", "analyze", { state: "queued" })], [target("94-row-runs-it")]),
       "94-row-runs-it",
@@ -204,11 +204,11 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  // --- spec 225: the pickers follow the same rule the boxes do -------------
+  // --- The pickers follow the same rule the boxes do -------------
   //
-  // Spec 160 unlocked the boxes for the phases a running job has not
-  // reached; the AI and model selects beside them stayed locked on the
-  // row-level `busy` alone. They read `editableSteps` now — the
+  // The boxes are unlocked for the phases a running job has not
+  // reached; the AI and model selects beside them are not locked on the
+  // row-level `busy` alone. They read `editableSteps` — the
   // server's own answer, the same one the box reads, so a picker and
   // the box on its own line can never disagree about where the tail
   // starts.
@@ -226,7 +226,7 @@ describe("a spec's row runs its own phases", () => {
     };
   };
 
-  test("a later phase the job HAS keeps its AI and model pickable (spec 225, criterion 1)", () => {
+  test("a later phase the job HAS keeps its AI and model pickable", () => {
     const html = rows(
       [
         job("j1", "analyze", {
@@ -252,7 +252,7 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  test("a phase the job does not have at all is pickable too (spec 225, criterion 2)", () => {
+  test("a phase the job does not have at all is pickable too", () => {
     const html = rows(
       [job("j1", "analyze", { state: "running", editableSteps: ["implement", "archive"] })],
       [target("94-row-runs-it")],
@@ -266,7 +266,7 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  test("the running phase and everything behind it stay locked (spec 225, criterion 3)", () => {
+  test("the running phase and everything behind it stay locked", () => {
     const html = rows(
       [
         job("j1", "implement", {
@@ -283,7 +283,7 @@ describe("a spec's row runs its own phases", () => {
       const p = pickers(html, step);
       expect([step, p.ai.includes("disabled")]).toEqual([step, true]);
       expect([step, p.model.includes("disabled")]).toEqual([step, true]);
-      // Spec 454: the same sentence used to sit on both selects' own
+      // The same sentence used to sit on both selects' own
       // `title`, four times over on a busy line.
       expect([step, subRow(html, step).includes('title="Implement is running"')]).toEqual([step, false]);
       expect([step, p.model.includes("data-post-to")]).toEqual([step, false]);
@@ -295,7 +295,7 @@ describe("a spec's row runs its own phases", () => {
 
   // The window between two steps is not a running job: the server names
   // no editable step for it, and the row goes back to locking wholesale.
-  test("a job merely queued between two steps locks both pickers (spec 225)", () => {
+  test("a job merely queued between two steps locks both pickers", () => {
     const html = rows(
       [job("j1", "analyze", { state: "queued" })],
       [target("94-row-runs-it")],
@@ -309,8 +309,8 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  /** Rewritten by spec 145. While a row is busy, a box's tick stopped
-   *  meaning "what a fresh press would pre-tick" and started meaning
+  /** While a row is busy, a box's tick does not mean
+   *  "what a fresh press would pre-tick" but
    *  "this job named this step" — and a job names the step it is
    *  running. What the test was guarding, that nothing stale is posted
    *  back, was never the tick: it is `disabled`, which every box on a
@@ -321,15 +321,15 @@ describe("a spec's row runs its own phases", () => {
       "94-row-runs-it",
     );
     expect(box(line, "analyze")).toContain("disabled");
-    // Its own job named it, so it reads as ticked — and since spec 168
+    // Its own job named it, so it reads as ticked — and
     // that is ALL it reads as: the running phase's box looks exactly
     // like every other locked-but-ticked phase behind it, because the
     // "this phase is running" signal moved to the row's pip.
     expect(box(line, "analyze")).toContain('class="phase checked"');
     expect(box(line, "analyze")).not.toContain('class="spin"');
     // The one that is NOT in this job stays untouched by that. It is
-    // locked here because the server named no editable step — spec 160
-    // is what decides that, and this test is about the tick.
+    // locked here because the server named no editable step — that
+    // is what decides it, and this test is about the tick.
     expect(box(line, "implement")).not.toContain("checked");
     expect(box(line, "implement")).toContain("disabled");
   });
@@ -339,7 +339,7 @@ describe("a spec's row runs its own phases", () => {
   // is still active — and this box must keep the ordinary tickable
   // treatment, not the new locked one (2-analysis.md, "The archive
   // exception").
-  test("a held-back archive already in g.done stays tickable, not locked (spec 267, criterion 4)", () => {
+  test("a held-back archive already in g.done stays tickable, not locked", () => {
     const line = runLine(
       rows(
         [job("j1", "archive")],
@@ -355,8 +355,8 @@ describe("a spec's row runs its own phases", () => {
   // A phase already in `g.done` can still be genuinely re-running (e.g.
   // a `/aide-reset`-triggered redo, outside this row's own UI). The busy
   // path must keep rendering — checked, disabled, with the busy reason
-  // — not the "already done" wording (spec 267, criterion 5).
-  test("a busy rerun of an already-done phase keeps the busy wording, not 'already done' (spec 267, criterion 5)", () => {
+  // — not the "already done" wording.
+  test("a busy rerun of an already-done phase keeps the busy wording, not 'already done'", () => {
     const line = runLine(
       rows(
         [job("j1", "analyze", { state: "running" })],
@@ -365,7 +365,7 @@ describe("a spec's row runs its own phases", () => {
       "94-row-runs-it",
     );
     expect(box(line, "analyze")).toContain("disabled");
-    // Spec 454: the box's own `title` is gone.
+    // The box's own `title` is gone.
     expect(box(line, "analyze")).not.toContain('title="Analyze is running"');
     expect(box(line, "analyze")).not.toContain("already done");
   });
@@ -427,13 +427,13 @@ describe("a phase whose box is locked has its AI and model locked too", () => {
   });
 });
 
-// --- spec 471: another round on a held-back spec, seen from the row ---------
+// --- Another round on a held-back spec, seen from the row ---------
 //
 // The rule shipped everywhere but the button: the route that takes a
 // Run press already lets a spec held back on unticked acceptance
 // criteria run Analyze and Implement again, and the runner reuses the
 // spec's own branch — while the row went on drawing both phases ticked
-// and locked, the way spec 267 draws every phase that has run. A rule
+// and locked, the way every phase that has run is drawn. A rule
 // with no control to reach it is the same as no rule.
 describe("a held-back spec's row offers the round again", () => {
   const job = (id: string, step: string): QueueRowView =>

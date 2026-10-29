@@ -1,4 +1,4 @@
-// Spec 439: a phase choice made on New spec, or left on a row's own
+// A phase choice made on New spec, or left on a row's own
 // checkboxes at a later Run, survives the row's next render — the
 // store's own half, mirroring `pending-models.test.ts` and
 // `pending-effort.test.ts` exactly. `setPendingSteps()` records the
@@ -32,7 +32,7 @@ beforeEach(() => {
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-describe("QueueStore.setPendingSteps() (spec 439)", () => {
+describe("QueueStore.setPendingSteps()", () => {
   test("records a valid choice", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     const result = store.setPendingSteps("aide", "81-queue-and-runner", ["analyze"]);
@@ -40,7 +40,7 @@ describe("QueueStore.setPendingSteps() (spec 439)", () => {
     expect(store.pendingSteps["aide/81-queue-and-runner"]).toEqual(["analyze"]);
   });
 
-  // AC-5's own case: "nothing ticked" is a real, recorded answer — never
+  // The case where "nothing ticked" is a real, recorded answer — never
   // an absent one indistinguishable from a spec nobody has ever ticked
   // anything on.
   test("records an empty choice as an empty list, not as no entry at all", () => {
@@ -91,7 +91,7 @@ describe("QueueStore.setPendingSteps() (spec 439)", () => {
   });
 });
 
-describe("what records a phase choice, and what must not (spec 439)", () => {
+describe("what records a phase choice, and what must not", () => {
   const allow = (project: string) => project === "brandnew";
 
   test("forgetPendingSteps() drops the entry, on disk too, and is a no-op for a spec with none", () => {
@@ -121,7 +121,7 @@ describe("what records a phase choice, and what must not (spec 439)", () => {
   // An untouched New-spec form posts no `steps` at all, which
   // `parseCreateRequest` reads as `["create"]` — every phase after
   // create left for the reader to tick later. That is recorded as an
-  // explicit empty choice, not left unrecorded: AC-1's own "some phases
+  // explicit empty choice, not left unrecorded: the "some phases
   // after create unticked" case, at its most literal.
   test("enqueueCreate() with no extra steps records an explicit empty choice", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve, allowCreateProject: allow });
@@ -158,7 +158,7 @@ describe("what records a phase choice, and what must not (spec 439)", () => {
 // The hook lives in the ROUTE, not in the store, so it is exercised
 // here through a real server the way `row-phase-run.test.ts` already
 // does for the rest of that route's behaviour.
-describe("POST /api/queue records the row's own choice (spec 439)", () => {
+describe("POST /api/queue records the row's own choice", () => {
   const harness = queueHarness("aide-pending-steps-route-", IMPLEMENTED);
   afterEach(() => harness.cleanup());
 
@@ -175,7 +175,7 @@ describe("POST /api/queue records the row's own choice (spec 439)", () => {
     const { job } = (await res.json()) as { job: { id: string } };
     // Cancelled, not left queued: with no runner configured this
     // harness's job would sit `queued` forever, and a busy row reads its
-    // boxes off the JOB's own tail (`g.lead.steps`, spec 160) rather than
+    // boxes off the JOB's own tail (`g.lead.steps`) rather than
     // off the recorded choice — which would make this pass for the wrong
     // reason. Cancelling settles the job so the row goes idle, which is
     // the render this test is actually about: what the row shows once

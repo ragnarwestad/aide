@@ -31,7 +31,7 @@ run_model_turn() {
   # cd into the project's WORKTREE first. A skill resolves the project from
   # its working directory, so inheriting the caller's cwd (a server's, say)
   # makes the run analyse the wrong repository — measured on the first
-  # real job, 2026-08-16, which cost $0.45 to discover. Since spec 91 the
+  # real job, 2026-08-16, which cost $0.45 to discover. The
   # directory is the throwaway checkout, which is the tree this run will
   # commit from. `exec` keeps the pid, so $! is still the process group we
   # later signal.
@@ -84,7 +84,7 @@ session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason="";
 # sets it would abort the whole run.
 turn_message=""
 # The tokens the step actually metered, as a JSON object — or empty,
-# which is what makes the field ABSENT rather than zero (spec 118).
+# which is what makes the field ABSENT rather than zero.
 tokens_json=""
 # The model id the run's own log names (`system`/`init`), or empty, which
 # makes the result's `modelId` ABSENT rather than a guess.
@@ -100,7 +100,7 @@ at_capacity_out=""
 # Did the tool report an outcome of its own at all? For claude this is
 # the same question as "was a cost measured", which is why the branch
 # below used to ask that one — but a Codex step never measures a cost
-# and still finishes, so the two questions had to come apart (spec 125).
+# and still finishes, so the two questions had to come apart.
 have_result="false"
 # Is there a dollar figure to report? Claude sets one on every path,
 # including the over-charge a killed run is billed. Codex publishes no
@@ -148,7 +148,7 @@ if [ "$tool" = "codex" ]; then
       *) subtype="turn_failed"
          error_msg="$(jq -r '(.error.message // .error // "the turn failed") | tostring' <<<"$result_json")" ;;
     esac
-    # Codex's usage block, mapped into the shape spec 118 already
+    # Codex's usage block, mapped into the shape the claude path already
     # defined. Two of the four need saying out loud: reasoning tokens
     # are BILLED AS OUTPUT and so are added to it rather than dropped,
     # and Codex exposes no separate cache-WRITE count at all — zero
@@ -328,7 +328,7 @@ if [ -n "$stopped" ]; then
   # could not be measured; the token count is dropped rather than
   # half-reported.
   tokens_json=""
-  # A limit WE set, not something that happened to us — and spec 146's
+  # A limit WE set, not something that happened to us — and the
   # commit below has already put the work on the branch, so the step
   # can be re-run from where it got to. The row says "press Run"
   # separately (`nextActionHint`); this sentence only has to say why

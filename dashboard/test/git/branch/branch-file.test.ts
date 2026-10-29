@@ -1,8 +1,7 @@
-// Spec 291: reading and writing a spec file on a branch WITHOUT ever
+// Reading and writing a spec file on a branch WITHOUT ever
 // checking it out — the mechanism the Overview page's Checks section
 // needs so it can show and tick an active spec's real, already-committed
-// progress before that work reaches `main` (see 2-analysis.md's own
-// "The mechanism REQ-4 needs").
+// progress before that work reaches `main`.
 //
 // Two suites, per plan review's Feasibility finding: a fake `GitRunner`
 // proves the argument SHAPE, and a real-repo suite (this codebase's own
@@ -268,7 +267,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
     expect(after?.sha).not.toBe(before!.sha);
   });
 
-  test("spec 355: two edits land as ONE commit, the second with no baseSha guard", async () => {
+  test("two edits land as ONE commit, the second with no baseSha guard", async () => {
     const where = tmp("aide-branch-file-");
     const { origin, clone } = makeRepo(where);
     const branch = "aide/291-example";
@@ -330,7 +329,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
     expect(result.ok).toBe(false);
   });
 
-  test("commitTimeOf gives a commit's author time, and null for a sha the repository does not know (AC-1)", async () => {
+  test("commitTimeOf gives a commit's author time, and null for a sha the repository does not know", async () => {
     const where = tmp("aide-branch-file-");
     const { origin, clone } = makeRepo(where);
     const branch = "aide/291-example";

@@ -70,14 +70,14 @@ function fromTarget(
     notVerified: t?.notVerified,
     failed: t?.failed,
     title: t?.title,
-    // Read but not drawn: the search's third field (spec 221).
+    // Read but not drawn: the search's third field.
     description: t?.description,
     phase: t?.phase,
     dependsOn: t?.dependsOn ?? [],
     createChoices: t?.createChoices,
     analyzeStale: t?.analyzeStale ?? false,
     freshnessUnknown: t?.freshnessUnknown,
-    // From the TARGET and from nowhere else (spec 199). There is
+    // From the TARGET and from nowhere else. There is
     // deliberately no fallback to a job's own `createdAt`/`startedAt`:
     // that is the field this change exists to stop reading, and a
     // fallback would leave the row jumping for exactly the specs git
@@ -127,17 +127,15 @@ export function groupBySpec(
     // branches get a vote. The check used to sit on the create branch
     // alone, and a project with no other live target still slipped an
     // archived spec's row through `judgeable` — every phase reading
-    // "not run yet" under a job reporting done (spec 134).
-    // There was an exception here until spec 221: a spec whose own
-    // branch is STILL on origin kept its JOB row, archived or not (spec
-    // 193), because a row was the only way to see that its work had
-    // never landed. It had to come through this path because there was
-    // no other — so it read as an ordinary, fully-interactive job row,
-    // offering a Run the server would have refused. Every archived spec
-    // gets a reader row now, and spec 193's answer rides on that row as
-    // a MARK (`ArchivedSpecView.notLanded`) instead of as a reason to
-    // draw one. The two must not be re-separated: a second, different
-    // kind of archived row is what 1-description.md rules out by name.
+    // "not run yet" under a job reporting done.
+    // There is no exception for a spec whose own branch is STILL on
+    // origin: it would keep an ordinary, fully-interactive job row,
+    // offering a Run the server would refuse. Every archived spec gets a
+    // reader row, and the "branch still on origin" answer rides on that
+    // row as a MARK (`ArchivedSpecView.notLanded`) instead of as a reason
+    // to draw a different row. The two must not be re-separated: a
+    // second, different kind of archived row is what 1-description.md
+    // rules out by name.
     .filter(
       ([key, all]) =>
         !archivedSet.has(key) &&
@@ -166,7 +164,7 @@ export function groupBySpec(
     // Only ever a list the server chose to build: under the default
     // filter it is absent, and this adds nothing at all. Its own
     // remembered queue jobs (if any survive the queue's memory) are
-    // handed in too (spec 410, REQ-2/REQ-3) — an archived spec's key
+    // handed in too — an archived spec's key
     // being IN `byKey` at all is exactly the "queue still remembers"
     // case `readerGroup` now reads.
     ...(archivedSpecs ?? []).map((s) =>
@@ -179,28 +177,28 @@ export function groupBySpec(
   ];
 }
 
-/** An archived spec's row: a record, not a control (spec 221).
+/** An archived spec's row: a record, not a control.
  *
  *  It goes through neither `jobGroup` nor `emptyGroup`, and that is the
  *  point. Both build a row off JOBS — a lead job to speak for it, an
  *  attempt per phase — and an archived spec's jobs are gone from the
  *  queue's two-hundred-deep memory for all but the newest of them.
  *
- *  It is still the same ROW, though, and since spec 224 it is drawn by
+ *  It is still the same ROW, though, and it is drawn by
  *  the same builder: `isArchivedRow` is what locks it, and the lock is
  *  what keeps every control on it from offering a press the server
- *  would refuse (`ARCHIVE_ONLY_STEP`, queue.ts). There were two row
- *  builders until then, kept level by hand, and they had already
- *  drifted — no fold and no phase lines on one side only.
+ *  would refuse (`ARCHIVE_ONLY_STEP`, queue.ts). Two row
+ *  builders kept level by hand drift — no fold and no phase lines on
+ *  one side only.
  *
- *  The four phases, therefore, and not the `phases: []` this built
- *  until spec 224: the row opens now, and what it opens on is what the
+ *  The four phases, therefore, and not `phases: []`:
+ *  the row opens, and what it opens on is what the
  *  spec's own `4-status.md` claims. No `attempts`, because there is no
  *  job to attribute one to — `wordPhase` renders a truthful "done" from
  *  `happened` alone, so the lines and the pip strip are correct without
  *  one, and the duration and cost cells are simply blank. */
 function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): SpecGroup {
-  // Spec 410: the phase lines this row's total is a sum over — cost,
+  // The phase lines this row's total is a sum over — cost,
   // tokens and model still read `s.phaseOutcomes`/`s.models` exactly as
   // before; only `attempts` (and therefore `totalDuration`'s own
   // queue-preferred duration) is new. `attemptsPerStep` deliberately
@@ -214,15 +212,15 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
       step,
       attempts: attemptsByStep[step] ?? [],
       history: {},
-      // Spec 247: `outcome?.model` — spec 245's new, one-record-per-file
-      // format — wins over `s.models[step]` — spec 244's old,
+      // `outcome?.model` — the new, one-record-per-file
+      // format — wins over `s.models[step]` — the old,
       // `4-status.md`-only format — when both could theoretically apply.
       // They never do for the same real archive (`2-analysis.md`,
       // "Findings"), so this is a merge order, not a live disagreement.
       model: outcome?.model ?? s.models[step],
       // No `s.efforts[step]`-style fallback the way `model` has one:
-      // effort is introduced fresh in spec 245's per-phase-file format
-      // (spec 364), with no earlier, `4-status.md`-only format to fall
+      // effort is introduced fresh in the per-phase-file format
+      // with no earlier, `4-status.md`-only format to fall
       // back to.
       effort: outcome?.effort,
       timeSpentMs: outcome?.timeSpentMs,
@@ -242,7 +240,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     specFolder: s.folder,
     // It came out of a folder on disk, so the name IS the spec's.
     named: true,
-    // Closed checked first (spec 406, REQ-7): a closed spec must never
+    // Closed checked first: a closed spec must never
     // read as either archived state, even a defensive one — see
     // `ArchivedSpecView.closed`'s own comment for why the two are
     // checked independently rather than assumed exclusive. Otherwise
@@ -250,15 +248,15 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     state: s.closed ? CLOSED_STATE : s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
     spentUsd: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.cost ?? 0), 0),
     costUnmeasured: Object.values(s.phaseOutcomes).some((o) => o.costUnmeasured),
-    // Spec 260: the sibling roll-up for a Codex-only archive, which has
+    // The sibling roll-up for a Codex-only archive, which has
     // no `cost` on any phase outcome to sum above — `undefined` (never
     // 0) when nothing recorded a token figure either, same "absent, not
     // zero" rule `cost` already follows.
     spentTokens: Object.values(s.phaseOutcomes).some((o) => o.tokens !== undefined)
       ? Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.tokens ?? 0), 0)
       : undefined,
-    // Spec 410: routed through the same queue-preferred `totalDuration`
-    // every other row uses (REQ-1) — the queue's own measured span for a
+    // Routed through the same queue-preferred `totalDuration`
+    // every other row uses — the queue's own measured span for a
     // phase it still remembers, the phase's own file stamp only where
     // the queue has forgotten it or never had one. Was a raw reduce over
     // `s.phaseOutcomes`' own `timeSpentMs`, unconditionally — the AI
@@ -275,7 +273,7 @@ function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): Sp
     dependsOn: [],
     analyzeStale: false,
     // Copied onto the same top-level fields `fromTarget()` populates for
-    // a live row (spec 317, plan review's must-fix 1): the sort key and
+    // a live row: the sort key and
     // the Created cell both read `SpecGroup.createdAt` alone, whichever
     // kind of row it is, and a `readerGroup()` that left it unset would
     // sort every archived row as "unknown" regardless of its real date.
@@ -295,11 +293,11 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
   // its place, which is what makes progress readable at a glance. A
   // step outside them (reopen, close, explore) draws no
   // line; the Logs tab lists it. `create` is one of
-  // the four since spec 116, so a create job lands on its own line at
+  // the four, so a create job lands on its own line at
   // the front rather than being appended after archive.
   // Built before the group, because the spec's total is a sum over
   // these same lines and re-deriving them would be two answers to one
-  // question. `phasesFor` is where that join lives now (spec 239) —
+  // question. `phasesFor` is where that join lives now —
   // the file-side answers this page shows on a line are added on top of
   // it, and the total reads neither.
   const phases = phasesFor(all, target);
@@ -317,14 +315,14 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
     spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
     costUnmeasured: all.some((r) => anyCostUnmeasured(r.results)),
     // Summed over the jobs that HAVE a figure, and absent when none
-    // does — so a spec whose runs all predate spec 118 shows a dash
+    // does — so a spec whose runs all predate token figures shows a dash
     // rather than a total of nothing.
     spentTokens: all.some((r) => r.spentTokens !== undefined)
       ? all.reduce((sum, r) => sum + (r.spentTokens ?? 0), 0)
       : undefined,
     // Newest-first, so the first job that reported one wins.
     prUrl: recent.find((r) => r.prUrl)?.prUrl,
-    // The LEAD job's own answer (spec 341, REQ-4), not the newest job
+    // The LEAD job's own answer, not the newest job
     // that happens to have one set: `recent.find(...)` used to scan
     // past a lead job with no `pushError` straight to an older job that
     // had one, so a spec whose current job pushed fine still showed a
@@ -336,12 +334,12 @@ function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: numb
     errorReason: lead.errorReason,
     phases,
     // The same roll-up shape as `spentUsd` above, over time instead of
-    // money — and EVERY attempt of every phase counts now (spec 340), a
+    // money — and EVERY attempt of every phase counts now, a
     // phase re-run three times contributing all three, whether or not
-    // the whole workflow is done (spec 281). A phase still in flight
+    // the whole workflow is done. A phase still in flight
     // contributes its own elapsed-so-far via `totalDurationSince`,
     // rather than being excluded until it settles. Read off `phases`
-    // above (spec 284), not recomputed from `all` — the latter would
+    // above, not recomputed from `all` — the latter would
     // re-read every not-yet-attempted phase's stamped file a second
     // time.
     totalDurationMs: total?.ms,

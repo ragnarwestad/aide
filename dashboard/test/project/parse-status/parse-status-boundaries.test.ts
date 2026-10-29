@@ -10,14 +10,14 @@ import {
   parseStatusChecks,
 } from "../../../src/project/parse-status";
 
-// --- spec 190: the hold-back note a met check leaves behind -------------------
+// --- The hold-back note a met check leaves behind -------------------
 //
 // `archiveHeldBackReason` reads the section a declined archive run
 // writes. Nothing removed it, so a spec went on reporting "held back"
 // after the row it named was ticked. This is that function's removal
 // counterpart, and the two share one idea of where the section ends.
 
-describe("clearArchiveHeldBack (spec 190)", () => {
+describe("clearArchiveHeldBack", () => {
   const withSection = (reason: string) =>
     [
       "# 190 - Status",
@@ -76,7 +76,7 @@ describe("clearArchiveHeldBack (spec 190)", () => {
   });
 });
 
-// --- spec 198: the reopen boundary ------------------------------------------
+// --- The reopen boundary ------------------------------------------
 //
 // An archived spec reopened for another round carries a mark in its own
 // Tracking info, beside the `**Archived:**` stamp it keeps:
@@ -87,7 +87,7 @@ describe("clearArchiveHeldBack (spec 190)", () => {
 // description gives: the queue holds two hundred jobs on one machine and
 // forgets older ones, while the files travel with the repository and are
 // what a reader opens.
-describe("spec 198: the reopen boundary", () => {
+describe("the reopen boundary", () => {
   const withMark = (line: string) =>
     ["# 198 - Status", "", "## Tracking info", "", "- **Task:** `198-slug/`", line, ""].join("\n");
 
@@ -129,7 +129,7 @@ describe("spec 198: the reopen boundary", () => {
   });
 });
 
-describe("spec 231: the work-round boundary", () => {
+describe("the work-round boundary", () => {
   test("a Reset mark is a boundary", () => {
     const status = parseStatus(
       "# Status\n\n## Tracking info\n\n- **Reset:** 2026-08-24 (history before `c0ffee1` does not count)\n",
@@ -153,13 +153,13 @@ describe("spec 231: the work-round boundary", () => {
   });
 });
 
-// --- spec 246: the Total progress header is recomputed, not narrated --------
+// --- The Total progress header is recomputed, not narrated --------
 //
 // The row-counting rule `core/scripts/aide-run-spec`'s new
 // `total_progress_for()` reimplements in awk, checked against the same
 // shared table it is: one file, read by a test on each side, the way
 // WORKFLOW_STEPS and the code-landing precedence table already are.
-describe("spec 246: the shared row-counting fixture (AC8, TypeScript half)", () => {
+describe("the shared row-counting fixture (TypeScript half)", () => {
   const FIXTURE: { cases: { name: string; body: string; done: number; total: number }[] } =
     JSON.parse(
       readFileSync(join(import.meta.dir, "..", "..", "../../core/tests/fixtures/status-row-counting.json"), "utf-8"),

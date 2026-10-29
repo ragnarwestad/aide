@@ -34,7 +34,7 @@ done
 # Refused here, before WORK is ever created (mktemp is the next thing
 # that runs): the round must not build anything for a branch that does
 # not exist. A branch pushed only to origin (never fetched into this
-# checkout) is not "does not exist" — spec 388, REQ-9 — so it is fetched
+# checkout) is not "does not exist", so it is fetched
 # and tracked locally before the refusal is decided.
 #
 # ALWAYS fetched, and the local branch moved to what origin has
@@ -108,11 +108,11 @@ if [ -n "$BRANCH" ]; then
   SERVE_FROM="$WT"
   COMMIT="$(git -C "$SERVE_FROM" rev-parse --short HEAD 2>/dev/null)"
 fi
-# Spec 424: which spec this board serves, for the header's own Prod/Test
+# Which spec this board serves, for the header's own Prod/Test
 # line and its self-stop route. Only set when $BRANCH is — the prod
 # launch path never passes --branch and never reaches this script.
 SPEC_FOLDER="${BRANCH#aide/}"
-# `--test-board` (spec 424) is an argument of the served checkout's OWN
+# `--test-board` is an argument of the served checkout's OWN
 # `serve.ts`, and a branch cut before that spec landed does not know it
 # — handed the flag anyway, its serve refuses to start with "unknown
 # argument". So the flag goes only where the branch's argument parser
@@ -131,7 +131,7 @@ CODE_ORIGIN="$WORK/code-origin.git"; SPECS_ORIGIN="$WORK/specs-origin.git"
 # `-b main`, never the machine's own `init.defaultBranch`: git makes
 # `master` where nothing says otherwise, a clone of an empty origin takes
 # that name with it, and the seeding push of `main` then fails with "src
-# refspec main does not match any" — the same trap spec 345's cutover
+# refspec main does not match any" — the same trap a cutover
 # test fell into on a machine whose default branch is master.
 git init -q --bare -b main "$CODE_ORIGIN"
 git init -q --bare -b main "$SPECS_ORIGIN"

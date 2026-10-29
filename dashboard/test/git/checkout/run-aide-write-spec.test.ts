@@ -1,4 +1,4 @@
-// spec 355 (REQ-4): runAideWriteSpec spawns a real, stubbed
+// RunAideWriteSpec spawns a real, stubbed
 // `aide-write-spec` binary and pipes content to it on stdin — the same
 // "a fake proves the shape, a real spawn proves it can execute" split
 // `branch-file.test.ts` already uses for `writeStatusToBranch`.

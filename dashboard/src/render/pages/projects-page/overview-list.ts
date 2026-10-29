@@ -6,7 +6,7 @@ import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
 import type { ProjectView } from "./types.ts";
 
-/** The project's own description, from its manifest (spec 531) — the
+/** The project's own description, from its manifest — the
  *  `.desc` paragraph both the projects list and a project's own page
  *  draw, empty wherever there is none to show. */
 export function projectDescription(p: ProjectView): string {
@@ -48,7 +48,7 @@ function overviewRow(
   lang: Language = "en",
   removable = false,
 ): string {
-  // Spec 369: the readiness sentence itself moved to the project's own
+  // The readiness sentence itself moved to the project's own
   // page — this is only a pointer to it, so it rises above the row's
   // stretched-link overlay.
   const warn = warnHref
@@ -56,7 +56,7 @@ function overviewRow(
     : "";
   const del = removable ? projectRemoveControl(p.name, lang) : "";
   const projectLink = `<a class="proj-row-link" href="${esc(path)}">${esc(p.name)}</a>`;
-  // Spec 142: on the row, not floating above the list — a reader should
+  // On the row, not floating above the list — a reader should
   // not have to work out which project a warning is about. An error row
   // gets it too: a checkout whose manifest will not parse is still a
   // checkout that can fall behind, and it is the one being worked on.
@@ -98,7 +98,7 @@ export function projectSummary(projects: ProjectView[], lang: Language = "en"): 
 
 /** The listing itself: the counts, then one row per project, linking to
  *  each project's generated page. Exported because the served
- *  `/projects` page draws exactly this (spec 115) — same rows, same
+ *  `/projects` page draws exactly this — same rows, same
  *  data, one function, so "the same page plus two controls" is true by
  *  construction rather than by convention. */
 export function projectListBody(
@@ -106,15 +106,15 @@ export function projectListBody(
   opts: {
     /** Where a project's NAME goes: the page the server serves for it,
      *  which is the one carrying the settings and the readiness answer
-     *  (spec 185). There is no other project page to link — the
+     *  There is no other project page to link — the
      *  generated per-project files went on 2026-08-22. */
     pageHref: (name: string) => string;
-    /** Spec 142: what to say on a project's row about its checkout, if
+    /** What to say on a project's row about its checkout, if
      *  anything. A callback, because `ProjectView` is a pure disk scan
      *  the static generator shares, and a live git answer does not
      *  belong on it. */
     note?: (name: string) => string | undefined;
-    /** Spec 369: where the row's warning mark points, or undefined for
+    /** Where the row's warning mark points, or undefined for
      *  no mark at all — a callback of the same shape as `note`, not a
      *  change to how the row is composed. */
     warnHref?: (name: string) => string | undefined;

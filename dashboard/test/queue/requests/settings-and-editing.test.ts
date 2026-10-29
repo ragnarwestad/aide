@@ -11,7 +11,7 @@ import {
 import { parseArgs } from "../../../src/serve/serve.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** What a reader would see: since spec 380 a message is stored as
+/** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
@@ -19,8 +19,8 @@ function sentence(s: unknown): string {
 }
 
 const DEFAULTS: QueueDefaults = {
-  // Per step since spec 152: an implement is not an analyze, and one
-  // number for both stopped 149 mid-sentence with its tests green.
+  // Per step: an implement is not an analyze, and one number for both
+  // stopped an implement mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -45,7 +45,7 @@ beforeEach(() => {
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-// --- spec 112: the allowlist lives in the config file ------------------------
+// --- The allowlist lives in the config file ------------------------
 //
 // It used to be a `--queue-projects` argument baked into the launchd
 // plist, so adding a project meant re-rendering the plist and
@@ -66,7 +66,7 @@ describe("the project allowlist round-trips through queue-config.json", () => {
     while (configDirs.length) rmSync(configDirs.pop()!, { recursive: true, force: true });
   });
 
-  test("a written list is read back as the allowlist (criterion 9)", () => {
+  test("a written list is read back as the allowlist", () => {
     const file = configFile({ concurrency: 3 });
     expect(persistQueueProjects(file, ["aide", "atlasaurus"])).toBeNull();
     const opts = parseArgs(["--queue-config", file, "--queue-projects", "aide"]);
@@ -89,7 +89,7 @@ describe("the project allowlist round-trips through queue-config.json", () => {
     expect(opts.queueNotifyCommand).toEqual(["/bin/echo", "hi"]);
   });
 
-  test("the config beats a conflicting --queue-projects (criterion 10)", () => {
+  test("the config beats a conflicting --queue-projects", () => {
     const file = configFile({ projects: ["atlasaurus"] });
     const opts = parseArgs([
       "--queue-config", file,
@@ -123,7 +123,7 @@ describe("the project allowlist round-trips through queue-config.json", () => {
     expect(parseArgs(["--queue-config", file]).queueConfigFile).toBe(file);
   });
 
-  // Criterion 15: the write is derived from the caller's list and lands
+  // The write is derived from the caller's list and lands
   // synchronously, so two in a row cannot interleave — the second sees
   // the first's file, and neither reads a copy taken before the other
   // wrote.
@@ -152,7 +152,7 @@ describe("the project allowlist round-trips through queue-config.json", () => {
   });
 });
 
-// --- spec 363: a proxy that can vouch for the reader --------------------------
+// --- A proxy that can vouch for the reader --------------------------
 //
 // `headerAuth` arrives through `queue-config.json` like every other
 // optional key here — never a dedicated CLI flag. A malformed block
@@ -202,7 +202,7 @@ describe("headerAuth in queue-config.json", () => {
   });
 });
 
-// --- spec 160: a later phase can be added while the job runs ------------------
+// --- A later phase can be added while the job runs ------------------
 
 // A run started with too few phases meant waiting for it to end and
 // pressing Run again; one started with too many meant Cancel and start
@@ -210,7 +210,7 @@ describe("headerAuth in queue-config.json", () => {
 // zero. The tail of a RUNNING job's step list is editable — and only
 // the tail: what has run, and what is running, is not up for a second
 // opinion.
-describe("editing a running job's tail (spec 160)", () => {
+describe("editing a running job's tail", () => {
   /** A job in the store, running the step at `stepIndex`. The state is
    *  set through `update()` rather than by a runner: what these tests
    *  are about is the store's own rule, and a runner would only make
@@ -227,7 +227,7 @@ describe("editing a running job's tail (spec 160)", () => {
     return { store, mirror, id: made.job.id, steps: () => store.get(made.job.id)!.steps };
   };
 
-  test("an added step lands in WORKFLOW_STEPS order, not at the array end (criterion 1)", () => {
+  test("an added step lands in WORKFLOW_STEPS order, not at the array end", () => {
     const job = running(["analyze"]);
     expect(job.store.editTailStep(job.id, "archive", true).ok).toBe(true);
     expect(job.store.editTailStep(job.id, "implement", true).ok).toBe(true);
@@ -237,7 +237,7 @@ describe("editing a running job's tail (spec 160)", () => {
     expect(job.store.get(job.id)!.stepIndex).toBe(0);
   });
 
-  test("a not-yet-started step can be removed (criterion 2)", () => {
+  test("a not-yet-started step can be removed", () => {
     const job = running(["analyze", "implement", "archive"]);
     const answer = job.store.editTailStep(job.id, "implement", false);
     expect(answer.ok).toBe(true);
@@ -245,7 +245,7 @@ describe("editing a running job's tail (spec 160)", () => {
     expect(job.store.get(job.id)!.stepIndex).toBe(0);
   });
 
-  test("the running step and everything behind it are closed (criterion 3)", () => {
+  test("the running step and everything behind it are closed", () => {
     const job = running(["analyze", "implement"], 1);
     for (const [step, add] of [
       ["implement", false], ["implement", true],
@@ -259,7 +259,7 @@ describe("editing a running job's tail (spec 160)", () => {
     expect(job.steps()).toEqual(["analyze", "implement"]);
   });
 
-  test("a job that is not running is closed altogether (criterion 6)", () => {
+  test("a job that is not running is closed altogether", () => {
     for (const state of ["queued", "done", "failed", "cancelled", "stopped", "interrupted"] as const) {
       const job = running(["analyze"]);
       job.store.update(job.id, { state });
@@ -279,7 +279,7 @@ describe("editing a running job's tail (spec 160)", () => {
   // A job created without every earlier step ticked would otherwise
   // show the missing one as live, and adding it would run it AFTER the
   // step now running — out of the only order these steps have.
-  test("a step that ranks earlier than the one running is refused (criterion 9)", () => {
+  test("a step that ranks earlier than the one running is refused", () => {
     const job = running(["implement", "archive"]);
     const answer = job.store.editTailStep(job.id, "analyze", true);
     expect(answer.ok).toBe(false);
@@ -310,19 +310,19 @@ describe("editing a running job's tail (spec 160)", () => {
       expect(tailEdits(job.store.get(job.id)!)).toEqual(["implement", "archive"]);
     });
 
-    test("a job that is not running has nothing open (criterion 8)", () => {
+    test("a job that is not running has nothing open", () => {
       const job = running(["analyze", "archive"]);
       job.store.update(job.id, { state: "queued" });
       expect(tailEdits(job.store.get(job.id)!)).toEqual([]);
     });
 
-    test("nothing earlier than the running step is offered (criterion 9)", () => {
+    test("nothing earlier than the running step is offered", () => {
       const job = running(["implement", "archive"]);
       expect(tailEdits(job.store.get(job.id)!)).not.toContain("analyze");
     });
   });
 });
-// --- spec 254: an enqueue is refused while the spec's last step lands ---------
+// --- An enqueue is refused while the spec's last step lands ---------
 
 // `Runner.complete()` writes `state: "done"` and `landing: true` in the
 // same update — the merge into the default branch has not happened yet.
@@ -330,10 +330,10 @@ describe("editing a running job's tail (spec 160)", () => {
 // only fires on an OVERLAPPING step name, and "done" is not in
 // `UNFINISHED`. A job could enqueue and sit `queued` behind a landing it
 // never named.
-describe("refusing an enqueue while the spec's last job is still landing (spec 254)", () => {
+describe("refusing an enqueue while the spec's last job is still landing", () => {
   const store = () => new QueueStore({ defaults: DEFAULTS, resolve, mirrorPath: join(dir, "queue.json") });
 
-  test("a new job for the same spec is refused while the prior one is landing (criterion 2)", () => {
+  test("a new job for the same spec is refused while the prior one is landing", () => {
     const s = store();
     const create = s.enqueue({ ...REQ, steps: ["create"] });
     if (!create.ok) throw new Error(create.error);
@@ -361,7 +361,7 @@ describe("refusing an enqueue while the spec's last job is still landing (spec 2
     expect(answer.ok).toBe(true);
   });
 
-  // REQ-3, spec 399: `resting.ts:83-96`'s documented case — the landing
+  // `resting.ts:83-96`'s documented case — the landing
   // job has already advanced to "queued" on its NEXT step while the
   // PREVIOUS one is still merging. The refusal names the step whose
   // merge is actually in progress ("create"), the same one the row's

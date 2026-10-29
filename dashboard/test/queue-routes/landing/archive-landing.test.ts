@@ -26,9 +26,9 @@ import {
   start,
 } from "./archive-landing-fixtures.ts";
 
-describe("landing an archived spec (spec 136)", () => {
+describe("landing an archived spec", () => {
 
-  // Criterion 1. This archive job is the FIRST the queue has ever run
+  // This archive job is the FIRST the queue has ever run
   // for this spec, so `branchesFor()` — read synchronously inside the
   // same call stack, before the runner has written this step's own
   // record — would answer with nothing. The landing reads the outcome
@@ -48,7 +48,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(landed.branchUrls).toEqual([]);
   });
 
-  // Criterion 2. Main moves while a job runs — 124, 133 and five older
+  // Main moves while a job runs — 124, 133 and five older
   // specs were each refused with "cannot fast-forward" for that alone.
   // A real merge commit is the answer, not a failure to report.
   test("a base that moved is a real merge commit, not a refusal", async () => {
@@ -64,7 +64,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(git.calls.some((c) => c.args.join(" ") === "merge --abort")).toBe(false);
   });
 
-  // Criterion 3. The fallback is not being removed: a merge that cannot
+  // The fallback is not being removed: a merge that cannot
   // be made says which repo and why, keeps the branch on the row, and
   // leaves the spec where it was.
   test("a genuine conflict keeps the branch, names the repo, and reports it", async () => {
@@ -86,7 +86,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(specHead(html, SPEC)).not.toBe("");
   });
 
-  // Criterion 4. A run that pushed nothing has nothing to land. Silence
+  // A run that pushed nothing has nothing to land. Silence
   // is the right answer — create says "no pushed branch to land it
   // from" because for create that IS the failure; for archive a HEAD
   // that never moved is an ordinary outcome.
@@ -104,12 +104,12 @@ describe("landing an archived spec (spec 136)", () => {
     expect(merges(git.calls)).toEqual([]);
   });
 
-  // --- spec 153: a branch that is already gone is not a failed landing ------
+  // --- A branch that is already gone is not a failed landing ------
   //
   // The archive landing looks back through the whole history of branches
   // this spec's steps pushed (`branchesFor`), because `implement` never
-  // lands its own and archive is what finally does. Since spec 149 a
-  // `resolve` step lands AND DELETES its own branch, so that history
+  // lands its own and archive is what finally does. A
+  // step that lands AND DELETES its own branch leaves a history that
   // names a branch that is provably gone by the time archive reaches it.
   // Job 15932abc (2026-08-21) was the first: `ok: true`, archived, and
   // an error on the row saying "there is nothing left to merge".
@@ -166,7 +166,7 @@ describe("landing an archived spec (spec 136)", () => {
     // between them, so this one is genuinely slower than the default.
   }, 20000);
 
-  // --- spec 280: code lands before specs, and a code failure stops the ------
+  // --- Code lands before specs, and a code failure stops the ------
   // specs root from ever being attempted --------------------------------------
   //
   // Every OTHER landing merges specs first, code last (the file's own
@@ -176,7 +176,7 @@ describe("landing an archived spec (spec 136)", () => {
   // `Workflow steps completed` stamp, and that stamp must never reach
   // `main` before the code root's own landing is confirmed.
 
-  // --- spec 319: a merge that succeeds but cannot delete its own branch ------
+  // --- A merge that succeeds but cannot delete its own branch ------
   //
   // `mergeBranchIntoDefault` already reports this as `ok: true` with a
   // `branchDeleteError` — the merge genuinely happened, and origin can
@@ -186,7 +186,7 @@ describe("landing an archived spec (spec 136)", () => {
   // post-loop `rootsStillHolding` check that has no idea the branch it
   // still finds open is the one this very loop just left that way.
 
-  // --- spec 330: one landing error names one path for one checkout ----------
+  // --- One landing error names one path for one checkout ----------
   //
   // `rootsStillHolding`'s raw roots come from `specRoots()`, which is not
   // guaranteed to be a repo's own git top-level — `machinerySpecsRoot()`
@@ -195,7 +195,7 @@ describe("landing an archived spec (spec 136)", () => {
   // (already the true top-level). Two sentences, two different strings,
   // one repository.
 
-  // Criterion 6. Nobody is watching an automatic landing to press the
+  // Nobody is watching an automatic landing to press the
   // button again, and this one races the runs that pull the same
   // checkout — 111 and 112 were both stranded by a first-try loss.
   test("a landing that loses the index.lock race once lands on the retry", async () => {
@@ -220,7 +220,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
   });
 
-  // Criterion 7. Merged is not deployed, and the manual route runs the
+  // Merged is not deployed, and the manual route runs the
   // project's install for exactly that reason — but an archive run
   // writes two markdown changes in the SPECS repo and moves no code, so
   // there is nothing on this machine to reinstall.
@@ -250,7 +250,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(existsSync(marker)).toBe(false);
   });
 
-  // Criterion 8. A run that DECLINES to archive writes a reason into
+  // A run that DECLINES to archive writes a reason into
   // 4-status.md and nothing else. That reason is read off disk in the
   // main checkout, so it too was invisible until someone merged — and
   // the page caches its scan for five seconds, so the landing has to
@@ -280,7 +280,7 @@ describe("landing an archived spec (spec 136)", () => {
     expect(html).toContain("Archive held back: the implementation was reverted");
   });
 
-  // Criterion 5, as spec 149 leaves it. `analyze` lands itself now too,
+  // `analyze` lands itself too,
   // so the steps that still land nothing are `implement` — whose pushed
   // branch IS the place a person tests the code — and the one that
   // belongs to no spec's branch at all.
@@ -289,7 +289,7 @@ describe("landing an archived spec (spec 136)", () => {
     const checked = await Promise.all(
       steps.map(async (step) => {
         const git = gitFor();
-        // An analyzed spec: since spec 344 an `implement` on a spec with
+        // An analyzed spec: an `implement` on a spec with
         // no analyze is held back in the queue, and this test needs the
         // step to run so it can watch it NOT land.
         const analyzed = (o: Partial<ServerOptions>) => start(o, [], [], statusSaying(["create", "analyze"]));
@@ -311,15 +311,15 @@ describe("landing an archived spec (spec 136)", () => {
   });
 });
 
-// --- spec 319: the row-level half — "branch left behind" is not -----------
+// --- The row-level half — "branch left behind" is not -----------
 // "not landed" -----------------------------------------------------------
 //
 // An already-archived spec whose branch is still open may have `archive`
-// enqueued again (spec 193's own way out): the runner hands that step the
+// enqueued again (the way out): the runner hands that step the
 // still-open merge, and it can succeed a second time even though the
 // original delete never went through. This proves the row a reader sees
 // afterwards says which of the two happened, without opening anything.
-describe("the row for a branch left behind after a successful merge (spec 319)", () => {
+describe("the row for a branch left behind after a successful merge", () => {
   const FOLDER = "200-left-behind";
   const BRANCH = `aide/${FOLDER}`;
   // A sibling whose branch is open for the ordinary reason — nobody has
@@ -349,7 +349,7 @@ describe("the row for a branch left behind after a successful merge (spec 319)",
     }
   };
 
-  test("is archived with a Delete branch note, while an unmerged sibling stays not landed (AC-1, AC-2, AC-4)", async () => {
+  test("is archived with a Delete branch note, while an unmerged sibling stays not landed", async () => {
     // Matched by PATH SHAPE, not by comparing against a `dir` read off
     // `harness.start()`'s return value: the background schedule's very
     // first sweep runs SYNCHRONOUSLY inside `createServer`, before

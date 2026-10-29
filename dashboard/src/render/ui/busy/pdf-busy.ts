@@ -1,5 +1,5 @@
 // The PDF button looks pressed the moment it is clicked, and stays that
-// way until the reader is back on this tab (spec 358, REQ-6) — the one
+// way until the reader is back on this tab — the one
 // control on this dashboard that opens in a NEW tab rather than
 // navigating this one away (`nav-busy.ts`/`nav-overlay.ts`, both of
 // which explicitly decline a

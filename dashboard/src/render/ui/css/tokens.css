@@ -82,7 +82,7 @@
 .brand .mark-l { display: none; }
 .brand .mark-d { display: block; }
 }
-/* Spec 107: the same two sets again, this time by choice rather than by
+/* The same two sets again, this time by choice rather than by
    preference. Both directions need a block of their own, and the reason
    is specificity, not tidiness: :root[data-theme="light"] (0-2-0)
    beats the bare :root inside the media query above (0-1-0) whatever
@@ -129,7 +129,7 @@
 :root[data-theme="light"] .brand .mark-l { display: block; }
 :root[data-theme="light"] .brand .mark-d { display: none; }
 
-/* Spec 118: the same trick again, on text rather than colour. Every
+/* The same trick again, on text rather than colour. Every
    consumption figure is rendered twice — a dollar span and a token span
    — and exactly one is shown. Dollars is the ABSENCE of the attribute,
    like Auto above, so a page whose script never ran reads the way it

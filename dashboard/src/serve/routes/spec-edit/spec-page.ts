@@ -39,7 +39,7 @@ function specInRow(
     lang: o.lang,
     view: o.listView,
   });
-  // REQ-1/REQ-4/REQ-5 (spec 315, extended by spec 333): a src= reference to
+  // A src= reference to
   // whichever bundle's own route this tab's panel actually mounts
   // (`documentTabScript`, the same predicate `panels.ts` uses to decide what
   // to draw) — the editor for a writable tab, the lighter viewer for a locked
@@ -59,7 +59,7 @@ export async function specPageRoutes(
   if (specPage) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = specPage;
-    // Spec 411: the held-for-Checks row's own link reaches `startTestServer()`
+    // The held-for-Checks row's own link reaches `startTestServer()`
     // through this GET — a plain `target="_blank"` link can only ever
     // issue one. The three-part capability check mirrors
     // `spec-views/spec-page.ts`'s own (`testServerCapable`) so the trigger
@@ -75,8 +75,8 @@ export async function specPageRoutes(
         ctx.testServers.previewAvailable(project!) &&
         ctx.queue.branchesFor(project!, specFolder!).some((r) => r.root === ctx.testServers.aideCheckout(project!));
       // A board already up is where the reader wanted to go: straight
-      // there, in the tab the link opened. REQ-3 asks for the board's
-      // own page, and this is the moment there is one to ask for.
+      // there, in the tab the link opened. The board's own page is
+      // what is wanted, and this is the moment there is one to ask for.
       // ONE attempt per spec, whatever happens next. The waiting page
       // reloads onto this same URL, so anything that starts a board
       // here starts one every few seconds — 1821 of them on
@@ -87,7 +87,7 @@ export async function specPageRoutes(
       if (already?.status === "running" && already.url) {
         return Response.redirect(testServerUrlFor(req, already.url), 303);
       }
-      // AC-1/AC-2 (spec 489): set only by the failed page's own "Try
+      // Set only by the failed page's own "Try
       // again" link — the one thing that tells a deliberate press apart
       // from a passive reload of the same URL, which must never clear
       // and restart a board on its own (this page carries no meta
@@ -104,7 +104,7 @@ export async function specPageRoutes(
       // tab the reader opened WAITS here rather than being sent back to
       // the spec page to find the address themselves. It reloads onto
       // this same URL, and the branch above carries it to the board the
-      // moment there is one. REQ-4.
+      // moment there is one.
       if (!capable) {
         return new Response(null, { status: 303, headers: { location: specTabPath(project!, specFolder!, "steps") } });
       }
@@ -112,7 +112,7 @@ export async function specPageRoutes(
         const result = await startTestServer(ctx.testServers, project!, specFolder!);
         if (!result.ok) return testServerFailedPage(specFolder!, result.error, retryHref);
       }
-      // AC-3: never at a URL still carrying `retryTestServer=1` — the
+      // Never at a URL still carrying `retryTestServer=1` — the
       // waiting page's own 5-second self-refresh reloads exactly the
       // URL the browser is on, and a board that fails again later would
       // otherwise be cleared and restarted on every one of those polls,
@@ -131,7 +131,7 @@ export async function specPageRoutes(
     if (!ctx.specDir(project!, specFolder!)) return new Response("not found", { status: 404 });
     // Resolved through the SAME function the render side uses
     // (`spec-page.ts`), rather than each computing its own default —
-    // that mismatch was spec 303's actual bug: a bare URL rendered the
+    // that mismatch was the actual bug: a bare URL rendered the
     // Description panel while loading no editor script for it.
     const tab = resolveSpecTab(url.searchParams.get("tab") ?? undefined);
     // The list's view the spec's links carry, so a click keeps the list around the row.
@@ -192,7 +192,7 @@ export async function specPageRoutes(
         headers: listHeaders(parts),
       });
     }
-    // Spec 515: the head and a loading element go out at once, the rest when
+    // The head and a loading element go out at once, the rest when
     // the spec's view is ready.
     return streamedPage({
       head: renderSpecsPageHead(specFolder!, lang),
@@ -254,7 +254,7 @@ export async function specPageRoutes(
     } catch {
       return json({ error: "malformed body" }, 400);
     }
-    // REQ-2: the file comes in with the request now; a request that
+    // The file comes in with the request now; a request that
     // predates this field (only Description's own form ever posted
     // here) defaults to it, so nothing already posting to `/save`
     // breaks. Anything outside the four editable files is refused
@@ -272,9 +272,9 @@ export async function specPageRoutes(
       return json({ error: reason }, 400);
     }
     if (!FILE_TABS[file]) return json({ error: `unknown spec file: ${file} — nothing was saved` }, 400);
-    // REQ-6: the same job-state gate the tick route already applies —
+    // The same job-state gate the tick route already applies —
     // a run works in a worktree branched when it started, so a hand
-    // edit cannot corrupt it, but REQ-4 below now writes onto that same
+    // edit cannot corrupt it, but the write below goes onto that same
     // branch, and a save racing the run's own commits to it is exactly
     // what this gate exists to prevent.
     const activeJob = ctx.queue.list().some(
@@ -300,7 +300,7 @@ export async function specPageRoutes(
     // The derived state file has no second writer here any more: the one
     // file whose save had to keep it in step was `4-status.md`, and that
     // save is refused above.
-    // REQ-4: the same branch-aware choice the tick route already makes
+    // The same branch-aware choice the tick route already makes
     // for `4-status.md` — an open `aide/<folder>` branch is where an
     // active spec's real, already-committed progress lives, and a
     // write straight to `main` would be silently lost the moment

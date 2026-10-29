@@ -14,11 +14,10 @@
    below so the line keeps the banner's rhythm. */
 .row.desc { margin-bottom: var(--sp-4); }
 /* State and the action are two boxes of their own, each an exact width,
-   and the cell is the sum of them (spec 379's REQ-1/REQ-4, corrected
-   2026-09-04). A column has ONE width for every row, so whatever box is
-   given the leftover shows it as empty space: the row used to be a
-   single 19rem box with the badge and the button packed left inside it,
-   which put every shorter row's leftover AFTER the button — a hand's
+   and the cell is the sum of them. A column has ONE width for every
+   row, so whatever box is given the leftover shows it as empty space: a
+   single wide box with the badge and the button packed left inside it
+   would put every shorter row's leftover AFTER the button — a hand's
    width of nothing between the button and the next column.
    `.badgeslot` is the longest state text this column can draw (measured
    in a browser with this stylesheet: 150px, "arkivering holdt
@@ -38,26 +37,25 @@
 /* No width of its own: the two boxes above are the width. */
 table.list tr.spechead > td > .row { flex-wrap: nowrap; }
 td form { margin: 0; display: inline-block; }
-/* Nothing but hidden fields since spec 124: the boxes it posts are on
+/* Nothing but hidden fields: the boxes it posts are on
    the phase lines and the button that submits it stands beside the
-   state badge (spec 157), both reaching it by the "form" attribute
+   state badge, both reaching it by the "form" attribute
    alone. It is still a real form — the page works with script off —
    and still carries the class specs-client.ts selects on, so a press
    is still intercepted. It just has nothing to show, and a container
    that gave it a gap would open a hole beside the badge. */
 .rowrun { display: none; }
-/* The stack of a row's buttons stood here until spec 157, with a 14rem
-   cell of its own above it: a row draws ONE button now, beside the
-   state badge, and the two share the page's ordinary "row" container.
+/* No stack of buttons with a cell of its own: a row draws ONE button,
+   beside the state badge, and the two share the page's ordinary "row" container.
    That container wraps, which is the whole width rule the pairing
    needs — the badge and the button drop to two lines rather than
    widening a column the whole table is aligned on. */
 /* No margin on a control below: the space between two controls is
-   declared once, by the "row" that holds them (spec 120). A margin here
+   declared once, by the "row" that holds them. A margin here
    would travel into every layout the form is put in next, and a
    container gap does not absorb it. "actionform" has no rule at all —
    "td form" above gives it everything it had, and the conflict form's
-   rule went with the control it belonged to (spec 171). */
+   rule went with the control it belonged to. */
 .pageform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .pageform .refused { flex-basis: 100%; }
@@ -89,7 +87,7 @@ td form { margin: 0; display: inline-block; }
    full-width rows below them and no two edges line up. */
 .addprojectform { max-width: 48rem; }
 /* Save and Cancel sit on the same line as the tab's own help mark, to
-   the right of it (spec 391) — the form's first child, ahead of the
+   the right of it — the form's first child, ahead of the
    field it saves. One rule for both shapes: the Checks tab's plain
    `.specform` (an ordinary block-flow form) and a document tab's
    `.pageform.specform` (the flex-wrap row above) — `flex-basis: 100%`
@@ -102,24 +100,23 @@ td form { margin: 0; display: inline-block; }
 .panelhead .factions { display: flex; gap: var(--sp-2); flex: none; }
 /* The Settings page's own button rows (its Phases form and each tool's
    Check form): always right-aligned, with a deliberate gap to what is
-   above them. The Config tab drew its own version of this row above
-   both tables until spec 552 gave each table its own `.panelhead`
-   instead. */
+   above them. The Config tab has no such row above both tables: each
+   table has its own `.panelhead`. */
 .configactions { display: flex; justify-content: flex-end; gap: var(--sp-2);
   flex-basis: 100%; margin-bottom: var(--sp-3); }
-/* Two independent tables, each with its own heading+actions line (spec
-   552) — the gap between them is declared here, once, never as a margin
+/* Two independent tables, each with its own heading+actions line
+   — the gap between them is declared here, once, never as a margin
    on settingsTableFor()'s own per-table div (dashboard-design.md,
    "spacing lives in the container"). Matches the wider gap
    `.projectsettingsform` gets below in edit mode, so Edit and Cancel do
    not visibly jump when a save reopens the read-only view. */
 .configtables { display: flex; flex-direction: column; gap: var(--sp-5); }
-/* Matches `.pageform`'s own margin-top below (AC-2): view mode's
+/* Matches `.pageform`'s own margin-top below: view mode's
    plain container needs the same top margin the edit-mode form gets,
    so the first table's own `.panelhead` sits at the same pixel position
    in either state. */
 .tabpanel > .configtables { margin-top: var(--sp-3); }
-/* The same gap in edit mode (AC-6): `.pageform`'s own `gap: var(--sp-3)`
+/* The same gap in edit mode: `.pageform`'s own `gap: var(--sp-3)`
    is too narrow between the two `.frow`s each wrapping one of these
    tables, so this form widens it to match `.configtables` above. */
 .projectsettingsform { gap: var(--sp-5); }
@@ -128,7 +125,7 @@ td form { margin: 0; display: inline-block; }
    that reaches this form's factions too, nested three levels deeper
    inside its own `.panelhead`, and bottom-aligns Save/Cancel there
    instead of centring it against the heading the way Edit is in view
-   mode (AC-2: the two states would no longer share one pixel position).
+   mode (the two states would no longer share one pixel position).
    Reset back to the ordinary centring here, scoped to these two
    containers' own panelheads only. */
 .configtables .panelhead .factions, .projectsettingsform .panelhead .factions { align-self: center; }
@@ -150,10 +147,10 @@ td form { margin: 0; display: inline-block; }
    for a `flex-wrap` fallback to act on — narrow.css collapses the grid
    itself to one column instead. */
 .scheduleform .frow { display: contents; }
-/* The "…" menu (spec 119): Units, Settings and About, behind one
+/* The "…" menu: Units, Settings and About, behind one
    disclosure at the right-hand end of the header. A POPOVER like
    .intro below — an open menu must lay over the page, not push the
-   tab bar and everything under it down. Theme (spec 243) is a SECOND,
+   tab bar and everything under it down. Theme is a SECOND,
    sibling ".menu" of its own rather than a row inside this one — the
    shared class is what gives it the same trigger look and the same
    outside-click/Escape close, since "menu-script.ts"'s closeAll()
@@ -171,7 +168,7 @@ td form { margin: 0; display: inline-block; }
   min-width: 13rem; padding: var(--sp-1); background: var(--surface);
   border: 1px solid var(--line-strong); border-radius: var(--r);
   box-shadow: var(--overlay-shadow); }
-/* The "…" menu's own flat mobile rows (spec 436, reshaped by spec 507):
+/* The "…" menu's own flat mobile rows:
    one `.morerows` block per setting inside the panel, so they reach
    phone width without a second, nested <details> — see menu-script.js's
    closeAll() hazard. Each is a flex row, the name left and a compact
@@ -181,14 +178,14 @@ td form { margin: 0; display: inline-block; }
 .menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
 .menupanel > a { color: var(--text); }
 .menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
-/* The language menu's own rows (spec 475): a check mark, a flag and the
+/* The language menu's own rows: a check mark, a flag and the
    name in one row, needing the flex layout the base rule above does not
    give an <a> — scoped to `.menu.lang` alone, so Settings, About, Test
    servers and the state dropdown's own `<a role="radio">` rows (all
    sharing the same `.menupanel > a` ancestor shape) keep their current
    block layout untouched. */
 .menu.lang .menupanel > a { display: flex; align-items: center; gap: var(--sp-2); }
-/* Theme's own rows (spec 243): a button, not a link, exactly the
+/* Theme's own rows: a button, not a link, exactly the
    reason Units' buttons already needed the same colour/hover pair —
    nothing about being a <button> instead of an <a> should read as a
    lesser row in the same menu. The icon and its label share the row
@@ -199,7 +196,7 @@ td form { margin: 0; display: inline-block; }
 .menupanel > button:hover { background: var(--surface-2); }
 .menupanel > button[aria-current],
 .menupanel > a[aria-current] { font-weight: 600; }
-/* AC-4 (spec 475): the chosen row also gets a text colour distinct from
+/* The chosen row also gets a text colour distinct from
    the other rows in the SAME menu — scoped to the theme and language
    menus alone, so Settings, About, Test servers and the unit radios
    keep their current colour. */
@@ -207,7 +204,7 @@ td form { margin: 0; display: inline-block; }
 .menu.lang .menupanel > a { color: var(--muted); }
 .menu.theme .menupanel > button[aria-current],
 .menu.lang .menupanel > a[aria-current] { color: var(--text); }
-/* Unit's own rows (spec 436): a <label> wrapping a radio, the shape
+/* Unit's own rows: a <label> wrapping a radio, the shape
    Settings' own Units block already used — this shape has never
    rendered inside a .menupanel before, so there is no prior rule to
    break. Styled to match the button/a rows beside them. */
@@ -241,21 +238,21 @@ td form { margin: 0; display: inline-block; }
 .menupanel > .menusep { display: none; height: 1px; padding: 0; margin: var(--sp-1) 0; background: var(--line); }
 
 /* The check mark beside the chosen row in the theme and language menus
-   (spec 475, AC-1..3): always rendered, opacity-toggled rather than
+   is always rendered, opacity-toggled rather than
    removed, so the column stays reserved whether the mark shows or not —
    the same pattern the state dropdown's own `.check` span below uses,
    under a name of its own since "check" already means two other things
-   under this same `.menupanel` shape (2-analysis.md, "Patterns"). */
+   under this same `.menupanel` shape. */
 .menucheck { display: inline-flex; width: 14px; height: 14px; flex: 0 0 auto; opacity: 0; }
 .menucheck svg { width: 14px; height: 14px; }
 [aria-current] > .menucheck { opacity: 1; }
 
-/* The state dropdown's own rows (spec 289): a round, radio-STYLED glyph
+/* The state dropdown's own rows: a round, radio-STYLED glyph
    beside each option, matching the control's underlying semantics —
    picking one replaces the other five, exactly as the chips it
-   replaced always did (2-analysis.md, REQ-3). The panel carries
+   replaced always did. The panel carries
    `role="radiogroup"` and each option `role="radio"`/`aria-checked`
-   (spec 323), so what assistive tech announces agrees with what the
+   so what assistive tech announces agrees with what the
    round mark shows. */
 .menupanel.state a, .menu.state .menupanel a { display: flex; align-items: center; gap: var(--sp-2); }
 .menu.state .check { width: 14px; height: 14px; flex: 0 0 auto; border: 1px solid var(--line-strong);
@@ -320,13 +317,13 @@ dialog[data-standing] > .progresspanel > :not([data-running-face]) { display: no
 /* The Deploy panel's own state sentence, button and refusal line,
    spaced apart the way `.confirmpanel` already spaces its own parts —
    via the container's `gap`, never a margin on the message or the form
-   beside it (spec 377, design-system.md "Spacing lives in the
+   beside it (design-system.md "Spacing lives in the
    container"). */
 .deploypanel { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
 .deploypanel .rowmsg { margin: 0; }
 
 /* The covering layer a click that leaves the page gets, from the click
-   until the new document arrives (spec 314) — the same dialog+backdrop
+   until the new document arrives — the same dialog+backdrop
    box About and the confirm box are, holding a spinner instead of
    prose.
 
@@ -358,17 +355,16 @@ dialog.pageoverlay > .overlaynote { margin: var(--sp-3) 0 0; max-width: 22rem;
   color: var(--muted); text-align: center; }
 
 /* How runs work: a small question mark at the right-hand end of the
-   search field's own row (spec 261 moved it there from the filter
-   chips' row), not a block between the page's title and the list the
+   search field's own row, not a block between the page's title and the list the
    reader came for. */
 /* A POPOVER, not an inline fold: opening it lays the text over the page
    instead of shoving the list down. The details element keeps the no-JS
    behaviour; only the open box is lifted out of the flow. Bare and
-   unscoped since spec 311 (`helpPopover()` in components.ts) — not tied
+   unscoped (`helpPopover()` in components.ts) — not tied
    to any one row, the same way `.menu` above it is not. */
 /* New spec carries the auto margin, never a fixed one: it alone is
    pushed to the row's right-hand end. States carries its OWN margin
-   instead of the row's plain gap (REQ-7, spec 338) — more room from the
+   instead of the row's plain gap — more room from the
    "(?)" popover beside it than every other pair of controls on this row
    gets, because the two are easy to mis-click together. */
 .menu.state { margin-left: var(--sp-3); }
@@ -385,11 +381,11 @@ details.intro[open] p { position: absolute; right: 0; top: calc(100% + 6px);
   background: var(--surface); border: 1px solid var(--line-strong);
   border-radius: var(--r); box-shadow: var(--overlay-shadow);
   font-family: var(--sans), sans-serif; font-size: var(--fs-m); font-weight: 400; color: var(--text); }
-/* Spec 477: menu-script.ts measures the opened popover and adds this
+/* Menu-script.ts measures the opened popover and adds this
    class when its default side above would run past the viewport's
    left or right edge — flips it to the other side instead. */
 details.intro.intro-flip[open] p { right: auto; left: 0; }
-/* Spec 360: the spec page's tabs append this mark INSIDE their own first
+/* The spec page's tabs append this mark INSIDE their own first
    line (the file/commit stamp, the checklist's head line, the Logs
    table's header row) rather than drawing it as a preceding sibling —
    floating it right pins it to that line's own end, off any wrapped

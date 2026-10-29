@@ -46,7 +46,7 @@ function load(saveDisabled = false) {
 }
 
 describe("Enter", () => {
-  test("saves once, with or without a modifier, and adds no break (AC-3)", () => {
+  test("saves once, with or without a modifier, and adds no break", () => {
     const t = load();
     for (const extra of [{}, { shiftKey: true }, { ctrlKey: true }, { altKey: true }, { metaKey: true }]) {
       expect(t.key(extra).defaultPrevented).toBe(true);
@@ -54,7 +54,7 @@ describe("Enter", () => {
     expect(t.submits).toHaveLength(5);
   });
 
-  test("does nothing but prevent the break while Save is disabled or the key repeats (AC-3)", () => {
+  test("does nothing but prevent the break while Save is disabled or the key repeats", () => {
     const busy = load(true);
     expect(busy.key().defaultPrevented).toBe(true);
     expect(busy.submits).toHaveLength(0);
@@ -63,7 +63,7 @@ describe("Enter", () => {
     expect(held.submits).toHaveLength(0);
   });
 
-  test("does nothing at all during an IME composition (AC-3)", () => {
+  test("does nothing at all during an IME composition", () => {
     const t = load();
     expect(t.key({ isComposing: true }).defaultPrevented).toBe(false);
     expect(t.key({ keyCode: 229 }).defaultPrevented).toBe(false);
@@ -72,7 +72,7 @@ describe("Enter", () => {
 });
 
 describe("a line break", () => {
-  test("is folded to a space when text is filled, keeping the caret's distance from the end (AC-3)", () => {
+  test("is folded to a space when text is filled, keeping the caret's distance from the end", () => {
     const t = load();
     t.field.value = "a\r\nbcd";
     t.field.setSelectionRange(5, 5);
@@ -81,7 +81,7 @@ describe("a line break", () => {
     expect(t.field.selectionEnd).toBe(4);
   });
 
-  test("is folded the same way in the browser and on the server (AC-3)", () => {
+  test("is folded the same way in the browser and on the server", () => {
     for (const input of ["a\r\nb", " a\nb ", "a  \n\n  b", "plain", "a\rb\nc", ""]) {
       expect(oneLine(input)).toBe(foldLineBreaks(input).trim());
     }

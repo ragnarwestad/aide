@@ -1,5 +1,5 @@
-// One phase's own outcome record (spec 245's write side), read here for
-// the first time (spec 247). `parse-status.ts` stays "4-status.md parsing
+// One phase's own outcome record (its write side is elsewhere), read here for
+// the first time. `parse-status.ts` stays "4-status.md parsing
 // only" (its own file header says so) — this is a sibling module rather
 // than an addition there, because it needs `specFileText`/`markdownSection`
 // from `discover.ts`, and `discover.ts` already imports from
@@ -13,7 +13,7 @@ export interface PhaseOutcome {
   /** The model id the run's own log named (`claude-opus-5-5`), when it
    *  named one — "absence over a guess", like `model` above. */
   modelId?: string;
-  /** The effort level this step ran at, when one was chosen (spec 364).
+  /** The effort level this step ran at, when one was chosen.
    *  Absent means none was — "absence over a guess", the same rule
    *  `model` above follows. */
   effort?: string;
@@ -33,7 +33,7 @@ export interface PhaseOutcome {
    *  `cost`: a Codex phase carries this with no `cost` at all. */
   tokens?: number;
   /** How many times this phase has run in total, parsed from its own
-   *  `Attempts:` bullet (spec 341) — a running count across every
+   *  `Attempts:` bullet — a running count across every
    *  attempt there has ever been. `cost` and `tokens` are the other
    *  totals; every other field here speaks for the latest attempt only. */
   attempts?: number;

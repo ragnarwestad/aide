@@ -1,5 +1,5 @@
-// Gzips a compressible response when the client asked for it (spec 315,
-// REQ-3). Applied once, centrally, in serve.ts — not threaded into
+// Gzips a compressible response when the client asked for it.
+// Applied once, centrally, in serve.ts — not threaded into
 // every route, so a route's own body never has to know this happens.
 
 import { constants, createGzip } from "node:zlib";
@@ -21,7 +21,7 @@ export async function compressResponse(req: Request, res: Response): Promise<Res
   const contentType = res.headers.get("content-type") ?? "";
   if (!COMPRESSIBLE_PREFIXES.some((p) => contentType.startsWith(p))) return res;
 
-  // A streamed page (spec 515) is gzipped as it goes, with a sync flush after
+  // A streamed page is gzipped as it goes, with a sync flush after
   // every chunk: `CompressionStream` holds back the tail of the head, which is
   // where the loading element sits, until the next chunk pushes it out.
   if (isStreamedPage(res)) {

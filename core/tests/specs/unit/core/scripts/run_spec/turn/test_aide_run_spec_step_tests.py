@@ -377,7 +377,7 @@ def _stamped(err):
     return [m.group(1) for m in re.finditer(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s (.+)$", err, re.M)]
 
 
-def test_the_second_turn_line_names_the_size_the_first_turn_left_AC_3(runner, workspace, fake_claude, tmp_path):
+def test_the_second_turn_line_names_the_size_the_first_turn_left(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     _project_with_test_cmd(workspace, "test -f fixed.txt")
     stream = tmp_path / "job.stream.jsonl"
@@ -396,7 +396,7 @@ def test_the_second_turn_line_names_the_size_the_first_turn_left_AC_3(runner, wo
     ], turns
 
 
-def test_a_green_run_is_a_line_after_the_line_that_says_the_tests_are_running_AC_3(runner, workspace, fake_claude):
+def test_a_green_run_is_a_line_after_the_line_that_says_the_tests_are_running(runner, workspace, fake_claude):
     with_status(workspace, ["create", "analyze"])
     _project_with_test_cmd(workspace, "true")
     _, out, _, err = run(runner, workspace, _implementing_claude(fake_claude), command="implement", return_stderr=True)
@@ -406,7 +406,7 @@ def test_a_green_run_is_a_line_after_the_line_that_says_the_tests_are_running_AC
     assert running < green, stages
 
 
-def test_the_red_hand_back_and_a_tests_red_stop_are_error_lines_AC_7(runner, workspace, fake_claude):
+def test_the_red_hand_back_and_a_tests_red_stop_are_error_lines(runner, workspace, fake_claude):
     with_status(workspace, ["create", "analyze"])
     _project_with_test_cmd(workspace, "test -f fixed.txt")
     _, out, _, err = run(

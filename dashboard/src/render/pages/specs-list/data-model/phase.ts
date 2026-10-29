@@ -3,20 +3,20 @@
 
 import type { QueueRowView } from "../../../ui/job-state";
 
-// Exported since spec 160: `queue.ts` keeps the same list under
+// Exported because `queue.ts` keeps the same list under
 // `PHASE_STEPS` — it decides which steps a running job may still be
 // given — and the render layer does not import that module. A test
 // reads both and refuses to let them drift.
 export const RUN_STEPS = ["analyze", "implement", "archive"];
 
 // The phase LINES a spec's expanded row shows, in order. `create` is
-// history, not a control (spec 116): a spec that exists cannot be
+// history, not a control: a spec that exists cannot be
 // created again, so it is never a checkbox (`phaseSubRows`), never a
 // progress pip (`specHeadRow`), and never "the next phase"
 // (`nextStep`/`readyPhase`/`allDone`) — all four of those keep reading
 // `RUN_STEPS` directly. Only the phase-line list reads this one.
 //
-// Exported (spec 247) so `serve.ts` can iterate the same four steps
+// Exported so `serve.ts` can iterate the same four steps
 // while reading each one's phase-outcome file, rather than keeping a
 // second, hand-copied list of them.
 export const PHASE_LINES = ["create", ...RUN_STEPS];
@@ -31,24 +31,24 @@ export interface Phase {
    *  Every other phase answers "has this happened" out of `done`. */
   heldBack?: { reason: string };
   /** What this phase's own git history says beyond whether it happened
-   *  (spec 154): why its last run did not finish, and whether
+   *  why its last run did not finish, and whether
    *  `4-status.md` agrees that it ran at all. */
   history: { stopped?: string; fileDisagrees?: boolean; historyDone?: boolean; settling?: boolean };
   /** What this phase ran on, when it is a LOCKED phase's own record
-   *  (spec 244) — from `ArchivedSpecView.models`, never set for a live
+   *  from `ArchivedSpecView.models`, never set for a live
    *  phase (whose "what it ran on" is `attempts[0]?.model`, read
    *  through the picker's pre-fill instead). */
   model?: string;
   /** What this phase ran at, when it is a LOCKED phase's own record
-   *  (spec 364) — the sibling of `model` above, on the same terms: from
+   *  the sibling of `model` above, on the same terms: from
    *  `ArchivedSpecView.phaseOutcomes`, never set for a live phase (whose
    *  "what it ran at" is `attempts[0]?.effort`, read through the
    *  picker's pre-fill instead). */
   effort?: string;
   /** What this phase's own file record says it cost, in time and money
-   *  (spec 247): from `ArchivedSpecView.phaseOutcomes` for a LOCKED
-   *  phase, on the same terms as `model` above. For a LIVE phase (spec
-   *  284) it is the fallback `specPhases` reads off the phase's own
+   *  from `ArchivedSpecView.phaseOutcomes` for a LOCKED
+   *  phase, on the same terms as `model` above. For a LIVE phase
+   *  it is the fallback `specPhases` reads off the phase's own
    *  stamped file when `attempts` is empty — a queue-job attempt always
    *  wins when one exists, so this is set on a live phase only where
    *  `attempts[0]` has nothing to say. */
@@ -59,7 +59,7 @@ export interface Phase {
   /** The model id this phase's own file says its run reported — read only
    *  where the queue has no attempt for the phase, like `cost` above. */
   modelId?: string;
-  /** How many times this phase's own file says it has run (spec 341) —
+  /** How many times this phase's own file says it has run —
    *  read regardless of how many queue-job attempts exist, unlike
    *  `timeSpentMs`/`cost`/`tokens` above: those speak for the LATEST
    *  attempt only, so the file is a fallback for when the queue has

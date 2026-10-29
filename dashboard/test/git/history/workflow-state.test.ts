@@ -4,13 +4,13 @@
 // Split out of workflow-history.test.ts 2026-09-04; the tests are
 // unchanged and keep their names.
 
-// Spec 154: which steps a spec has HAD, asked of git rather than of a
+// Which steps a spec has HAD, asked of git rather than of a
 // markdown line somebody's model wrote.
 //
-// Two incidents on 2026-08-21, in opposite directions. 147's implement
+// Two incidents on 2026-08-21, in opposite directions. One implement
 // finished RED and GREEN and was killed by the step's time limit before
 // the model reached the part that writes `4-status.md`, so the row read
-// "implement not run" about a spec whose code was on the branch. 153's
+// "implement not run" about a spec whose code was on the branch. The other's
 // files were copied from a sibling whose analyze had landed, so a
 // brand-new spec claimed three steps it had never had.
 //
@@ -43,7 +43,7 @@ const subject = (
 ) =>
   `Run /aide-${step} for ${opts.folder ?? FOLDER}` +
   (opts.headless === false ? "" : " (headless)") +
-  // Spec 217's suffix sits BEFORE the stop reason, which is read
+  // The model suffix sits BEFORE the stop reason, which is read
   // greedily to the end of the subject — a suffix after it would be
   // swallowed into the reason.
   (opts.model ? ` (model: ${opts.model})` : "") +
@@ -53,7 +53,7 @@ const subject = (
 const gitLogging = (...subjects: string[]) =>
   fakeGit({ log: { code: 0, stdout: subjects.join("\n") + "\n" } });
 
-// Spec 302: the one canonical `{ done, stopped, fileDisagrees, fileSteps }`
+// The one canonical `{ done, stopped, fileDisagrees, fileSteps }`
 // a spec's steps resolve to, built from the same two peeks `withFreshness`
 // used to assemble by hand — the `create` special case included.
 describe("resolveWorkflowState", () => {
@@ -67,7 +67,7 @@ describe("resolveWorkflowState", () => {
   /** What `readStatusFromBranch` needs answered, for a branch whose
    *  `4-status.md` names `proseSteps` — the same shape branch-file-steps.test.ts
    *  already uses. When `stateSteps` is given, the branch's own sibling
-   *  `4-status.json` answers too (spec 362) — keyed on the FULL show
+   *  `4-status.json` answers too — keyed on the FULL show
    *  path, since a generic prefix cannot tell the `.md` request from the
    *  `.json` one. */
   const branchFileFake = (proseSteps: string[], stateSteps?: string[]) => {
@@ -120,7 +120,7 @@ describe("resolveWorkflowState", () => {
     expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, undefined)?.checkedAt).toBe(5_000);
   });
 
-  test("the disk scan's read time counts when the disk copy is the file source (AC-1)", async () => {
+  test("the disk scan's read time counts when the disk copy is the file source", async () => {
     const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
     await history.read(DIR, FOLDER);
     const branch = new BranchFileStepsChecker({ run: fakeGit({}).run });
@@ -128,7 +128,7 @@ describe("resolveWorkflowState", () => {
     expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)?.checkedAt).toBe(2_000);
   });
 
-  test("a disk scan read after the history does not make the answer newer (AC-1)", async () => {
+  test("a disk scan read after the history does not make the answer newer", async () => {
     const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
     await history.read(DIR, FOLDER);
     const branch = new BranchFileStepsChecker({ run: fakeGit({}).run });
@@ -136,7 +136,7 @@ describe("resolveWorkflowState", () => {
     expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)?.checkedAt).toBe(5_000);
   });
 
-  test("the disk scan is left out when the branch copy is the file source (AC-1)", async () => {
+  test("the disk scan is left out when the branch copy is the file source", async () => {
     const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
     await history.read(DIR, FOLDER);
     const branch = new BranchFileStepsChecker({ run: branchFileFake(["analyze"]).run, now: () => 3_000 });
@@ -155,8 +155,8 @@ describe("resolveWorkflowState", () => {
 
   /** A `BranchFileStepsChecker` already warmed against `BRANCH_TARGET`.
    *  `stateSteps` is absent for a branch with no `4-status.json` yet
-   *  (REQ-2's unchanged fallback), and given for the state-file cases
-   *  (REQ-1/REQ-3/REQ-4). */
+   *  (the unchanged fallback), and given for the state-file cases
+   */
   const warmedBranchSteps = async (proseSteps: string[], stateSteps?: string[]): Promise<BranchFileStepsChecker> => {
     const checker = new BranchFileStepsChecker({ run: branchFileFake(proseSteps, stateSteps).run });
     await checker.read(DIR, FOLDER, BRANCH_TARGET);
@@ -224,11 +224,11 @@ describe("resolveWorkflowState", () => {
     expect(resolved!.fileSteps).toEqual(["create", "analyze"]);
   });
 
-  // REQ-1/REQ-4/REQ-5, spec 349's own incident: git has no `analyze`
+  // The incident: git has no `analyze`
   // commit (an amended, unpushed commit) but the branch's own
   // `4-status.json` already has the phase. `done` and `fileDisagrees`
   // both read from the state file, not from git.
-  test("REQ-1/REQ-4: done and fileDisagrees come from the branch's own state file, not git, once one exists", async () => {
+  test("done and fileDisagrees come from the branch's own state file, not git, once one exists", async () => {
     const history = await warmedHistory(subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
@@ -236,12 +236,12 @@ describe("resolveWorkflowState", () => {
     expect(resolved!.fileDisagrees).toEqual([]);
   });
 
-  // REQ-3: with a state file present, the one disagreement still
+  // With a state file present, the one disagreement still
   // reported is prose claiming a phase the state file lacks — proven
   // here by git DISAGREEING with the state file too (git has
   // `implement`, newer than the analysis), so the assertion cannot pass
   // by prose-vs-git coincidentally agreeing.
-  test("REQ-3: flags a phase the prose claims that the branch's own state file lacks", async () => {
+  test("flags a phase the prose claims that the branch's own state file lacks", async () => {
     const history = await warmedHistory(subject("implement"), subject("analyze"), subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze", "implement"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
@@ -251,7 +251,7 @@ describe("resolveWorkflowState", () => {
   // A completed analyze cancels the implement before it: the state file no
   // longer names it, and neither does git's own answer — which says so in
   // `superseded`, so the row can tell "cancelled" from "never ran".
-  test("AC-1: an implement older than a completed analysis is in neither done nor historyDone", async () => {
+  test("an implement older than a completed analysis is in neither done nor historyDone", async () => {
     const history = await warmedHistory(subject("analyze"), subject("implement"), subject("analyze"), subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
@@ -260,15 +260,15 @@ describe("resolveWorkflowState", () => {
     expect(resolved!.superseded).toEqual(["implement"]);
   });
 
-  // Spec 418: `historyDone` carries the RAW git answer (`h.done`), never
+  // `historyDone` carries the RAW git answer (`h.done`), never
   // the merged one — it is what a row's "last run reported done, but
   // the files disagree" qualifier needs to tell "the work is on the
-  // branch, unlanded" (REQ-1) apart from "nothing was written" (REQ-2).
-  // Proven against the same fixture as the REQ-1/REQ-4 test above, where
+  // branch, unlanded" apart from "nothing was written".
+  // Proven against the same fixture as the test above, where
   // the state file's claim ("analyze" done) already outruns git's own
   // ("create" only) — `done` still reads the merged answer, but
   // `historyDone` must stay at git's raw one.
-  test("spec 418: historyDone carries the raw git answer, not the merged one", async () => {
+  test("historyDone carries the raw git answer, not the merged one", async () => {
     const history = await warmedHistory(subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
@@ -278,7 +278,7 @@ describe("resolveWorkflowState", () => {
 
   // The state file keeps naming what an earlier run finished; the newest
   // run says how the step stands now.
-  test("a step whose newest run failed is not done, though the state file names it (AC-1)", async () => {
+  test("a step whose newest run failed is not done, though the state file names it", async () => {
     const history = await warmedHistory(subject("analyze", { stopped: "model-refused" }), subject("analyze"), subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
@@ -286,7 +286,7 @@ describe("resolveWorkflowState", () => {
     expect(resolved!.stopped).toEqual({ analyze: "model-refused" });
   });
 
-  test("a later run that completes puts the step back in done with no stop (AC-5)", async () => {
+  test("a later run that completes puts the step back in done with no stop", async () => {
     const history = await warmedHistory(subject("analyze"), subject("analyze", { stopped: "model-refused" }), subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
@@ -295,14 +295,14 @@ describe("resolveWorkflowState", () => {
   });
 
   // The two limits the queue keeps as stopped leave the earlier run standing.
-  test("a step whose newest run stopped at its time limit stays done (AC-5)", async () => {
+  test("a step whose newest run stopped at its time limit stays done", async () => {
     const history = await warmedHistory(subject("analyze", { stopped: "timeout" }), subject("analyze"), subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create", "analyze"]);
   });
 
-  test("an analyze whose newest run stopped on its acceptance criteria is not done, though the state file names it (AC-5)", async () => {
+  test("an analyze whose newest run stopped on its acceptance criteria is not done, though the state file names it", async () => {
     const history = await warmedHistory(subject("analyze", { stopped: "acceptance-criteria" }), subject("analyze"), subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
     const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
@@ -349,7 +349,7 @@ describe("WorkflowHistoryChecker against real git", () => {
   });
 });
 
-// --- spec 198: history before the reopen boundary does not count -------------
+// --- History before the reopen boundary does not count -------------
 //
 // An archived spec that has to be done again is reopened, and the
 // commits from the earlier round stay in the repository — they happened,

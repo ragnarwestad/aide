@@ -1,4 +1,4 @@
-// The damage this undoes is on spec 417's own description, in the specs
+// The damage this undoes was found on a real description, in the specs
 // repo: `\#\# Requirements` where a heading was, and `\- \*\*REQ\-1:\*\*`
 // where the requirement bullets were. The editor writes that whenever it
 // is holding markdown as literal text — a paste into the WYSIWYG

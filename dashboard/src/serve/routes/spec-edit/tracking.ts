@@ -1,4 +1,4 @@
-// The spec-wide banner's own save route (spec 394): what the spec
+// The spec-wide banner's own save route: what the spec
 // depends on, and whether it requires acceptance ticking — two facts
 // that belong to the whole spec, not to any one document tab, and so no
 // longer ride on the Description tab's own `/save` (see spec-page.ts's
@@ -51,7 +51,7 @@ export async function trackingRoutes(
   }
   // This form carries no textarea — it is not one document's Save — so
   // it reads `1-description.md` fresh itself, the same "ask the open
-  // branch first" question `/save`'s own REQ-4 asks, since `create` or
+  // branch first" question `/save` asks, since `create` or
   // `analyze` may have already pushed this spec's own branch. `4-status.md`
   // is read the same way: whether analyze has run is a fact of the card.
   const target = await resolveOpenBranchTarget(ctx, dir, specFolder!, EDITABLE_SPEC_FILE, true);
@@ -68,7 +68,7 @@ export async function trackingRoutes(
 
   // What can be changed is the card's to say (`project/spec-card.ts`), the
   // same answer the Running row is drawn from. The job-state gate `/save`
-  // applies (REQ-6 of spec 310): a run works in a worktree branched when it
+  // applies: a run works in a worktree branched when it
   // started, but a hand edit racing the run's own commits to the SAME branch
   // is exactly what this gate exists to prevent. A landing counts as a job
   // in flight, as it does on the row.

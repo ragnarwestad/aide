@@ -31,7 +31,7 @@ async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<str
   return body.job.id;
 }
 
-// --- spec 125: the page has to know which CLI ran the step -------------------
+// --- The page has to know which CLI ran the step -------------------
 //
 // Two things on this page turn on it, and both are wrong-by-default if
 // nobody works it out: the Live panel would be built from a session
@@ -104,7 +104,7 @@ describe("a Codex step's job page", () => {
 
   // The step's tab is read from the address and carried to the renderer,
   // so a step keeps its tab when the page reloads itself.
-  test("steptab= in the URL picks the step's tab, and a leftover only= changes nothing (AC-6, AC-7)", async () => {
+  test("steptab= in the URL picks the step's tab, and a leftover only= changes nothing", async () => {
     const { base, dir } = start();
     const id = await enqueue(base, ["implement"]);
     const stream = join(dir, "filtered.stream.jsonl");
@@ -138,7 +138,7 @@ describe("a Codex step's job page", () => {
     expect(old).toContain("git status");
   });
 
-  test("steptab=files opens the step on Changed files, marked as the page's own tab bar marks its tab, on the spec page's Logs tab too (AC-2)", async () => {
+  test("steptab=files opens the step on Changed files, marked as the page's own tab bar marks its tab, on the spec page's Logs tab too", async () => {
     const { base, dir } = start();
     const id = await enqueue(base, ["implement"]);
     const mirror = seed(dir, id, (job) => {
@@ -157,15 +157,15 @@ describe("a Codex step's job page", () => {
   });
 });
 
-// --- spec 408: the job detail page threads and remembers the language -------
+// --- The job detail page threads and remembers the language -------
 //
-// `job-detail.ts` already resolved `languageChoice()` for spec 350's own
+// `job-detail.ts` already resolved `languageChoice()` for its own
 // `lang` field, but never appended its `setCookie` to the response, and
 // never forwarded that `lang` into its own `pageShell` call — so the
 // page's own frame (the tab bar, the theme control) stayed English and
 // the choice was never written down from this route.
 
-// --- spec 150: a page for the SPEC, not for one of its runs ------------------
+// --- A page for the SPEC, not for one of its runs ------------------
 //
 // `/jobs/<job-id>` is one queue run. `/specs/<project>/<specFolder>` is
 // the spec itself: the four files as they stand on this host's checkout,
@@ -187,10 +187,10 @@ describe("GET /specs/<project>/<specFolder>", () => {
     );
   };
 
-  // Spec 212: all four are still there, one TAB each, rather than
+  // All four are still there, one TAB each, rather than
   // stacked in full on Overview. Overview itself carries no file text —
   // it is where the spec stands.
-  test("offers all four files, whether or not anything has ever run (criterion 2)", async () => {
+  test("offers all four files, whether or not anything has ever run", async () => {
     const { base, dir } = start();
     fillSpec(dir);
     const res = await fetch(`${base}${PATH}`);
@@ -210,9 +210,9 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(solution).toContain("One must-fix.");
   });
 
-  // Spec 627: the spec's address is the Specs list with that row open, and
+  // The spec's address is the Specs list with that row open, and
   // the spec drawn in the row.
-  test("answers the Specs list with the spec's row open and the whole spec in it (AC-1)", async () => {
+  test("answers the Specs list with the spec's row open and the whole spec in it", async () => {
     const { base, dir } = start();
     fillSpec(dir);
     const res = await fetch(`${base}${PATH}`);
@@ -230,7 +230,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
   // `<select` is not checked here: the banner carries the create choices'
   // disabled criteria-checks select. The caption line is looked for as a
   // row, since the page's stylesheet names `data-caption` too.
-  test("the open row is the spec alone: no phase line and no Run, and Close or Reopen at the end of its tabs (AC-1, AC-2)", async () => {
+  test("the open row is the spec alone: no phase line and no Run, and Close or Reopen at the end of its tabs", async () => {
     const live = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
     const open = await (await fetch(`${live.base}${PATH}`)).text();
     expect(open).toContain('data-ask="closeask"');
@@ -245,21 +245,21 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(archived).not.toContain('data-ask="reopenask-aide/70-an-old-spec"');
   });
 
-  test("a spec archived while the list shows only the active ones is still the open row (AC-4)", async () => {
+  test("a spec archived while the list shows only the active ones is still the open row", async () => {
     const { base } = harness.start({ description: DESCRIPTION, archivedSpecs: { "70-an-old-spec": {} } });
     const html = await (await fetch(`${base}/specs/aide/70-an-old-spec`)).text();
     expect(html).toContain('id="spec-aide/70-an-old-spec"');
     expect(html).toContain('data-spec-detail="aide/70-an-old-spec"');
   });
 
-  test("/specs?open= leads to the spec's address with the rest of the query (AC-4)", async () => {
+  test("/specs?open= leads to the spec's address with the rest of the query", async () => {
     const { base } = start();
     const res = await fetch(`${base}/specs?open=${encodeURIComponent(`aide/${SPEC},aide/82-other`)}&q=queue`, { redirect: "manual" });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe(`/specs/aide/${SPEC}?q=queue`);
   });
 
-  test("/specs draws every row shut, without the spec (AC-3)", async () => {
+  test("/specs draws every row shut, without the spec", async () => {
     const { base } = start();
     const html = await (await fetch(`${base}/specs`)).text();
     // The loading-row template holds a detail row of its own, outside the rows.
@@ -271,7 +271,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
 
   // The page script opens a shut row in place: it asks for the spec's rows with
   // the spec drawn in, and adds the tab's script itself.
-  test("?detail=1 answers that spec's rows with the spec in its row and the editor's script tag (AC-4)", async () => {
+  test("?detail=1 answers that spec's rows with the spec in its row and the editor's script tag", async () => {
     const { base, dir } = start();
     fillSpec(dir);
     const res = await fetch(`${base}${PATH}?detail=1`);
@@ -284,7 +284,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
   });
 
   // The page script copies this template for the row it draws while it waits.
-  test("/specs and a spec's address carry the loading-row template the page script reads (AC-4)", async () => {
+  test("/specs and a spec's address carry the loading-row template the page script reads", async () => {
     const { base } = start();
     const { SPEC_LOADING_ROW_ID } = await import("../../src/specs-client/spec-detail/open.ts");
     for (const path of ["/specs", PATH]) {
@@ -294,7 +294,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
   });
 
   // The spec's view reads its files through git; the list's answers must not.
-  test("the spec is loaded when its row is opened, not when the list is drawn (AC-2)", async () => {
+  test("the spec is loaded when its row is opened, not when the list is drawn", async () => {
     const real = createGitRunner();
     const hits: string[] = [];
     const gitRun: GitRunner = (cwd, args, timeoutMs, env) => {
@@ -352,7 +352,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
   });
 });
 
-// --- spec 242: every attempt's steps in one flat list, no picker ------------
+// --- Every attempt's steps in one flat list, no picker ------------
 //
 // The picker used to read `?job=` to decide which attempt's steps to
 // show. Direction: remove the picker, list every attempt's steps
@@ -400,7 +400,7 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     return mirror;
   };
 
-  test("?job= naming a real other attempt changes nothing (AC6)", async () => {
+  test("?job= naming a real other attempt changes nothing", async () => {
     const { base, dir } = start();
     const id = await enqueue(base);
     const mirror = twoAttempts(dir, id);
@@ -413,7 +413,7 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     expect(detailOf(await res.text())).toBe(bare);
   });
 
-  test("both attempts' cost figures are present together in one response (AC7)", async () => {
+  test("both attempts' cost figures are present together in one response", async () => {
     const { base, dir } = start();
     const id = await enqueue(base);
     const mirror = twoAttempts(dir, id);

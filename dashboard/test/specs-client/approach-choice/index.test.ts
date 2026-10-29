@@ -47,7 +47,7 @@ const radio = (rows: HTMLElement, letter: string) =>
 const cancel = (rows: HTMLElement) => rows.querySelector(`#${FORM}-cancel`) as HTMLButtonElement;
 
 describe("the approach radios", () => {
-  test("a pick outlives a redraw, with Cancel still offered (AC-3)", () => {
+  test("a pick outlives a redraw, with Cancel still offered", () => {
     const { rows, redraw } = list();
     radio(rows, "B").checked = true;
     pickApproach(radio(rows, "B"));
@@ -58,7 +58,7 @@ describe("the approach radios", () => {
     expect(cancel(rows).disabled).toBe(false);
   });
 
-  test("Cancel after a redraw picks the recommended one again, and the next redraw keeps it (AC-3)", () => {
+  test("Cancel after a redraw picks the recommended one again, and the next redraw keeps it", () => {
     const { rows, redraw } = list();
     radio(rows, "B").checked = true;
     pickApproach(radio(rows, "B"));

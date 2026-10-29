@@ -32,7 +32,7 @@ def land_by_fast_forward(repo, folder, catch_ups):
     return caught_up, tip
 
 
-def test_a_merge_landing_gives_the_commit_before_whatever_catch_up_merge_names_the_folder_too_AC_1(code, tmp_path):
+def test_a_merge_landing_gives_the_commit_before_whatever_catch_up_merge_names_the_folder_too(code, tmp_path):
     before, merge = land_by_merge(code, "7-merged", {"t.py": "x"})
     archived = archive_spec(tmp_path / "specs", "7-merged")
 
@@ -41,7 +41,7 @@ def test_a_merge_landing_gives_the_commit_before_whatever_catch_up_merge_names_t
     assert (found.before, found.landed) == (before, merge)
 
 
-def test_a_fast_forward_gives_the_second_parent_of_the_newest_catch_up_merge_AC_1(code, tmp_path):
+def test_a_fast_forward_gives_the_second_parent_of_the_newest_catch_up_merge(code, tmp_path):
     caught_up, tip = land_by_fast_forward(code, "8-forward", catch_ups=2)
     archived = archive_spec(tmp_path / "specs", "8-forward", landed_tip=tip[:8], attempts=1)
 
@@ -50,7 +50,7 @@ def test_a_fast_forward_gives_the_second_parent_of_the_newest_catch_up_merge_AC_
     assert (found.before, found.landed) == (caught_up, tip)
 
 
-def test_a_fast_forward_with_no_catch_up_takes_the_implement_repo_line_when_it_ran_once_AC_1(code, tmp_path):
+def test_a_fast_forward_with_no_catch_up_takes_the_implement_repo_line_when_it_ran_once(code, tmp_path):
     began = git(code, "rev-parse", "HEAD")
     _, tip = land_by_fast_forward(code, "9-plain", catch_ups=0)
     archived = archive_spec(tmp_path / "specs", "9-plain", landed_tip=tip[:8], began=began[:8], attempts=1)
@@ -58,7 +58,7 @@ def test_a_fast_forward_with_no_catch_up_takes_the_implement_repo_line_when_it_r
     assert landing.find_landing(str(code), "main", "9-plain", str(archived)).before == began
 
 
-def test_a_fast_forward_after_two_implement_attempts_cannot_tell_where_the_code_began_AC_1(code, tmp_path):
+def test_a_fast_forward_after_two_implement_attempts_cannot_tell_where_the_code_began(code, tmp_path):
     began = git(code, "rev-parse", "HEAD")
     _, tip = land_by_fast_forward(code, "9-twice", catch_ups=0)
     archived = archive_spec(tmp_path / "specs", "9-twice", landed_tip=tip[:8], began=began[:8], attempts=2)
@@ -67,7 +67,7 @@ def test_a_fast_forward_after_two_implement_attempts_cannot_tell_where_the_code_
         landing.find_landing(str(code), "main", "9-twice", str(archived))
 
 
-def test_a_squash_landing_gives_the_first_parent_of_the_commit_gh_names_AC_1(code, tmp_path, fake_gh):
+def test_a_squash_landing_gives_the_first_parent_of_the_commit_gh_names(code, tmp_path, fake_gh):
     before = git(code, "rev-parse", "HEAD")
     squash = commit(code, {"feature.txt": "x"}, "Add the feature (#41)")
     fake_gh(json.dumps([{"mergeCommit": {"oid": squash}}]))
@@ -78,7 +78,7 @@ def test_a_squash_landing_gives_the_first_parent_of_the_commit_gh_names_AC_1(cod
     assert (found.before, found.landed) == (before, squash)
 
 
-def test_a_spec_none_of_the_rules_finds_says_no_landing_of_its_code_was_found_AC_10(code, tmp_path):
+def test_a_spec_none_of_the_rules_finds_says_no_landing_of_its_code_was_found(code, tmp_path):
     archived = archive_spec(tmp_path / "specs", "11-lost")
 
     with pytest.raises(landing.NoLanding, match="no landing of its code found"):

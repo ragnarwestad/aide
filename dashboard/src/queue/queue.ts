@@ -1,4 +1,4 @@
-// The queue store's public surface (spec 81, slice 81a) — split by
+// The queue store's public surface — split by
 // theme into steps.ts (workflow vocabulary), types.ts (Job and its
 // config), parse-request.ts (HTTP body → Job), persist.ts (everything
 // written to disk besides the mirror) and store.ts (QueueStore itself).

@@ -1,4 +1,4 @@
-// Spec 388: starting a board wraps the round script exactly as a
+// Starting a board wraps the round script exactly as a
 // terminal user does — every assertion here is against a FAKE spawn/
 // isAlive/gitRun, the same seam `runner-fixtures.ts` uses so a spawn/
 // kill test never touches a real process.
@@ -67,7 +67,7 @@ function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContex
 }
 
 /** A tracked, running board fixture — used to pin the exact running
- *  count a pool-exhausted refusal states (REQ-2). */
+ *  count a pool-exhausted refusal states. */
 function runningEntry(port: number): TestServer {
   return {
     branch: `aide/board-${port}`,
@@ -115,7 +115,7 @@ describe("startTestServer", () => {
     }
   });
 
-  test("REQ-6: a second call for the same branch and commit returns the existing board instead of spawning again", async () => {
+  test("a second call for the same branch and commit returns the existing board instead of spawning again", async () => {
     const ctx = makeCtx();
     const first = await startTestServer(ctx, "aide", "spec-1");
     const second = await startTestServer(ctx, "aide", "spec-1");
@@ -163,7 +163,7 @@ describe("startTestServer", () => {
     expect(killSpy).toHaveBeenCalledWith(-4242, "SIGTERM");
   });
 
-  test("REQ-10: the port never collides with the served board's own port or another tracked board's port", async () => {
+  test("the port never collides with the served board's own port or another tracked board's port", async () => {
     const store = new TestServerStore();
     store.set("aide", "spec-0", {
       branch: "aide/spec-0",
@@ -201,10 +201,10 @@ describe("startTestServer", () => {
     expect(spawnCalls).toHaveLength(0);
   });
 
-  // REQ-1: a fourth start succeeds once the pool holds more than three
+  // A fourth start succeeds once the pool holds more than three
   // ports — proved through the REAL `findFreePort`, not a mock, with
   // three ports already reserved.
-  test("REQ-1: a fourth start succeeds and takes the fourth pool port", async () => {
+  test("a fourth start succeeds and takes the fourth pool port", async () => {
     const ctx = makeCtx({
       reservedPorts: () => [TEST_SERVER_PORTS[0]!, TEST_SERVER_PORTS[1]!, TEST_SERVER_PORTS[2]!],
       findFreePort: (reserved) => findFreePort(reserved, () => true),
@@ -214,10 +214,10 @@ describe("startTestServer", () => {
     expect(spawnCalls[0]!.cmd).toContain(String(TEST_SERVER_PORTS[3]));
   });
 
-  // REQ-1: the pool still has a limit — all six ports reserved by six
+  // The pool still has a limit — all six ports reserved by six
   // tracked, running boards refuses a seventh, proved end to end through
   // `startTestServer()`'s own real `findFreePort`, not a mocked one.
-  test("REQ-1: a seventh start is refused once all six ports are reserved", async () => {
+  test("a seventh start is refused once all six ports are reserved", async () => {
     const store = new TestServerStore();
     for (let i = 0; i < 6; i++) {
       store.set("aide", `spec-${i}`, runningEntry(TEST_SERVER_PORTS[i]!));
@@ -232,9 +232,9 @@ describe("startTestServer", () => {
     expect(spawnCalls).toHaveLength(0);
   });
 
-  // REQ-2: the refusal states the exact running count (6) and the
+  // The refusal states the exact running count (6) and the
   // pool's limit (6) — never a bare port list.
-  test("REQ-2: a pool-exhausted refusal names the running count and the limit", async () => {
+  test("a pool-exhausted refusal names the running count and the limit", async () => {
     const store = new TestServerStore();
     for (let i = 0; i < 6; i++) {
       store.set("aide", `spec-${i}`, runningEntry(TEST_SERVER_PORTS[i]!));
@@ -247,11 +247,11 @@ describe("startTestServer", () => {
     expect(spawnCalls).toHaveLength(0);
   });
 
-  // REQ-2: the pool can also be exhausted for a reason outside the
+  // The pool can also be exhausted for a reason outside the
   // registry (nothing tracked, yet every port is taken) — the refusal
   // states the actual tracked count (0), never a false claim that the
   // running count equals the limit.
-  test("REQ-2: a pool-exhausted refusal outside the registry states 0 running, not the limit", async () => {
+  test("a pool-exhausted refusal outside the registry states 0 running, not the limit", async () => {
     const ctx = makeCtx({ findFreePort: async () => undefined });
     const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(false);
@@ -260,9 +260,9 @@ describe("startTestServer", () => {
     expect(spawnCalls).toHaveLength(0);
   });
 
-  // Spec 491, AC-2: a port that is free but not exposed through
+  // A port that is free but not exposed through
   // Tailscale is refused before anything is spawned.
-  test("AC-2: a port that is not exposed is refused, and nothing is spawned", async () => {
+  test("a port that is not exposed is refused, and nothing is spawned", async () => {
     const ctx = makeCtx({ portExposed: async () => false });
     const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(false);
@@ -270,17 +270,17 @@ describe("startTestServer", () => {
     expect(!result.ok && result.error).toContain("9000");
   });
 
-  // Spec 491, AC-3: no Tailscale on this host at all reads as "the
+  // No Tailscale on this host at all reads as "the
   // check does not apply" — the board starts exactly as before.
-  test("AC-3: a port with no Tailscale on this host still starts, exactly as before", async () => {
+  test("a port with no Tailscale on this host still starts, exactly as before", async () => {
     const ctx = makeCtx({ portExposed: async () => undefined });
     const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(true);
     expect(spawnCalls).toHaveLength(1);
   });
 
-  // Spec 491, AC-1: an exposed port starts as it does today.
-  test("AC-1: an exposed port starts as it does today", async () => {
+  // An exposed port starts as it does today.
+  test("an exposed port starts as it does today", async () => {
     const ctx = makeCtx({ portExposed: async () => true });
     const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(true);
@@ -288,9 +288,9 @@ describe("startTestServer", () => {
   });
 });
 
-// AC-3: the Deploy tab's button starts a board on the project's real
+// The Deploy tab's button starts a board on the project's real
 // default branch, not a spec's `aide/<specFolder>` derivation.
-describe("startTestServer with an explicit branch (AC-3)", () => {
+describe("startTestServer with an explicit branch", () => {
   test("opts.branch is used instead of aide/<specFolder>, for both the spawn and the entry", async () => {
     const ctx = makeCtx({
       gitRun: async (_dir, args) => {
@@ -322,7 +322,7 @@ describe("startTestServer with an explicit branch (AC-3)", () => {
   });
 });
 
-describe("restartMainTestServer (AC-6)", () => {
+describe("restartMainTestServer", () => {
   test("nothing tracked yet behaves like a plain startTestServer", async () => {
     const ctx = makeCtx({
       gitRun: async (_dir, args) => {
@@ -339,7 +339,7 @@ describe("restartMainTestServer (AC-6)", () => {
     }
   });
 
-  // AC-6: a second press stops whatever is tracked under MAIN_TEST_SERVER_KEY —
+  // A second press stops whatever is tracked under MAIN_TEST_SERVER_KEY —
   // whatever its status — and starts a fresh one, rather than leaving the
   // first running beside a second.
   test("a second call stops the first board's process group and starts a fresh one", async () => {
@@ -363,7 +363,7 @@ describe("restartMainTestServer (AC-6)", () => {
     }
   });
 
-  // AC-6: restarting must not be blocked by its OWN prior entry's port —
+  // Restarting must not be blocked by its OWN prior entry's port —
   // stopTestServer clears the registry before startTestServer ever asks for a free
   // one.
   test("the freed port is available to the fresh board", async () => {
@@ -386,7 +386,7 @@ describe("restartMainTestServer (AC-6)", () => {
 });
 
 describe("refreshTestServerStatus", () => {
-  test("REQ-4: parses the round's own 'left running' line into a running board", async () => {
+  test("parses the round's own 'left running' line into a running board", async () => {
     const ctx = makeCtx();
     const started = await startTestServer(ctx, "aide", "spec-1");
     if (!started.ok) throw new Error("expected startTestServer to succeed");
@@ -436,12 +436,12 @@ describe("refreshTestServerStatus", () => {
     expect(refreshed?.status).toBe("starting");
   });
 
-  // REQ-2: a "running" entry whose own process has since died — nobody
+  // A "running" entry whose own process has since died — nobody
   // pressed Stop, the process is simply gone — is removed from the
   // registry on the very read that discovers it, rather than staying
   // "running" forever (the gap: today only the "starting" branch above
   // ever re-examines an entry at all).
-  describe("a running entry that has gone quiet (REQ-2)", () => {
+  describe("a running entry that has gone quiet", () => {
     test("its process no longer alive: the entry is removed, and undefined is returned", async () => {
       const ctx = makeCtx();
       const started = await startTestServer(ctx, "aide", "spec-1");

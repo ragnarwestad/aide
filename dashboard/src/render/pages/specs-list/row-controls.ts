@@ -61,10 +61,8 @@ export function foldControl(
   });
 }
 
-// Stopping a run is the one thing this form does. It offered Approve
-// beside it until spec 149, for a job parked between two steps — there
-// is no stop between steps any more, so there is nothing to release and
-// nothing to approve.
+// Stopping a run is the one thing this form does. There is no stop
+// between steps, so there is nothing to release and nothing to approve.
 //
 // It says "Cancel" and nothing else. It named the step it would stop
 // until 2026-08-21 — "Cancel implement" — on the argument that it
@@ -74,24 +72,24 @@ export function foldControl(
 //
 // Drawn only when there IS something to cancel. It used to be in the
 // markup whatever the state, greyed out, so the width of the action
-// column could not change from row to row (spec 124); that column is
+// column could not change from row to row; that column is
 // gone, and a row draws exactly one control now — an inert Cancel
 // beside a live Run is the "two controls" this spec removes.
 //
-// A button, and the confirmation it opens over the row (spec 423): the
+// A button, and the confirmation it opens over the row: the
 // reader never leaves the row they are watching. The dialog's OK is the
 // row's `actionform`, which the page's own code posts; it does not stand
 // while the job stops — the row's redraw after the post replaces it,
 // dialog and all. It needs script, as Close and Reopen do.
 function actionForm(r: QueueRowView, lang: Language): string {
   // Gated on `r.landing`, exactly like `specStateChip`/`busyReason`
-  // already do (spec 423, REQ-3): `landingStep(r)` alone answers the
+  // already do: `landingStep(r)` alone answers the
   // wrong question on an ordinary row queued for its NEXT step with no
   // landing in progress.
   const step = stepLabel(r.landing ? landingStep(r) : currentStep(r), lang);
   const id = `cancelask-${r.id}`;
   return (
-    // Primary, like every row's one action (spec 161): `danger` was
+    // Primary, like every row's one action: `danger` was
     // supposed to set it apart, but in dark mode `--danger` and
     // `--accent` sit close enough in hue that an outlined Cancel and a
     // filled button beside it said nothing different to the eye. And a
@@ -108,9 +106,8 @@ function actionForm(r: QueueRowView, lang: Language): string {
   );
 }
 
-// Merging was a button here until spec 149, with a long comment about
-// what it said and where it said it. It says nothing now, because it is
-// not pressed: every step lands the work it produced, `implement` alone
+// There is no Merge button here, because nothing is pressed to merge:
+// every step lands the work it produced, `implement` alone
 // leaves its branch open on purpose, and `archive` is what lands that.
 // `mergeForm`, `mergeReadyLabel` and `isCodeRepo` went with it —
 // `isCodeRepo` existed only so the button's own sentence could say
@@ -121,8 +118,7 @@ export function listReopenDialog(g: SpecGroup, lang: Language, id: string): stri
   return reopenAskDialog(g.project, g.specFolder, lang, id);
 }
 
-/** The one action an archived spec offers (spec 198, on its row since
- *  spec 221): a button, and the dialog it opens beside it. */
+/** The one action an archived spec offers: a button, and the dialog it opens beside it. */
 function reopenAsk(g: SpecGroup, lang: Language): string {
   const id = `reopenask-${groupKey(g.project, g.specFolder)}`;
   return askButton({ label: t(lang, "list.reopen"), dialogId: id, variant: "primary" }) + listReopenDialog(g, lang, id);
@@ -151,21 +147,18 @@ export function deleteBranchForm(g: SpecGroup, lang: Language): string {
 }
 
 // The one thing the row asks of the reader, beside the sentence that
-// says why (spec 157). Run or Cancel — never both, and nothing at all
+// says why. Run or Cancel — never both, and nothing at all
 // when there is nothing to run: the two are never the right press at the
 // same time, so a second one in the markup could only ever be a
-// greyed-out invitation. There was a third, Resolve, until spec 171
-// folded resolving into `archive`.
+// greyed-out invitation. There is no Resolve: `archive` resolves.
 //
 // It sits in the State column of the caption line, under the badge the
 // head row carries: the badge already answers what is happening or what
-// can happen next (spec 132) and the button completes that sentence —
-// "archive held back · Implement", "implementing · Cancel". It used to be a stack
-// of buttons in a cell of its own — a COLUMN at the front of the table
-// in spec 124, which pushed every other column sideways, then the spec
-// column's own cell spanning the phase lines (2026-08-19). Both were
-// answers to "where do a row's buttons go" while there were still
-// several of them.
+// can happen next and the button completes that sentence —
+// "archive held back · Implement", "implementing · Cancel". It is not a stack
+// of buttons in a cell of its own, nor a COLUMN at the front of the
+// table, which would push every other column sideways: a row has just
+// the one.
 //
 // Only an OPEN row draws it (2026-09-08): the action rides the caption
 // line, which is part of the detail the fold opens. A shut row is
@@ -174,17 +167,16 @@ export function deleteBranchForm(g: SpecGroup, lang: Language): string {
 //
 // The Run form is a carrier and nothing else: it holds the hidden
 // fields, and the button that submits it and the boxes that fill it are
-// written outside its tags, reaching it by `form="…"` — the trick spec
-// 123 introduced for the model select.
+// written outside its tags, reaching it by `form="…"` — the trick the model select uses.
 export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   const lang = opts.lang ?? "en";
-  // The third branch, and the first thing asked (spec 224). An archived
+  // The third branch, and the first thing asked. An archived
   // spec has ONE action — `reopen` is the only step `ARCHIVE_ONLY_STEP`
   // lets past — so there is no Run form to carry and no phase to name:
   // the branches below would name one, because `chosenSteps`/`actionState`
   // answer "what would run next" for a spec whose workflow is over by
-  // falling back to ticking `archive` alone (`defaultTicked`, spec 439's
-  // own fallback for a spec with no recorded choice).
+  // falling back to ticking `archive` alone (`defaultTicked`, the
+  // fallback for a spec with no recorded choice).
   // Nothing while a Close or Reopen is still working on it.
   if (isArchivedRow(g)) {
     if (archivingAgain(g)) return actionForm(g.lead!, lang);
@@ -192,8 +184,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     return offersArchiveAgain(g) ? archiveAgainForm(g, lang) : reopenAsk(g, lang);
   }
   const busy = specBusy(g);
-  // A conflict used to draw a Resolve control of its own here, off the
-  // job's stored `errorReason`. Spec 171 took it away: `archive`
+  // A conflict draws no Resolve control of its own here: `archive`
   // resolves a conflict with the default branch itself, so a conflict
   // that survives to this row is one no machine could settle and there
   // is no press that would settle it either. It shows as the failure's
@@ -201,7 +192,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // other failed step's row offers, an ordinary re-run.
   //
   // What a press would run, and therefore what the button says — and,
-  // since spec 439, whether it would do anything at all. There is none
+  // whether it would do anything at all. There is none
   // while a job is in flight: Cancel is the row's control then.
   const action = busy ? undefined : actionState(g, opts);
   // The form is a CARRIER: hidden fields only, hidden by CSS, with the
@@ -211,7 +202,7 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
   // field beside them would outvote a phase the reader just unticked.
   // Always drawn, button or none — without it on a busy row the page's
   // own script would lose the thread from a press back to the boxes it
-  // has to lock with it (`rowControls`, spec 151).
+  // has to lock with it (`rowControls`).
   const runForm =
     `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
@@ -226,14 +217,14 @@ export function stateAction(g: SpecGroup, opts: SpecsPageOptions): string {
     if (busy && currentStep(g.lead!) === "create") return "";
     if (busy) return actionForm(g.lead!, lang);
     if (!action) return "";
-    // Primary, like every row's one action (spec 161). It was
+    // Primary, like every row's one action. It was
     // secondary until then, on the argument that a column of primary
     // buttons says nothing about which row to look at — but a row
     // draws exactly one control now, so there is no column to tell
     // apart and nothing left for the colour to say except that the
     // action is here.
     //
-    // One button, whichever way `active` reads (spec 439) — never a
+    // One button, whichever way `active` reads — never a
     // second element for the disabled case. It still carries `form="…"`
     // disabled or not: that is what lets `relabelRunButton()`
     // (`specs-client/row-swap.ts`) find and re-enable it the instant the

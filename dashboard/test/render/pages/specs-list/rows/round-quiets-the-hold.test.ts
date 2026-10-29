@@ -5,7 +5,7 @@ import type { SpecGroup } from "../../../../../src/render/pages/specs-list";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 import { openKeys, row } from "../../fixtures.ts";
 
-// --- spec 471: the hold is quiet while the round that clears it runs --------
+// --- The hold is quiet while the round that clears it runs --------
 //
 // "Archive held back — tick the criteria" is not a memory of a refusal:
 // it is worked out afresh on every render, from open criteria and a
@@ -82,7 +82,7 @@ describe("a round under way silences the held-back marks", () => {
 // ticked since the last archive run refused, and archive not pressed
 // again. The refusal on the old job and the stop in git are both about
 // that last run; the row went on reading "not all ticked" and offering
-// another round over a spec waiting on nobody (paceup 02, 2026-09-18).
+// another round over a spec waiting on nobody.
 describe("a spec whose criteria have all been ticked since archive refused", () => {
   const FOLDER = "02-selvregistrering-med-provetid";
   const refused = row({
@@ -124,7 +124,7 @@ describe("a spec whose criteria have all been ticked since archive refused", () 
   });
 });
 
-// --- spec 511: a reopened spec takes the same round as a held-back one -----
+// --- A reopened spec takes the same round as a held-back one -----
 describe("a reopened spec at implemented, with every row ticked", () => {
   const FOLDER = "511-reopened";
   const done = ["create", "analyze", "implement"];
@@ -139,7 +139,7 @@ describe("a reopened spec at implemented, with every row ticked", () => {
   };
   const base: SpecTarget = { project: "aide", specFolder: FOLDER, done, acceptanceOpen: false };
 
-  test("offers Analyze and Implement unticked beside the ticked Archive AC-5", () => {
+  test("offers Analyze and Implement unticked beside the ticked Archive", () => {
     const box = boxes({ ...base, reopenedRound: true });
     for (const step of ["analyze", "implement"]) {
       expect(box(step)).not.toContain("checked");
@@ -148,17 +148,17 @@ describe("a reopened spec at implemented, with every row ticked", () => {
     expect(box("archive")).toContain("checked");
   });
 
-  test("a spec that is not reopened, with nothing open, offers no round AC-5", () => {
+  test("a spec that is not reopened, with nothing open, offers no round", () => {
     const box = boxes(base);
     expect(box("implement")).not.toContain("checked");
   });
 
-  test("a spec reopened with reset, later declined on archive, offers none of it AC-5", () => {
+  test("a spec reopened with reset, later declined on archive, offers none of it", () => {
     // `reopenedRound` is false for it: a Reopened mark follows the stamp.
     expect(boxes({ ...base, reopenedRound: false })("implement")).not.toContain("checked");
   });
 
-  test("a reopened spec that is only at analyzed is not offered another round AC-5", () => {
+  test("a reopened spec that is only at analyzed is not offered another round", () => {
     const g = { done: ["create", "analyze"], reopenedRound: true, phases: [] } as unknown as SpecGroup;
     expect(roundOffered(g)).toBe(false);
   });

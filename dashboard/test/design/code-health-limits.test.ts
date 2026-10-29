@@ -1,8 +1,8 @@
-// Spec 443, AC-5/AC-6/AC-7: enforces the four code-health limits named in
+// Enforces the four code-health limits named in
 // dashboard/CLAUDE.md's "Code health" section — a source file's line
 // count, a test file's line count, a directory's file count, and test/
 // mirroring src/'s top-level structure. Picked up by `bun test`'s own
-// discovery with no separate registration (AC-6).
+// discovery with no separate registration.
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
@@ -44,7 +44,7 @@ const TEST = join(ROOT, "test");
 // this list was written. A file that grows past that count fails; one
 // that shrinks below 500 has its entry removed instead.
 const OVER_LINE_LIMIT: Record<string, number> = {
-  "src/queue/runner/index.ts": 539,
+  "src/queue/runner/index.ts": 537,
   "src/queue/store/index.ts": 576,
   "src/git/branch-merge.ts": 605,
 };
@@ -77,7 +77,7 @@ function relPath(file: string): string {
   return file.slice(ROOT.length + 1);
 }
 
-describe("dashboard code health (spec 443)", () => {
+describe("dashboard code health", () => {
   const srcFiles = tsFilesUnder(SRC);
   const testFiles = tsFilesUnder(TEST);
 
@@ -86,7 +86,7 @@ describe("dashboard code health (spec 443)", () => {
     expect(testFiles.length).toBeGreaterThanOrEqual(300);
   });
 
-  test("every source file under src is at most 500 lines, unless exempt (AC-7)", () => {
+  test("every source file under src is at most 500 lines, unless exempt", () => {
     const bad: string[] = [];
     // The stylesheets are source too: the limit is the repository's, for every kind of source.
     for (const file of [...srcFiles, ...filesUnder(SRC, ".css")]) {
@@ -112,7 +112,7 @@ describe("dashboard code health (spec 443)", () => {
     expect(bad).toEqual([]);
   });
 
-  test("every directory holds at most 15 .ts files directly inside it, unless exempt (AC-7)", () => {
+  test("every directory holds at most 15 .ts files directly inside it, unless exempt", () => {
     const dirs = new Set<string>();
     for (const file of [...srcFiles, ...testFiles]) {
       dirs.add(join(file, ".."));
@@ -151,7 +151,7 @@ describe("dashboard code health (spec 443)", () => {
     expect(twins.map(relPath)).toEqual([]);
   });
 
-  test("no source file under src shares its base name with a sibling directory (spec 450)", () => {
+  test("no source file under src shares its base name with a sibling directory", () => {
     const bad: string[] = [];
     for (const file of srcFiles) {
       const dir = join(file, "..");

@@ -59,7 +59,7 @@ def _solution(plan_review):
     )
 
 
-def test_the_counts_line_is_logged_with_a_pointer_to_the_section_AC_1(runner, workspace, fake_claude):
+def test_the_counts_line_is_logged_with_a_pointer_to_the_section(runner, workspace, fake_claude):
     stages, _ = _analyze(runner, workspace, fake_claude, _solution(
         "## Plan review\n\n**Findings:** 2 must-fix, 3 should-fix, 4 acted on\n\n**Must-fix (2):**\n\n1. a\n2. b\n"
     ))
@@ -68,7 +68,7 @@ def test_the_counts_line_is_logged_with_a_pointer_to_the_section_AC_1(runner, wo
     assert stages.index(line) > stages.index(PARTS_OPENED), stages
 
 
-def test_the_findings_line_as_the_skill_shows_it_reads_AC_1(runner, workspace, fake_claude):
+def test_the_findings_line_as_the_skill_shows_it_reads(runner, workspace, fake_claude):
     examples = [
         line.strip() for line in PLAN_REVIEW_REFERENCE.read_text().splitlines()
         if line.strip().startswith("**Findings:**")
@@ -83,7 +83,7 @@ def test_the_findings_line_as_the_skill_shows_it_reads_AC_1(runner, workspace, f
     assert re.findall(r"\d+", lines[0].split(" — ")[0]) == numbers, lines
 
 
-def test_a_held_back_rounds_own_review_is_the_one_logged_AC_1(runner, workspace, fake_claude):
+def test_a_held_back_rounds_own_review_is_the_one_logged(runner, workspace, fake_claude):
     stages, _ = _analyze(runner, workspace, fake_claude, _solution(
         "## Plan review\n\n**Findings:** 1 must-fix, 1 should-fix, 1 acted on\n\n"
         "## Round 2\n\n"
@@ -95,14 +95,14 @@ def test_a_held_back_rounds_own_review_is_the_one_logged_AC_1(runner, workspace,
     assert _plan_review_lines(stages) == ["plan review: 0 must-fix, 2 should-fix, 2 acted on" + COUNTS_TAIL], stages
 
 
-def test_a_section_without_a_findings_line_gives_no_counts_AC_1(runner, workspace, fake_claude):
+def test_a_section_without_a_findings_line_gives_no_counts(runner, workspace, fake_claude):
     stages, _ = _analyze(runner, workspace, fake_claude, _solution(
         "## Plan review\n\n**Must-fix (1):**\n\n1. The thing — *Revised.*\n"
     ))
     assert _plan_review_lines(stages) == [NO_COUNTS], stages
 
 
-def test_an_analyze_that_does_not_complete_or_an_implement_logs_no_plan_review_line_AC_1(
+def test_an_analyze_that_does_not_complete_or_an_implement_logs_no_plan_review_line(
     runner, workspace, fake_claude
 ):
     with_status(workspace, ["create"])
@@ -125,14 +125,14 @@ def test_an_analyze_that_does_not_complete_or_an_implement_logs_no_plan_review_l
     assert _plan_review_lines(_stamped(err)) == [], err
 
 
-def test_a_review_that_found_nothing_logs_zero_for_both_AC_2(runner, workspace, fake_claude):
+def test_a_review_that_found_nothing_logs_zero_for_both(runner, workspace, fake_claude):
     stages, _ = _analyze(runner, workspace, fake_claude, _solution(
         "## Plan review\n\n**Findings:** 0 must-fix, 0 should-fix, 0 acted on\n\nNothing to fix.\n"
     ))
     assert _plan_review_lines(stages) == ["plan review: 0 must-fix, 0 should-fix, 0 acted on" + COUNTS_TAIL], stages
 
 
-def test_a_plan_review_quoted_in_a_fence_is_no_section_AC_3(runner, workspace, fake_claude):
+def test_a_plan_review_quoted_in_a_fence_is_no_section(runner, workspace, fake_claude):
     stages, _ = _analyze(runner, workspace, fake_claude, _solution(
         "## Recommended solution\n\n```markdown\n## Plan review\n\n"
         "**Findings:** 2 must-fix, 3 should-fix, 4 acted on\n```\n"
@@ -140,7 +140,7 @@ def test_a_plan_review_quoted_in_a_fence_is_no_section_AC_3(runner, workspace, f
     assert _plan_review_lines(stages) == [NO_SECTION], stages
 
 
-def test_an_analyze_with_no_plan_file_says_it_has_no_plan_review_AC_3(runner, workspace, fake_claude):
+def test_an_analyze_with_no_plan_file_says_it_has_no_plan_review(runner, workspace, fake_claude):
     stages, err = _analyze(runner, workspace, fake_claude)
     assert _plan_review_lines(stages) == [NO_SECTION], stages
     assert "can't open" not in err, err

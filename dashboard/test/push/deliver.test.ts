@@ -1,5 +1,5 @@
 // What is sent, to whom, and what happens to a device that stops
-// answering (AC-2, AC-3, AC-6). Real store, real encryption, a fake
+// answering. Real store, real encryption, a fake
 // `fetch`: the message is opened again with the device's own key.
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
@@ -46,7 +46,7 @@ async function board(answer?: (url: string) => Answer, waiting?: () => number) {
   return { push, store, sent, logs, device, fail, subscriptionsPath };
 }
 
-describe("what a notification says (criterion 9)", () => {
+describe("what a notification says", () => {
   test("the title names project and spec, the body is the catalogue sentence", async () => {
     const b = await board();
     const d = await b.device(1);
@@ -57,7 +57,7 @@ describe("what a notification says (criterion 9)", () => {
     expect(sent.body).toBe("Implement failed — it waits for you to look at why and press Implement again.");
   });
 
-  test("the payload carries how many specs wait, read once per delivery, when the board gives a count (AC-5)", async () => {
+  test("the payload carries how many specs wait, read once per delivery, when the board gives a count", async () => {
     let asked = 0;
     const b = await board(undefined, () => ((asked += 1), 2));
     const first = await b.device(1);
@@ -73,7 +73,7 @@ describe("what a notification says (criterion 9)", () => {
     expect(opened[0]).toMatchObject({ title: `aide · ${SPEC}`, url: expect.any(String) });
   });
 
-  test("without a count the payload has no waiting field (AC-5)", async () => {
+  test("without a count the payload has no waiting field", async () => {
     const b = await board();
     const d = await b.device(1);
     b.fail();
@@ -81,7 +81,7 @@ describe("what a notification says (criterion 9)", () => {
     expect(await openCall(b.sent.calls[0]!, d)).not.toHaveProperty("waiting");
   });
 
-  test("a shared-files stop names the specs by number in the body, and says to add them to Depends on (AC-6)", async () => {
+  test("a shared-files stop names the specs by number in the body, and says to add them to Depends on", async () => {
     const b = await board();
     const d = await b.device(1);
     const job = runningJob(b.store);
@@ -106,7 +106,7 @@ describe("what a notification says (criterion 9)", () => {
   };
 
   for (const ending of Object.keys(SPEC_ENDINGS) as (keyof typeof SPEC_ENDINGS)[]) {
-    test(`a step that ends ${ending} opens the Running tab with the spec's row unfolded and scrolled to (AC-2)`, async () => {
+    test(`a step that ends ${ending} opens the Running tab with the spec's row unfolded and scrolled to`, async () => {
       const b = await board();
       const d = await b.device(1);
       const job = runningJob(b.store);
@@ -117,7 +117,7 @@ describe("what a notification says (criterion 9)", () => {
     });
   }
 
-  test("a held-back archive opens the Running tab with the spec's criteria unfolded and scrolled to (AC-1)", async () => {
+  test("a held-back archive opens the Running tab with the spec's criteria unfolded and scrolled to", async () => {
     const b = await board();
     const d = await b.device(1);
     const job = runningJob(b.store, ["archive"]);
@@ -153,7 +153,7 @@ describe("what a notification says (criterion 9)", () => {
   });
 });
 
-describe("a device that turned notifications off gets nothing (criterion 13)", () => {
+describe("a device that turned notifications off gets nothing", () => {
   test("after it unsubscribes, a spec that needs a person sends nothing to its endpoint", async () => {
     const b = await board();
     const stays = await b.device(1);
@@ -165,7 +165,7 @@ describe("a device that turned notifications off gets nothing (criterion 13)", (
   });
 });
 
-describe("a push service that answers badly (criterion 14)", () => {
+describe("a push service that answers badly", () => {
   test.each([404, 410])("%d removes the subscription, and the next push does not go to it", async (status) => {
     const gone = "https://fcm.googleapis.com/fcm/send/device-1";
     const b = await board((url) => (url === gone ? status : 201));
@@ -213,7 +213,7 @@ test("with no subscription file at all, nothing is written and nothing throws", 
   expect(existsSync(b.subscriptionsPath)).toBe(false);
 });
 
-describe("what a scheduled run's notification says (AC-9)", () => {
+describe("what a scheduled run's notification says", () => {
   async function scheduledBoard() {
     const tmp = tempDir();
     cleanups.push(tmp.done);
@@ -237,7 +237,7 @@ describe("what a scheduled run's notification says (AC-9)", () => {
   const KEYS = { done: "push.scheduleDone", failed: "push.scheduleFailed", stopped: "push.scheduleStopped", interrupted: "push.scheduleInterrupted" } as const;
 
   for (const ending of Object.keys(ENDINGS) as (keyof typeof ENDINGS)[]) {
-    test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is that run's report (AC-9) (AC-3)`, async () => {
+    test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is that run's report`, async () => {
       const b = await scheduledBoard();
       const job = runningJob(b.store, ["schedule"], "schedule-nightly-report");
       ENDINGS[ending](b.store, job.id);
@@ -254,7 +254,7 @@ describe("what a scheduled run's notification says (AC-9)", () => {
     });
   }
 
-  test("the four outcomes each have a sentence of their own (AC-9)", () => {
+  test("the four outcomes each have a sentence of their own", () => {
     const bodies = Object.values(KEYS).map((key) => renderMessage("en", { key }));
     expect(new Set(bodies).size).toBe(4);
   });

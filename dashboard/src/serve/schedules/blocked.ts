@@ -16,7 +16,7 @@ import type { DependencyHolds } from "../../queue/runner/dependency-hold.ts";
 import type { ScheduleContext } from "./";
 
 /** Which queued jobs are waiting on a dependency that is not archived
- *  yet (spec 122; spec 351) — job id → the folder it is waiting for.
+ *  yet — job id → the folder it is waiting for.
  *
  *  The same question `aide-run-spec`'s guard asks, asked HERE so the
  *  answer arrives before a job is spawned rather than after: a job
@@ -27,8 +27,8 @@ import type { ScheduleContext } from "./";
  *  Computed fresh immediately before every `tick()`, never cached
  *  across calls: a job enqueued a line of code ago must be judged
  *  against data that existed after it did. `archivedOnOrigin` carries
- *  no TTL cache at all (REQ-2), the same way the merge answer under the
- *  old check was asked fresh (`isMerged(..., true)`, spec 213) for the
+ *  no TTL cache at all, the same way the merge answer under the
+ *  old check was asked fresh (`isMerged(..., true)`) for the
  *  same reason: a 30 s cached answer once released two jobs against a
  *  dependency that had not landed, and the script — which asks origin
  *  every time — refused them. Only `targets()` is still cached here,
@@ -38,7 +38,7 @@ import type { ScheduleContext } from "./";
  *  before it is released as it always was. A fetch that fails for a
  *  moment — a lock taken by a landing in the same checkout — held
  *  nothing and let the job start into the script's refusal; an origin
- *  that stays unreachable must not park a job for good (spec 351). */
+ *  that stays unreachable must not park a job for good. */
 export const UNCONFIRMED_HOLD_MS = 10 * 60_000;
 
 /** When each job's dependency first could not be confirmed, by job id. */
@@ -85,9 +85,9 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
       // could ever fix. Parking on one would hide a typo forever.
       if (!dep || dep.folder === spec.folder) continue;
       // `dep.archived` is a LOCAL filesystem scan and can be stale in
-      // either direction (spec 351, REQ-2) — origin decides, every
+      // either direction — origin decides, every
       // time, even for a dependency already known archived locally, the
-      // same reason spec 343 stopped trusting a local checkout for
+      // same reason a local checkout is no longer trusted for
       // "has this step's commit landed."
       //
       // Asked against the SPECS root alone, the last entry `specRoots`
@@ -130,7 +130,7 @@ function proseSteps(dir: string): string[] {
 }
 
 /** Which queued `implement` jobs are waiting on their own spec's
- *  `analyze` step (spec 344) — a job id SET, not a Map: the message is
+ *  `analyze` step — a job id SET, not a Map: the message is
  *  the same fixed sentence for every job it applies to, unlike a
  *  dependency's per-job folder name.
  *
@@ -237,14 +237,14 @@ export function archiveWithOpenAcceptance(ctx: ScheduleContext): Set<string> {
 
 /** Which workflow steps this spec has actually completed.
  *
- *  spec 355 (REQ-3): the state file, not a fresh parse of the prose
+ *  The state file, not a fresh parse of the prose
  *  beside it — the same gate `core/scripts/aide-run-spec`'s own
  *  may-implement-start check reads, now off the one shared source.
  *  The state file when the spec has one, its own prose when it has
- *  not: a spec analyzed before spec 355 landed carries no state
+ *  not: a spec analyzed before state files existed carries no state
  *  file, and reading that as "nothing has run" held every
  *  such implement back as not analyzed (2026-09-02). The runner's own
- *  gate (spec 344) still refuses a spec that truly has not been
+ *  gate still refuses a spec that truly has not been
  *  analyzed, whichever source said so here.
  *
  *  The BRANCH copy first, as the acceptance gate reads it: a

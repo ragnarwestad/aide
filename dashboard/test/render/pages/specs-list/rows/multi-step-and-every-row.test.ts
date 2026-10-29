@@ -7,7 +7,7 @@ import {
 } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
-// The › that opens a phase's messages (spec 500) is a link in the cell; the name beside it is still plain text.
+// The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.
 const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
 
 /** What a phase that has not run draws in the State column: a dash,
@@ -19,7 +19,7 @@ const PHASE_NOT_RUN = "–";
 
 // --- a job that ran several steps belongs on all of them ---------------------
 //
-// Measured 2026-08-17 on spec 90: one job ran `analyze` and then
+// Measured on a real spec: one job ran `analyze` and then
 // `implement`, finished, and appeared ONLY on the implement line —
 // because a job was placed by `steps[stepIndex]`, which is a single
 // step. The analyze line was left showing an older attempt that had
@@ -31,12 +31,12 @@ describe("a multi-step job is shown on every step it ran", () => {
       { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-08-17T12:00:00Z"),
     );
-  // Since spec 108 a phase line says what the spec's own FILES say, and
+  // A phase line says what the spec's own FILES say, and
   // the job's outcome qualifies it. This block is about WHICH job
   // speaks for a line, so the file side has to agree the analysis is
   // done — otherwise the line is answering a different question.
   const analysed: SpecTarget[] = [{ project: "aide", specFolder: "90-grouped", done: ["analyze"] }];
-  /** A phase's own line — an ordinary row of six cells since spec 157,
+  /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
@@ -94,7 +94,7 @@ describe("a multi-step job is shown on every step it ran", () => {
     expect(subRow(html, "implement")).toContain("b-running");
   });
 
-  // Spec 143 moved the reason itself off the phase line and into the
+  // The reason itself is not on the phase line but in the
   // row's panel: it is a sentence, and the State column is a cell sized
   // for a word. Which STEP failed is still said on the line — that half
   // is what this test has always been about — and the sentence is said
@@ -129,13 +129,13 @@ describe("a multi-step job is shown on every step it ran", () => {
     expect(subRow(html, "analyze")).toContain(PHASE_NOT_RUN);
   });
 });
-// --- spec 90: every spec is a row, and analyze starts from it ----------------
+// --- Every spec is a row, and analyze starts from it ----------------
 
 // The dropdown at the top and the list held the same things: one showed
 // specs that had not started, the other specs that had. A spec crossed
 // from one to the other the first time it ran, and nothing about that
 // crossing was meaningful to the reader.
-describe("every spec is a row (criteria 1-10)", () => {
+describe("every spec is a row", () => {
   const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({ id, specFolder: "90-has-run", steps: [step], stepIndex: 0, state: "done", ...extra });
 
@@ -156,8 +156,8 @@ describe("every spec is a row (criteria 1-10)", () => {
         runnerAvailable: true,
         targets,
         // Open, because this block is about what a row HOLDS — the
-        // phase lines and the form that runs them, which spec 103 put
-        // behind the fold without changing either. The targets alone:
+        // phase lines and the form that runs them, which sit
+        // behind the fold. The targets alone:
         // a job whose spec is no longer a target must not reach the
         // page through the fold state either.
         filter: { open: openKeys([], targets) },
@@ -171,11 +171,11 @@ describe("every spec is a row (criteria 1-10)", () => {
   // whole header line and nothing else.
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
-  /** A phase's own line — an ordinary row of six cells since spec 157,
+  /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-  /** The line the run control opens onto, under the header (spec 109). */
+  /** The line the run control opens onto, under the header. */
   const runLine = (html: string, folder: string) =>
     html.match(
       new RegExp(
@@ -184,7 +184,7 @@ describe("every spec is a row (criteria 1-10)", () => {
       ),
     )?.[0] ?? "";
 
-  test("a target with no jobs gets a header row and four phase lines (criterion 1)", () => {
+  test("a target with no jobs gets a header row and four phase lines", () => {
     const html = rows([], [target("90-never-run")]);
     expect(heads(html)).toHaveLength(1);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
@@ -192,10 +192,9 @@ describe("every spec is a row (criteria 1-10)", () => {
     for (const phase of order) expect(subRow(html, phase!)).toContain(PHASE_NOT_RUN);
   });
 
-  test("a never-run spec's own row runs analyze (criterion 2)", () => {
-    // Spec 94 moved the form off the phase line and onto the spec's own
-    // row; spec 109 moved it off the header cell and onto the line the
-    // row opens to. Either way it is the SPEC's control, not a phase's.
+  test("a never-run spec's own row runs analyze", () => {
+    // The form is not on the phase line or in the header cell but on
+    // the line the row opens to. It is the SPEC's control, not a phase's.
     const html = rows([], [target("90-never-run")]);
     const line = runLine(html, "90-never-run");
     expect(line).toContain('method="post" action="/api/queue"');
@@ -213,10 +212,10 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(subRow(html, "analyze")).not.toContain("<form");
   });
 
-  test("a never-run spec reads what comes next and links to its SPEC (criterion 3)", () => {
+  test("a never-run spec reads what comes next and links to its SPEC", () => {
     const html = rows([], [target("90-never-run")]);
     const line = head(html, "90-never-run");
-    // Spec 176: "not started" and "ready for implement" describe the
+    // "not started" and "ready for implement" describe the
     // same kind of situation — nothing running, and here is what could
     // — so the column says what comes next on both. Nothing has run
     // here, so the next phase is analyze.
@@ -224,25 +223,25 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(line).toContain(">Ready<");
     expect(line).not.toContain("not started");
     // It used to link to nothing — "a link to nothing is worse than no
-    // link". Spec 150 gave every spec somewhere to point, so what must
+    // link". Every spec has somewhere to point, so what must
     // NOT be there is a JOB link: a spec that has never run has no job.
     expect(line).toContain('href="/specs/aide/90-never-run');
     expect(line).toContain("90-never-run");
   });
 
-  test("a spec that is both a target and has jobs gets one row (criterion 4)", () => {
+  test("a spec that is both a target and has jobs gets one row", () => {
     const html = rows([job("j1", "analyze")], [target("90-has-run")]);
     expect(heads(html)).toHaveLength(1);
     expect(html).not.toContain('href="/specs/aide/90-has-run?tab=solution"');
   });
 
-  test("a job group whose spec is no longer a target is off the page (criterion 5)", () => {
+  test("a job group whose spec is no longer a target is off the page", () => {
     const html = rows([job("j1", "analyze")], [target("90-something-else")]);
     expect(html).not.toContain("90-has-run");
     expect(heads(html)).toHaveLength(1);
   });
 
-  test("a project with no targets at all keeps every group it has (criterion 6)", () => {
+  test("a project with no targets at all keeps every group it has", () => {
     // An empty target list is "we do not know", never "everything is
     // archived": a specs root that is not checked out on this host looks
     // exactly the same from here.
@@ -255,8 +254,7 @@ describe("every spec is a row (criteria 1-10)", () => {
   // has not dated shows "–" in Created, and that is a folder made
   // moments ago rather than an old one. Sorting it as the oldest sent
   // the newest thing on the list to the bottom of a newest-first list.
-  // What criterion 7 asked for — that they stay a stable block, ordered
-  // by folder — is unchanged.
+  // They stay a stable block, ordered by folder.
   test("never-run specs form a stable block at the top", () => {
     const html = rows(
       [job("j1", "analyze", { startedAt: "2026-08-16T09:00:00Z" })],
@@ -273,7 +271,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(order).toEqual(["89-never", "88-never", "90-has-run"]);
   });
 
-  test("two specs that have both RUN keep the order they have today (criterion 7)", () => {
+  test("two specs that have both RUN keep the order they have today", () => {
     // A general folder tie-break would reverse this pair. It must reach
     // only groups where `activityAt` is 0 on both sides.
     const html = rows(
@@ -290,7 +288,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(order).toEqual(["aa-spec", "bb-spec"]);
   });
 
-  test("Active includes never-run specs without a separate chip (criterion 8)", () => {
+  test("Active includes never-run specs without a separate chip", () => {
     const list = [job("j1", "analyze", { state: "done" })];
     const targets = [target("90-has-run"), target("90-never-run")];
     const html = rows(list, targets);
@@ -304,7 +302,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(html).toContain("90-has-run");
   });
 
-  test("a never-run spec costs a dash and has taken 0s (criterion 9)", () => {
+  test("a never-run spec costs a dash and has taken 0s", () => {
     const line = head(rows([], [target("90-never-run")]), "90-never-run");
     expect(line).not.toContain("$0.00");
     expect(line).not.toContain("Invalid Date");
@@ -316,7 +314,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(line.match(/–/g)?.length).toBeGreaterThanOrEqual(1);
   });
 
-  test("with neither jobs nor targets the page says there is no spec (criterion 10)", () => {
+  test("with neither jobs nor targets the page says there is no spec", () => {
     const html = rows([], []);
     expect(html).toContain("No spec");
     expect(html).not.toContain("Pick a spec above");

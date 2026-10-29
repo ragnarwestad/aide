@@ -12,14 +12,14 @@ afterEach(() => harness.cleanup());
 
 describe("GET / (the spec list, HTML)", () => {
 
-  // A schedule job's tracking key (`schedule-<name>`, spec 259) is
+  // A schedule job's tracking key (`schedule-<name>`) is
   // exempted from the specFolder-must-exist check so it can be enqueued
   // at all — but nothing excluded it from this list, so it drew a row
   // whose name linked to `/specs/aide/schedule-<name>`, a 404 (there is
   // no such spec folder), and whose action buttons refused every press
   // with "unknown specFolder". Its own history belongs on `/schedule`'s
   // detail page, never here.
-  test("draws no row for a schedule job (spec 259/276/277)", async () => {
+  test("draws no row for a schedule job", async () => {
     const { base } = start();
     const headers = { "content-type": "application/json", accept: "application/json" };
     await fetch(`${base}/api/queue`, {
@@ -33,7 +33,7 @@ describe("GET / (the spec list, HTML)", () => {
 
   // A deploy job's tracking key is `deploy`, which no spec folder is: the job
   // has a row of its own on the Running tab, never a spec's here.
-  test("draws no row for a deploy job (AC-2)", async () => {
+  test("draws no row for a deploy job", async () => {
     const { base } = start();
     const headers = { "content-type": "application/json", accept: "application/json" };
     const made = await fetch(`${base}/api/queue`, {
@@ -61,7 +61,7 @@ describe("GET / (the spec list, HTML)", () => {
 });
 
 describe("the step boxes on a row follow that spec", () => {
-  test("a step the spec has already had is marked done, and its box is offered unticked (criterion 1)", async () => {
+  test("a step the spec has already had is marked done, and its box is offered unticked", async () => {
     const { base, dir } = start();
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));

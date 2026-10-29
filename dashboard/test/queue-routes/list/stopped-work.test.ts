@@ -18,25 +18,25 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// --- spec 187: a stopped step keeps its work --------------------------------
+// --- A stopped step keeps its work --------------------------------
 //
 // Split out of stopped-and-every-step.test.ts by theme — the rest of
-// that file is "every step lands its own work (spec 149)", split
+// that file is "every step lands its own work", split
 // across every-step-basic-landing.test.ts, every-step-origin-recheck.test.ts
 // and every-step-pull-request.test.ts.
 //
 // A step whose clock runs out still commits what it wrote — `aide-run-spec`'s
 // commit loop runs on every path — and still pushes it, because the push is
 // gated on the push mode and not on `ok`. Landing was the one thing gated on
-// `ok`, so that work sat on a branch nothing on the page mentioned: spec 184
-// stopped on 2026-08-22 with a complete analysis, and the only way to learn
+// `ok`, so that work sat on a branch nothing on the page mentioned: a spec
+// stopped with a complete analysis, and the only way to learn
 // that was to check the branch out by hand.
 //
 // What lands is decided by what the run TOUCHED, never by which step it was:
 // a run that moved a code root's HEAD is left alone, exactly as a failed run
 // is. That way there is no second list of "which steps are safe" to keep in
 // step with the first.
-describe("landing a stopped step's specs-only work (spec 187)", () => {
+describe("landing a stopped step's specs-only work", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
   const SPECS_REPO = "/repos/aide-specs";
   const CODE_REPO = "/repos/aide";
@@ -81,7 +81,7 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
   ) {
     const results = mkdtempSync(join(tmpdir(), "aide-stopped-results-"));
     ownDirs.push(results);
-    // The spec has been analyzed: since spec 344 an `implement` on a
+    // The spec has been analyzed: an `implement` on a
     // spec with no analyze is held back in the queue, and every run
     // here has to actually start.
     const { base, dir } = start(
@@ -130,7 +130,7 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
   const mergesOf = (calls: { dir: string; args: string[] }[], branch = BRANCH) =>
     calls.filter((c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${branch}`));
 
-  // Criterion 1. The work is on the branch already; the only thing that
+  // The work is on the branch already; the only thing that
   // kept it off the page was the `ok` gate in front of the landing.
   test("a stopped analyze step that pushed only the specs repo is merged", async () => {
     const git = gitFor();
@@ -149,7 +149,7 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
     expect(landed.stopReason).toBe("timeout");
   });
 
-  // Criterion 1's step-agnostic reach. `create` is not on any list here —
+  // The step-agnostic reach. `create` is not on any list here —
   // what decides is that nothing outside the specs repo moved. Its job row
   // keeps its provisional key (a stopped create reports no `specFolder`),
   // which is accepted: the folder itself reaches the list, which reads the
@@ -176,7 +176,7 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
     expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
   });
 
-  // Criterion 2. The description's third requirement, and the reason the
+  // The description's third requirement, and the reason the
   // check reads repos rather than step names: code stays on its branch,
   // where a person tests it, however the run ended.
   test("a stopped step that also pushed the project repo lands nothing", async () => {
@@ -211,7 +211,7 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
     expect(stopped.branchUrls).toEqual(pushed);
   });
 
-  // Criterion 3. A run that pushed nothing has nothing to land, and
+  // A run that pushed nothing has nothing to land, and
   // silence is the whole of the right answer — no error on the row.
   test("a stopped step that pushed nothing is a no-op, not an error", async () => {
     const git = gitFor();
@@ -228,12 +228,12 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
     expect(mergesOf(git.calls)).toEqual([]);
   });
 
-  // Criterion 4. Scoped to the wall clock and a provider limit — every
+  // Scoped to the wall clock and a provider limit — every
   // other terminal reason lands nothing, since neither a red test suite
   // nor a CLI error leaves a commit boundary landing can trust, and an
   // analyze stopped on its acceptance criteria stays on the spec's branch
   // for the next Analyze to take up.
-  test("a stop for a reason other than the clock lands nothing (AC-5)", async () => {
+  test("a stop for a reason other than the clock lands nothing", async () => {
     for (const reason of ["tests-red", "cli-error", "acceptance-criteria"]) {
       const git = gitFor();
       const { base, results } = serverWithRunner(git);
@@ -268,7 +268,7 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
 
   // The stopped analysis lands so that a Depends on saved afterwards is
   // written to the default branch, where the dependency hold reads it.
-  test("a shared-files stop of an analyze that pushed only the specs repo is merged, as a timeout's is (AC-2)", async () => {
+  test("a shared-files stop of an analyze that pushed only the specs repo is merged, as a timeout's is", async () => {
     const git = gitFor();
     const { base, results } = serverWithRunner(git);
     const job = await runStep(base, "analyze");

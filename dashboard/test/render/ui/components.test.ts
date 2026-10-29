@@ -1,4 +1,4 @@
-// Spec 252: the shared "← Back" primitives — `backLink()`'s markup and
+// The shared "← Back" primitives — `backLink()`'s markup and
 // `resolveBackHref()`'s same-origin resolution of the
 // standard `Referer` header. No render file had a test of its own for
 // either shape before this.
@@ -21,7 +21,6 @@ describe("resolveBackHref", () => {
     expect(resolveBackHref(null, ORIGIN, "/fallback")).toBe("/fallback");
   });
 
-  // Criterion 5.
   test("a foreign-origin referer is discarded, not followed", () => {
     expect(resolveBackHref("https://evil.example/", ORIGIN, "/fallback")).toBe("/fallback");
   });
@@ -49,7 +48,7 @@ describe("resolveBackHref", () => {
 });
 
 describe("backLink()", () => {
-  test("asked to keep, the link carries the hook the page script finds it by; otherwise none (AC-1)", () => {
+  test("asked to keep, the link carries the hook the page script finds it by; otherwise none", () => {
     expect(first(backLink("/", "Settings", "", { keep: true }), "a.backlink").hasAttribute("data-keep")).toBe(true);
     expect(first(backLink("/", "Settings"), "a.backlink").hasAttribute("data-keep")).toBe(false);
   });
@@ -68,7 +67,7 @@ const attrs = (el: Element): Record<string, string> =>
 const shape = (el: Element): Record<string, string> => ({ ...attrs(el), class: el.className.split(" ").sort().join(" ") });
 
 describe("btn()", () => {
-  test("carries the form it belongs to, a value, data attributes and a spoken name, every value escaped (AC-1)", () => {
+  test("carries the form it belongs to, a value, data attributes and a spoken name, every value escaped", () => {
     const el = first(
       btn({
         label: "Delete",
@@ -95,7 +94,7 @@ describe("btn()", () => {
   });
 
   // Characterisation: the options above change nothing for a call without them.
-  test("without the new options draws what it always drew, and the ask button as its tests pin it (AC-1)", () => {
+  test("without the new options draws what it always drew, and the ask button as its tests pin it", () => {
     const save = first(btn({ id: "f-save", label: "Save", variant: "primary", pending: "saving…", title: "t", disabled: true }), "button");
     expect(shape(save)).toEqual({
       id: "f-save",
@@ -110,13 +109,13 @@ describe("btn()", () => {
   });
 
   // Characterisation: the component already capitalises; the hand-written copies did not.
-  test("writes its pending word with a capital first letter (AC-5)", () => {
+  test("writes its pending word with a capital first letter", () => {
     expect(first(btn({ label: "Run", pending: "starting…" }), "button").getAttribute("data-pending")).toBe("Starting…");
   });
 });
 
 describe("btnLink()", () => {
-  test("draws a link in a button's variant, size and hook, every value escaped (AC-2)", () => {
+  test("draws a link in a button's variant, size and hook, every value escaped", () => {
     const el = first(
       btnLink({
         href: "/projects/a?x=1&y=2",
@@ -134,7 +133,7 @@ describe("btnLink()", () => {
     expect(el.textContent).toBe("Remove <it>");
   });
 
-  test("with nothing but an href and a label is a plain button link (AC-2)", () => {
+  test("with nothing but an href and a label is a plain button link", () => {
     const el = first(btnLink({ href: "/new", label: "New spec" }), "a");
     expect(attrs(el)).toEqual({ class: "btn", href: "/new" });
     expect(el.textContent).toBe("New spec");
@@ -154,7 +153,7 @@ describe("messageSlot()", () => {
     };
   };
 
-  test("an id names it, for a form elsewhere on the page to write into (AC-6)", () => {
+  test("an id names it, for a form elsewhere on the page to write into", () => {
     expect(line(messageSlot("refused", "failed", { id: "spec-refused" }))).toEqual({
       id: "spec-refused",
       classes: ["failed", "refused", "rowmsg"],
@@ -164,7 +163,7 @@ describe("messageSlot()", () => {
     });
   });
 
-  test("with no text keeps its icon and an empty place for the words (AC-3)", () => {
+  test("with no text keeps its icon and an empty place for the words", () => {
     expect(line(messageSlot("refused"))).toEqual({
       id: null,
       classes: ["failed", "refused", "rowmsg"],
@@ -178,13 +177,13 @@ describe("messageSlot()", () => {
 // --- the fold arrow and the one-button form -----------------------------------
 
 describe("foldArrow()", () => {
-  test("takes its title from the catalogue in the page's language, with the action word filled in (AC-1)", () => {
+  test("takes its title from the catalogue in the page's language, with the action word filled in", () => {
     const html = foldArrow({ href: "/", open: false, lang: "nb", title: "list.foldTitle", params: { folder: "12-x" } });
     const title = t("nb", "list.foldTitle", { action: t("nb", "list.foldShow"), folder: "12-x" });
     expect(html).toContain(`title="${esc(title)}"`);
   });
 
-  test("escapes its address once and carries the hooks the list's script reads (AC-1)", () => {
+  test("escapes its address once and carries the hooks the list's script reads", () => {
     const html = foldArrow({
       href: "/?open=a&checks=b",
       open: true,
@@ -214,7 +213,7 @@ const hiddenFields = (html: string): Record<string, string> =>
   );
 
 describe("buttonForm()", () => {
-  test("posts to its escaped action, carries the hook the script selects on, and its hidden fields (AC-4)", () => {
+  test("posts to its escaped action, carries the hook the script selects on, and its hidden fields", () => {
     const html = buttonForm({
       action: "/api/queue/j1/cancel?a=1&b=2",
       hook: "actionform",
@@ -228,14 +227,14 @@ describe("buttonForm()", () => {
     expect(html).toContain(btn({ label: "Cancel" }));
   });
 
-  test("closes a dialog with no action when its method is the dialog's own (AC-4)", () => {
+  test("closes a dialog with no action when its method is the dialog's own", () => {
     const html = buttonForm({ method: "dialog", button: { label: "OK", value: "leave" } });
     expect(attrOf(html, "form", "method")).toBe("dialog");
     expect(attrOf(html, "form", "action")).toBeUndefined();
     expect(attrOf(html, "button", "value")).toBe("leave");
   });
 
-  test("draws a dialog's close cross, named for a screen reader, as its one button (AC-4)", () => {
+  test("draws a dialog's close cross, named for a screen reader, as its one button", () => {
     const html = buttonForm({ method: "dialog", button: { cross: "Close" } });
     expect(attrOf(html, "form", "method")).toBe("dialog");
     expect(attrOf(html, "form", "action")).toBeUndefined();

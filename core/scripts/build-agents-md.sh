@@ -25,7 +25,7 @@ OUTPUT="$WORKSPACE_ROOT/core/AGENTS.md"
 # every other rule its place in the file. The five task-specific ones
 # (workflows, documentation, tools-and-scripts, markdown-linting,
 # spec-structure) are skills instead, loaded when they are relevant
-# (spec 147). test_core_scripts.py holds the byte budget.
+# test_core_scripts.py holds the byte budget.
 RULE_FILES="llm-discipline git testing communication"
 
 # Verify sources
@@ -84,7 +84,7 @@ echo "   Intro + $(echo "$RULE_FILES" | wc -w | tr -d ' ') rule files from core/
 # AGENTS.md, so they read the same content as a skill from
 # ~/.agents/skills/. Generated from the one source rather than
 # hand-copied: two copies of the spec layout that drift apart is the
-# failure spec 82 spent a whole spec undoing.
+# failure that once took a whole spec to undo.
 SPEC_STRUCTURE_SKILL="$WORKSPACE_ROOT/core/skills/spec-structure/SKILL.md"
 mkdir -p "$(dirname "$SPEC_STRUCTURE_SKILL")"
 {

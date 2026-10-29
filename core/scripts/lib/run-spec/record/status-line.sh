@@ -5,7 +5,7 @@
 # that file, so the order, and every variable it shares with the rest
 # of the run, are exactly what they were.
 # Where the file's own Phase/Fase/Acceptance tables stand right now
-# (spec 246, widened spec 285) — status_progress_for, sourced from
+# — status_progress_for, sourced from
 # core/scripts/lib/status-progress.sh, is the shared bash mirror of
 # `dashboard/src/parse-status.ts`'s `tableCells`/`isDoneMark`. Kept in
 # sync with that TypeScript rule by
@@ -23,7 +23,7 @@ case " $WORKFLOW_ARC " in
   *" $command_name "*) status_file_for "$commit_label" ;;
 esac
 if [ -n "$status_file" ]; then
-  # --- spec 268: a "completed" implement claim is cross-checked ------------
+  # --- A "completed" implement claim is cross-checked ------------
   # The CLI's own turn-subtype is not enough on its own: a step that reports
   # success while leaving no real trace must not count as `implement` for
   # "Workflow steps completed", or archive's own gate (which now asks only
@@ -70,8 +70,8 @@ if [ -n "$status_file" ]; then
       error_msg="the step reported success but left no real progress — nothing changed in the project. Press $step_button again for this step."
     fi
   elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ]; then
-    # spec 280: a "completed" archive claim is cross-checked the same
-    # way spec 268 cross-checks implement. status_file_for's own
+    # A "completed" archive claim is cross-checked the same
+    # way implement is cross-checked. status_file_for's own
     # two-candidate resolution (active folder, then archive/) already
     # proves whether the mechanical stamp-and-move
     # (core/scripts/aide-archive-spec) actually ran in THIS worktree —
@@ -136,15 +136,15 @@ if [ -n "$status_file" ]; then
         ;;
     esac
   elif [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ]; then
-    # spec 288: an analyze session must never change the project repo
+    # An analyze session must never change the project repo
     # (core/rules/spec-structure.md: "analyze ... writes only the spec's
     # own folder"), must never advance a Phase-table row past "not
     # started" — that is implement's and archive's job — and must never
     # claim a step beyond itself on the Workflow-steps line. All three
     # are checked against what the run actually produced, the same way
-    # spec 268/280 check implement/archive.
+    # implement and archive are checked.
     #
-    # spec 405: "the project repo changed" is the wrong question where
+    # "the project repo changed" is the wrong question where
     # the specs root lives INSIDE the project repo — the step's own spec
     # folder is then part of that same checkout, and writing it is the
     # whole point of the step, not a violation. specs_root_excludes
@@ -202,7 +202,7 @@ if [ -n "$status_file" ]; then
     # whether or not the pre-session file said so. No spec carries the
     # line at creation, and a model that writes "create, analyze" onto a
     # file that had no line was refused for the one step it could not
-    # have skipped (spec 348, 2026-09-02).
+    # have skipped.
     allowed_steps="|analyze|create|"
     for allowed_step in $(printf '%s' "$existing_line_before" | tr ',' ' '); do
       allowed_steps="$allowed_steps$allowed_step|"

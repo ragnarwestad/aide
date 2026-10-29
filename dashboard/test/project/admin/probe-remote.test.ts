@@ -32,20 +32,20 @@ function scratch(): string {
   return dir;
 }
 
-describe("detectRemoteTestCommand (AC-1)", () => {
-  test("the root files of a remote reach the lockfile table (AC-1)", async () => {
+describe("detectRemoteTestCommand", () => {
+  test("the root files of a remote reach the lockfile table", async () => {
     const parent = scratch();
     expect(await detectRemoteTestCommand(run, originWith({ "package-lock.json": "{}" }), parent)).toBe("npm test");
     expect(readdirSync(parent)).toEqual([]);
   });
 
-  test("a root with no file the table knows answers null (AC-1)", async () => {
+  test("a root with no file the table knows answers null", async () => {
     const parent = scratch();
     expect(await detectRemoteTestCommand(run, originWith({ "notes.txt": "hi" }), parent)).toBeNull();
     expect(readdirSync(parent)).toEqual([]);
   });
 
-  test("an empty repository answers null (AC-1)", async () => {
+  test("an empty repository answers null", async () => {
     const root = mkdtempSync(join(tmpdir(), "aide-probe-empty-"));
     cleanups.push(() => rmSync(root, { recursive: true, force: true }));
     const empty = join(root, "empty.git");
@@ -56,7 +56,7 @@ describe("detectRemoteTestCommand (AC-1)", () => {
     expect(readdirSync(parent)).toEqual([]);
   });
 
-  test("an address that cannot be cloned, or none at all, answers null (AC-1)", async () => {
+  test("an address that cannot be cloned, or none at all, answers null", async () => {
     const parent = scratch();
     expect(await detectRemoteTestCommand(run, "file:///no/such/repository.git", parent)).toBeNull();
     expect(await detectRemoteTestCommand(run, "", parent)).toBeNull();

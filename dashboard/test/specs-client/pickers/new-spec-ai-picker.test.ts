@@ -1,4 +1,4 @@
-// Spec 465, AC-1: the New page draws every phase line on ONE form
+// The New page draws every phase line on ONE form
 // (`new-spec-form`), unlike the Specs list's own row (one form PER
 // row, one name shared across rows). `applyAiPick`'s lookup —
 // `select[name="${name}"][form="${form}"]` — is scoped by `name` AND
@@ -82,7 +82,7 @@ afterEach(() => {
   delete (globalThis as { document?: unknown }).document;
 });
 
-describe("the New page's AI picker stays on its own phase line (spec 465, AC-1)", () => {
+describe("the New page's AI picker stays on its own phase line", () => {
   test("picking the Implement line's AI writes only Implement's model select", () => {
     const implementModel = modelSelect("implement", "sonnet");
     const archiveModel = modelSelect("archive", "sonnet");

@@ -1,4 +1,4 @@
-// Spec 185: the lockfile → command table, in code for the first time.
+// The lockfile → command table, in code for the first time.
 //
 // It has existed as prose in `core/skills/tools-and-scripts/SKILL.md`
 // since long before this, followed by an AI agent reading it while

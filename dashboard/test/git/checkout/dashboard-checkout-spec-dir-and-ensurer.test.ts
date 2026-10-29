@@ -1,12 +1,12 @@
 // Split out of dashboard-checkout.test.ts by theme.
 //
-// Spec 205: the dashboard works in checkouts of its own — see
+// The dashboard works in checkouts of its own — see
 // dashboard-checkout-clone-and-reuse.test.ts for the full background.
 //
 // This file covers two pure-logic pieces that need no real git at all:
 // `dashboardSpecDir`, which translates a spec folder found in the
 // person's checkout into the dashboard's own copy of it, and
-// `CheckoutEnsurer` (spec 216), which decides whether a caller is
+// `CheckoutEnsurer`, which decides whether a caller is
 // handed a run already in flight or one guaranteed to have started
 // after it asked.
 
@@ -44,7 +44,7 @@ describe("dashboardSpecDir", () => {
   });
 });
 
-// Spec 216: a run starts from a checkout that is current.
+// A run starts from a checkout that is current.
 //
 // `ensureCheckout` handed a second caller the fetch already in flight
 // for that project. A fetch that began before a push answers with the
@@ -57,12 +57,12 @@ describe("dashboardSpecDir", () => {
 // completed at some point". `fresh` is the second sentence: no answer
 // older than the moment I asked. `get` keeps the first, because every
 // other caller — a page read, the boot-time warm, a Settings save — is
-// happy with it and requirement 3 says they must go on being.
+// happy with it and must go on being.
 //
 // A fake `ensure` whose resolution the test releases by hand, not real
 // git: what is under test is the ORDERING of concurrent calls, and real
 // timers would make that a race rather than a test.
-describe("CheckoutEnsurer (spec 216)", () => {
+describe("CheckoutEnsurer", () => {
   const fake = (tag: string): DashboardCheckout => ({ code: tag, specs: `${tag}/specs`, specsRepo: tag });
 
   function deferred(): { promise: Promise<DashboardCheckout>; resolve: (v: DashboardCheckout) => void } {
@@ -78,7 +78,6 @@ describe("CheckoutEnsurer (spec 216)", () => {
     for (let i = 0; i < 20; i += 1) await Promise.resolve();
   };
 
-  // Criterion 1.
   test("fresh does not resolve from a run that was already going when it was asked", async () => {
     const first = deferred();
     const second = deferred();
@@ -106,7 +105,7 @@ describe("CheckoutEnsurer (spec 216)", () => {
     expect(await fresh).toEqual(fake("current"));
   });
 
-  // Criterion 2: today's coalescing, unchanged.
+  // Today's coalescing, unchanged.
   test("get hands two concurrent callers the one run", async () => {
     const only = deferred();
     const asked: string[] = [];
@@ -124,7 +123,7 @@ describe("CheckoutEnsurer (spec 216)", () => {
     expect(asked.length).toBe(1);
   });
 
-  // Criterion 3: the cost of `fresh` is bounded per overlap, not per
+  // The cost of `fresh` is bounded per overlap, not per
   // caller — three ticks that all arrive while one run is going share
   // one follow-up between them.
   test("several fresh callers waiting on one run share a single follow-up", async () => {
@@ -152,7 +151,7 @@ describe("CheckoutEnsurer (spec 216)", () => {
     expect(asked.length).toBe(2);
   });
 
-  // Criterion 4: nothing in flight is the ordinary case, and it must
+  // Nothing in flight is the ordinary case, and it must
   // not cost a second run.
   test("fresh with nothing in flight starts one run and answers from it", async () => {
     const asked: string[] = [];

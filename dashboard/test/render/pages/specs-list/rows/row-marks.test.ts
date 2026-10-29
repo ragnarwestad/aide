@@ -13,8 +13,8 @@ import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/pa
 // Split out of grouping.test.ts by theme.
 
 // One row, as its head cells: the Spec `<td colspan="2">` and the State
-// `<td>` right after it. Spec 335 moved every status mark off the first
-// and onto the second, so a test asserting which one carries a mark has
+// `<td>` right after it. Every status mark sits on the second, not the
+// first, so a test asserting which one carries a mark has
 // to see the two apart rather than treating the row as one blob of text.
 const rowBlock = (html: string, folder: string): string =>
   html.match(
@@ -36,25 +36,25 @@ const stateCellHtml = (html: string, folder: string): string =>
   rowBlock(html, folder).match(/<tr class="specstate"[\s\S]*?<td data-col="state">[\s\S]*?<\/td>/)?.[0]
     ?.match(/<td data-col="state">[\s\S]*?<\/td>/)?.[0] ?? "";
 
-// The row's own message panel (spec 143), where REQ-2's errors move to.
+// The row's own message panel, where the row's errors move to.
 const noticeCellHtml = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`))?.[0] ?? "";
 
-// Spec 99: the view survives an action, and a refusal finds its row ------
+// The view survives an action, and a refusal finds its row ------
 
 // Pressing Run, Approve, Cancel or Merge used to drop the reader back
 // on the default view: the redirect after the POST can only carry
 // forward what the POST itself received, and none of the three forms
 // sent anything about the current filter.
 
-// --- spec 220: the pull request a run left open ------------------------------
+// --- The pull request a run left open ------------------------------
 //
 // A project that reviews its code archives with the code still on its
 // branch, and a pull request describing it. The row is where a reader
 // finds out — the same line that carries the compare links — and a `gh`
 // that could not open the request has to say so there too, or an
 // orphaned open branch looks exactly like a reviewed one.
-describe("a row shows the pull request its run opened (spec 220)", () => {
+describe("a row shows the pull request its run opened", () => {
   const FOLDER = "81-queue-and-runner";
   const open = (extra: Partial<QueueRowView>): string =>
     renderSpecsRows([row({ steps: ["archive"], state: "done", ...extra })], {
@@ -62,8 +62,8 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
       targets: [],
     });
 
-  // Spec 403, REQ-1/REQ-2: reverses spec 335's own placement — the link
-  // used to sit in the State column; a pull request being open is a fact
+  // The link used to sit in the State
+  // column; a pull request being open is a fact
   // about the work, not a second state the row is IN, so it moves to the
   // notice line, where every other such fact already lives.
   test("the link is in the notice line, never in the State column", () => {
@@ -77,7 +77,7 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
     expect(notice.toLowerCase()).toContain("pull request");
   });
 
-  // REQ-3: the fact must not be hidden by the "nothing to say while
+  // The fact must not be hidden by the "nothing to say while
   // running" branch that blanks an otherwise-empty notice line.
   test("a running row with a pull request open still shows the notice sentence", () => {
     const html = renderSpecsRows([row({ steps: ["archive"], state: "running", prUrl: "https://github.test/aide/pull/7" })], {
@@ -87,7 +87,7 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
     expect(noticeCellHtml(html, FOLDER)).toContain('href="https://github.test/aide/pull/7"');
   });
 
-  // Spec 339, REQ-2: `prError` is one of the three real ERRORS, not the
+  // `prError` is one of the three real ERRORS, not the
   // "pull request" state — it moves to the notice line, distinct from
   // the badge test above, which stays put.
   test("a gh that could not open one says so instead, in a sentence for a person", () => {
@@ -102,7 +102,7 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
     );
   });
 
-  // REQ-3, acceptance criterion 4: the one `prError` case that carries
+  // The one `prError` case that carries
   // raw `gh pr create` stderr never reaches the row either.
   test("gh's own stderr, on the one case that carries it, never reaches the row", () => {
     const RAW = "error connecting to api.github.com  check your internet connection or https status.github.com";
@@ -119,13 +119,13 @@ describe("a row shows the pull request its run opened (spec 220)", () => {
   });
 });
 
-// --- spec 411: a spec held for Checks links to a board on its branch --------
+// --- A spec held for Checks links to a board on its branch --------
 //
 // The machinery to run a board off a spec's own branch already exists;
 // nothing on the row offered it. Gives the held-for-Checks message the
 // same shape the pull-request mark already has: a sentence that carries
 // a link.
-describe("a spec held for Checks, or with implement done, carries a link to a board on its branch (spec 411, spec 557)", () => {
+describe("a spec held for Checks, or with implement done, carries a link to a board on its branch", () => {
   const FOLDER = "101-b";
   const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
@@ -159,8 +159,8 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(noticeCellHtml(html, FOLDER)).toContain("the Acceptance criteria are not all ticked");
   });
 
-  // REQ-1: the exact sentence, carrying the link.
-  test("REQ-1: the sentence, with a link, is in the notice line", () => {
+  // The exact sentence, carrying the link.
+  test("the sentence, with a link, is in the notice line", () => {
     const notice = noticeCellHtml(heldForChecks(), FOLDER);
     expect(notice).toContain("Click the link to start a test server running this branch");
     expect(notice).toContain(`href="/specs/aide/${FOLDER}?tab=steps&amp;startTestServer=1"`);
@@ -206,9 +206,9 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(notice).not.toContain("Click the link to start a test server");
   });
 
-  // Spec 557: the reason archive has not run no longer matters once
+  // The reason archive has not run no longer matters once
   // implement is proven done — the link is independent of `heldBackReason`.
-  test("spec 557: a row held back for an unrelated reason still shows the link once implement is done", () => {
+  test("a row held back for an unrelated reason still shows the link once implement is done", () => {
     const notice = noticeCellHtml(
       renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
         runnerAvailable: true,
@@ -220,11 +220,11 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(notice).toContain("startTestServer=1");
   });
 
-  // AC-5: what this proves now is not "held back at all" but that
+  // What this proves now is not "held back at all" but that
   // implement's own `historyDone` is unset — no `targets` entry means no
   // `historyDone`, so the row carries no link regardless of held-back
   // state.
-  test("AC-5: a row with no historyDone for implement carries no link", () => {
+  test("a row with no historyDone for implement carries no link", () => {
     const notice = noticeCellHtml(
       renderSpecsRows([row({ specFolder: FOLDER, state: "done" })], { runnerAvailable: true, targets: [] }),
       FOLDER,
@@ -232,9 +232,9 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(notice).not.toContain("startTestServer=1");
   });
 
-  // AC-1: implement done, archive not yet run at all — no live job for
+  // Implement done, archive not yet run at all — no live job for
   // this spec, so the link stands alone with no held-back mark beside it.
-  test("AC-1: implement done, archive not yet run, shows the link with no held-back mark", () => {
+  test("implement done, archive not yet run, shows the link with no held-back mark", () => {
     const notice = noticeCellHtml(
       renderSpecsRows([], {
         runnerAvailable: true,
@@ -246,10 +246,10 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(notice).not.toContain("Acceptance criteria are not all ticked");
   });
 
-  // AC-2: the criteria were held back, then every one was ticked and
+  // The criteria were held back, then every one was ticked and
   // saved — the acceptance-hold mark clears, and the link, which never
   // read that reason, stays through the transition.
-  test("AC-2: criteria held back, then ticked and saved, link stays through the transition", () => {
+  test("criteria held back, then ticked and saved, link stays through the transition", () => {
     const heldTarget = target({
       historyDone: ["analyze", "implement"],
       archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
@@ -276,12 +276,12 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(afterNotice).toContain("Click the link to start a test server");
   });
 
-  // AC-3: a step already in flight hides the link even when implement's
+  // A step already in flight hides the link even when implement's
   // own historyDone was already true from an earlier round — proving
   // `quiet`'s own effect, not merely that historyDone is unset (which
-  // AC-5 already covers). Modeled on round-quiets-the-hold.test.ts's own
+  // another test covers). Modeled on round-quiets-the-hold.test.ts's own
   // precedent, not on the archive-running test above.
-  test("AC-3: a step in flight hides the link even when implement is already proven done, and it returns once that step ends", () => {
+  test("a step in flight hides the link even when implement is already proven done, and it returns once that step ends", () => {
     const already = target({ historyDone: ["analyze", "implement"] });
     const noticeFor = (steps: string[], stepIndex: number, state: QueueRowView["state"]) =>
       noticeCellHtml(
@@ -314,9 +314,9 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(idle).toContain("Click the link to start a test server");
   });
 
-  // AC-4: an archived row never carries the test-server link — proved
+  // An archived row never carries the test-server link — proved
   // directly rather than only inferred from `isArchivedRow`'s routing.
-  test("AC-4: an archived row carries no test-server link", () => {
+  test("an archived row carries no test-server link", () => {
     const html = renderSpecsRows([], {
       runnerAvailable: true,
       targets: [],
@@ -335,13 +335,13 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     expect(noticeCellHtml(html, FOLDER)).not.toContain("startTestServer=1");
   });
 
-  // Spec 466, AC-1/AC-3 (runtime-testable half): the row's decision is
+  // The runtime-testable half: the row's decision is
   // per-project, driven entirely by the `testServerAvailable` predicate
   // the caller hands in — never two independently derived answers for
   // two rows in the same render. A project whose checkout does not
   // carry the dashboard's source (here: woodstack) must not get a link
   // to a test server it can never run.
-  test("spec 466: only the project the predicate answers true for carries the link", () => {
+  test("only the project the predicate answers true for carries the link", () => {
     const OTHER_FOLDER = "101-c";
     const html = renderSpecsRows(
       [
@@ -397,13 +397,13 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
         },
       );
 
-    test("a spec whose branch is gone has no link, and keeps its other sentence (AC-1)", () => {
+    test("a spec whose branch is gone has no link, and keeps its other sentence", () => {
       const notice = noticeCellHtml(renderBoth(), GONE);
       expect(notice).not.toContain("startTestServer=1");
       expect(notice).toContain("Acceptance criteria are not all ticked");
     });
 
-    test("a spec whose branch exists keeps the link at its address (AC-2)", () => {
+    test("a spec whose branch exists keeps the link at its address", () => {
       expect(noticeCellHtml(renderBoth(), FOLDER)).toContain(
         `href="/specs/aide/${FOLDER}?tab=steps&amp;startTestServer=1"`,
       );
@@ -411,7 +411,7 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
   });
 });
 
-// --- a held-back job is info when it resolves on its own, waiting when it needs a person (spec 389) --
+// --- a held-back job is info when it resolves on its own, waiting when it needs a person --
 //
 // Every reason the scheduler leaves a job queued starts "held back:", but
 // they are not all the same: three resolve on their own (another landing
@@ -450,19 +450,19 @@ describe("a job the scheduler is holding is info when it resolves on its own, wa
   });
 });
 
-// --- spec 327: a landing failure survives its job's later steps ------------
+// --- A landing failure survives its job's later steps ------------
 //
 // The mark is read straight off `lead.landingError` and drawn
 // independent of `state` — a later step's own state says nothing about
 // whether an EARLIER step's landing ever finished.
-describe("a row shows an unresolved landing failure (spec 327)", () => {
+describe("a row shows an unresolved landing failure", () => {
   const FOLDER = "81-queue-and-runner";
   const MESSAGE = "Analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
   const withFailure = (state: QueueRowView["state"]): string =>
     renderSpecsRows([row({ state, landingError: MESSAGE })], { runnerAvailable: true, targets: [] });
 
-  // Spec 339, REQ-2: `landingError` is already human prose (nothing for
-  // REQ-3 to clean up here), so it moves to the notice line and nothing
+  // `landingError` is already human prose (nothing
+  // to clean up here), so it moves to the notice line and nothing
   // else — the State column keeps only the running/resting word.
   test("the mark is in the notice line while a later step is still running", () => {
     const html = withFailure("running");
@@ -523,18 +523,18 @@ describe("a row shows an unresolved landing failure (spec 327)", () => {
   });
 });
 
-// --- spec 328: a push that never reached origin ------------------------------
+// --- A push that never reached origin ------------------------------
 //
 // `aide-run-spec` never fails a run over a push that could not land —
 // the step's own work is already committed, so it reports `completed`
 // regardless. `pushError` is the field that says the branch itself did
-// not make it, and REQ-3 is that the row shows it rather than leaving a
-// reader to find out two steps later, the way spec 327 did.
-describe("a row shows a push that never reached origin (spec 328)", () => {
+// not make it, and the row shows it rather than leaving a
+// reader to find out two steps later.
+describe("a row shows a push that never reached origin", () => {
   const FOLDER = "81-queue-and-runner";
   const MESSAGE = "cannot push aide/81-queue-and-runner in /repos/aide: non-fast-forward";
 
-  // Spec 339, REQ-2/REQ-3: the failure is in the notice line now, and
+  // The failure is in the notice line now, and
   // `pushError`'s own raw stderr never reaches the row at all — a fixed
   // sentence for a person takes its place. The State column keeps only
   // the running/resting word.
@@ -549,7 +549,7 @@ describe("a row shows a push that never reached origin (spec 328)", () => {
     );
   });
 
-  // REQ-3, acceptance criterion 4: the description's own headline
+  // The description's own headline
   // example — git's `hint:` lines and its `'git push --help'` pointer,
   // flattened onto one line upstream — never reaches the row.
   test("git's own stderr, hint lines included, never reaches the row", () => {
@@ -572,14 +572,14 @@ describe("a row shows a push that never reached origin (spec 328)", () => {
   });
 });
 
-// --- spec 341/352: a stale pushError does not outlive its own job ----------
+// --- a stale pushError does not outlive its own job ------------------------
 //
 // `recent.find((r) => r.pushError)` (group-builders.ts) used to scan every
 // job for the spec, newest first, and stop at the first one with a
 // `pushError` set — which is not necessarily the LEAD job. A spec whose
 // current (lead) job pushed fine still showed an older job's failure,
-// with advice that no longer applied (REQ-4).
-describe("a stale pushError clears once the spec's lead job has none (spec 341, REQ-4)", () => {
+// with advice that no longer applied.
+describe("a stale pushError clears once the spec's lead job has none", () => {
   const FOLDER = "81-queue-and-runner";
 
   test("an older job's pushError does not outlive it once a newer job pushes fine", () => {
@@ -621,13 +621,13 @@ describe("a stale pushError clears once the spec's lead job has none (spec 341, 
   });
 });
 
-// --- spec 339: more than one error mark on the same live row --------------
+// --- More than one error mark on the same live row --------------
 //
 // `pushError`, `landingError` and `prError` are independent booleans and
-// can all be true on the same row at once. REQ-4 asks for every
-// applicable sentence, ranked, visible on the notice line — no badge, no
+// can all be true on the same row at once. Every
+// applicable sentence is shown, ranked, visible on the notice line — no badge, no
 // hover, since the State column carries no error marks any more.
-describe("more than one error mark, ranked, both visible in the notice line (REQ-4)", () => {
+describe("more than one error mark, ranked, both visible in the notice line", () => {
   const FOLDER = "81-queue-and-runner";
 
   test("both sentences show, in the same order liveMarks ranks them", () => {
@@ -647,12 +647,12 @@ describe("more than one error mark, ranked, both visible in the notice line (REQ
   });
 });
 
-// --- spec 467: the row says what to do once every check is ticked ----------
+// --- The row says what to do once every check is ticked ----------
 //
 // The held-back sentence goes away the moment every Acceptance row is
 // ticked, and nothing took its place: the row read "Ready" with nothing
 // telling the reader the next move was theirs — pressing Archive.
-describe("the row says what to do once every check is ticked (spec 467)", () => {
+describe("the row says what to do once every check is ticked", () => {
   const FOLDER = "150-ready-to-archive";
   const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
@@ -660,9 +660,9 @@ describe("the row says what to do once every check is ticked (spec 467)", () => 
     ...extra,
   });
 
-  // AC-1 (regression): the held-back sentence is unchanged while a check
+  // Regression: the held-back sentence is unchanged while a check
   // is still unticked.
-  test("AC-1: an unticked spec still shows the held-back sentence", () => {
+  test("an unticked spec still shows the held-back sentence", () => {
     const html = renderSpecsRows([], {
       runnerAvailable: true,
       targets: [target({ done: ["analyze", "implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
@@ -670,9 +670,9 @@ describe("the row says what to do once every check is ticked (spec 467)", () => 
     expect(noticeCellHtml(html, FOLDER)).toContain("Acceptance criteria are not all ticked");
   });
 
-  // AC-2: every check ticked, archive next, nothing in flight — the row
+  // Every check ticked, archive next, nothing in flight — the row
   // names the one thing left to do.
-  test("AC-2: every check ticked and no job in flight shows the ready-to-archive sentence", () => {
+  test("every check ticked and no job in flight shows the ready-to-archive sentence", () => {
     const html = renderSpecsRows([], {
       runnerAvailable: true,
       targets: [target({ done: ["analyze", "implement"] })],
@@ -680,9 +680,9 @@ describe("the row says what to do once every check is ticked (spec 467)", () => 
     expect(noticeCellHtml(html, FOLDER)).toContain("All checks ticked — press Archive to merge it");
   });
 
-  // AC-3, queued: the same spec, but archive is already queued — the
+  // Queued: the same spec, but archive is already queued — the
   // sentence must not tell the reader to do what is already under way.
-  test("AC-3: an archive job queued suppresses the ready-to-archive sentence", () => {
+  test("an archive job queued suppresses the ready-to-archive sentence", () => {
     const html = renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "queued" })], {
       runnerAvailable: true,
       targets: [target({ done: ["analyze", "implement"] })],
@@ -690,8 +690,8 @@ describe("the row says what to do once every check is ticked (spec 467)", () => 
     expect(noticeCellHtml(html, FOLDER)).not.toContain("All checks ticked");
   });
 
-  // AC-3, running: the same suppression while the job is actually going.
-  test("AC-3: an archive job running suppresses the ready-to-archive sentence", () => {
+  // Running: the same suppression while the job is actually going.
+  test("an archive job running suppresses the ready-to-archive sentence", () => {
     const html = renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "running" })], {
       runnerAvailable: true,
       targets: [target({ done: ["analyze", "implement"] })],

@@ -2,8 +2,8 @@
 // merged result before it is pushed. Green pushes; red drops the local
 // merge, and the branch stays where implement left it.
 //
-// The archive step ran it before (core/scripts/aide-archive-spec,
-// spec 329/361): every archive re-ran the whole suite against a main
+// The archive step ran it before (core/scripts/aide-archive-spec):
+// every archive re-ran the whole suite against a main
 // that had moved since implement's own run, and with several jobs
 // landing at once the same suite ran three and four times an hour for
 // one change. Here it runs exactly once per landing, on exactly what
@@ -103,7 +103,7 @@ async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: strin
     mkdirSync(join(dir, ".aide"), { recursive: true });
     copyFileSync(config, join(dir, ".aide", "config"));
   }
-  // Spec 512: a project that keeps its settings in the dashboard has an
+  // A project that keeps its settings in the dashboard has an
   // untracked `.aide/project.yaml` in the checkout, which a worktree of
   // HEAD does not carry — and a tree with none finds no test command,
   // which is "nothing to run", a landing merged untested. Copied in

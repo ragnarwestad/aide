@@ -1,10 +1,10 @@
-// Spec 310: every spec file can be edited, not only the description.
+// Every spec file can be edited, not only the description.
 // The Analysis, Solution and Status tabs gain the same Save the
-// Description tab has always had (REQ-1), the save route now takes
-// `file` as part of the request (REQ-2), the staleness guard is per
-// file (REQ-3), and a save onto a spec with an open `aide/<folder>`
+// Description tab has always had, the save route now takes
+// `file` as part of the request, the staleness guard is per
+// file, and a save onto a spec with an open `aide/<folder>`
 // branch writes onto that branch — Description's own save included
-// (REQ-4). Split out of spec-edit-save-and-misc.test.ts, whose own
+// Split out of spec-edit-save-and-misc.test.ts, whose own
 // suite stays about the Description tab's save path.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -16,9 +16,9 @@ import { branchAwareGitRunner, BRANCH_FILE_SHA } from "./spec-checks-fixtures.ts
 const { harness, start, startArchived } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
 
-// --- REQ-1: a Save on Analysis, Solution and Status ------------------------
+// --- A Save on Analysis, Solution and Status ------------------------
 
-describe("POST the Save action on the newly-editable tabs (REQ-1)", () => {
+describe("POST the Save action on the newly-editable tabs", () => {
   // Status is not among them any more: `4-status.md` is the run's own
   // record, and its Save is refused (see the block at the end of this
   // file). The two files a person corrects before implement reads them
@@ -48,10 +48,10 @@ describe("POST the Save action on the newly-editable tabs (REQ-1)", () => {
   }
 });
 
-// --- REQ-2: the file comes in with the request, and is checked against -----
+// --- The file comes in with the request, and is checked against -----
 // --- the allowlist -----------------------------------------------------------
 
-describe("the save route's own file allowlist (REQ-2)", () => {
+describe("the save route's own file allowlist", () => {
   for (const bad of ["0-README.md", "../../etc/passwd", "5-nonexistent.md"]) {
     test(`a file outside the four editable files is refused before any write: ${bad}`, async () => {
       const { base, dir } = start(savable("/host"));
@@ -71,9 +71,9 @@ describe("the save route's own file allowlist (REQ-2)", () => {
   });
 });
 
-// --- REQ-3: the staleness guard is per file, not global --------------------
+// --- The staleness guard is per file, not global --------------------
 
-describe("the staleness guard is per file (REQ-3)", () => {
+describe("the staleness guard is per file", () => {
   const ANALYSIS_SHA = "aaaaaaa1111111";
   const SOLUTION_SHA = "5555555bbbbbbb";
 
@@ -114,10 +114,10 @@ describe("the staleness guard is per file (REQ-3)", () => {
   });
 });
 
-// --- REQ-4: a save onto a spec with an open branch writes onto it, ---------
+// --- A save onto a spec with an open branch writes onto it, ---------
 // --- Description's own save included ----------------------------------------
 
-describe("a save writes onto the spec's own open branch when one exists (REQ-4)", () => {
+describe("a save writes onto the spec's own open branch when one exists", () => {
   test("solution: the commit lands on refs/heads/aide/<folder>, never on main", async () => {
     const { run, calls } = branchAwareGitRunner({ file: "3-solution.md", open: true, branchText: "old solution\n" });
     const { base, dir } = start(run);
@@ -158,7 +158,7 @@ describe("a save writes onto the spec's own open branch when one exists (REQ-4)"
     expect(body.error).toContain("changed on origin while this was being saved");
   });
 
-  test("with no open branch, a save writes onto main exactly as before (REQ-2's untouched path)", async () => {
+  test("with no open branch, a save writes onto main exactly as before (the untouched path)", async () => {
     const { run } = branchAwareGitRunner({ file: "3-solution.md", open: false });
     const { base, dir } = start(run);
     fillAnalysisAndSolution(dir);
@@ -169,9 +169,9 @@ describe("a save writes onto the spec's own open branch when one exists (REQ-4)"
   });
 });
 
-// --- REQ-5: an archived spec stays read-only on every tab -------------------
+// --- An archived spec stays read-only on every tab -------------------
 
-describe("Save against an archived spec is refused on every tab (REQ-5)", () => {
+describe("Save against an archived spec is refused on every tab", () => {
   for (const file of ["2-analysis.md", "3-solution.md", "4-status.md"] as const) {
     test(`${file}: writes nothing, and says why`, async () => {
       const { base, dir } = startArchived(savable("/host"));
@@ -187,9 +187,9 @@ describe("Save against an archived spec is refused on every tab (REQ-5)", () => 
   }
 });
 
-// --- REQ-6: a queued or running job gates a save on every tab --------------
+// --- A queued or running job gates a save on every tab --------------
 
-describe("a queued job gates a save on the newly-editable tabs too (REQ-6)", () => {
+describe("a queued job gates a save on the newly-editable tabs too", () => {
   test("solution: refused with the same wording the tick route already gives", async () => {
     const { base, dir } = start(savable("/host"));
     fillAnalysisAndSolution(dir);

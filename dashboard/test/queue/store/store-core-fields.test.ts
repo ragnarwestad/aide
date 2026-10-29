@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { QueueStore, parseJobRequest, type QueueDefaults } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  // Per step since spec 152: an implement is not an analyze, and one
-  // number for both stopped 149 mid-sentence with its tests green.
+  // Per step: an implement is not an analyze, and one number for both
+  // stopped an implement mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -85,14 +85,14 @@ describe("QueueStore.enqueueCreate", () => {
     expect(store.enqueueCreate(CREATE).ok).toBe(false);
   });
 });
-// --- spec 171: resolve is not a step at all -----------------------------------
+// --- Resolve is not a step at all -----------------------------------
 //
-// It was one until spec 171 folded the routine into `archive`. The
+// The routine is folded into `archive`. The
 // vocabulary is what enforces that: a post that still names it — an old
 // bookmark, a stale queue-config, a hand-written request — is refused as
 // an invalid entry in `steps`, before anything reaches the runner.
 
-describe("the retired resolve step (spec 171)", () => {
+describe("the retired resolve step", () => {
   test("a job may no longer be queued for it", () => {
     const r = parseJobRequest({ ...REQ, steps: ["resolve"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
@@ -108,7 +108,7 @@ describe("the retired resolve step (spec 171)", () => {
     expect(r.job.model.archive).toBe("sonnet");
   });
 });
-// --- spec 189: the store says when it changed --------------------------------
+// --- The store says when it changed --------------------------------
 
 // The page used to ask every five seconds whether anything had moved.
 // It asks nothing now: the server tells it. Every write to a job goes
@@ -116,7 +116,7 @@ describe("the retired resolve step (spec 171)", () => {
 // is the whole of the server's half of "something changed" — and a
 // write that was REFUSED changed nothing, so it must stay silent, or
 // the page redraws for a clash it already has the refusal for.
-describe("QueueStore.onChange (spec 189)", () => {
+describe("QueueStore.onChange", () => {
   /** A store that counts the changes it announces. Its own mirror per
    *  call, for the reason the tail-edit fixture gives: a second store
    *  on one file loads the first one's job and calls the enqueue a

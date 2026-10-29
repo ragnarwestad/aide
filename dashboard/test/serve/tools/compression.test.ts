@@ -1,4 +1,4 @@
-// compressResponse (spec 315, REQ-3): gzip applied once, centrally, to
+// compressResponse: gzip applied once, centrally, to
 // every response the server answers — never to the one response
 // (/api/queue/events, text/event-stream) that must stay unbuffered.
 import { afterEach, describe, expect, test } from "bun:test";
@@ -84,7 +84,7 @@ describe("compressResponse (unit)", () => {
   }
 });
 
-// Spec 515: a streamed page is gzipped as a stream, flushed after every
+// A streamed page is gzipped as a stream, flushed after every
 // chunk, so what has been sent is decodable before the rest exists.
 describe("compressResponse (a streamed page)", () => {
   const decode = (bytes: Uint8Array) =>
@@ -105,7 +105,7 @@ describe("compressResponse (a streamed page)", () => {
   }
   const quiet = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  test("the head is decodable before the rest exists, and the whole page after it (AC-4)", async () => {
+  test("the head is decodable before the rest exists, and the whole page after it", async () => {
     const head = `<!doctype html><body>${"filler ".repeat(30_000)}<div class="pageloading">MARKER</div>`;
     let release!: (s: string) => void;
     const held = new Promise<string>((r) => { release = r; });

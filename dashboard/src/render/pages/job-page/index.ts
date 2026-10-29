@@ -1,14 +1,14 @@
-// /jobs/<id>: one job, in full (spec 02). Its parts — what the job is,
+// /jobs/<id>: one job, in full. Its parts — what the job is,
 // what it has been doing, what it has run — sit behind tabs, because
 // under plain headings they ran together and a reader scrolled past the
 // one they came for.
 //
 // Split by theme into job-page/ (split job-page.ts by theme): types.ts
 // (JobStepResultView, SpecFileView, JobDetailView) and steps-table.ts
-// (the steps table, each row expanding to its own log, spec 240). The
+// (the steps table, each row expanding to its own log). The
 // tab-bar machinery moved out further still, to `../ui/tabs.ts`, since
 // `spec-page.ts`, `schedule-page.ts` and `projects-page/project-page.ts` all call
-// the same functions rather than carrying copies (spec 150) — none of
+// the same functions rather than carrying copies — none of
 // them a job page. Kept as a barrel at this path because most of the
 // render layer imports from it.
 
@@ -36,8 +36,8 @@ export const JOB_TABS = ["overview", "steps"] as const;
 export type JobTab = (typeof JOB_TABS)[number];
 
 /** One spec file, preformatted and escaped, under its own name and —
- *  when somebody asked git — the commit that last changed it (spec
- *  150). Markdown is deliberately not rendered: the description put
+ *  when somebody asked git — the commit that last changed it.
+ *  Markdown is deliberately not rendered: the description put
  *  that out of scope, and a reader checking WHICH VERSION is up wants
  *  the text as written. */
 export function specFilePanel(file: SpecFileView, now: number, mark = ""): string {
@@ -50,7 +50,7 @@ export function specFilePanel(file: SpecFileView, now: number, mark = ""): strin
 }
 
 /** WHICH VERSION a file's panel is showing, as the heading's own
- *  suffix. Its own function since spec 212: the Description tab is a
+ *  suffix. Its own function because the Description tab is a
  *  textarea rather than a `<pre>`, and it carries the same stamp for
  *  the same reason — a reader has to be able to tell what they are
  *  about to edit from what a step wrote. */
@@ -74,7 +74,7 @@ interface JobPageOpts {
 
 // While a step is running, what it is DOING is what the page was
 // opened for; a job that has stopped has nothing running, so its
-// facts open instead. Activity is gone (spec 240) — Steps is the one
+// facts open instead. Activity is gone — Steps is the one
 // tab left that shows a live step.
 const jobTab = (job: JobDetailView, raw: string | undefined): JobTab =>
   pickTab(JOB_TABS, raw, job.state === "running" ? "steps" : "overview");
@@ -85,7 +85,7 @@ const runningIndexOf = (job: JobDetailView): number | undefined => (job.runningS
 
 /** State and title stay ABOVE the tabs: whichever tab is open, the
  *  reader still needs to know which job this is and how it is doing.
- *  The pips came down with the facts table's Step row (spec 150) and
+ *  The pips came down with the facts table's Step row and
  *  land here, beside the state: "Step is in the pips" is why that row
  *  went, so the pips have to be somewhere a reader sees them. Their own
  *  block rather than inside the paragraph — `pips()` is a `<div>`. */
@@ -94,7 +94,7 @@ function jobBanner(job: JobDetailView, lang: Language): string {
     job.steps.map((s, i) => ({
       kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
       title: stepLabel(s),
-      // The same fill the spec list's row shows (spec 210), off the
+      // The same fill the spec list's row shows, off the
       // same field: this page and that row are two views of one job,
       // and a reader who opens the row must not find it saying less.
       // Only the step the job is ON, and only while it runs.
@@ -147,21 +147,21 @@ export function renderJobDetailPage(
   const tab = jobTab(job, opts.tab);
   const banner = jobBanner(job, lang);
 
-  // Two facts, and only two (spec 150). Project and Spec are in the
+  // Two facts, and only two. Project and Spec are in the
   // heading, and Step is in the pips beside the state chip. What is left
   // is what this page is the only place for.
   //
   // "Live right now" was under them and is gone outright. It existed for
   // the one moment a step is running and answered `State not-live ·
-  // Subagents – · Cost so far – · Session decc8861` for spec 149's
+  // Subagents – · Cost so far – · Session decc8861` for an
   // implement step: claude-usage does not recognise a session run in a
-  // worktree under `~/.aide/dashboard/worktrees/`, which is where every run has
-  // worked since spec 91.
+  // worktree under `~/.aide/dashboard/worktrees/`, which is where every run
+  // works.
   const head =
     facts([
       { label: t(lang, "job.started"), value: relTime(job.startedAt ?? job.createdAt, now) },
       // Marked when any step summed into it was over-charged, the same
-      // way the Steps tab already marks that step (spec 152). Not
+      // way the Steps tab already marks that step. Not
       // `anyCostUnmeasured`: this page's own `JobStepResultView` is a
       // different interface, and a Codex step has no dollar figure to
       // have estimated in the first place.
@@ -174,7 +174,7 @@ export function renderJobDetailPage(
             : ""),
       },
       { label: t(lang, "job.model"), value: esc(withModelId(job.model, job.modelId) ?? "as configured") },
-      // Spec 364, REQ-5: beside Model, on the same terms — added during
+      // Beside Model, on the same terms — added during
       // plan review so this page does not show Model with no Effort
       // beside it for a step that ran with one.
       { label: t(lang, "job.effort"), value: esc(job.effort ?? "not set") },

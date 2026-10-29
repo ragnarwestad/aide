@@ -1,4 +1,4 @@
-// Cron due-ness for a project's own recurring jobs (spec 259). No
+// Cron due-ness for a project's own recurring jobs. No
 // backfill by design: "due" is computed from the most recent fire time
 // alone, never a backlog of missed ones — a dashboard down across a
 // whole scheduled window simply skips that occurrence, the same
@@ -34,7 +34,7 @@ export interface ScheduleEntry {
    *  what every entry written before this field did. */
   model?: string;
   /** When the entry was created or last edited from the dashboard's own
-   *  Schedule forms (spec 461) — an ISO timestamp `isDue` treats as
+   *  Schedule forms — an ISO timestamp `isDue` treats as
    *  already-used ground, the same way it treats a tracked job's own
    *  `startedAt ?? createdAt`. Absent means an entry written by hand,
    *  which keeps firing on its very first eligible window exactly as
@@ -143,7 +143,7 @@ export interface ScheduleJobRef {
  *  such a job's own `startedAt ?? createdAt` already sits after the
  *  fire time that started it.
  *
- *  `entry.since` (spec 461) is folded in as the floor's starting value
+ *  `entry.since` is folded in as the floor's starting value
  *  rather than `-Infinity`: a brand-new entry has no tracked job yet,
  *  so without it a cron whose most recent fire already lies in the past
  *  reads as due the instant the entry is saved. An entry with no
@@ -163,7 +163,7 @@ export function isDue(entry: ScheduleEntry, now: Date, jobs: readonly ScheduleJo
 /** Where a schedule step's own output lives, outside any worktree so it
  *  survives past the run — keyed on the same (project, tracking key)
  *  identity `scheduleTrackingKey` already uses, so the URL a reader
- *  bookmarks never moves between runs (spec 272). */
+ *  bookmarks never moves between runs. */
 export const DEFAULT_SCHEDULE_OUTPUT_ROOT = join(homedir(), ".aide", "dashboard", "schedule-output");
 
 /** The one function both the write side (`runner-setup.ts`'s spawn) and

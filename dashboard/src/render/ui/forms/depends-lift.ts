@@ -1,7 +1,7 @@
 // Ticking a dependency lifts it to the picked block, and unticking it
 // drops it back — without waiting for Save.
 //
-// The two blocks are one control (spec 404, REQ-3): the page renders
+// The two blocks are one control: the page renders
 // the ticked ones above the scrolling list so what a spec depends on
 // can be read without scrolling. That partition was server-rendered
 // only, so a click changed nothing until the form was saved and the

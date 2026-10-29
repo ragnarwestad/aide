@@ -1,4 +1,4 @@
-// The served project page (spec 185): drift/deploy, run readiness, and
+// The served project page: drift/deploy, run readiness, and
 // the schedule section.
 
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
@@ -77,7 +77,7 @@ function otherProjectDeploy(
 
 /** The board's own Deploy: plainly whether this checkout is behind
  *  origin, and — only when it is, and only when a deploy step is
- *  configured — a button that asks, and queues the deploy job (spec 258).
+ *  configured — a button that asks, and queues the deploy job.
  *  Every other project is drawn by `otherProjectDeploy`.
  *
  *  `drift` undefined means ungated: no `AIDE_INSTALL_CMD`. This page keeps
@@ -89,13 +89,13 @@ function otherProjectDeploy(
  *  the fail-open case, which draws no message and no button at all).
  *
  *  Once the answer is real, it is never split across two sentences
- *  (spec 377): disk-vs-origin (`drift`) and process-vs-disk (`serving`)
- *  fold into the ONE sentence the reader needs, in whichever of REQ-4's
+ *  disk-vs-origin (`drift`) and process-vs-disk (`serving`)
+ *  fold into the ONE sentence the reader needs, in whichever of the
  *  three shapes applies — up to date, behind, or installed but not
  *  restarted. `serving` is undefined for every project except the one
  *  this server itself runs from (`ProjectPageOptions.serving`). */
 function deploySection(name: string, opts: ProjectPageOptions, now: number): string {
-  // AC-1/AC-2: this section's own heading, so it reads apart from the
+  // This section's own heading, so it reads apart from the
   // new "Testserver med testspecene" section beside it.
   const heading = `<h3>${esc(t(opts.lang ?? "en", "project.deployHeading"))}</h3>`;
   const serving = opts.serving;
@@ -131,21 +131,20 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   const notYetChecked = drift.checkedAt === null;
   const behind = drift.behind;
   // Only "asked, unanswerable" still bails out with no claim and no
-  // button (REQ-5) — "never asked" now falls into the shared chain
-  // below (spec 392, REQ-1, REQ-3).
+  // button — "never asked" now falls into the shared chain
+  // below.
   if (!notYetChecked && behind === null) return checked(name, heading + panel(errorLine + servingLine)); // asked, unanswerable — no claim, never a guess
 
   // From here the checkout's own drift is either known, or not yet
   // asked at all, so its answer and the Serving line's answer (when
   // there is one) fold into one sentence instead of stacking as two
-  // (REQ-1, REQ-4).
   const stale = !!serving && !serving.current;
   const disabled = notYetChecked || (behind === 0 && !stale);
 
-  // REQ-1, REQ-2, REQ-7 (spec 392): what to say about the served commit
+  // What to say about the served commit
   // when origin itself is still unknown — never a bare hash, and never
   // phrased twice (the `stale` sentence below keeps its own bare-hash
-  // wording exactly as it is, per REQ-5).
+  // wording exactly as it is).
   const servedCommitPhrase = (s: NonNullable<typeof serving>): string | undefined =>
     s.newestSubject === undefined
       ? undefined // git could not answer — fail open, no invented claim
@@ -185,7 +184,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     ? "Origin has not been checked yet."
     : disabled
       ? MATCHES_ORIGIN_SENTENCE
-      // REQ-9 (spec 392): the button stays live (a press still retries
+      // The button stays live (a press still retries
       // the install), but hovering it says a press will not restart the
       // service sooner.
       : stale && opts.restartWaiting?.length
@@ -208,8 +207,8 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   );
 }
 
-/** AC-3/AC-4/AC-8: the section beside Deploy for prod — a button that
- *  starts (or, per AC-6, restarts) a test server from the latest main,
+/** The section beside Deploy for prod — a button that
+ *  starts (or restarts) a test server from the latest main,
  *  seeded with the round's own test specs. Only a project that carries the
  *  dashboard's own source can start one; every other project is not told
  *  about it at all. */
@@ -220,7 +219,7 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
   // Deliberately NOT class="actionform"/"rowrun" — either class gets its
   // native submit replaced by an XHR
   // (`specs-client/forms.ts`/`press.ts`), which silently defeats
-  // `target="_blank"` and breaks AC-5. `.deploypanel`'s own flex `gap`
+  // `target="_blank"` and so the new-tab open. `.deploypanel`'s own flex `gap`
   // spaces this form's children with no CSS of its own needed.
   const button = buttonForm({
     action: `/api/queue/projects/${encodeURIComponent(name)}/test-server`,
@@ -235,15 +234,15 @@ function testServerSection(name: string, opts: ProjectPageOptions): string {
  *  less Last run, which this tab does not show. */
 const SCHEDULE_TAB_SORT: SortColumns = { keys: ["name", "next", "enabled"], fallback: "name", firstDir: SORT_DEFAULT_DIR };
 
-/** The Schedule section (spec 259, extended spec 468): each entry's
+/** The Schedule section: each entry's
  *  name (linking to its own detail page), next fire time, its Enabled
  *  switch, Run now and Delete — what fits on one line; the rest of what
  *  an entry is set to is on its own Settings tab — and New, which makes
- *  one for THIS project. The tab itself is always present (spec 378, REQ-6) —
+ *  one for THIS project. The tab itself is always present —
  *  a project with nothing scheduled says so in a sentence, rather than
  *  the tab bar changing shape from project to project.
  *
- *  The form is drawn unconditionally (AC-1) — `1-description.md`'s own
+ *  The form is drawn unconditionally — `1-description.md`'s own
  *  wording carries no exception for a project outside the queue's
  *  allowlist. Such a project is still reachable from `/projects`
  *  (2-analysis.md, Patterns); its submission is refused by the create
@@ -293,8 +292,8 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
   return top + slot + table;
 }
 
-/** The checks no settings row owns that did NOT pass (spec 378, spec
- *  531) — a check that passed says nothing here; the summary line above
+/** The checks no settings row owns that did NOT pass
+ *  — a check that passed says nothing here; the summary line above
  *  has already said as much. `FIELD_OWNED_CHECKS` keeps this the one
  *  place a fact this page draws twice cannot disagree with itself. */
 function checkoutChecks(readiness: ProjectReadiness): string {
@@ -303,9 +302,9 @@ function checkoutChecks(readiness: ProjectReadiness): string {
 }
 
 /** The one line at the top of Config saying whether a run can start
- *  (spec 378) — the information card while nothing blocks it, and the
+ *  the information card while nothing blocks it, and the
  *  board's own error card, naming every blocking reason in the same
- *  words its own check already carries, when something does (spec 531).
+ *  words its own check already carries, when something does.
  *  `readiness.canRun` guarantees at least one blocking check exists in
  *  the false branch (`readiness.ts`: `canRun = checks.every(c =>
  *  !c.blocking)`). Non-blocking-but-failing checks are named in their
@@ -319,7 +318,7 @@ function readinessSummary(readiness: ProjectReadiness): string {
 }
 
 /** The Config tab: the settings table, plus — since the Health tab went
- *  away (spec 378) — whether a run can start at all, and the checks no
+ *  away — whether a run can start at all, and the checks no
  *  settings row owns. `readiness` is `null` where git could not be
  *  asked, which is also why both new pieces are absent then: a page
  *  cannot claim a run can or cannot start on no evidence. */
@@ -345,15 +344,15 @@ function configSection(
 /** The page's tabs, in the order they are drawn: Deploy first. Default
  *  capitalization (`tabBar`'s own `t[0].toUpperCase() + t.slice(1)`)
  *  already produces the exact words wanted, so — unlike `JOB_TABS`'s
- *  `steps` → "Logs" — no label override map is needed (spec 293).
- *  Health is gone (spec 378): every check it drew now reads on Config,
+ *  `steps` → "Logs" — no label override map is needed.
+ *  Health is gone: every check it drew now reads on Config,
  *  either on its own settings row or in the checkout-level section. */
 const PROJECT_TABS = ["deploy", "config", "schedule"] as const;
 type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** The served project page: the settings, the readiness answer, the
- *  deploy state and the schedule, one tab at a time (spec 293 —
- *  previously one long scroll, spec 185). */
+ *  deploy state and the schedule, one tab at a time rather than one
+ *  long scroll. */
 export function renderProjectPage(
   p: ProjectView,
   settings: ProjectSettingsView,
@@ -368,8 +367,8 @@ export function renderProjectPage(
   const stamped = Date.parse(generatedAt);
   const now = Number.isNaN(stamped) ? Date.now() : stamped;
 
-  // The Deploy tab is offered on every project, the same as Schedule (spec
-  // 407, REQ-1, REQ-4): a project other than the board's own says there
+  // The Deploy tab is offered on every project, the same as Schedule:
+  // a project other than the board's own says there
   // that Deploy is not offered (`otherProjectDeploy`), rather than the tab
   // bar changing shape from project to project.
   // The page opens on Deploy; `?edit=` names a settings table's own edit

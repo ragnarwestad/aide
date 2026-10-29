@@ -1,4 +1,4 @@
-// Spec 388: the board's own start/stop routes, following the shape
+// The board's own start/stop routes, following the shape
 // `run-controls.ts`'s own reset-route suite already tests against —
 // a real `createServer`, real fixture files, real HTTP.
 import { afterEach, describe, expect, test } from "bun:test";
@@ -32,7 +32,7 @@ async function settleDone(base: string, id: string): Promise<void> {
 
 const folder = "81-queue-and-runner";
 
-describe("spec 388: the board start/stop routes", () => {
+describe("the board start/stop routes", () => {
   test("404 for an unknown spec", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/never-existed/test-server`, {
@@ -60,7 +60,7 @@ describe("spec 388: the board start/stop routes", () => {
       } else {
         // Stopping is always accepted (a no-op when nothing is
         // tracked) — there is nothing archived-only about clearing a
-        // registry entry, and REQ-7's own automatic stop runs on an
+        // registry entry, and the automatic stop runs on an
         // archived spec by definition.
         expect(res.status).toBe(200);
       }
@@ -183,7 +183,7 @@ describe("spec 388: the board start/stop routes", () => {
     }
   });
 
-  // REQ-1 (spec 425): a board already tracked for a spec must keep its
+  // A board already tracked for a spec must keep its
   // link and Stop form once that spec is archived, even though the
   // archive never merged (the exact gap this spec's own description
   // names — the automatic stop only fires when a merge actually lands).
@@ -194,7 +194,7 @@ describe("spec 388: the board start/stop routes", () => {
   // tracked for an archived spec is exactly what a held-back archive
   // leaves behind; nothing about getting there needs a real spawn, a
   // real branch on origin, or the scan to catch up.
-  test("REQ-1: an archived spec's already-tracked board keeps its link and Stop form", async () => {
+  test("an archived spec's already-tracked board keeps its link and Stop form", async () => {
     const archivedFolder = "82-archived";
     const { base, server } = harness.start({
       extra: { testServersIsAlive: () => true },
@@ -220,12 +220,12 @@ describe("spec 388: the board start/stop routes", () => {
     expect(html).toContain("Stop test server");
   });
 
-  // REQ-5: the ports-full case escapes `startTestServer`'s own try/catch
+  // The ports-full case escapes `startTestServer`'s own try/catch
   // today (`lifecycle.ts` has none around `findFreePort`), so this route
   // returns a bare 500 with no message. `testServersPortProbe: () => false`
   // makes every port in the pool read as taken, without binding
   // anything on this machine.
-  test("REQ-5: every test-server port already in use refuses with a message, not a 500", async () => {
+  test("every test-server port already in use refuses with a message, not a 500", async () => {
     const { base, dir } = start({
       testServersAvailable: true,
       testServersPortProbe: () => false,
@@ -250,18 +250,18 @@ describe("spec 388: the board start/stop routes", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain("Test servers");
-    // REQ-2 (spec 428): the refusal also states the running count (0 —
+    // The refusal also states the running count (0 —
     // nothing is tracked in this fixture) and the pool's limit.
     expect(body.error).toContain("0");
     expect(body.error).toContain("6");
   });
 });
 
-// Spec 411: the held-for-Checks row's own link reaches `startTestServer()`
+// The held-for-Checks row's own link reaches `startTestServer()`
 // through a GET a person can actually click — `?startTestServer=1` on the
 // spec page itself, not the POST route above, which a plain
 // `target="_blank"` link can never reach.
-describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
+describe("the spec page's own ?startTestServer=1 trigger", () => {
   test("starts a board and 303s to the clean Steps-tab URL, once", async () => {
     const spawnCalls: { cmd: string[] }[] = [];
     const spawned: number[] = [];
@@ -346,7 +346,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       const res = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
         redirect: "manual",
       });
-      // REQ-4: the tab the reader opened WAITS here. It used to be sent
+      // The tab the reader opened WAITS here. It used to be sent
       // back to the spec page to find the address for itself.
       expect(res.status).toBe(200);
       const waiting = await res.text();
@@ -378,7 +378,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       }
       expect(spawnCalls).toHaveLength(1);
 
-      // REQ-3: once the round says the board is up, the click ends at
+      // Once the round says the board is up, the click ends at
       // the BOARD. It could not on the first one — a board takes
       // minutes and has no address until it has started.
       writeFileSync(
@@ -413,7 +413,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     expect(res.headers.get("location")).toBe(`/specs/aide/${folder}?tab=steps`);
   });
 
-  // REQ-5: today this falls through to `waitingForTestServerPage`, which
+  // Today this falls through to `waitingForTestServerPage`, which
   // polls forever with no message at all, since `startTestServer()`'s result
   // is discarded here. `testServerFailedPage` is what it must show instead —
   // the page already built for exactly this kind of failure. The GET
@@ -421,7 +421,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
   // carries `branchUrls` (`branchesFor()`'s only source) — the same
   // fake-runner scaffolding the sibling "starts a board and 303s" test
   // above already builds, with `testServersPortProbe` the one thing changed.
-  test("REQ-5: every test-server port already in use shows testServerFailedPage, not an endless wait", async () => {
+  test("every test-server port already in use shows testServerFailedPage, not an endless wait", async () => {
     const results = mkdtempSync(join(tmpdir(), "aide-411-board-ports-full-"));
     ownDirs.push(results);
     const gitRun = async (_dir: string, args: string[]) => {
@@ -479,18 +479,18 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     expect(html).toContain(`Could not start a test server for "${folder}"`);
     expect(html).toContain("Test servers");
     expect(html).not.toContain("data-reload-every=");
-    // AC-1 (spec 489): the outright-refusal shape — nothing was ever
+    // The outright-refusal shape — nothing was ever
     // stored — still carries a "Try again" link.
     expect(html).toContain('href="');
     expect(html).toContain("retryTestServer=1");
   });
 
-  // Spec 489: a stored "failed" entry's own page now carries a way back
+  // A stored "failed" entry's own page now carries a way back
   // in, and following it actually clears and restarts the board — the
   // same fake-spawn/fake-`git` harness the "starts a board and 303s..."
   // test above builds, since the retry has to reach a real `capable`
   // spec and a real branch on origin the same way a first start does.
-  test("spec 489: a failed board's retry link clears it and starts a new one, landing on the waiting page", async () => {
+  test("a failed board's retry link clears it and starts a new one, landing on the waiting page", async () => {
     const spawnCalls: { cmd: string[] }[] = [];
     const spawned: number[] = [];
     let boardLog = "";
@@ -563,7 +563,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       process.kill(-spawned[0]!, "SIGKILL");
       await new Promise((r) => setTimeout(r, 100));
 
-      // AC-1: the plain URL now shows the failed page, carrying its own
+      // The plain URL now shows the failed page, carrying its own
       // retry link.
       const failedRes = await fetch(`${base}/specs/aide/${folder}?tab=steps&startTestServer=1`, {
         redirect: "manual",
@@ -575,7 +575,7 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
       expect(failedHtml).toContain("retryTestServer=1");
       expect(spawnCalls).toHaveLength(1);
 
-      // AC-2/AC-3: following the retry link — built from known parts,
+      // Following the retry link — built from known parts,
       // never scraped out of `esc()`'s escaped HTML — clears the failed
       // entry and starts a new one for the SAME branch.
       const retryUrl = `${base}/specs/aide/${folder}?tab=steps&startTestServer=1&retryTestServer=1`;
@@ -603,13 +603,13 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     }
   });
 
-  // Spec 489, AC-3's capability-refused path (Risk analysis item 2): a
+  // The capability-refused path: a
   // retry pressed against a spec no longer capable of a board is
   // refused exactly as a first-time start already is, never sent to the
   // waiting page. Seeded straight into the registry, the same shortcut
-  // REQ-1's test above uses — nothing about this outcome depends on a
+  // the first-start test above uses — nothing about this outcome depends on a
   // real spawn or a real branch on origin.
-  test("spec 489: a retry on a spec that is no longer capable of a board is refused, not sent to the waiting page", async () => {
+  test("a retry on a spec that is no longer capable of a board is refused, not sent to the waiting page", async () => {
     const archivedFolder = "82-archived";
     const { base, server } = harness.start({
       extra: {},
@@ -635,12 +635,12 @@ describe("spec 411: the spec page's own ?startTestServer=1 trigger", () => {
     expect(res.headers.get("location")).toBe(`/specs/aide/${archivedFolder}?tab=steps`);
   });
 
-  // Spec 489, Risk analysis item 1 (loop-safety): the waiting page's own
+  // Loop-safety: the waiting page's own
   // 5-second self-refresh reloads the PLAIN URL, never the one carrying
   // `retryTestServer=1` — so a board that fails again after a successful
   // retry must stop and offer its own fresh "Try again", not be cleared
   // and respawned on every poll forever.
-  test("spec 489: a board that fails again after a retry is never auto-retried by the waiting page's own refresh", async () => {
+  test("a board that fails again after a retry is never auto-retried by the waiting page's own refresh", async () => {
     const spawnCalls: { cmd: string[] }[] = [];
     const spawned: number[] = [];
     let boardLog = "";

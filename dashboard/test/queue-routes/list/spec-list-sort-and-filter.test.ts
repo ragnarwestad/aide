@@ -27,7 +27,7 @@ describe("the job list sorts and filters", () => {
   });
 
   /** A spec on disk, as the server hands it to the page. `createdAt` is
-   *  what git answered for the folder's first commit (spec 199). */
+   *  what git answered for the folder's first commit. */
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -50,9 +50,9 @@ describe("the job list sorts and filters", () => {
   const page = (
     rows: QueueRowView[],
     filter?: SpecsPageOptions["filter"],
-    // Spec 199: a creation date comes off the TARGET (git), never off a
-    // job. Spec 281 stopped drawing it in the Time column at all — that
-    // column shows the spec's summed duration now — but `createdAt`
+    // A creation date comes off the TARGET (git), never off a
+    // job. It is not drawn in the Time column at all — that
+    // column shows the spec's summed duration — but `createdAt`
     // still decides the folder-order tie-break between two specs
     // neither git nor a job can date (below), so tests about that still
     // need a target to give one on.
@@ -92,7 +92,7 @@ describe("the job list sorts and filters", () => {
     expect(html).not.toContain("b-spec");
   });
 
-  // Spec 317 (REQ-3): the default view is the newest spec MADE at the
+  // The default view is the newest spec MADE at the
   // top — by its own creation date, not by folder number (which was the
   // default from 2026-08-19 until this changed it: activity order put a
   // spec that had just been created at the bottom, under everything
@@ -100,7 +100,7 @@ describe("the job list sorts and filters", () => {
   // numbers kept increasing, until a spec's folder was renumbered on
   // reopen and the two stopped agreeing). Folder order is still one
   // click away on the Spec column.
-  test("newest CREATED spec first is the default order (REQ-3)", () => {
+  test("newest CREATED spec first is the default order", () => {
     const html = page([], undefined, [
       target("104-first", { createdAt: "2026-08-10T09:00:00Z" }),
       target("109-second", { createdAt: "2026-08-16T09:00:00Z" }),
@@ -108,7 +108,7 @@ describe("the job list sorts and filters", () => {
     expect(html.indexOf("109-second")).toBeLessThan(html.indexOf("104-first"));
   });
 
-  test("the Created heading's link asks for newest first, and turns round once it is the sort (AC-3)", () => {
+  test("the Created heading's link asks for newest first, and turns round once it is the sort", () => {
     const link = (html: string) => html.match(/data-col="created"[^>]*><a[^>]*href="([^"]*)"/)?.[1] ?? "";
     const byState = page([], { sort: "state" });
     expect(link(byState)).toContain("sort=created");
@@ -117,7 +117,7 @@ describe("the job list sorts and filters", () => {
     expect(link(newestFirst)).toContain("dir=asc");
   });
 
-  // REQ-2: the Created heading sorts like every other — a click turns it
+  // The Created heading sorts like every other — a click turns it
   // round. Folder numbers run the OPPOSITE way from creation date here,
   // so a sort that silently fell back to folder order would fail this
   // exactly as it would pass the default-order test above by accident.
@@ -129,11 +129,10 @@ describe("the job list sorts and filters", () => {
     expect(html.indexOf("109-earlier")).toBeLessThan(html.indexOf("104-later"));
   });
 
-  // Spec 208's REQ-5 sorted an undated spec as the epoch, so it never
-  // floated to the top of a newest-first list. Reversed: the cell reads
-  // "–" because git has not caught up with a folder made moments ago,
-  // so the spec that is certainly the newest was the one sent to the
-  // bottom. It sorts as the newest now, and still never crashes the sort.
+  // The cell reads "–" because git has not caught up with a folder
+  // made moments ago, so the spec that is certainly the newest would be
+  // sent to the bottom if an undated spec sorted as the epoch. It sorts
+  // as the newest, and still never crashes the sort.
   test("a spec with no creation date sorts as the newest", () => {
     const html = page([], { sort: "created" }, [
       target("50-dated", { createdAt: "2026-08-10T09:00:00Z" }),
@@ -142,7 +141,7 @@ describe("the job list sorts and filters", () => {
     expect(html.indexOf("51-undated")).toBeLessThan(html.indexOf("50-dated"));
   });
 
-  // REQ-2/REQ-6, the exact gap plan review's must-fix 1 found: an
+  // The exact gap plan review's must-fix 1 found: an
   // archived row's `createdAt` has to reach the same sort key a live
   // row's does, or every archived row ties at "unknown" regardless of
   // its real date. Folder numbers again run the opposite way from the
@@ -160,16 +159,12 @@ describe("the job list sorts and filters", () => {
     expect(html.indexOf("60-newer-archive")).toBeLessThan(html.indexOf("61-older-archive"));
   });
 
-  // Spec 281's own criterion 1 read "a phase being started, finished or
-  // run again must not move a row whose OWN settled total has not
-  // changed" — because a live phase contributed nothing to the total
-  // back then. Spec 340's REQ-2 reverses exactly that: a live phase now
-  // contributes its own elapsed-so-far, and the sort reads the same
-  // `totalDurationMs` the column draws (`filter-sort.ts`), so a spec
-  // with a phase that has been running long enough legitimately outranks
-  // one with a smaller SETTLED total — this is the sort staying correct
-  // under the new rule, not a regression of criterion 1.
-  test("a phase's own live elapsed time counts toward the started sort, same as the column it sorts by (REQ-2)", () => {
+  // A live phase contributes its own elapsed-so-far, and the sort
+  // reads the same `totalDurationMs` the column draws (`filter-sort.ts`),
+  // so a spec with a phase that has been running long enough
+  // legitimately outranks one with a smaller SETTLED total — a row
+  // moving because its live phase ran on is the sort staying correct.
+  test("a phase's own live elapsed time counts toward the started sort, same as the column it sorts by", () => {
     const settled = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
       row(id, {
         startedAt: "2026-08-16T09:00:00Z",
@@ -194,10 +189,10 @@ describe("the job list sorts and filters", () => {
 
   // A spec with no settled phase — no job at all, or nothing has
   // finished yet — has nothing to sum, and the column says so with the
-  // same dash `costCell` already uses for zero spend (criterion 2). This
-  // used to be "the column falls back to the target's own creation
-  // date"; spec 281 removed that fallback along with the date itself.
-  test("a spec with no job rows at all shows 0s, not a date (criterion 2)", () => {
+  // same dash `costCell` already uses for zero spend. This
+  // is never "the target's own creation date": the column has no such
+  // fallback.
+  test("a spec with no job rows at all shows 0s, not a date", () => {
     const html = page([], { sort: "started" }, [
       target("77-evicted", { createdAt: "2026-03-01T09:00:00Z" }),
     ]);
@@ -210,10 +205,10 @@ describe("the job list sorts and filters", () => {
 
   // Neither spec can be dated and neither has ever run: the same
   // folder-name-descending fallback the old `activityAt === 0`
-  // tie-break gave, and no throw (criterion 8). It passes before the
+  // tie-break gave, and no throw. It passes before the
   // change as well as after — deliberately: the criterion is that this
   // order is PRESERVED while the field the tie-break reads is replaced.
-  test("two specs git cannot date fall back to folder order (criterion 8)", () => {
+  test("two specs git cannot date fall back to folder order", () => {
     const html = page([], { sort: "started" }, [target("88-undatable"), target("89-undatable")]);
     expect(specOrder(html)).toEqual(["89-undatable", "88-undatable"]);
   });
@@ -232,7 +227,7 @@ describe("the job list sorts and filters", () => {
   });
 
   // Spec folders lead with a number, and the first three-digit one
-  // (100, on 2026-08-18) sorted BEFORE 81 as text. The number is what a
+  // (100) sorted BEFORE 81 as text. The number is what a
   // person reads the column by, so it is what the column sorts by.
   test("sorting by spec orders by the leading number, not by text", () => {
     const html = page([row("103"), row("81"), row("9"), row("104")], { sort: "spec", dir: "asc" });

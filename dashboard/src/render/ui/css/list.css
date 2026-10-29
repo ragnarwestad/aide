@@ -4,11 +4,11 @@
    of dates and figures are wider than a phone whatever the CSS says.
    The box scrolls instead of the page, the same self-contained answer
    .specfile already gives for a preformatted file too wide to wrap
-   (spec 155). Unconditional, not phone-only — a narrow WINDOW on a
+   Unconditional, not phone-only — a narrow WINDOW on a
    desktop has the same problem. */
 .tablewrap { overflow-x: auto; }
 
-/* And the spec list scrolls DOWN inside the same box (spec 226). The
+/* And the spec list scrolls DOWN inside the same box. The
    25-row cap that kept this list short is gone, so it is as long as the
    archive is; bounding it here is what keeps the filter, the (?), New
    spec and the search field where the reader left them while the rows
@@ -18,7 +18,7 @@
    Steps table and the settings table wear the same class, and nobody
    asked for either of them to be given a height.
 
-   #jobrows is a flex column (spec 320): .specsearch (the filter row)
+   #jobrows is a flex column: .specsearch (the filter row)
    keeps its own natural height, and .tablewrap is flex: 1 1 auto — it
    grows to fill whatever page.css's body/main chain actually has left,
    never a guessed fraction of the viewport (the old 70vh, replaced here,
@@ -30,7 +30,7 @@
    overflow to be scrolled.
 
    Undone entirely at phone width (narrow.css) instead of being made
-   phone-safe here: REQ-4 wants no box at all there, not a differently
+   phone-safe here: the design wants no box at all there, not a differently
    sized one — see that file's own comment. */
 #jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
   --speclist-width: 49rem; }
@@ -57,7 +57,7 @@
   margin-inline: auto; padding-inline: var(--sp-3); padding-bottom: var(--sp-3); }
 
 table { border-collapse: collapse; width: 100%; }
-/* REQ-3 (spec 379): only the specs list stops stretching to the frame.
+/* Only the specs list stops stretching to the frame.
    `table.list` alone is shared with the Schedule, Settings, Project and
    New-spec tables — none of them has a State-style column, and none
    asked for this — so the override is scoped to `.speclist`, the class
@@ -74,7 +74,7 @@ table { border-collapse: collapse; width: 100%; }
    and `table-layout: fixed` scales them down by the few pixels a
    vertical scrollbar or the border takes rather than overflowing. */
 table.speclist { width: 100%; box-sizing: border-box; table-layout: fixed; }
-/* Spec 409, REQ-7: the Settings table's own exception, the same idea as
+/* The Settings table's own exception, the same idea as
    `.speclist` above scoped to this one table — three narrow-content
    columns (a label, two selects, one number input) otherwise stretch to
    the page's full width, and the unclaimed space in the AI/Model cell
@@ -246,7 +246,7 @@ table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
   table.speclist > colgroup > col[data-col="started"] { width: 0; }
   table.speclist > colgroup > col[data-col="cost"] { width: 0; }
 }
-/* The Test servers table (spec 519): a `table.list` with columns of its
+/* The Test servers table: a `table.list` with columns of its
    own, so nothing written for the specs list's `data-col`s reaches it.
    Its width is 100% of the page's frame and its six columns are
    percentages of that, the way the specs list's are; text wraps inside
@@ -356,13 +356,12 @@ table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { widt
 table.speclist[data-list="jobs"] tr.specstate > td[data-col="state"] > .actionslot {
   display: flex; width: auto; justify-content: center; margin-top: var(--sp-2); }
 table.list thead a { color: var(--muted); }
-/* Every column is pinned to its own content, State included (REQ-1/
-   REQ-2/REQ-3, spec 379) — `0`, not the `1%` this used to read
-   (spec 376): a PERCENTAGE width is only honoured once the table
+/* Every column is pinned to its own content, State included — `0`,
+   not `1%`: a PERCENTAGE width is only honoured once the table
    itself has a definite width to resolve against (ordinary layout,
    `table{width:100%}` above); the moment something asks the table for
    its own natural size instead — exactly what `table.speclist{width:
-   auto}` above needs to do to satisfy REQ-3 — a percentage column
+   auto}` above needs to do to size the table to its content — a percentage column
    resolves against an INDEFINITE size and is treated as `auto`, which
    is no pin at all. Measured directly (a headless-Chromium render of
    this exact CSS): with every column at `1%`, the table still grew
@@ -372,7 +371,7 @@ table.list thead a { color: var(--muted); }
    label from wrapping now that no column takes more than it needs —
    the content underneath still floors every column at whatever it
    actually needs; this only caps a column's SURPLUS share, which no
-   column has left to take once REQ-3 leaves no surplus to share. */
+   column has left to take once the table sizes to its content. */
 table.list th[data-col="spec"],
 table.list th[data-col="created"],
 table.list th[data-col="started"],
@@ -380,7 +379,7 @@ table.list th[data-col="cost"],
 table.list th[data-col="state"] { width: 0; white-space: nowrap; }
 /* A column header is a control: a flat that shows on hover, and on the
    sorted column a chevron that the ascending state turns round. */
-/* The chevron's own positioning context (spec 432): the <th> itself,
+/* The chevron's own positioning context: the <th> itself,
    never .sortlink — .sortlink's padding below reserves room for the
    CENTRED LABEL, and if the chevron were positioned against .sortlink
    instead, growing that padding would carry the chevron off with it,
@@ -390,7 +389,7 @@ table.list th[data-col="state"] { width: 0; white-space: nowrap; }
    value-cell and the table's own last-child clearance already agree
    on, list.css:170-175) regardless of what .sortlink reserves.
 
-   Sticky within the box that scrolls the list (spec 440), for the same
+   Sticky within the box that scrolls the list, for the same
    reason: `sticky` is a positioned value exactly as `relative` was, so
    the chevron's anchor above is unaffected. `top: 0` pins the row to
    the top of `#jobrows .tablewrap` (list.css:50-52), the one box that

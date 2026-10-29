@@ -1,5 +1,5 @@
 // A create that ends without a spec: one record and one push, from the
-// same moment, with the same words (spec 506). Real queue store, real
+// same moment, with the same words. Real queue store, real
 // push observer, a fake `fetch`.
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
@@ -39,8 +39,8 @@ async function board(lang = "en") {
   return { push, store, sent, keys, create };
 }
 
-describe("a create that ends without a spec (AC-6)", () => {
-  test("a failed step: one record, one push, and the url is the Try again link (AC-3)", async () => {
+describe("a create that ends without a spec", () => {
+  test("a failed step: one record, one push, and the url is the Try again link", async () => {
     const b = await board();
     const job = b.create();
     b.store.transition(job.id, "step-failed", {
@@ -100,7 +100,7 @@ describe("a create that ends without a spec (AC-6)", () => {
     expect(b.sent.calls).toHaveLength(1);
   });
 
-  test("a stopped create whose merge then gives it a real folder sends nothing (AC-7)", async () => {
+  test("a stopped create whose merge then gives it a real folder sends nothing", async () => {
     const b = await board();
     const job = b.create();
     b.store.update(job.id, { landing: true });
@@ -111,7 +111,7 @@ describe("a create that ends without a spec (AC-6)", () => {
     expect(b.sent.calls).toHaveLength(0);
   });
 
-  test("a create that merges, or is cancelled, sends nothing (AC-7)", async () => {
+  test("a create that merges, or is cancelled, sends nothing", async () => {
     const b = await board();
     const merged = b.create("Merged");
     b.store.update(merged.id, { specFolder: "91-merged" });
@@ -147,7 +147,7 @@ describe("a create that ends without a spec (AC-6)", () => {
   });
 });
 
-describe("what was already there at boot (AC-1)", () => {
+describe("what was already there at boot", () => {
   test("a failure the store already holds is quiet once primed; a reconcile after it is not", async () => {
     const b = await board();
     const old = b.create("Old");

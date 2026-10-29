@@ -37,7 +37,7 @@ describe("openAsk", () => {
     return win;
   };
 
-  test("a click on a button[data-ask] shows the dialog it names as a modal (AC-2)", async () => {
+  test("a click on a button[data-ask] shows the dialog it names as a modal", async () => {
     const win = page();
     openAsk(click(win.document.getElementById("b")));
     const open = isOpen(win.document, "x");
@@ -45,7 +45,7 @@ describe("openAsk", () => {
     expect(open).toBe(true);
   });
 
-  test("a click inside the button reaches it too (AC-2)", async () => {
+  test("a click inside the button reaches it too", async () => {
     const win = page();
     const doc = win.document;
     doc.getElementById("b")!.innerHTML = "<span>Reopen</span>";
@@ -55,7 +55,7 @@ describe("openAsk", () => {
     expect(open).toBe(true);
   });
 
-  test("a click outside such a button, or on one naming a missing dialog, opens nothing (AC-2)", async () => {
+  test("a click outside such a button, or on one naming a missing dialog, opens nothing", async () => {
     const win = page();
     const doc = win.document;
     openAsk(click(doc.getElementById("plain")));
@@ -66,7 +66,7 @@ describe("openAsk", () => {
     expect(open).toBe(false);
   });
 
-  test("Delete on a schedule row opens its own dialog, found by an id holding a slash (AC-2)", async () => {
+  test("Delete on a schedule row opens its own dialog, found by an id holding a slash", async () => {
     const win = new Window();
     const entry = (name: string) => ({ name, cron: "0 3 * * *", prompt: "x", enabled: true });
     win.document.write(
@@ -81,7 +81,7 @@ describe("openAsk", () => {
     expect(opened).toEqual([false, true]);
   });
 
-  test("a row redrawn after the listener was bound still opens its dialog (AC-2)", async () => {
+  test("a row redrawn after the listener was bound still opens its dialog", async () => {
     const win = new Window();
     const doc = win.document;
     doc.write(`<table><tbody id="jobrows">${runningRows("j1")}</tbody></table>`);

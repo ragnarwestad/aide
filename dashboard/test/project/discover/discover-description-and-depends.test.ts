@@ -11,7 +11,7 @@ import { useDiscoverRoot } from "./discover-fixtures.ts";
 
 const fx = useDiscoverRoot();
 
-// Criterion 1 (spec 02): what a job IS. The title alone says "83-multi-
+// What a job IS. The title alone says "83-multi-
 // project-jobs"; the description says what that spec is about, and
 // today a reader has to leave the dashboard to read it.
 describe("specDescription", () => {
@@ -73,7 +73,7 @@ describe("specDescription", () => {
   });
 });
 
-// Spec 110: the `Depends on:` line (spec 92) has had a reader on the
+// The `Depends on:` line has had a reader on the
 // shell side since the day it existed. The page reads it too now — the
 // row says what the spec builds on, in the same words the run's own
 // refusal uses.
@@ -112,7 +112,7 @@ describe("specDependsOn", () => {
     expect(specDependsOn(join(dir, "nowhere"))).toEqual([]);
   });
 
-  test("dependsOnIn reads a description's text the way specDependsOn reads its file (AC-1)", () => {
+  test("dependsOnIn reads a description's text the way specDependsOn reads its file", () => {
     for (const line of ["- **Depends on:** `105`, `92-a-spec-can-depend`", "- **Depends on:** `105`", "- **Depends on:**", ""]) {
       expect(dependsOnIn(TRACKING(line))).toEqual(specDependsOn(spec(`in-${line.length}`, TRACKING(line))));
     }
@@ -124,7 +124,7 @@ describe("specDependsOn", () => {
     expect(a.specs.find((s) => s.folder === "01-first-thing")!.dependsOn).toEqual([]);
   });
 
-  // Spec 166: the same line gets a WRITER, so a dependency can be named
+  // The same line gets a WRITER, so a dependency can be named
   // after the spec exists. Pure string surgery, in the module that
   // already owns the line's shape — the Edit page's Save is what calls
   // it, and the runtime gate reads the result unchanged.

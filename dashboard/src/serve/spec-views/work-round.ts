@@ -25,7 +25,7 @@ const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "runni
  *  the name spoke for.
  *
  *  An attempt is numbered only when there is more than one job — a
- *  single-attempt spec draws no marker at all (spec 242's own "nothing to
+ *  single-attempt spec draws no marker at all (the "nothing to
  *  show, show nothing" rule, at row level). `jobs` is newest-first, so the
  *  oldest is attempt 1 and the steps flatten in reverse. */
 export async function stepsOfRound(

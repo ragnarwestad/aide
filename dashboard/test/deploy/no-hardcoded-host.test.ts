@@ -1,4 +1,4 @@
-// A regression guard for spec 03's first requirement: the repository
+// A regression guard: the repository
 // must not name one operator's machine. The deploy tooling and docs are
 // where such a name creeps back in — a worked example pasted from a
 // working setup reads as helpful right until someone else runs it.
@@ -15,7 +15,7 @@ const GROUPS: Record<string, string[]> = {
   "the named deploy files": [
     "Makefile",
     "README.md",
-    // One level up since spec 85: the dashboard's manifest was folded
+    // One level up: the dashboard's manifest was folded
     // into aide's root one, and its `deployment.host` — the field this
     // guard was written for — went with it.
     "../.aide/project.yaml",

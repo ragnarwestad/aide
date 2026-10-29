@@ -20,7 +20,7 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// Spec 205: the dashboard works in checkouts of its own.
+// The dashboard works in checkouts of its own.
 //
 // A run was cut from the same checkout a person edits, and the two
 // collided — on 2026-08-23 three specs were archived with their code
@@ -34,13 +34,13 @@ afterEach(() => {
 //
 // Split out of checkout-and-render-safety.test.ts by theme: this file
 // carries the write-direction tests — the argv, the flag, and the two
-// end-to-end saves. The checkout-freshness (spec 216) and checkout-listing
-// (spec 218) tests are their own sibling files, sharing `git`,
+// end-to-end saves. The checkout-freshness and checkout-listing
+// tests are their own sibling files, sharing `git`,
 // `realProject` and `recording` via ./checkout-safety-fixtures.ts.
-describe("the dashboard works in checkouts of its own (spec 205)", () => {
+describe("the dashboard works in checkouts of its own", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 
-  // Criterion 6, and the whole point: `--project-dir` is what decides
+  // And the whole point: `--project-dir` is what decides
   // which checkout a run branches, switches and cuts its worktree from.
   test("the runner is pointed at the dashboard's own checkout, never the person's", () => {
     const job = {
@@ -65,7 +65,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     expect(parseArgs([]).dashboardCheckoutRoot).toBeUndefined();
   });
 
-  // Criterion 8: eagerly, so no project ever pays a full clone inside
+  // Eagerly, so no project ever pays a full clone inside
   // the request that first needs it.
   test("Add makes the dashboard's own checkout before anything asks for one", async () => {
     const { projectsRoot, site, owned } = realProject();
@@ -88,7 +88,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     }
   });
 
-  // Criteria 1, 2 and 4, in the shape of the incident itself: the
+  // In the shape of the incident itself: the
   // person is mid-edit on a branch of their own when the dashboard
   // writes.
   test("a Save writes in the dashboard's own checkout and leaves the person's alone", async () => {
@@ -140,10 +140,10 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
       expect(git(person, "status", "--porcelain=v1", "--branch")).toBe(before);
       // And nothing their directory was ever asked can CHANGE it.
       //
-      // Read, it still is: since spec 208 the cache schedule asks the
+      // Read, it still is: the cache schedule asks the
       // person's spec folders the same read-only questions the page
       // render used to ask inside a request. That is the same reading,
-      // on a clock; what spec 205 exists to prevent is a WRITE, and the
+      // on a clock; what this test exists to prevent is a WRITE, and the
       // list below is every verb that would be one.
       const asked = recorded.calls
         .filter((c) => c.dir === person || c.dir.startsWith(`${person}/`))

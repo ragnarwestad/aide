@@ -89,8 +89,8 @@ const marks = (id: string): string[] => {
     : [];
 };
 
-describe("the new process checks the commit it runs (AC-5)", () => {
-  test("the fetched commit itself: the wait and the check are marked done and the job ends done (AC-5)", () => {
+describe("the new process checks the commit it runs", () => {
+  test("the fetched commit itself: the wait and the check are marked done and the job ends done", () => {
     const id = restartedDeploy();
     const { board } = boot(FETCHED);
     expect(board.get(id)?.state).toBe("done");
@@ -98,7 +98,7 @@ describe("the new process checks the commit it runs (AC-5)", () => {
     expect(marks(id).map((m) => m.replace(/^--- Step (\d) of 5: .* — /, "$1 "))).toEqual(["4 done", "5 started", "5 done"]);
   });
 
-  test("a later commit that contains the fetched one is the same (AC-5)", () => {
+  test("a later commit that contains the fetched one is the same", () => {
     const id = restartedDeploy();
     const { board, git: g } = boot(LATER, true);
     expect(board.get(id)?.state).toBe("done");
@@ -106,8 +106,8 @@ describe("the new process checks the commit it runs (AC-5)", () => {
   });
 });
 
-describe("the new process fails a deploy that did not take (AC-6)", () => {
-  test("a commit that does not contain the fetched one ends the job failed with the served commit, and sets the header fault (AC-6)", () => {
+describe("the new process fails a deploy that did not take", () => {
+  test("a commit that does not contain the fetched one ends the job failed with the served commit, and sets the header fault", () => {
     const id = restartedDeploy();
     const { board, faults } = boot(LATER, false);
     expect(board.get(id)?.state).toBe("failed");
@@ -119,7 +119,7 @@ describe("the new process fails a deploy that did not take (AC-6)", () => {
     expect(marks(id).at(-1)).toContain("stopped");
   });
 
-  test("a restart more than three minutes ago is a service that did not answer in time (AC-6)", () => {
+  test("a restart more than three minutes ago is a service that did not answer in time", () => {
     const id = restartedDeploy(4 * MINUTE);
     const { board } = boot(FETCHED);
     expect(board.get(id)?.state).toBe("failed");
@@ -130,7 +130,7 @@ describe("the new process fails a deploy that did not take (AC-6)", () => {
 });
 
 describe("what the new process leaves alone", () => {
-  test("a deploy cut before its own restart is interrupted by the boot's reconcile, not finished (AC-5)", () => {
+  test("a deploy cut before its own restart is interrupted by the boot's reconcile, not finished", () => {
     const id = restartedDeploy(10_000, { restartedAt: undefined });
     const { board } = boot(FETCHED);
     expect(board.get(id)?.state).toBe("interrupted");

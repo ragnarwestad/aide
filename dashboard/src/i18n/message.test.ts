@@ -20,7 +20,7 @@ describe("renderMessage", () => {
 });
 
 describe("renderSentence", () => {
-  test("a plain string (REQ-4: a job stored before this spec) renders as-is in any language", () => {
+  test("a plain string (a job stored earlier) renders as-is in any language", () => {
     expect(renderSentence("en", "git could not be run: ENOENT")).toBe("git could not be run: ENOENT");
     expect(renderSentence("nb", "git could not be run: ENOENT")).toBe("git could not be run: ENOENT");
   });
@@ -79,8 +79,8 @@ describe("renderSentence", () => {
   });
 });
 
-// Spec 506: typed text (a create's title) fills a blank as written.
-describe("a value with replacement patterns fills its blank as typed (AC-2)", () => {
+// Typed text (a create's title) fills a blank as written.
+describe("a value with replacement patterns fills its blank as typed", () => {
   test("renderMessage keeps $& and $$ literal", () => {
     expect(renderMessage("en", { key: "push.createFailed", values: { reason: "cost $& then $$5" } })).toContain(
       "cost $& then $$5",

@@ -80,7 +80,7 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("proposeSpecs", () => {
-  test("two valid proposals become two Create jobs for the job's project and nothing after Create (AC-2, AC-1)", () => {
+  test("two valid proposals become two Create jobs for the job's project and nothing after Create", () => {
     leave([
       { title: "First", description: "Do the first" },
       { title: "Second", description: "Do the second" },
@@ -96,7 +96,7 @@ describe("proposeSpecs", () => {
     expect(record()?.proposals.map((p) => p.result)).toEqual(["created", "created"]);
   });
 
-  test("a description begins with the proposal's own text and ends with the source block (AC-5)", () => {
+  test("a description begins with the proposal's own text and ends with the source block", () => {
     leave([{ title: "First", description: "Do the first\n\n- with a list" }]);
     proposeSpecs(deps(), runJob());
     const d = queued()[0]!.createDescription!;
@@ -106,21 +106,21 @@ describe("proposeSpecs", () => {
     expect(d).toContain(`/schedule/aide/nyhetssjekk?run=${RUN}#report`);
   });
 
-  test("no file means nothing is queued and no record is written (AC-1)", () => {
+  test("no file means nothing is queued and no record is written", () => {
     mkdirSync(outDir(), { recursive: true });
     proposeSpecs(deps(), runJob());
     expect(queued()).toEqual([]);
     expect(existsSync(join(outDir(), PROPOSALS_RESULT_FILE))).toBe(false);
   });
 
-  test("a second call for the same run queues nothing more (AC-2)", () => {
+  test("a second call for the same run queues nothing more", () => {
     leave([{ title: "First", description: "d" }]);
     proposeSpecs(deps(), runJob());
     proposeSpecs(deps(), runJob());
     expect(queued()).toHaveLength(1);
   });
 
-  test("titles of active, archived and closed specs are skipped as existing, with folder and kind (AC-3)", () => {
+  test("titles of active, archived and closed specs are skipped as existing, with folder and kind", () => {
     spec(specsRoot, "01-alpha", "Alpha");
     spec(join(specsRoot, "archive"), "02-beta", "Beta");
     spec(join(specsRoot, "archive"), "03-gamma", "Gamma", "- **Closed:** 2026-09-01 — declined\n");
@@ -138,7 +138,7 @@ describe("proposeSpecs", () => {
     expect(why[2]).toEqual({ code: "exists", folder: "03-gamma", kind: "closed" });
   });
 
-  test("a title listed twice is created once and the second names the first's job (AC-3)", () => {
+  test("a title listed twice is created once and the second names the first's job", () => {
     leave([
       { title: "Same", description: "one" },
       { title: "same ", description: "two" },
@@ -150,7 +150,7 @@ describe("proposeSpecs", () => {
     expect(b).toMatchObject({ result: "skipped", why: { code: "queued", jobId: (a as { jobId: string }).jobId } });
   });
 
-  test("a Create job queued by an earlier run blocks the same title (AC-3)", () => {
+  test("a Create job queued by an earlier run blocks the same title", () => {
     store.enqueueCreate({ project: "aide", title: "Wanted", description: "d" });
     leave([{ title: "wanted", description: "d" }]);
     proposeSpecs(deps(), runJob());
@@ -158,14 +158,14 @@ describe("proposeSpecs", () => {
     expect(record()!.proposals[0]).toMatchObject({ result: "skipped", why: { code: "queued" } });
   });
 
-  test("an invalid entry is skipped with what is wrong and the rest are still created (AC-3)", () => {
+  test("an invalid entry is skipped with what is wrong and the rest are still created", () => {
     leave([{ description: "no title" }, { title: "Good", description: "d" }]);
     proposeSpecs(deps(), runJob());
     expect(queued().map((j) => j.createTitle)).toEqual(["Good"]);
     expect(record()!.proposals[0]).toMatchObject({ result: "skipped", why: { code: "invalid", what: "title-missing" } });
   });
 
-  test("a description too long to leave room for the source block is skipped, one that fits is created (AC-3)", () => {
+  test("a description too long to leave room for the source block is skipped, one that fits is created", () => {
     leave([
       { title: "Too long", description: "x".repeat(5000) },
       { title: "Fits", description: "x".repeat(4500) },
@@ -175,7 +175,7 @@ describe("proposeSpecs", () => {
     expect(record()!.proposals[0]).toMatchObject({ result: "skipped", why: { code: "invalid", what: "description-long" } });
   });
 
-  test("a refusal from the queue is logged, recorded without its words, and the entries after it are created (AC-3)", () => {
+  test("a refusal from the queue is logged, recorded without its words, and the entries after it are created", () => {
     leave([
       { title: "Has\u0007control", description: "d" },
       { title: "After", description: "d" },
@@ -187,7 +187,7 @@ describe("proposeSpecs", () => {
     expect(logged[0]).toContain("aide/nyhetssjekk");
   });
 
-  test("a file that is not a list writes a record saying so and queues nothing (AC-3)", () => {
+  test("a file that is not a list writes a record saying so and queues nothing", () => {
     leave("[{ nope");
     proposeSpecs(deps(), runJob());
     expect(queued()).toEqual([]);
@@ -197,7 +197,7 @@ describe("proposeSpecs", () => {
     expect(r.proposals).toEqual([]);
   });
 
-  test("no specs root, or one that is not a directory, queues nothing and says so (AC-3)", () => {
+  test("no specs root, or one that is not a directory, queues nothing and says so", () => {
     leave([{ title: "First", description: "d" }]);
     proposeSpecs(deps({ specsRoot: () => undefined }), runJob());
     expect(record()!.problem).toBe("no-specs-root");
@@ -207,7 +207,7 @@ describe("proposeSpecs", () => {
     expect(queued()).toEqual([]);
   });
 
-  test("a store that throws while queuing leaves a record of what was decided and does not throw (AC-3)", () => {
+  test("a store that throws while queuing leaves a record of what was decided and does not throw", () => {
     leave([
       { title: "First", description: "d" },
       { title: "Second", description: "d" },
@@ -228,7 +228,7 @@ describe("proposeSpecs", () => {
     expect(r.proposals[0]).toMatchObject({ title: "First", result: "created" });
   });
 
-  test("the only queue write is enqueueCreate, and no other step is queued (AC-7)", () => {
+  test("the only queue write is enqueueCreate, and no other step is queued", () => {
     leave([{ title: "First", description: "d" }]);
     const writes: string[] = [];
     const spy = {

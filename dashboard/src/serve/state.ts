@@ -25,7 +25,7 @@ export interface Scan {
   archived: string[];
   dirs: Map<string, string>;
   refs: Map<string, SpecRef>;
-  /** Where each project's specs are checked out (spec 193). Off the
+  /** Where each project's specs are checked out. Off the
    *  same walk, because the landing's verification and the
    *  archived-with-an-open-branch set both ask origin about the specs
    *  repo as well as the code one — and re-walking the projects root
@@ -39,7 +39,7 @@ export interface ServerState {
   // that a new spec shows up, cheap enough for a page that refreshes.
   scan: Scan | null;
   /** `project/folder` of every ARCHIVED spec whose own `aide/<folder>`
-   *  is STILL on origin in one of its two roots (spec 193).
+   *  is STILL on origin in one of its two roots.
    *
    *  Being archived used to answer "did this spec finish" with
    *  certainty. It does not: three specs reached the archive with
@@ -48,14 +48,14 @@ export interface ServerState {
    *  rows survive archiving on the specs list, and which archive rows
    *  carry the not-landed mark. One source, two readers.
    *
-   *  Refreshed by `refreshSpecCaches` on a schedule of its own (spec
-   *  208) — never inside a request, and never on the enqueue path. The
+   *  Refreshed by `refreshSpecCaches` on a schedule of its own
+   *  — never inside a request, and never on the enqueue path. The
    *  filter is the BRANCH, deliberately, and not the job's
    *  `errorReason`: 146 carried no reason at all, and a stale reason on
    *  an old job would resurrect a row for a spec that is genuinely
    *  finished. */
   unlanded: string[];
-  /** The SUBSET of `unlanded` that is open on purpose (spec 220): a
+  /** The SUBSET of `unlanded` that is open on purpose: a
    *  project whose manifest says `codeLanding: pr` archives with its
    *  code branch still on origin, for as long as the review takes.
    *
@@ -88,7 +88,7 @@ export interface ServerState {
    *  earlier, only when a schedule timer actually fires. */
   runner: Runner | null;
   /** This process's own commit and the repo it runs from, read once at
-   *  boot and never refreshed (spec 269) — exactly the signal a stale
+   *  boot and never refreshed — exactly the signal a stale
    *  restart needs. Both start `null` and STAY `null`, not "loading",
    *  until the read resolves: `/api/version` and the project-page
    *  comparison both treat `null` as "cannot claim anything", the same
@@ -98,7 +98,7 @@ export interface ServerState {
   servingSha: string | null;
   servingRepoRoot: string | null;
   /** Non-null exactly while a Deploy press's restart is being held back
-   *  by landings in flight (spec 385) — the Deploy tab's own "waiting" state,
+   *  by landings in flight — the Deploy tab's own "waiting" state,
    *  read fresh on every GET the way `servingSha` already is. */
   pendingRestart: { jobs: string[] } | null;
   /** Set by `stop()`: a git answer that lands after it belongs to nobody,

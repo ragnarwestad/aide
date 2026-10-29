@@ -24,12 +24,12 @@ export type Spawner = (
 export interface StepOutcome {
   ok: boolean;
   /** Absent for a step whose tool publishes no dollar figure at all —
-   *  a Codex step, always (spec 125). Absent is not zero: zero would be
+   *  a Codex step, always. Absent is not zero: zero would be
    *  summed into the job's spend as if the step had been free. */
   costUsd?: number;
   costMeasured: boolean;
   /** Which CLI `aide-run-spec` actually started. `none` is a `create`
-   *  step that skipped the AI session entirely (spec 433). */
+   *  step that skipped the AI session entirely. */
   tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
   terminalReason: string;
   subtype?: string;
@@ -43,30 +43,28 @@ export interface StepOutcome {
    *  only the singular neighbour is what left a two-repo job showing
    *  one link and one merge state for both. */
   branchUrls?: BranchRef[];
-  /** The pull request `--push pr` opened for this step's branch (spec
-   *  220). `aide-run-spec` has emitted it since spec 81 and nothing on
-   *  this side read it: the value was dropped the moment the result was
-   *  parsed, so there was no way to see from the dashboard that a
-   *  request had been opened at all. It matters now that a project can
+  /** The pull request `--push pr` opened for this step's branch.
+   *  `aide-run-spec` emits it, and it is kept so the dashboard can show
+   *  that a request was opened at all. It matters because a project can
    *  ask for its code to be LEFT for one. */
   prUrl?: string;
   /** Why `gh` opened none. Its own field rather than `error`, because
    *  the step still SUCCEEDED — `gh` on an unattended machine needs an
    *  interactive re-auth only a person can do, and a run that failed
-   *  over it would throw away the work it had already done. Spec 220
-   *  gives that failure teeth: a project whose code is deliberately left
+   *  over it would throw away the work it had already done. This
+   *  failure has teeth: a project whose code is deliberately left
    *  unmerged has nothing describing the branch when this is set. */
   prError?: string;
-  /** Why the branch itself did not reach origin (spec 328). `aide-run-spec`
+  /** Why the branch itself did not reach origin. `aide-run-spec`
    *  never fails a run over this — the step's own work is already
    *  committed — so a step can report `completed` with its branch
    *  stranded on the machine that ran it. `prError`'s sibling: same
    *  best-effort shape, its own field rather than folded into `error`
    *  for the same reason. */
   pushError?: string;
-  /** The branch this step's work is on. `aide-run-spec` has emitted it
-   *  in every result since spec 81 and nothing read it until spec 93 —
-   *  a create job's branch is named after a provisional key, so it
+  /** The branch this step's work is on. `aide-run-spec` emits it
+   *  in every result: a create job's
+   *  branch is named after a provisional key, so it
    *  cannot be re-derived from the spec folder the way every other
    *  job's can. */
   branch?: string;
@@ -74,7 +72,7 @@ export interface StepOutcome {
    *  when exactly one appeared; absent means the run would have had to
    *  guess, and it did not. */
   specFolder?: string;
-  /** What the step metered (spec 118). Absent whenever the run could not
+  /** What the step metered. Absent whenever the run could not
    *  measure it — there is no over-charge rule for tokens the way there
    *  is for cost, so absent is the only other answer. */
   tokens?: TokenUsage;
@@ -94,18 +92,17 @@ export interface StepOutcome {
    *  beside it restates: the job's row reads this, and `error` is its
    *  hover detail. Only a `deploy` step writes it. */
   sentence?: Sentence;
-  /** WHY it was refused, when the answer is one the page acts on (spec
-   *  153). `"conflict"` — the runner could not bring the spec's branch
+  /** WHY it was refused, when the answer is one the page acts on.
+   *  `"conflict"` — the runner could not bring the spec's branch
    *  up to date with the base before the step started — is the only one
    *  today, and it is what makes the row offer Resolve. Same field, same
    *  value, same button as a LANDING's conflict (`Job["errorReason"]`);
    *  the two discovery points differ in nothing else. Absent for every
    *  other refusal: there is no step to send at those. */
   errorReason?: "conflict";
-  /** Every repo root this step's own commit(s) span (spec 452).
-   *  `aide-run-spec` has emitted this for every step since spec 81 —
-   *  this is the field's first reader on this side, the same shape
-   *  `branchUrls` already takes through this boundary. */
+  /** Every repo root this step's own commit(s) span.
+   *  `aide-run-spec` emits this for every step; the field has the same
+   *  shape `branchUrls` already takes through this boundary. */
   repos?: StepRepoRange[];
 }
 
@@ -114,7 +111,7 @@ export interface RunnerOptions {
   /** Where a project's checkout lives on this machine. */
   projectDir: (project: string) => string;
   /** Where a project's SPECS checkout lives, when it is a repository of
-   *  its own (spec 402) — `projectDir`'s sibling, used only to widen the
+   *  its own — `projectDir`'s sibling, used only to widen the
    *  set of repos a landing occupies beyond its code root. Undefined, or
    *  equal to `projectDir(project)`, both mean "one repo": a project
    *  whose specs live inside its own code repo. */
@@ -140,7 +137,7 @@ export interface RunnerOptions {
   /** Called once per FINISHED step, ok or not, with what the run
    *  reported — the injection point `notify` already established, for a
    *  caller that has to act on one step's outcome rather than merely
-   *  announce it (spec 93 lands a created spec through it).
+   *  announce it (a created spec is landed through it).
    *
    *  Returning a PROMISE means "I have started work that outlives this
    *  call, against state the queue shares": the job is marked `landing`
@@ -163,7 +160,7 @@ export interface RunnerOptions {
     outcome: Partial<StepOutcome>,
   ) => void | Promise<unknown>;
   /** How many steps may be in flight at once. 1 reproduces the
-   *  behaviour every caller had before spec 91, which is what makes a
+   *  behaviour of one step at a time, which is what makes a
    *  rollback a config edit rather than a release. */
   maxConcurrent?: number;
 }

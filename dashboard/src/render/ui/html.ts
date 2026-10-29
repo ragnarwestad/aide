@@ -51,7 +51,7 @@ export function relTime(iso: string, now: number): string {
 }
 
 /** The same words without the markup, for a caller whose text is
- *  escaped on its way out (spec 203: the drift note goes through
+ *  escaped on its way out (the drift note goes through
  *  `rowMessage`, which would show a literal <span>). One ladder, two
  *  wrappers — two copies of these thresholds would one day disagree
  *  about when "min" becomes "h". */

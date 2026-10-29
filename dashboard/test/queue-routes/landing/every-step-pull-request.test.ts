@@ -14,7 +14,7 @@ afterEach(() => {
   cleanupOwnDirs();
 });
 
-// --- spec 220: merge the code, or open a pull request ---------------------
+// --- Merge the code, or open a pull request ---------------------
 //
 // Split out of stopped-and-every-step.test.ts by theme.
 //
@@ -25,7 +25,7 @@ afterEach(() => {
 // request `aide-run-spec` opened. The specs root is never gated: an
 // archive commit moving a folder is bookkeeping, not a change anyone
 // reviews.
-describe("a project can leave its code for a pull request (spec 220)", () => {
+describe("a project can leave its code for a pull request", () => {
   const serverWithHarness = (
     dir: string,
     paths: { root: string },
@@ -69,7 +69,7 @@ describe("a project can leave its code for a pull request (spec 220)", () => {
       (j) => j.state === "done",
     );
 
-  // Acceptance criterion 3, and the whole point of the spec.
+  // And the whole point of the spec.
   test("archive merges the plan and leaves the code on its branch", async () => {
     const dir = own("aide-220-pr-mode-");
     const paths = repos(dir);
@@ -94,7 +94,7 @@ describe("a project can leave its code for a pull request (spec 220)", () => {
     expect(existsSync(marker)).toBe(false);
   }, 20000);
 
-  // Acceptance criterion 3's sharpest half, in isolation. The
+  // The sharpest half, in isolation. The
   // archive-only origin re-check asks whether ANY of the project's
   // roots still holds the branch, and in `pr` mode the code root
   // always does — by design. Left unhandled this reports every working
@@ -120,7 +120,7 @@ describe("a project can leave its code for a pull request (spec 220)", () => {
     expect(String(landed.error ?? "")).not.toContain("has not landed");
   }, 20000);
 
-  // Acceptance criterion 1. The regression guard, as its own case: the
+  // The regression guard, as its own case: the
   // behaviour every project on the host has today must be reachable
   // both by saying nothing and by saying `merge` out loud.
   test.each([null, "merge"])("a project that says %p merges its code exactly as before", async (value) => {
@@ -137,12 +137,11 @@ describe("a project can leave its code for a pull request (spec 220)", () => {
     expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
     expect(landed.state).toBe("done");
     expect(landed.error).toBeFalsy();
-    // Landed, so the row stops advertising a branch — the behaviour
-    // spec 149 gave it.
+    // Landed, so the row stops advertising a branch.
     expect(landed.branchUrls).toEqual([]);
   }, 20000);
 
-  // Acceptance criterion 4. The row has to SAY what happened, or a
+  // The row has to SAY what happened, or a
   // reader cannot tell a deliberate open branch from a stuck one. The
   // pull request comes off the step that opened it — `implement`, the
   // only step that touches the project root at all.
@@ -162,9 +161,9 @@ describe("a project can leave its code for a pull request (spec 220)", () => {
     expect((landed.branchUrls as { root: string }[]).map((b) => b.root)).toContain(paths.project);
   }, 20000);
 
-  // Acceptance criterion 7. `gh` on an unattended machine needs an
-  // interactive re-auth only a person can do, and this spec gives that
-  // failure teeth: the landing now trusts `pr` to mean a request
+  // `gh` on an unattended machine needs an
+  // interactive re-auth only a person can do, and that
+  // failure has teeth: the landing now trusts `pr` to mean a request
   // exists. A branch left open with nothing describing it has to say
   // so.
   //
@@ -189,7 +188,7 @@ describe("a project can leave its code for a pull request (spec 220)", () => {
   }, 20000);
 
 
-  // Spec 328: `pushError` is `prError`'s sibling — `aide-run-spec` has
+  // `pushError` is `prError`'s sibling — `aide-run-spec` has
   // reported it in its result JSON since before this spec, but nothing
   // on the dashboard side ever read it, so a step whose push failed
   // reported `completed` with nothing on the row to explain why.

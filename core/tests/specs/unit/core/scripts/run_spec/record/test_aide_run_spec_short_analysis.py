@@ -81,7 +81,7 @@ def _failed_on_a_limit(out, said):
     assert "Press Analyze again" in out["error"], out["error"]
 
 
-def test_a_short_analysis_within_every_limit_completes_and_says_so_AC_1(runner, workspace, fake_claude):
+def test_a_short_analysis_within_every_limit_completes_and_says_so(runner, workspace, fake_claude):
     out, err = _analyze(runner, workspace, fake_claude)
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
@@ -91,7 +91,7 @@ def test_a_short_analysis_within_every_limit_completes_and_says_so_AC_1(runner, 
     ], err
 
 
-def test_a_short_analysis_with_more_than_three_criteria_completes_AC_1(runner, workspace, fake_claude):
+def test_a_short_analysis_with_more_than_three_criteria_completes(runner, workspace, fake_claude):
     out, err = _analyze(runner, workspace, fake_claude, criteria=8)
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
@@ -102,13 +102,13 @@ def test_a_short_analysis_with_more_than_three_criteria_completes_AC_1(runner, w
 
 
 @pytest.mark.parametrize("level", ["warn", "stop"])
-def test_a_short_analysis_is_not_failed_for_the_criteria_checks_level_AC_1(runner, workspace, fake_claude, level):
+def test_a_short_analysis_is_not_failed_for_the_criteria_checks_level(runner, workspace, fake_claude, level):
     out, _ = _analyze(runner, workspace, fake_claude, checks=level)
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
 
 
-def test_a_full_analysis_over_every_limit_completes_AC_2_AC_8(runner, workspace, fake_claude):
+def test_a_full_analysis_over_every_limit_completes(runner, workspace, fake_claude):
     out, err = _analyze(
         runner, workspace, fake_claude, analysis_line="- **Analysis:** full", grade="HIGH", criteria=5,
         files=[f"f{n}.ts" for n in range(7)],
@@ -120,26 +120,26 @@ def test_a_full_analysis_over_every_limit_completes_AC_2_AC_8(runner, workspace,
     ], err
 
 
-def test_a_short_analysis_for_a_spec_that_asks_to_choose_the_approach_fails_AC_3(runner, workspace, fake_claude):
+def test_a_short_analysis_for_a_spec_that_asks_to_choose_the_approach_fails(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, choose="yes")
     _failed_on_a_limit(out, "it asks to choose the approach")
 
 
 @pytest.mark.parametrize("case", ANALYSIS_LINE, ids=[c["name"] for c in ANALYSIS_LINE])
-def test_the_analysis_line_is_read_as_the_shared_table_says_AC_4(runner, workspace, fake_claude, case):
+def test_the_analysis_line_is_read_as_the_shared_table_says(runner, workspace, fake_claude, case):
     out, err = _analyze(runner, workspace, fake_claude, analysis_line=case["line"])
     assert out["ok"] is True, out
     assert [l.split(" — ")[0] for l in _log(err)] == [f"short analysis: {case['analysis']}"], err
 
 
-def test_every_completed_analyze_logs_the_analysis_the_grade_and_both_counts_AC_4(runner, workspace, fake_claude):
+def test_every_completed_analyze_logs_the_analysis_the_grade_and_both_counts(runner, workspace, fake_claude):
     _, err = _analyze(runner, workspace, fake_claude, analysis_line=None, grade="MEDIUM", criteria=4, files=["a.ts"])
     assert _log(err) == [
         "short analysis: full — grade MEDIUM, 4 acceptance criteria, 1 files to change, 1 of them source files — the step completes"
     ], err
 
 
-def test_a_short_analysis_over_the_files_limit_fails_the_step_AC_5(runner, workspace, fake_claude):
+def test_a_short_analysis_over_the_files_limit_fails_the_step(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, criteria=2, files=[f"f{n}.ts" for n in range(5)])
     _failed_on_a_limit(out, "it has 5 source files to change, over the limit of 3 (f0.ts, f1.ts, f2.ts, f3.ts, f4.ts)")
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
@@ -151,7 +151,7 @@ def test_a_short_analysis_over_the_files_limit_fails_the_step_AC_5(runner, works
 
 
 @pytest.mark.parametrize("criteria, recorded", [(4, 3), (2, 9)])
-def test_the_larger_of_the_two_criteria_counts_is_logged_and_limits_nothing_AC_4(
+def test_the_larger_of_the_two_criteria_counts_is_logged_and_limits_nothing(
     runner, workspace, fake_claude, criteria, recorded
 ):
     out, err = _analyze(runner, workspace, fake_claude, criteria=criteria, recorded_criteria=recorded)
@@ -165,18 +165,18 @@ def test_the_larger_of_the_two_criteria_counts_is_logged_and_limits_nothing_AC_4
     [({"grade": None}, "no grade was recorded"), ({"files": []}, "no files to change were recorded")],
     ids=["no-grade", "no-files"],
 )
-def test_a_short_analysis_that_cannot_show_it_is_within_the_limits_fails_AC_5(runner, workspace, fake_claude, fields, said):
+def test_a_short_analysis_that_cannot_show_it_is_within_the_limits_fails(runner, workspace, fake_claude, fields, said):
     out, _ = _analyze(runner, workspace, fake_claude, **fields)
     _failed_on_a_limit(out, said)
 
 
 @pytest.mark.parametrize("grade", ["MEDIUM", "HIGH"])
-def test_a_short_analysis_graded_above_low_fails_AC_8(runner, workspace, fake_claude, grade):
+def test_a_short_analysis_graded_above_low_fails(runner, workspace, fake_claude, grade):
     out, _ = _analyze(runner, workspace, fake_claude, grade=grade)
     _failed_on_a_limit(out, f"it is graded {grade}, not LOW")
 
 
-def test_every_limit_crossed_is_named_and_the_criteria_are_not_one_AC_3_AC_4(runner, workspace, fake_claude):
+def test_every_limit_crossed_is_named_and_the_criteria_are_not_one(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, grade="HIGH", criteria=8, files=[f"f{n}.ts" for n in range(5)])
     for said in ("it is graded HIGH, not LOW",
                  "it has 5 source files to change, over the limit of 3 (f0.ts, f1.ts, f2.ts, f3.ts, f4.ts)"):
@@ -184,12 +184,12 @@ def test_every_limit_crossed_is_named_and_the_criteria_are_not_one_AC_3_AC_4(run
     assert "acceptance criteria" not in out["error"], out["error"]
 
 
-def test_a_short_analysis_for_a_spec_sent_back_to_a_full_one_fails_AC_3(runner, workspace, fake_claude):
+def test_a_short_analysis_for_a_spec_sent_back_to_a_full_one_fails(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, sent_back="it changes the result format")
     _failed_on_a_limit(out, "it was sent back to a full analysis")
 
 
-def test_a_full_analysis_for_a_spec_sent_back_completes_AC_3(runner, workspace, fake_claude):
+def test_a_full_analysis_for_a_spec_sent_back_completes(runner, workspace, fake_claude):
     out, _ = _analyze(
         runner, workspace, fake_claude, analysis_line="- **Analysis:** full", grade="MEDIUM",
         sent_back="it changes the result format",
@@ -198,7 +198,7 @@ def test_a_full_analysis_for_a_spec_sent_back_completes_AC_3(runner, workspace, 
     assert out["terminalReason"] == "completed", out
 
 
-def test_tests_and_documentation_are_not_counted_against_the_files_limit_AC_1(runner, workspace, fake_claude):
+def test_tests_and_documentation_are_not_counted_against_the_files_limit(runner, workspace, fake_claude):
     files = ["src/a.ts", "src/b.ts", "src/c.ts", "test/a.test.ts", "docs/page.md"]
     out, err = _analyze(runner, workspace, fake_claude, files=files)
     assert out["ok"] is True, out
@@ -209,7 +209,7 @@ def test_tests_and_documentation_are_not_counted_against_the_files_limit_AC_1(ru
     ], err
 
 
-def test_a_short_analysis_listing_only_tests_and_documentation_completes_AC_1(runner, workspace, fake_claude):
+def test_a_short_analysis_listing_only_tests_and_documentation_completes(runner, workspace, fake_claude):
     out, err = _analyze(runner, workspace, fake_claude, files=["test/a.test.ts", "docs/page.md"])
     assert out["ok"] is True, out
     assert _log(err) == [
@@ -223,19 +223,19 @@ def test_a_short_analysis_listing_only_tests_and_documentation_completes_AC_1(ru
     ["test/x.ts", "tests/x.py", "__tests__/x.js", "e2e/x.ts", "src/x.test.ts", "src/x.spec.ts", "src/test_x.py",
      "src/x_test.go", "README.md"],
 )
-def test_a_path_that_is_a_test_or_a_markdown_file_is_not_counted_AC_2(runner, workspace, fake_claude, path):
+def test_a_path_that_is_a_test_or_a_markdown_file_is_not_counted(runner, workspace, fake_claude, path):
     out, _ = _analyze(runner, workspace, fake_claude, files=[*(f"src/{f}" for f in FILES), path])
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
 
 
 @pytest.mark.parametrize("path", ["src/latest.ts", "src/testing/helper.ts", "src/attest_x.py", "src/tests.ts"])
-def test_a_path_that_only_looks_like_a_test_is_counted_AC_2(runner, workspace, fake_claude, path):
+def test_a_path_that_only_looks_like_a_test_is_counted(runner, workspace, fake_claude, path):
     out, _ = _analyze(runner, workspace, fake_claude, files=[*(f"src/{f}" for f in FILES), path])
     _failed_on_a_limit(out, "it has 4 source files to change")
 
 
-def test_the_crossing_sentence_names_the_source_files_it_counted_AC_4(runner, workspace, fake_claude):
+def test_the_crossing_sentence_names_the_source_files_it_counted(runner, workspace, fake_claude):
     sources = ["src/a.ts", "src/b.ts", "src/c.ts", "src/d.ts"]
     out, _ = _analyze(runner, workspace, fake_claude, files=[*sources, "test/a.test.ts", "README.md"])
     _failed_on_a_limit(out, "it has 4 source files to change, over the limit of 3 (src/a.ts, src/b.ts, src/c.ts, src/d.ts)")

@@ -1,4 +1,4 @@
-// Spec 495: a scheduled run's report, turned into the document its
+// A scheduled run's report, turned into the document its
 // sandboxed frame shows. The report's own styling, scripts and event
 // attributes are removed and the board's tokens and element rules put in
 // their place, so it reads in the board's look whatever it carries.

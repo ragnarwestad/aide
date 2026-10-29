@@ -2,7 +2,7 @@
 // landing runs starts boards and decoy servers of its own, and a test
 // that timed out left them alive: they held the output pipes open and
 // their ports taken, and the next landing's suite timed out on them
-// (498, 2026-09-19).
+//.
 
 import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

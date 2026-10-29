@@ -34,24 +34,24 @@ const stopped = (sharedFiles?: unknown) => {
 };
 
 describe("an analyze stopped on files another open spec changes", () => {
-  test("is stopped, not failed, with the shared-files reason (AC-2)", () => {
+  test("is stopped, not failed, with the shared-files reason", () => {
     const after = stopped(SHARED);
     expect(after?.state).toBe("stopped");
     expect(after?.stopReason).toBe("shared-files");
   });
 
-  test("its sentence names each spec and each file it shares (AC-3)", () => {
+  test("its sentence names each spec and each file it shares", () => {
     const after = stopped(SHARED);
     const en = renderSentence("en", after?.error as Sentence) ?? "";
     for (const text of ["603-b", "x.ts", "y.ts", "604-c", "z.ts"]) expect(en).toContain(text);
   });
 
-  test("the step result keeps the specs and their files (AC-3)", () => {
+  test("the step result keeps the specs and their files", () => {
     const after = stopped(SHARED);
     expect(after?.results.at(-1)?.sharedFiles).toEqual(SHARED);
   });
 
-  test("keeps the runner's own sentence when the result lists no specs (AC-3)", () => {
+  test("keeps the runner's own sentence when the result lists no specs", () => {
     const after = stopped();
     expect(after?.state).toBe("stopped");
     expect(after?.error).toBe(SCRIPT_SENTENCE);

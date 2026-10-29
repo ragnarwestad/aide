@@ -93,14 +93,14 @@ export interface RoutesContext {
   machineryProjectDir: (project: string) => string;
   ownedSpecsRoot: (project: string) => string | undefined;
   /** `fresh`: no answer older than this call — after a save that the
-   *  clone has to carry (spec 512). */
+   *  clone has to carry. */
   ensureCheckout: (project: string, opts?: { fresh?: boolean; clone?: boolean }) => Promise<DashboardCheckout | undefined>;
   gitRun: GitRunner;
   branchStatus: BranchStatusChecker;
   mergeLock: ReturnType<typeof createRootLock>;
   runner: Runner | null;
   tickRunner: () => Promise<void>;
-  /** The port this server actually listens on (spec 363), read lazily
+  /** The port this server actually listens on, read lazily
    *  the same way `runner-setup.ts`'s `readServerPort` is: `Bun.serve()`
    *  has not returned yet when this context is first assembled, so a
    *  captured value would be `undefined` for the request that fires
@@ -125,11 +125,11 @@ export interface RoutesContext {
   specPageView: (project: string, specFolder: string, tab?: string) => Promise<SpecPageView | null>;
   jobDetailView: (job: Job) => Promise<JobDetailView>;
   /** This process's own boot-time commit and the repo it runs from
-   *  (spec 269) — see `state.ts`'s own doc comment for why both fields
+   *  see `state.ts`'s own doc comment for why both fields
    *  stay `null` rather than "loading" until the boot-time read
    *  resolves. */
   readServing: () => { sha: string | null; repoRoot: string | null };
-  /** The Deploy tab's own pending-restart state (spec 385) — see
+  /** The Deploy tab's own pending-restart state — see
    *  `state.ts`'s `pendingRestart` for what it means. */
   readPendingRestart: () => { jobs: string[] } | null;
   /** The step the board's last deploy job failed at, for the Deploy tab
@@ -138,25 +138,25 @@ export interface RoutesContext {
   /** The address a live spec's branch has been built on (see
    *  `state.ts`'s `branchPreviews`), for the specs list's preview link. */
   readBranchPreview: (project: string, specFolder: string) => string | undefined;
-  /** Where `aide-generate-pdf` writes the PDF it makes (spec 358),
-   *  outside every checkout (REQ-4). */
+  /** Where `aide-generate-pdf` writes the PDF it makes,
+   *  outside every checkout. */
   pdfCacheDir: string;
   /** Path to `aide-generate-pdf` — the same script `/aide-to-pdf` runs
-   *  (REQ-3). */
+   */
   pdfGeneratorBin: string;
-  /** Whether `md-to-pdf` is resolvable on this host (REQ-7), resolved
+  /** Whether `md-to-pdf` is resolvable on this host, resolved
    *  once at boot. */
   pdfToolAvailable: boolean;
   /** The board registry and everything `startTestServer`/`stopTestServer`
-   *  (spec 388) need to reach the round without a second copy of its
+   *  need to reach the round without a second copy of its
    *  own worktree/checkout logic. */
   testServers: TestServersContext;
-  /** What the self-stop route (spec 424) calls once its response has
+  /** What the self-stop route calls once its response has
    *  been sent — the real one is `() => process.exit(0)`, wired once in
    *  `serve.ts`. A test seam, like `testServers.spawn`: no test should
    *  actually end the process running it. */
   selfStopExit: () => void;
-  /** The push notifications (spec 501): the subscribe and unsubscribe
+  /** The push notifications: the subscribe and unsubscribe
    *  routes, and the public key the Settings panel hands a device. */
   push: Push;
 }

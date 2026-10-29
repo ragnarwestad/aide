@@ -68,7 +68,7 @@ const CODEX_ANSWER = {
 };
 
 describe("Claude's usage", () => {
-  test("is read from claude -p /usage, and each window line is one window (AC-2)", async () => {
+  test("is read from claude -p /usage, and each window line is one window", async () => {
     const run = fakeRun({ stdout: CLAUDE_SAMPLE });
     const usage = await readUsage("claude", opts({ run }));
     expect(run.calls).toEqual([["claude", "-p", "/usage", "--no-session-persistence"]]);
@@ -81,12 +81,12 @@ describe("Claude's usage", () => {
     expect(usage.error).toBeUndefined();
   });
 
-  test("a line counts as a window only when it starts with its label and share (AC-2)", () => {
+  test("a line counts as a window only when it starts with its label and share", () => {
     expect(parseClaudeUsage("  67% of your usage came from subagents\nTop skills: /aide-analyze 39%\n")).toEqual([]);
   });
 
   for (const code of [0, 1]) {
-    test(`text with no window line is kept as printed, colour removed, exit ${code} (AC-4)`, async () => {
+    test(`text with no window line is kept as printed, colour removed, exit ${code}`, async () => {
       const run = fakeRun({ code, stdout: `${ESC}[31mNot logged in · Please run /login${ESC}[0m\n` });
       const usage = await readUsage("claude", opts({ run }));
       expect(usage.windows).toEqual([]);
@@ -95,18 +95,18 @@ describe("Claude's usage", () => {
     });
   }
 
-  test("a run that printed nothing is a reading that failed, not none (AC-5)", async () => {
+  test("a run that printed nothing is a reading that failed, not none", async () => {
     const usage = await readUsage("claude", opts({ run: fakeRun({ code: 1 }) }));
     expect(usage.error).toBeTruthy();
     expect(usage.windows).toEqual([]);
   });
 
-  test("a run that timed out is a reading that failed (AC-5)", async () => {
+  test("a run that timed out is a reading that failed", async () => {
     const usage = await readUsage("claude", opts({ run: fakeRun({ timedOut: true, stdout: "Current session: 2" }) }));
     expect(usage.error).toBeTruthy();
   });
 
-  test("a CLI that cannot be started is a reading that failed, not a throw (AC-5)", async () => {
+  test("a CLI that cannot be started is a reading that failed, not a throw", async () => {
     const run = (async () => { throw new Error("ENOENT: claude"); }) as never;
     const usage = await readUsage("claude", opts({ run }));
     expect(usage.error).toContain("ENOENT");
@@ -114,7 +114,7 @@ describe("Claude's usage", () => {
 });
 
 describe("Codex's usage", () => {
-  test("is asked of codex app-server with initialize, initialized and account/rateLimits/read (AC-3)", async () => {
+  test("is asked of codex app-server with initialize, initialized and account/rateLimits/read", async () => {
     const exchange = fakeExchange({ answer: CODEX_ANSWER });
     const usage = await readUsage("codex", opts({ exchange }));
     expect(exchange.sent).toHaveLength(1);
@@ -129,7 +129,7 @@ describe("Codex's usage", () => {
     expect(usage.error).toBeUndefined();
   });
 
-  test("an answer with neither window reports none (AC-5)", async () => {
+  test("an answer with neither window reports none", async () => {
     const answer = { id: 2, result: { rateLimits: { primary: null, secondary: null } } };
     const usage = await readUsage("codex", opts({ exchange: fakeExchange({ answer }) }));
     expect(usage.windows).toEqual([]);
@@ -137,12 +137,12 @@ describe("Codex's usage", () => {
     expect(usage.noSource).toBeUndefined();
   });
 
-  test("an exchange that timed out is a reading that failed (AC-5)", async () => {
+  test("an exchange that timed out is a reading that failed", async () => {
     const usage = await readUsage("codex", opts({ exchange: fakeExchange({ timedOut: true }) }));
     expect(usage.error).toBeTruthy();
   });
 
-  test("a JSON-RPC error is a reading that failed (AC-5)", async () => {
+  test("a JSON-RPC error is a reading that failed", async () => {
     const answer = { id: 2, error: { code: -32601, message: "method not found" } };
     const usage = await readUsage("codex", opts({ exchange: fakeExchange({ answer }) }));
     expect(usage.error).toContain("method not found");
@@ -150,7 +150,7 @@ describe("Codex's usage", () => {
 
   // The same decision `codex_provider_limit` makes in bash, read from its
   // own text, so the two cannot drift apart unnoticed.
-  test("a window is named from its length as provider-limit.sh names it (AC-3)", async () => {
+  test("a window is named from its length as provider-limit.sh names it", async () => {
     const bash = await Bun.file(
       new URL("../../../../core/scripts/lib/run-spec/turn/provider-limit.sh", import.meta.url),
     ).text();
@@ -167,7 +167,7 @@ describe("Codex's usage", () => {
 });
 
 describe("the AIs with no usage to read", () => {
-  test("OpenCode reports no windows and runs nothing (AC-5)", async () => {
+  test("OpenCode reports no windows and runs nothing", async () => {
     const run = fakeRun();
     const exchange = fakeExchange({ timedOut: true });
     const usage = await readUsage("opencode", opts({ run, exchange }));
@@ -178,7 +178,7 @@ describe("the AIs with no usage to read", () => {
     expect(usage.error).toBeUndefined();
   });
 
-  test("Copilot's usage is not read, which is not the same as none (AC-5)", async () => {
+  test("Copilot's usage is not read, which is not the same as none", async () => {
     const run = fakeRun();
     const exchange = fakeExchange({ timedOut: true });
     const usage = await readUsage("copilot", opts({ run, exchange }));
@@ -189,7 +189,7 @@ describe("the AIs with no usage to read", () => {
 });
 
 describe("the last usage per AI", () => {
-  test("a check recorded afterwards, as before a job, leaves the reading in place (AC-1)", () => {
+  test("a check recorded afterwards, as before a job, leaves the reading in place", () => {
     forgetChecks();
     const reading = { tool: "claude" as const, at: AT.toISOString(), windows: [{ name: "Current session", usedPercent: 24 }] };
     recordUsage(reading);
@@ -203,7 +203,7 @@ describe("the last usage per AI", () => {
 describe("the checks the board runs on its own", () => {
   // `checkTool()` is what the start-up check and the re-check before a
   // job run. Usage is read by a press alone, so it must ask none.
-  test("read no usage for any AI (AC-6)", async () => {
+  test("read no usage for any AI", async () => {
     for (const tool of CHECKABLE_TOOLS) {
       const run = fakeRun({ stdout: "found\n" });
       await checkTool(tool, { ...opts(), run, configuredModels: ["m"] });

@@ -55,7 +55,7 @@ describe("readStatusFromFetchedBranch", () => {
   });
 });
 
-describe("refreshedRef (AC-6)", () => {
+describe("refreshedRef", () => {
   test("answers the ref from the last fetch with the fetch still out, and hands back its promise", async () => {
     const g = held(true);
     const got = await refreshedRef(g.run, "/r5", "main");

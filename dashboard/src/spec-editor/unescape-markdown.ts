@@ -5,8 +5,7 @@
 // written back with a backslash in front of every markdown punctuation
 // character — so a `## Requirements` block pasted into the editing
 // surface is saved as `\#\# Requirements`, and the heading and the
-// REQ-n bullets under it are gone from the file (seen on spec 417's own
-// description, 2026-09-08).
+// REQ-n bullets under it are gone from the file.
 //
 // That is correct for a document whose source is not markdown. These
 // files ARE markdown source: someone typing `## Requirements` into a

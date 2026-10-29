@@ -1,7 +1,7 @@
 // The one shape every error sentence the board shows is built from
-// (spec 352): what happened, and what resolves it — a board control
-// (REQ-2) or an off-board location (REQ-3) — with raw tool output, if
-// any, carried as hover detail rather than the sentence itself (REQ-5).
+// what happened, and what resolves it — a board control
+// or an off-board location — with raw tool output, if
+// any, carried as hover detail rather than the sentence itself.
 // The convention is written out in full at `dashboard/docs/error-sentences.md`.
 
 export interface ErrorSentence {
@@ -13,12 +13,12 @@ export interface ErrorSentence {
    *  never neither. */
   resolve?: string;
   /** Set only when there is genuinely nothing to resolve — the sentence
-   *  states a fact with no action attached to it (spec 352's own
+   *  states a fact with no action attached to it (for
    *  example: an archived spec's edit refusal). Names the reason, so a
    *  reader — and the registry test — can tell "no resolution needed"
    *  apart from "resolution missing" instead of guessing. */
   exempt?: string;
-  /** Raw git/tool output (REQ-5): detail, never the sentence itself. */
+  /** Raw git/tool output: detail, never the sentence itself. */
   detail?: string;
 }
 

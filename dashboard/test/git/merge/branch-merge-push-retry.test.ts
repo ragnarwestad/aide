@@ -1,4 +1,4 @@
-// Spec 359: a push that only needed a pull is retried, not reported.
+// A push that only needed a pull is retried, not reported.
 //
 // `mergeBranchIntoDefault` step 6's push used to be reported as a
 // failure on the FIRST rejection, even when the only thing wrong was
@@ -6,9 +6,9 @@
 // pull (another landing, or a run's own push, in the gap between the
 // two). `pushWithRetry` asks origin directly whether it can even be
 // reached before deciding what a failed push means: unreachable is
-// retried blind (REQ-2); reachable-but-rejected means the base moved,
-// which `pull --rebase` can settle on its own (REQ-1) — unless the
-// rebase itself conflicts, which stays a person's call (REQ-3).
+// retried blind; reachable-but-rejected means the base moved,
+// which `pull --rebase` can settle on its own — unless the
+// rebase itself conflicts, which stays a person's call.
 
 import { describe, expect, test } from "bun:test";
 import { runSpecSource } from "../../helpers/run-spec-source.ts";
@@ -18,7 +18,7 @@ import { mergeBranchIntoDefault } from "../../../src/git/branch-merge.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** What a reader would see: since spec 380 a message is stored as
+/** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
@@ -48,10 +48,10 @@ const REACHES_STEP_6 = {
   fetch: { code: 0 },
 };
 
-describe("pushWithRetry: REQ-1, a push rejected because the remote moved", () => {
+describe("pushWithRetry: a push rejected because the remote moved", () => {
   // Settled by dropping the local merge and making it again onto the
   // base that moved — never by `pull --rebase`: a rebase of a landing's
-  // merge commits failed before it started once (364, 2026-09-03) and
+  // merge commits failed before it started once and
   // left the checkout ahead of origin, refusing every later landing.
   test("is retried by merging again onto the moved base, and the retry succeeds", async () => {
     const git = fakeGit({
@@ -117,7 +117,7 @@ describe("pushWithRetry: REQ-1, a push rejected because the remote moved", () =>
   });
 });
 
-describe("pushWithRetry: REQ-2, a push that cannot reach origin at all", () => {
+describe("pushWithRetry: a push that cannot reach origin at all", () => {
   test("is retried, waited, up to the bound, then refused if it never recovers", async () => {
     const waits: number[] = [];
     const wait = async (ms: number) => {
@@ -135,7 +135,7 @@ describe("pushWithRetry: REQ-2, a push that cannot reach origin at all", () => {
     expect(waits).toEqual([1000, 2000]);
   });
 
-  test("REQ-4: a later attempt that reaches origin succeeds, leaving no error", async () => {
+  test("a later attempt that reaches origin succeeds, leaving no error", async () => {
     const git = fakeGit({
       ...REACHES_STEP_6,
       "ls-remote origin": { code: 1 },
@@ -151,7 +151,7 @@ describe("pushWithRetry: REQ-2, a push that cannot reach origin at all", () => {
   });
 });
 
-describe("pushWithRetry: REQ-3/REQ-5, a second merge that hits a real conflict", () => {
+describe("pushWithRetry: a second merge that hits a real conflict", () => {
   const CONFLICTING = {
     ...REACHES_STEP_6,
     "ls-remote origin": { code: 0 },
@@ -175,7 +175,7 @@ describe("pushWithRetry: REQ-3/REQ-5, a second merge that hits a real conflict",
     expect(argv(git.calls).filter((a) => a.startsWith("push"))).toHaveLength(1);
   });
 
-  test("REQ-7: never auto-resolved — no -X or --force ever reaches the branch", async () => {
+  test("never auto-resolved — no -X or --force ever reaches the branch", async () => {
     const git = fakeGit(CONFLICTING);
     await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     // Scoped to the commands that touch the BRANCH. The teardown's own
@@ -189,7 +189,7 @@ describe("pushWithRetry: REQ-3/REQ-5, a second merge that hits a real conflict",
   });
 });
 
-// REQ-5's "same bound": `aide-run-spec`'s `PUSH_RETRY_WAITS` (bash) and
+// The "same bound": `aide-run-spec`'s `PUSH_RETRY_WAITS` (bash) and
 // this file's `PUSH_RETRY_WAITS_MS` (TypeScript) are two literals
 // expressing the same rule with nothing else pinning them together —
 // read as TEXT, the same idea `parsing-schedule-and-errors.test.ts`
@@ -215,7 +215,7 @@ describe("the bash and TypeScript retry bounds agree", () => {
 describe("a dirty test-run.json in the checkout never blocks the fast-forward", () => {
   test("it is discarded before the checkout catches up, and nothing else is", async () => {
     // A gate's record left dirty in the dashboard's own specs checkout
-    // failed 356's landing with "cannot fast-forward main" (2026-09-03);
+    // failed a landing with "cannot fast-forward main" (2026-09-03);
     // the file is a record, not work, and is thrown away first.
     const git = fakeGit({
       ...REACHES_STEP_6,
@@ -279,11 +279,11 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     expect(ran(git.calls, "push -q origin HEAD:refs/heads/master")).toBe(true);
   });
 
-  // Spec 402, REQ-4: an empty branch (an `analyze` step whose code
+  // An empty branch (an `analyze` step whose code
   // repository the branch never touches) still merges cleanly, but there
   // is nothing the suite could fail for that THIS merge caused — so it
   // is never run at all.
-  test("REQ-4: the gate is skipped when the merge changes nothing in the target", async () => {
+  test("the gate is skipped when the merge changes nothing in the target", async () => {
     const git = fakeGit({
       ...REACHES_STEP_6,
       "ls-remote origin": { code: 0 },
@@ -302,11 +302,11 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     expect(ran(git.calls, "push -q origin HEAD:refs/heads/master")).toBe(true);
   });
 
-  // Spec 402, REQ-5: a push rejected because base moved drops the local
-  // merge and merges again onto the new base (REQ-1 above) — if that
+  // A push rejected because base moved drops the local
+  // merge and merges again onto the new base (the first suite above) — if that
   // reproduces the exact tree already gated once, the verdict stands
   // rather than being reached a second time.
-  test("REQ-5: the gate is not re-run for an identical tree across a base-moved retry", async () => {
+  test("the gate is not re-run for an identical tree across a base-moved retry", async () => {
     const git = fakeGit({
       ...REACHES_STEP_6,
       "ls-remote origin": { code: 0 },

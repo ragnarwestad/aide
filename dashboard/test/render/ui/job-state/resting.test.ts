@@ -1,4 +1,4 @@
-// Spec 350, REQ-6: the state words come from a per-language, per-step
+// The state words come from a per-language, per-step
 // table, not from stepLabel() + "ing" — and the drift guard from Risk
 // analysis: a step WORKFLOW_STEPS knows about must have both an English
 // and a Norwegian entry, so a future step added there fails this test
@@ -10,7 +10,7 @@ import { specNotice } from "../../../../src/render/ui/job-state";
 import { STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR } from "../../../../src/render/ui/components";
 import type { QueueRowView } from "../../../../src/render";
 
-describe("GERUND_EN/GERUND_NB/GERUND_ES/GERUND_DE/GERUND_FR (spec 350, 484)", () => {
+describe("GERUND_EN/GERUND_NB/GERUND_ES/GERUND_DE/GERUND_FR", () => {
   test("every WORKFLOW_STEPS member has an entry in every table", () => {
     for (const step of WORKFLOW_STEPS) {
       expect(GERUND_EN[step], `GERUND_EN is missing "${step}"`).toBeDefined();
@@ -50,12 +50,12 @@ const row = (over: Partial<QueueRowView> = {}): QueueRowView => ({
   ...over,
 });
 
-// Spec 396: a queued job the runner is holding back is not competing for
+// A queued job the runner is holding back is not competing for
 // a slot, so its badge must not carry the n/total wording meant for a job
-// that is. Spec 485: the word is its own ("Held back"), never "Stopped" —
+// that is. The word is its own ("Held back"), never "Stopped" —
 // a hold is a routine wait, not a stop — and its colour follows the same
 // neutral/amber split the row's own notice line already uses.
-describe("specStateChip() on a held-back queued row (spec 396, spec 485)", () => {
+describe("specStateChip() on a held-back queued row", () => {
   // A hold that resolves on its own (a dependency not archived yet) reads
   // neutral, with no step and no n/total figure.
   test("a dependency hold reads 'Held back', neutral, with no step and no n/total figure", () => {
@@ -91,7 +91,7 @@ describe("specStateChip() on a held-back queued row (spec 396, spec 485)", () =>
     expect(html).toContain("b-waiting");
   });
 
-  test("the badge and the row's own notice agree it is held back, not queued for a slot (REQ-5)", () => {
+  test("the badge and the row's own notice agree it is held back, not queued for a slot", () => {
     const heldRow = row({
       state: "queued",
       steps: ["implement"],
@@ -109,7 +109,7 @@ describe("specStateChip() on a held-back queued row (spec 396, spec 485)", () =>
     expect(notice?.text.startsWith("Implement held back:")).toBe(true);
   });
 
-  // AC-3: a job that actually stopped still reads "Stopped" — the fix is
+  // A job that actually stopped still reads "Stopped" — the fix is
   // scoped to a queued job's own hold, never to a real stop.
   test("a job that actually stopped still reads 'Stopped'", () => {
     const html = specStateChip(
@@ -122,17 +122,17 @@ describe("specStateChip() on a held-back queued row (spec 396, spec 485)", () =>
 
 // A deploy's fetch or its restart waits for a landing with the job still
 // running: it reads like every other held-back job, not "Deploying".
-describe("specStateChip() on a running row with a hold (AC-4)", () => {
+describe("specStateChip() on a running row with a hold", () => {
   const held = { errorReason: "held-back" as const, error: { key: "runner.landingPause" as const } };
 
-  test("a running job whose reason is a hold reads 'Held back', in the colour a held queued job gets (AC-4)", () => {
+  test("a running job whose reason is a hold reads 'Held back', in the colour a held queued job gets", () => {
     const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0, ...held }), "en");
     expect(html).toContain(">Held back<");
     expect(html).toContain("b-idle");
     expect(html).not.toContain("Deploying");
   });
 
-  test("once the hold is gone it reads as running again (AC-4)", () => {
+  test("once the hold is gone it reads as running again", () => {
     const html = specStateChip(row({ state: "running", steps: ["deploy"], stepIndex: 0 }), "en");
     expect(html).toContain("Deploying");
     expect(html).not.toContain("Held back");

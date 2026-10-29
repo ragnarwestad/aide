@@ -1,4 +1,4 @@
-// /schedule (spec 272, extended spec 276, reworked spec 278): the list
+// /schedule: the list
 // of every allowed project's entries at once, and an entry's own detail
 // page (Report and Settings tabs) — composed from
 // schedule-page/*. An entry is changed on its Settings tab; making one
@@ -35,10 +35,10 @@ export interface SchedulePageOptions {
   rows: readonly SchedulePageRow[];
   filter?: ScheduleFilter;
   script?: string;
-  /** Spec 408. Absent means English — the same default `pageShell`'s
+  /** Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
+  /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
   /** The model names the queue offers; absent draws no flag. */
@@ -76,10 +76,10 @@ export interface ScheduleDetailPageOptions {
   reportPanel?: string;
   script?: string;
   backHref?: string;
-  /** Spec 408. Absent means English — the same default `pageShell`'s
+  /** Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
+  /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
   /** The Settings tab's fields drawn as inputs (`?edit=1`). */

@@ -7,10 +7,10 @@
 import { describe, expect, test } from "bun:test";
 import { landingRefusal, resolveOpenStep } from "../../../src/render/pages/job-page";
 
-// Criteria 1, 2, 4, 5: what the job IS, everything it has already run,
+// What the job IS, everything it has already run,
 // and what it is doing right now.
 
-// --- spec 240: which Steps row is open survives the page's own reload -------
+// --- Which Steps row is open survives the page's own reload -------
 //
 // Approach A (a bare `<details>` per row) was rejected in `3-solution.md`
 // for the exact reason `specs-list.ts` already rejected it for its own
@@ -36,12 +36,12 @@ describe("a landing refusal's detail", () => {
   });
 });
 
-describe("spec 240: resolveOpenStep", () => {
-  test("no query and nothing running: nothing is open (AC2)", () => {
+describe("resolveOpenStep", () => {
+  test("no query and nothing running: nothing is open", () => {
     expect(resolveOpenStep(undefined, undefined)).toBeUndefined();
   });
 
-  test("no query but something running: the running row opens by default (AC3)", () => {
+  test("no query but something running: the running row opens by default", () => {
     expect(resolveOpenStep(undefined, 2)).toBe("2");
   });
 
@@ -49,11 +49,11 @@ describe("spec 240: resolveOpenStep", () => {
     expect(resolveOpenStep("0", 2)).toBe("0");
   });
 
-  test("the literal close value wins even while something is running (AC4)", () => {
+  test("the literal close value wins even while something is running", () => {
     expect(resolveOpenStep("none", 2)).toBeUndefined();
   });
 
-  test("the running step's index, `live` and no step open it while it runs, and its finished row after (AC-3)", () => {
+  test("the running step's index, `live` and no step open it while it runs, and its finished row after", () => {
     for (const query of [undefined, "live", "2"]) expect(resolveOpenStep(query, 2), String(query)).toBe("2");
     expect(resolveOpenStep("2", undefined)).toBe("2");
     expect(resolveOpenStep("none", undefined)).toBeUndefined();

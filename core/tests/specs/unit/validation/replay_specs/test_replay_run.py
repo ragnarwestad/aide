@@ -40,7 +40,7 @@ def results_text(world):
     return (world.run_folder() / "results.md").read_text()
 
 
-def test_analyze_then_implement_run_in_a_copy_at_the_commit_before_the_landing_AC_1(world, replay_main):
+def test_analyze_then_implement_run_in_a_copy_at_the_commit_before_the_landing(world, replay_main):
     argv = world.argv("4-replayed", analyze=("claude", "opus", "high"), implement=("codex", "gpt-6.1-sol"))
 
     assert replay_main(argv) == 0
@@ -57,7 +57,7 @@ def test_analyze_then_implement_run_in_a_copy_at_the_commit_before_the_landing_A
     assert ".aide" in world.record("analyze", "project-files").split()
 
 
-def test_an_analyze_that_does_not_complete_leaves_implement_uncalled_and_the_row_says_how_it_ended_AC_1(world, replay_main, standin):
+def test_an_analyze_that_does_not_complete_leaves_implement_uncalled_and_the_row_says_how_it_ended(world, replay_main, standin):
     write(standin / "analyze-result.json", '{"ok":false,"terminalReason":"timeout","costUsd":0.1}')
 
     assert replay_main(world.argv("4-replayed")) == 0
@@ -66,7 +66,7 @@ def test_an_analyze_that_does_not_complete_leaves_implement_uncalled_and_the_row
     assert "analyze ended timeout" in table(results_text(world))[0]["Note"]
 
 
-def test_a_specs_root_holds_the_spec_and_an_empty_folder_per_dependency_and_no_state_files_AC_2(world, replay_main):
+def test_a_specs_root_holds_the_spec_and_an_empty_folder_per_dependency_and_no_state_files(world, replay_main):
     assert replay_main(world.argv("4-replayed")) == 0
 
     listing = set(world.record("analyze", "specs-listing").split())
@@ -77,7 +77,7 @@ def test_a_specs_root_holds_the_spec_and_an_empty_folder_per_dependency_and_no_s
     assert world.record("analyze", "analysis").startswith("# 4-replayed - Analysis")
 
 
-def test_the_runner_the_skills_the_rules_and_the_scripts_are_those_of_the_aide_commit_given_AC_3(world, replay_main):
+def test_the_runner_the_skills_the_rules_and_the_scripts_are_those_of_the_aide_commit_given(world, replay_main):
     assert replay_main(world.argv("4-replayed", commit_=world.aide.old, analyze=("claude", "opus"))) == 0
 
     assert "mark=v1" in world.record("analyze", "env")
@@ -106,7 +106,7 @@ def test_an_advisor_with_no_claude_step_is_refused_before_anything_is_copied(wor
                                                    extra=("--advisor", "opus")), "--advisor")
 
 
-def test_a_codex_step_gets_the_commits_skills_a_linked_login_and_the_installed_skills_switched_off_AC_3(world, replay_main, monkeypatch):
+def test_a_codex_step_gets_the_commits_skills_a_linked_login_and_the_installed_skills_switched_off(world, replay_main, monkeypatch):
     write(world.home / ".agents" / "skills" / "aide-analyze" / "SKILL.md", "installed\n")
     write(world.home / ".codex" / "auth.json", "{}")
     monkeypatch.setenv("HOME", str(world.home))
@@ -127,24 +127,24 @@ def refused(world, capsys, replay_main, argv, sentence):
     assert world.record("analyze", "args") is None
 
 
-def test_a_claude_step_with_no_login_token_is_refused_before_anything_is_copied_AC_3(world, replay_main, capsys, monkeypatch):
+def test_a_claude_step_with_no_login_token_is_refused_before_anything_is_copied(world, replay_main, capsys, monkeypatch):
     monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
 
     refused(world, capsys, replay_main, world.argv("4-replayed"), "claude setup-token")
 
 
-def test_an_aide_commit_whose_runner_has_no_worktree_base_is_refused_before_anything_is_copied_AC_3(world, replay_main, capsys, make_aide_repo):
+def test_an_aide_commit_whose_runner_has_no_worktree_base_is_refused_before_anything_is_copied(world, replay_main, capsys, make_aide_repo):
     old = make_aide_repo(takes_worktree_base=False, name="aide-old")
 
     refused(world, capsys, replay_main, world.argv("4-replayed", commit_=old.new, extra=("--aide-repo", str(old.path))), "--worktree-base")
 
 
-def test_an_aide_commit_the_repository_does_not_know_is_refused_before_anything_is_copied_AC_3(world, replay_main, capsys):
+def test_an_aide_commit_the_repository_does_not_know_is_refused_before_anything_is_copied(world, replay_main, capsys):
     refused(world, capsys, replay_main, world.argv("4-replayed", commit_="0123456789abcdef0123456789abcdef01234567"), "0123456789abcdef")
 
 
-def test_the_repositories_are_left_as_they_were_and_nothing_reaches_an_origin_or_a_board_AC_4(world, replay_main):
+def test_the_repositories_are_left_as_they_were_and_nothing_reaches_an_origin_or_a_board(world, replay_main):
     before = (snapshot(world.code), snapshot(world.specs_repo), git(world.origin, "for-each-ref"))
 
     assert replay_main(world.argv("4-replayed", "6-second")) == 0
@@ -159,7 +159,7 @@ def test_the_repositories_are_left_as_they_were_and_nothing_reaches_an_origin_or
     assert not list(world.tmp.iterdir())
 
 
-def test_a_sigterm_during_a_step_ends_the_runners_group_and_removes_the_copies_AC_4(world, standin):
+def test_a_sigterm_during_a_step_ends_the_runners_group_and_removes_the_copies(world, standin):
     (standin / "hang-analyze").write_text("")
     proc = subprocess.Popen([sys.executable, str(SCRIPT_DIR), *world.argv("4-replayed")], stderr=subprocess.PIPE)
     pids = [standin / "analyze" / name for name in ("pid", "child")]
@@ -178,7 +178,7 @@ def test_a_sigterm_during_a_step_ends_the_runners_group_and_removes_the_copies_A
     assert not list(world.tmp.iterdir())
 
 
-def test_the_judges_score_and_reasons_reach_the_row_and_it_is_given_both_plans_AC_7(world, replay_main, standin):
+def test_the_judges_score_and_reasons_reach_the_row_and_it_is_given_both_plans(world, replay_main, standin):
     assert replay_main(world.argv("4-replayed")) == 0
 
     prompt = (standin / "judge-prompt").read_text()
@@ -189,7 +189,7 @@ def test_the_judges_score_and_reasons_reach_the_row_and_it_is_given_both_plans_A
     assert "- 4-replayed (4): covers AC-3" in text
 
 
-def test_an_answer_with_no_json_object_is_recorded_as_no_score_AC_7(world, replay_main, standin):
+def test_an_answer_with_no_json_object_is_recorded_as_no_score(world, replay_main, standin):
     judge_says(standin, "I would rather not say.")
 
     assert replay_main(world.argv("4-replayed")) == 0
@@ -197,7 +197,7 @@ def test_an_answer_with_no_json_object_is_recorded_as_no_score_AC_7(world, repla
     assert table(results_text(world))[0]["Judge"] == "no score"
 
 
-def test_a_steps_time_tokens_and_cost_fill_the_row_and_a_cost_the_runner_left_out_reads_not_measured_AC_8(world, replay_main, standin):
+def test_a_steps_time_tokens_and_cost_fill_the_row_and_a_cost_the_runner_left_out_reads_not_measured(world, replay_main, standin):
     write(standin / "analyze-result.json", '{"ok":true,"terminalReason":"completed","costUsd":1.5}')
     write(standin / "implement-result.json", '{"ok":true,"terminalReason":"completed","testedGreen":true}')
 
@@ -210,7 +210,7 @@ def test_a_steps_time_tokens_and_cost_fill_the_row_and_a_cost_the_runner_left_ou
     assert judge == ["2s", "15", "$0.25"]
 
 
-def test_results_md_holds_the_settings_a_row_per_spec_and_the_totals_AC_9(world, replay_main, standin):
+def test_results_md_holds_the_settings_a_row_per_spec_and_the_totals(world, replay_main, standin):
     write(standin / "plan.md", PLAN)
 
     assert replay_main(world.argv("4-replayed", "6-second")) == 0
@@ -229,11 +229,11 @@ def test_results_md_holds_the_settings_a_row_per_spec_and_the_totals_AC_9(world,
     assert total["Analyze time/tokens/cost"].endswith(" · 660 · $1.00 (2 of 2 measured)")
 
 
-def test_a_results_folder_inside_a_repository_is_refused_before_anything_is_copied_AC_9(world, replay_main, capsys):
+def test_a_results_folder_inside_a_repository_is_refused_before_anything_is_copied(world, replay_main, capsys):
     refused(world, capsys, replay_main, world.argv("4-replayed", extra=("--results", str(world.code / "results"))), "results")
 
 
-def test_a_spec_that_cannot_be_replayed_says_why_and_the_next_one_is_replayed_AC_10(world, replay_main, standin):
+def test_a_spec_that_cannot_be_replayed_says_why_and_the_next_one_is_replayed(world, replay_main, standin):
     write(standin / "plan.md", PLAN)
 
     assert replay_main(world.argv("1-nolanding", "2", "3-closed", "4-replayed")) == 0
@@ -246,7 +246,7 @@ def test_a_spec_that_cannot_be_replayed_says_why_and_the_next_one_is_replayed_AC
     assert rows[3]["Judge"] == "4" and rows[3]["Note"] == ""
 
 
-def test_the_aide_repository_defaults_to_the_one_the_script_sits_in_AC_3():
+def test_the_aide_repository_defaults_to_the_one_the_script_sits_in():
     import importlib.util
     spec = importlib.util.spec_from_file_location("replay_specs_parse", SCRIPT_DIR / "__main__.py")
     module = importlib.util.module_from_spec(spec)

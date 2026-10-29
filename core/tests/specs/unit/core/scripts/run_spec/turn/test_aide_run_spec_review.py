@@ -4,7 +4,7 @@ the spec's description and everything the branch changed, and looks for
 defects against the description (never style, naming or structure).
 Defects found go back to the ORIGINAL implement session as one
 follow-up (fix) turn; the runner's own test run (run-spec/turn/step-tests.sh)
-always runs after that, never a second review (spec 551).
+always runs after that, never a second review.
 """
 
 import json
@@ -53,7 +53,7 @@ def _reviewing_claude(fake_claude, review_reply, implement_cost=0.10, review_cos
     )
 
 
-def test_a_review_with_no_defects_costs_two_calls_and_the_runners_test_run_still_happens_AC_5(
+def test_a_review_with_no_defects_costs_two_calls_and_the_runners_test_run_still_happens(
     runner, workspace, fake_claude
 ):
     """No defects: exactly one extra, fresh (no --resume/--session-id
@@ -80,7 +80,7 @@ def test_a_review_with_no_defects_costs_two_calls_and_the_runners_test_run_still
     assert WENT_BACK not in stages, stages
 
 
-def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_second_review_AC_4(
+def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_second_review(
     runner, workspace, fake_claude
 ):
     """Two defects: a third turn, resumed on the ORIGINAL implement
@@ -141,7 +141,7 @@ def test_a_defect_the_session_finds_is_not_one_is_logged_with_its_reason(runner,
     assert "the implement session found it not a defect: 2. The guard is already in x.ts:10" in stages, stages
 
 
-def test_the_review_session_is_named_review_not_for_the_implement_it_follows_AC_2(
+def test_the_review_session_is_named_review_not_for_the_implement_it_follows(
     runner, workspace, fake_claude
 ):
     """The stand-in records each call as its arguments joined by spaces."""
@@ -155,7 +155,7 @@ def test_the_review_session_is_named_review_not_for_the_implement_it_follows_AC_
     assert "--name proj 81 implement" not in calls[1], calls[1]
 
 
-def test_the_fix_turn_passes_no_name_so_the_session_keeps_its_own_AC_2(runner, workspace, fake_claude):
+def test_the_fix_turn_passes_no_name_so_the_session_keeps_its_own(runner, workspace, fake_claude):
     with_status(workspace, ["create", "analyze"])
     claude = fake_claude(
         "prompt=\"$(cat)\"\n"
@@ -177,7 +177,7 @@ def test_the_fix_turn_passes_no_name_so_the_session_keeps_its_own_AC_2(runner, w
     assert "--name" not in calls[2], calls[2]
 
 
-def test_a_verdict_with_no_review_line_counts_as_no_defects_AC_4(runner, workspace, fake_claude):
+def test_a_verdict_with_no_review_line_counts_as_no_defects(runner, workspace, fake_claude):
     """The model answered in free prose, with no `review:` marker line
     at all — treated as no defects, never as an unspecified fix turn, but
     said in the log as an error, never as the review having found nothing."""
@@ -191,7 +191,7 @@ def test_a_verdict_with_no_review_line_counts_as_no_defects_AC_4(runner, workspa
     assert any(s.startswith("error: the review's reply has no review: line") for s in stages), stages
 
 
-def test_the_reviews_own_turn_failing_falls_back_to_found_nothing_AC_4(runner, workspace, fake_claude):
+def test_the_reviews_own_turn_failing_falls_back_to_found_nothing(runner, workspace, fake_claude):
     """The review's OWN turn — never the fix turn — is best-effort: a
     step whose real work is already done and committed must not be
     reported failed because the added safety net had a hiccup."""
@@ -318,7 +318,7 @@ def _out_of_scope_reviewer(fake_claude, tmp_path):
     )
 
 
-def test_a_description_with_an_out_of_scope_section_tells_the_review_so_at_level_off_AC_4(
+def test_a_description_with_an_out_of_scope_section_tells_the_review_so_at_level_off(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -329,7 +329,7 @@ def test_a_description_with_an_out_of_scope_section_tells_the_review_so_at_level
     assert OUT_OF_SCOPE_MARKER in (tmp_path / "review-prompt.txt").read_text()
 
 
-def test_an_out_of_scope_defect_goes_back_in_the_one_fix_turn_and_is_not_reviewed_again_AC_4_AC_5(
+def test_an_out_of_scope_defect_goes_back_in_the_one_fix_turn_and_is_not_reviewed_again(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -347,7 +347,7 @@ def test_an_out_of_scope_defect_goes_back_in_the_one_fix_turn_and_is_not_reviewe
     assert "testedGreen" in out, out
 
 
-def test_a_description_without_the_section_gets_the_review_as_before_AC_6(
+def test_a_description_without_the_section_gets_the_review_as_before(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])

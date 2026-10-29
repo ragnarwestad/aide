@@ -6,25 +6,25 @@ import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
 import type { CheckableTool } from "../../render";
 
-/** This step's wall clock. The field is a per-step table since spec 152,
- *  but a job created before that change is still in the store across the
+/** This step's wall clock. The field is a per-step table,
+ *  but a job created before that is still in the store across the
  *  deploy carrying a bare number — read as an index that would hand the
  *  runner the string "undefined" as its deadline. A transitional read
  *  for jobs already in flight, not a dual-format feature.
  *
  *  `live` is the config's own table, and it is what actually answers for
- *  a step ticked onto a running job's tail (spec 160): `parseJobRequest`
+ *  a step ticked onto a running job's tail: `parseJobRequest`
  *  resolves the config's `default` into a concrete entry for each step
  *  the request named, so a job's own table carries no `default` key of
  *  its own and a step added afterwards has no entry in it at all. The
  *  `t.default` branch below is kept for a job hand-written with one, not
- *  because any job the queue produces has it (spec 177). */
+ *  because any job the queue produces has it. */
 export function resolveTimeoutSec(t: Job["timeoutSec"], step: string, live: Record<string, number>): number {
   if (typeof t === "number") return t;
   return t[step] ?? t.default ?? live[step] ?? live.default!;
 }
 
-/** The same read for the other two per-step tables (spec 177). Named
+/** The same read for the other two per-step tables. Named
  *  and exported rather than inlined at each site, so the argv the runner
  *  is started with and the values the row and the job page SHOW cannot
  *  answer the question differently. */
@@ -100,11 +100,11 @@ export function analysisSessionToResume(
 
 export { resolveStepModel };
 
-/** The effort level a step runs at (spec 364) — `job.effort[step]` and
+/** The effort level a step runs at — `job.effort[step]` and
  *  nothing else. No config-default tier, unlike `resolveStepModel`'s
  *  four: there is nothing for a config to grant per level (2-analysis.md,
  *  "Config-vs-code precedence tables are for THINGS THAT COST MONEY"),
- *  and REQ-4 requires "unset" to stay a real, reachable answer. */
+ *  and "unset" must stay a real, reachable answer. */
 export function resolveStepEffort(job: Job, step: string): string | undefined {
   return job.effort?.[step];
 }
@@ -118,8 +118,8 @@ export function runnerArgv(
   resultFile: string,
   o: {
     runnerBin: string;
-    /** The checkout the step runs in, resolved by the caller. Since
-     *  spec 205 that is the clone the DASHBOARD owns, and this function
+    /** The checkout the step runs in, resolved by the caller. It is
+     *  the clone the DASHBOARD owns, and this function
      *  knows no path convention that could send it anywhere else. */
     projectDir: string;
     /** Where this project's spec folders live, in the checkout above —
@@ -133,7 +133,7 @@ export function runnerArgv(
     specsRoot?: string;
     push: string;
     /** The file a `schedule` step's prompt is read from, relative to the
-     *  project root (spec 259). Meaningless, and omitted, for every
+     *  project root. Meaningless, and omitted, for every
      *  other step — `aide-run-spec` only ever reads `--prompt-file` for
      *  `--command schedule`. */
     promptFile?: string;
@@ -143,19 +143,19 @@ export function runnerArgv(
     /** Whether a `schedule` step runs Claude without its sandbox (its
      *  entry's own `sandbox: false`). Only ever true for that step. */
     noSandbox?: boolean;
-    /** The config's own table (spec 125). What a job stores per step is
+    /** The config's own table. What a job stores per step is
      *  a NAME the request picked; what the CLI is handed — which tool,
      *  which model string — is looked up here, where the grants
      *  already live. */
     modelChoices?: Record<string, ModelChoice>;
-    /** The config's three per-step tables, live (spec 177). What answers
+    /** The config's three per-step tables, live. What answers
      *  for a step the job's own tables never named — a phase ticked onto
      *  a running job's tail after the job was created. */
     timeoutSec?: Record<string, number>;
     permissionMode?: Record<string, string>;
     model?: Record<string, string>;
     /** Whether `analyze`'s own invocation should be told acceptance
-     *  ticking is not required (spec 394) — resolved by the caller from
+     *  ticking is not required — resolved by the caller from
      *  a fresh read of the spec's own record, never from `job` itself.
      *  Meaningless, and ignored, for every step but `analyze`. */
     acceptanceNotRequiredForAnalyze?: boolean;
@@ -188,20 +188,18 @@ export function runnerArgv(
     // title and the description are the whole of what the step is for.
     ...(job.createTitle ? ["--title", job.createTitle] : []),
     ...(job.createDescription ? ["--description", job.createDescription] : []),
-    // spec 406: only a `close` job has this, exactly like the two above.
+    // Only a `close` job has this, exactly like the two above.
     ...(job.closeReason ? ["--reason", job.closeReason] : []),
-    // What the new spec builds on (spec 110): ONE flag, comma-joined,
+    // What the new spec builds on: ONE flag, comma-joined,
     // because that is the shape the `Depends on:` line itself has on
     // disk — nothing downstream has to rejoin a list.
     ...(job.createDependsOn?.length ? ["--depends-on", job.createDependsOn.join(",")] : []),
-    // Spec 386 introduced this as a whole-job field, read by
-    // `aide-run-spec` for the `analyze` step alone; spec 394 narrows the
-    // JOB field itself to `create`'s own invocation (REQ-8) — a second
+    // The JOB field is for `create`'s own invocation alone — a second
     // job queued later for the same spec has no checkbox to carry it,
     // and `analyze` instead reads a fresh file read the caller resolves
     // into `acceptanceNotRequiredForAnalyze` below.
     ...(step === "create" && job.acceptanceNotRequired ? ["--acceptance-not-required"] : []),
-    // spec 433: only a `create` job has this, and only when the New-spec
+    // Only a `create` job has this, and only when the New-spec
     // form's own "let AI formulate acceptance criteria" box was cleared
     // — absent produces byte-for-byte the argv every caller before this
     // flag existed already produces.
@@ -215,7 +213,7 @@ export function runnerArgv(
       ? ["--choose-approach", job.createChooseApproach ? "yes" : "no"]
       : []),
     ...(step === "analyze" && o.acceptanceNotRequiredForAnalyze ? ["--acceptance-not-required"] : []),
-    // spec 511: only a `reopen` job that asked for it — absent, the
+    // Only a `reopen` job that asked for it — absent, the
     // runner keeps the analysis, the plan and the status.
     ...(step === "reopen" && job.resetFiles ? ["--reset-files"] : []),
     ...(step === "implement" && o.resumeSession ? ["--resume-session", o.resumeSession] : []),
@@ -226,7 +224,7 @@ export function runnerArgv(
     ...(o.chrome ? ["--chrome"] : []),
     ...(o.noSandbox ? ["--no-sandbox"] : []),
     ...(model ? ["--model", model] : []),
-    // Only when the job actually named one for this step (REQ-4): a job
+    // Only when the job actually named one for this step: a job
     // with nothing chosen produces byte-for-byte the argv it produced
     // before this flag existed. `aide-run-spec` itself drops the flag
     // silently for `--tool codex` (no branch needed here).

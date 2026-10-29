@@ -13,9 +13,9 @@ import {
   openKeys,
 } from "../../fixtures.ts";
 
-// --- spec 143: a row's long message gets a panel, not the State column -------
+// --- A row's long message gets a panel, not the State column -------
 //
-// Measured on spec 141, 2026-08-20, at 1568px: a 130-character sentence
+// Measured at 1568px: a 130-character sentence
 // out of `4-status.md` was written into the State column — a cell sized
 // for a word — where it ran off the right edge of the table and, on an
 // open row, was drawn a second time under the archive phase line. Two
@@ -23,7 +23,7 @@ import {
 // `error`), and both now write into one wrapping panel row of their
 // own, under the head row, once.
 
-describe("spec 143: a long message gets a panel row of its own", () => {
+describe("a long message gets a panel row of its own", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -57,7 +57,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
     'the manual browser check (Phase 4, still "Not started"): fresh load shows ' +
     "Claude Code selected, hand ticks survive one 5s refresh";
 
-  // Criterion 6: a message from an earlier attempt must not stand next
+  // A message from an earlier attempt must not stand next
   // to a run that is under way.
   test("a new run on the row clears the panel", () => {
     for (const state of ["running", "queued"] as const) {
@@ -81,17 +81,17 @@ describe("spec 143: a long message gets a panel row of its own", () => {
   });
 });
 
-// --- spec 143: the held-back note belongs to the archive row alone -----------
+// --- The held-back note belongs to the archive row alone -----------
 //
-// Requirement 2 of 1-description.md: whatever the row's panel says about
-// a job is said here too. Since spec 240 there is no job-level Activity
+// Whatever the row's panel says about
+// a job is said here too. There is no job-level Activity
 // transcript to repeat it into — the held-back note lives in the
 // archive row's own Outcome cell (asserted at "the job page's Steps tab
 // says held back where the row does"), and `job.error` lives in the
 // banner on every tab (asserted throughout this file). What is left to
 // check here, once that duplication is gone, is that a job which did
 // NOT run archive never borrows the note.
-describe("spec 143: the held-back note belongs to the archive row alone", () => {
+describe("the held-back note belongs to the archive row alone", () => {
   test("a job that did not run archive carries no held-back note at all", () => {
     const html = renderJobDetailPage(
       detail({

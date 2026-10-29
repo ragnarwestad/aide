@@ -35,7 +35,7 @@ wt_dir="$worktree_base/$(worktree_project_key "$project_root")/$spec_label"
 # do with the change. Which paths matter cannot be derived without
 # guessing, so the project states them.
 #
-# The COMMITTED manifest alone (spec 549): `.aide/project.yaml` travels
+# The COMMITTED manifest alone: `.aide/project.yaml` travels
 # with the repo, so a checkout that has never been configured on this
 # machine still knows which gitignored paths its commands need.
 # Which file was read is REPORTED — to stderr for whoever is
@@ -68,7 +68,7 @@ for entry in $links_raw; do
     fi
   done
   # A named path with nothing to link is refused rather than skipped
-  # (spec 138). Skipping it is how the step got blamed for the failure:
+  # Skipping it is how the step got blamed for the failure:
   # the worktree came up without the `node_modules` the project SAID its
   # commands need, the test command failed, and nothing in the result
   # pointed at the missing directory. The dashboard's Add reports the
@@ -122,8 +122,8 @@ remove_worktrees() {
 # run to find it — a check that needs origin reachable at that exact
 # moment, and that only ever runs if a later run for the same spec
 # happens to come along at all. Three runs were refused on 2026-08-23
-# over leftovers of their own making, in two repositories each (spec
-# 215). An `analyze` step commits nothing in the project, so the branch
+# over leftovers of their own making, in two repositories each.
+# An `analyze` step commits nothing in the project, so the branch
 # it cuts there is empty by design and left behind on every single run.
 #
 # The comparison is against base_ref_for's value, never the raw local

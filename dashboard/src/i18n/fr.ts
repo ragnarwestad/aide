@@ -1,4 +1,4 @@
-// French (spec 484), typed against the source language's own keys
+// French, typed against the source language's own keys
 // (`translations.ts`'s `TranslationKey`) — a key removed here while
 // `en.ts` still has it fails `tsc`, not a test.
 import type { TranslationKey } from "./translations.ts";

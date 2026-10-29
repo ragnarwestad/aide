@@ -8,13 +8,13 @@
 # the repo, and no reader could hold it.
 # --- refuse while a spec this one depends on is still unmerged ---------------
 # A spec can name the specs it builds on (a "Depends on:" line in its
-# 1-description.md, spec 92). Every run cuts its branch from origin/$base
+# 1-description.md). Every run cuts its branch from origin/$base
 # in a fresh worktree, so a spec started while one it depends on is still
 # unmerged is analyzed and implemented against a main that does not
 # contain it — a merge conflict later at best, and at worst work built on
 # old code that nobody notices until someone reads the diff.
 #
-# For the steps that BUILD on that code, and no others (spec 122): see
+# For the steps that BUILD on that code, and no others: see
 # DEPENDENCY_GATED_STEPS. A queue that can wait parks such a job instead
 # of ever reaching this refusal; a run started by hand still gets it,
 # because there is no scheduler there to park it against.
@@ -29,10 +29,10 @@
 # aide_resolve_spec instead would give --spec and "Depends on:" two
 # different ideas of a valid identifier inside one script.
 #
-# Resolves a folder NAME only (spec 351) — whether that folder is done is
+# Resolves a folder NAME only — whether that folder is done is
 # no longer this function's question. A local directory listing cannot
 # answer it: this checkout may not have pulled since the dependency's
-# `archive` step landed on origin (REQ-2), so the LOCAL archive/ scan
+# `archive` step landed on origin, so the LOCAL archive/ scan
 # below is a hint for resolving the name, never proof of being done.
 resolve_dependency_folder() {   # sets $dep_folder
   local id="$1" candidate base
@@ -80,7 +80,7 @@ default_branch() {
 
 # True (rc 0) unless origin can PROVE $1's folder is not (yet) under
 # archive/ in the specs repo's current default branch — the question
-# REQ-1 asks (spec 351), replacing the branch-merge question this
+# asked here, replacing the branch-merge question this
 # function used to ask: a branch with no commits beyond origin, or no
 # branch pushed at all, both used to read as "merged," and a dependency
 # mid-workflow with nothing currently pushed is neither done nor
@@ -98,7 +98,7 @@ default_branch() {
 # Fail-open like every other network call in this script: an unreachable
 # origin answers "not confirmed either way," and only a REACHED origin
 # that plainly does not have the folder refuses — this now runs for
-# EVERY dependency, archived or not (REQ-2), so a locally-known-archived
+# EVERY dependency, archived or not, so a locally-known-archived
 # dependency pays one more fetch than it used to.
 dependency_archived_on_origin() {
   local dep_folder="$1" base found
@@ -135,7 +135,7 @@ case " $DEPENDENCY_GATED_STEPS " in
     ;;
 esac
 
-# --- refuse implement before analyze has run (spec 344, table spec 356) -----
+# --- refuse implement before analyze has run -----
 # The same field aide-archive-spec already reads for its own
 # not-implemented-yet gate (checking for `implement` there instead of
 # `analyze` here) — one workflow step earlier. Placed beside
@@ -206,7 +206,7 @@ fetch_base_with_retry() {
 # project share that basename (`wt_dir` differs only in the spec folder).
 # Two runs racing that registration is what produced "cannot create
 # $branch in a worktree of $root" for one run while another ran
-# concurrently against the same checkout (spec 256).
+# concurrently against the same checkout.
 # `sync_branch_with_origin` and `branch_already_landed` share the same
 # exposure through a second, independent race: both fetch into a FIXED
 # ref name un-parameterized by branch (refs/aide-branch/tip,

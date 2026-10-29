@@ -42,7 +42,7 @@ function fieldNames(doc: Document): string[] {
 }
 
 describe("the entry's page", () => {
-  test("offers the tabs Report and Settings (AC-1)", () => {
+  test("offers the tabs Report and Settings", () => {
     for (const tab of ["report", "settings", undefined]) {
       const words = [...page({ tab }).querySelectorAll("nav.subtabs a")].map((a) => a.textContent);
       expect(words).toEqual(["Report", "Settings"]);
@@ -51,7 +51,7 @@ describe("the entry's page", () => {
 });
 
 describe("the Settings tab", () => {
-  test("shows every field, the Enabled box, Delete and Edit, and no Run now (AC-4, AC-6)", () => {
+  test("shows every field, the Enabled box, Delete and Edit, and no Run now", () => {
     const doc = page();
     expect(shown(doc)).toMatchObject({
       Name: "nightly-report", Cron: "0 3 * * *", "Prompt file": "docs/nightly.md", Model: "codex-fast", Notify: "Every run",
@@ -67,7 +67,7 @@ describe("the Settings tab", () => {
     expect(doc.querySelector("form.scheduleform") === null).toBe(true);
   });
 
-  test("the prompt file's path is a link to the page that shows the file (AC-1)", () => {
+  test("the prompt file's path is a link to the page that shows the file", () => {
     const link = [...page().querySelectorAll("table.facts tr")]
       .find((tr) => tr.children[0]!.textContent === "Prompt file")!
       .querySelector("a")!;
@@ -75,7 +75,7 @@ describe("the Settings tab", () => {
     expect(link.getAttribute("href")).toBe(schedulePromptPath("aide", "nightly-report"));
   });
 
-  test("an entry naming no model shows what the queue gives the schedule step, or the dash (AC-4)", () => {
+  test("an entry naming no model shows what the queue gives the schedule step, or the dash", () => {
     const own = { ...ENTRY, model: undefined };
     const configured = { default: "opus", schedule: "sonnet" };
     expect(shown(page({ entry: own, defaultModels: configured })).Model).toBe("sonnet");
@@ -84,7 +84,7 @@ describe("the Settings tab", () => {
     expect(shown(page({ entry: own, defaultModels: {}, modelChoices: [] })).Model).toBe("–");
   });
 
-  test("Edit draws the entry's form, saving to the entry and coming back here, with Cancel back to the tab (AC-5)", () => {
+  test("Edit draws the entry's form, saving to the entry and coming back here, with Cancel back to the tab", () => {
     const doc = page({ editing: true });
     const form = doc.querySelector("form.scheduleform")!;
     expect(form.getAttribute("action")).toBe(BASE);
@@ -98,7 +98,7 @@ describe("the Settings tab", () => {
 });
 
 describe("New", () => {
-  test("has the same fields a user fills in as the Settings tab's Edit (AC-7)", () => {
+  test("has the same fields a user fills in as the Settings tab's Edit", () => {
     const html = renderScheduleNewPage(NAV, "2026-09-30T00:00:00Z", {
       project: "aide", values: { name: "", cron: "0 7 * * *", prompt: "" }, backHref: "/projects/aide?tab=schedule",
       modelChoices: MODELS, defaultModels: { default: "sonnet" },

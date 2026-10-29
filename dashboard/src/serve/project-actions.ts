@@ -45,7 +45,7 @@ export function answerProjectChange(
   project: string,
   steps: ProjectStep[],
   /** What an Add that SUCCEEDED found out about the project it just
-   *  registered (spec 138). It travels beside `results` and never
+   *  registered. It travels beside `results` and never
    *  inside it: `ok` says the registration completed, `canRun` says
    *  whether a run would start, and folding the second into the first
    *  would report a checkout that IS on disk as an add to retry. */

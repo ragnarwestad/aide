@@ -33,16 +33,15 @@ function finishedPhaseChip(step: string): string {
     name: "",
     checked: true,
     disabled: true,
-    // Inert, not padlocked — the same reason spec 145 gives for
+    // Inert, not padlocked — the same reason as for
     // a phase queued behind the running one: the tick says what
     // there is to say.
     plain: true,
   });
 }
 
-// The line is where a phase is TICKED since spec 124 — the box the
-// header's strip of chips used to carry, on the phase's own line,
-// beside the picker for the next run of it. What it does NOT carry is
+// The line is where a phase is TICKED — the box on the phase's own
+// line, beside the picker for the next run of it. What it does NOT carry is
 // a Run button: one press runs whatever is ticked, from the row's one
 // action beside the state.
 //
@@ -52,23 +51,20 @@ function finishedPhaseChip(step: string): string {
 // order — implement before analyze, archive before implement — is
 // refused by the run route, with the reason.
 //
-// The leading cell is the phase's NAME, hard left and alone (spec
-// 165). It was the action column's, reserved and never filled, until
-// spec 157 moved the row's one button beside the state.
+// The leading cell is the phase's NAME, hard left and alone: the row's
+// one button sits beside the state.
 export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number): string {
   const busy = specBusy(g);
-  // The row is a record, not a control (spec 224). Read once here, like
+  // The row is a record, not a control. Read once here, like
   // `busy` beside it, and consulted where a line would otherwise offer a
   // press the server refuses.
   const locked = isArchivedRow(g);
   // Row-level, like `busy` beside it: which phases a press would run.
   // Why the row will not take a click is asked per phase instead, in
-  // `aiModel()` below (spec 454) — a live box and a locked one differ on
+  // `aiModel()` below — a live box and a locked one differ on
   // that question, and a row-level flag could not tell them apart.
-  // Which step is being worked was a third until spec 168, read by
-  // nothing but the spinner that used to sit on that phase's box.
   const ticked = chosenSteps(g, opts);
-  // Spec 160: the phases this run can still be given or relieved of.
+  // The phases this run can still be given or relieved of.
   // The server worked it out from the job as it stands — the row does
   // not re-derive it, so a live box and the route that takes its tick
   // can never disagree about where the tail starts. Empty for every
@@ -78,16 +74,16 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
   // Every sub-row's tag and its cells, kept apart because the tag
   // carries the step and the cells carry the line. There is no cell
   // spanning them any more: the row's one action moved beside the
-  // state (spec 157), and the phase lines took the left edge it left
+  // state, and the phase lines took the left edge it left
   // — which is where "left of the phases" always meant.
   const lines: { tag: string; cells: string }[] = [];
-  // A caption heads a control (spec 265): a locked row draws the same AI
+  // A caption heads a control: a locked row draws the same AI
   // and model selects a live one does now, so it heads them the same
   // way — the only reason this stays conditional at all is `aiPicker`'s
   // own rule, one tool configured is nothing to choose between.
   // The row's one action, in the State column of the caption line
   // (2026-09-08): the head line above is what the spec IS, and this line
-  // heads what it is set to do. Spec 157 put the button on the shut row
+  // heads what it is set to do. The button is on the shut row
   // deliberately; what this costs is a click, and what it buys is a
   // head line that is only information.
   const action = stateAction(g, opts);
@@ -117,12 +113,12 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       const latest = p.attempts[0];
       const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, { ...p.history, fileResult: p.fileResult, step: p.step });
       // The phase's own name, plain text: a phase line used to open the
-      // tab the phase wrote (spec 237), but the mapping did not hold for
+      // tab the phase wrote, but the mapping did not hold for
       // every phase — archive writes no file of its own, and a step
       // outside the fixed four pointed at its job page instead, with
       // nothing on the row saying why the destination differed — so the
       // name is text now, and the spec page stays reachable from the
-      // spec's own name in the row's header line (spec 451).
+      // spec's own name in the row's header line.
       //
       // It wore a fold control on mobile until
       // 2026-09-07 — a chevron per phase line, whose only job was to
@@ -138,7 +134,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // the analysis, a pull request that could not be opened — is said
       // in the phase's log (`phaseExplanations`).
       // The larger of what the queue remembers and what the phase's own
-      // file has stamped (spec 341) — the queue wins while it still
+      // file has stamped — the queue wins while it still
       // holds every attempt (including one still in flight, not yet
       // stamped); the file wins once the queue has forgotten the
       // earliest of them, or once the phase is archived and the queue
@@ -150,7 +146,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       const tried = p.attempts.filter((a) => !GUARD_REFUSALS.has(stepResultOf(a, p.step)?.terminalReason ?? ""));
       const attemptCount = Math.max(tried.length, p.attemptCount ?? 0);
 
-      // Live although the row is busy (spec 160): a phase this run has
+      // Live although the row is busy: a phase this run has
       // not reached, which the reader may add to it or drop from it as
       // the run goes.
       const live = editable.has(p.step);
@@ -175,14 +171,14 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
             // one step an archived spec may be asked for, and the row's
             // Reopen carries it as a hidden field of its own.
             name: "",
-            // What HAPPENED, not what a press would run next (spec 224).
+            // What HAPPENED, not what a press would run next.
             // `chosenSteps` answers the second question — and for a spec
             // whose workflow is over, with no recorded choice, it falls
             // back to `{archive}` alone, which would tick the one step
             // this row did not have and leave the ones it did unticked.
             checked: g.done.includes(p.step),
             disabled: true,
-            // Inert, not padlocked — the same reason spec 145 gives for
+            // Inert, not padlocked — the same reason as for
             // a phase queued behind the running one: the tick says what
             // there is to say, and a padlock on all four of them would
             // be the row saying "archived" a fifth time.
@@ -215,35 +211,29 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
             // (`ticked`) — a step queued behind the running one is
             // still one this job named, and still reads as ticked.
             checked: busy ? !!g.lead?.steps.includes(p.step) : ticked.has(p.step),
-            // The step being run had a carve-out here until spec 168,
-            // because its box was drawn as a spinner instead. It falls
-            // under the ordinary rule now and lands in the same place:
-            // a running step is never `live` — `live` names a step the
-            // run has NOT reached — so `busy && !live` disables it
-            // exactly as the carve-out did.
+            // The step being run needs no carve-out here: a running
+            // step is never `live` — `live` names a step the
+            // run has NOT reached — so `busy && !live` disables it.
             disabled: busy && !live,
             // Inert, but not padlocked: the tick already says whether
-            // this job will get to the step (spec 145).
+            // this job will get to the step.
             plain: true,
             // What the tick would do, or why the row will not take a
             // click, is said once for the whole phase line now — the
-            // shared "(?)" `aiModel()` draws below (spec 454) — rather
+            // shared "(?)" `aiModel()` draws below — rather
             // than repeated on this box's own `title`.
           })
         : finishedPhaseChip(p.step); // `create`'s own arm, same shape
-      // The three choices this line offers, in one cell (spec 192): the
+      // The three choices this line offers, in one cell: the
       // AI, then the model it fills in, then the phase's box. In the
       // order they are made in — which AI a phase runs on decides which
       // models there ARE to pick from, so it comes first.
       //
-      // The AI had a column of its own from spec 165 to spec 192, and
-      // one cell for the whole group before that — a span that had to
-      // be kept level with `g.phases.length` and never a literal five,
-      // since a spec's phase lines are always the four. Neither is
-      // needed now: every line writes this cell, whichever step it
+      // The AI has no column of its own and no span over the group:
+      // every line writes this cell, whichever step it
       // names, and `aiPicker` simply draws nothing when there is one
       // configured AI and nothing to choose between.
-      // The recorded string is always "<tool> <model>" (spec 244's
+      // The recorded string is always "<tool> <model>" (the
       // `aide-run-spec` format), so the model half — the one the live
       // picker's own options are keyed on — is everything after the
       // first word.
@@ -263,7 +253,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
         aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun,
           latest?.results?.find((x) => x.step === p.step)?.tool, p.attempts[0]?.modelId ?? p.modelId) +
         `${box}</span></td>`;
-      // Does this phase's own file say it ran at all (spec 274/247/284's
+      // Does this phase's own file say it ran at all (the
       // fallback in `phasesFor`), even with no Cost line recorded? Used
       // by BOTH branches below — an archived `create` line is exactly as
       // permanently costless as a live one, so the blank-vs-unknown fix
@@ -274,12 +264,11 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:
           // The name alone, hard left: it is what the eye lands on
-          // first, and it started 2.5rem in behind the box until spec
-          // 165 moved the box in beside the model.
+          // first, and the box sits in beside the model, so it needs no indent.
           `<td class="phasecell" colspan="2">${phaseMessagesFold(g, p, opts, ran)}${name}</td>` +
           pickCell +
           `<td data-col="state">${phaseWordCell(word, attemptCount)}</td>` +
-          // The phase's own duration, not when it began (spec 199).
+          // The phase's own duration, not when it began.
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what
           // makes "how long did this take?" readable without a column
@@ -288,9 +277,9 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
           `<td data-col="started">${
             phaseDurationCell(latest, p.step, now) || lockedDuration(p.timeSpentMs)
           }</td>` +
-          // `p.cost !== undefined` (spec 433), not `ranWithNoCost`: a
+          // `p.cost !== undefined`, not `ranWithNoCost`: a
           // phase can have run (a stamped Time spent) with NO Cost: line
-          // at all — REQ-3-AC1's own case, still an explicit "–", since
+          // at all — still an explicit "–", since
           // "ran" and "a real $0 was recorded" are different claims.
           // `ranWithNoCost` still decides the BLANK text (a phase that
           // ran at all reads "–", not empty); `p.cost !== undefined`
@@ -311,12 +300,11 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
                   : ""
           }</td>`,
       });
-      // The model's own messages, unfolded under the line (spec 500).
+      // The model's own messages, unfolded under the line.
       lines.push(...phaseMessagesRow(g, p, opts, ran, now));
     });
-  // Spec 386 drew the same switch as the New-spec page here, on a row
-  // of its own. Spec 394 (REQ-2, REQ-8) removes it: the choice now lives
-  // on the spec page's own banner and is recorded on the spec itself,
+  // No switch like the New-spec page's on a row of its own here: the
+  // choice lives on the spec page's own banner and is recorded on the spec itself,
   // so a later job for this spec reads that record instead of asking
   // again from a checkbox unchecked by default on every render.
   //
@@ -359,7 +347,7 @@ function aiModel(
   // say it cannot run again. The column has no room for a mark.
   if (!model) return `<span class="aimodel">${ai}</span>`;
   const on = phaseAiModel(g, opts, step, used, recordedModel, usedTool);
-  // Two candidate strings, always both rendered (AC-1/AC-2, spec 488): the
+  // Two candidate strings, always both rendered: the
   // SHORT one exactly as before, and a FULL one, always tool-prefixed.
   // Which of the two spans shows is a `narrow.css` media query's own
   // decision, not a runtime one — see that file's 400-600px band.

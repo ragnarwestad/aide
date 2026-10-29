@@ -1,4 +1,4 @@
-// The header's theme and language controls (spec 475): split out of
+// The header's theme and language controls: split out of
 // shell.ts, which sits at the 500-line cap code-health-limits.test.ts
 // enforces, so marking which option is chosen had somewhere to add its
 // checkmark and its heading.
@@ -14,13 +14,12 @@ const THEME_CHOICES: [string, string][] = [["dark", "Dark"], ["light", "Light"],
 
 // Each language's own flag — PaceUp's own picker (`ViewControls.tsx`)
 // draws every choice as a flag plus a name, never a bare two-letter
-// code (REQ-1, spec 409).
+// code.
 const LANGUAGE_FLAGS: Record<Language, string> = {
   en: "🇬🇧", nb: "🇳🇴", es: "🇪🇸", de: "🇩🇪", fr: "🇫🇷",
 };
 // Each language's OWN name, in its own spelling — never translated into
-// the reader's language (spec 484, AC-1, reversing spec 413's own
-// choice): "Español" reads "Español" whether the reader has chosen
+// the reader's language: "Español" reads "Español" whether the reader has chosen
 // English, Norwegian or Spanish itself.
 const LANGUAGE_NATIVE_NAMES: Record<Language, string> = {
   en: "English", nb: "Norsk", es: "Español", de: "Deutsch", fr: "Français",
@@ -37,16 +36,16 @@ const THEME_ICONS: Record<string, string> = {
 // Auto is marked here, on the row AND on the trigger's icon, because the
 // server has no way to know what this reader picked — theme-script.ts
 // moves both once it does, the same mark() call doing the row's
-// aria-current and the trigger's icon together. Module-scoped (spec
-// 436), not function-local: themeChoiceRows() needs to read it too, and
+// aria-current and the trigger's icon together. Module-scoped,
+// not function-local: themeChoiceRows() needs to read it too, and
 // a function-local const is invisible outside its own function.
 const THEME_LABELS: Record<string, TranslationKey> = {
   dark: "shell.themeDark", light: "shell.themeLight", auto: "shell.themeAuto",
 };
 
-// The check mark beside the chosen row (spec 475, AC-1/AC-2): always
+// The check mark beside the chosen row: always
 // rendered — `.menucheck`'s own CSS hides it by opacity, never
-// `display`, so AC-3's reserved column holds whether the mark shows or
+// `display`, so the reserved column holds whether the mark shows or
 // not. `ICON_CHECK` carries no width/height of its own, the same as
 // every other icon here — `.menucheck` sizes it (rows-and-forms.css).
 function checkMark(): string {
@@ -67,7 +66,7 @@ export function themeChoiceRows(lang: Language): string {
   ).join("");
 }
 
-// The header-level switch (spec 243, moved out of the "…" menu; a
+// The header-level switch (a
 // popup of its own since PaceUp's own header is the reference for HOW,
 // not just where — one icon that names the current choice, a dropdown
 // underneath for the other two). Its own `.menu`, distinct from the
@@ -82,7 +81,7 @@ export function themeControl(lang: Language): string {
   const theme = t(lang, "shell.theme");
   return (
     `<details class="menu theme"><summary aria-label="${theme}" title="${theme}">${trigger}</summary>` +
-    // `.lbl` (spec 475, AC-5): the caption class already built for this
+    // `.lbl`: the caption class already built for this
     // ("Repos, Show, Theme, Units", text-roles.css) — first use of it
     // for either word.
     `<div class="menupanel"><span class="lbl">${theme}</span>${themeChoiceRows(lang)}</div>` +
@@ -90,8 +89,8 @@ export function themeControl(lang: Language): string {
   );
 }
 
-// The header-level language switch (spec 350), beside the theme control
-// (REQ-3) and built the same way: a `<details class="menu">` trigger +
+// The header-level language switch, beside the theme control
+// and built the same way: a `<details class="menu">` trigger +
 // panel, so it gets the same outside-click/Escape close for free. Each
 // link targets the CALLER's own current address — `pageShell`'s
 // `currentUrl` opt — with only `lang` swapped, so switching language
@@ -106,8 +105,8 @@ function languageHref(currentUrl: string, target: Language): string {
 }
 
 // The language choice links of languageControl()'s own standalone panel
-// (desktop), each targeting `currentUrl` with only `lang` swapped (spec
-// 435), so switching language keeps the reader on the page, tab, sort
+// (desktop), each targeting `currentUrl` with only `lang` swapped,
+// so switching language keeps the reader on the page, tab, sort
 // and filter they were already on. The "…" menu's phone rows use the
 // same addresses as a dropdown's option values.
 export function languageChoiceLinks(lang: Language, currentUrl: string): string {
@@ -126,7 +125,7 @@ export function languageControl(lang: Language, currentUrl: string): string {
   );
 }
 
-// The "…" menu's phone rows (spec 507): one row per setting — the name
+// The "…" menu's phone rows: one row per setting — the name
 // on the left, a compact control on the right — then a separator before
 // the links. Markup of their own, not the standalone panels' rows: a
 // dropdown for language cannot be made of five links, and the theme and

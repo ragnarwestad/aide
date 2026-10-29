@@ -26,12 +26,12 @@ describe("a subagent's part as drawn", () => {
     answer: "Two &lt;must&gt;-fix",
   };
 
-  test("it is named by its task, and draws what it was asked, its lines and its answer (AC-3)", () => {
+  test("it is named by its task, and draws what it was asked, its lines and its answer", () => {
     expect(logPartWriter(part, undefined, "en")).toBe("Subagent: Feasibility review");
     expect(logPartLines(part, "en")).toEqual(["Asked: Read &lt;the&gt; plan", "reading", "Answered: Two &lt;must&gt;-fix"]);
   });
 
-  test("with nothing asked it names its task, and with no answer it says so, escaping the name once (AC-3)", () => {
+  test("with nothing asked it names its task, and with no answer it says so, escaping the name once", () => {
     const drawn = logPartLines({ ...part, name: "fea<sible", asked: undefined, answer: undefined }, "en");
 
     expect(drawn).toHaveLength(3);
@@ -40,14 +40,14 @@ describe("a subagent's part as drawn", () => {
     expect(drawn.join("\n")).not.toContain("Answered:");
   });
 
-  test("an ordinary part draws its own lines, named as before (AC-5)", () => {
+  test("an ordinary part draws its own lines, named as before", () => {
     const ai: LogPart = { by: "ai", lines: ["one"] };
 
     expect(logPartLines(ai, "en")).toEqual(["one"]);
     expect(logPartWriter(ai, "Codex", "en")).toBe("AI (Codex)");
   });
 
-  test("a part whose work could not be read is drawn as the one sentence naming its thread and where Codex keeps it (AC-4)", () => {
+  test("a part whose work could not be read is drawn as the one sentence naming its thread and where Codex keeps it", () => {
     const drawn = drawnParts([{ by: "ai", lines: [] }, { by: "subagent", name: "feasibility", lines: [], unread: { thread: S } }], undefined, "en");
 
     expect(drawn).toHaveLength(1);
@@ -58,7 +58,7 @@ describe("a subagent's part as drawn", () => {
     expect(drawn[0]!.lines[0]).toContain("~/.codex");
   });
 
-  test("a part with no line to draw is left out, and one asked but with no lines yet is drawn (AC-4)", () => {
+  test("a part with no line to draw is left out, and one asked but with no lines yet is drawn", () => {
     const waiting: SubagentPart = { by: "subagent", name: "scope", asked: "Review it", lines: [] };
 
     expect(drawnParts([{ by: "ai", lines: [] }, { by: "aide", lines: [] }], undefined, "en")).toEqual([]);

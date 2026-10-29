@@ -15,7 +15,7 @@ function parse(html: string): Element {
 }
 
 describe("a script-filled message line", () => {
-  test("an empty text empties the words and keeps the icon (AC-3)", () => {
+  test("an empty text empties the words and keeps the icon", () => {
     const line = parse(messageSlot("refused"));
     writeLine(line, "was refused");
     writeLine(line, "");

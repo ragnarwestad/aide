@@ -21,23 +21,23 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
   description?: string;
   phase?: string;
   /** The `## Acceptance criteria` heading with an open row, from the
-   *  SAME parse that produced `phase` (spec 302) — request-scoped, on
+   *  SAME parse that produced `phase` — request-scoped, on
    *  `specPageView`'s own local `target`, never on the shared
    *  five-second scan `phase` itself comes from. */
   acceptancePhase?: string;
-  /** What this spec builds on, from its own `Depends on:` line (spec
-   *  92). Named by folder, the way `aide-run-spec`'s own dependency
+  /** What this spec builds on, from its own `Depends on:` line.
+   *  Named by folder, the way `aide-run-spec`'s own dependency
    *  refusal names it. Empty or absent when it names none. */
   dependsOn?: string[];
   /** Steps this spec has already had, from the runner's own commits
-   *  (spec 154). Marked, never forbidden. */
+   *  Marked, never forbidden. */
   done?: string[];
   /** Steps whose latest commit STOPPED, by step, with the reason —
    *  `timeout`, `provider-limit`. Such a step has run and has not
    *  finished, and the row says so instead of "not run yet" even once
    *  the queue's own memory of that attempt is gone. */
   stopped?: Record<string, string>;
-  /** What the spec's own files claim, kept apart by source (spec 362):
+  /** What the spec's own files claim, kept apart by source:
    *  `4-status.md`'s prose line, and `4-status.json`'s own
    *  `completedPhases` when this spec has a state file. Not what
    *  anything is decided from — the history above is, unless a state
@@ -51,7 +51,7 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
   fileDisagrees?: string[];
   /** When the files and history above were last read; a run ended after this is not yet in them. */
   sourcesCheckedAt?: string;
-  /** Which steps have a completion commit ANYWHERE in git (spec 418) —
+  /** Which steps have a completion commit ANYWHERE in git —
    *  the raw answer, before a state file's own claim can override it.
    *  What tells "the work is on the branch, unlanded" apart from
    *  "nothing was written" for `wordPhase.lastRunDisagrees*`. */
@@ -65,7 +65,7 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
    *  no business on a page. */
   dir?: string;
   /** The commit this spec's history starts AFTER, from its own
-   *  `**Reopened:**` mark (spec 198). Server-side only, like `dir`: it
+   *  `**Reopened:**` mark. Server-side only, like `dir`: it
    *  is what the two git readers exclude with `--not`, so that a spec
    *  reopened for another round shows no phase as run before anything
    *  has run in it. Absent for the overwhelming majority. */
@@ -76,14 +76,14 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
    *  the merge check: a re-run clears it by being newer. */
   analyzeStale?: boolean;
   /** When this spec was MADE — the first commit that touched its folder
-   *  (spec 199). It is what the "Started" column holds and what the
+   *  It is what the "Started" column holds and what the
    *  `started` sort orders by, and it comes from git rather than from
    *  any job: a job's own start moves every time a phase runs, and the
    *  queue forgets a job once two hundred newer ones exist. Absent when
    *  git could not answer, and then the cell shows a dash — never a
    *  job's time, which would put the movement straight back. */
   createdAt?: string;
-  /** Nothing has yet asked git anything about this spec (spec 208).
+  /** Nothing has yet asked git anything about this spec.
    *  Not "no step has run" — that is a real answer — and the row says
    *  "checking…" rather than draw a done-set, a Started date and a
    *  staleness badge it has no answers for. Set by the server when
@@ -98,12 +98,12 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
   archiveHeldBack?: { reason: string };
   /** An acceptance criterion open NOW, as the Checks tab last wrote it. */
   acceptanceOpen?: boolean;
-  /** Reopened with the files kept and its round still open (spec 511):
+  /** Reopened with the files kept and its round still open:
    *  its `4-status.md` reads `reopenedRound()`. */
   reopenedRound?: boolean;
   /** The Acceptance rows the list unfolds, present only while one is open. */
   acceptance?: StatusCheck[];
-  /** No `4-status.json` exists for this spec yet (spec 355, REQ-10) — a
+  /** No `4-status.json` exists for this spec yet — a
    *  spec no writer script (aide-run-spec, aide-archive-spec,
    *  aide-write-spec) has touched since this feature shipped. The row
    *  still shows; it is labeled as missing its state file rather than
@@ -111,7 +111,7 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
   stateMissing?: boolean;
 }
 
-/** An ARCHIVED spec, as this list draws it (spec 221).
+/** An ARCHIVED spec, as this list draws it.
  *
  *  It came from `render/archive-page.ts`, which held the `/archive`
  *  page until that page retired: everything the Archive tab could do is
@@ -126,7 +126,7 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
  *  answer two questions. */
 export interface ArchivedSpecView extends HasNotVerified {
   /** The Acceptance rows an archived row unfolds, read only for a spec that
-   *  has a row marked Not verified or Failed (spec 510). */
+   *  has a row marked Not verified or Failed. */
   acceptance?: StatusCheck[];
   /** Which project's archive it came out of. */
   project: string;
@@ -139,13 +139,13 @@ export interface ArchivedSpecView extends HasNotVerified {
    *  of it and the search reads all of it — cutting it here would make
    *  the two disagree. */
   description?: string;
-  /** Its own `aide/<folder>` is STILL on origin (spec 193): the spec
+  /** Its own `aide/<folder>` is STILL on origin: the spec
    *  was archived and its work never landed. Derived from origin rather
    *  than from the job, because this is the half that reaches a spec
-   *  whose job the queue's LRU cap evicted long ago — 146's case, which
+   *  whose job the queue's LRU cap evicted long ago — one that
    *  carried no failure reason at all. */
   notLanded?: boolean;
-  /** Its branch is open because the project reviews its code (spec 220),
+  /** Its branch is open because the project reviews its code,
    *  not because the landing failed. Takes precedence over `notLanded`,
    *  which is derived from the same fact and would otherwise say the
    *  opposite of what happened. */
@@ -155,14 +155,14 @@ export interface ArchivedSpecView extends HasNotVerified {
    *  nothing describing it, which is a state worth seeing. */
   prUrl?: string;
   /** When that answer was last taken — epoch ms, the checker's own
-   *  cache stamp (spec 208). The set is whatever a background schedule
+   *  cache stamp. The set is whatever a background schedule
    *  last found, so how OLD it is decides how much of it to believe:
    *  the mark says so, the same way `driftPrefix` labels a commits-behind
    *  count. Absent for a row carrying no mark, and for one whose answer
    *  has never been taken. */
   notLandedCheckedAt?: number;
-  /** Why a landing left the branch of a `notLanded` row on origin (spec
-   *  319), when one recorded it: its delete failed. Takes precedence over
+  /** Why a landing left the branch of a `notLanded` row on origin,
+   *  when one recorded it: its delete failed. Takes precedence over
    *  the bare `NOT_LANDED` wording, as `prOpen` does. */
   branchDeleteError?: Sentence | Sentence[];
   /** Its branch is still on origin but merged in every root that holds
@@ -171,58 +171,58 @@ export interface ArchivedSpecView extends HasNotVerified {
   /** Landed on its suite's one retry: the lines the first run failed on. */
   testsGreenOnRetry?: string;
   /** When the spec was made, from BEFORE the archive step's own `git
-   *  mv` (spec 317, REQ-6) — distinct from `archivedAt` above, which is
+   *  mv` — distinct from `archivedAt` above, which is
    *  when the folder was moved. Off `firstCommitAtFollowingRenames`,
    *  never off a plain directory pathspec against the post-move path:
    *  that would answer with the archive date a second time, which is
-   *  exactly the repeat REQ-6 rules out. Absent for a spec git could
+   *  exactly the repeat to avoid. Absent for a spec git could
    *  not date this way either. */
   createdAt?: string;
-  /** Which steps the spec's own `4-status.md` CLAIMS it has had (spec
-   *  224). It is what the row's phase lines and its pip strip are drawn
+  /** Which steps the spec's own `4-status.md` CLAIMS it has had.
+   *  It is what the row's phase lines and its pip strip are drawn
    *  from, and it is the file's own unverified word — deliberately, and
    *  as the only affordable source rather than as a shortcut. A live
    *  row's done-set is git-verified through `workflowHistory`'s cache,
    *  and `refreshSpecCaches` never warms that cache for an archived
-   *  spec: that is the unbounded cost spec 178's plan review rejected,
+   *  spec: that is an unbounded cost,
    *  so reusing the live path here would read `{history: null}` for
    *  every archived row and say "checking…" for ever. */
   done: string[];
   /** What each phase actually ran on, from `4-status.md`'s own `Model
-   *  (<step>):` lines (spec 244) — never the queue's job history, which
+   *  (<step>):` lines — never the queue's job history, which
    *  the archive outlives, and never the configured default, which is a
    *  fact about a run that never happened (the same reason `modelPicker`
    *  draws nothing at all on a locked row). Keyed by step; a step the
    *  file names nothing for is simply absent from the map. */
   models: Record<string, string>;
-  /** What each phase's OWN file records about its own run (spec 245's
-   *  write side, spec 247's read side): Model, Time spent and Cost,
-   *  keyed by step. A different source from `models` above — spec 245's
+  /** What each phase's OWN file records about its own run:
+   *  Model, Time spent and Cost,
+   *  keyed by step. A different source from `models` above — the
    *  one-record-per-phase-file format, never `4-status.md`'s old
    *  step-suffixed lines — and the two are merged, new preferred, where
    *  `readerGroup()` builds `Phase.model`. A step the file names nothing
    *  for is absent from the map, exactly as `models` leaves one out. */
   phaseOutcomes: Record<string, PhaseOutcome>;
-  /** Closed rather than archived (spec 406, REQ-7) — the `**Closed:**`
+  /** Closed rather than archived — the `**Closed:**`
    *  stamp's presence. `readerGroup()` reads this before `notLanded` to
    *  pick `CLOSED_STATE` over either archived state: a closed spec's
    *  code branch is deleted, never left open for review, so `notLanded`/
    *  `prOpen` never legitimately apply to one — but this is checked
    *  first regardless, rather than assumed exclusive. */
   closed?: boolean;
-  /** The reason typed by the person who closed it (REQ-5), for the
+  /** The reason typed by the person who closed it, for the
    *  row's own detail. Present only when `closed` is. */
   closeReason?: string;
 }
 
-/** This page's own pseudo-states for an archived spec (spec 221). No job
+/** This page's own pseudo-states for an archived spec. No job
  *  ever carries either: they are what a reader ROW is, and they are the
  *  values the chips are defined against — the older chips exclude a
  *  settled archived row because none of them lists this first string.
  *
  *  TWO of them, because being archived answers "did this spec finish"
- *  with certainty only while nothing of the spec is still open (spec
- *  193). A spec archived with its own branch still on origin has not
+ *  with certainty only while nothing of the spec is still open.
+ *  A spec archived with its own branch still on origin has not
  *  finished; it has always been on the reading view, and the chip
  *  defined by excluding archived specs must not be what finally takes
  *  it off. So it is archived to the Archived chip, a problem to the
@@ -231,14 +231,14 @@ export interface ArchivedSpecView extends HasNotVerified {
  *  rather than out of an exception inside the filter.
  *
  *  The row is the same either way, but the word in its State cell is
- *  not (spec 275): a State cell that said "archived" for both, beside a
+ *  not: a State cell that said "archived" for both, beside a
  *  red "not landed" mark for one of them, read as a flat contradiction
  *  on the same row — even when the mark was accurate. The cell now
  *  echoes the mark's own fact in words for `ARCHIVED_OPEN_STATE`
  *  (`head-row.ts`'s `stateBadge`), so the two never disagree. */
 export const ARCHIVED_STATE = "archived";
 export const ARCHIVED_OPEN_STATE = "archived-unlanded";
-/** A spec closed rather than archived (spec 406, REQ-7) — its own state,
+/** A spec closed rather than archived — its own state,
  *  never folded into either archived state above: a chip built to mean
  *  "finished work" (Archived) or "everything still going on"
  *  (not-archived/Active) would misdescribe a closed spec either way it
@@ -250,7 +250,7 @@ export interface SpecsFilter {
   project?: string;
   sort?: string;
   dir?: string;
-  /** A plain search term (spec 221), matched against the three fields
+  /** A plain search term, matched against the three fields
    *  `SEARCHED` names — folder, title and the WHOLE description, not
    *  the two lines the row shows. It came off the archive page, which
    *  had the only search on this dashboard; it reads live and archived
@@ -295,74 +295,72 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
   // There was a `latest` here — the most recently active job — and the
   // "Started" column showed ITS time, so the column and the sort both
   // answered "when did anything last happen to this spec?" and every
-  // run threw the row back to the top of the list. Spec 199 replaced
-  // that question with `createdAt` below, and nothing else ever read
+  // run threw the row back to the top of the list. `createdAt` below
+  // answers a steadier question instead, and nothing else ever read
   // the field. The recency ORDER survives it: `jobGroup` still sorts
   // the jobs by activity to pick the one the header speaks for.
   /** `not-started`, `archived` and `closed` are this page's own
    *  pseudo-states, not a job's: a spec that exists and has never been
    *  run, a spec whose folder has moved into `archive/`, and one moved
-   *  there because it will not work (spec 406). They are the filter
+   *  there because it will not work. They are the filter
    *  keys and the CSS suffixes; the words the reader sees are "not
    *  started", "archived" and "closed". */
   state: QueueRowView["state"] | "not-started" | "archived" | "archived-unlanded" | "closed";
   spentUsd: number;
   /** Whether any step summed into `spentUsd` was over-charged rather
-   *  than measured (spec 152). Rolled up across every job the spec has
+   *  than measured. Rolled up across every job the spec has
    *  had, because the cell it marks is the same roll-up. */
   costUnmeasured: boolean;
   /** The same roll-up in tokens, absent while no job under this spec has
-   *  reported any (spec 118). */
+   *  reported any. */
   spentTokens?: number;
   /** When the spec was made, off its target and therefore off git
-   *  (spec 199). Absent for a spec git could not date, and for a create
+   *  Absent for a spec git could not date, and for a create
    *  job whose folder is not on disk yet.
    *
-   *  For a LOCKED row this is copied up from `archive.createdAt` (spec
-   *  317) by `readerGroup()`, onto this same top-level field — the sort
+   *  For a LOCKED row this is copied up from `archive.createdAt`
+   *  by `readerGroup()`, onto this same top-level field — the sort
    *  key and the Created cell both read it from here, whichever kind of
    *  row it is, rather than branching on `archive?.createdAt` at each
    *  call site. */
   createdAt?: string;
   /** How long the spec's phases took, added together — the work, not
-   *  the calendar (spec 199). A spec that waited three days between two
+   *  the calendar. A spec that waited three days between two
    *  phases did not take three days, which is why this is a SUM of
    *  measured phases and never `last finished - first started`. Absent
    *  for a spec no phase of which has a measurable span yet.
    *
-   *  Drawn on EVERY row since spec 281, live or archived. Every attempt
-   *  of every phase counts (spec 340) — a phase run three times
+   *  Drawn on EVERY row, live or archived. Every attempt
+   *  of every phase counts — a phase run three times
    *  contributes all three — and a phase currently in flight
    *  contributes its own elapsed-so-far, via `totalDurationSince` below,
    *  rather than being excluded until it settles. Two pipelines feed
    *  it: `computeSpecTotalDurationMs()` reads queue job records for a
    *  live row, `readerGroup()` reduces each phase file's own `Time
-   *  spent:` line for an archived one (spec 273) — fed by the same
+   *  spent:` line for an archived one — fed by the same
    *  underlying runs but not structurally pinned to agree
-   *  (2-analysis.md, spec 281's "REQ-2" finding; spec 340's own
-   *  analysis names the retried-phase case where they now diverge
-   *  further). `activeDurationCell()` and `archiveDateCell()` are the
+   *  (a retried phase is a case where they diverge). `activeDurationCell()` and `archiveDateCell()` are the
    *  two readers. */
   totalDurationMs?: number;
   /** The synthetic instant the row's own clock counts up from, while
-   *  one of its phases is live (spec 340) — mirrors a phase line's own
+   *  one of its phases is live — mirrors a phase line's own
    *  `since` (`Phase`'s per-attempt `PhaseDuration.since`). Absent
    *  whenever nothing under this spec is running. */
   totalDurationSince?: string;
   /** True when `totalDurationMs` leaned on at least one phase's own
-   *  file stamp rather than a queue-measured span for it (spec 410,
-   *  REQ-4) — mirrors `costUnmeasured`'s own shape. Computed the same
+   *  file stamp rather than a queue-measured span for it
+   *  — mirrors `costUnmeasured`'s own shape. Computed the same
    *  way for every row; only a LOCKED row's own render path draws a
-   *  mark from it (`archiveDateCell`/`lockedDuration`), per REQ-4's own
-   *  wording, which names an archived spec specifically. */
+   *  mark from it (`archiveDateCell`/`lockedDuration`), whose
+   *  wording names an archived spec specifically. */
   /** The pull request a `pr`-mode run opened for this spec's code branch
-   *  (spec 220), off the most recently active job that reported one. A
+   *  off the most recently active job that reported one. A
    *  project whose code is reviewed archives with that branch still on
    *  origin, deliberately and for as long as the review takes — so the
    *  row has to say where the review IS, or a reader has no way to tell
    *  it from a landing that got stuck. */
   prUrl?: string;
-  /** Why a step's push did not reach origin (spec 328), off the lead
+  /** Why a step's push did not reach origin, off the lead
    *  job. The step still succeeded; only the branch itself was left
    *  stranded.
    *
@@ -370,7 +368,7 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
    *  the STEP's own answer, read off `phases` (`prErrorOf`,
    *  row-shared.ts) on the line of the step that called `gh`. */
   pushError?: string;
-  /** REQ-4 (spec 327): the lead job's own unresolved landing failure,
+  /** The lead job's own unresolved landing failure,
    *  read straight off `lead` rather than scanned across every job for
    *  this spec the way `prUrl` is — see Risk analysis for why a
    *  cross-job scan would show the wrong job's failure. */
@@ -396,7 +394,7 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
    *  It used to be one summary line for whichever spec the top form's
    *  dropdown had selected; every row now answers for itself. */
   title?: string;
-  /** What the spec is about, whole (spec 221). Never DRAWN on a live
+  /** What the spec is about, whole. Never DRAWN on a live
    *  spec's row — `specSummary` decides what that line says, and the
    *  description is not on it — but the search reads it, and a search
    *  that reached an archived spec's prose and not a live one's would
@@ -409,11 +407,11 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
   /** This spec's description has moved on since its last analysis. The
    *  analyze line says so; nothing is blocked by it. */
   analyzeStale: boolean;
-  /** Nothing has yet asked git anything about this spec (spec 208).
+  /** Nothing has yet asked git anything about this spec.
    *  The row draws "checking…" where it would otherwise state a fact it
    *  does not have. */
   freshnessUnknown?: boolean;
-  /** The archived spec this row speaks for (spec 221). Present exactly
+  /** The archived spec this row speaks for. Present exactly
    *  when `state` is `archived`, and it is what the reader row draws
    *  from: the date, the mark, the recorded duration and the link.
    *  Absent on every other row, which has jobs and a target instead. */

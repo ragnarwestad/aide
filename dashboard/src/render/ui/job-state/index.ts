@@ -4,7 +4,7 @@
 // theme): types.ts (QueueRowView, StepResultView),
 // format.ts (labels, durations, the state chip, in-flight), resting.ts
 // (the resting-state chip), notice.ts (the row's one long message),
-// tdd.ts (completedThirds) and word-phase.ts (wordPhase, spec 108).
+// tdd.ts (completedThirds) and word-phase.ts (wordPhase).
 // Kept as a barrel at this path because most of the render layer
 // imports from it.
 

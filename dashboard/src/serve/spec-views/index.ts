@@ -37,25 +37,25 @@ export interface SpecViewsContext {
   withFreshness: (list: SpecTarget[]) => SpecTarget[];
   jobRow: (job: Job) => Promise<QueueRowView>;
   specFileCommits: SpecFileCommitChecker;
-  /** REQ-1/REQ-6: the same "is this branch open" primitive
+  /** The same "is this branch open" primitive
    *  `rootsStillHolding()` already calls, reused here so the Checks
    *  section can read an active spec's real, already-committed
    *  progress off its own `aide/<folder>` branch when one is open,
    *  rather than off whatever `main`'s copy of `4-status.md` says. */
   branchStatus: BranchStatusChecker;
   specsRoot: (dir: string) => Promise<string>;
-  /** REQ-6: the peek `archivedSpecRows` reads an archived spec's true
+  /** The peek `archivedSpecRows` reads an archived spec's true
    *  creation date off, warmed by `refreshSpecCaches`'s own archived-dir
    *  sweep — the same "already exists at the top level, just not
    *  threaded through" gap `schedules.specCreatedAt` had before this. */
   specCreatedAt: SpecCreatedAtChecker;
-  /** Whether `md-to-pdf` is resolvable on this host (spec 358, REQ-7) —
+  /** Whether `md-to-pdf` is resolvable on this host —
    *  the only new field `specPageView` itself reads; `pdfCacheDir`/
    *  `pdfGeneratorBin` live only on `RoutesContext`, where the
    *  route that actually spawns the script runs. */
   pdfToolAvailable: boolean;
   /** The board registry and `previewAvailable`/status-refresh primitives
-   *  (spec 388) — the only new field `specPageView` itself reads;
+   *  the only new field `specPageView` itself reads;
    *  the routes that start/stop a board live on `RoutesContext`. */
   testServers: TestServersContext;
 }
@@ -87,7 +87,7 @@ export async function specFileViews(ctx: SpecViewsContext, dir: string): Promise
  *  path outside it would answer nothing at all.
  *
  *  `null` from both is a real answer and the page prints it in words.
- *  Only a spec with no stamp reaches git, which since spec 147 is a
+ *  Only a spec with no stamp reaches git, which is a
  *  shrinking minority. */
 
 // The three families that used to live here as well.

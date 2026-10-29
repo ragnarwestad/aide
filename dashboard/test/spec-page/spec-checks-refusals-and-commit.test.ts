@@ -38,7 +38,7 @@ describe("the checks on the Overview tab", () => {
     });
   });
 
-  // --- criterion 7: a tick that cannot go through changes nothing -----------
+  // --- A tick that cannot go through changes nothing -----------
 
   test("a 4-status.md that moved under the reader refuses the tick", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
@@ -130,7 +130,7 @@ describe("the checks on the Overview tab", () => {
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
-  // Spec 163: an archived spec is a record, and the guard is on the
+  // An archived spec is a record, and the guard is on the
   // route — hiding the boxes leaves it live for anyone with the URL.
   test("an archived spec's checks cannot be ticked", async () => {
     const { base, dir } = harness.start({
@@ -230,9 +230,9 @@ describe("after a tick is saved", () => {
   });
 });
 
-// --- spec 509: the Not verified mark through the tick route --------------------
+// --- The Not verified mark through the tick route --------------------
 
-describe("the tick route and the Not verified mark (spec 509)", () => {
+describe("the tick route and the Not verified mark", () => {
   const ok = async (res: Response) => {
     const { status, body } = await answer(res);
     expect(status).toBe(200);
@@ -249,7 +249,7 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
   const NV_FILE = STATUS.replace(SECOND_OPEN_ROW, NV_ROW);
   const asNv = (row: string) => marked(row);
 
-  test("the Not verified box alone marks an open row, in one commit with the state (AC-1)", async () => {
+  test("the Not verified box alone marks an open row, in one commit with the state", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
     await ok(await tick(base, { unverified: [OPEN_ROW] }));
@@ -262,51 +262,51 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
     expect(added).toContain("4-status.json");
   });
 
-  test("both boxes on a done row make it Not verified (AC-1)", async () => {
+  test("both boxes on a done row make it Not verified", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
     await ok(await tick(base, { ticks: [DONE_ROW], unverified: [DONE_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(DONE_ROW, asNv(DONE_ROW)));
   });
 
-  test("both boxes on an open row make it done (AC-1)", async () => {
+  test("both boxes on an open row make it done", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
     await ok(await tick(base, { ticks: [OPEN_ROW], unverified: [OPEN_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
   });
 
-  test("both boxes on a Not verified row make it done (AC-1)", async () => {
+  test("both boxes on a Not verified row make it done", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
     await ok(await tick(base, { ticks: [NV_ROW], unverified: [NV_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
   });
 
-  test("the tick box alone on a Not verified row makes it done, not skipped as already made (AC-1)", async () => {
+  test("the tick box alone on a Not verified row makes it done, not skipped as already made", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
     await ok(await tick(base, { ticks: [NV_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "✅")));
   });
 
-  test("no box on a Not verified row sends it back to open (AC-1)", async () => {
+  test("no box on a Not verified row sends it back to open", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_FILE);
     await ok(await tick(base, { rows: [NV_ROW] }));
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(NV_FILE.replace(NV_ROW, NV_ROW.replace("Not verified", "⬜")));
   });
 
-  test("a Not verified row left as it was commits nothing (AC-1)", async () => {
+  test("a Not verified row left as it was commits nothing", async () => {
     const git = recording();
     const { base } = startWithChecks(git.run, NV_FILE);
     expect((await ok(await tick(base, { unverified: [NV_ROW] }))).changed).toBe(false);
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
   });
 
-  test("ticking the last Not verified row leaves no notVerified row in the state (AC-6)", async () => {
+  test("ticking the last Not verified row leaves no notVerified row in the state", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_STATUS);
     await ok(await tick(base, { ticks: [DONE_ROW, NV_ROW] }));
     const rows: { done: boolean; notVerified?: boolean }[] = stateOf(dir).acceptanceCriteria;
     expect(rows.every((r) => r.done && !("notVerified" in r))).toBe(true);
   });
 
-  test("an installed aide-write-spec that derives no flag refuses, and nothing is committed (AC-18)", async () => {
+  test("an installed aide-write-spec that derives no flag refuses, and nothing is committed", async () => {
     const scratch = mkdtempSync(join(tmpdir(), "old-write-spec-"));
     const stub = join(scratch, "old-write-spec");
     const state = JSON.stringify({ completedPhases: [], acceptanceCriteria: [{ task: "x", done: true }], phaseCounts: {} });
@@ -342,7 +342,7 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
       tick(base, { ...over, path: `/api/queue/specs/aide/${ARCHIVED}/tick` });
     const fileOf = (dir: string, name = "4-status.md") => join(dir, "root", "aide", "specs", "archive", ARCHIVED, name);
 
-    test("the Not verified row can be completed, and 4-status.md and 4-status.json are committed (AC-5)", async () => {
+    test("the Not verified row can be completed, and 4-status.md and 4-status.json are committed", async () => {
       const git = recording();
       const { base, dir } = start(ARCHIVED_STATUS, git.run);
       await ok(await tickArchived(base, { ticks: [NV_ROW] }));
@@ -352,7 +352,7 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
       expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
     });
 
-    test("it writes to the specs repository's default branch even when a branch of that name is open (AC-5)", async () => {
+    test("it writes to the specs repository's default branch even when a branch of that name is open", async () => {
       const open = branchAwareGitRunner({ folder: ARCHIVED, branchText: ARCHIVED_STATUS });
       const { base, dir } = start(ARCHIVED_STATUS, open.run);
       await ok(await tickArchived(base, { ticks: [NV_ROW] }));
@@ -360,7 +360,7 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
       expect(open.calls.some((c) => c.args[0] === "commit-tree")).toBe(false);
     });
 
-    test("un-ticking the done row or marking another is refused; leaving the Not verified row alone changes nothing (AC-5)", async () => {
+    test("un-ticking the done row or marking another is refused; leaving the Not verified row alone changes nothing", async () => {
       const tries: Parameters<typeof tick>[1][] = [
         { rows: [DONE_ROW, NV_ROW], ticks: [NV_ROW] },
         { ticks: [DONE_ROW], unverified: [DONE_ROW, NV_ROW] , rows: [DONE_ROW, NV_ROW] },
@@ -376,7 +376,7 @@ describe("the tick route and the Not verified mark (spec 509)", () => {
       }
     });
 
-    test("a closed spec refuses every change (AC-5)", async () => {
+    test("a closed spec refuses every change", async () => {
       const closed = `${NV_STATUS}\n- **Closed:** 2026-09-01\n`;
       const { base, dir } = start(closed);
       await refused(await tickArchived(base, { ticks: [NV_ROW] }));

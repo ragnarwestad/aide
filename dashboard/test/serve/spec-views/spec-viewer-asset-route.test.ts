@@ -1,4 +1,4 @@
-// GET /spec-viewer.js (spec 333, finishing spec 315's split): the
+// GET /spec-viewer.js: the
 // read-only rendering bundle, served from its own path and revalidated
 // by ETag exactly the way /spec-editor.js already is —
 // spec-editor-asset-route.test.ts's own pattern, mirrored onto the
@@ -10,7 +10,7 @@ const harness = queueHarness("aide-spec-viewer-asset-route-");
 afterEach(() => harness.cleanup());
 
 describe("GET /spec-viewer.js", () => {
-  // REQ-5: a fresh server that has never answered any request still
+  // A fresh server that has never answered any request still
   // serves the bundle on its very first request — no warm-up step.
   test("a fresh server's first request returns the bundle with an ETag", async () => {
     const { base } = harness.start();

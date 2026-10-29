@@ -1,4 +1,4 @@
-// The /schedule page's own client wiring (spec 276): the Enabled
+// The /schedule page's own client wiring: the Enabled
 // toggle, the Run-now button, and the live cron-next preview on the
 // create/edit form. Unlike the queue list's rows, nothing here is
 // swapped from the server on a timer — each control writes straight
@@ -9,7 +9,7 @@ import { isThisPage, type Here } from "./back-link";
 import { postForm, refusalText, writeLine, type ActionResult } from "./press.ts";
 
 /** The Enabled checkbox on a list row: no form, no confirm — the tick
- *  itself is the press (acceptance criterion 14), the same shape
+ *  itself is the press, the same shape
  *  `postTailStep` gives the queue list's own tail-step chip. Disabled
  *  while the request is out; put back to its old value on a refusal,
  *  left alone on success since the box already shows what was asked
@@ -32,10 +32,10 @@ export async function postScheduleEnabled(box: HTMLInputElement, fetchImpl: type
   }
 }
 
-/** The Run-now button's carrier form (acceptance criterion 15). It posts
+/** The Run-now button's carrier form. It posts
  *  without leaving the page; the entry's Report tab says a run is queued
  *  or running. A refusal, or a request that did not get through, is
- *  written into the page's `.refused` slot (spec 494), and the next
+ *  written into the page's `.refused` slot, and the next
  *  accepted press empties it again. */
 export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof fetch = fetch): Promise<void> {
   const button = form.querySelector("button") as HTMLButtonElement | null;
@@ -132,7 +132,7 @@ const timers = new WeakMap<HTMLInputElement, ReturnType<typeof setTimeout>>();
 /** What the Cron field's preview writes back: `Next run: <iso>` on a
  *  cron that parses, the server's own error text otherwise — never
  *  both, and never a stale timestamp left over from before the field's
- *  last edit (acceptance criterion 16). */
+ *  last edit. */
 export async function runCronPreview(
   input: HTMLInputElement,
   target: HTMLElement,

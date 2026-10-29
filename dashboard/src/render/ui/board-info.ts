@@ -1,4 +1,4 @@
-// The identity of the process this server IS (spec 424): whether it is
+// The identity of the process this server IS: whether it is
 // an ordinary board or a test one, and if so which spec/branch it
 // serves. Set once, at boot, from the CLI flag that started this
 // process (`ServerOptions.testBoardSpec`) — never per request, since a

@@ -51,7 +51,7 @@ describe("← Back after switching tabs", () => {
     page = await (await browser.newContext({ serviceWorkers: "block" })).newPage();
   });
 
-  test("the project page opened from the Specs page leads Back there after its tabs (AC-1)", async () => {
+  test("the project page opened from the Specs page leads Back there after its tabs", async () => {
     await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(Specs)");
     const project = page.locator('#jobrows a[href="/projects/aide"]').first();
     await withBrowser(Promise.all([page.waitForURL(/\/projects\/aide$/), project.click()]), "the project link");
@@ -63,14 +63,14 @@ describe("← Back after switching tabs", () => {
     expect(new URL(page.url()).pathname).toBe("/specs");
   });
 
-  test("a typed address leads Back to Projects, also after a tab (AC-2)", async () => {
+  test("a typed address leads Back to Projects, also after a tab", async () => {
     await withBrowser(page.goto(`${base}/projects/aide`), "page.goto(project page)");
     expect(await backPath(page)).toBe("/projects");
     await clickTab(page, "Config");
     expect(await backPath(page)).toBe("/projects");
   });
 
-  test("opened again from a spec's open row, Back leads to that address, not the Specs page (AC-3)", async () => {
+  test("opened again from a spec's open row, Back leads to that address, not the Specs page", async () => {
     await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?live=0`), "page.goto(spec address)");
     const project = page.locator('#jobrows a[href="/projects/aide"]').first();
     await withBrowser(Promise.all([page.waitForURL(/\/projects\/aide$/), project.click()]), "the project link");
@@ -79,7 +79,7 @@ describe("← Back after switching tabs", () => {
   });
 });
 
-test("Settings opened from a spec page leads Back there after its Process tab (AC-1)", async () => {
+test("Settings opened from a spec page leads Back there after its Process tab", async () => {
   const page = await browser.newPage();
   await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?live=0`), "page.goto(spec page)");
   await page.locator("header details.menu:not(.theme):not(.lang):not(.unit) > summary").click();

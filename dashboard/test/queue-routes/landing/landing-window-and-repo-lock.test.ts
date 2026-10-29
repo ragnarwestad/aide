@@ -21,12 +21,12 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// Spec 254: `Runner.complete()` writes `state: "done"` and `landing: true`
+// `Runner.complete()` writes `state: "done"` and `landing: true`
 // in the same update — the merge into the default branch has not
 // happened yet. This holds that merge open the way
 // `cache-warmer.test.ts`'s `recordingGit({ hold })` holds `ls-remote`,
 // long enough to observe the job mid-landing.
-describe("a step reads busy for the whole landing window (spec 254)", () => {
+describe("a step reads busy for the whole landing window", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
   const SPEC = "81-queue-and-runner";
 
@@ -123,7 +123,7 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
     branchUrls: [{ root: specs, url: "https://example.test/aide-specs" }],
   });
 
-  // Criteria 1 and 2. `job.landing` is already true the instant the
+  // `job.landing` is already true the instant the
   // step's own result arrives — well before the merge below returns.
   test("mid-landing the job reads landing:true and a same-spec enqueue is refused", async () => {
     const dir = own("aide-254-landing-");
@@ -150,7 +150,7 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
     await settle(base, job.id, (j) => !j.landing);
   });
 
-  // Criterion 5. A newer job that has already settled (cancelled, in
+  // A newer job that has already settled (cancelled, in
   // this case) must not push a still-landing job out of the lead slot
   // by coincidence of sort order.
   test("the single-spec page picks the still-landing job as lead, not a newer settled one", async () => {
@@ -177,7 +177,7 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
     // that reason, and by counting the analyze job's one step. A page
     // that had taken the decoy as lead would offer Close and know
     // nothing of a landing.
-    // Spec 457: the disabled reason names the button ("Close can't run
+    // The disabled reason names the button ("Close can't run
     // right now"), reworded when its own "(?)" was folded into the
     // action row's single shared one.
     expect(html).toContain("Close can't run right now because a merge is in progress.");
@@ -188,7 +188,7 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
     await settle(base, job.id, (j) => !j.landing);
   });
 });
-// --- spec 99: one merge at a time, the view survives, a refusal is seen -----
+// --- One merge at a time, the view survives, a refusal is seen -----
 
 // Pressing Merge on two specs one after the other, with nothing else
 // running, answered "cannot fast-forward main in …/aide-specs — merge
@@ -196,11 +196,11 @@ describe("a step reads busy for the whole landing window (spec 254)", () => {
 // fought over its index.lock. Both went through on a retry, which is
 // what says it was a race and not a divergence.
 //
-// Spec 149 removed the button and made the collision likelier, not
-// rarer: four steps land themselves now, and two specs sharing one
+// There is no Merge button, which makes the collision likelier, not
+// rarer: four steps land themselves, and two specs sharing one
 // specs repo can finish within seconds of each other under queue
 // concurrency. So the same measurement is taken over two LANDINGS.
-describe("two landings against one repo run one at a time (criteria 6, 10)", () => {
+describe("two landings against one repo run one at a time", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
   const SHARED_REPO = "/repos/aide-specs";
   const SECOND_SPEC = "82-second-spec";
@@ -231,7 +231,7 @@ describe("two landings against one repo run one at a time (criteria 6, 10)", () 
     return { run, peak: () => peak };
   }
 
-  test("neither landing ever sees the other mid-merge, and both go through (criterion 6)", async () => {
+  test("neither landing ever sees the other mid-merge, and both go through", async () => {
     const results = mkdtempSync(join(tmpdir(), "aide-lock-results-"));
     ownDirs.push(results);
     const git = gitCounting();
@@ -291,7 +291,7 @@ describe("two landings against one repo run one at a time (criteria 6, 10)", () 
 
 // The lock is a map of chained promises, and a map a long-running
 // server never empties is a map that grows for as long as it is up.
-describe("the per-repo lock lets go once its chain has settled (criterion 10)", () => {
+describe("the per-repo lock lets go once its chain has settled", () => {
   test("work for one root is serialized, in the order it was asked for", async () => {
     const lock = createRootLock();
     const order: string[] = [];

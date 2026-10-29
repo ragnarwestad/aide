@@ -80,7 +80,7 @@ describe("refreshSchedules", () => {
     expect(job?.steps).toEqual(["schedule"]);
   });
 
-  test("does not enqueue a duplicate while one is already queued (acceptance criterion 2)", async () => {
+  test("does not enqueue a duplicate while one is already queued", async () => {
     const { base } = harness.start({
       extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
@@ -134,7 +134,7 @@ describe("refreshSchedules", () => {
   });
 
   // Jobs are read from the queue config file and nowhere else.
-  test("a due entry only a project's manifest lists enqueues nothing (AC-2)", async () => {
+  test("a due entry only a project's manifest lists enqueues nothing", async () => {
     const { base, dir } = harness.start({
       extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
@@ -147,7 +147,7 @@ describe("refreshSchedules", () => {
     expect((await jobs(base)).some((j) => j.steps.includes("schedule"))).toBe(false);
   });
 
-  test("a server whose config file does not exist has no scheduled jobs, whatever the manifests say (AC-3)", async () => {
+  test("a server whose config file does not exist has no scheduled jobs, whatever the manifests say", async () => {
     const { base, dir } = harness.start({
       extra: { queueConfigFile: join(cfgDir, "missing.json"), driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
@@ -283,7 +283,7 @@ describe("refreshSchedules and a refused fire", () => {
       expect(await tick()).toHaveLength(1);
     });
 
-    test("a config file the store cannot parse enqueues nothing, and one line names the file (AC-2)", async () => {
+    test("a config file the store cannot parse enqueues nothing, and one line names the file", async () => {
       setup([DAILY]);
       writeFileSync(cfg, "{ not json");
       const enqueued: unknown[] = [];

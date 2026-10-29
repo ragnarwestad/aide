@@ -58,7 +58,7 @@ export interface ScheduleSetupInputs {
   checkoutEnsurer: CheckoutEnsurer;
   gitRun: GitRunner;
   notifyQueueChanged: () => void;
-  /** Spec 298: the same resolver `LandContext.specsRoot` already gives
+  /** The same resolver `LandContext.specsRoot` already gives
    *  `resolveOpenBranchTarget` — what `warmSpec` needs to ask whether a
    *  live spec's own `aide/<folder>` branch is still open. */
   specsRoot: (dir: string) => Promise<string>;
@@ -68,7 +68,7 @@ export interface ScheduleSetupInputs {
 
 /** How often the spec caches are refilled, and how long one answer stands.
  *  The window is never longer than the schedule: a longer one would hand
- *  the schedule its own old answer (spec 208). It may be shorter, so an
+ *  the schedule its own old answer. It may be shorter, so an
  *  answer an action asks for between two runs is taken afresh. A poll of
  *  `0` turns the schedule off, which is a test seam and not a window — the
  *  checkers keep their own default there, so an answer put in by hand
@@ -99,13 +99,13 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   // A third user of the same runner: has the description moved on since
   // the plan was written?
   const freshness = new DescriptionFreshnessChecker({ run: gitRun, ttlMs: specCacheTtlMs });
-  // And a fourth: which steps this spec has actually had (spec 154).
+  // And a fourth: which steps this spec has actually had.
   const workflowHistory = new WorkflowHistoryChecker({ run: gitRun, ttlMs: specCacheTtlMs });
-  // A fifth: when the spec was MADE (spec 199).
+  // A fifth: when the spec was MADE.
   const specCreatedAt = new SpecCreatedAtChecker({ run: gitRun, ttlMs: specCacheTtlMs });
-  // And a sixth (spec 208): which commit last touched each spec file.
+  // And a sixth: which commit last touched each spec file.
   const specFileCommits = new SpecFileCommitChecker({ run: gitRun, ttlMs: specCacheTtlMs });
-  // And a seventh (spec 298): the file half of the disagreement
+  // And a seventh: the file half of the disagreement
   // comparison, read from a spec's own open branch instead of the
   // default-branch checkout's stale copy.
   const branchFileSteps = new BranchFileStepsChecker({ run: gitRun, ttlMs: specCacheTtlMs });
@@ -197,7 +197,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
       : null;
   specCacheTimer?.unref?.();
 
-  /** Spec 259: does any project's own `schedule:` entry have a fire due
+  /** Does any project's own `schedule:` entry have a fire due
    *  right now, and if so enqueue it. A SCHEDULE, not a cache window,
    *  like `driftPollMs` and `specCachePollMs`. */
   const scheduleCheckMs = opts.scheduleCheckMs ?? DEFAULT_TTL_MS;

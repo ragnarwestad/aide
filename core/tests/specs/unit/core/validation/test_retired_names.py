@@ -13,7 +13,7 @@ RETIRED = {
     "AC-2": ["aide-" + "manifest"],
     "AC-3": ["AIDE_" + "WORKTREE_LINKS", "AIDE_" + "PREVIEW_CMD", "AIDE_" + "TEST_SCOPE_"],
 }
-NAMES = [pytest.param(name, id=f"{name} ({ac})") for ac, names in RETIRED.items() for name in names]
+NAMES = [pytest.param(name, id=name) for names in RETIRED.values() for name in names]
 
 
 @pytest.mark.parametrize("name", NAMES)

@@ -70,7 +70,7 @@ def test_create_keeps_an_instruction_in_the_description_inside_its_tag(runner, w
 
 
 def test_create_states_the_provisional_key_and_skips_steps_2_and_3(runner, workspace, fake_claude):
-    """Spec 453: the real number and slug are landing's business now, not
+    """The real number and slug are landing's business now, not
     this session's — stated to the skill the same way depends_line and
     accept_line already are, so it knows to call aide-create-spec
     --folder-name instead of picking a number itself."""
@@ -86,7 +86,7 @@ def test_create_states_the_provisional_key_and_skips_steps_2_and_3(runner, works
 
 
 def test_create_states_the_depends_on_value_the_form_chose(runner, workspace, fake_claude):
-    """Spec 110: the `Depends on:` line has had a reader since spec 92 and
+    """The `Depends on:` line has a reader and
     no writer but a person at a shell. The value is STATED in the prompt,
     in the same voice as the title, for the same reason: it is a fact the
     skill is told, not a sub-format invented inside the argument string."""
@@ -108,7 +108,7 @@ def test_create_without_the_flag_says_nothing_about_dependencies(runner, workspa
     assert "Depends-on" not in out["prompt"], out["prompt"]
 
 def test_create_states_the_acceptance_record_when_the_flag_is_given(runner, workspace, fake_claude):
-    """Spec 394: stated to the skill, not just to the harness, mirroring
+    """Stated to the skill, not just to the harness, mirroring
     `depends_line` — Step 4 is the step that actually writes the file,
     so the instruction names it by number."""
     claude = fake_claude("exit 1")
@@ -144,7 +144,7 @@ def test_the_two_acceptance_answers_are_never_both_stated(runner, workspace, fak
 
 def test_create_reports_the_folder_the_step_actually_made(runner, workspace, fake_claude):
     """Read off the disk, never computed: the run diffs the specs root
-    before and after. Since spec 453 the folder a session makes is the
+    before and after. The folder a session makes is the
     provisional key itself — the landing gives it its number."""
     claude = creating_claude(fake_claude, [CREATE_KEY])
     rc, out, _ = create(runner, workspace, claude)
@@ -214,10 +214,10 @@ def test_create_is_told_the_specs_root_it_must_write_under(runner, workspace, fa
     assert out["ok"] is True, out
     assert f'pass --specs-root "{root.read_text()}" to aide-create-spec' in seen.read_text()
 
-# --- spec 433: create with no AI session at all ------------------------------
+# --- Create with no AI session at all ------------------------------
 
 def test_create_with_no_ai_formulate_spawns_no_ai(runner, workspace, fake_claude):
-    """AC-1: the box cleared means create writes the spec directly, no
+    """The box cleared means create writes the spec directly, no
     claude/codex process at all — regardless of whether the description
     has an '## Acceptance criteria' section."""
     claude = fake_claude("exit 1")
@@ -232,7 +232,7 @@ def test_create_with_no_ai_formulate_spawns_no_ai(runner, workspace, fake_claude
 
 
 def test_create_with_no_ai_formulate_reports_zero_measured_cost_and_tool_none(runner, workspace, fake_claude):
-    """AC-2/AC-6: the result JSON says the step is done, cost 0, measured,
+    """The result JSON says the step is done, cost 0, measured,
     and names which of the two paths create took."""
     claude = fake_claude("exit 1")
     rc, out, _ = create(runner, workspace, claude, no_ai_formulate=True)
@@ -244,7 +244,7 @@ def test_create_with_no_ai_formulate_reports_zero_measured_cost_and_tool_none(ru
 
 
 def test_create_with_no_ai_formulate_makes_the_provisional_named_folder(runner, workspace, fake_claude):
-    """AC-3 (spec 453): the literal provisional key, never a computed
+    """The literal provisional key, never a computed
     number — the no-AI path is headless by construction, exactly like
     the AI-driven skill path, and the real number and slug are landing's
     business now, assigned under the specs repo's own lock. Same 5 files
@@ -267,7 +267,7 @@ def test_create_with_no_ai_formulate_makes_the_provisional_named_folder(runner, 
 
 
 def test_create_with_no_ai_formulate_states_depends_on_and_acceptance(runner, workspace, fake_claude):
-    """AC-3: Depends on and the acceptance choice reach Tracking info
+    """Depends on and the acceptance choice reach Tracking info
     exactly as the form set them."""
     claude = fake_claude("exit 1")
     rc, out, _ = create(
@@ -288,7 +288,7 @@ def test_create_with_no_ai_formulate_states_depends_on_and_acceptance(runner, wo
     "- AC-1: WHEN the thing is asked for, the board SHALL do it.",
     "Do the thing, and also the other thing.",
 ])
-def test_create_with_no_ai_formulate_keeps_the_description_s_criteria_as_typed_AC_1(
+def test_create_with_no_ai_formulate_keeps_the_description_s_criteria_as_typed(
         runner, workspace, fake_claude, description):
     """The box cleared: the criteria come through exactly as typed (the
     bold added, nothing else), none is added, and none is made up for a
@@ -327,7 +327,7 @@ def test_create_with_no_ai_formulate_surfaces_a_refused_write(runner, workspace,
 
 
 def test_create_without_the_flag_still_spawns_ai_byte_for_byte(runner, workspace, fake_claude):
-    """AC-5: the box left ticked (the flag omitted) produces exactly
+    """The box left ticked (the flag omitted) produces exactly
     today's argv/prompt — the no-AI path changes nothing about it."""
     claude = fake_claude("exit 1")
     rc, out, _ = create(runner, workspace, claude, dry_run=True)
@@ -336,7 +336,7 @@ def test_create_without_the_flag_still_spawns_ai_byte_for_byte(runner, workspace
 
 
 def test_create_with_no_ai_formulate_finishes_well_under_the_time_limit(runner, workspace, fake_claude):
-    """AC-2's timing clause: the whole step, not merely the missing AI
+    """The timing clause: the whole step, not merely the missing AI
     spawn."""
     claude = fake_claude("exit 1")
     rc, out, _ = create(runner, workspace, claude, no_ai_formulate=True)
@@ -371,28 +371,28 @@ def _line_after_created(text):
     return lines[at + 1]
 
 
-def test_a_create_without_ai_records_the_chosen_level_after_created_AC_4(runner, workspace, fake_claude):
+def test_a_create_without_ai_records_the_chosen_level_after_created(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, fake_claude("exit 1"), no_ai_formulate=True, criteria_checks="stop")
     assert rc == 0, out
     assert out["ok"] is True, out
     assert _line_after_created(_created_description(workspace)) == f"{LEVEL_LINE} stop"
 
 
-def test_a_create_with_an_ai_session_records_the_chosen_level_after_created_AC_4(runner, workspace, fake_claude):
+def test_a_create_with_an_ai_session_records_the_chosen_level_after_created(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_OK), criteria_checks="stop")
     assert rc == 0, out
     assert out["ok"] is True, out
     assert _line_after_created(_created_description(workspace)) == f"{LEVEL_LINE} stop"
 
 
-def test_a_create_without_the_flag_records_no_level_AC_5(runner, workspace, fake_claude):
+def test_a_create_without_the_flag_records_no_level(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_OK))
     assert rc == 0, out
     assert out["ok"] is True, out
     assert LEVEL_LINE not in _created_description(workspace)
 
 
-def test_a_failed_create_records_no_level_AC_4(runner, workspace, fake_claude):
+def test_a_failed_create_records_no_level(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_ERROR), criteria_checks="stop")
     assert out["ok"] is False, out
     written = [p.read_text() for root in (workspace["specs"], workspace["wtbase"]) for p in root.rglob("1-description.md")]
@@ -400,7 +400,7 @@ def test_a_failed_create_records_no_level_AC_4(runner, workspace, fake_claude):
     assert LEVEL_LINE not in git(workspace["specs"], "log", "--all", "-p")
 
 
-def test_an_unknown_level_is_refused_before_anything_runs_AC_4(runner, workspace, fake_claude):
+def test_an_unknown_level_is_refused_before_anything_runs(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, fake_claude("exit 1"), criteria_checks="strict")
     assert rc == 2, out
     assert out["ok"] is False, out
@@ -414,14 +414,14 @@ APPROACH_LINE = "- **Let me choose the approach:**"
 
 
 @pytest.mark.parametrize("value", ["yes", "no"])
-def test_a_create_without_ai_records_whether_to_choose_the_approach_AC_10(runner, workspace, fake_claude, value):
+def test_a_create_without_ai_records_whether_to_choose_the_approach(runner, workspace, fake_claude, value):
     rc, out, _ = create(runner, workspace, fake_claude("exit 1"), no_ai_formulate=True, choose_approach=value)
     assert rc == 0, out
     assert out["ok"] is True, out
     assert _line_after_created(_created_description(workspace)) == f"{APPROACH_LINE} {value}"
 
 
-def test_a_create_with_an_ai_session_records_it_after_the_criteria_checks_level_AC_10(runner, workspace, fake_claude):
+def test_a_create_with_an_ai_session_records_it_after_the_criteria_checks_level(runner, workspace, fake_claude):
     rc, out, _ = create(
         runner, workspace, _describing_claude(fake_claude, RESULT_OK), criteria_checks="warn", choose_approach="yes",
     )
@@ -433,19 +433,19 @@ def test_a_create_with_an_ai_session_records_it_after_the_criteria_checks_level_
     assert sum(1 for l in lines if l.startswith(APPROACH_LINE)) == 1, lines
 
 
-def test_a_create_without_the_choose_approach_flag_records_no_line_AC_10(runner, workspace, fake_claude):
+def test_a_create_without_the_choose_approach_flag_records_no_line(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_OK))
     assert rc == 0, out
     assert APPROACH_LINE not in _created_description(workspace)
 
 
-def test_a_failed_create_records_no_choose_approach_line_AC_10(runner, workspace, fake_claude):
+def test_a_failed_create_records_no_choose_approach_line(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_ERROR), choose_approach="yes")
     assert out["ok"] is False, out
     assert APPROACH_LINE not in git(workspace["specs"], "log", "--all", "-p")
 
 
-def test_an_unknown_choose_approach_value_is_refused_before_anything_runs_AC_10(runner, workspace, fake_claude):
+def test_an_unknown_choose_approach_value_is_refused_before_anything_runs(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, fake_claude("exit 1"), choose_approach="maybe")
     assert rc == 2, out
     assert out["ok"] is False, out
@@ -462,21 +462,21 @@ def _formulate_lines(workspace):
     return [l for l in _created_description(workspace).splitlines() if l.startswith(FORMULATE_LINE)]
 
 
-def test_a_create_with_an_ai_session_records_that_ai_formulated_the_criteria_AC_5(runner, workspace, fake_claude):
+def test_a_create_with_an_ai_session_records_that_ai_formulated_the_criteria(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_OK))
     assert rc == 0, out
     assert out["ok"] is True, out
     assert _formulate_lines(workspace) == [f"{FORMULATE_LINE} yes"]
 
 
-def test_a_create_without_ai_records_that_it_did_not_AC_5(runner, workspace, fake_claude):
+def test_a_create_without_ai_records_that_it_did_not(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, fake_claude("exit 1"), no_ai_formulate=True)
     assert rc == 0, out
     assert out["ok"] is True, out
     assert _formulate_lines(workspace) == [f"{FORMULATE_LINE} no"]
 
 
-def test_a_failed_create_records_no_formulation_line_AC_5(runner, workspace, fake_claude):
+def test_a_failed_create_records_no_formulation_line(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, _describing_claude(fake_claude, RESULT_ERROR))
     assert out["ok"] is False, out
     assert FORMULATE_LINE not in git(workspace["specs"], "log", "--all", "-p")
@@ -485,7 +485,7 @@ def test_a_failed_create_records_no_formulation_line_AC_5(runner, workspace, fak
 def test_schedule_runs_with_no_spec_folder_and_sends_the_file_verbatim(
     runner, workspace, fake_claude
 ):
-    """AC4: `--command schedule --prompt-file <path>` with no folder for
+    """`--command schedule --prompt-file <path>` with no folder for
     the tracking key under the specs root must not refuse with `unknown
     spec: ...`, and the prompt is the named file's own contents, not an
     aide slash command."""

@@ -12,8 +12,8 @@ import {
 import { RUN_STEPS } from "../../../src/render/pages/specs-list";
 
 const DEFAULTS: QueueDefaults = {
-  // Per step since spec 152: an implement is not an analyze, and one
-  // number for both stopped 149 mid-sentence with its tests green.
+  // Per step: an implement is not an analyze, and one number for both
+  // stopped an implement mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -28,7 +28,7 @@ const resolve = (project: string) =>
       ? { specFolders: ["01-first"] }
       : null;
 
-// Spec 160: the steps a running job's tail may be given are exactly the
+// The steps a running job's tail may be given are exactly the
 // ones a spec's row draws a box for. Two lists, in two layers that do
 // not import each other — the render side knows nothing of the queue's
 // module, deliberately — so this is what says they agree.
@@ -41,17 +41,17 @@ describe("PHASE_STEPS", () => {
   });
 });
 
-// Spec 259: a project's own recurring job, queued through the same
+// A project's own recurring job, queued through the same
 // store as every other step. Queueable like `explore`/
 // `reopen`/`reset`, but never a phase a spec passes through.
-describe("WORKFLOW_STEPS — schedule (spec 259)", () => {
+describe("WORKFLOW_STEPS — schedule", () => {
   test("is a workflow step but not a phase", () => {
     expect((WORKFLOW_STEPS as readonly string[]).includes("schedule")).toBe(true);
     expect((PHASE_STEPS as readonly string[]).includes("schedule")).toBe(false);
   });
 });
 
-describe("parseJobRequest — the schedule step (spec 259)", () => {
+describe("parseJobRequest — the schedule step", () => {
   test("a schedule-<name> tracking key needs no existing spec folder", () => {
     const r = parseJobRequest(
       { project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] },
@@ -91,7 +91,7 @@ describe("parseJobRequest — the schedule step (spec 259)", () => {
   });
 });
 
-// Spec 193, criterion 11. `errorReason` is declared twice — once on the
+// `errorReason` is declared twice — once on the
 // stored job and once on the view the render layer builds — for the
 // same reason `PHASE_STEPS` is: the two layers do not import each
 // other. A union widened in one place only is a reason the row cannot
@@ -117,9 +117,9 @@ describe("errorReason", () => {
     const stored = declaredIn("queue/types.ts");
     expect(stored).toEqual(declaredIn("render/ui/job-state/types.ts"));
     // Named, so widening the union without a reader is caught here
-    // rather than at the page: `unlanded` is spec 193's refusal — the
+    // rather than at the page: `unlanded` is the refusal where the
     // spec was archived and a branch of its own is still on origin.
-    // `held-back` is spec 372's: a queued job the scheduler is holding
+    // `held-back` stands apart: a queued job the scheduler is holding
     // back is a different lifecycle point (the job has not started;
     // `state` stays `"queued"`) from the other three, which say why a
     // LANDING was refused after a step ran.

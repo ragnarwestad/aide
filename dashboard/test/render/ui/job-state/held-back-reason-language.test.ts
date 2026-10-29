@@ -2,7 +2,7 @@
 // wrote but a fixed English marker the board derives from the file
 // itself (ACCEPTANCE_CRITERIA_UNTICKED_NOTE) — so a Norwegian row read
 // "arkivering holdt tilbake: the Acceptance criteria are not all ticked
-// yet — …", half in each language (427, 2026-09-09). The marker renders
+// yet — …", half in each language. The marker renders
 // from its catalogue entry; every other reason is shown as written.
 import { describe, expect, test } from "bun:test";
 import { heldBackReasonText } from "../../../../src/render/ui/job-state/notice.ts";

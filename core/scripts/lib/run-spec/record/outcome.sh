@@ -4,23 +4,23 @@
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
 # of the run, are exactly what they were.
-# --- this phase's own outcome record (spec 245) ------------------------------
+# --- this phase's own outcome record ------------------------------
 # `Workflow steps completed` (below) answers "did the SPEC run this step";
 # this answers "how did THIS phase go" — and is written into the phase's
 # own artifact file, not 4-status.md, for every one of the four phases
 # (archive's own copy IS in 4-status.md, since that file is archive's own
-# artifact). Independent of $status_file on purpose (spec 343 tried
-# nesting this inside the same gate as the line and broke a plain
+# artifact). Independent of $status_file on purpose (nesting this
+# inside the same gate as the line broke a plain
 # `create` run: a brand-new spec's 1-description.md is real before
 # 4-status.md exists yet, so gating THIS record on the LATTER file left a
 # fresh `create` step's own phase record unwritten). Unconditional, and
 # therefore still positioned before PASS 1 exactly as it always was — its
 # `Result:` line reflects terminal_reason as cross-checks above left it,
-# same as every terminal_reason this script already had before spec 343;
-# a run that goes on to end `unpushed` (the gate below, REQ-1) is the one
+# same as every terminal_reason this script already had;
+# a run that goes on to end `unpushed` (the gate below) is the one
 # new case where this record can read stale (it was written on the
 # strength of a "completed" the push did not, in the end, confirm), which
-# no REQ-1 through REQ-6 asks this record to guard against — only the
+# nothing asks this record to guard against — only the
 # `Workflow steps completed` line itself carries that guarantee.
 phase_file_for "$command_name" "$commit_label"
 if [ -n "$phase_file" ]; then
@@ -51,7 +51,7 @@ if [ -n "$phase_file" ]; then
   step_duration=$(( $(date +%s) - ${step_started_at:-$(( $(date +%s) - duration ))} ))
   [ "$step_duration" -lt "$duration" ] && step_duration="$duration"
   time_spent_display="$(printf '%dm%02ds' $(( step_duration / 60 )) $(( step_duration % 60 )))"
-  # This phase's own running count (spec 341): read the stamp's CURRENT
+  # This phase's own running count: read the stamp's CURRENT
   # value before the block below replaces it, then add one for this run.
   # The queue's own job memory is bounded and drops the earliest attempts
   # first, so this file is the only place the true count survives.
@@ -91,7 +91,7 @@ if [ -n "$phase_file" ]; then
     [ "$prior_unmeasured" = "true" ] && cost_line="$cost_line (unmeasured)"
   fi
   # The phase's total token count, added to across runs like Cost, off the
-  # same `tokens_json` the result JSON already carries (spec 118/125) —
+  # same `tokens_json` the result JSON already carries —
   # absent, never 0, on the same "measured or not written at all" terms.
   # Written independently of Cost: a Codex phase gets Tokens with no Cost
   # line at all.

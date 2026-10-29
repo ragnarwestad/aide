@@ -1,4 +1,4 @@
-// The Notifications tab's control (spec 501): turn push notifications on
+// The Notifications tab's control: turn push notifications on
 // or off for the device the page is open on.
 //
 // `pushControl` is the whole decision, written against what a browser

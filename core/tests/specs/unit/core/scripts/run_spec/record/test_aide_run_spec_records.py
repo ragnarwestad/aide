@@ -62,7 +62,7 @@ def test_the_line_names_every_step_the_history_has(runner, workspace, fake_claud
 def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
     runner, workspace, fake_claude
 ):
-    """Spec 206: `implement` changes code and nothing under the specs
+    """`implement` changes code and nothing under the specs
     root, so the commit loop there has nothing of the step's own to
     commit. The line rewrite is what gives it something — without it
     the step leaves no trace in either the file or the history, which
@@ -84,7 +84,7 @@ def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
     assert subject("implement", model="claude") in branch_log, branch_log
 
 def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, fake_claude):
-    """Spec 147, from the other side: the step ran and did not finish.
+    """From the other side: the step ran and did not finish.
     The commit says so — the line, which is about what COMPLETED, does
     not gain it."""
     with_status(workspace, ["create", "analyze"])
@@ -94,7 +94,7 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
     claude = fake_claude(
         "cat > /dev/null\n"
         # Half-written in both roots: the specs change is what the
-        # runner commits under "(stopped: timeout)" — since spec 344's
+        # runner commits under "(stopped: timeout)" — since the
         # fixture already carries the steps line, nothing else in the
         # specs repo would change on a stopped implement.
         + READ_SPECS
@@ -134,10 +134,10 @@ def test_an_interactive_commit_without_the_headless_marker_counts(
 def test_a_historical_review_plan_commit_still_counts_as_completed(
     runner, workspace, fake_claude
 ):
-    """Criterion 2, bash side, and description requirement 2 ("every
+    """Bash side, and the rule ("every
     archived spec whose history contains a review-plan run still
-    displays that history"). `review-plan` folded into `analyze` (spec
-    181) and is no longer a step a NEW run may claim (WORKFLOW_STEPS
+    displays that history"). `review-plan` folded into `analyze`
+    and is no longer a step a NEW run may claim (WORKFLOW_STEPS
     refuses it) or write as its own arc stage (WORKFLOW_ARC no longer
     names it) — but an commit made before this change is still on disk,
     and it must still be recognized: `WORKFLOW_ARC_RETIRED` is what
@@ -173,8 +173,8 @@ def test_a_commit_for_another_spec_is_not_this_spec_history(runner, workspace, f
     assert recorded_line(workspace) == "analyze"
 
 def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_claude):
-    """Not an amend: the line lands in a SECOND commit of its own (spec
-    343), made only once the step's own content is confirmed on origin —
+    """Not an amend: the line lands in a SECOND commit of its own,
+    made only once the step's own content is confirmed on origin —
     never folded into the step's own commit, and never rewriting it."""
     with_status(workspace)
     before = git(workspace["specs"], "rev-parse", "main")
@@ -183,7 +183,7 @@ def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_c
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
     commits = git(workspace["specs"], "log", "--format=%s", f"{before}..{branch}").split("\n")
-    # The model suffix (spec 217) is part of the subject a headless run
+    # The model suffix is part of the subject a headless run
     # writes: the tool is always known, so it is always there. Two
     # commits sharing the same subject: pass 1 (the step's own content)
     # and pass 2 (the line, once pass 1 is confirmed on origin).
@@ -191,7 +191,7 @@ def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_c
     assert recorded_line(workspace) == "analyze"
 
 def test_an_archive_run_finds_the_status_file_it_just_moved(runner, workspace, fake_claude):
-    """The mechanical pre-check (spec 251, core/scripts/aide-archive-spec)
+    """The mechanical pre-check (core/scripts/aide-archive-spec)
     does the `git mv` of the whole folder into `archive/` before the
     runner's commit loop, or the model, ever runs — so the path the line
     has to be written at is not the one the run started with."""
@@ -209,7 +209,7 @@ def test_an_archive_run_finds_the_status_file_it_just_moved(runner, workspace, f
 def test_a_spec_with_no_status_file_is_not_a_failure(runner, workspace, fake_claude):
     """Deletes the fixture's default status file to get back to the
     no-status-file scenario every other test in this file used to run
-    with, before spec 344 gave the fixture a default. Nothing to write
+    with, before the fixture got a default. Nothing to write
     is nothing to do."""
     status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
     status_path.unlink()
@@ -258,7 +258,7 @@ def test_a_line_that_is_already_right_is_not_rewritten(runner, workspace, fake_c
     """The commit loop commits whatever it finds changed. A file
     rewritten to exactly what it already said would put a step's name on
     a commit carrying nothing."""
-    # Spec 217: the Model line is part of "already right" now — a file
+    # The Model line is part of "already right" now — a file
     # missing it has news to gain, and gaining it is a real change.
     with_status(workspace, ["create", "analyze"], models={"analyze": "claude"})
     already_ran(workspace, ["create", "analyze"])
@@ -266,7 +266,7 @@ def test_a_line_that_is_already_right_is_not_rewritten(runner, workspace, fake_c
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     roots = {r["root"]: r for r in out["repos"]}
-    # spec 355: this fixture has never had a 4-status.json before, so
+    # This fixture has never had a 4-status.json before, so
     # this run's own state-file derivation writes one for the first
     # time — the ONE genuinely new file. The prose itself carries no
     # news, exactly as this test's own name says.
@@ -278,7 +278,7 @@ def test_the_state_file_names_the_step_the_run_just_added(runner, workspace, fak
     re-deriving it from prose, so the runner has to hand it the list it
     just wrote — otherwise a file that already existed before the run
     (from create, from a backfill) goes on saying what it said, and the
-    next implement is held back as not analyzed (2026-09-02, spec 361)."""
+    next implement is held back as not analyzed."""
     with_status(workspace, ["create"])
     already_ran(workspace, ["create"])
     state = workspace["specs"] / workspace["folder"] / "4-status.json"
@@ -295,7 +295,7 @@ def test_the_state_file_names_the_step_the_run_just_added(runner, workspace, fak
     assert written["completedPhases"] == ["create", "analyze"]
 
 def test_a_historical_model_line_survives_untouched(runner, workspace, fake_claude):
-    """Risk analysis (3-solution.md, spec 245): specs archived before
+    """Risk analysis (3-solution.md): specs archived before
     this change still carry the old, centralized `Model (<step>):` lines
     — left exactly as they are, not migrated, when a later step's own
     write touches the rest of the file."""
@@ -305,7 +305,7 @@ def test_a_historical_model_line_survives_untouched(runner, workspace, fake_clau
     assert rc == 0, out
     assert recorded_model(workspace, "create") == "claude claude-opus-5"
 
-def test_a_completed_analysis_takes_implement_off_the_line_and_the_state_AC_1(
+def test_a_completed_analysis_takes_implement_off_the_line_and_the_state(
     runner, workspace, fake_claude
 ):
     with_status(workspace, ["create", "analyze", "implement"])
@@ -319,7 +319,7 @@ def test_a_completed_analysis_takes_implement_off_the_line_and_the_state_AC_1(
 def _specs_changed(out, workspace):
     return {r["root"]: r for r in out["repos"]}[str(workspace["specs"])]["changedFiles"]
 
-def test_a_step_that_ends_after_the_analysis_does_not_bring_implement_back_AC_1(
+def test_a_step_that_ends_after_the_analysis_does_not_bring_implement_back(
     runner, workspace, fake_claude
 ):
     """The analysis reset the line to `create, analyze`. A later run that
@@ -333,7 +333,7 @@ def test_a_step_that_ends_after_the_analysis_does_not_bring_implement_back_AC_1(
     assert out["terminalReason"] == "scope-violation", out
     assert _specs_changed(out, workspace) == 0
 
-def test_an_implement_that_completes_after_the_analysis_names_implement_again_AC_2(
+def test_an_implement_that_completes_after_the_analysis_names_implement_again(
     runner, workspace, fake_claude
 ):
     with_status(workspace, ["create", "analyze"])
@@ -343,7 +343,7 @@ def test_an_implement_that_completes_after_the_analysis_names_implement_again_AC
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement"
 
-def test_an_implement_that_ends_without_completing_leaves_the_reset_line_alone_AC_2(
+def test_an_implement_that_ends_without_completing_leaves_the_reset_line_alone(
     runner, workspace, fake_claude
 ):
     with_status(workspace, ["create", "analyze"])
@@ -353,7 +353,7 @@ def test_an_implement_that_ends_without_completing_leaves_the_reset_line_alone_A
     assert out["terminalReason"] == "no-progress", out
     assert _specs_changed(out, workspace) == 0
 
-def test_an_analysis_on_a_spec_that_never_implemented_changes_nothing_about_implement_AC_4(
+def test_an_analysis_on_a_spec_that_never_implemented_changes_nothing_about_implement(
     runner, workspace, fake_claude
 ):
     with_status(workspace, ["create", "analyze"])
@@ -364,7 +364,7 @@ def test_an_analysis_on_a_spec_that_never_implemented_changes_nothing_about_impl
     assert recorded_line(workspace) == "create, analyze"
     assert state_of(workspace)["completedPhases"] == ["create", "analyze"]
 
-def test_an_analysis_that_ends_without_completing_leaves_implement_on_the_line_AC_5(
+def test_an_analysis_that_ends_without_completing_leaves_implement_on_the_line(
     runner, workspace, fake_claude
 ):
     with_status(workspace, ["create", "analyze", "implement"])
@@ -374,7 +374,7 @@ def test_an_analysis_that_ends_without_completing_leaves_implement_on_the_line_A
     assert out["terminalReason"] == "scope-violation", out
     assert _specs_changed(out, workspace) == 0
 
-def test_a_stopped_analysis_above_an_implement_does_not_take_it_off_AC_5(
+def test_a_stopped_analysis_above_an_implement_does_not_take_it_off(
     runner, workspace, fake_claude
 ):
     """Both scans, not the line: the line here names no `implement`, so
@@ -387,7 +387,7 @@ def test_a_stopped_analysis_above_an_implement_does_not_take_it_off_AC_5(
     assert out["terminalReason"] == "scope-violation", out
     assert recorded_line(workspace) == "create, analyze, implement"
 
-def test_an_analysis_made_on_top_of_an_implement_with_an_earlier_date_still_wins_AC_1(
+def test_an_analysis_made_on_top_of_an_implement_with_an_earlier_date_still_wins(
     runner, workspace, fake_claude
 ):
     """The log's default order can list a commit before one made on top of
@@ -413,7 +413,7 @@ def test_an_analysis_made_on_top_of_an_implement_with_an_earlier_date_still_wins
     assert _specs_changed(out, workspace) == 0
 
 def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root, run_spec_source):
-    """Risk 1, and AC7's structural half. The grammar exists once in
+    """The structural half of the grammar check. The grammar exists once in
     bash (`completed_steps_for`) and once in TypeScript
     (`subjectPattern`), with no shared source, and BOTH anchor on `$`.
     Adding a trailing group to one and not the other would stop every
@@ -451,7 +451,7 @@ def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root, run_
 def test_a_step_only_the_line_knows_about_survives_a_later_recompute(
     runner, workspace, fake_claude
 ):
-    """Acceptance criterion 1, and the Woodstack 22 shape exactly: a
+    """And the Woodstack 22 shape exactly: a
     MULTI-step line, one of whose steps has no commit matching the
     subject grammar anywhere in history, recomputed by a later step."""
     with_status(workspace, ["analyze", "implement"], done=True)
@@ -469,7 +469,7 @@ def test_a_step_only_the_line_knows_about_survives_a_later_recompute(
     assert recorded_line(workspace, path=f"archive/{folder}/4-status.md") == "analyze, implement, archive"
 
 def test_a_step_both_sources_find_is_named_once(runner, workspace, fake_claude):
-    """Acceptance criterion 2. The line and the commit scan overlap for
+    """The line and the commit scan overlap for
     every step that ran headlessly — the union must not double them."""
     with_status(workspace, ["create", "analyze"])
     already_ran(workspace, ["create", "analyze"])
@@ -508,7 +508,7 @@ def _statuses(text):
     return [status for _, status, _ in acceptance_cells(text)]
 
 
-def test_a_completed_analysis_unticks_every_acceptance_row_and_the_state_AC_1(
+def test_a_completed_analysis_unticks_every_acceptance_row_and_the_state(
     runner, workspace, fake_claude
 ):
     _implemented_with_acceptance(
@@ -523,7 +523,7 @@ def test_a_completed_analysis_unticks_every_acceptance_row_and_the_state_AC_1(
     assert len(criteria) == 3
     assert all(not c["done"] and "notVerified" not in c for c in criteria), criteria
 
-def test_a_completed_analysis_leaves_the_phase_rows_alone_AC_1(runner, workspace, fake_claude):
+def test_a_completed_analysis_leaves_the_phase_rows_alone(runner, workspace, fake_claude):
     _implemented_with_acceptance(
         workspace, ["| AC-1: first | ✅ | |"], {1: "first"}, done=True
     )
@@ -533,7 +533,7 @@ def test_a_completed_analysis_leaves_the_phase_rows_alone_AC_1(runner, workspace
     assert "| already done | ✅ | |" in section_of(after, "## Phase 1")
     assert section_of(after, "## Phase 1") == section_of(status_on_main(workspace), "## Phase 1")
 
-def test_a_section_without_a_table_is_left_as_it_is_AC_1(runner, workspace, fake_claude):
+def test_a_section_without_a_table_is_left_as_it_is(runner, workspace, fake_claude):
     sentence = "\n## Acceptance criteria\n\nAcceptance ticking was not required for this run.\n"
     _implemented_with_acceptance(workspace, None, {1: "first"}, section=sentence)
     rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), command="analyze")
@@ -541,7 +541,7 @@ def test_a_section_without_a_table_is_left_as_it_is_AC_1(runner, workspace, fake
     after = branch_file(workspace["specs"], "4-status.md", workspace)
     assert section_of(after, "## Acceptance") == section_of(status_on_main(workspace), "## Acceptance")
 
-def test_the_tick_list_takes_the_descriptions_wording_after_the_analysis_AC_2(
+def test_the_tick_list_takes_the_descriptions_wording_after_the_analysis(
     runner, workspace, fake_claude
 ):
     _implemented_with_acceptance(
@@ -564,7 +564,7 @@ def test_the_tick_list_takes_the_descriptions_wording_after_the_analysis_AC_2(
         "AC-1: The new wording", "AC-3: Unchanged", "AC-4: A new criterion",
     ]
 
-def test_a_description_without_criterion_lines_keeps_the_rows_and_clears_the_ticks_AC_3(
+def test_a_description_without_criterion_lines_keeps_the_rows_and_clears_the_ticks(
     runner, workspace, fake_claude
 ):
     _implemented_with_acceptance(
@@ -577,7 +577,7 @@ def test_a_description_without_criterion_lines_keeps_the_rows_and_clears_the_tic
         ("AC-2: second", "⬜", ""),
     ]
 
-def test_archive_stops_for_the_criteria_a_new_analysis_cleared_AC_3(runner, workspace, fake_claude):
+def test_archive_stops_for_the_criteria_a_new_analysis_cleared(runner, workspace, fake_claude):
     _implemented_with_acceptance(
         workspace,
         ["| AC-1: first | ✅ | |", "| AC-2: second | Not verified | |"],
@@ -595,7 +595,7 @@ def test_archive_stops_for_the_criteria_a_new_analysis_cleared_AC_3(runner, work
     assert (specs / workspace["folder"]).exists()
     assert not (specs / "archive" / workspace["folder"]).exists()
 
-def test_an_analysis_of_a_spec_never_implemented_keeps_its_ticks_AC_4(
+def test_an_analysis_of_a_spec_never_implemented_keeps_its_ticks(
     runner, workspace, fake_claude
 ):
     with_status(workspace, ["create", "analyze"])
@@ -612,7 +612,7 @@ def test_an_analysis_of_a_spec_never_implemented_keeps_its_ticks_AC_4(
     assert first["done"] and "notVerified" not in first
     assert second.get("notVerified") is True
 
-def test_an_analysis_the_scope_check_stopped_keeps_the_ticks_AC_5(runner, workspace, fake_claude):
+def test_an_analysis_the_scope_check_stopped_keeps_the_ticks(runner, workspace, fake_claude):
     _implemented_with_acceptance(
         workspace, ["| AC-1: first | ✅ | |", "| AC-2: second | Not verified | |"], {1: "first", 2: "second"}
     )
@@ -622,7 +622,7 @@ def test_an_analysis_the_scope_check_stopped_keeps_the_ticks_AC_5(runner, worksp
         status_on_main(workspace), "## Acceptance"
     )
 
-def test_a_cancelled_analysis_keeps_the_ticks_AC_5(runner, workspace, fake_claude, tmp_path):
+def test_a_cancelled_analysis_keeps_the_ticks(runner, workspace, fake_claude, tmp_path):
     _implemented_with_acceptance(
         workspace, ["| AC-1: first | ✅ | |", "| AC-2: second | Not verified | |"], {1: "first", 2: "second"}
     )
@@ -663,7 +663,7 @@ def test_a_cancelled_analysis_keeps_the_ticks_AC_5(runner, workspace, fake_claud
 
 
 @pytest.mark.parametrize("legacy,flag,saved", [(False, False, True), (True, True, True), (False, True, False)])
-def test_first_analysis_uses_saved_acceptance_choice_AC_1_AC_5(
+def test_first_analysis_uses_saved_acceptance_choice(
     runner, workspace, fake_claude, legacy, flag, saved,
 ):
     with_status(workspace, ["create"])
@@ -690,7 +690,7 @@ def _save_not_required(workspace):
     git(workspace["specs"], "commit", "-qm", "Save acceptance choice")
 
 
-def test_later_analysis_marks_new_and_rebuilt_rows_AC_2(runner, workspace, fake_claude):
+def test_later_analysis_marks_new_and_rebuilt_rows(runner, workspace, fake_claude):
     _implemented_with_acceptance(workspace,
         ["| AC-1: old | ✅ | old note |", "| AC-2: second | ⬜ | Failed: did not hold |"],
         {1: "first", 2: "second", 3: "new"})
@@ -704,7 +704,7 @@ def test_later_analysis_marks_new_and_rebuilt_rows_AC_2(runner, workspace, fake_
     ]
 
 
-def test_not_required_rows_archive_with_not_verified_state_AC_3_AC_4(runner, workspace, fake_claude):
+def test_not_required_rows_archive_with_not_verified_state(runner, workspace, fake_claude):
     with_status(workspace, ["create"], done=True)
     with_acceptance(workspace, acceptance_section(["| AC-1: first | ⬜ | |"]), {1: "first"})
     _save_not_required(workspace)

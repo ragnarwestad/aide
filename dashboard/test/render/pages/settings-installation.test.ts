@@ -47,7 +47,7 @@ const LOGGED_IN: BoardMessage = {
 };
 
 describe("the Installation tab", () => {
-  test("shows every preflight line, every command it ran, and the login line (AC-8)", () => {
+  test("shows every preflight line, every command it ran, and the login line", () => {
     const check = claudeCheck(LOGGED_IN);
     const doc = installation(check);
     const text = doc.body.textContent ?? "";
@@ -64,12 +64,12 @@ describe("the Installation tab", () => {
     expect(answerLines(installation(claudeCheck(answer)))).toEqual([capitalised(renderSentence("en", answer)!)]);
   });
 
-  test("what follows the answer is a sentence of its own after it (AC-9)", () => {
+  test("what follows the answer is a sentence of its own after it", () => {
     const doc = installation(claudeCheck(LOGGED_IN, "Runs use another account."));
     expect(answerLines(doc)).toEqual([`${capitalised(renderSentence("en", LOGGED_IN)!)}. Runs use another account.`]);
   });
 
-  test("a Norwegian reader gets the login line in Norwegian (AC-15)", () => {
+  test("a Norwegian reader gets the login line in Norwegian", () => {
     const line = answerLines(installation(claudeCheck(LOGGED_IN), "nb"))[0];
     expect(line).toBe(capitalised(renderSentence("nb", LOGGED_IN)!));
     expect(line).not.toBe(capitalised(renderSentence("en", LOGGED_IN)!));

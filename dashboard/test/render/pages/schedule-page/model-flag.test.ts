@@ -1,9 +1,9 @@
 // The flag on a schedule entry naming a model the queue does not offer
-// (spec 494), drawn on the Schedule list and the project's Schedule tab.
+// drawn on the Schedule list and the project's Schedule tab.
 import { describe, expect, test } from "bun:test";
 import { modelFlag } from "../../../../src/render/pages/schedule-page/model-flag.ts";
 
-describe("the flag on an entry naming a model the queue does not offer (spec 494)", () => {
+describe("the flag on an entry naming a model the queue does not offer", () => {
   const choices = ["Sonnet", "Opus"];
 
   test("names the model and the choices, and links to where another is chosen", () => {

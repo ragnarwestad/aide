@@ -46,8 +46,8 @@ async function runningJob(): Promise<{ base: string; id: string; stream: string 
   return { base, id, stream };
 }
 
-describe("the follow answer of a running job (AC-2)", () => {
-  test("a job page and a Steps tab each answer the marker and a panel holding the log, and no page (AC-2)", async () => {
+describe("the follow answer of a running job", () => {
+  test("a job page and a Steps tab each answer the marker and a panel holding the log, and no page", async () => {
     const { base, id, stream } = await runningJob();
     writeFileSync(stream, said("the line X"));
     for (const url of [`/jobs/${id}?tab=steps&follow=1`, `/specs/aide/${FOLDER}?tab=steps&follow=1`]) {
@@ -63,8 +63,8 @@ describe("the follow answer of a running job (AC-2)", () => {
   }, 30000);
 });
 
-describe("the follow answer of a job whose step has just finished (AC-6)", () => {
-  test("its panel holds the finished row, open, and the answer carries no marker (AC-6)", async () => {
+describe("the follow answer of a job whose step has just finished", () => {
+  test("its panel holds the finished row, open, and the answer carries no marker", async () => {
     const { base, dir } = harness.start();
     const id = await enqueue(base);
     const stream = join(dir, "analyze.stream.jsonl");

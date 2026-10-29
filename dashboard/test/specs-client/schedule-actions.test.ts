@@ -1,9 +1,8 @@
-// The /schedule page's own client wiring (spec 276): the Enabled
+// The /schedule page's own client wiring: the Enabled
 // toggle, Run-now, and the debounced cron-next preview. Minimal
 // hand-built fakes rather than the specs-list's own bundle-and-fake-
 // document harness (`fixtures.ts`): none of these controls live inside
 // `#jobrows`, so this page has no row-swap machinery to exercise.
-// Acceptance criteria 14, 15, 16.
 import { describe, expect, test } from "bun:test";
 import {
   followScheduleRow, leaveAfterSave, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview,
@@ -26,7 +25,7 @@ function fakeFetch(handler: (url: string, init?: RequestInit) => { ok: boolean; 
   }) as typeof fetch;
 }
 
-describe("postScheduleEnabled (acceptance criterion 14)", () => {
+describe("postScheduleEnabled", () => {
   test("disables the box, posts the wanted value, and leaves it checked on success", async () => {
     const box = fakeCheckbox({ checked: true, postTo: "/api/queue/schedule/aide/nightly/enabled" });
     const calls: { url: string; body: string }[] = [];
@@ -77,8 +76,8 @@ function fakeRunForm(action: string, slot: HTMLElement = fakeSlot()): HTMLFormEl
   } as unknown as HTMLFormElement;
 }
 
-describe("postScheduleRun (acceptance criterion 15)", () => {
-  test("a refusal leaves its reason in the page's slot (spec 494)", async () => {
+describe("postScheduleRun", () => {
+  test("a refusal leaves its reason in the page's slot", async () => {
     const slot = fakeSlot();
     const form = fakeRunForm("/api/queue/schedule/aide/nightly/run", slot);
     const fetchImpl = fakeFetch(() => ({ ok: false, body: { error: "refused" } }));
@@ -86,7 +85,7 @@ describe("postScheduleRun (acceptance criterion 15)", () => {
     expect(slot.textContent).toBe("Refused");
   });
 
-  test("a later accepted press empties the slot (spec 494)", async () => {
+  test("a later accepted press empties the slot", async () => {
     const slot = fakeSlot();
     const form = fakeRunForm("/api/queue/schedule/aide/nightly/run", slot);
     await postScheduleRun(form, fakeFetch(() => ({ ok: false, body: { error: "refused" } })));
@@ -94,7 +93,7 @@ describe("postScheduleRun (acceptance criterion 15)", () => {
     expect(slot.textContent).toBe("");
   });
 
-  test("a request that fails outright says so in the slot (spec 494)", async () => {
+  test("a request that fails outright says so in the slot", async () => {
     const slot = fakeSlot();
     const form = fakeRunForm("/x", slot);
     await postScheduleRun(form, (async () => { throw new Error("offline"); }) as unknown as typeof fetch);
@@ -114,7 +113,7 @@ function fakeTarget(): HTMLElement {
   } as unknown as HTMLElement;
 }
 
-describe("runCronPreview / scheduleCronPreview (acceptance criterion 16)", () => {
+describe("runCronPreview / scheduleCronPreview", () => {
   test("a valid cron writes the computed Next-run line", async () => {
     const input = fakeCronInput("0 3 * * *");
     const target = fakeTarget();
@@ -220,11 +219,11 @@ describe("leaveAfterSave", () => {
     return way;
   }
 
-  test("an answer on the page the form is on loads it with the page as Referer (AC-1)", () => {
+  test("an answer on the page the form is on loads it with the page as Referer", () => {
     expect(leave("/schedule/aide/nightly?tab=settings")).toEqual(["load /schedule/aide/nightly?tab=settings"]);
   });
 
-  test("an answer on another path leaves without a Referer (AC-1)", () => {
+  test("an answer on another path leaves without a Referer", () => {
     expect(leave("/schedule/aide/weekly?tab=settings")).toEqual(["leave /schedule/aide/weekly?tab=settings"]);
     expect(leave("/projects/aide?tab=schedule")).toEqual(["leave /projects/aide?tab=schedule"]);
   });

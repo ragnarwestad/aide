@@ -1,4 +1,4 @@
-// Spec 173, criteria 5 and 6: the few lines that register the service
+// The few lines that register the service
 // worker, and the guard that keeps them silent where there can be none.
 //
 // `sw-register.ts` can neither import nor export anything — `shell.ts`
@@ -59,7 +59,7 @@ function run(opts: { supported?: boolean; refuses?: boolean } = {}) {
   return { registered, handled };
 }
 
-describe("registering the worker (criteria 5 and 6)", () => {
+describe("registering the worker", () => {
   test("it registers /sw.js, which is the scope the whole dashboard sits in", () => {
     expect(run().registered).toEqual(["/sw.js"]);
   });

@@ -2,7 +2,7 @@
 keeps the dashboard's specs checkout current.
 
 The dashboard lists specs by reading the serving host's working copy,
-and nothing pulls it. Spec 137 was written on the laptop, pushed, and
+and nothing pulls it. A spec was written on the laptop, pushed, and
 simply missing from the page until someone ran `git pull` on the mini by
 hand (2026-08-20).
 

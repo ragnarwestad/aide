@@ -1,4 +1,4 @@
-// The Test servers list's own Stop button (spec 529): removing the row
+// The Test servers list's own Stop button: removing the row
 // in place instead of navigating is what keeps "← Back" pointed at
 // whatever page the list itself was opened from. Minimal hand-built
 // fakes, the same shape `deploy-wait.test.ts` uses for `submitDeploy` —
@@ -84,8 +84,8 @@ function stubGlobals(reply: { ok: boolean; body: unknown }) {
   };
 }
 
-describe("submitTestServerStop (spec 529)", () => {
-  test("a successful stop removes the row and never navigates (AC-1, AC-2)", async () => {
+describe("submitTestServerStop", () => {
+  test("a successful stop removes the row and never navigates", async () => {
     const { form, removed } = fakeForm("http://dash.test/api/queue/projects/aide/test-server/stop");
     const { event, prevented } = fakeEvent(form);
     const stub = stubGlobals({ ok: true, body: { ok: true } });
@@ -99,7 +99,7 @@ describe("submitTestServerStop (spec 529)", () => {
     }
   });
 
-  test("a refused stop writes why into the row's own slot and leaves the row in place (AC-3)", async () => {
+  test("a refused stop writes why into the row's own slot and leaves the row in place", async () => {
     const { form, refusedSpan, removed } = fakeForm("http://dash.test/api/queue/projects/aide/test-server/stop");
     const { event } = fakeEvent(form);
     const stub = stubGlobals({ ok: true, body: { ok: false, error: "no such test server" } });

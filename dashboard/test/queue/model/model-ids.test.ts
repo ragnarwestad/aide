@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-describe("QueueStore.recordModelId() (AC-4, AC-5)", () => {
+describe("QueueStore.recordModelId()", () => {
   test("records the id per choice name", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     store.recordModelId("Opus", "claude-opus-5-5");
@@ -33,7 +33,7 @@ describe("QueueStore.recordModelId() (AC-4, AC-5)", () => {
     expect(store.modelIds).toEqual({ Opus: "claude-opus-5-5", Sonnet: "claude-sonnet-5" });
   });
 
-  test("the newer id wins (AC-5)", () => {
+  test("the newer id wins", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     store.recordModelId("Opus", "claude-opus-5-5");
     store.recordModelId("Opus", "claude-opus-5-6");
@@ -47,7 +47,7 @@ describe("QueueStore.recordModelId() (AC-4, AC-5)", () => {
     expect(store.modelIds).toEqual({});
   });
 
-  test("survives a rebuild from the sidecar (AC-5)", () => {
+  test("survives a rebuild from the sidecar", () => {
     const modelIdsPath = join(dir, "model-ids.json");
     const first = new QueueStore({ defaults: DEFAULTS, resolve, modelIdsPath });
     first.recordModelId("Opus", "claude-opus-5-5");
@@ -66,7 +66,7 @@ describe("QueueStore.recordModelId() (AC-4, AC-5)", () => {
   });
 });
 
-describe("Runner.complete() records the id against the choice the step ran on (AC-4)", () => {
+describe("Runner.complete() records the id against the choice the step ran on", () => {
   beforeEach(resetHarness);
   afterEach(cleanupHarness);
 

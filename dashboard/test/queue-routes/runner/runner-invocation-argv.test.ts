@@ -15,7 +15,7 @@ import type { ServerOptions } from "../../../src/serve/serve.ts";
 
 const { harness } = setupQueueRoutesHarness();
 // Every spec here has ALREADY been analyzed. These tests enqueue
-// `implement` and watch the runner get spawned; since spec 344 an
+// `implement` and watch the runner get spawned; an
 // implement on a spec with no analyze on its steps line is held back
 // in the queue instead, and the spawn these tests wait for never comes.
 const ANALYZED = statusSaying(["create", "analyze"]);
@@ -59,7 +59,7 @@ describe("the runner invocation", () => {
     return { runUrl, path, queueConfig, checkoutRoot };
   }
 
-  /** Spec 222. The variable belongs to the SERVER's process while the
+  /** The variable belongs to the SERVER's process while the
    *  spawn happens, so it is set and restored around the whole test,
    *  not merely before `start()`. A developer whose own shell exports
    *  it would otherwise get a false pass on the derived-URL test. */
@@ -124,7 +124,7 @@ describe("the runner invocation", () => {
     expect(env.checkoutRoot).toBe(dashboardCheckoutRoot);
   });
 
-  test("what the runner writes to stderr lands in the step's own run log (AC-3)", async () => {
+  test("what the runner writes to stderr lands in the step's own run log", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-queue-run-log-"));
     ownDirs.push(dir);
     const bin = join(dir, "fake-run-spec");
@@ -168,7 +168,7 @@ describe("the runner invocation", () => {
     expect(argv).toContain("--command implement");
   });
 
-  // Spec 222. `aide-emit-run` reports each TDD phase, and does nothing
+  // `aide-emit-run` reports each TDD phase, and does nothing
   // at all unless `AIDE_RUN_URL` is set — so a headless step reported
   // its phases into silence, because nothing on the chain from launchd
   // to the spawned `claude` ever set it. The dashboard knows its own
@@ -201,7 +201,7 @@ describe("the runner invocation", () => {
   // arithmetic. Exact equality held only in a shell that already had
   // them on PATH; under the landing's own run, started from launchd, it
   // does not, and the test went red on a merge that never touched this
-  // (432, 2026-09-10).
+  //.
   test("and the rest of the environment still reaches it", async () => {
     await withRunUrlEnv(null, async () => {
       const { env } = await envHandedToTheRunner("aide-queue-run-url-inherit-");
@@ -213,7 +213,7 @@ describe("the runner invocation", () => {
     });
   });
 
-  // Spec 220, acceptance criterion 2. The global `push` setting speaks
+  // The global `push` setting speaks
   // for every project on the host at once; a project that reviews its
   // code says so in its own committed manifest, and that answer wins.
   // Both halves have to travel together — a landing left open with no
@@ -273,10 +273,10 @@ describe("the runner invocation", () => {
   });
 });
 
-// Acceptance criterion 1 (the spawn-time half): only a `schedule` step's
+// The spawn-time half: only a `schedule` step's
 // own spawn carries `AIDE_SCHEDULE_OUTPUT_DIR`, and by the time the
 // child starts, the directory it names already exists on disk.
-describe("the schedule step's output directory (spec 272)", () => {
+describe("the schedule step's output directory", () => {
   function scheduleEnvStub(dir: string): { bin: string; envFile: string } {
     const envFile = join(dir, "runner-schedule-env.txt");
     const bin = join(dir, "fake-run-spec-schedule");
@@ -338,7 +338,7 @@ describe("the schedule step's output directory (spec 272)", () => {
   });
 });
 
-// Spec 511: `--reset-files` reaches the runner for a `reopen` job that asked
+// `--reset-files` reaches the runner for a `reopen` job that asked
 // for it, and for nothing else.
 describe("--reset-files", () => {
   const argvFor = (step: string, extra: Record<string, unknown>): string[] =>
@@ -350,13 +350,13 @@ describe("--reset-files", () => {
       step, "/tmp/r.json", { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch" },
     );
 
-  test("a reopen job with resetFiles passes it AC-3", () => {
+  test("a reopen job with resetFiles passes it", () => {
     expect(argvFor("reopen", { resetFiles: true })).toContain("--reset-files");
   });
-  test("a reopen job without resetFiles does not AC-2", () => {
+  test("a reopen job without resetFiles does not", () => {
     expect(argvFor("reopen", {})).not.toContain("--reset-files");
   });
-  test("another step never passes it, whatever the job says AC-3", () => {
+  test("another step never passes it, whatever the job says", () => {
     expect(argvFor("analyze", { resetFiles: true })).not.toContain("--reset-files");
   });
 });

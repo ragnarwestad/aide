@@ -13,8 +13,8 @@ import {
 } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  // Per step since spec 152: an implement is not an analyze, and one
-  // number for both stopped 149 mid-sentence with its tests green.
+  // Per step: an implement is not an analyze, and one number for both
+  // stopped an implement mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -70,7 +70,7 @@ describe("persistQueueSettings", () => {
     expect(existsSync(`${file}.tmp`)).toBe(false);
   });
 
-  test("a save of the count alone rewrites concurrency and keeps the rest (AC-2)", () => {
+  test("a save of the count alone rewrites concurrency and keeps the rest", () => {
     const file = join(dir, "queue-config.json");
     writeFileSync(file, `{\n  // keep this comment\n  "concurrency": 2,\n  "model": { "analyze": "old" }\n}\n`);
     expect(persistQueueSettings(file, { concurrency: 4 })).toBeNull();
@@ -84,7 +84,7 @@ describe("persistQueueSettings", () => {
     expect((JSON.parse(readFileSync(file, "utf-8")) as { concurrency: number }).concurrency).toBe(3);
   });
 
-  test("a model choice is added and another removed, and the rest is kept (AC-1, AC-2)", () => {
+  test("a model choice is added and another removed, and the rest is kept", () => {
     const file = join(dir, "queue-config.json");
     writeFileSync(file, `{
   // keep this comment
@@ -104,7 +104,7 @@ describe("persistQueueSettings", () => {
     expect(parsed.modelChoices).toEqual({ Opus: { model: "opus" }, "gpt-5.5": { tool: "codex", model: "gpt-5.5" } });
   });
 
-  test("a model choice is added to a file that has none yet (AC-1)", () => {
+  test("a model choice is added to a file that has none yet", () => {
     const file = join(dir, "queue-config.json");
     writeFileSync(file, `{ "concurrency": 2 }\n`);
     expect(persistQueueSettings(file, { modelChoices: { Haiku: { model: "haiku" } } })).toBeNull();
@@ -147,7 +147,7 @@ describe("parseJobRequest", () => {
     expect(r.job.permissionMode.analyze).toBe("acceptEdits");
   });
 
-  // --- spec 152: the wall clock is per step -----------------------------
+  // --- The wall clock is per step -----------------------------
   //
   // One number covered analyze (minutes) and implement (the better part
   // of an hour on a twenty-file change) alike, and the only place it
@@ -195,7 +195,7 @@ describe("parseJobRequest", () => {
     expect(alone.ok && alone.job.timeoutSec).toEqual({ implement: 3000 });
   });
 
-  // --- spec 394 (REQ-8): the ongoing-job parser no longer reads this --------
+  // --- The ongoing-job parser no longer reads this --------
   //
   // The choice is recorded on the spec itself now (`specAcceptanceNotRequired`)
   // and `analyze`'s own invocation reads it fresh at spawn time — a
@@ -214,9 +214,9 @@ describe("parseJobRequest", () => {
     },
   );
 
-  // --- spec 364: a step runs at a chosen effort level --------------------
+  // --- A step runs at a chosen effort level --------------------
 
-  test("REQ-3: a per-step effort choice is accepted", () => {
+  test("a per-step effort choice is accepted", () => {
     const r = parseJobRequest(
       { ...REQ, steps: ["analyze", "implement"], effort: { analyze: "high", implement: "low" } },
       { resolve, defaults: DEFAULTS },
@@ -226,7 +226,7 @@ describe("parseJobRequest", () => {
     expect(r.job.effort).toEqual({ analyze: "high", implement: "low" });
   });
 
-  test("REQ-4: an empty/untouched entry is skipped, not stored as a choice", () => {
+  test("an empty/untouched entry is skipped, not stored as a choice", () => {
     const r = parseJobRequest(
       { ...REQ, steps: ["analyze"], effort: { analyze: "" } },
       { resolve, defaults: DEFAULTS },
@@ -236,7 +236,7 @@ describe("parseJobRequest", () => {
     expect(r.job.effort).toEqual({});
   });
 
-  test("no effort field at all leaves the job with no effort chosen (REQ-4)", () => {
+  test("no effort field at all leaves the job with no effort chosen", () => {
     const r = parseJobRequest({ ...REQ, steps: ["analyze"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -270,7 +270,7 @@ describe("parseJobRequest", () => {
     expect(r.ok).toBe(false);
   });
 
-  describe("resetFiles (spec 511)", () => {
+  describe("resetFiles", () => {
     // The spec is archived (only `reopen` is admitted); the two other
     // step lists ride on an active spec.
     const parse = (steps: string[], resetFiles: unknown) => {
@@ -286,13 +286,13 @@ describe("parseJobRequest", () => {
       );
     };
 
-    test.each([[true], ["1"], ["on"]])("%p is kept on a reopen job AC-1", (value) => {
+    test.each([[true], ["1"], ["on"]])("%p is kept on a reopen job", (value) => {
       const r = parse(["reopen"], value);
       expect(r.ok).toBe(true);
       if (r.ok) expect(r.job.resetFiles).toBe(true);
     });
 
-    test("absent, or any other value, leaves it off AC-1", () => {
+    test("absent, or any other value, leaves it off", () => {
       for (const value of [undefined, "0", false, "no"]) {
         const r = parse(["reopen"], value);
         expect(r.ok).toBe(true);
@@ -300,7 +300,7 @@ describe("parseJobRequest", () => {
       }
     });
 
-    test("a job of any other steps never carries it AC-1", () => {
+    test("a job of any other steps never carries it", () => {
       for (const steps of [["analyze"], ["analyze", "implement"]]) {
         const r = parse(steps, true);
         expect(r.ok).toBe(true);
@@ -324,10 +324,10 @@ describe("parseJobRequest", () => {
   });
 });
 
-describe("a deploy job (AC-1)", () => {
+describe("a deploy job", () => {
   const deploy = { project: "aide", specFolder: "deploy", steps: ["deploy"] };
 
-  test("is admitted without a spec, under the deploy key alone (AC-1)", () => {
+  test("is admitted without a spec, under the deploy key alone", () => {
     const r = parseJobRequest(deploy, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(true);
     if (r.ok) {
@@ -341,7 +341,7 @@ describe("a deploy job (AC-1)", () => {
     ["another step under the deploy key", { ...deploy, steps: ["analyze"] }],
     ["the deploy step chained with another", { ...deploy, steps: ["deploy", "analyze"] }],
     ["the deploy step chained with another under a spec", { ...deploy, specFolder: "81-queue-and-runner", steps: ["analyze", "deploy"] }],
-  ])("%s is rejected (AC-1)", (_label, body) => {
+  ])("%s is rejected", (_label, body) => {
     expect(parseJobRequest(body, { resolve, defaults: DEFAULTS }).ok).toBe(false);
   });
 });
@@ -356,13 +356,13 @@ describe("mergeQueueDefaults", () => {
     expect(merged.permissionMode.implement).toBe("bypassPermissions");
   });
 
-  test("a per-step timeoutSec table is merged like the other two (spec 152)", () => {
+  test("a per-step timeoutSec table is merged like the other two", () => {
     const merged = mergeQueueDefaults(DEFAULTS, { timeoutSec: { implement: 7200, archive: 900 } });
     expect(merged.timeoutSec).toEqual({ default: 1200, implement: 7200, archive: 900 });
   });
 
   test("a config still carrying the old flat timeoutSec falls back rather than crashing", () => {
-    // The shape changed in spec 152 and the file is edited by hand on
+    // The shape changed once and the file is edited by hand on
     // the serving host. A number where a table is expected is dropped,
     // the same direction every other malformed key here fails in — the
     // built-in per-step defaults stand until someone edits the file.

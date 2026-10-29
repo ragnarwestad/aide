@@ -30,16 +30,16 @@ const projectPage = (opts: Partial<ProjectPageOptions>): string =>
   });
 
 describe("every running step is drawn by the progress dialog", () => {
-  test("Close's dialog is a progress dialog (AC-1)", () => {
+  test("Close's dialog is a progress dialog", () => {
     expectProgress(dialogWith(closeAskDialog("aide", "150-x", "en"), `id="closeask"`));
   });
 
-  test("Reopen's dialog on the spec page is a progress dialog (AC-1)", () => {
+  test("Reopen's dialog on the spec page is a progress dialog", () => {
     const html = reopenControl(view({ archived: true }));
     expectProgress(dialogWith(html, `id="reopenask"`));
   });
 
-  test("Reopen's dialog on an archived row of the list is a progress dialog (AC-1)", () => {
+  test("Reopen's dialog on an archived row of the list is a progress dialog", () => {
     const html = renderSpecsRows([], {
       runnerAvailable: true,
       targets: [],
@@ -61,14 +61,14 @@ describe("every running step is drawn by the progress dialog", () => {
     expectProgress(box);
   });
 
-  test("Remove's dialog on a project's row of the list is a progress dialog (AC-1)", () => {
+  test("Remove's dialog on a project's row of the list is a progress dialog", () => {
     const html = renderProjectsPage([project], "2026-09-20T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
       removable: () => true,
     });
     expectProgress(dialogWith(html, `id="removeask-aide"`));
   });
 
-  test("the board's Deploy ask is a progress dialog (AC-1)", () => {
+  test("the board's Deploy ask is a progress dialog", () => {
     const html = projectPage({
       tab: "deploy",
       boardItself: true,

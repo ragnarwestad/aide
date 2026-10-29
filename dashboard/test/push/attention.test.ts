@@ -1,6 +1,6 @@
 // Who needs a person, decided from a real store's own changes: the
 // observer sits on `onChange` exactly as `serve.ts` wires it, and every
-// case is a transition the queue really makes (AC-2, AC-5).
+// case is a transition the queue really makes.
 import { afterEach, describe, expect, test } from "bun:test";
 import { attentionFor, messageKeyFor, waitingCount } from "../../src/push/attention.ts";
 import { createPush } from "../../src/push";
@@ -29,7 +29,7 @@ async function board() {
 const now = () => new Date().toISOString();
 
 describe("a spec that needs a person sends one push", () => {
-  test("a step that fails (criterion 6)", async () => {
+  test("a step that fails", async () => {
     const { store, push, sent } = await board();
     const job = runningJob(store);
     store.transition(job.id, "step-failed", { results: [result("implement", "error", false)] });
@@ -37,7 +37,7 @@ describe("a spec that needs a person sends one push", () => {
     expect(sent.calls).toHaveLength(1);
   });
 
-  test("a step stopped by its time limit or the AI's usage limit (criterion 6)", async () => {
+  test("a step stopped by its time limit or the AI's usage limit", async () => {
     const { store, push, sent } = await board();
     const a = runningJob(store, ["implement"]);
     store.transition(a.id, "run-stopped", { stopReason: "timeout", results: [result("implement", "timeout", false)] });
@@ -47,7 +47,7 @@ describe("a spec that needs a person sends one push", () => {
     expect(sent.calls).toHaveLength(2);
   });
 
-  test("a step whose process vanished or was cut off by a restart (criterion 6)", async () => {
+  test("a step whose process vanished or was cut off by a restart", async () => {
     const { store, push, sent } = await board();
     const job = runningJob(store);
     store.transition(job.id, "process-gone", { finishedAt: now() });
@@ -55,7 +55,7 @@ describe("a spec that needs a person sends one push", () => {
     expect(sent.calls).toHaveLength(1);
   });
 
-  test("a merge that did not finish, or whose tests went red (criterion 7)", async () => {
+  test("a merge that did not finish, or whose tests went red", async () => {
     const { store, push, sent } = await board();
     const a = runningJob(store);
     store.transition(a.id, "step-succeeded-last", { results: [result("implement")] });
@@ -72,7 +72,7 @@ describe("a spec that needs a person sends one push", () => {
     expect(sent.calls).toHaveLength(2);
   });
 
-  test("an archive refused for unticked criteria, by a running step or by tick() (criterion 8)", async () => {
+  test("an archive refused for unticked criteria, by a running step or by tick()", async () => {
     const { store, push, sent } = await board();
     const a = runningJob(store, ["archive"]);
     store.transition(a.id, "step-succeeded-last", { results: [result("archive", "acceptance-criteria-unticked")] });
@@ -87,7 +87,7 @@ describe("a spec that needs a person sends one push", () => {
   });
 });
 
-describe("a spec that moves on without waiting sends nothing (criterion 11)", () => {
+describe("a spec that moves on without waiting sends nothing", () => {
   test("a step that succeeds and goes on, an archive that merges, a cancel, an update of a failed job", async () => {
     const { store, push, sent } = await board();
     const next = runningJob(store, ["analyze", "implement"]);
@@ -109,7 +109,7 @@ describe("a spec that moves on without waiting sends nothing (criterion 11)", ()
     expect(sent.calls).toHaveLength(1);
   });
 
-  test("a create that failed says so once; a job that is neither a spec nor a real scheduled run says nothing (AC-6, AC-7)", () => {
+  test("a create that failed says so once; a job that is neither a spec nor a real scheduled run says nothing", () => {
     const failed = (specFolder: string) =>
       ({ state: "failed", specFolder, steps: ["create"], stepIndex: 0, results: [] }) as unknown as Job;
     const running = { state: "running", results: 0 } as const;
@@ -122,7 +122,7 @@ describe("a spec that moves on without waiting sends nothing (criterion 11)", ()
 
 const SPEC_FOLDER = "81-queue-and-runner";
 
-describe("what a spec is waiting for picks the sentence (criterion 9)", () => {
+describe("what a spec is waiting for picks the sentence", () => {
   const job = (over: Record<string, unknown>) =>
     ({ specFolder: SPEC_FOLDER, steps: ["implement"], stepIndex: 0, results: [], ...over }) as unknown as Job;
   const key = (j: Job, prev = { state: "running", results: 0 } as const) => {
@@ -130,7 +130,7 @@ describe("what a spec is waiting for picks the sentence (criterion 9)", () => {
     return a && messageKeyFor(a);
   };
 
-  test("each waiting state and stop reason has its own key (AC-4) (AC-3)", () => {
+  test("each waiting state and stop reason has its own key", () => {
     expect(key(job({ state: "failed" }))).toBe("push.failed");
     expect(key(job({ state: "interrupted" }))).toBe("push.interrupted");
     expect(key(job({ state: "stopped", stopReason: "timeout" }))).toBe("push.stoppedTimeout");
@@ -143,15 +143,15 @@ describe("what a spec is waiting for picks the sentence (criterion 9)", () => {
     );
   });
 
-  test("a stop on files another open spec changes pushes its own sentence, not the time limit's (AC-3)", () => {
+  test("a stop on files another open spec changes pushes its own sentence, not the time limit's", () => {
     expect(key(job({ state: "stopped", stopReason: "shared-files", steps: ["analyze"] }))).toBe("push.stoppedSharedFiles");
   });
 
-  test("an implement sent back to a full analysis pushes its own sentence, not the time limit's (AC-2)", () => {
+  test("an implement sent back to a full analysis pushes its own sentence, not the time limit's", () => {
     expect(key(job({ state: "stopped", stopReason: "sent-back" }))).toBe("push.stoppedSentBack");
   });
 
-  test("a shared-files stop names by number the specs its result holds, and keeps the plain sentence when it names none (AC-5)", () => {
+  test("a shared-files stop names by number the specs its result holds, and keeps the plain sentence when it names none", () => {
     const stop = (sharedFiles: { spec: string; files: string[] }[]) =>
       job({
         state: "stopped",
@@ -212,7 +212,7 @@ describe("a scheduled run notifies by its entry's own choice", () => {
   };
   for (const choice of ["always", "failure", "never"] as const) {
     for (const [ending, end] of ENDINGS) {
-      test(`${choice}: a run that ends ${ending} sends ${WANT[choice][ending]} (AC-8)`, async () => {
+      test(`${choice}: a run that ends ${ending} sends ${WANT[choice][ending]}`, async () => {
         const b = await scheduled(choice);
         end(b, b.run().id);
         await b.push.idle();
@@ -221,14 +221,14 @@ describe("a scheduled run notifies by its entry's own choice", () => {
     }
   }
 
-  test("a run a person cancels sends none, whatever the choice (AC-8)", async () => {
+  test("a run a person cancels sends none, whatever the choice", async () => {
     const b = await scheduled("always");
     b.store.transition(b.run().id, "cancel", { finishedAt: now() });
     await b.push.idle();
     expect(b.sent.calls).toHaveLength(0);
   });
 
-  test("one push per ending: a cost update afterwards sends no second, and the lookup is asked once (AC-8)", async () => {
+  test("one push per ending: a cost update afterwards sends no second, and the lookup is asked once", async () => {
     const b = await scheduled("always");
     const job = b.run();
     expect(b.asked).toHaveLength(0);
@@ -240,20 +240,20 @@ describe("a scheduled run notifies by its entry's own choice", () => {
     expect(b.asked).toEqual([`aide/${KEY}`]);
   });
 
-  test("an entry that has been deleted sends none (AC-8)", async () => {
+  test("an entry that has been deleted sends none", async () => {
     const b = await scheduled(null);
     b.store.transition(b.run().id, "step-failed", { results: [result("schedule", "error", false)] });
     await b.push.idle();
     expect(b.sent.calls).toHaveLength(0);
   });
 
-  test("an observer given no lookup sends none for a scheduled run (AC-8)", () => {
+  test("an observer given no lookup sends none for a scheduled run", () => {
     const job = { state: "failed", specFolder: KEY, steps: ["schedule"], stepIndex: 0, results: [] } as unknown as Job;
     expect(attentionFor({ state: "running", results: 0 }, job)).toBeNull();
     expect(attentionFor({ state: "running", results: 0 }, job, () => "always")?.kind).toBe("schedule-run");
   });
 
-  test("a spec's own notifications do not move, and the lookup is never asked for one (AC-10)", async () => {
+  test("a spec's own notifications do not move, and the lookup is never asked for one", async () => {
     const b = await scheduled("always");
     const asked = () => b.asked.length;
     const fails = runningJob(b.store, ["implement"], "82-another-spec");
@@ -286,17 +286,17 @@ describe("how many specs wait for a person", () => {
     job("aide", "85-e", "failed", "2026-10-22T10:00:00Z"),
   ];
 
-  test("counts specs of a served project whose newest job waits, not scheduled jobs or a newer job in flight; a newer cancelled job is skipped as on the Running tab (AC-3)", () => {
+  test("counts specs of a served project whose newest job waits, not scheduled jobs or a newer job in flight; a newer cancelled job is skipped as on the Running tab", () => {
     expect(waitingCount(jobs, served)).toBe(3);
   });
 
-  test("the first of two jobs with the same creation time wins, as the queue lists newest first (AC-3)", () => {
+  test("the first of two jobs with the same creation time wins, as the queue lists newest first", () => {
     const at = "2026-10-22T10:00:00Z";
     expect(waitingCount([job("aide", "81-a", "failed", at), job("aide", "81-a", "done", at)], served)).toBe(1);
     expect(waitingCount([job("aide", "81-a", "done", at), job("aide", "81-a", "failed", at)], served)).toBe(0);
   });
 
-  test("none counts when nothing waits (AC-6)", () => {
+  test("none counts when nothing waits", () => {
     expect(waitingCount(jobs.slice(2, 3).concat(jobs.slice(4, 7)), served)).toBe(0);
     expect(waitingCount([], served)).toBe(0);
   });

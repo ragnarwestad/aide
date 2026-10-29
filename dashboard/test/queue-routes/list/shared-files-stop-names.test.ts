@@ -35,7 +35,7 @@ const text = (html: string): string => html.replace(/<[^>]*>/g, " ").replace(/\s
 const pageOf = async (base: string): Promise<string> => text(await (await fetch(`${base}/specs/aide/${SPEC}`)).text());
 
 describe("a stop on shared files names the specs its analysis recorded", () => {
-  test("the row and the spec page name the open spec with its file, and not the job's own sentence (AC-1, AC-2)", async () => {
+  test("the row and the spec page name the open spec with its file, and not the job's own sentence", async () => {
     const { base, dir } = harness.start({
       alsoSpecs: [OTHER],
       analysis: ANALYSIS,
@@ -52,7 +52,7 @@ describe("a stop on shared files names the specs its analysis recorded", () => {
     expect(page).not.toContain("99-the-jobs-own");
   }, 8_000);
 
-  test("the spec page says the same with no job in the queue (AC-2)", async () => {
+  test("the spec page says the same with no job in the queue", async () => {
     const { base, dir } = harness.start({ alsoSpecs: [OTHER], analysis: ANALYSIS });
     ran(dir, ["create", "analyze"], SPEC, { stopped: "shared-files" });
     const deadline = Date.now() + 4_000;

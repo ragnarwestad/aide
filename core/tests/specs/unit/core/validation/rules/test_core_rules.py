@@ -3,7 +3,7 @@
 The `paths` frontmatter scopes a rule to matching files in Claude Code.
 The spec-structure rule originally carried a location-based glob that
 matched neither the default `specs/` location nor an external specs repo —
-the rule never activated via path matching (spec 71 in aide-specs).
+the rule never activated via path matching.
 The globs must be based on the spec file NAMES, which hold wherever
 the specs live.
 """

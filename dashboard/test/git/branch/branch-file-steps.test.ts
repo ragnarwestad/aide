@@ -1,4 +1,4 @@
-// Spec 298: the file half of `stepsFileDisagreesOn`'s comparison, read
+// The file half of `stepsFileDisagreesOn`'s comparison, read
 // from a spec's own open `aide/<folder>` branch instead of the
 // default-branch checkout's stale copy — the same point in the graph the
 // history half (`WorkflowHistoryChecker`) already answers from.
@@ -41,7 +41,7 @@ const JSON_PATH = TARGET.relPath.replace(/4-status\.md$/, "4-status.json");
 
 /** What `readStatusFromBranch` needs answered, for a branch whose
  *  `4-status.md` names `proseSteps`. `stateSteps`, when given, is what
- *  the branch's own sibling `4-status.json` answers with (spec 362) —
+ *  the branch's own sibling `4-status.json` answers with —
  *  keyed on the FULL show path, since a generic prefix cannot tell the
  *  `.md` request from the `.json` one apart. */
 const branchFile = (proseSteps: string[], stateSteps?: string[]) => {
@@ -83,7 +83,7 @@ describe("BranchFileStepsChecker", () => {
     expect(steps).toEqual({ proseSteps: ["create", "analyze", "implement"], stateSteps: undefined, acceptanceOpen: false, acceptance: [] });
   });
 
-  // REQ-1/REQ-4, the branch half of spec 349's own class of bug: the
+  // The branch half of a known class of bug: the
   // branch's own `4-status.json` answers `stateSteps`, disagreeing with
   // its own prose — proving the state file, not the prose alone, is
   // what a caller reads once one exists on the branch.
@@ -99,9 +99,9 @@ describe("BranchFileStepsChecker", () => {
     });
   });
 
-  // Spec 635: a Depends on saved on a spec with an open branch is written
+  // A Depends on saved on a spec with an open branch is written
   // onto the branch, so the row and the hold read the branch's own line.
-  test("the branch's 1-description.md answers dependsOn (AC-3)", async () => {
+  test("the branch's 1-description.md answers dependsOn", async () => {
     const descriptionPath = TARGET.relPath.replace(/4-status\.md$/, "1-description.md");
     const answers = branchFile(["create", "analyze"]);
     answers[`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${descriptionPath}`] = { code: 0, stdout: "d00dfeed1234\n" };
@@ -124,7 +124,7 @@ describe("BranchFileStepsChecker", () => {
     expect(git.calls.length).toBe(before);
   });
 
-  // REQ-3's unit-level proof: no open branch is the caller's own cue to
+  // The unit-level proof: no open branch is the caller's own cue to
   // fall back to the disk read, and this class must never resolve one
   // itself.
   test("no open branch resolves null, and spawns no git", async () => {
@@ -163,7 +163,7 @@ describe("BranchFileStepsChecker", () => {
   // that ticks the last row leaves the cached answer wrong for the rest
   // of the TTL — which is how the row went on saying "held back: the
   // Acceptance criteria are not all ticked yet" straight after a Save
-  // (337, 2026-09-04). `forget` is what the tick route calls.
+  //. `forget` is what the tick route calls.
   test("a forgotten spec is asked about git again inside the TTL window", async () => {
     const git = fake(branchFile(["analyze"]));
     let clock = 0;
@@ -213,10 +213,10 @@ describe("BranchFileStepsChecker", () => {
 });
 
 // A tick on a spec with an open branch is written to the branch
-// (spec-edit.ts, REQ-4), and the disk copy stays unticked until archive
+// (spec-edit.ts), and the disk copy stays unticked until archive
 // lands. The row's "archive held back" and the queue's archive hold-back
 // read this answer first, so a spec whose every row is ticked on its
-// branch is not held for the disk copy's sake (364, 2026-09-03).
+// branch is not held for the disk copy's sake.
 describe("the branch's own acceptance rows", () => {
   const withRows = (rows: { task: string; done: boolean }[]) => {
     const answers = branchFile(["create", "analyze", "implement"], ["create", "analyze", "implement"]);
@@ -259,7 +259,7 @@ describe("the branch's own acceptance rows", () => {
   });
 });
 
-// Spec 493: the rows themselves ride on the same answer, so the Specs list
+// The rows themselves ride on the same answer, so the Specs list
 // can unfold them without reading git while it draws.
 describe("the branch's acceptance rows, as text", () => {
   test("the answer carries the Acceptance section's rows read from the same file", async () => {
@@ -276,10 +276,10 @@ describe("the branch's acceptance rows, as text", () => {
   });
 });
 
-// Spec 509: a Not verified row marked on the open branch is not on disk
+// A Not verified row marked on the open branch is not on disk
 // until archive lands, so the Specs list's count reads the branch's rows.
 describe("the branch's Not verified rows", () => {
-  test("the answer's rows carry the flag, so the branch's own count is what the list reads (AC-3)", async () => {
+  test("the answer's rows carry the flag, so the branch's own count is what the list reads", async () => {
     const answers = branchFile(["create", "analyze", "implement"]);
     answers[`show refs/remotes/origin/${TARGET.branch}:${TARGET.relPath}`] = {
       code: 0,

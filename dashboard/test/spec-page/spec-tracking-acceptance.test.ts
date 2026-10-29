@@ -1,5 +1,5 @@
-// Spec 394: the settings half of the banner's `/tracking` route
-// (REQ-6, REQ-10): acceptance, the checks level and choosing the approach. The depends-on half of this same route is covered by
+// The settings half of the banner's `/tracking` route
+// acceptance, the checks level and choosing the approach. The depends-on half of this same route is covered by
 // spec-depends-on-field.test.ts; this file is the acceptance switch's
 // own coverage, plus the route's shared refusals (archived, busy).
 
@@ -28,7 +28,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
   // The box asks the POSITIVE question — "acceptance ticking required" —
   // so a CLEARED box (nothing posted beyond the editable sentinel) is
   // what writes the spec's `**Acceptance:** not required` line.
-  test("REQ-10: the box CLEARED writes the not-required line", async () => {
+  test("the box CLEARED writes the not-required line", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(),
       status: statusSaying(["create"]),
@@ -40,7 +40,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(ACCEPT_LINE));
   });
 
-  test("REQ-10: the box TICKED removes an existing not-required line", async () => {
+  test("the box TICKED removes an existing not-required line", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(ACCEPT_LINE),
       status: statusSaying(["create"]),
@@ -81,10 +81,10 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toContain(DEPENDS);
   });
 
-  // REQ-6: once analyze has already decided the question, the acceptance
+  // Once analyze has already decided the question, the acceptance
   // half is refused outright — nothing is written, including any
   // depends-on change bundled in the same request.
-  test("REQ-6: refused once analyze has already run, and nothing is written", async () => {
+  test("refused once analyze has already run, and nothing is written", async () => {
     const { base, dir } = harness.start({
       description: TRACKED(),
       status: statusSaying(["create", "analyze"]),
@@ -96,7 +96,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
   });
 
-  // REQ-7: the depends-on half stays legal after analyze — only the
+  // The depends-on half stays legal after analyze — only the
   // acceptance half is locked.
   test("a depends-on-only edit still succeeds once analyze has run", async () => {
     const OTHER = "99-a-second-spec";
@@ -182,7 +182,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
 
   // A landing is a job in flight like a queued or a running one: the merge it
   // makes is the very race this route's gate exists to stop.
-  test("AC-2: Depends on posted while the spec's archive job is landing is refused with 409, and nothing is written", async () => {
+  test("Depends on posted while the spec's archive job is landing is refused with 409, and nothing is written", async () => {
     let release!: () => void;
     const held = new Promise<void>((resolve) => (release = resolve));
     let codeRoot = "";

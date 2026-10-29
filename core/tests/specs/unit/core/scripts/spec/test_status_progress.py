@@ -1,11 +1,11 @@
 """Tests for `status_advanced_count_for` (core/scripts/lib/status-progress.sh),
-spec 288's sibling to the existing `status_progress_for`.
+the sibling to the existing `status_progress_for`.
 
 `status_progress_for` answers "how many rows are DONE"; this answers "how
 many rows have moved off NOT STARTED at all" — the wider question the new
 `analyze` scope-violation guard in aide-run-spec needs, since a row that
 moved to in-progress/blocked/waiting without ever reaching done is still a
-violation of analyze's own scope (REQ-1, REQ-2), not just a row that
+violation of analyze's own scope, not just a row that
 reached ✅.
 """
 import subprocess
@@ -64,7 +64,7 @@ def test_status_advanced_count_for_is_zero_with_no_phase_rows_at_all(tmp_path):
 
 
 def test_status_advanced_count_for_excludes_a_non_standard_header_row(tmp_path):
-    """Spec 299: the header row is recognized by its position directly
+    """The header row is recognized by its position directly
     above the separator, not by its own column text — a table headed
     `REQ | Criterion | Done` must count only the one genuinely advanced
     row, never the header itself."""
@@ -76,7 +76,7 @@ def test_status_advanced_count_for_excludes_a_non_standard_header_row(tmp_path):
     assert advanced_count(tmp_path, content) == 1
 
 
-def test_status_advanced_count_for_ignores_a_not_verified_row_AC_7(tmp_path):
+def test_status_advanced_count_for_ignores_a_not_verified_row(tmp_path):
     content = (
         "# Queue - Status\n\n## Acceptance criteria\n\n"
         "| Task | Status | Notes |\n|------|--------|-------|\n"
@@ -90,7 +90,7 @@ def test_status_advanced_count_for_ignores_a_not_verified_row_AC_7(tmp_path):
 # The mark is a symbol AND its words — "⬜ Not started" is what the
 # shipped `4-status.md` template writes, and what a model writing a fresh
 # plan copies. Read as anything but a start state it failed a whole
-# analyze (north-star:01, 2026-09-23): 27 rows nobody had touched were
+# analyze: 27 rows nobody had touched were
 # counted as advanced, and the step was refused for a scope violation it
 # had not committed.
 def test_a_not_started_row_written_with_its_symbol_is_not_an_advance(tmp_path):

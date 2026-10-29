@@ -1,7 +1,7 @@
 """Tests for core/scripts/hooks/commit-msg-spec-guard — the best-effort
-git hook that rejects a hand-written spec commit (spec 219).
+git hook that rejects a hand-written spec commit.
 
-An incident on 2026-08-24: spec 218 was hand-copied from spec 217's
+An incident on 2026-08-24: a spec was hand-copied from another spec's
 already-correct pattern instead of running /aide-create again. Nothing
 stopped the commit — the convention that names which commit did what
 (`Run /aide-<step> for <folder>`, documented in
@@ -66,7 +66,7 @@ def write_spec_file(repo, relpath, content="content\n"):
 
 
 class TestNewSpecFilesRequireTheConvention:
-    """AC1-2: a new 2-analysis.md (or 3-solution.md/4-status.md/
+    """A new 2-analysis.md (or 3-solution.md/4-status.md/
     0-README.md/1-description.md) needs a conforming message."""
 
     def test_a_non_conforming_message_is_rejected(self, hook, tmp_path):
@@ -123,7 +123,7 @@ class TestNewSpecFilesRequireTheConvention:
 
 
 class TestModifyingAnExistingDescriptionIsAllowed:
-    """AC3: spec-structure.md's one documented outside-the-flow
+    """Spec-structure.md's one documented outside-the-flow
     allowance — a hand-edit to an EXISTING 1-description.md's
     Description field."""
 
@@ -139,7 +139,7 @@ class TestModifyingAnExistingDescriptionIsAllowed:
 
 
 class TestModifyingOtherExistingSpecFilesIsGated:
-    """AC4: unlike 1-description.md, a content-only hand-edit to an
+    """Unlike 1-description.md, a content-only hand-edit to an
     already-existing 2-analysis.md/3-solution.md/4-status.md/
     0-README.md is gated exactly like a new file — no documented case
     allows hand-editing their content outside a skill run."""

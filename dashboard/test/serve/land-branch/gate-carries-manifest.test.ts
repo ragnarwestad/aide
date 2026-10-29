@@ -1,4 +1,4 @@
-// Spec 512: the landing gate's tree is cut from the merge commit, which
+// The landing gate's tree is cut from the merge commit, which
 // carries tracked files only. A project whose manifest is not tracked
 // keeps its settings in an untracked copy, and a tree without it finds no
 // test command — "nothing to run is not red", so a landing merged
@@ -73,7 +73,7 @@ async function gate(row: (typeof ROWS)[number]): Promise<{ ran: boolean; manifes
 
 describe("the landing gate carries the manifest by the rule in the table", () => {
   for (const row of ROWS) {
-    test(`${row.name} (AC-5)`, async () => {
+    test(`${row.name}`, async () => {
       const seen = await gate(row);
       // A manifest in the tree, tracked or copied, gives the gate its
       // command and its links; without one there is nothing to run.

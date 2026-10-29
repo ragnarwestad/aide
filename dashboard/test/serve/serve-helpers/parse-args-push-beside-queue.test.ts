@@ -20,12 +20,12 @@ describe("push and failed-create files default beside the queue mirror", () => {
     expect(opts.pendingStepsPath).toBe("/tmp/round-work/pending-steps.json");
   });
 
-  test("a board with a queue of its own keeps the alias model ids beside it (AC-4)", () => {
+  test("a board with a queue of its own keeps the alias model ids beside it", () => {
     const opts = parseArgs(["--queue-mirror", "/tmp/round-work/queue.json"]);
     expect(opts.modelIdsPath).toBe("/tmp/round-work/model-ids.json");
   });
 
-  test("the served board keeps the alias model ids under ~/.aide/dashboard (AC-4)", () => {
+  test("the served board keeps the alias model ids under ~/.aide/dashboard", () => {
     expect(parseArgs([]).modelIdsPath).toBe(join(homedir(), ".aide", "dashboard", "model-ids.json"));
   });
 

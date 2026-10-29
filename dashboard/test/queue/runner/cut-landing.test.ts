@@ -1,7 +1,7 @@
 // A landing still in flight when the board stops — a restart, a crash, a
 // power cut — is run again when the board comes back, from the step's own
 // result file, through the same hook that started it. Dropped instead, it
-// left 547's analysis on its branch and implement refused as "not
+// left an analysis on its branch and implement refused as "not
 // analyzed yet" (2026-09-27).
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";

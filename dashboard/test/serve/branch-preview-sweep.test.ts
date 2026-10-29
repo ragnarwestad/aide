@@ -50,7 +50,7 @@ function sweep(o: {
 }
 
 describe("refreshBranchPreviews", () => {
-  test("a cloudflare-pages spec with its branch on origin is asked and its address kept (AC-1)", async () => {
+  test("a cloudflare-pages spec with its branch on origin is asked and its address kept", async () => {
     const { ctx, asked, branchPreviews } = sweep();
     await refreshBranchPreviews(ctx);
     expect(asked).toHaveLength(1);
@@ -59,7 +59,7 @@ describe("refreshBranchPreviews", () => {
     expect(branchPreviews.get("woodstack/40-x")).toBe(ADDRESS);
   });
 
-  test("command, none and unset projects are never asked and hold nothing (AC-3, AC-4)", async () => {
+  test("command, none and unset projects are never asked and hold nothing", async () => {
     for (const previewFrom of [{ woodstack: "command" as const }, { woodstack: "none" as const }, {}]) {
       const { ctx, asked, branchPreviews } = sweep({ previewFrom });
       await refreshBranchPreviews(ctx);
@@ -67,13 +67,13 @@ describe("refreshBranchPreviews", () => {
     }
   });
 
-  test("a branch origin does not hold is not asked (AC-5)", async () => {
+  test("a branch origin does not hold is not asked", async () => {
     const { ctx, asked, branchPreviews } = sweep({ onOrigin: [] });
     await refreshBranchPreviews(ctx);
     expect([asked.length, branchPreviews.size]).toEqual([0, 0]);
   });
 
-  test("a newer build still running removes the address, and the open page is told once (AC-2)", async () => {
+  test("a newer build still running removes the address, and the open page is told once", async () => {
     const { ctx, gh, branchPreviews, notified } = sweep();
     await refreshBranchPreviews(ctx);
     expect(notified()).toBe(1);
@@ -87,7 +87,7 @@ describe("refreshBranchPreviews", () => {
     expect(notified()).toBe(2);
   });
 
-  test("a spec with a step running is not asked and its kept address is dropped (AC-2)", async () => {
+  test("a spec with a step running is not asked and its kept address is dropped", async () => {
     const { ctx, asked, branchPreviews, state, notified } = sweep();
     await refreshBranchPreviews(ctx);
     state.running = ["40-x"];
@@ -100,7 +100,7 @@ describe("refreshBranchPreviews", () => {
     expect(branchPreviews.get("woodstack/40-x")).toBe(ADDRESS);
   });
 
-  test("a gh that fails, or answers nonsense, leaves the kept address where it was (AC-2)", async () => {
+  test("a gh that fails, or answers nonsense, leaves the kept address where it was", async () => {
     const { ctx, gh, branchPreviews, notified } = sweep();
     await refreshBranchPreviews(ctx);
 
@@ -113,7 +113,7 @@ describe("refreshBranchPreviews", () => {
     expect(notified()).toBe(1);
   });
 
-  test("a spec no longer eligible loses its address (AC-4)", async () => {
+  test("a spec no longer eligible loses its address", async () => {
     const { ctx, branchPreviews, state } = sweep();
     await refreshBranchPreviews(ctx);
     state.onOrigin = [];
@@ -121,7 +121,7 @@ describe("refreshBranchPreviews", () => {
     expect(branchPreviews.size).toBe(0);
   });
 
-  test("a tick that finds the same answers sends no event (AC-1)", async () => {
+  test("a tick that finds the same answers sends no event", async () => {
     const { ctx, notified } = sweep();
     await refreshBranchPreviews(ctx);
     await refreshBranchPreviews(ctx);
@@ -135,7 +135,7 @@ describe("refreshBranchPreviews", () => {
     expect(asked).toHaveLength(1);
   });
 
-  test("a step seen running between two sweeps drops the address, so it is not back when the step ends (AC-2)", async () => {
+  test("a step seen running between two sweeps drops the address, so it is not back when the step ends", async () => {
     const { ctx, branchPreviews, state, notified } = sweep();
     await refreshBranchPreviews(ctx);
     state.running = ["40-x"];

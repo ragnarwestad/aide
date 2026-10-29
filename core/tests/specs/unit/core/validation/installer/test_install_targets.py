@@ -55,7 +55,7 @@ class TestInstallersMatchTheTable:
     """An installer whose destination moves fails here until the table moves too."""
 
     @pytest.mark.parametrize("ai", sorted(INSTALLERS))
-    def test_every_place_the_table_names_exists_after_an_install_AC_4(self, workspace_root, tmp_path, ai):
+    def test_every_place_the_table_names_exists_after_an_install(self, workspace_root, tmp_path, ai):
         rows = [row for row in _rows(workspace_root, ai) if row[1] != "-"]
         assert rows, f"the table names no place aide installs for {ai}"
         result = subprocess.run(
@@ -78,14 +78,14 @@ class TestPreflightReadsTheTable:
     """The check prints the places the table names, and follows a change to it."""
 
     @pytest.mark.parametrize("ai", sorted(INSTALLERS))
-    def test_prints_every_place_of_the_ai_AC_4(self, workspace_root, tmp_path, ai):
+    def test_prints_every_place_of_the_ai(self, workspace_root, tmp_path, ai):
         script = workspace_root / "core" / "scripts" / "aide-preflight"
         result = _preflight(script, ai, tmp_path)
         assert result.returncode == 0, result.stderr
         for _place, _source, to in _rows(workspace_root, ai):
             assert to in result.stdout, f"the preflight for {ai} does not name {to}"
 
-    def test_a_changed_table_changes_what_it_prints_AC_4(self, workspace_root, tmp_path):
+    def test_a_changed_table_changes_what_it_prints(self, workspace_root, tmp_path):
         bin_dir = tmp_path / "bin"
         (bin_dir / "lib").mkdir(parents=True)
         shutil.copy(workspace_root / "core" / "scripts" / "aide-preflight", bin_dir / "aide-preflight")
@@ -98,7 +98,7 @@ class TestPreflightReadsTheTable:
         assert "~/.elsewhere/skills/" in result.stdout, result.stdout
         assert "~/.claude/skills/" not in result.stdout, result.stdout
 
-    def test_names_opencode_instructions_under_xdg_config_home_AC_4(self, workspace_root, tmp_path):
+    def test_names_opencode_instructions_under_xdg_config_home(self, workspace_root, tmp_path):
         script = workspace_root / "core" / "scripts" / "aide-preflight"
         xdg = tmp_path / "xdg"
         result = _preflight(script, "opencode", tmp_path, env={"XDG_CONFIG_HOME": str(xdg)})

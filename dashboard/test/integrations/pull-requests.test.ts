@@ -11,16 +11,16 @@ import {
 const list = (...requests: { state: string; headRefOid?: string }[]): string => JSON.stringify(requests);
 
 describe("readPullRequestList", () => {
-  test("a merged request alone gives its head (AC-1)", () => {
+  test("a merged request alone gives its head", () => {
     expect(readPullRequestList(list({ state: "MERGED", headRefOid: "abc123" }))).toEqual({ merged: true, headSha: "abc123" });
   });
 
-  test("the newest merged request is the one that counts (AC-1)", () => {
+  test("the newest merged request is the one that counts", () => {
     const stdout = list({ state: "MERGED", headRefOid: "new" }, { state: "MERGED", headRefOid: "old" });
     expect(readPullRequestList(stdout)).toEqual({ merged: true, headSha: "new" });
   });
 
-  test("an open request wins over a merged one (AC-2)", () => {
+  test("an open request wins over a merged one", () => {
     const stdout = list({ state: "MERGED", headRefOid: "old" }, { state: "OPEN", headRefOid: "new" });
     expect(readPullRequestList(stdout)).toEqual({ merged: false });
     expect(readPullRequestList(list({ state: "OPEN", headRefOid: "new" }, { state: "MERGED", headRefOid: "old" }))).toEqual({
@@ -28,12 +28,12 @@ describe("readPullRequestList", () => {
     });
   });
 
-  test("a request closed without merging, or none at all, is not merged (AC-2)", () => {
+  test("a request closed without merging, or none at all, is not merged", () => {
     expect(readPullRequestList(list({ state: "CLOSED", headRefOid: "x" }))).toEqual({ merged: false });
     expect(readPullRequestList("[]")).toEqual({ merged: false });
   });
 
-  test("output that is not a JSON array is no answer (AC-2)", () => {
+  test("output that is not a JSON array is no answer", () => {
     expect(readPullRequestList("oops")).toBeNull();
     expect(readPullRequestList("")).toBeNull();
     expect(readPullRequestList('{"state":"MERGED"}')).toBeNull();
@@ -41,7 +41,7 @@ describe("readPullRequestList", () => {
 });
 
 describe("askPullRequest", () => {
-  test("asks gh about the branch in the code root (AC-1)", async () => {
+  test("asks gh about the branch in the code root", async () => {
     const asked: { dir: string; args: string[] }[] = [];
     const run: GhRunner = async (dir, args) => {
       asked.push({ dir, args });
@@ -52,7 +52,7 @@ describe("askPullRequest", () => {
     expect(pullRequestListArgs("aide/37-x")).toContain("aide/37-x");
   });
 
-  test("a failed gh is no answer (AC-2)", async () => {
+  test("a failed gh is no answer", async () => {
     const run: GhRunner = async () => ({ code: 1, stdout: list({ state: "MERGED", headRefOid: "abc" }) });
     expect(await askPullRequest(run, "/code/aide", "aide/37-x")).toBeNull();
   });

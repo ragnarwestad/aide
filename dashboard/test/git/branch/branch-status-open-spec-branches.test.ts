@@ -4,7 +4,7 @@ import { describe, expect, test } from "bun:test";
 import { BranchStatusChecker, specBranch, type GitRunner } from "../../../src/git/branch-status.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
-// Spec 193: a landing that failed is not a spec that is done.
+// A landing that failed is not a spec that is done.
 //
 // The queue's memory of its own pushes is not the answer to "does this
 // spec still have a branch open" — origin is. This asks origin once per
@@ -97,8 +97,8 @@ describe("BranchStatusChecker.openSpecBranches", () => {
   });
 });
 
-// Spec 208: the same read `peekDrift` gives the drift count, for the
-// question spec 193 added a day after spec 203 shipped the pattern —
+// The same read `peekDrift` gives the drift count, for the
+// question that was added a day after the pattern shipped —
 // and added without it, which is what put a network `ls-remote` back on
 // the spec list's render path.
 describe("BranchStatusChecker.peekOpenSpecBranches", () => {
@@ -154,7 +154,7 @@ describe("BranchStatusChecker.peekOpenSpecBranches", () => {
   });
 });
 
-// Spec 298: `resolveOpenBranchTarget` is now called once per LIVE spec,
+// `resolveOpenBranchTarget` is now called once per LIVE spec,
 // concurrently, inside `warmSpec`'s own `Promise.all` — a new call shape
 // this cache was never exercised against. Without de-duplication, N
 // specs sharing one cold root each fire their own `ls-remote` the same

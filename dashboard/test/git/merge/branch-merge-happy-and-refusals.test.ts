@@ -1,6 +1,6 @@
 // Split out of branch-merge.test.ts by theme.
 //
-// Spec 89: the dashboard's first WRITE path. Everything before it only
+// The dashboard's first WRITE path. Everything before it only
 // ever asked git a question; this merges a spec branch into a repo's
 // default branch and pushes the result.
 //
@@ -8,7 +8,7 @@
 // proves is the DECISION: which commands run, in which order, and which
 // ones are never reached — a conflict aborted rather than left
 // half-merged, a push failure reported rather than rolled back, and
-// (spec 144) an unrelated dirty file in the checkout deciding nothing
+// an unrelated dirty file in the checkout deciding nothing
 // at all.
 //
 // What it cannot prove is that a real working tree ends up clean after
@@ -22,7 +22,7 @@ import { mergeBranchIntoDefault } from "../../../src/git/branch-merge.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** What a reader would see: since spec 380 a message is stored as
+/** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
@@ -40,10 +40,10 @@ const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
 const ran = (calls: GitCall[], prefix: string): boolean =>
   argv(calls).some((a) => a.startsWith(prefix));
 
-// Spec 359: a failed push now retries (`pushWithRetry`) before it is
+// A failed push now retries (`pushWithRetry`) before it is
 // reported, and `fakeGit`'s own fallback answer for the un-mocked
 // `ls-remote origin` reachability check it makes is a failure — which
-// reads as "origin unreachable" and enters REQ-2's waited retry loop.
+// reads as "origin unreachable" and enters the waited retry loop.
 // Every push-failure case below would otherwise gain real wall-clock
 // delay from that loop for no reason: none of them are testing the
 // retry itself, only the refusal it eventually still produces.
@@ -108,7 +108,7 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
     expect(argv(git.calls).some((a) => a === `merge -q --ff-only ${BRANCH}`)).toBe(false);
   });
 
-  // Spec 144: whoever left work uncommitted in this checkout owns that
+  // Whoever left work uncommitted in this checkout owns that
   // problem; it is no reason to stop a merge for everyone else. The
   // three commands that follow only write files that differ between the
   // commits, so an unrelated dirty file is untouched either way — and a
@@ -170,7 +170,7 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     expect(argv(git.calls)).toContain("merge --abort");
     // Nothing is published from a merge that did not happen.
     expect(ran(git.calls, "push")).toBe(false);
-    // Spec 106: the sentence above is for a person to read, and it is
+    // The sentence above is for a person to read, and it is
     // joined with every other repo's before the page sees it. What a
     // machine reads is this field — set at exactly one refusal, so a
     // refusal that is not a genuine disagreement between the branch and
@@ -316,5 +316,5 @@ describe("every refusal names the repo AND the branch", () => {
 
   // The one non-fatal report — the merge landed and only the cleanup
   // failed — names the branch here and gets its repo where `landBranch`
-  // composes it for the row (spec 319). Covered there, not here.
+  // composes it for the row. Covered there, not here.
 });

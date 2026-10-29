@@ -60,7 +60,7 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("a click on a run's row shows its report and marks the row (AC-3)", async () => {
+test("a click on a run's row shows its report and marks the row", async () => {
   const page = await browser.newPage();
   await page.goto(`${base}/schedule/aide/nightly-report?live=0`);
   const frame = page.frameLocator("iframe[data-report-frame]");

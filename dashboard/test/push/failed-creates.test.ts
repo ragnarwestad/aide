@@ -12,7 +12,7 @@ const rec = (n: number, over: Partial<FailedCreate> = {}): FailedCreate => ({
 let tmp: ReturnType<typeof tempDir>;
 afterEach(() => tmp?.done());
 
-describe("the record of a failed create (AC-4, AC-5)", () => {
+describe("the record of a failed create", () => {
   test("lists undismissed records newest first", () => {
     tmp = tempDir();
     const s = createFailedCreates(join(tmp.dir, "f.json"));
@@ -21,7 +21,7 @@ describe("the record of a failed create (AC-4, AC-5)", () => {
     expect(s.list().map((r) => r.id)).toEqual(["id-2", "id-1"]);
   });
 
-  test("dismissing one leaves the other, and twice is fine (AC-5)", () => {
+  test("dismissing one leaves the other, and twice is fine", () => {
     tmp = tempDir();
     const s = createFailedCreates(join(tmp.dir, "f.json"));
     s.add(rec(1));
@@ -32,7 +32,7 @@ describe("the record of a failed create (AC-4, AC-5)", () => {
     expect(s.dismiss("nope")).toBe(false);
   });
 
-  test("a dismissed record is still retrievable by id (AC-6)", () => {
+  test("a dismissed record is still retrievable by id", () => {
     tmp = tempDir();
     const s = createFailedCreates(join(tmp.dir, "f.json"));
     s.add(rec(1));
@@ -49,7 +49,7 @@ describe("the record of a failed create (AC-4, AC-5)", () => {
     expect(s.list()).toHaveLength(1);
   });
 
-  test("survives a new instance on the same path (AC-4)", () => {
+  test("survives a new instance on the same path", () => {
     tmp = tempDir();
     const path = join(tmp.dir, "f.json");
     createFailedCreates(path).add(rec(1));
@@ -72,7 +72,7 @@ describe("the record of a failed create (AC-4, AC-5)", () => {
   });
 });
 
-describe("what the file may hold (AC-4)", () => {
+describe("what the file may hold", () => {
   test("a corrupt file reads as empty and can be written over", () => {
     tmp = tempDir();
     const path = join(tmp.dir, "f.json");

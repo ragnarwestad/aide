@@ -93,7 +93,7 @@ const KEPT = /class="refusal deploy-error rowmsg failed"/g;
 const kept = (html: string): string[] => html.match(KEPT) ?? [];
 
 describe("the per-step deploy routes are gone", () => {
-  test("a POST to deploy/fetch, deploy/install, deploy/restart or deploy/check answers 404 and runs nothing, on the board and on another project (AC-6)", async () => {
+  test("a POST to deploy/fetch, deploy/install, deploy/restart or deploy/check answers 404 and runs nothing, on the board and on another project", async () => {
     for (const extra of [{}, { dashboardRoot: "/somewhere/else" }]) {
       let fired = 0;
       const { base, git, paths } = await deployServer({ ...SAME, behind: 2 }, { registered: async () => true, fire: () => void fired++ }, extra);
@@ -115,7 +115,7 @@ describe("the per-step deploy routes are gone", () => {
 describe("POST .../drift", () => {
   const tab = "/projects/aide?tab=deploy";
 
-  test("asks origin afresh with the poll off and answers the count, which the next Deploy tab says (AC-1)", async () => {
+  test("asks origin afresh with the poll off and answers the count, which the next Deploy tab says", async () => {
     const repo = { ...SAME, behind: 2 };
     const { base, git, paths } = await deployServer(repo, noRestart);
     installs(paths.project);
@@ -127,7 +127,7 @@ describe("POST .../drift", () => {
     expect(await page(base, tab)).toContain("2 commits behind origin");
   });
 
-  test("asks git again inside the 30-second TTL rather than answering from the cache (AC-1)", async () => {
+  test("asks git again inside the 30-second TTL rather than answering from the cache", async () => {
     const repo = { ...SAME, behind: 1 };
     const { base, git, paths } = await deployServer(repo, noRestart);
     installs(paths.project);
@@ -138,7 +138,7 @@ describe("POST .../drift", () => {
     expect(git.calls.filter((c) => c.args[0] === "fetch").length).toBe(fetches + 1);
   });
 
-  test("a project that is not the board's, with no install command, answers the count, which its Deploy tab then says (AC-4)", async () => {
+  test("a project that is not the board's, with no install command, answers the count, which its Deploy tab then says", async () => {
     const { base, git } = await deployServer({ ...SAME, behind: 3 }, noRestart, { dashboardRoot: "/somewhere/else" });
     const res = await post(base, "aide/drift");
     expect(res.status).toBe(200);
@@ -147,7 +147,7 @@ describe("POST .../drift", () => {
     expect(await page(base, tab)).toContain("3 commits behind origin");
   });
 
-  test("an origin that cannot be reached answers 400, and the tab keeps the earlier answer with no failed deploy (AC-4)", async () => {
+  test("an origin that cannot be reached answers 400, and the tab keeps the earlier answer with no failed deploy", async () => {
     const repo: Repo = { ...SAME, behind: 1 };
     const { base, paths } = await deployServer(repo, noRestart);
     installs(paths.project);
@@ -163,7 +163,7 @@ describe("POST .../drift", () => {
     expect(await page(base, "/projects")).not.toMatch(FAULT);
   });
 
-  test("a project this dashboard does not know answers 400 and keeps no failed deploy (AC-4)", async () => {
+  test("a project this dashboard does not know answers 400 and keeps no failed deploy", async () => {
     const { base, paths } = await deployServer(SAME, noRestart);
     installs(paths.project);
     const res = await post(base, "nosuch/drift");
@@ -172,12 +172,12 @@ describe("POST .../drift", () => {
     expect(kept(await page(base, tab)).length).toBe(0);
   });
 
-  test("only POST (AC-4)", async () => {
+  test("only POST", async () => {
     const { base } = await deployServer(SAME, noRestart);
     expect((await fetch(`${base}/api/queue/projects/aide/drift`, { headers: AUTH })).status).toBe(405);
   });
 
-  test("it only reads: no merge, pull, reset, checkout or clean, no install, no restart (AC-5)", async () => {
+  test("it only reads: no merge, pull, reset, checkout or clean, no install, no restart", async () => {
     let fired = 0;
     const { base, git, paths } = await deployServer({ ...SAME, behind: 4 }, { registered: async () => true, fire: () => void fired++ });
     const marker = installs(paths.project);
@@ -196,7 +196,7 @@ const queued = async (base: string): Promise<{ id: string; specFolder: string; s
   ((await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: { id: string; specFolder: string; steps: string[]; state: string }[] }).jobs;
 
 describe("POST .../deploy queues the board's own deploy as a job", () => {
-  test("it answers the job and the queue holds it (AC-1)", async () => {
+  test("it answers the job and the queue holds it", async () => {
     const { base, paths } = await deployServer(SAME, noRestart, {}, new Promise<void>(() => {}));
     installs(paths.project);
     const res = await post(base, "aide/deploy");
@@ -207,7 +207,7 @@ describe("POST .../deploy queues the board's own deploy as a job", () => {
     expect((await queued(base)).filter((j) => j.specFolder === "deploy")).toHaveLength(1);
   });
 
-  test("it refuses a project with no install command, a project that is not the board's, and a board with no runner, and queues nothing (AC-1)", async () => {
+  test("it refuses a project with no install command, a project that is not the board's, and a board with no runner, and queues nothing", async () => {
     const noInstall = await deployServer(SAME, noRestart);
     const refused = await post(noInstall.base, "aide/deploy");
     expect(refused.status).toBe(400);
@@ -227,7 +227,7 @@ describe("POST .../deploy queues the board's own deploy as a job", () => {
     expect(await queued(noRunner.base)).toEqual([]);
   });
 
-  test("a second deploy is refused while one is queued or running, and queued again once it has ended (AC-7)", async () => {
+  test("a second deploy is refused while one is queued or running, and queued again once it has ended", async () => {
     let release = (): void => {};
     const gate = new Promise<void>((r) => (release = r));
     const { base, paths } = await deployServer(SAME, noRestart, {}, gate);

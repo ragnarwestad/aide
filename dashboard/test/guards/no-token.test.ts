@@ -30,7 +30,7 @@ function files(path: string): string[] {
   return readdirSync(path).flatMap((n) => (n === "node_modules" ? [] : files(join(path, n))));
 }
 
-describe("nothing names the token (AC-4)", () => {
+describe("nothing names the token", () => {
   const all = SCANNED.flatMap((p) => files(join(ROOT, p))).filter((f) => !f.endsWith(".png"));
 
   for (const [label, re] of FORBIDDEN) {

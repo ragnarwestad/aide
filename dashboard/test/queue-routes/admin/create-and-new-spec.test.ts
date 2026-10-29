@@ -18,10 +18,10 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// --- spec 433: create with no AI session at all -------------------------------
+// --- Create with no AI session at all -------------------------------
 
 describe("--no-ai-formulate reaches the runner only when the job says so", () => {
-  test("present when the job's box was cleared, absent otherwise (AC-1/AC-5)", async () => {
+  test("present when the job's box was cleared, absent otherwise", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const job = {
       project: "aide", specFolder: "new-abc123de", steps: ["create"],
@@ -73,16 +73,16 @@ describe("--criteria-checks reaches the runner only for a create that chose a le
     });
   };
 
-  test("a create with Stop chosen passes --criteria-checks stop (AC-4)", async () => {
+  test("a create with Stop chosen passes --criteria-checks stop", async () => {
     const argv = await argvFor("create", "stop");
     expect(argv[argv.indexOf("--criteria-checks") + 1]).toBe("stop");
   });
 
-  test("a create without a level passes no flag (AC-4)", async () => {
+  test("a create without a level passes no flag", async () => {
     expect(await argvFor("create")).not.toContain("--criteria-checks");
   });
 
-  test.each([["analyze"], ["implement"]])("never for %s (AC-4)", async (step) => {
+  test.each([["analyze"], ["implement"]])("never for %s", async (step) => {
     expect(await argvFor(step, "stop")).not.toContain("--criteria-checks");
   });
 });
@@ -105,21 +105,21 @@ describe("--choose-approach reaches the runner for a create from the form", () =
     });
   };
 
-  test.each([[true, "yes"], [false, "no"]])("a create with the box %p passes --choose-approach %s (AC-10)", async (ticked, value) => {
+  test.each([[true, "yes"], [false, "no"]])("a create with the box %p passes --choose-approach %s", async (ticked, value) => {
     const argv = await argvFor("create", ticked);
     expect(argv[argv.indexOf("--choose-approach") + 1]).toBe(value);
   });
 
-  test("a create job from before the box existed passes no flag (AC-10)", async () => {
+  test("a create job from before the box existed passes no flag", async () => {
     expect(await argvFor("create")).not.toContain("--choose-approach");
   });
 
-  test.each([["analyze"], ["implement"]])("never for %s (AC-10)", async (step) => {
+  test.each([["analyze"], ["implement"]])("never for %s", async (step) => {
     expect(await argvFor(step, true)).not.toContain("--choose-approach");
   });
 });
 
-// --- spec 110: what a new spec builds on --------------------------------------
+// --- What a new spec builds on --------------------------------------
 
 describe("a chosen dependency reaches the runner and the page", () => {
   const createJob = (dependsOn?: string[]) =>
@@ -190,7 +190,7 @@ describe("a create post fits the description the page lets the user type", () =>
   });
 });
 
-// --- spec 553: reordering the page must not change what a create posts ------
+// --- Reordering the page must not change what a create posts ------
 //
 // The New-spec page's fields are read by NAME (parse-request.ts), never
 // by position, so moving Create onto the Project field's own line and
@@ -199,7 +199,7 @@ describe("a create post fits the description the page lets the user type", () =>
 // reordered page still carries every field name a create needs, and a
 // request built from them still parses to the same job it would have
 // before the reorder.
-describe("spec 553: a request built from the reordered form's own field names (AC-6)", () => {
+describe("a request built from the reordered form's own field names", () => {
   test("project, title, description, dependencies, acceptance settings and steps all still parse", async () => {
     const { base } = start({ queueProjects: ["aide"] });
     const html = await (await fetch(`${base}/new`)).text();
@@ -251,9 +251,9 @@ describe("spec 553: a request built from the reordered form's own field names (A
   });
 });
 
-describe("the New-spec form offers what the spec may build on (criterion 7)", () => {
-  // On its own page since spec 121 — the chips, their order and their
-  // scoping are unchanged, only the page that draws them.
+describe("the New-spec form offers what the spec may build on", () => {
+  // On its own page — the chips, their order and their
+  // scoping.
   const page = (targets: NewSpecPageOptions["targets"]) =>
     renderNewSpecPage([{ label: "Overview", path: "projects.html" }], "2026-08-16T00:00:00Z", {
       targets,
@@ -274,7 +274,7 @@ describe("the New-spec form offers what the spec may build on (criterion 7)", ()
 
 });
 
-describe("a spec's row says what it depends on (criterion 12)", () => {
+describe("a spec's row says what it depends on", () => {
   const row = (dependsOn: string[]) =>
     specHead(
       renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
@@ -299,7 +299,7 @@ describe("a spec's row says what it depends on (criterion 12)", () => {
   });
 
 });
-// --- spec 93: making a spec from the page ------------------------------------
+// --- Making a spec from the page ------------------------------------
 
 // Every spec that exists is a row here and can be started from its own
 // line. A spec that does not exist yet has no row, and until now the only
@@ -308,7 +308,7 @@ describe("a spec's row says what it depends on (criterion 12)", () => {
 // any other, and — because a spec stays invisible to the list until its
 // branch lands on the default branch — a landing step that merges through
 // the very same function the Merge button already uses.
-describe("POST /api/queue/create (spec 93)", () => {
+describe("POST /api/queue/create", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
   const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
 
@@ -369,7 +369,7 @@ describe("POST /api/queue/create (spec 93)", () => {
     return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as unknown[]) : [];
   };
 
-  test("a request naming no project is refused with 400 and queues nothing (AC-4)", async () => {
+  test("a request naming no project is refused with 400 and queues nothing", async () => {
     const { base, dir } = start();
     const { project: _named, ...noKey } = CREATE;
     for (const body of [noKey, { ...CREATE, project: null }, { ...CREATE, project: "" }]) {
@@ -384,7 +384,7 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect(queued(dir)).toEqual([]);
   });
 
-  test("the form posted with the placeholder chosen is refused, saying a project is required (AC-2)", async () => {
+  test("the form posted with the placeholder chosen is refused, saying a project is required", async () => {
     const { base, dir } = start();
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
@@ -402,10 +402,10 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect((await fetch(`${base}/api/queue/create`, { headers: AUTH })).status).toBe(405);
   });
 
-  // Spec 228: the model the create step runs on, chosen on the form
+  // The model the create step runs on, chosen on the form
   // itself. Posted form-encoded, as the form posts it, which is the body
   // `bodyToObject` folds `model.create` into the per-step shape on.
-  test("a model picked on the form reaches the stored job (spec 228)", async () => {
+  test("a model picked on the form reaches the stored job", async () => {
     const { base } = start({
       queueDefaults: {
         timeoutSec: { default: 1200 },
@@ -447,13 +447,13 @@ describe("POST /api/queue/create (spec 93)", () => {
   });
 });
 
-// --- spec 121: GET /new -----------------------------------------------------
+// --- GET /new -----------------------------------------------------
 //
 // The form left `/` for a page of its own. Served like `/` and
 // `/projects` are — same guard, same one-time token handover — because
 // it carries a real form and a real form needs a token checked per
 // request.
-describe("GET /new (spec 121)", () => {
+describe("GET /new", () => {
   test("it answers GET only", async () => {
     const { base } = start();
     expect((await fetch(`${base}/new`, { method: "POST" })).status).toBe(405);
@@ -472,7 +472,7 @@ describe("GET /new (spec 121)", () => {
     expect(html).toContain("No project on this machine");
   });
 
-  test("?tab=options opens the Options tab, and no tab opens Spec (AC-1)", async () => {
+  test("?tab=options opens the Options tab, and no tab opens Spec", async () => {
     const { base } = start();
     const options = await (await fetch(`${base}/new?tab=options`)).text();
     expect(options).toContain('<div data-tab-panel="options">');

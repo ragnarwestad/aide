@@ -1,4 +1,4 @@
-"""Spec 355 (REQ-7): a spec's state file (4-status.json) has exactly one
+"""A spec's state file (4-status.json) has exactly one
 writer — core/scripts/lib/spec-state.sh's write_spec_state, sourced by
 the three scripts that already own the machine-read lines
 (aide-run-spec, aide-archive-spec, aide-write-spec) and by the one-time
@@ -27,10 +27,10 @@ ALLOWED_BASH_FILES = {
     "core/scripts/lib/spec-state.sh",       # the one writer
     "core/scripts/aide-write-spec",          # reads the derived file back, for its own stdout contract
     "core/scripts/aide-archive-spec",        # stages the new file alongside the git-mv rename
-    "core/scripts/aide-close-spec",          # spec 406: same stage-alongside-the-git-mv-rename as aide-archive-spec
+    "core/scripts/aide-close-spec",          # Same stage-alongside-the-git-mv-rename as aide-archive-spec
     "core/scripts/lib/run-spec/publish/result.sh",   # aide-run-spec derives it after every completed step, so the gates read what the run just landed
     "core/scripts/aide-backfill-spec-state",  # doc comment only
-    "core/scripts/lib/spec-transitions.sh",  # spec 356: reads via read_spec_state, writes via write_spec_state — doc comments only, no second derivation
+    "core/scripts/lib/spec-transitions.sh",  # Reads via read_spec_state, writes via write_spec_state — doc comments only, no second derivation
 }
 ALLOWED_DASHBOARD_FILES = {
     "dashboard/src/project/parse-spec-state.ts",  # the one reader
@@ -44,11 +44,11 @@ ALLOWED_DASHBOARD_FILES = {
     "dashboard/src/git/run-aide-write-spec.ts",    # spawns the script, in scratch space
     "dashboard/src/git/branch-file.ts",            # generic multi-file commit plumbing; doc comment
     "dashboard/src/git/specs-pull.ts",             # generic multi-file commit plumbing; doc comment
-    "dashboard/src/git/branch-file-steps.ts",      # spec 362: the open-branch copy read, moved out of workflow-history.ts — same reader, same shared parseSpecStateText
-    "dashboard/src/git/workflow-history.ts",       # spec 362: reads a spec's own OPEN branch copy through parse-spec-state.ts's shared parseSpecStateText, never a second derivation
+    "dashboard/src/git/branch-file-steps.ts",      # The open-branch copy read, moved out of workflow-history.ts — same reader, same shared parseSpecStateText
+    "dashboard/src/git/workflow-history.ts",       # Reads a spec's own OPEN branch copy through parse-spec-state.ts's shared parseSpecStateText, never a second derivation
     "dashboard/src/render/pages/specs-list/data-model/types.ts",  # doc comment on the stateMissing field
-    "dashboard/src/queue/spec-transitions.ts",  # spec 356: doc comment only, reads through phaseFromState's own completedPhases/archived params
-    "dashboard/src/serve/routes/job-actions.ts",  # spec 356 (REQ-9): reads via readSpecState (parse-spec-state.ts), never a second derivation
+    "dashboard/src/queue/spec-transitions.ts",  # Doc comment only, reads through phaseFromState's own completedPhases/archived params
+    "dashboard/src/serve/routes/job-actions.ts",  # Reads via readSpecState (parse-spec-state.ts), never a second derivation
 }
 
 
@@ -79,7 +79,7 @@ class TestBashWriterConfinement:
 
     def test_the_atomic_write_lives_only_in_spec_state_sh(self, workspace_root):
         """The actual write — a temp file moved onto the resolved state
-        path — is the operation REQ-7 forbids a second copy of. Grepping
+        path — is the operation that may have no second copy. Grepping
         for an `mv`/`>` INTO a variable holding the state path, across
         every other bash file, confirms none of them re-implements it —
         aide-write-spec legitimately READS the path back (a `state_file=`
@@ -115,7 +115,7 @@ class TestDashboardWriterConfinement:
         assert "Bun.write" not in text
 
 
-# --- criterion 10: the file and the prose agree, run for real ---------------
+# --- The file and the prose agree, run for real ---------------
 
 
 @pytest.fixture

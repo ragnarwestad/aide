@@ -1,12 +1,12 @@
 // Keeping a phase line's AI picker and its model select honest with
-// each other (spec 179).
+// each other.
 
 import { postPendingModel } from "./pending-model.ts";
 import { postTailModel } from "./tail-actions.ts";
 import { chosen, selectKey } from "./state.ts";
 
 // The AI picked on ONE phase line, written into that line's own model
-// select (spec 179). One phase, never the row: the control it replaced
+// select. One phase, never the row: the control it replaced
 // set every phase at once, and a picker that sits on a line is a
 // statement about that line.
 //
@@ -22,8 +22,8 @@ import { chosen, selectKey } from "./state.ts";
 // anyway. The group goes with its options, or the label of an empty
 // group would stand over nothing.
 //
-// Spec 169 had a filter and spec 179's predecessor removed it, because
-// it was ROW-WIDE and hid that a spec can run analyze on one CLI and
+// An earlier filter was removed because it was
+// ROW-WIDE and hid that a spec can run analyze on one CLI and
 // implement on another. This one is per PHASE LINE, where the AI select
 // lives now, so that capability is untouched.
 /** Every model select on a page, whichever page it is: a phase line's
@@ -94,14 +94,14 @@ export function applyAiPick(select: HTMLSelectElement): void {
     model.value = want;
     chosen.set(selectKey(model), want);
   }
-  // Spec 225: on a LIVE line nothing else would carry this to the
+  // On a LIVE line nothing else would carry this to the
   // server. The write above fires no `change` event — deliberately, for
   // the reason the comment on this function gives — so the delegated
   // listener never sees it, and the running job would go on using the
   // model the row has stopped showing. Called with the value already
   // resolved, never by dispatching a synthetic event.
   if (model.getAttribute("data-post-to")) return void postTailModel(model, want);
-  // Spec 308: the same gap on a phase that has NOT run yet. The write
+  // The same gap on a phase that has NOT run yet. The write
   // above fires no `change` event either way, so without this the pick
   // would live only in `chosen` — gone the moment the tab closes — and
   // a reader returning to the spec would find the picker back on the
@@ -111,7 +111,7 @@ export function applyAiPick(select: HTMLSelectElement): void {
 }
 
 // The other direction, and the only one the AI select is ever written
-// in (spec 179): what a phase runs on is one value on the job, and the
+// in: what a phase runs on is one value on the job, and the
 // tool is DERIVED from it.
 //
 // Called from two places, for the two ways a model select can end up on
@@ -138,14 +138,14 @@ export function syncAiToModel(model: HTMLSelectElement): void {
   }
 }
 
-/** The compact picker's own box, kept saying what the line is ON (spec
- *  179's pair, narrow screens). The two selects inside it are the
+/** The compact picker's own box, kept saying what the line is ON (the pair shown on
+ *  narrow screens). The two selects inside it are the
  *  truth; this is the text over them, and a pick that left it stale
  *  would have the reader looking at "sonnet" over a Codex model until
  *  the next redraw.
  *
- *  Two spans, mirroring the server's own two candidate strings (AC-1/
- *  AC-2, spec 488): `.aimodelshort` the bare model name, unless another
+ *  Two spans, mirroring the server's own two candidate strings:
+ *  `.aimodelshort` the bare model name, unless another
  *  CONFIGURED entry shares it — the same rule the server's
  *  `compactModelLabel()` applies — and `.aimodelfull` always tool-
  *  prefixed, the same rule as `compactModelLabelFull()`

@@ -10,7 +10,7 @@
 # Whatever the step managed to write is committed, with the reason in the
 # message. Leaving it uncommitted is not the safe option it looks like:
 # the dirty-tree refusal above would block every later run.
-# WHERE it is committed depends on what the step already did (spec 146).
+# WHERE it is committed depends on what the step already did.
 # A step may commit some of its own work and leave the rest — the global
 # git rules let it stage new files by name but leave modified tracked
 # ones to a user in an IDE, and headlessly there is none. Committing the
@@ -21,7 +21,7 @@
 suffix=""
 [ "$terminal_reason" != "completed" ] && suffix=" (stopped: $terminal_reason)"
 
-# Spec 217: WHO ran the step, next to what happened to it. The tool is
+# WHO ran the step, next to what happened to it. The tool is
 # always known — it defaults to `claude` and is refused if it is neither
 # of the two — so this is never empty; the model VALUE is only there
 # when the caller named one, and is left out rather than guessed at.

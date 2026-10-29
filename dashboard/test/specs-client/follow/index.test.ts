@@ -62,10 +62,10 @@ function setup(html: string, o: { search?: string; reply?: (url: string) => Repl
   return { win, doc, follow, loc, asked, replaced, clock, timers, state, nodes, flush };
 }
 
-describe("a followed page whose parts are equal to the answer's keeps every node (AC-1)", () => {
+describe("a followed page whose parts are equal to the answer's keeps every node", () => {
   const rows = ROW("0 ok") + ROW("1 running") + LOG("line one");
 
-  test("with the job still in flight (AC-1)", async () => {
+  test("with the job still in flight", async () => {
     const t = setup(PAGE(MARKER(), rows));
     t.state.reply = () => ({ html: PAGE(MARKER(), rows) });
     const before = t.nodes();
@@ -77,7 +77,7 @@ describe("a followed page whose parts are equal to the answer's keeps every node
     after.forEach((n, i) => expect(n).toBe(before[i]!));
   });
 
-  test("with the job done, when the answer carries no marker (AC-1)", async () => {
+  test("with the job done, when the answer carries no marker", async () => {
     const t = setup(PAGE(MARKER(), rows));
     t.state.reply = () => ({ html: PAGE("", rows) });
     const before = t.nodes();
@@ -89,8 +89,8 @@ describe("a followed page whose parts are equal to the answer's keeps every node
   });
 });
 
-describe("the pacing of the asks (AC-2)", () => {
-  test("five events while an ask is out give one more ask after it, never less than two seconds on (AC-2)", async () => {
+describe("the pacing of the asks", () => {
+  test("five events while an ask is out give one more ask after it, never less than two seconds on", async () => {
     let release: () => void = () => {};
     const held = new Promise<void>((r) => (release = r));
     const t = setup(PAGE(MARKER(), ROW("0")));
@@ -116,8 +116,8 @@ describe("the pacing of the asks (AC-2)", () => {
   });
 });
 
-describe("what a longer log does to its table (AC-3)", () => {
-  test("only the end is added: the head, the other rows and the log's earlier text are the same nodes (AC-3)", async () => {
+describe("what a longer log does to its table", () => {
+  test("only the end is added: the head, the other rows and the log's earlier text are the same nodes", async () => {
     const old = ROW("0 ok") + ROW("1 running") + LOG("line one");
     const next = ROW("0 ok") + ROW("1 running") + LOG("line one\nline two");
     const t = setup(PAGE(MARKER(), old));
@@ -136,7 +136,7 @@ describe("what a longer log does to its table (AC-3)", () => {
     expect(pre.childNodes.length).toBeGreaterThan(earlier.length);
   });
 
-  test("a change that is not a longer log replaces its row and no other (AC-3)", async () => {
+  test("a change that is not a longer log replaces its row and no other", async () => {
     const old = ROW("0 ok") + ROW("1 running");
     const next = ROW("0 ok") + ROW("1 finished");
     const t = setup(PAGE(MARKER(), old));
@@ -150,7 +150,7 @@ describe("what a longer log does to its table (AC-3)", () => {
     expect(after[1]!.textContent).toContain("1 finished");
   });
 
-  test("a row the answer adds is added, and one it drops is dropped (AC-3)", async () => {
+  test("a row the answer adds is added, and one it drops is dropped", async () => {
     const t = setup(PAGE(MARKER(), ROW("0 ok") + ROW("1 running")));
     t.state.reply = () => ({ html: PAGE(MARKER(), ROW("0 ok") + ROW("1 ok") + ROW("2 running")) });
     t.follow.request();
@@ -164,8 +164,8 @@ describe("what a longer log does to its table (AC-3)", () => {
   });
 });
 
-describe("a row holding the reader's selection (AC-3)", () => {
-  test("is left as it was until the selection is gone, and replaced then (AC-3)", async () => {
+describe("a row holding the reader's selection", () => {
+  test("is left as it was until the selection is gone, and replaced then", async () => {
     const t = setup(PAGE(MARKER(), ROW("0 ok") + LOG("line one")));
     t.state.reply = () => ({ html: PAGE(MARKER(), ROW("0 ok") + LOG("rewritten")) });
     const log = t.doc.querySelector("tr.steplog")!;
@@ -183,8 +183,8 @@ describe("a row holding the reader's selection (AC-3)", () => {
   });
 });
 
-describe("the address the asks pin (AC-3)", () => {
-  test("a page with no tab and no step asks with the marker's, and the address holds both after (AC-3)", async () => {
+describe("the address the asks pin", () => {
+  test("a page with no tab and no step asks with the marker's, and the address holds both after", async () => {
     const t = setup(PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")));
     t.state.reply = () => ({ html: PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")) });
     t.follow.request();
@@ -199,7 +199,7 @@ describe("the address the asks pin (AC-3)", () => {
     expect(new URLSearchParams(t.loc.search).has("follow")).toBe(false);
   });
 
-  test("`live` is pinned to the index too, and a step the reader chose is kept (AC-3)", async () => {
+  test("`live` is pinned to the index too, and a step the reader chose is kept", async () => {
     const live = setup(PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")), { search: "?tab=steps&step=live" });
     live.follow.request();
     await live.flush();
@@ -213,8 +213,8 @@ describe("the address the asks pin (AC-3)", () => {
   });
 });
 
-describe("what the answer's marker does to the page's own (AC-2, AC-6)", () => {
-  test("an answer with no marker removes the page's, and later asks stop (AC-6)", async () => {
+describe("what the answer's marker does to the page's own", () => {
+  test("an answer with no marker removes the page's, and later asks stop", async () => {
     const t = setup(PAGE(MARKER(), ROW("0")));
     t.state.reply = () => ({ html: PAGE("", ROW("0 ok")) });
     t.follow.request();
@@ -226,7 +226,7 @@ describe("what the answer's marker does to the page's own (AC-2, AC-6)", () => {
     expect(t.asked).toHaveLength(1);
   });
 
-  test("an answer with a marker replaces the page's, and the stream is asked to look at its phases (AC-2)", async () => {
+  test("an answer with a marker replaces the page's, and the stream is asked to look at its phases", async () => {
     const t = setup(PAGE(MARKER('data-tab="steps" data-running="1"'), ROW("0")));
     t.state.reply = () => ({ html: PAGE(MARKER('data-tab="steps" data-running="1" data-phases="aide/605-x:implement"'), ROW("0")) });
     expect(t.follow.phases()).toBe("");

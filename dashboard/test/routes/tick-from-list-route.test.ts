@@ -1,4 +1,4 @@
-// Spec 493: the tick route as the Specs list presses it, `?fromList=1` on
+// The tick route as the Specs list presses it, `?fromList=1` on
 // the action URL. The write is the Checks tab's own.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -46,7 +46,7 @@ describe("a press from the Specs list", () => {
     expect(messageOf(list.calls)).toBe(messageOf(tab.calls));
   });
 
-  test("the Not verified box from the list marks the row, and the tick box then completes it (AC-1)", async () => {
+  test("the Not verified box from the list marks the row, and the tick box then completes it", async () => {
     const { base, dir } = startWithChecks(a.harness, savable("/host"));
     const marked = OPEN_ROW.replace("| ⬜ |", "| Not verified |");
     expect((await listPress(base, { unverified: [OPEN_ROW] })).status).toBe(200);

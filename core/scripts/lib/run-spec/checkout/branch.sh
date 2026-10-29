@@ -52,9 +52,9 @@ for root in "${roots[@]}"; do
   wt="$wt_dir/$wt_name"
   sweep_worktree "$root" "$branch" "$wt"
   base_ref_for "$root" "$base"
-  # spec 356 (REQ-5): the specs repository's own default-branch tip, at
+  # The specs repository's own default-branch tip, at
   # the moment of reopening — the boundary
-  # completed_steps_for's own `--not <sha>` counts from (spec 198).
+  # completed_steps_for's own `--not <sha>` counts from.
   # Captured HERE, before this run's own commits exist on top of it,
   # rather than re-read later when the stamp is written.
   if [ "$root" = "$specs_repo" ] && \
@@ -63,7 +63,7 @@ for root in "${roots[@]}"; do
   fi
   # A leftover from a landing is not a branch to build on: throw it away
   # and let the block below make a fresh one, exactly as if this checkout
-  # had never had it (spec 197). `-D`, because the ancestry check has
+  # had never had it. `-D`, because the ancestry check has
   # already established the work is in origin's base, while `-d` asks a
   # question about THIS checkout's possibly-stale HEAD instead.
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch" \

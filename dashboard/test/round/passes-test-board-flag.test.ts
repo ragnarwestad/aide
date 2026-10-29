@@ -1,4 +1,4 @@
-// Spec 424: `run` passes `--test-board <folder>` to its `serve.ts serve`
+// `run` passes `--test-board <folder>` to its `serve.ts serve`
 // invocation whenever it was given `--branch` — the folder the header
 // needs to say which spec/branch this board is for, and the self-stop
 // route needs to know it may act at all.
@@ -49,7 +49,7 @@ function decoyPort() {
  *  serve` invocation it also tries to bind `--port`, which fails fast
  *  against the decoy already holding it. `run` execs it, and macOS checks
  *  a new executable the first time it starts — for minutes on a busy
- *  machine, past this file's own timeout, which is what stopped 498's
+ *  machine, past this file's own timeout, which is what stopped a
  *  landing (2026-09-19). So it lives at a fixed path and is rewritten only
  *  when its text changes: the check is paid once on a machine. */
 const FAKE_BUN =
@@ -109,7 +109,7 @@ async function runToExit(args: string[], env: Record<string, string>): Promise<{
   return { code };
 }
 
-describe("spec 424: run passes --test-board to its serve.ts serve invocation", () => {
+describe("run passes --test-board to its serve.ts serve invocation", () => {
   test("when given --branch, the invocation carries --test-board <folder>", async () => {
     const originBare = tmp("aide-round-origin-");
     git(originBare, ["init", "-q", "--bare", "-b", "main"]);
@@ -159,10 +159,10 @@ describe("spec 424: run passes --test-board to its serve.ts serve invocation", (
     }
   });
 
-  // A branch cut before spec 424 landed: its serve.ts refuses an
+  // A branch cut before `--test-board` existed: its serve.ts refuses an
   // argument it does not know, so the round must not hand it one — the
   // board then comes up without the header line and the Stop button
-  // rather than not at all (426, 2026-09-09).
+  // rather than not at all.
   test("a branch whose serve.ts does not know --test-board is not handed it", async () => {
     const originBare = tmp("aide-round-origin-");
     git(originBare, ["init", "-q", "--bare", "-b", "main"]);

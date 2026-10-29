@@ -37,7 +37,7 @@ def specs_root(tmp_path):
 
 @pytest.mark.validation
 class TestSpecsRoot:
-    """The specs root is PER-PROJECT config, never global state (spec 73).
+    """The specs root is PER-PROJECT config, never global state.
 
     Contract: `aide_specs_root [project-root]` — root defaults to the git
     toplevel (cwd as fallback); `AIDE_SPECS_PATH` from the project's
@@ -126,7 +126,7 @@ class TestArchiveAwareness:
 
     Archiving moves NN-slug into archive/ unchanged. Numbering must scan
     archive/ too — otherwise archiving the highest-numbered spec would
-    make its number get reused, and "spec 17" would become ambiguous.
+    make its number get reused, and a reference to it would become ambiguous.
     """
 
     def test_next_number_scans_root(self, workspace_root, specs_root):
@@ -167,7 +167,7 @@ class TestArchiveAwareness:
 
 @pytest.mark.validation
 class TestSlugFromTitle:
-    """aide_slug_from_title (spec 433): the deterministic bash version of
+    """aide_slug_from_title: the deterministic bash version of
     SKILL.md Step 3's slug rule, used by the no-AI create path so its
     folder name matches what an AI-run create would also choose.
     """
@@ -224,7 +224,7 @@ class TestConfigGet:
 class TestManifestGet:
     """aide_manifest_get reads a top-level scalar out of .aide/project.yaml.
 
-    Spec 184: what travels with the repo lives in the manifest, so the
+    What travels with the repo lives in the manifest, so the
     runner has to be able to read the manifest — and the manifest is the
     COMMITTED file, unlike .aide/config, which the global ignore drops.
     Deliberately a sibling of aide_config_get rather than a YAML parser:
@@ -305,7 +305,7 @@ class TestSpecDependencies:
     """aide_spec_dependencies reads the optional `Depends on:` line from a
     spec's OWN 1-description.md and echoes one identifier per line.
 
-    The field is what `aide-run-spec` refuses on (spec 92): a spec queued
+    The field is what `aide-run-spec` refuses on: a spec queued
     while a spec it builds on is still unmerged would be analyzed against
     a main that does not contain it. An absent field is the normal case,
     so it must be silent — no output, no error, nothing for a caller to
@@ -387,7 +387,7 @@ class TestSpecDependencies:
 
 @pytest.mark.validation
 class TestAidesOwnWorktreeLinksTravelWithTheRepo:
-    """Spec 184: aide's own migration, kept proven rather than done once.
+    """Aide's own migration, kept proven rather than done once.
 
     The links were in `.aide/config`, which a global ignore rule drops —
     so the two paths both of this repo's test commands live behind

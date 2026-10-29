@@ -7,7 +7,7 @@ import {
   openKeys,
 } from "../../fixtures.ts";
 
-// The › that opens a phase's messages (spec 500) is a link in the cell; the name beside it is still plain text.
+// The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.
 const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
 
 /** What a phase that has not run draws in the State column: a dash,
@@ -21,7 +21,7 @@ const PHASE_NOT_RUN = "–";
 const stateCell = (line: string): string =>
   line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
 
-describe("spec 116: create is the first phase line", () => {
+describe("create is the first phase line", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -45,10 +45,10 @@ describe("spec 116: create is the first phase line", () => {
     );
   const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
   /** Everything one row draws: its header line and, when it is open,
-   *  the phase lines under it — where the boxes live since spec 124. */
+   *  the phase lines under it — where the boxes live. */
   const runLine = (html: string) =>
     html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
-  /** A phase's own line — an ordinary row of six cells since spec 157,
+  /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
@@ -57,21 +57,21 @@ describe("spec 116: create is the first phase line", () => {
    *  state is read on its LINE here, and the pips are tested where they
    *  still are, on the spec page's Overview. */
 
-  // --- criterion 1: five lines, create first ---------------------------------
+  // --- Five lines, create first ---------------------------------
 
-  test("a spec with no job at all leads with create (criterion 1)", () => {
+  test("a spec with no job at all leads with create", () => {
     const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
     expect(order(html)).toEqual(["create", "analyze", "implement", "archive"]);
   });
 
-  // --- criterion 2: no create job means an inert line, not a missing one -----
+  // --- No create job means an inert line, not a missing one -----
 
-  test("a hand-made spec's create line reads done, with nothing to RUN (criterion 2)", () => {
+  test("a hand-made spec's create line reads done, with nothing to RUN", () => {
     // "Nothing to run" now includes a box that is ticked and
     // disabled (2026-08-21): it is the line saying the phase is behind
     // you, in the same shape the other four use, and it takes no click.
     //
-    // The name is plain text (spec 451): no job ever ran create here —
+    // The name is plain text: no job ever ran create here —
     // the folder was made by hand — and the line has nothing to click.
     const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
     const line = subRow(html, "create");
@@ -80,12 +80,11 @@ describe("spec 116: create is the first phase line", () => {
     expect(line).not.toContain("<button");
     expect(stateCell(line)).not.toContain(PHASE_NOT_RUN);
     // No model note, no elapsed time, no cost — what a finished attempt
-    // fills and an attempt-less line leaves empty. Since spec 123 the
+    // fills and an attempt-less line leaves empty. The
     // model shares the phase name's own cell rather than having one of
     // its own, so the emptiness is inside that cell.
-    // The name leads the first cell since spec 165 — in a plain wrapper
-    // since 2026-09-07, when the mobile fold control that used to be
-    // here went — and the box moved in beside the model. `create`'s box is ticked,
+    // The name leads the first cell, in a plain wrapper, and the box
+    // sits beside the model. `create`'s box is ticked,
     // disabled and nameless: the folder being on disk IS its answer,
     // and a line with no box at all read as a different KIND of line.
     expect(line).toMatch(
@@ -109,9 +108,9 @@ describe("spec 116: create is the first phase line", () => {
     );
   });
 
-  // --- criteria 3-4: a real create job, before and after it lands ------------
+  // --- a real create job, before and after it lands --------------------------
 
-  test("an unlanded create job's line reads the job's own state (criterion 3)", () => {
+  test("an unlanded create job's line reads the job's own state", () => {
     // No target: the folder is what the job is still making, so the
     // files cannot say create has happened.
     const html = rows([createJob("116-landing", { state: "running" })], []);
@@ -121,14 +120,14 @@ describe("spec 116: create is the first phase line", () => {
     expect(line).not.toContain("b-done");
   });
 
-  test("a landed create job's line reads done, name as plain text (criterion 4)", () => {
+  test("a landed create job's line reads done, name as plain text", () => {
     const html = rows(
       [createJob("116-landed", { model: "sonnet", spentUsd: 0.42 })],
       [target("116-landed", { done: ["create", "analyze"] })],
     );
     expect(order(html)[0]).toBe("create");
     const line = subRow(html, "create");
-    // Spec 451: the phase name is plain text, not a link to any tab.
+    // The phase name is plain text, not a link to any tab.
     expect(noFold(line)).not.toContain("<a ");
     expect(line).toContain('<span class="phasefold">Create</span>');
     expect(line).toContain("b-done");
@@ -139,9 +138,9 @@ describe("spec 116: create is the first phase line", () => {
     expect(line).toContain("$0.42");
   });
 
-  // --- criterion 5: a fifth pip, past because the spec exists ----------------
+  // --- A fifth pip, past because the spec exists ----------------
   //
-  // Create had no pip from spec 116 until spec 167: the glance was about
+  // Create once had no pip: the glance was about
   // the four phases a reader can still run. The hole made create read as
   // a different kind of thing rather than as the phase already behind
   // you — the same reason the phase LINE got a box on 2026-08-21 — so it
@@ -184,9 +183,9 @@ describe("spec 116: create is the first phase line", () => {
     expect(subRow(html, "create")).toContain("b-running");
   });
 
-  // --- criterion 6: history, not a control -----------------------------------
+  // --- History, not a control -----------------------------------
 
-  test("create is never a run-form checkbox (criterion 6)", () => {
+  test("create is never a run-form checkbox", () => {
     const html = rows(
       [createJob("116-landed")],
       [target("116-landed", { done: ["create", "analyze"] })],
@@ -199,9 +198,9 @@ describe("spec 116: create is the first phase line", () => {
     expect(boxes).toEqual(["analyze", "implement", "archive"]);
   });
 
-  // --- criterion 7: the status sentence and the button do not move -----------
+  // --- The status sentence and the button do not move -----------
 
-  test("neither the next-phase sentence nor the Run button notices create (criterion 7)", () => {
+  test("neither the next-phase sentence nor the Run button notices create", () => {
     // The same spec twice, differing only in whether create is done. A
     // finished job, so the sentence is the one that names the phase the
     // spec is ready for — "ready for create" is what a widened
@@ -209,14 +208,14 @@ describe("spec 116: create is the first phase line", () => {
     const analyzed = row({ id: "a1", specFolder: "116-status", steps: ["analyze"], state: "done" });
     const withCreate = rows([analyzed], [target("116-status", { done: ["create", "analyze"] })]);
     const withoutCreate = rows([analyzed], [target("116-status", { done: ["analyze"] })]);
-    // Spec 132: the sentence is the badge itself once the job is at
+    // The sentence is the badge itself once the job is at
     // rest.
     const said = (html: string) =>
       head(html)
         .match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
     expect(said(withCreate)).toBe(said(withoutCreate));
     expect(said(withCreate)).toBe("Ready");
-    // The button is named for the phase a press would run (spec 157),
+    // The button is named for the phase a press would run,
     // and `create` is not one of them whether it is done or not.
     expect(runLine(withCreate)).toContain(">Implement</button>");
     expect(runLine(withoutCreate)).toContain(">Implement</button>");
@@ -227,9 +226,9 @@ describe("spec 116: create is the first phase line", () => {
     expect(runLine(allBuilt)).toContain(">Archive</button>");
   });
 
-  // --- criterion 8: once, at the front, never twice --------------------------
+  // --- Once, at the front, never twice --------------------------
 
-  test("a create job appears once, never also appended after archive (criterion 8)", () => {
+  test("a create job appears once, never also appended after archive", () => {
     const html = rows(
       [createJob("116-landed"), row({ id: "a1", specFolder: "116-landed", steps: ["analyze"], state: "done" })],
       [target("116-landed", { done: ["create", "analyze"] })],
@@ -239,14 +238,14 @@ describe("spec 116: create is the first phase line", () => {
   });
 });
 
-// --- spec 254: a landed step reads busy until its branch actually lands -------
+// --- A landed step reads busy until its branch actually lands -------
 //
 // `Runner.complete()` writes `state: "done"` and `landing: true` in the
 // same update — the merge into the default branch has not happened yet.
 // A row that reads `state` alone sees "done" the instant the step
 // finishes, well before the merge settles, and offers "ready" with a
 // Run/Analyze button for a spec whose files do not exist yet.
-describe("spec 254: a step still landing reads busy, not ready", () => {
+describe("a step still landing reads busy, not ready", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -267,7 +266,7 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     );
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
-  /** The row's own controls line: since spec 109 the run form and
+  /** The row's own controls line: the run form and
    *  Cancel are a `<tr>` under the header, not a cell inside it. */
   const controlsLine = (html: string, folder: string) =>
     html.match(
@@ -279,7 +278,7 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
   /** Where a row's one button is: the State cell of the caption line,
    *  which only an OPEN row draws (2026-09-08). It sat at the end of
    *  the name box from 2026-09-07, in the head row's State cell beside
-   *  the badge from spec 157, and in the header's last cell (shut) or a
+   *  the badge, and in the header's last cell (shut) or a
    *  spanning `stackcell` (open) before that. */
   const actionCell = (chunk: string) => {
     const caption = chunk.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
@@ -287,7 +286,7 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     return cells[2] ?? "";
   };
 
-  // Criterion 1: a create job whose result has just arrived
+  // A create job whose result has just arrived
   // (`state: "done"`) but whose `landBranch()` merge has not yet
   // resolved (`landing: true`) — the row must read busy, the same as a
   // genuinely running job, and must not offer Analyze.
@@ -296,7 +295,7 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
   // offering one: the rule is the phase, merge included, so that a
   // reader never has to work out which half of a create they are
   // looking at before deciding whether a press is safe.
-  test("a job done but still landing reads busy and offers no press at all (criterion 1)", () => {
+  test("a job done but still landing reads busy and offers no press at all", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "254-landing", steps: ["create"], stepIndex: 0, state: "done", landing: true })],
       [target("254-landing")],
@@ -334,10 +333,10 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     expect(line).not.toContain("Implementing");
   });
 
-  // Criterion 4, the regression guard: once `landing` has cleared (the
+  // The regression guard: once `landing` has cleared (the
   // ordinary, already-correct case today), the row is exactly what it
   // is today — no visible change for the settled state.
-  test("a job done and no longer landing reads ready, as before (criterion 4)", () => {
+  test("a job done and no longer landing reads ready, as before", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "254-landed", steps: ["create"], stepIndex: 0, state: "done", landing: false })],
       [target("254-landed")],
@@ -351,18 +350,18 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
   });
 });
 
-// --- spec 280: the row's notice names the failure that actually happened ----
+// --- The row's notice names the failure that actually happened ----
 //
-// Spec 278's own incident: an `archive` job downgraded to `state:
+// The incident: an `archive` job downgraded to `state:
 // "failed"` with `errorReason: "unlanded"` — the spec WAS archived, but
 // its work never landed (2-analysis.md's `merge.ts` finding). Two
 // separate gaps let a reader miss it, one per test below:
 // `word-phase.ts`'s generic `last re-run ${stateLabel}` sentence never
-// said "unlanded" was different from any other failure (AC6), and
+// said "unlanded" was different from any other failure, and
 // `phaseDisagreement`'s "earliest phase with any qualifier" rule
 // (`notice-row.ts`) could let an earlier, unrelated phase's own softer
-// qualifier hide archive's real one (AC7).
-describe("spec 280: an unlanded archive failure names itself, not an unrelated phase", () => {
+// qualifier hide archive's real one.
+describe("an unlanded archive failure names itself, not an unrelated phase", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -377,7 +376,7 @@ describe("spec 280: an unlanded archive failure names itself, not an unrelated p
   const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const BUILT = ["create", "analyze", "implement", "archive"];
 
-  // AC6: archive's own `unlanded` failure is what the panel names —
+  // Archive's own `unlanded` failure is what the panel names —
   // never the bare, generic "last re-run failed" attributed to
   // `implement`, which has no qualifier of its own here at all.
   test("an unlanded archive failure is named, not implement's unrelated success", () => {
@@ -406,7 +405,7 @@ describe("spec 280: an unlanded archive failure names itself, not an unrelated p
     expect(panel(html)).not.toContain('"implement: last re-run failed"');
   });
 
-  // AC7: even when implement's own phase ALSO carries a softer
+  // Even when implement's own phase ALSO carries a softer
   // qualifier of its own (a re-run that merely disagrees, never
   // reaching `state: "failed"`) at the same moment, archive's specific
   // `unlanded` failure still wins — a real failure outranks an earlier
@@ -447,7 +446,7 @@ describe("spec 280: an unlanded archive failure names itself, not an unrelated p
 describe("a landing marks only the step being landed, not every finished step", () => {
   // The compact header pips came off the list on 2026-09-07, so every
   // assertion here reads the phase LINE's own badge — which only exists
-  // once the row is OPEN (spec 103), hence `openRows` below.
+  // once the row is OPEN, hence `openRows` below.
   const openRows = (list: QueueRowView[], done: string[] = []) =>
     renderSpecsRows(
       list,
@@ -459,7 +458,7 @@ describe("a landing marks only the step being landed, not every finished step", 
       Date.parse("2026-09-03T14:20:00Z"),
     );
   /** A phase LINE's own badge text — not the row's, and not just its
-   *  pip (spec 395). A "live" variant's badge carries a leading dot
+   *  pip. A "live" variant's badge carries a leading dot
    *  span (`components.ts`'s `badge()`); stripped first the same way
    *  `phase-row-rendering.test.ts`'s own helper does. */
   const badgeLabel = (html: string, step: string): string =>
@@ -499,19 +498,19 @@ describe("a landing marks only the step being landed, not every finished step", 
     expect(badgeLabel(html, "archive")).toBe("Running");
   });
 
-  // spec 395, REQ-2: the phase LINE's own badge, not only the row above
+  // The phase LINE's own badge, not only the row above
   // it, must say the step is still going while its work is landing —
   // never "done" with a clock that has stopped. The word is "Running",
   // as for any phase in flight: the landing is not a step the phase
   // line names (2026-09-14).
-  test("the step being landed reads Running, not done and not its gerund (spec 395, REQ-2)", () => {
+  test("the step being landed reads Running, not done and not its gerund", () => {
     const html = openRows([chained]);
     expect(badgeLabel(html, "archive")).toBe("Running");
   });
 
-  // spec 395, REQ-5: the rule holds for every step that lands its own
+  // The rule holds for every step that lands its own
   // work, not only archive.
-  test("a non-archive landing step reads Running too (spec 395, REQ-5)", () => {
+  test("a non-archive landing step reads Running too", () => {
     const analyzing = row({
       id: "j375b",
       specFolder: "375-landing-pips",

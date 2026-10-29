@@ -14,7 +14,7 @@ import {
   withoutAcceptanceSections,
 } from "../../../src/project/parse-status";
 
-// --- spec 182: the rows a person can tick off from the page -----------------
+// --- The rows a person can tick off from the page -----------------
 //
 // `4-status.md`'s Phase sections each carry one `| Task | Status |
 // Notes |` table, and the Status cell is the one character that says
@@ -22,13 +22,13 @@ import {
 // no spec has ever contained a `- [ ]` line, and this table row is what
 // the template has written since it was written.
 
-describe("parseStatusChecks (spec 182)", () => {
+describe("parseStatusChecks", () => {
   const phase = (heading: string, rows: string[]): string =>
     [`## ${heading}`, "", "### Tasks", "", "| Task | Status | Notes |", "|------|--------|-------|", ...rows, ""].join(
       "\n",
     );
 
-  // Modelled on spec 179's own file: two phases, real prose in Notes,
+  // Modelled on a real status file: two phases, real prose in Notes,
   // one row still open at the bottom.
   const REAL = [
     "# An AI and a model on every phase line - Status",
@@ -107,7 +107,7 @@ describe("parseStatusChecks (spec 182)", () => {
     expect(parseStatusChecks(bad).map((c) => c.task)).toEqual(["a good one"]);
   });
 
-  // Spec 190: the Status cell is free text, and a step wrote words into
+  // The Status cell is free text, and a step wrote words into
   // it. The old shape guard rejected anything over four characters, so
   // the row was not merely read as open — it never reached this list.
   test("an open row written in words is a check, exactly as a symbol one is", () => {
@@ -125,7 +125,7 @@ describe("parseStatusChecks (spec 182)", () => {
     expect(checks[0]!.done).toBe(true);
   });
 
-  // Spec 283: a step wrote the symbol AND the word into the same cell.
+  // A step wrote the symbol AND the word into the same cell.
   // Neither form alone, the combination — and it must still count as done.
   test("`✅ Completed`, symbol and word combined, is done", () => {
     const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | ✅ Completed | |"]));
@@ -162,10 +162,10 @@ describe("parseStatusChecks (spec 182)", () => {
     expect(parseStatusChecks(phase("Fase 1: RED", ["| Skriv testen | ⬜ | |"]))).toHaveLength(1);
   });
 
-  // Spec 266: `## Checklist` sections count the same as `## Phase`/`##
+  // `## Checklist` sections count the same as `## Phase`/`##
   // Fase` — a LOW-complexity spec's status file uses this heading
   // instead, and its rows must be offered as checks too.
-  test("## Checklist sections count the same as ## Phase (spec 266)", () => {
+  test("## Checklist sections count the same as ## Phase", () => {
     const checklist = [
       "## Checklist",
       "",
@@ -178,10 +178,9 @@ describe("parseStatusChecks (spec 182)", () => {
     expect(checks).toEqual([{ phase: "Checklist", line: "| a task | ⬜ | |", task: "a task", done: false, note: "" }]);
   });
 
-  // Spec 285: `## Acceptance criteria` sections count the same as `##
-  // Phase`/`## Fase`/`## Checklist` — the dedicated, person-only rows
-  // spec 268's own description deferred.
-  test("## Acceptance criteria sections count the same as ## Phase (spec 285)", () => {
+  // `## Acceptance criteria` sections count the same as `##
+  // Phase`/`## Fase`/`## Checklist` — the dedicated, person-only rows.
+  test("## Acceptance criteria sections count the same as ## Phase", () => {
     const acceptance = [
       "## Acceptance criteria",
       "",
@@ -197,7 +196,7 @@ describe("parseStatusChecks (spec 182)", () => {
   });
 });
 
-describe("tickStatusLine (spec 182)", () => {
+describe("tickStatusLine", () => {
   const FILE = [
     "# X - Status",
     "",
@@ -255,7 +254,7 @@ describe("tickStatusLine (spec 182)", () => {
     expect(tickStatusLine(padded, "Phase 1: RED", "| A |   ⬜   | note |")).toContain("| A |   ✅   | note |");
   });
 
-  // --- spec 190: a row a step spelled out in words --------------------------
+  // --- A row a step spelled out in words --------------------------
 
   const WORDS = [
     "# X - Status",
@@ -282,10 +281,10 @@ describe("tickStatusLine (spec 182)", () => {
     expect(tickStatusLine(WORDS, "Phase 1: RED", "| Look at it | Completed | |")).toBeNull();
   });
 
-  // Spec 285: an Acceptance-criteria row ticks through the same route as
+  // An Acceptance-criteria row ticks through the same route as
   // any other phase's row — no new code in tickStatusLine itself, only
   // PHASE_HEADING_RE recognizing the heading.
-  test("tickStatusLine ticks a row under ## Acceptance criteria exactly like any other phase (spec 285)", () => {
+  test("tickStatusLine ticks a row under ## Acceptance criteria exactly like any other phase", () => {
     const file = [
       "# X - Status",
       "",
@@ -304,10 +303,10 @@ describe("tickStatusLine (spec 182)", () => {
 
 // The Notes cell is the one thing on an acceptance row a reader cannot
 // work out from the criterion itself: what the run delivered against it,
-// and any limit on that. Spec 340's own file carries the shape —
-// "Delivered for the no-retry case only" beside a ticked REQ — and it
+// and any limit on that. A real status file carries the shape —
+// "Delivered for the no-retry case only" beside a ticked row — and it
 // was parsed and thrown away, so the Checks tab could never show it.
-describe("the Notes cell (spec 340's caveat, and every other row's)", () => {
+describe("the Notes cell (a caveat, and every other row's)", () => {
   const acceptance = (rows: string[]): string =>
     ["## Acceptance criteria", "", "| Task | Status | Notes |", "|------|--------|-------|", ...rows, ""].join("\n");
 
@@ -337,7 +336,7 @@ describe("the Notes cell (spec 340's caveat, and every other row's)", () => {
   });
 });
 
-// Spec 404 landed with `| REQ | Criterion | Accepted |` instead of the
+// A status file arrived with `| REQ | Criterion | Accepted |` instead of the
 // `| Task | Status | Notes |` the rule gives. That puts the criterion
 // where the MARK belongs, so every row is rejected — the Checks tab drew
 // an empty list and the archive gate read "nothing open" from a spec
@@ -352,7 +351,7 @@ describe("acceptanceSectionUnreadable", () => {
     expect(acceptanceSectionUnreadable(text)).toBe(false);
   });
 
-  test("spec 404's own shape reads as nothing, and says so", () => {
+  test("a REQ | Criterion | Accepted table reads as nothing, and says so", () => {
     const text = section("| REQ | Criterion | Accepted |", [
       "| REQ-1 | The specs a spec depends on are shown above the scrolling list | ☐ |",
     ]);
@@ -370,17 +369,17 @@ describe("acceptanceSectionUnreadable", () => {
   });
 });
 
-describe("withoutAcceptanceSections (AC-1, AC-3)", () => {
+describe("withoutAcceptanceSections", () => {
   const acc = ["## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", "| AC-1: a | ⬜ | |", ""];
 
-  test("cuts the section in the middle and keeps every other line in order (AC-3)", () => {
+  test("cuts the section in the middle and keeps every other line in order", () => {
     const text = ["# X - Status", "", "## Phase 1: RED", "", "| a | ⬜ | |", "", ...acc, "## Notation", "", "- x", ""].join("\n");
     expect(withoutAcceptanceSections(text)).toBe(
       ["# X - Status", "", "## Phase 1: RED", "", "| a | ⬜ | |", "", "## Notation", "", "- x", ""].join("\n"),
     );
   });
 
-  test("cuts a section that is last in the file (AC-1)", () => {
+  test("cuts a section that is last in the file", () => {
     const text = ["# X - Status", "", "## Phase 1: RED", "", ...acc].join("\n");
     const out = withoutAcceptanceSections(text);
     expect(out).not.toContain("Acceptance");
@@ -388,31 +387,31 @@ describe("withoutAcceptanceSections (AC-1, AC-3)", () => {
     expect(out).toContain("## Phase 1: RED");
   });
 
-  test("cuts two sections (AC-1)", () => {
+  test("cuts two sections", () => {
     const text = [...acc, "## Notation", "", ...acc].join("\n");
     expect(withoutAcceptanceSections(text)).toBe(["## Notation", ""].join("\n"));
   });
 
-  test("a file with no Acceptance section is returned unchanged (AC-3)", () => {
+  test("a file with no Acceptance section is returned unchanged", () => {
     const text = "# X - Status\n\n## Phase 1: RED\n\n| a | ⬜ | |\n";
     expect(withoutAcceptanceSections(text)).toBe(text);
   });
 
-  test("a heading with nothing under it is cut to the next heading (AC-1)", () => {
+  test("a heading with nothing under it is cut to the next heading", () => {
     const text = "# X\n\n## Acceptance criteria\n## Notation\n- x\n";
     expect(withoutAcceptanceSections(text)).toBe("# X\n\n## Notation\n- x\n");
   });
 });
 
-// --- spec 509: a third mark, `Not verified` ---------------------------------
+// --- A third mark, `Not verified` ---------------------------------
 
-describe("the Not verified mark (spec 509)", () => {
+describe("the Not verified mark", () => {
   const ROW = (mark: string) => `| AC-1: it deploys | ${mark} | a note |`;
   const file = (mark: string) =>
     ["# X - Status", "", "## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", ROW(mark), ""].join("\n");
   const PHASE = "Acceptance criteria";
 
-  test("a Not verified row reads as done and flagged, in any case (AC-1)", () => {
+  test("a Not verified row reads as done and flagged, in any case", () => {
     for (const mark of ["Not verified", "not verified", "NOT VERIFIED"]) {
       const [row] = parseStatusChecks(file(mark));
       expect(row!.done).toBe(true);
@@ -420,11 +419,11 @@ describe("the Not verified mark (spec 509)", () => {
     }
   });
 
-  test("a done or open row carries no flag at all (AC-1)", () => {
+  test("a done or open row carries no flag at all", () => {
     for (const mark of ["✅", "⬜"]) expect("notVerified" in parseStatusChecks(file(mark))[0]!).toBe(false);
   });
 
-  test("notVerifiedCount counts flagged rows and nothing else (AC-3)", () => {
+  test("notVerifiedCount counts flagged rows and nothing else", () => {
     expect(notVerifiedCount([{ notVerified: true }, {}, { notVerified: false }, { notVerified: true }])).toBe(2);
     expect(notVerifiedCount([])).toBe(0);
   });
@@ -443,7 +442,7 @@ describe("the Not verified mark (spec 509)", () => {
 
   for (const from of states) {
     for (const to of states) {
-      test(`${from} -> ${to} (AC-1)`, () => {
+      test(`${from} -> ${to}`, () => {
         const out = move(from, to);
         if (from === to) return expect(out).toBeNull();
         expect(out).toBe(file(MARK[from]).replace(ROW(MARK[from]), ROW(MARK[to])));
@@ -451,21 +450,21 @@ describe("the Not verified mark (spec 509)", () => {
     }
   }
 
-  test("only the moved row's cell changes; its neighbour keeps its padding (AC-1)", () => {
+  test("only the moved row's cell changes; its neighbour keeps its padding", () => {
     const text = ["## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", "| a | ⬜ | |", "| b  | ⬜   | |"].join("\n");
     const out = markNotVerifiedStatusLine(text, "Acceptance criteria", "| a | ⬜ | |")!;
     expect(out.split("\n").slice(-2)).toEqual(["| a | Not verified | |", "| b  | ⬜   | |"]);
   });
 });
 
-// --- spec 510: a fourth mark, `Failed` ---------------------------------------
+// --- A fourth mark, `Failed` ---------------------------------------
 
-describe("the Failed mark (spec 510)", () => {
+describe("the Failed mark", () => {
   const file = (mark: string, note = "a note") =>
     ["# X - Status", "", "## Acceptance criteria", "", "| Task | Status | Notes |", "|---|---|---|", `| AC-1: it deploys | ${mark} | ${note} |`, ""].join("\n");
   const PHASE = "Acceptance criteria";
 
-  test("a Failed row reads as open and flagged, with or without its symbol (AC-4)", () => {
+  test("a Failed row reads as open and flagged, with or without its symbol", () => {
     for (const mark of ["❌ Failed", "Failed", "failed", "FAILED"]) {
       const [row] = parseStatusChecks(file(mark));
       expect(row!.done).toBe(false);
@@ -474,38 +473,38 @@ describe("the Failed mark (spec 510)", () => {
     }
   });
 
-  test("a bare ❌ stays Blocked: open and not flagged (AC-4)", () => {
+  test("a bare ❌ stays Blocked: open and not flagged", () => {
     const [row] = parseStatusChecks(file("❌"));
     expect(row!.done).toBe(false);
     expect("failed" in row!).toBe(false);
   });
 
-  test("a Failed row in a Phase table carries no flag (AC-4)", () => {
+  test("a Failed row in a Phase table carries no flag", () => {
     const text = ["## Phase 1: RED", "", "| Task | Status | Notes |", "|---|---|---|", "| a | ❌ Failed | |", ""].join("\n");
     const [row] = parseStatusChecks(text);
     expect(row!.done).toBe(false);
     expect("failed" in row!).toBe(false);
   });
 
-  test("failedCount counts flagged rows and nothing else (AC-5)", () => {
+  test("failedCount counts flagged rows and nothing else", () => {
     expect(failedCount([{ failed: true }, {}, { failed: false }, { failed: true }])).toBe(2);
   });
 
-  test("markFailedStatusLine writes the mark and a Failed: note, the rest of the file untouched (AC-4)", () => {
+  test("markFailedStatusLine writes the mark and a Failed: note, the rest of the file untouched", () => {
     const from = file("Not verified", "Not tested: needs the deploy");
     const line = "| AC-1: it deploys | Not verified | Not tested: needs the deploy |";
     const out = markFailedStatusLine(from, PHASE, line, "the log shows no row");
     expect(out).toBe(from.replace(line, "| AC-1: it deploys | ❌ Failed | Failed: the log shows no row |"));
   });
 
-  test("the note is cleaned: pipes, newlines, $& and an empty Notes cell (AC-4)", () => {
+  test("the note is cleaned: pipes, newlines, $& and an empty Notes cell", () => {
     const line = "| AC-1: it deploys | Not verified | |";
     const from = file("Not verified", "").replace("|  |", "| |");
     const out = markFailedStatusLine(from, PHASE, line, "  a | b\nc $& d 🙂 ")!;
     expect(out).toContain("| AC-1: it deploys | ❌ Failed | Failed: a / b c $& d 🙂 |");
   });
 
-  test("an empty note is refused, and so is a row that is not there or already Failed (AC-4)", () => {
+  test("an empty note is refused, and so is a row that is not there or already Failed", () => {
     const line = "| AC-1: it deploys | Not verified | a note |";
     expect(markFailedStatusLine(file("Not verified"), PHASE, line, "  ")).toBeNull();
     expect(markFailedStatusLine(file("Not verified"), PHASE, "| nope | Not verified | |", "x")).toBeNull();
@@ -513,7 +512,7 @@ describe("the Failed mark (spec 510)", () => {
     expect(markFailedStatusLine(file("❌ Failed"), PHASE, failed, "x")).toBeNull();
   });
 
-  test("a Failed row is never moved by the tick, untick or Not verified movers (AC-4)", () => {
+  test("a Failed row is never moved by the tick, untick or Not verified movers", () => {
     const line = "| AC-1: it deploys | ❌ Failed | a note |";
     expect(untickStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
     expect(tickStatusLine(file("❌ Failed"), PHASE, line)).toBeNull();
@@ -521,17 +520,17 @@ describe("the Failed mark (spec 510)", () => {
   });
 });
 
-describe("failNoteTooLong (spec 522)", () => {
-  test("the bound is 500 (AC-4)", () => {
+describe("failNoteTooLong", () => {
+  test("the bound is 500", () => {
     expect(FAIL_NOTE_MAX).toBe(500);
   });
 
-  test("500 characters fit, 501 do not (AC-4)", () => {
+  test("500 characters fit, 501 do not", () => {
     expect(failNoteTooLong("a".repeat(500))).toBe(false);
     expect(failNoteTooLong("a".repeat(501))).toBe(true);
   });
 
-  test("a line break counts once, as the browser counts a text area (AC-4)", () => {
+  test("a line break counts once, as the browser counts a text area", () => {
     expect(failNoteTooLong(`${"a".repeat(499)}\r\n`)).toBe(false);
     expect(failNoteTooLong(`${"a".repeat(500)}\r`)).toBe(true);
   });

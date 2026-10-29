@@ -14,7 +14,7 @@ const pages = [
 ];
 
 describe("the docs name the setting Specs path", () => {
-  test("no page writes Specs root with a capital S (AC-4)", () => {
+  test("no page writes Specs root with a capital S", () => {
     const hits = pages.filter((p) => /Specs root/.test(readFileSync(p, "utf-8")));
     expect(hits).toEqual([]);
   });

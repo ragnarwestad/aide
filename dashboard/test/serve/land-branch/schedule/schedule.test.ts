@@ -3,7 +3,7 @@
 // both) the run pushed lands — and, since a schedule run has no spec
 // folder of its own to scope to, `schedule` is kept out of
 // `SPEC_ONLY_STEPS` so the whole branch lands even where the specs live
-// inside the code repo (spec 558).
+// inside the code repo.
 
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";
@@ -21,7 +21,7 @@ const mergedTheBranch = (calls: { args: string[]; dir: string }[], dir: string):
   calls.some((c) => c.dir.startsWith(dir) && c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`));
 
 describe("landScheduleRun", () => {
-  test("merges every root the run pushed — the specs root, no gate, and the code root's test gate (AC-1/AC-2/AC-3)", async () => {
+  test("merges every root the run pushed — the specs root, no gate, and the code root's test gate", async () => {
     const base = mkdtempSync(join(tmpdir(), "aide-schedule-land-"));
     const code = join(base, "code");
     const specs = join(base, "specs");
@@ -55,7 +55,7 @@ describe("landScheduleRun", () => {
     expect(gated[0]!.startsWith(code)).toBe(true);
   });
 
-  test("the code root lands first — a conflict there leaves the specs root's commit unattempted (AC-4)", async () => {
+  test("the code root lands first — a conflict there leaves the specs root's commit unattempted", async () => {
     const base = mkdtempSync(join(tmpdir(), "aide-schedule-land-order-"));
     const code = join(base, "code");
     const specs = join(base, "specs");
@@ -128,7 +128,7 @@ describe("landScheduleRun", () => {
     expect(git.calls.some((c) => c.args[0] === "diff" && c.args.includes(`specs/${JOB.specFolder}`))).toBe(false);
   });
 
-  test("a merge conflict ends the job failed, with nothing merged or pushed (AC-4)", async () => {
+  test("a merge conflict ends the job failed, with nothing merged or pushed", async () => {
     const code = mkdtempSync(join(tmpdir(), "aide-schedule-land-conflict-"));
     const git = landingGit({
       "merge -q --ff-only": { code: 1 },

@@ -1,8 +1,8 @@
-// The source language (spec 350, REQ-9 — the opposite of PaceUp's own
+// The source language (the opposite of PaceUp's own
 // `nb`-as-source `paceup/src/i18n/`): every other language is typed
 // against THESE keys (`translations.ts`'s `TranslationKey`), so a key
 // missing from `nb.ts` fails `tsc`, not a test. Every value here is the
-// exact English text the covered surfaces already render — REQ-5's
+// exact English text the covered surfaces already render — the
 // byte-identical default depends on that.
 export const en = {
   "shell.theme": "Theme",
@@ -176,7 +176,7 @@ export const en = {
   "state.failed": "failed",
   "state.cancelled": "cancelled",
   "state.interrupted": "interrupted",
-  // A hold is not a stop (spec 485): the row's own badge for a queued
+  // A hold is not a stop: the row's own badge for a queued
   // job the runner is holding back, never merged with "stopped" below.
   "state.heldBack": "held back",
   "state.stopped": "stopped",

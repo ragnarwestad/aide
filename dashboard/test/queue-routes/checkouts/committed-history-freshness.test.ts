@@ -12,21 +12,21 @@ const { harness, start } = setupQueueRoutesHarness();
 
 afterEach(() => harness.cleanup());
 
-// Spec 154: the runner owns the record of what has run.
+// The runner owns the record of what has run.
 //
-// Two incidents on 2026-08-21, in opposite directions. 147's implement
+// Two incidents on 2026-08-21, in opposite directions. One implement
 // had RED and GREEN done and every test green, and was killed by the
 // step's own time limit before the model reached the part that writes
 // `4-status.md` — so the row read "implement not run" about a spec
-// whose code was committed on its branch. 153's four files were copied
+// whose code was committed on its branch. The other's four files were copied
 // from a sibling whose analyze had landed, so a brand-new spec claimed
 // three steps and the row offered implement first.
 //
 // The commits are the record now. The file's line is a claim, and a
 // claim the history does not support is said out loud on the row.
-describe("spec 154: what has run is what has been committed", () => {
+describe("what has run is what has been committed", () => {
   const specDir = (dir: string) => join(dir, "root", "aide", "specs", "81-queue-and-runner");
-  /** Spec 208: every fixture here writes its `4-status.md` and makes
+  /** Every fixture here writes its `4-status.md` and makes
    *  its commits AFTER the server started, and a render reads memory
    *  now. Both of a row's sources have to catch up first — the git side
    *  that dates the folder, and the disk scan that reads what the files
@@ -50,27 +50,27 @@ describe("spec 154: what has run is what has been committed", () => {
     return listUntil(base, dated, undefined, "a dated Created cell for the spec");
   };
 
-  // Criterion 1: the 153 incident.
+  // The 153 incident.
   test("a copied 4-status.md cannot make a fresh spec look analysed", async () => {
     const { base, dir, server } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     // The folder exists, and nothing has ever run in it.
     ran(dir, []);
     const line = specControls(await listPage(base, server), "81-queue-and-runner");
-    // Spec 176: `create` is settled by the folder existing, so it is
-    // done here and says nothing about the copy. What spec 153 is the
-    // guard for is the two below it.
+    // `create` is settled by the folder existing, so it is
+    // done here and says nothing about the copy. What this guards
+    // is the two below it.
     expect(phaseDone(line, "create")).toBe(true);
     expect(phaseDone(line, "analyze")).toBe(false);
     expect(phaseDone(line, "implement")).toBe(false);
     // And the phase a press would START at is analyze, not implement:
-    // every un-run phase is ticked since spec 200, so the button — which
+    // every un-run phase is ticked, so the button — which
     // names the first of them — is what tells the two apart.
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).toContain(">Analyze</button>");
   });
 
-  // Criterion 3, the same fixture: the row does not swallow it.
+  // The same fixture: the row does not swallow it.
   test("a file claiming a step the history does not have says so on the row", async () => {
     const { base, dir, server } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
@@ -82,7 +82,7 @@ describe("spec 154: what has run is what has been committed", () => {
 
 });
 
-// Spec 97: a description edited after the analyze ran leaves the plan
+// A description edited after the analyze ran leaves the plan
 // describing an older problem, and the row said nothing. The signal is
 // asked of git at render time and never stored, so a re-run clears it
 // without anything having to remember it was ever set.
@@ -91,7 +91,7 @@ describe("a description newer than the analysis is shown on the row", () => {
   const SUBJECT = "Run /aide-analyze for 81-queue-and-runner (headless)";
 
   /** The specs repo answering for one spec: which steps it has had
-   *  (spec 154), when its description was last committed, and what its
+   *  when its description was last committed, and what its
    *  analyze history looks like. */
   const gitSaying = (descriptionAt: string, analyzeLog: string, differs = true) =>
     gitFake({
@@ -124,7 +124,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     );
   };
 
-  /** A phase's own line — an ordinary row of six cells since spec 157,
+  /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string): string =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
@@ -137,7 +137,7 @@ describe("a description newer than the analysis is shown on the row", () => {
    *  draw — so every fetch here asks for the spec open. */
   const listPage = (base: string) => fetch(`${base}/?${OPEN_81}`).then((r) => r.text());
 
-  test("the analysis log says the description changed since, and the analyze line does not (AC-2)", async () => {
+  test("the analysis log says the description changed since, and the analyze line does not", async () => {
     const { base, dir } = start({
       gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
@@ -150,7 +150,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     expect(phaseLog(await opened("implement"), "implement")).not.toContain(explanation);
   });
 
-  test("analyze stops counting as done (criteria 2, 3)", async () => {
+  test("analyze stops counting as done", async () => {
     const { base, dir } = start({
       gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
@@ -165,12 +165,12 @@ describe("a description newer than the analysis is shown on the row", () => {
     expect(line).not.toMatch(/value="implement" checked/);
   });
 
-  // Spec 139, criterion 10: the freshness check is a DISPLAY override,
+  // The freshness check is a DISPLAY override,
   // derived at render time. It clears the two marks the stale
   // description casts doubt on; it never rewrites the record they came
   // from, so a re-analysis that proves the edit cosmetic restores the
   // marks with nothing having had to remember them.
-  test("the stale row leaves the recorded list on disk untouched (spec 139, criterion 10)", async () => {
+  test("the stale row leaves the recorded list on disk untouched", async () => {
     const { base, dir } = start({
       gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });

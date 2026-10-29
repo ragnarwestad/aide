@@ -11,7 +11,7 @@ const stopped = (stopReason: string, timeoutSec = 2700): QueueRowView =>
   ({ state: "stopped", stopReason, timeoutSec }) as unknown as QueueRowView;
 
 describe("a state is one word, in the reader's own language", () => {
-  // Spec 482: a word said differently per language, not the queue's own
+  // A word said differently per language, not the queue's own
   // English enum value read back verbatim.
   test("every state is translated, not the raw English enum value", () => {
     expect(stateWord({ state: "queued" } as QueueRowView, "nb")).toBe("i kø");
@@ -49,7 +49,7 @@ describe("nothing on the page writes the state as more than that word", () => {
       const attempt = { state: "stopped", stopReason: reason, errorReason: reason } as unknown as QueueRowView;
       expect(wordPhase(false, undefined, attempt, {}, "en").badge?.label).toBe("Stopped");
     }
-    // 498 (2026-09-19): archive's commit is on its branch, so the history
+    // Archive's commit is on its branch, so the history
     // says the phase ran — but the merge was refused on red tests. The
     // line reads the attempt's own state, not Done.
     const red = { state: "stopped", stopReason: "tests-red", errorReason: "tests-red" } as unknown as QueueRowView;

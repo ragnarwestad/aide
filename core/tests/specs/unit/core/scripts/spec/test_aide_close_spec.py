@@ -1,9 +1,9 @@
-"""Tests for core/scripts/aide-close-spec (spec 406) — the mechanical
+"""Tests for core/scripts/aide-close-spec — the mechanical
 steps of /aide-close: folder resolution, the conflict check, and the
 stamp-and-move with the reason the person closing it typed.
 
 Unlike aide-archive-spec, this script carries no not-implemented-yet or
-acceptance-criteria-unticked gate: REQ-1/REQ-13 require Close to succeed
+acceptance-criteria-unticked gate: Close must succeed
 from every pre-archive phase, including one that never implemented and
 one held on unticked acceptance rows.
 """
@@ -129,7 +129,7 @@ def test_refuses_without_spec(script, project):
     assert out["terminalReason"] == "refused"
 
 
-# --- REQ-3, REQ-13: no reason, no close ------------------------------------
+# --- No reason, no close ------------------------------------
 
 
 def test_refuses_without_a_reason(script, project, specs):
@@ -152,12 +152,12 @@ def test_unknown_spec_lists_the_active_folders(script, project, specs):
     assert "80-other" in out["error"], out
 
 
-# --- REQ-1, REQ-13: legal from every pre-archive phase, unlike archive ----
+# --- Legal from every pre-archive phase, unlike archive ----
 
 
 def test_closes_a_spec_that_never_implemented(script, project, specs):
     """The exact case Archive refuses (not-implemented-yet): Close must
-    succeed on it instead (REQ-1, REQ-13)."""
+    succeed on it instead."""
     configure(project, specs)
     add_spec(specs, "81-x")
     rc, out, _ = run(script, project, "81-x", reason="this idea does not hold")
@@ -178,7 +178,7 @@ def test_closes_a_spec_analyzed_but_not_implemented(script, project, specs):
 
 def test_closes_a_spec_held_on_unticked_acceptance_rows(script, project, specs):
     """The exact case Archive refuses (acceptance-criteria-unticked):
-    Close must succeed on it instead (REQ-1, REQ-13)."""
+    Close must succeed on it instead."""
     configure(project, specs)
     body = status_md(
         "create, analyze, implement",
@@ -192,7 +192,7 @@ def test_closes_a_spec_held_on_unticked_acceptance_rows(script, project, specs):
     assert (specs / "archive" / "81-x").exists()
 
 
-# --- REQ-5: the stamp carries the exact reason ------------------------------
+# --- The stamp carries the exact reason ------------------------------
 
 
 def test_the_stamp_carries_the_exact_reason_text(script, project, specs):

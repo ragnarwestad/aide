@@ -1,4 +1,4 @@
-// Spec 308: a model picked for a phase survives leaving the page — the
+// A model picked for a phase survives leaving the page — the
 // store's own half. `setPendingModel()` records a pick made before a
 // job exists to attach it to, the way `editTailModel()` records one
 // made on a running job's tail.
@@ -26,8 +26,8 @@ beforeEach(() => {
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-describe("QueueStore.setPendingModel() (spec 308)", () => {
-  test("REQ-1: records a valid pick", () => {
+describe("QueueStore.setPendingModel()", () => {
+  test("records a valid pick", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     const result = store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");
     expect(result.ok).toBe(true);
@@ -58,7 +58,7 @@ describe("QueueStore.setPendingModel() (spec 308)", () => {
     expect(store.pendingModels["aide/81-queue-and-runner"]).toBeUndefined();
   });
 
-  test("REQ-2: persists across a fresh QueueStore instance pointed at the same file", () => {
+  test("persists across a fresh QueueStore instance pointed at the same file", () => {
     const pendingModelsPath = join(dir, "pending-models.json");
     const first = new QueueStore({ defaults: DEFAULTS, resolve, pendingModelsPath });
     first.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");
@@ -83,12 +83,12 @@ describe("QueueStore.setPendingModel() (spec 308)", () => {
   });
 });
 
-// Spec 465: a model picked on the New page for a phase the create job
+// A model picked on the New page for a phase the create job
 // does not run is banked under the job's own provisional key, the same
 // table `setPendingModel()` writes to — mirroring
 // `pending-steps.test.ts`'s own `enqueueCreate()`-seeds-`pendingSteps`
 // test.
-describe("QueueStore.enqueueCreate() seeds pendingModels (spec 465)", () => {
+describe("QueueStore.enqueueCreate() seeds pendingModels", () => {
   const allow = (project: string) => project === "brandnew";
 
   test("a model posted for a phase not in steps is banked under the job's provisional folder", () => {
@@ -126,11 +126,11 @@ describe("QueueStore.enqueueCreate() seeds pendingModels (spec 465)", () => {
   });
 });
 
-// Spec 465: the `pendingModels` sibling of the `specFolder` rename
-// landing already makes on the job itself (spec 453) — the provisional
+// The `pendingModels` sibling of the `specFolder` rename
+// landing already makes on the job itself — the provisional
 // key's entry must move with it, or it is orphaned the moment the real
 // folder appears.
-describe("QueueStore.renamePendingModel() (spec 465)", () => {
+describe("QueueStore.renamePendingModel()", () => {
   test("moves an entry from the provisional key to the real one", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     store.setPendingModel("aide", "new-abcd1234", "implement", "fable");
@@ -156,7 +156,7 @@ describe("QueueStore.renamePendingModel() (spec 465)", () => {
   });
 });
 
-describe("QueueStore.setPendingModel() with a differently-cased name (spec 494)", () => {
+describe("QueueStore.setPendingModel() with a differently-cased name", () => {
   test("stores the listed spelling", () => {
     const store = new QueueStore({ defaults: { ...DEFAULTS, modelChoices: { Sonnet: {} } }, resolve });
     expect(store.setPendingModel("aide", "81-queue-and-runner", "analyze", "sonnet").ok).toBe(true);

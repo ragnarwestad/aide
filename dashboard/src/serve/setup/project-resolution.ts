@@ -64,7 +64,7 @@ export function setupProjectResolution(
   state: ServerState,
   scheduleStore: ScheduleStore,
 ) {
-  // Two resolutions since spec 205, and every caller picks one
+  // Two resolutions, and every caller picks one
   // deliberately. `displayProjectDir` is the checkout a PERSON edits —
   // what the spec list, the project pages and the manifests are read
   // from, and the only thing it is ever used for. Nothing here writes to

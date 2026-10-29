@@ -44,7 +44,7 @@ const MORE_MENU = "header .row > details.menu:not(.theme):not(.lang):not(.unit)"
 // The nested-<details> hazard itself: a click on a flat mobile row must
 // apply the choice AND leave the "…" menu open — Approach A's whole
 // reason for existing, per 3-solution.md's Risk analysis item 4.
-test("AC-2 criterion 5: tapping a choice row applies it and leaves the … menu open", async () => {
+test("tapping a choice row applies it and leaves the … menu open", async () => {
   await page.setViewportSize(PHONE);
   await withBrowser(page.goto(`${base}/?live=0`), "page.goto(/)");
   const trigger = page.locator(`${MORE_MENU} > summary`);
@@ -65,7 +65,7 @@ async function openMore(size: { width: number; height: number }, path = "/?live=
   await page.locator(`${MORE_MENU} > summary`).click();
 }
 
-test("AC-6: choosing Deutsch reloads in German with the menu open, once", async () => {
+test("choosing Deutsch reloads in German with the menu open, once", async () => {
   await openMore(PHONE);
   await Promise.all([page.waitForURL(/[?&]lang=de(&|$)/), page.locator(`${MORE_MENU} select[data-lang-select]`).selectOption({ label: "🇩🇪 Deutsch" })]);
   expect(await page.locator("html").getAttribute("lang")).toBe("de");

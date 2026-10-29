@@ -29,7 +29,7 @@ export async function manifestTracked(
   return { tracked: null, why: `git could not say whether .aide/project.yaml is tracked (exit ${res.code})${said ? `: ${said}` : ""}` };
 }
 
-/** Where a project's settings are kept, for the page to say so (spec 512):
+/** Where a project's settings are kept, for the page to say so:
  *  in the project's own tracked manifest (`project`), in the dashboard's
  *  settings file (`dashboard`), in both — the tracked one wins and the
  *  dashboard's copy is not used (`shadowed`) — or nowhere yet (`none`).

@@ -19,7 +19,7 @@ describe("picking a model for a job", () => {
     modelChoices: { sonnet: {}, fable: {} },
   };
 
-  // The choice belongs to a row the reader has opened (spec 103), so
+  // The choice belongs to a row the reader has opened, so
   // every page here opens the one spec it renders.
   const OPEN = { open: "aide/81-queue-and-runner" };
 
@@ -81,7 +81,7 @@ describe("picking a model for a job", () => {
     expect(body.job.model).toEqual({ implement: "opus" });
   });
 
-  // Spec 123: the choice moved onto the phase lines, so a form now
+  // The choice moved onto the phase lines, so a form now
   // posts one field PER PHASE — `model.analyze=…&model.implement=…`.
   // A urlencoded body cannot carry a nested object, so the dotted keys
   // are folded back into one on the way in. Tested through the real
@@ -157,7 +157,7 @@ describe("picking a model for a job", () => {
     expect(await res.text()).toContain("gpt-9");
   });
 });
-// Spec 149: the Merge button is gone, and this whole block with it. What it
+// The Merge button is gone, and this whole block with it. What it
 // covered — the per-repo merge, the plan-before-code order, the install
 // afterwards, the conflict that offers a resolve — is what a step's own
 // landing does now, and is covered in "every step lands its own work" below.

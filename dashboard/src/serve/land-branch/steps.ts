@@ -10,7 +10,7 @@ import { stepLogLine } from "./test-gate.ts";
 import { renderSentence } from "../../i18n/message.ts";
 import type { LandContext } from "./types.ts";
 
-/** Put a newly created spec where the page can see it (spec 93).
+/** Put a newly created spec where the page can see it.
  *
  *  This was the first merge on the dashboard that no one pressed a
  *  button for, and it is not a convenience: the spec list shows what is
@@ -26,20 +26,20 @@ export async function landNewSpec(ctx: LandContext, job: Job, outcome: Partial<S
     // is never its to land.
     repos: specsRootsOnly(ctx, job, outcome),
     onLanded: async () => onMerged(),
-    // No `landed` here any more (spec 453): the real folder name is not
+    // No `landed` here any more: the real folder name is not
     // known until the finalize step runs, under the specs repo's own
     // merge lock — `landBranch` fills `landed.specFolder` in dynamically
     // once that step reports it, off `outcome.specFolder`, which is now
     // always just the provisional key.
     nothingToLand: { key: "landing.createNothingToLand" },
-    // `why` (spec 352, REQ-5) is not this function's to show: it is the
+    // `why` is not this function's to show: it is the
     // raw text of whatever exception `landBranch` caught, and it never
     // becomes part of the sentence — the caller keeps it as `errorDetail`.
     failedNote: () => ({ key: "landing.createLandingFailed" }),
   }));
 }
 
-/** Land the work a middle-of-the-workflow step produced (spec 149).
+/** Land the work a middle-of-the-workflow step produced.
  *
  *  `analyze` writes markdown in the specs repo and
  *  nothing else — the same argument that made `create` and `archive`
@@ -71,7 +71,7 @@ export async function landStepBranch(
   return asMergeStep(ctx, job, step, (onMerged) => landBranch(ctx, job, outcome, {
     step,
     repos: specsRootsOnly(ctx, job, outcome),
-    // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
+    // `why` stays out of the sentence — see landNewSpec's
     // own note above.
     failedNote: () => ({ key: "landing.stepLandingFailed", values: { step } }),
     onLanded: async () => onMerged(),
@@ -94,7 +94,7 @@ const isInside = (dir: string, root: string): boolean => {
 };
 
 /** Land what a step wrote when it did NOT finish, but ran out of time
- *  having touched no code repo (spec 187).
+ *  having touched no code repo.
  *
  *  The merge is `landBranch`, unchanged — the caller has already asked
  *  the only question this case adds (did anything outside the specs
@@ -112,13 +112,13 @@ export async function landStoppedStepBranch(
 ): Promise<void> {
   return landBranch(ctx, job, outcome, {
     step,
-    // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
+    // `why` stays out of the sentence — see landNewSpec's
     // own note above.
     failedNote: () => ({ key: "landing.stoppedStepLandingFailed", values: { step } }),
   });
 }
 
-/** Take an archived spec out of the list it has just left (spec 136).
+/** Take an archived spec out of the list it has just left.
  *
  *  The same argument as `landNewSpec`, at the other end of a spec's
  *  life: the list reads the main checkout, so a folder moved into
@@ -142,7 +142,7 @@ export async function landStoppedStepBranch(
 export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
   return asMergeStep(ctx, job, "archive", (onMerged) => landBranch(ctx, job, outcome, {
     step: "archive",
-    // The ONE landing that reads past its own outcome (spec 149).
+    // The ONE landing that reads past its own outcome.
     // `implement` deliberately never lands, so the project's code
     // branch sits open for however many steps follow — and whether an
     // archive run's own git touches that checkout is not guaranteed:
@@ -157,10 +157,10 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // spec already held back for the same reason writes no commit, and
     // an error there would report a problem that is not one.
     //
-    // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
+    // `why` stays out of the sentence — see landNewSpec's
     // own note above.
     failedNote: () => ({ key: "landing.archiveLandingFailed" }),
-    // Spec 388, REQ-7: a board is a running process against this
+    // A board is a running process against this
     // spec's own code branch, and once that branch is archived there is
     // nothing left for it to serve. Only fires once the merge has
     // actually landed (never on a held-back refusal, which never
@@ -174,7 +174,7 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
 }
 
 /** Take a closed spec out of the active list, the same way
- *  `landArchivedSpec` does (spec 406) — but the code root's branch is
+ *  `landArchivedSpec` does — but the code root's branch is
  *  DISCARDED here, not merged: closing records that the work will not
  *  be used, and `landBranch`'s own `discard(root)` (`merge.ts`) is what
  *  turns "close" into "delete, never merge" for the code root alone.
@@ -190,10 +190,10 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
   return asMergeStep(ctx, job, "close", (onMerged) => landBranch(ctx, job, outcome, {
     step: "close",
     repos: mergeBranchRefs(ctx.queue.branchesFor(job.project, job.specFolder), outcome.branchUrls ?? []),
-    // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
+    // `why` stays out of the sentence — see landNewSpec's
     // own note above.
     failedNote: () => ({ key: "landing.closeLandingFailed" }),
-    // Spec 388, REQ-7's own reasoning: a board running this spec's code
+    // A board running this spec's code
     // branch has nothing left to serve once that branch is gone.
     onLanded: async () => {
       onMerged();
@@ -203,7 +203,7 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
 }
 
 /** Land what a scheduled job committed to the project repository and/or
- *  the specs root (spec 558) — the same argument as `landNewSpec`/
+ *  the specs root — the same argument as `landNewSpec`/
  *  `landStepBranch`, extended to a step whose commits are not scoped to
  *  one spec folder at all. No `repos` filter: every root the run
  *  pushed lands, whichever repository (or both) it actually touched.
@@ -215,7 +215,7 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
 export async function landScheduleRun(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
   return landBranch(ctx, job, outcome, {
     step: "schedule",
-    // `why` (spec 352, REQ-5) stays out of the sentence — see landNewSpec's
+    // `why` stays out of the sentence — see landNewSpec's
     // own note above.
     failedNote: () => ({ key: "landing.scheduleLandingFailed" }),
   });

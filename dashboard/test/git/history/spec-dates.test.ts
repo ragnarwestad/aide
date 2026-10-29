@@ -1,4 +1,4 @@
-// Spec 97: a spec's 1-description.md can move on after `analyze` has
+// A spec's 1-description.md can move on after `analyze` has
 // run, and the row went on reading `analyze ✓` — the only person who
 // knew a re-run was due was the one who made the edit.
 //
@@ -28,7 +28,7 @@ import { fakeGit } from "../../helpers/fake-git.ts";
 
 const DIR = "/specs/aide/96-merge-button-says-what-it-merges";
 
-// --- spec 150: the same question, of all four files --------------------------
+// --- The same question, of all four files --------------------------
 //
 // The spec page stamps each of the four files with the commit that last
 // touched it, so a reader can tell which version is on the screen. That
@@ -77,7 +77,7 @@ describe("lastCommitOf", () => {
   });
 });
 
-// --- spec 199: when was this spec MADE? -------------------------------------
+// --- When was this spec MADE? -------------------------------------
 //
 // The Started column used to hold the most recent run's own start, so a
 // spec jumped to the top of the list every time a phase was started.
@@ -122,7 +122,7 @@ describe("firstCommitAt", () => {
   });
 });
 
-// --- spec 317: dating an archived spec across the archive step's `git mv` --
+// --- Dating an archived spec across the archive step's `git mv` --
 //
 // `firstCommitAt` runs a directory pathspec (`.`), which only sees
 // commits touching the CURRENT path — once a spec's folder has been
@@ -206,7 +206,7 @@ describe("firstCommitAtFollowingRenames", () => {
     ).toBe("2026-07-01T09:00:00+02:00");
   });
 
-  // Spec 324: `0-README.md` is the same fixed template in every spec, so
+  // `0-README.md` is the same fixed template in every spec, so
   // `--follow`'s content-similarity rename match can pair it with an
   // UNRELATED spec's deleted `0-README.md` in the same commit, and the
   // date returned is that stranger's, not this spec's own. This is a
@@ -224,7 +224,7 @@ describe("firstCommitAtFollowingRenames", () => {
 
     const TEMPLATE = "# spec\n\n## Table of contents\n\n- [Tracking info](#tracking-info)\n";
 
-    // Commit 1 (oldest): spec 91 is created with the shared template
+    // Commit 1 (oldest): the first spec is created with the shared template
     // README and a distinctive, paragraph-length description.
     const firstDir = join(repo, "91-first");
     mkdirSync(firstDir);
@@ -239,8 +239,8 @@ describe("firstCommitAtFollowingRenames", () => {
     gitIn(repo, "add", "-A");
     gitIn(repo, "commit", "-q", "-m", "create 91", "--date=2026-07-01T09:00:00+02:00");
 
-    // Commit 2 (same commit): spec 91's files are removed (simulating an
-    // earlier, unrelated rename elsewhere) and spec 92 is added with the
+    // Commit 2 (same commit): the first spec's files are removed (simulating an
+    // earlier, unrelated rename elsewhere) and the second spec is added with the
     // SAME template README but a different, equally distinctive
     // description — so git's rename detection pairs the two
     // byte-identical READMEs but not the two dissimilar descriptions.
@@ -264,13 +264,13 @@ describe("firstCommitAtFollowingRenames", () => {
     gitIn(repo, "commit", "-q", "-m", "archive 92", "--date=2026-08-01T09:00:00+02:00");
 
     const archivedDir = join(repo, "archive", "92-second");
-    // The bug: the shared template pairs with spec 91's deleted README
-    // and the date returned is spec 91's, not spec 92's own.
+    // The bug: the shared template pairs with the first spec's deleted README
+    // and the date returned is the first spec's, not the second's own.
     expect(
       await firstCommitAtFollowingRenames(createGitRunner(), archivedDir, "0-README.md"),
     ).toBe("2026-07-01T09:00:00+02:00");
     // The fix: the description is unique enough that no rename is found
-    // across the unrelated deletion, and the date returned is spec 92's
+    // across the unrelated deletion, and the date returned is the second spec's
     // own true creation commit.
     expect(
       await firstCommitAtFollowingRenames(createGitRunner(), archivedDir, "1-description.md"),

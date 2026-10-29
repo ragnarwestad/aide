@@ -21,7 +21,7 @@ const pageOf = async (base: string): Promise<string> => text(await (await fetch(
 const count = (haystack: string, needle: string): number => haystack.split(needle).length - 1;
 
 describe("a spec sent back to a full analysis says so on the row and the page", () => {
-  test("each carries the line once, with the sentence (AC-5)", async () => {
+  test("each carries the line once, with the sentence", async () => {
     const { base, dir } = harness.start({ description: descriptionWith(`- **Sent back to a full analysis:** ${WHY}`) });
     ran(dir, ["create", "analyze"], SPEC);
     const list = text(await listUntil(base, (h) => h.includes(LINE), 4_000, "the sent-back line"));
@@ -29,7 +29,7 @@ describe("a spec sent back to a full analysis says so on the row and the page", 
     expect(count(await pageOf(base), LINE)).toBe(1);
   }, 8_000);
 
-  test("a spec with no such bullet carries no line (AC-5)", async () => {
+  test("a spec with no such bullet carries no line", async () => {
     const { base, dir } = harness.start({ description: descriptionWith("- **Task:** `81-queue-and-runner/`") });
     ran(dir, ["create", "analyze"], SPEC);
     const list = text(await listUntil(base, (h) => h.includes(SPEC), 4_000, "the spec's row"));

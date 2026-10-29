@@ -64,7 +64,7 @@ function withBranch(onBranch: string, onMain = ON_MAIN) {
 }
 
 describe("a spec with a branch of its own", () => {
-  test("the Description tab shows the branch's text and names the branch's commit, not main's (AC-1)", async () => {
+  test("the Description tab shows the branch's text and names the branch's commit, not main's", async () => {
     const { base, fx } = withBranch(ON_BRANCH);
 
     const html = await draw(base, DESCRIPTION_TAB);
@@ -74,7 +74,7 @@ describe("a spec with a branch of its own", () => {
     expect(stampedSha7(html)).not.toBe(lastTouch(fx, "main").slice(0, 7));
   });
 
-  test("after a Save the page holds the saved text and the Save's commit, and a second Save from it keeps the first (AC-1, AC-2)", async () => {
+  test("after a Save the page holds the saved text and the Save's commit, and a second Save from it keeps the first", async () => {
     const { base, fx } = withBranch(ON_BRANCH);
     const first = await draw(base, DESCRIPTION_TAB);
 
@@ -95,7 +95,7 @@ describe("a spec with a branch of its own", () => {
     expect(onOrigin(fx, "main", SPEC, "1-description.md")).toBe(ON_MAIN);
   });
 
-  test("the open row on the Running tab shows what its own Save wrote to the branch (AC-1)", async () => {
+  test("the open row on the Running tab shows what its own Save wrote to the branch", async () => {
     const { base } = withBranch(tracked("As the branch has it."));
     expect(acceptanceRequiredShown(await draw(base, OPEN_ROW))).toBe(true);
 
@@ -105,7 +105,7 @@ describe("a spec with a branch of its own", () => {
     expect(acceptanceRequiredShown(await draw(base, OPEN_ROW))).toBe(false);
   });
 
-  test("a second Save from the open row, with the switch as the row shows it, keeps the Acceptance line (AC-2)", async () => {
+  test("a second Save from the open row, with the switch as the row shows it, keeps the Acceptance line", async () => {
     const { base, fx } = withBranch(tracked("As the branch has it."));
     await draw(base, OPEN_ROW);
     expect(await failed(await post(base, { settingsEditable: "1" }, TRACKING))).toBe(false);
@@ -121,7 +121,7 @@ describe("a spec with a branch of its own", () => {
     expect(onOrigin(fx, fx.branch, SPEC, "1-description.md")).toContain("- **Acceptance:** not required");
   });
 
-  test("a Depends on saved onto the branch is named on the row's own line at once (AC-3)", async () => {
+  test("a Depends on saved onto the branch is named on the row's own line at once", async () => {
     const { base, fx } = withBranch(tracked("As the branch has it."));
     const rowLine = async () => {
       const rows = await (await fetch(`${base}/?rows=1`)).text();
@@ -139,7 +139,7 @@ describe("a spec with a branch of its own", () => {
 });
 
 describe("a spec with no branch of its own", () => {
-  test("the text, the stamp and the open row's settings are the default branch's, and a Save writes to it (AC-3)", async () => {
+  test("the text, the stamp and the open row's settings are the default branch's, and a Save writes to it", async () => {
     const { base, dir } = harness.start({ description: tracked("As it was on main.", NOT_REQUIRED), alsoSpecs: [OTHER] });
     const fx = rootWithOrigin(dir);
 

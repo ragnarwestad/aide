@@ -84,7 +84,7 @@ def nested_workspace(tmp_path, project_name="aide"):
     (project / "deps" / "marker.txt").write_text("the dependency tree\n")
     (project / ".aide").mkdir()
     (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={specs_root}\n")
-    # worktreeLinks is read from the manifest alone (spec 549).
+    # worktreeLinks is read from the manifest alone.
     (project / ".aide" / "project.yaml").write_text("worktreeLinks: deps\n")
     subprocess.run(["git", "-C", str(project), "add", "-f", ".aide/config", ".gitignore"], check=True)
     subprocess.run(["git", "-C", str(project), "commit", "-qm", "add config"], check=True)
@@ -98,7 +98,7 @@ def nested_workspace(tmp_path, project_name="aide"):
 
 def tracked_specs_inside_project_workspace(tmp_path):
     """A project repo whose specs root is TRACKED inside the same
-    repository — spec 405's own layout (`specs_repo == project_root`),
+    repository — the layout (`specs_repo == project_root`),
     unlike `workspace`/`nested_workspace` above, both a SEPARATE specs
     repo. No `.aide/config` is needed: `aide_specs_root()` already falls
     back to `<root>/specs` when none is set."""
@@ -127,7 +127,7 @@ def status_only_conflict(ws, project_name="aide", second_file=None):
     — pre-creating the branch in the SPECS repo only (the project repo
     gets a fresh branch off base, which meets no conflict at all).
     `second_file` additionally conflicts an unrelated path alongside it,
-    for the negative case (AC2)."""
+    for the negative case."""
     specs = ws["specs"]
     branch = f"aide/{ws['folder']}"
     status_path = specs / project_name / ws["folder"] / "4-status.md"
@@ -152,7 +152,7 @@ def subject(step, folder="81-queue-and-runner", headless=True, stopped=None, mod
     the script — a fixture that built it the same way the reader parses
     it would prove only that the two agreed with each other.
 
-    `model=` is spec 217's suffix, and it sits BEFORE the stop reason:
+    `model=` is the suffix, and it sits BEFORE the stop reason:
     `(stopped: <reason>)` ends the subject and its reason is read
     greedily, so a suffix after it would be swallowed into the reason.
     """
@@ -168,17 +168,17 @@ def with_status(workspace, claims=None, reopened=None, models=None, done=False):
     """Give the spec a 4-status.md, committed, optionally CLAIMING steps
     on the line this change takes over.
 
-    `reopened=<sha>` adds spec 198's boundary mark, which says history
+    `reopened=<sha>` adds the boundary mark, which says history
     before that commit does not count.
 
-    `models={step: value}` adds spec 217's per-step Model lines, in the
+    `models={step: value}` adds the per-step Model lines, in the
     place the runner writes them: directly under the steps line.
 
-    `done=True` (spec 251) gives the file one already-✅ Phase section AND
+    `done=True` gives the file one already-✅ Phase section AND
     (unless `claims` already says otherwise) a `Workflow steps completed`
     line naming `implement` — the mechanical pre-check
     (core/scripts/aide-archive-spec) has read ONLY that line, never the
-    Phase tables, since spec 268; a `done=True` file that named no steps
+    Phase tables; a `done=True` file that named no steps
     would still be declined as `not-implemented-yet` before the Phase
     content it sets up ever mattered. Every test in this file that runs
     `command="archive"` against a bare `with_status()` file (no Phase
@@ -216,7 +216,7 @@ def already_ran(workspace, steps, write_line=False, **kw):
     `write_line=True` also rewrites `4-status.md`'s own `Workflow steps
     completed:` line to name every step so far, the same way a real
     run's own post-processing does — needed only by callers whose
-    scenario has `aide-archive-spec` (spec 268) read that line, since it
+    scenario has `aide-archive-spec` read that line, since it
     never reads git history. Off by default: most callers here rely on
     the plain, content-free commits this always made, and several
     scenarios (a stopped step, `review-plan`, spec-286-era rows) are
@@ -270,7 +270,7 @@ def state_of(workspace):
 
 
 def recorded_model(workspace, step, branch="aide/81-queue-and-runner", path=None):
-    """Spec 217's per-step Model line, read out of the branch's own
+    """The per-step Model line, read out of the branch's own
     commit for the same reason `recorded_line` is: the promise is that
     the edit rides IN the step's commit, not that it reached the disk."""
     path = path or f"{workspace['folder']}/4-status.md"
@@ -344,7 +344,7 @@ def phase_file_text(workspace, path, branch="aide/81-queue-and-runner"):
 
 def with_analysis_attempts(workspace, attempts, last_analyzed="2026-08-01", cost=None, tokens=None):
     """The sibling of `with_analysis` above, seeded with a pre-existing
-    `Attempts:` bullet — the REQ-1 case where the writer has to continue
+    `Attempts:` bullet — the case where the writer has to continue
     from a value it did not itself just write — and, given `cost`, the
     `Cost:` value written after it (`"$1.0000"`, `"$1.0000 (unmeasured)"`),
     and given `tokens`, a `Tokens:` value after that."""

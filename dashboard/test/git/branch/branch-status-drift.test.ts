@@ -8,7 +8,7 @@ const SYMREF_MASTER = {
   "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
 };
 
-// Spec 142: a merge made anywhere but the dashboard's own button runs
+// A merge made anywhere but the dashboard's own button runs
 // no install, so the serving host goes on serving the old code with
 // nothing saying so. The check that makes it visible asks a different
 // question of the same checkout — not "did this branch land" but "is
@@ -21,13 +21,13 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
     fetch: { code: 0 },
   };
 
-  test("a checkout level with origin is behind by nothing (criterion 1)", async () => {
+  test("a checkout level with origin is behind by nothing", async () => {
     const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "0\n" } });
     const checker = new BranchStatusChecker({ run: git.run });
     expect(await checker.commitsBehindOrigin("/repo")).toBe(0);
   });
 
-  test("a checkout three commits behind says three (criterion 2)", async () => {
+  test("a checkout three commits behind says three", async () => {
     const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "3\n" } });
     const checker = new BranchStatusChecker({ run: git.run });
     expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
@@ -42,7 +42,7 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
   // parked on another branch mid-investigation is not behind, it is
   // elsewhere, and calling that drift teaches a reader to ignore the
   // banner.
-  test("a checkout on some other branch answers null, not a number (criterion 4)", async () => {
+  test("a checkout on some other branch answers null, not a number", async () => {
     const git = fakeGit({
       ...ON_MASTER,
       "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/142-x\n" },
@@ -53,19 +53,19 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
     expect(git.calls.some((c) => c.args[0] === "rev-list")).toBe(false);
   });
 
-  test("a repo with no resolvable default branch answers null (criterion 5)", async () => {
+  test("a repo with no resolvable default branch answers null", async () => {
     const git = fakeGit({ "symbolic-ref": { code: 128 }, "show-ref": { code: 1 } });
     const checker = new BranchStatusChecker({ run: git.run });
     expect(await checker.commitsBehindOrigin("/repo")).toBeNull();
   });
 
-  test("a rev-list that fails answers null — never zero (criterion 5)", async () => {
+  test("a rev-list that fails answers null — never zero", async () => {
     const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 128 } });
     const checker = new BranchStatusChecker({ run: git.run });
     expect(await checker.commitsBehindOrigin("/repo")).toBeNull();
   });
 
-  test("a git that throws answers null and does not escape (criterion 5)", async () => {
+  test("a git that throws answers null and does not escape", async () => {
     const run: GitRunner = async () => {
       throw new Error("no such directory");
     };
@@ -130,7 +130,7 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
   });
 });
 
-// Spec 258: the Deploy route re-checks the count right after it changes
+// The Deploy route re-checks the count right after it changes
 // the checkout, and must not report the old answer for the rest of the
 // TTL — the same escape hatch `isMerged`'s own `fresh` tests prove.
 describe("BranchStatusChecker.commitsBehindOrigin: fresh", () => {
@@ -175,7 +175,7 @@ describe("BranchStatusChecker.commitsBehindOrigin: fresh", () => {
   });
 });
 
-// Spec 203: the page render reads this cache and never fills it. The
+// The page render reads this cache and never fills it. The
 // filling is a background schedule's job, so what the request path
 // needs is a read that asks git nothing at all — and one that hands
 // back an OLD answer rather than none, so the row can label it.
@@ -250,7 +250,7 @@ describe("BranchStatusChecker.commitsBehindOrigin: reach", () => {
     return { checker, tick: () => (clock += 5_000) };
   }
 
-  test("a fetch that fails answers null and leaves the last answer and its time (AC-4)", async () => {
+  test("a fetch that fails answers null and leaves the last answer and its time", async () => {
     const state = { behind: "3", fetch: 0, count: 0 };
     const { checker, tick } = checkout(state);
     expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
@@ -261,7 +261,7 @@ describe("BranchStatusChecker.commitsBehindOrigin: reach", () => {
     expect(checker.peekDrift("/repo")).toEqual({ behind: 3, checkedAt: 1000 });
   });
 
-  test("a count git cannot give answers null and leaves the last answer and its time (AC-4)", async () => {
+  test("a count git cannot give answers null and leaves the last answer and its time", async () => {
     const state = { behind: "3", fetch: 0, count: 0 };
     const { checker, tick } = checkout(state);
     expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
@@ -271,7 +271,7 @@ describe("BranchStatusChecker.commitsBehindOrigin: reach", () => {
     expect(checker.peekDrift("/repo")).toEqual({ behind: 3, checkedAt: 1000 });
   });
 
-  test("a fetch that succeeds counts afresh and writes the answer, as `fresh` does (AC-4)", async () => {
+  test("a fetch that succeeds counts afresh and writes the answer, as `fresh` does", async () => {
     const state = { behind: "0", fetch: 0, count: 0 };
     const { checker, tick } = checkout(state);
     expect(await checker.commitsBehindOrigin("/repo")).toBe(0);
@@ -281,7 +281,7 @@ describe("BranchStatusChecker.commitsBehindOrigin: reach", () => {
     expect(checker.peekDrift("/repo")).toEqual({ behind: 2, checkedAt: 6000 });
   });
 
-  test("without `reach` a failed fetch is still best effort, as it was (AC-4)", async () => {
+  test("without `reach` a failed fetch is still best effort, as it was", async () => {
     const state = { behind: "3", fetch: 128, count: 0 };
     const { checker } = checkout(state);
     expect(await checker.commitsBehindOrigin("/repo", true)).toBe(3);

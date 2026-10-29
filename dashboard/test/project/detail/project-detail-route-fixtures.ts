@@ -2,7 +2,7 @@
 // across project-detail-page.test.ts and project-detail-readiness-and-deploy.test.ts
 // (split out of project-detail-route.test.ts).
 //
-// Spec 185: a project's own page, served live.
+// A project's own page, served live.
 //
 // Everything the description asks for was already computed somewhere —
 // `assessProjectReadiness` says why a run cannot start, `configValue`
@@ -55,7 +55,7 @@ export function setTestCmd(root: string, name: string, cmd: string): void {
 }
 
 /** Give `name` under `root` its worktree links, in its manifest — the
- *  only file they are read from (spec 549). */
+ *  only file they are read from. */
 export function setWorktreeLinks(root: string, name: string, links: string): void {
   const file = join(root, name, ".aide", "project.yaml");
   writeFileSync(file, `${readFileSync(file, "utf-8")}worktreeLinks: ${links}\n`);
@@ -141,7 +141,7 @@ export const unanswerable = (root: string, name: string) =>
 export const INSTALLS = "AIDE_INSTALL_CMD=deploy/install-after-merge.sh\n";
 
 /** Poll a project's own page until it says `text`, or give up — the
- *  drift check runs on a schedule of its own (spec 203), so the answer
+ *  drift check runs on a schedule of its own, so the answer
  *  arrives a moment after the server starts rather than during the
  *  first request. The same bounded-loop idiom `projects-route.test.ts`
  *  uses for its own background check. */

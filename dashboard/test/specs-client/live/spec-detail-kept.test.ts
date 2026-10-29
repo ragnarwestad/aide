@@ -76,7 +76,7 @@ function load(): HTMLTextAreaElement {
 
 const detail = () => win.document.querySelector("tr[data-spec-detail]") as unknown as Element | null;
 
-describe("the open spec survives a redraw of the rows (AC-1)", () => {
+describe("the open spec survives a redraw of the rows", () => {
   test("the first redraw after a load, which replaces all of the rows, keeps the same element and what was typed", async () => {
     const box = load();
     const before = detail();

@@ -1,4 +1,4 @@
-// Spec 452: AC-2's "which files this step wrote or deleted, with lines
+// The "which files this step wrote or deleted, with lines
 // added and removed" — `aide-run-spec` already carries a step's own
 // `headBefore`/`headAfter` per repo (`StepResult.repos`), so the only
 // new question this dashboard asks git is a plain `diff --numstat`

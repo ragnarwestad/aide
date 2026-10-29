@@ -73,7 +73,7 @@ const landCtx = (historyAt: number): LandContext =>
   }) as unknown as LandContext;
 
 describe("the files-disagree notice waits for the disk scan", () => {
-  test("sourcesCheckedAt is no later than the scan that supplied the files (AC-1)", () => {
+  test("sourcesCheckedAt is no later than the scan that supplied the files", () => {
     const { at, list } = scan(projectsRoot());
     const resolved = withFreshness(landCtx(at + 2000), list)[0]!;
     expect(Date.parse(resolved.sourcesCheckedAt!)).toBeLessThanOrEqual(at);
@@ -98,7 +98,7 @@ describe("the files-disagree notice waits for the disk scan", () => {
         runnerAvailable: true,
         targets: resolved,
         filter: { open: openKeys([implemented], resolved) },
-        // Spec 557: implement's own historyDone, resolved above, is now
+        // Implement's own historyDone, resolved above, is now
         // also what shows the test-server-link mark, which would outrank
         // the files-disagree sentence this test is about — read as
         // test-server-incapable so that unrelated mark stays out of it.
@@ -108,12 +108,12 @@ describe("the files-disagree notice waits for the disk scan", () => {
     );
   };
 
-  test("a step that ended after the scan is not called a disagreement, history fresh or not (AC-2)", () => {
+  test("a step that ended after the scan is not called a disagreement, history fresh or not", () => {
     const read = scan(projectsRoot());
     expect(page(read, read.at + 1000)).not.toContain("disagree about whether");
   });
 
-  test("a step that ended before the scan, with files still short of it, is said (AC-2)", () => {
+  test("a step that ended before the scan, with files still short of it, is said", () => {
     const read = scan(projectsRoot());
     expect(page(read, read.at - 1000)).toContain("disagree about whether");
   });

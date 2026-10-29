@@ -1,9 +1,9 @@
-// Spec 208: nothing slow happens while a page is being drawn.
+// Nothing slow happens while a page is being drawn.
 //
-// Three fixes had been made for this, one page each — spec 178 (never
-// merged), spec 203 (/projects, shipped), and then spec 193 put a
+// Three fixes had been made for this, one page each — one never
+// merged, one for /projects, and then a third put a
 // network `ls-remote` straight back onto the spec list's render path
-// the next day. The pattern spec 203 established is applied to the
+// the next day. The /projects pattern is applied to the
 // whole app here: every checker gains a synchronous `peek*`, and ONE
 // background schedule keeps them all fed.
 //
@@ -108,7 +108,6 @@ async function settled(count: () => number, quietMs = 60, budgetMs = 2000): Prom
 }
 
 describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
-  // Criterion 3.
   test("one tick fills every checker for the live spec and the archived spec's root", async () => {
     const git = recordingGit();
     harness.start({
@@ -123,11 +122,10 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     await until(() =>
       git.calls.some((c) => c.args.join(" ").includes("-- 3-solution.md")),
     );
-    // And, for the archived spec, the network question spec 193 added.
+    // And, for the archived spec, the network question.
     expect(await until(() => lsRemotes(git.calls).length > 0)).toBe(true);
   });
 
-  // Criterion 4.
   test("no archived spec is warmed as if it were live", async () => {
     const git = recordingGit();
     harness.start({
@@ -138,10 +136,10 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --follow --format=%aI")));
     // The per-spec sweep walks `targets()`, which is the LIVE list. An
     // archived spec is asked only its OWN two questions — the archive
-    // date (only where `4-status.md` carries no stamp) and, since spec
-    // 317, its own creation date via the rename-aware lookup — and
+    // date (only where `4-status.md` carries no stamp) and its own
+    // creation date via the rename-aware lookup — and
     // never the four the live sweep asks. Warming every spec that ever
-    // existed, forever, is the cost spec 178's own plan review
+    // existed, forever, is a cost a plan review
     // rejected.
     const inArchive = git.calls.filter((c) => c.dir.includes("archive"));
     expect(inArchive.some((c) => c.args.join(" ").startsWith("log --all"))).toBe(false);
@@ -161,7 +159,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     ).toBe(true);
   });
 
-  // Criterion 7: the roots are asked together. The sequential `for`
+  // The roots are asked together. The sequential `for`
   // loop this replaces was the spec list's largest single cost — one
   // TCP/TLS round trip to GitHub per root, one after another.
   test("every root's ls-remote goes out concurrently, not one after another", async () => {
@@ -190,7 +188,6 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     expect(git.peak()).toBeGreaterThan(1);
   });
 
-  // Criterion 15.
   test("a tick that has not finished is not joined by the next one", async () => {
     let release = (): void => {};
     const gate = new Promise<void>((r) => (release = r));
@@ -208,7 +205,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     release();
   });
 
-  // Criterion 11. Asked of the behaviour rather than of `clearInterval`:
+  // Asked of the behaviour rather than of `clearInterval`:
   // `bun test` runs many suites in one process, and a timer from a
   // stopped server would go on firing into the next one.
   test("stop() ends the schedule", async () => {
@@ -227,7 +224,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     expect(warmerCalls(git.calls).length).toBe(afterStop);
   });
 
-  // Criterion 16. The set is read off a peek now, and an unwarmed root
+  // The set is read off a peek now, and an unwarmed root
   // contributes NOTHING — which is what keeps `resolveProject` failing
   // closed, exactly as an empty `unlanded` set does today.
   test("archive cannot be re-enqueued for an archived spec whose roots are unwarmed", async () => {
@@ -249,7 +246,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     expect(lsRemotes(git.calls).length).toBe(0);
   });
 
-  // Spec 254, criterion 3: `landBranch()` invalidates the disk-scan
+  // `landBranch()` invalidates the disk-scan
   // cache the instant a merge lands (`scan = null`), but nothing did the
   // same for `workflowHistory` — the schedule above was the only thing
   // that ever warmed it. A CREATE landing, deliberately: its folder does
@@ -258,7 +255,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
   // `log --all` call for it can only have come from the landing itself.
   // `specCachePollMs` is set far past this test's own patience, so the
   // schedule cannot be the source either.
-  test("a create landing warms its own (never-before-warmed) spec immediately (criterion 3)", async () => {
+  test("a create landing warms its own (never-before-warmed) spec immediately", async () => {
     const jobs = mkdtempSync(join(tmpdir(), "aide-254-jobs-"));
     try {
       const git = recordingGit();
@@ -335,7 +332,7 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
   }, 10000);
 });
 
-// Spec 275: `refreshSpecCaches` is the only other writer of `openCache`
+// `refreshSpecCaches` is the only other writer of `openCache`
 // besides a landing's own fresh recheck, and until now it corrected a
 // stale answer without telling anyone — an already-open tab stayed
 // wrong until an unrelated queue event or a reload happened to ask
@@ -404,7 +401,7 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
     return { ctx, branchOpen, calls, notifyCount: () => notifyCount };
   }
 
-  // Criterion 1 (single root).
+  // Single root.
   test("a root's ls-remote answer changing between two ticks fires exactly one `changed` event", async () => {
     const { ctx, branchOpen, notifyCount } = singleRootCtx();
     // tick 0: discovers the branch open. Its null-to-known transition is
@@ -417,18 +414,17 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
     expect(notifyCount()).toBe(2);
   });
 
-  // Criterion 3.
   test("a tick whose answer has not moved stays silent", async () => {
     const { ctx, notifyCount } = singleRootCtx();
     await refreshSpecCaches(ctx); // tick 0: discovery
     expect(notifyCount()).toBe(1);
     await refreshSpecCaches(ctx); // tick 1: same answer as tick 0
-    // Still 1 — the second tick found nothing new, exactly as spec 189
-    // already promises for every other reason a page might redraw.
+    // Still 1 — the second tick found nothing new, exactly as
+    // every other reason a page might redraw.
     expect(notifyCount()).toBe(1);
   });
 
-  // Criterion 1 (multi-root, "exactly once — not once per root").
+  // Multi-root: "exactly once — not once per root".
   test("several roots flipping in the same tick still fire exactly one `changed` event", async () => {
     const branchOpen = { value: true };
     const calls: GitCall[] = [];
@@ -532,7 +528,7 @@ describe("the code checkout's branches are asked for a live spec", () => {
     return { ctx, originHas, calls };
   }
 
-  test("a project with a live spec and no archived spec has its code checkout asked (AC-2, AC-3)", async () => {
+  test("a project with a live spec and no archived spec has its code checkout asked", async () => {
     const { ctx, originHas, calls } = liveCtx();
     originHas.value = true;
     await refreshSpecCaches(ctx);
@@ -540,7 +536,7 @@ describe("the code checkout's branches are asked for a live spec", () => {
     expect(ctx.branchStatus.peekOpenSpecBranches(CODE).open?.has(`aide/${FOLDER}`)).toBe(true);
   });
 
-  test("a step's end asks origin again, so a branch implement just pushed is there at once (AC-3)", async () => {
+  test("a step's end asks origin again, so a branch implement just pushed is there at once", async () => {
     const { ctx, originHas } = liveCtx();
     await refreshSpecCaches(ctx); // the sweep found origin without the branch
     originHas.value = true;
@@ -548,7 +544,7 @@ describe("the code checkout's branches are asked for a live spec", () => {
     expect(ctx.branchStatus.peekOpenSpecBranches(CODE).open?.has(`aide/${FOLDER}`)).toBe(true);
   });
 
-  test("a re-read without the option asks origin nothing (AC-3)", async () => {
+  test("a re-read without the option asks origin nothing", async () => {
     const { ctx, calls } = liveCtx();
     await rereadSpec(ctx, "", FOLDER);
     expect(lsRemotes(calls)).toHaveLength(0);
@@ -589,7 +585,7 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
       specsRoot: async (dir) => dir,
       readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
       targets: () => [],
-      // 78's branch is gone from origin: nothing about it is asked.
+      // The second branch is gone from origin: nothing about it is asked.
       readScan: () => ({ archived: ["aide/77-old-thing", "aide/78-gone"], dirs: new Map() }),
       allowed: new Set(),
       ensureCheckout: async () => undefined,
@@ -608,7 +604,7 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
     return { ctx, ancestor, calls, branchStatus, notifyCount: () => notifyCount };
   }
 
-  test("for an archived spec whose branch is open, and not for one whose branch is gone (AC-1)", async () => {
+  test("for an archived spec whose branch is open, and not for one whose branch is gone", async () => {
     const { ctx, calls, branchStatus } = mergedCtx();
     expect(branchStatus.peekMerged(ROOT, OPEN)).toBeNull();
     await refreshSpecCaches(ctx);
@@ -618,7 +614,7 @@ describe("refreshSpecCaches asks whether an open archived branch is merged", () 
     expect(branchStatus.peekMerged(ROOT, "aide/78-gone")).toBeNull();
   });
 
-  test("a merged answer that flips sends exactly one change event (AC-1)", async () => {
+  test("a merged answer that flips sends exactly one change event", async () => {
     const { ctx, ancestor, notifyCount } = mergedCtx();
     await refreshSpecCaches(ctx); // discovery: the open set moved
     expect(notifyCount()).toBe(1);
@@ -691,7 +687,7 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
     return { ctx, gh, asked, pullRequests, notifyCount: () => notifyCount };
   }
 
-  test("for a pr project's archived spec whose branch is on origin, and for no other (AC-1)", async () => {
+  test("for a pr project's archived spec whose branch is on origin, and for no other", async () => {
     const { ctx, asked, pullRequests } = sweepCtx("pr");
     await refreshSpecCaches(ctx);
     expect(asked.map((a) => a.args.slice(0, 4))).toEqual([["pr", "list", "--head", OPEN]]);
@@ -700,7 +696,7 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
     expect(pullRequests.has(GONE_KEY)).toBe(false);
   });
 
-  test("an answer that moves sends one change event, one that stays does not (AC-1)", async () => {
+  test("an answer that moves sends one change event, one that stays does not", async () => {
     const { ctx, gh, notifyCount } = sweepCtx("pr");
     await refreshSpecCaches(ctx); // discovery: the open set and the answer moved
     expect(notifyCount()).toBe(1);
@@ -711,14 +707,14 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
     expect(notifyCount()).toBe(2);
   });
 
-  test("a project that merges its code at archive never runs gh (AC-5)", async () => {
+  test("a project that merges its code at archive never runs gh", async () => {
     const { ctx, asked, pullRequests } = sweepCtx("merge");
     await refreshSpecCaches(ctx);
     expect(asked).toEqual([]);
     expect(pullRequests.size).toBe(0);
   });
 
-  test("a gh that fails leaves the last answer where it was (AC-2)", async () => {
+  test("a gh that fails leaves the last answer where it was", async () => {
     const { ctx, gh, pullRequests } = sweepCtx("pr");
     await refreshSpecCaches(ctx);
     gh.code = 1;
@@ -731,7 +727,7 @@ describe("refreshSpecCaches asks GitHub whether an archived spec's pull request 
     expect(pullRequests.get(OPEN_KEY)).toEqual({ merged: true, headSha: "abc123" });
   });
 
-  test("an answer about a branch origin no longer holds, or a spec no longer archived, is dropped (AC-2)", async () => {
+  test("an answer about a branch origin no longer holds, or a spec no longer archived, is dropped", async () => {
     const { ctx, pullRequests } = sweepCtx("pr");
     pullRequests.set(GONE_KEY, { merged: true, headSha: "old" });
     pullRequests.set("aide/99-not-archived", { merged: true, headSha: "old" });

@@ -11,10 +11,10 @@
 # the step resolves. Kept by repoint_specs_path below, in each of the
 # three layouts it already knows about, because a `create` step's whole
 # output is a new directory there and the only honest way to name it is
-# to look (spec 93).
+# to look.
 specs_root_wt="$specs_root"
 
-# Spec 405: the pathspec that keeps the specs root out of "did the
+# The pathspec that keeps the specs root out of "did the
 # project repo change" (run-spec/record/status-line.sh's analyze scope-check).
 # Populated below, only when the specs root sits inside THIS worktree
 # (single-worktree layout) — with a separate specs worktree the project
@@ -37,7 +37,7 @@ specs_root_excludes=()
 # step could make `git merge` fail with "local changes to the following
 # files would be overwritten" while `status --porcelain` read clean and
 # `merge --abort` had nothing to abort — a healthy run reported as a
-# conflict. No project's .aide/config is tracked anymore (spec 345), but
+# conflict. No project's .aide/config is tracked anymore, but
 # the ordering is still correct, so it stays.
 repoint_specs_path() {
   local rel new_specs cfg tmp_cfg
@@ -48,7 +48,7 @@ repoint_specs_path() {
     specs_root_wt="$new_specs"
     cfg="$project_wt/.aide/config"
     # A worktree checks out TRACKED files only, and .aide/config is
-    # never tracked (spec 345) — so it is copied in fresh from the main
+    # never tracked — so it is copied in fresh from the main
     # checkout and excluded from the commit, the same for every project.
     mkdir -p "$project_wt/.aide" 2>/dev/null || true
     [ -f "$project_root/.aide/config" ] && cp "$project_root/.aide/config" "$cfg" 2>/dev/null
@@ -101,7 +101,7 @@ repoint_specs_path() {
       fi
       # Tracked or symlinked-in, the specs root's own changes are the
       # step's real output, not "the project changed" — whether or not
-      # it needed linking in above (spec 405).
+      # it needed linking in above.
       [ -n "$rel" ] && specs_root_excludes+=(":(exclude,top)$rel")
       ;;
   esac
@@ -109,7 +109,7 @@ repoint_specs_path() {
 }
 repoint_specs_path
 
-# A project keeps nothing of Aide's in its repository (spec 512): an
+# A project keeps nothing of Aide's in its repository: an
 # untracked `.aide/project.yaml` in the main checkout — the dashboard's
 # derived copy of the settings it keeps, or a draft — is what
 # `aide-resolve-test-cmd --project-dir .` reads inside this worktree, and
@@ -138,7 +138,7 @@ carry_manifest_into_worktree
 # without this the step writes into the MAIN checkout: the commit loop
 # (now on the worktree) would commit nothing, the result would report
 # success, and the main tree would be left dirty so every later run
-# naming that repo is refused. That is spec 83's failure recreated. The
+# naming that repo is refused. That is the old failure recreated. The
 # answer is the one the script already uses for a fact the step cannot
 # infer — say it in the prompt.
 i=0
@@ -215,7 +215,7 @@ for wt in "${work_roots[@]}"; do
   head_before+=("$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")")
 done
 
-# spec 288: the specs worktree's own HEAD before this step's session
+# The specs worktree's own HEAD before this step's session
 # ran — `completed_steps_for`'s pre-session snapshot and the new
 # `analyze` scope-check below both read `4-status.md` as it stood at
 # this ref, never at whatever the session left on disk.
@@ -226,13 +226,13 @@ specs_ref_before="${head_before[0]}"
 # Read off the disk, before and after, rather than computed: the rule
 # that decides a spec's number and its slug is landing's own, under the
 # specs repo's merge lock, and a second copy of that rule here is
-# precisely the mistake spec 82 was about (spec 453 moved WHERE that
-# rule runs, never re-derived it a second time). A directory listing is
+# precisely the mistake of writing a rule twice (moving WHERE that
+# rule runs never re-derives it a second time). A directory listing is
 # also robust in a way parsing `git status` is not — the step may or may
 # not have committed its own work by the time we look.
 #
 # Two shapes count as a spec folder: the numbered `NN-slug` an
-# interactive session still makes on its own (AC-7), and the literal
+# interactive session still makes on its own, and the literal
 # `new-<8 hex>` provisional key every headless create now makes instead
 # — the same pattern `parse-request.ts`'s own `provisionalKey()` and
 # `self-run.ts`'s dispatcher already match.
@@ -262,7 +262,7 @@ printf '%s' "$prompt" > "$work_dir/prompt"
 # a timeout is about the session, not about the step around it.
 started_at="$(date +%s)"
 
-# --- the mechanical archive pre-check (spec 251) -----------------------------
+# --- the mechanical archive pre-check -----------------------------
 # Most of what `/aide-archive` used to spend a full AI session on is pure
 # logic — folder resolution, the conflict check, reading 4-status.md's
 # tables to decide whether the work is done. aide-archive-spec does that
@@ -297,7 +297,7 @@ if [ "$command_name" = "archive" ]; then
   esac
 fi
 
-# --- the mechanical create path (spec 433) -----------------------------
+# --- the mechanical create path -----------------------------
 # `create` needs no AI session at all when the New-spec form's own
 # "let AI formulate acceptance criteria" box was cleared: the title,
 # description, depends-on and acceptance choice the form already posted
@@ -332,7 +332,7 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
   model_id_out=""
   cost_known="true"; error_msg=""
   if [ -n "$create_no_ai" ]; then
-    # Spec 453: this path is reached only from aide-run-spec, headless by
+    # This path is reached only from aide-run-spec, headless by
     # construction — the same literal-name mode the AI-driven skill path
     # now uses, never an auto-picked number. The real number is
     # landing's own business now, under the one lock two concurrent
@@ -425,7 +425,7 @@ EOF
 fi
 # A create that reported success without a folder named $spec_arg under
 # its specs root did not make the spec: the landing gives that exact
-# folder its number and looks nowhere else (spec 453). Said here, where
+# folder its number and looks nowhere else. Said here, where
 # it happened, instead of as "could not assign this spec its number"
 # from the landing — and the folder is left where it is: the board says
 # what went wrong, it does not move things to make it right.

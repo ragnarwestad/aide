@@ -6,7 +6,7 @@ import { spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarn
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
-// Criteria 3 and 10 (spec 02): the queue used to learn the session id
+// The queue used to learn the session id
 // from the result file — by which time the step was over and there was
 // nothing left to watch. Generating it BEFORE the spawn is what turns
 // "$0 and nothing" into a session the live panel can follow.
@@ -95,7 +95,7 @@ describe("what the page needs from a step", () => {
     expect(store.get(job.id)?.branchUrl).toBe("https://example.test/compare");
   });
 
-  // Spec 89: `aide-run-spec` reports one entry per repo it pushed, and
+  // `aide-run-spec` reports one entry per repo it pushed, and
   // the runner read only the singular neighbour. A job that touches two
   // repos makes two branches, and one link for both was the whole bug.
   test("every repo the step pushed to is kept, not just the representative one", () => {
@@ -173,8 +173,8 @@ describe("what the page needs from a step", () => {
     ]);
   });
 
-  // Spec 452: `aide-run-spec` has emitted `repos[].headBefore/headAfter`
-  // for every step since spec 81 — the commit range the Logs tab's new
+  // `aide-run-spec` has emitted `repos[].headBefore/headAfter`
+  // for every step — the commit range the Logs tab's new
   // summary needs to compute a diff-stat from — and nothing on this
   // side read it until now.
   test("a step's own commit range (repos) is kept on its result", () => {

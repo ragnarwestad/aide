@@ -1,4 +1,4 @@
-// Spec 406: landing a `close` step. The specs root merges normally,
+// Landing a `close` step. The specs root merges normally,
 // exactly as an archive landing's does; the code root's branch is
 // DELETED, never merged — Close records that the work will not be
 // used. Follows the shape archive-landing.test.ts's own suite already
@@ -49,7 +49,7 @@ const CLOSE_RESULT = {
   repos: [],
 };
 
-describe("spec 406: landing a close step", () => {
+describe("landing a close step", () => {
   test("the specs root merges and pushes normally", async () => {
     const git = gitFor();
     const { base, results } = serverWithRunner(start, "aide-close-results-", git, { queueProjectRoot: "/repos" });

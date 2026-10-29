@@ -16,15 +16,15 @@ export interface StartOptions {
   /** Further spec folders in `aide`, for jobs that run side by side. */
   alsoSpecs?: string[];
   /** Archived spec folders — written under `specs/archive/<folder>`,
-   *  which is where `discoverProjects` looks for them (spec 163). Keyed
+   *  which is where `discoverProjects` looks for them. Keyed
    *  by folder, so one suite can give a spec an `Archived:` stamp in its
    *  `4-status.md` and another none. `project` puts one in a project
    *  other than `aide`, which the archive's own suite needs to prove
-   *  that its table interleaves projects by date (spec 170); that
+   *  that its table interleaves projects by date; that
    *  project has to exist, so name it in `alsoProjects` too. `analysis`
-   *  and `solution` are spec 247's addition: a fixture that wants a
+   *  and `solution` are for a fixture that wants a
    *  phase-outcome block (`- **Model:**`/`- **Time spent:**`/`- **Cost:**`,
-   *  spec 245's own write format) on the analyze or implement step writes
+   *  in the runner's own write format) on the analyze or implement step: it writes
    *  it into `2-analysis.md`/`3-solution.md` here, since that block lives
    *  in the phase's OWN file, not in `4-status.md`. Absent writes neither
    *  file, exactly as `description`/`status` absent falls back to a
@@ -45,7 +45,7 @@ export interface StartOptions {
   analysis?: string;
   /** The spec's 4-status.md. Its "Workflow steps completed" line is
    *  what the spec CLAIMS to have had; `ran()` is what makes a step
-   *  count (spec 154). The default claims `create`, which is what
+   *  count. The default claims `create`, which is what
    *  `/aide-create` used to write — a suite about the two records
    *  disagreeing sets one without the other. */
   status?: string;
@@ -53,7 +53,7 @@ export interface StartOptions {
 
 export interface QueueHarness {
   /** `server` is handed back for the one question the base URL cannot
-   *  answer: what `stop()` let go of (spec 204's filesystem watchers).
+   *  answer: what `stop()` let go of (the filesystem watchers).
    *  `cleanup()` still stops it, so a suite that takes it does not have
    *  to. */
   start(opts?: StartOptions): { base: string; dir: string; server: ReturnType<typeof createServer> };
@@ -110,7 +110,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
         mirrorPath: join(dir, "runs.json"),
         queueMirrorPath: join(dir, "queue.json"),
         projectRoot: root,
-        // The same tree, named as the MACHINERY's root too (spec 220):
+        // The same tree, named as the MACHINERY's root too:
         // left unset, `machineryProjectDir` falls back to a bare
         // relative project name, and anything read out of a project's
         // own directory — its manifest, most of all — is then read
@@ -118,12 +118,12 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
         // standing in. Production always has both.
         queueProjectRoot: root,
         queueProjects: ["aide"],
-        // Spec 205: inside this fixture's own directory, never the
+        // Inside this fixture's own directory, never the
         // default under $HOME. A suite that let the server fall back to
         // it would clone into the operator's real checkouts, and the
         // next suite would find them there.
         dashboardCheckoutRoot: join(dir, "owned"),
-        // Spec 208: the render reads whatever the schedule last found,
+        // The render reads whatever the schedule last found,
         // so a fixture that writes its git commits AFTER the server
         // starts — which most of them do — needs the schedule to come
         // round again inside a test's patience. In production this is
@@ -135,7 +135,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
         // 2 s in production; here a test walking a job through its steps
         // does not wait two seconds a step.
         queuePollMs: 50,
-        // Spec 287: without this, a real `AIDE_INSTALL_CMD` succeeding in
+        // Without this, a real `AIDE_INSTALL_CMD` succeeding in
         // a test would reach the real `createLaunchdRestart()` — harmless
         // on a machine with no `com.aide-dashboard.serve` job registered,
         // but a genuine hazard on one that does (the serving host itself,
@@ -168,7 +168,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
 }
 
 /** The runner's own commits, in the specs root, for the steps a spec
- *  has HAD (spec 154). Since the queue reads git rather than the file,
+ *  has HAD. Since the queue reads git rather than the file,
  *  this — not `statusSaying` — is what makes a step count.
  *
  *  The repo is made on first use rather than by `start`: a suite that
@@ -209,7 +209,7 @@ function git(cwd: string, ...args: string[]): void {
 }
 
 /** A 4-status.md whose Tracking info says which workflow steps the spec
- *  has HAD (spec 139) — a CLAIM since spec 154, and the thing the row
+ *  has HAD — a CLAIM, and the thing the row
  *  reports a disagreement about when git says otherwise. Exported
  *  because the route suites build their own: a fixture spelling the
  *  line out by hand in twenty places is a fixture that will one day

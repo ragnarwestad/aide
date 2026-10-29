@@ -1,11 +1,11 @@
-// The restart install-after-merge.sh used to do itself (spec 287): it
+// The restart install-after-merge.sh used to do itself: it
 // killed the very process running the script, without ever asking
 // whether some OTHER landing — a different repo, or the same one,
 // queued right behind this landing's own merge — was still mid-`git
 // push` when it fired. Moved here so the wait can hold the one piece
 // of state that answers that question (`mergeLock`) without a second,
 // file-based channel to go stale the way the launchd plist already
-// has (2-analysis.md, REQ-4).
+// has.
 
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -123,7 +123,7 @@ export async function restartAfterLanding(ctx: {
   queue?: { list(): { id: string; landing?: boolean }[] };
   exceptJobId?: string;
   /** Called with the current running-job list whenever it changes, and
-   *  with `[]` once the wait is over one way or another (spec 385) — the
+   *  with `[]` once the wait is over one way or another — the
    *  one signal the Deploy tab's "waiting" sentence is drawn from. */
   onJobsWaitChange?: (jobs: string[]) => void;
   /** Called once, right before the restart fires: the last thing the

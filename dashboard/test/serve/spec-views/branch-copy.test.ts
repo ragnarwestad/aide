@@ -30,7 +30,7 @@ function context() {
 }
 
 describe("readBranchCopy", () => {
-  test("a spec with a branch gives the branch's text, its commit and that commit's time, and the Save's after a Save (AC-1)", async () => {
+  test("a spec with a branch gives the branch's text, its commit and that commit's time, and the Save's after a Save", async () => {
     const { dir } = harness.start({ description: ON_MAIN });
     const fx = specBranchAhead(dir, SPEC, { "1-description.md": ON_BRANCH });
     const specDir = join(dir, "root", "aide", "specs", SPEC);
@@ -52,7 +52,7 @@ describe("readBranchCopy", () => {
     expect(second?.sha).not.toBe(first?.sha);
   });
 
-  test("a spec with no branch of its own gives null (AC-3)", async () => {
+  test("a spec with no branch of its own gives null", async () => {
     const { dir } = harness.start({ description: ON_MAIN });
     rootWithOrigin(dir);
 

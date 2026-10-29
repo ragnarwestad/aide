@@ -28,7 +28,7 @@ describe("a job step's own log", () => {
     expect(html).not.toContain(encodeURIComponent("aide/01-x:close.1"));
   });
 
-  test("a standalone step log has no phase-step log marker (AC-1, AC-2)", () => {
+  test("a standalone step log has no phase-step log marker", () => {
     const html = draw("aide/01-x:close.0");
     expect(html).toContain("pulled main");
     expect(html).not.toContain("data-phasesteplog");
@@ -41,7 +41,7 @@ describe("a job step's own log", () => {
 });
 
 describe("a job step's place", () => {
-  test("a job's step lines stand under no phase, so none is marked as under one (AC-1)", () => {
+  test("a job's step lines stand under no phase, so none is marked as under one", () => {
     const stepLines = draw().match(/<tr class="subrow"[^>]*data-jobstep="1"[^>]*>/g) ?? [];
     expect(stepLines).toHaveLength(3);
     for (const tr of stepLines) expect(tr).not.toContain("data-phasestep");
@@ -54,7 +54,7 @@ describe("a job step's Cost cell", () => {
     return (tr.match(/data-col="cost">(.*?)<\/td>/)?.[1] ?? "").replace(/<[^>]*>/g, "");
   };
 
-  test("a step whose run reported tokens shows them, and one with none shows a dash (AC-3, AC-4)", () => {
+  test("a step whose run reported tokens shows them, and one with none shows a dash", () => {
     expect(cost("Step 2 of 4")).toBe("12.3k");
     expect(cost("Step 1 of 4")).toBe("–");
   });

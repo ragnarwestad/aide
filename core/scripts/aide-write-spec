@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # aide-write-spec — the one legitimate way /aide-analyze, /aide-implement
-# and /aide-archive land a spec file's content on disk (spec 282, closing
-# the gap spec 248 left open). Content comes in on stdin; the caller
+# and /aide-archive land a spec file's content on disk. Content comes in
+# on stdin; the caller
 # (the skill/model) is responsible for assembling the full file text,
 # exactly as the Write tool would have required. Once this is the only
 # path a legitimate spec-file write takes, a Write/Edit permission rule
@@ -85,7 +85,7 @@ cat > "$content_tmp"
 [ -s "$content_tmp" ] || { rm -f "$content_tmp"; refuse "no content on stdin"; }
 mv "$content_tmp" "$target"
 
-# spec 355: landing 4-status.md is the moment its machine-read state is
+# Landing 4-status.md is the moment its machine-read state is
 # derived and written alongside it — the state file has no writer of its
 # own a caller ever names directly. The derived text is handed back on
 # stdout so a caller with no filesystem access of its own (the

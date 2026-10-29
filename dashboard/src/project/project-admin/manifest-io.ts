@@ -44,8 +44,7 @@ export function minimalManifest(name: string, description?: string): string {
 
 /** Set (or clear) ONE top-level scalar in a `.aide/project.yaml`, or
  *  one key inside a top-level block, written `block.key`
- *  (`manifestWithBlockKey`), touching nothing else in the file (spec
- *  184).
+ *  (`manifestWithBlockKey`), touching nothing else in the file.
  *
  *  The same discipline `writeAideConfig` applies to `.aide/config`, and
  *  for a sharper reason: a manifest is a file a person wrote by hand,
@@ -225,7 +224,7 @@ export function oneLine(value: string): string {
  *  replaced. Two lines for one key is a file whose meaning depends on
  *  which reader you ask.
  *
- *  One writer for every key rather than one per key (spec 138): the
+ *  One writer for every key rather than one per key: the
  *  specs root and the worktree links land in the same file, and a
  *  second copy of this rule would eventually preserve a comment the
  *  first one dropped. */
@@ -245,7 +244,7 @@ export function writeAideConfig(projectDir: string, values: Record<string, strin
 }
 
 /** Directory names a build WRITES into, or that a tool locks a cache in
- *  — never a dependency cache a build only reads (spec 186). A link is
+ *  — never a dependency cache a build only reads. A link is
  *  one symlink into the main checkout that every concurrent run shares,
  *  so two runs building through it overwrite each other's output, and a
  *  tool that locks its own cache directory blocks or corrupts it. Kept
@@ -268,8 +267,8 @@ export const WORKTREE_LINK_DENYLIST = ["build", "target", "dist", ".gradle"] as 
  *
  *  `key` names the SETTING the value came out of, so a refusal is read
  *  as an instruction to go and edit it. Defaults to the manifest's,
- *  which is where every worktree-links value is read from now (spec
- *  549). */
+ *  which is where every worktree-links value is read from now.
+ *  */
 export function worktreeLinksError(value: string, key = "worktreeLinks"): string | null {
   for (const entry of value.split(/\s+/).filter(Boolean)) {
     if (entry.startsWith("/")) {

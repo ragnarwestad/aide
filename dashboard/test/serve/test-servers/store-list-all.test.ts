@@ -1,6 +1,6 @@
-// REQ-3 (spec 425): the board-wide overview needs every tracked board
+// The board-wide overview needs every tracked board
 // WITH the project/specFolder it belongs to — `all()` alone drops that
-// half of the key (spec 388's own REQ-10 port-collision check never
+// half of the key (the port-collision check never
 // needed it).
 
 import { describe, expect, test } from "bun:test";
@@ -43,7 +43,7 @@ describe("TestServerStore.listAll", () => {
     expect(store.all()).toEqual([entry()]);
   });
 
-  // AC-7 (spec 441): the Deploy tab's button tracks its board under
+  // The Deploy tab's button tracks its board under
   // "main", a non-numeric key — `listAll()`'s split on the first "/"
   // reads its project half the same way it does a real spec folder's.
   test("a 'main'-keyed entry round-trips beside a real spec-folder entry", () => {

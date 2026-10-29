@@ -11,7 +11,7 @@ import {
 import { durationLabel } from "../../../src/render/ui/job-state";
 import { phaseDuration } from "../../../src/render/pages/specs-list/data-model";
 
-// --- spec 199: time becomes something worth reading -------------------------
+// --- Time becomes something worth reading -------------------------
 //
 // A phase says how long it TOOK. Nothing stores a per-step duration —
 // a job has one `startedAt` however many steps it ran — so a step's
@@ -51,7 +51,7 @@ describe("a phase says how long it took", () => {
       Date.parse(NOW),
     );
 
-  /** One phase line's Started cell — which since spec 199 holds that
+  /** One phase line's Started cell — which holds that
    *  phase's own duration, not when it began. */
   const phaseCell = (html: string, step: string): string =>
     html
@@ -66,7 +66,7 @@ describe("a phase says how long it took", () => {
       .match(new RegExp(`<tr class="specstate"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
       ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
 
-  test("a finished single-step phase shows its own span (criterion 3)", () => {
+  test("a finished single-step phase shows its own span", () => {
     const html = page([
       job("a1", "aa-spec", {
         steps: ["analyze"],
@@ -80,7 +80,7 @@ describe("a phase says how long it took", () => {
   // The trap: a job that ran two steps has ONE `startedAt`, and the
   // whole job's span belongs to neither step. The second step's own
   // duration runs from where the first one ended.
-  test("a two-step job's second phase shows its own slice, not the job's span (criterion 7)", () => {
+  test("a two-step job's second phase shows its own slice, not the job's span", () => {
     const html = page([
       job("a1", "aa-spec", {
         steps: ["analyze", "implement"],
@@ -116,9 +116,9 @@ describe("a phase says how long it took", () => {
 
   // A running phase carries the instant it began, so the browser can
   // count up from it without waiting for the server to redraw
-  // (criterion 4). The server still writes a readable figure into the
+  // The server still writes a readable figure into the
   // cell, so the page says something with script switched off.
-  test("a running phase carries its start for the page's own clock (criterion 4)", () => {
+  test("a running phase carries its start for the page's own clock", () => {
     const html = page([
       job("a1", "aa-spec", {
         steps: ["analyze", "implement"],
@@ -133,7 +133,7 @@ describe("a phase says how long it took", () => {
     expect(cell).toContain("30m 00s");
   });
 
-  test("a running FIRST step counts from the job's own start (criterion 4)", () => {
+  test("a running FIRST step counts from the job's own start", () => {
     const html = page([
       job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T11:45:00Z" }),
     ]);
@@ -142,11 +142,10 @@ describe("a phase says how long it took", () => {
   });
 
   // The work, not the calendar. These two jobs are three days apart and
-  // the spec took twenty minutes (criteria 5 and 6). The total left the
-  // header cell on 2026-08-24 — beside "3 d ago" it read as noise — and
-  // spec 281 puts it back as the ONLY thing the cell shows, with the
-  // "X ago" text it used to sit beside gone rather than brought back.
-  test("a finished spec's phases carry their durations, and so does the header (spec 281)", () => {
+  // the spec took twenty minutes. The total is the ONLY thing the header
+  // cell shows — beside "3 d ago" it would read as noise, so no "X ago"
+  // text sits beside it.
+  test("a finished spec's phases carry their durations, and so does the header", () => {
     const html = page(
       [
         job("a1", "aa-spec", {
@@ -175,10 +174,10 @@ describe("a phase says how long it took", () => {
     expect(phaseCell(html, "archive")).toContain("5m 00s");
   });
 
-  // Spec 281: the header cell answers "how long", not "when made" — a
-  // spec still missing a phase is exactly the case spec 207's guard used
-  // to blank entirely.
-  test("a spec still missing a phase shows the sum of what has settled (spec 281)", () => {
+  // The header cell answers "how long", not "when made" — a
+  // spec still missing a phase is exactly the case that must not be
+  // blanked entirely.
+  test("a spec still missing a phase shows the sum of what has settled", () => {
     const html = page(
       [
         job("a1", "aa-spec", {
@@ -192,11 +191,11 @@ describe("a phase says how long it took", () => {
     expect(headCell(html, "aa-spec")).toContain("12m 00s");
   });
 
-  // REQ-2: a running phase's own elapsed-so-far now counts toward the
-  // header total (reversing spec 281's exclusion), and the cell carries
+  // A running phase's own elapsed-so-far now counts toward the
+  // header total, and the cell carries
   // `data-elapsed` so the browser's existing per-second tick
   // (`specs-client.ts`) keeps counting it up with no further redraw.
-  test("a spec with a phase in flight sums what has settled plus the live phase's elapsed time, and ticks (REQ-2)", () => {
+  test("a spec with a phase in flight sums what has settled plus the live phase's elapsed time, and ticks", () => {
     const html = page(
       [
         job("a1", "aa-spec", {
@@ -217,11 +216,11 @@ describe("a phase says how long it took", () => {
     expect(headCell(html, "aa-spec")).toContain('data-elapsed="2026-08-16T09:00:00.000Z"');
   });
 
-  // REQ-3: a step whose own work is still landing has no `at` yet
-  // (spec 395) — the phase must keep counting from its own start
+  // A step whose own work is still landing has no `at` yet
+  // the phase must keep counting from its own start
   // instead of reading a settled duration off a timestamp that has not
   // been written.
-  test("a phase still landing reads live, counting from its own start (spec 395, REQ-3)", () => {
+  test("a phase still landing reads live, counting from its own start", () => {
     const html = page([
       job("a1", "aa-spec", {
         state: "done",
@@ -236,19 +235,19 @@ describe("a phase says how long it took", () => {
   });
 });
 
-// Spec 207: the summing the spec list has always done, lifted out of
+// The summing the spec list has always done, lifted out of
 // the render so the archive-time write calls the SAME function. The
 // figure stored in `4-status.md` and the figure the list drew cannot
 // drift apart if there is only one of them.
 //
-// Spec 281 dropped the function's two completion guards, and the `done`
-// parameter they read: the list now shows this sum on a LIVE row too,
+// The function has no completion guards and no `done`
+// parameter: the list shows this sum on a LIVE row too,
 // not only once the whole workflow is behind it, so it can no longer
 // refuse to answer while the spec is still working.
 //
 // Called directly rather than through a page: what is under test is the
 // math, and a route test proves nothing about it that this doesn't.
-describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
+describe("computeSpecTotalDurationMs", () => {
   const row = (id: string, extra: Partial<QueueRowView>): QueueRowView => ({
     id,
     project: "aide",
@@ -289,8 +288,8 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
   });
 
   // A reopen, a close or an explore is a step, not a phase: its span is
-  // not part of the spec's total (AC-1).
-  test("a finished reopen's span is not in the total (AC-1)", () => {
+  // not part of the spec's total.
+  test("a finished reopen's span is not in the total", () => {
     const withReopen = [
       row("r1", {
         steps: ["reopen"],
@@ -310,12 +309,12 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     expect(computeSpecTotalDurationMs([rows()[0]!], NOW)?.ms).toBe(5 * 60 * 1000);
   });
 
-  // REQ-2: a phase in flight elsewhere now CONTRIBUTES its own elapsed
+  // A phase in flight elsewhere now CONTRIBUTES its own elapsed
   // time to the total (reversing the old exclusion), and the result
   // carries the synthetic `since` the header cell needs to tick from.
   // The live job here is on `create`, a phase neither of `rows()`'s jobs
   // has touched, so its elapsed time adds on top of both settled phases.
-  test("a job in flight elsewhere adds its own elapsed time to the settled total, and marks it live (REQ-2)", () => {
+  test("a job in flight elsewhere adds its own elapsed time to the settled total, and marks it live", () => {
     const withRunning = [
       ...rows(),
       row("a3", { steps: ["create"], state: "running", startedAt: "2026-08-20T09:00:00Z" }),
@@ -330,11 +329,11 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     expect(total?.since).toBe("2026-08-20T08:40:00.000Z");
   });
 
-  // REQ-7: `computeSpecTotalDurationMs` is built on `phaseDuration`, so a
-  // step still landing must inherit REQ-3's fix automatically — the
+  // `computeSpecTotalDurationMs` is built on `phaseDuration`, so a
+  // step still landing must inherit the live count automatically — the
   // spec's TOTAL, not only the one phase cell, keeps counting through
-  // the merge (spec 395).
-  test("a step still landing counts live in the spec's total, not frozen at 0 (spec 395, REQ-7)", () => {
+  // the merge.
+  test("a step still landing counts live in the spec's total, not frozen at 0", () => {
     const withLanding = [
       row("a1", {
         steps: ["archive"],
@@ -354,11 +353,11 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     expect(computeSpecTotalDurationMs([], NOW)).toBeUndefined();
   });
 
-  // REQ-1: a phase re-run as two separate settled job attempts (an
+  // A phase re-run as two separate settled job attempts (an
   // earlier failed/retried run, then a later one) contributes BOTH —
   // the bug 1-description.md names: "a phase re-run three times
   // contributes once" (now: contributes every time).
-  test("a phase retried as a second settled job attempt contributes both durations (REQ-1)", () => {
+  test("a phase retried as a second settled job attempt contributes both durations", () => {
     const withRetry = [
       ...rows(),
       // A second, later attempt at "analyze" — a re-run of the same
@@ -375,19 +374,19 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
     expect(computeSpecTotalDurationMs(withRetry, NOW)?.ms).toBe(28 * 60 * 1000);
   });
 
-  // REQ-3/REQ-5: the same phase timings, summed by each of the two
+  // The same phase timings, summed by each of the two
   // fixture shapes this page draws a total from — job records, off this
   // function, and an archived spec's own file stamps, off `readerGroup`
-  // — must agree. Spec 410 made this genuinely ONE shared source: with
+  // — must agree. This is genuinely ONE shared source: with
   // no queue job left for the archived side to read, `readerGroup` falls
   // back to `totalDuration()`'s own file-stamp branch, the identical
   // function `computeSpecTotalDurationMs` calls here — so this is no
   // longer parity between two implementations, only between two
   // fixtures fed into the one implementation both take. It also proves
-  // REQ-3/REQ-5's "same rule" claim under the new summing behavior
+  // the "same rule" claim under the new summing behavior
   // (every attempt), not only the old latest-only one — `rows()` has no
   // retried phase, so both fixtures see one attempt per step either way.
-  test("agrees with the archived figure for the same underlying phase timings (REQ-3, REQ-5)", () => {
+  test("agrees with the archived figure for the same underlying phase timings", () => {
     const liveMs = computeSpecTotalDurationMs(rows(), NOW)?.ms;
     const archived: ArchivedSpecView = {
       project: "aide",
@@ -411,15 +410,15 @@ describe("computeSpecTotalDurationMs (spec 207, spec 281)", () => {
   });
 });
 
-// --- spec 410: an archived row reads the queue's own memory too -----------
+// --- An archived row reads the queue's own memory too -----------
 //
 // `readerGroup()` used to sum only each phase file's own `Time spent:`
 // stamp — the AI session's own duration, never the worktree, the commit
 // or the push around it. Where the queue still remembers the job (a
 // recently archived spec, or a small project under its 200-job cap),
 // this reads the SAME queue-preferred figure `jobGroup()`/`emptyGroup()`
-// already draw, through the one shared `totalDuration()` (REQ-1).
-describe("an archived row reads a still-remembered queue job the same way a live row does (spec 410, REQ-1/2/3)", () => {
+// already draw, through the one shared `totalDuration()`.
+describe("an archived row reads a still-remembered queue job the same way a live row does", () => {
   const NOW = Date.parse("2026-08-16T12:00:00Z");
   const KEY = "aide/aa-spec";
 
@@ -450,7 +449,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
       .match(/<tr class="specstate"[^>]*data-folder="aa-spec">.*?<\/tr>/)?.[0]
       ?.match(/<td[^>]*data-col="started"[^>]*>(.*?)<\/td>/)?.[1] ?? "";
 
-  test("REQ-1/REQ-3: a queue-measured phase wins over that phase's own file stamp, even on a locked row", () => {
+  test("a queue-measured phase wins over that phase's own file stamp, even on a locked row", () => {
     const rows = [
       job("a1", {
         startedAt: "2026-08-16T09:00:00Z",
@@ -473,7 +472,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
     expect(headCell(html)).toContain("5s");
   });
 
-  test("REQ-2: the archived row reports the identical figure the live row showed for the same jobs", () => {
+  test("the archived row reports the identical figure the live row showed for the same jobs", () => {
     const rows = [
       job("a1", {
         startedAt: "2026-08-16T09:00:00Z",
@@ -497,7 +496,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
   });
 });
 
-// spec 384: a step's own recorded start, not the boundary before it --------
+// A step's own recorded start, not the boundary before it --------
 //
 // The finished-step branch now prefers `StepResult.startedAt` — set once
 // the runner actually spawned that step — over the previous step's own
@@ -507,9 +506,9 @@ describe("an archived row reads a still-remembered queue job the same way a live
 // slot, it owes no duration until it is actually spawned.
 //
 // Every existing test above sets neither `startedAt` nor
-// `stepStartedAt` on its fixtures, which is exactly REQ-3's own
+// `stepStartedAt` on its fixtures, which is exactly the
 // regression guard: none of them are touched here.
-describe("phaseDuration prefers a step's own recorded start (spec 384)", () => {
+describe("phaseDuration prefers a step's own recorded start", () => {
   const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
     id: "a1",
     project: "aide",
@@ -523,7 +522,7 @@ describe("phaseDuration prefers a step's own recorded start (spec 384)", () => {
     ...extra,
   });
 
-  test("a finished step's own recorded start wins over the previous step's end (REQ-2)", () => {
+  test("a finished step's own recorded start wins over the previous step's end", () => {
     const r = row({
       startedAt: "2026-08-16T09:00:00Z",
       results: [
@@ -540,10 +539,10 @@ describe("phaseDuration prefers a step's own recorded start (spec 384)", () => {
     expect(d?.ms).not.toBe(90 * 60 * 1000);
   });
 
-  // spec 395, REQ-3: a step whose own work is still landing has no `at`
+  // A step whose own work is still landing has no `at`
   // recorded yet — `phaseDuration` must count live from the step's own
   // start rather than returning null (no end) or a stale settled figure.
-  test("a landing step counts live from its own start, with no at recorded yet (spec 395, REQ-3)", () => {
+  test("a landing step counts live from its own start, with no at recorded yet", () => {
     const r = row({
       landing: true,
       startedAt: "2026-08-16T09:00:00Z",
@@ -560,7 +559,7 @@ describe("phaseDuration prefers a step's own recorded start (spec 384)", () => {
 
   // The literal "listed at over ten hours... nine and a half held back"
   // case 1-description.md opens with.
-  test("a queued job between two steps shows no live duration, however long the previous step's own end sits in the past (REQ-4)", () => {
+  test("a queued job between two steps shows no live duration, however long the previous step's own end sits in the past", () => {
     const r = row({
       state: "queued",
       startedAt: "2026-08-16T09:00:00Z",

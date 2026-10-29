@@ -13,12 +13,12 @@ describe("a step's fold arrow", () => {
       { tabHref: "/jobs/j1?tab=steps", lang: "nb" },
     );
 
-  test("says what it does in the page's language (AC-1)", () => {
+  test("says what it does in the page's language", () => {
     const title = t("nb", "job.stepFoldTitle", { action: t("nb", "list.foldShow") });
     expect(html()).toContain(`title="${esc(title)}"`);
   });
 
-  test("links to the step with its address escaped once (AC-1)", () => {
+  test("links to the step with its address escaped once", () => {
     expect(html()).toContain('href="/jobs/j1?tab=steps&amp;step=0"');
   });
 });

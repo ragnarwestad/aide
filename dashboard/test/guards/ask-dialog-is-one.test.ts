@@ -27,27 +27,27 @@ describe("one ask dialog, one opener", () => {
     expect(client.length).toBeGreaterThan(15);
   });
 
-  test("only the confirmation writes its dialog class and its answers row (AC-5)", () => {
+  test("only the confirmation writes its dialog class and its answers row", () => {
     const all = [...render, ...client, ...serve];
     expect(writing(all, "dialogactions")).toEqual([DIALOG]);
     expect(writing(all, "dialogAnswers(")).toEqual([DIALOG]);
     expect(writing(all, `class="confirmdialog`)).toEqual([DIALOG]);
   });
 
-  test("only the progress dialog writes its class, its standing mark and its running word (AC-1)", () => {
+  test("only the progress dialog writes its class, its standing mark and its running word", () => {
     // The page script reads the standing mark; only markup writes it.
     expect(writing([...render, ...serve], "data-progress-dialog")).toEqual([PROGRESS]);
     expect(writing([...render, ...serve], `class="progressdialog`)).toEqual([PROGRESS]);
     expect(writing([...render, ...serve], "standingtitle")).toEqual([PROGRESS]);
   });
 
-  test("one script file opens every dialog from its button, and one holds a running one (AC-2)", () => {
+  test("one script file opens every dialog from its button, and one holds a running one", () => {
     expect(writing(client, "data-ask")).toEqual(["src/specs-client/ask.ts"]);
     expect(writing(client, "showModal")).toEqual(["src/specs-client/ask.ts", HOLD]);
     expect(writing(client, `"cancel"`)).toEqual([HOLD]);
   });
 
-  test("only the New-spec form wears the New-spec form's class (AC-5)", () => {
+  test("only the New-spec form wears the New-spec form's class", () => {
     expect(writing(render, "newspecform")).toEqual(["src/render/pages/new-spec-page/index.ts"]);
   });
 });

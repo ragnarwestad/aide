@@ -1,5 +1,5 @@
-// REQ-4/REQ-5: the client script's editable construction path and its
-// dark-mode/mode-switch wiring. Since spec 333 this bundle only ever
+// The client script's editable construction path and its
+// dark-mode/mode-switch wiring. This bundle only ever
 // mounts over an editable `<textarea>` sibling — the read-only branch
 // that used to live here (`Editor.factory({ viewer: true })`) moved to
 // spec-viewer-client.ts/spec-viewer-client.test.ts, built on the
@@ -24,8 +24,8 @@ let scriptText: string;
 /** A controllable stand-in for what `window.matchMedia` returns: a real
  *  `EventTarget`, so the client script's own
  *  `prefersDark.addEventListener("change", ...)` fires for real when a
- *  test flips `.matches` and dispatches the event — proving REQ-5's
- *  LIVE re-theming, not just its initial read.
+ *  test flips `.matches` and dispatches the event — proving
+ *  LIVE re-theming, not just the initial read.
  *
  *  Built INSIDE `beforeAll`, after `GlobalRegistrator.register()`,
  *  rather than declared at module scope: a class body evaluated before
@@ -77,11 +77,11 @@ function setHost(rawMarkup: string): HTMLElement {
   return document.getElementById("spec-editor-host")!;
 }
 
-// Spec 391: spec-form-actions.ts's Cancel handler resets the hidden raw
+// Spec-form-actions.ts's Cancel handler resets the hidden raw
 // textarea from outside and asks a mounted editor to redraw from it —
 // the only way in, since the WYSIWYG view is a separate DOM tree this
 // instance owns.
-describe("REQ-4: a \"spec-cancel\" event on the raw textarea redraws the mounted editor", () => {
+describe("a \"spec-cancel\" event on the raw textarea redraws the mounted editor", () => {
   test("the visible WYSIWYG content reflects raw.value after the event, not what was mounted with", () => {
     setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
     mount();
@@ -97,10 +97,10 @@ describe("REQ-4: a \"spec-cancel\" event on the raw textarea redraws the mounted
   });
 });
 
-// Spec 391: spec-form-actions.ts's one-way dirty latch needs to see an
+// Spec-form-actions.ts's one-way dirty latch needs to see an
 // "input" on the raw textarea the instant the editor's own content
 // changes — cheap and immediate, with no getMarkdown() call of its own.
-describe("REQ-2: an editor content change re-dispatches as \"input\" on the raw textarea", () => {
+describe("an editor content change re-dispatches as \"input\" on the raw textarea", () => {
   test("setMarkdown (the same call the Cancel-redraw above makes) fires an \"input\" on raw", () => {
     setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
     mount();

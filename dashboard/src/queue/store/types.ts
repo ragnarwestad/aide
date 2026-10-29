@@ -16,14 +16,14 @@ import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "
 export type PendingModelResult = { ok: true } | { ok: false; error: string };
 
 /** The sibling of `PendingModelResult`, for
- *  `setPendingSteps()` (spec 439) — same shape. Unlike the other two,
+ *  `setPendingSteps()` — same shape. Unlike the other two,
  *  `setPendingSteps()` never refuses: it filters what it is given
  *  against `PHASE_STEPS` rather than reporting an unknown entry, so this
  *  is always `{ ok: true }` in practice — kept as its own type anyway,
  *  the same as its two siblings, rather than a bare `void`. */
 export type PendingStepsResult = { ok: true } | { ok: false; error: string };
 
-/** What `QueueStore.transition()` answers with (spec 354, REQ-3): the
+/** What `QueueStore.transition()` answers with: the
  *  updated job on a hit, or the state and event the table refused —
  *  never a bare `undefined`, so a refusal cannot be mistaken for
  *  "nothing happened" the way `update()`'s return already can be. */
@@ -34,7 +34,7 @@ export interface QueueOptions {
   resolve: ProjectResolver;
   mirrorPath?: string;
   /** Where a model picked for a phase before any job exists survives to
-   *  (spec 308) — the `pending-models.json` sibling of the queue mirror.
+   *  the `pending-models.json` sibling of the queue mirror.
    *  Absent means the table is in-memory only, for the tests and any
    *  caller that has no disk to give it. */
   pendingModelsPath?: string;
@@ -43,16 +43,16 @@ export interface QueueOptions {
    *  is in-memory only, as `pendingModelsPath` absent. */
   modelIdsPath?: string;
   /** Where a phase choice recorded at create time, or at a later Run,
-   *  survives to (spec 439) — the `pending-steps.json` sibling of the
+   *  survives to — the `pending-steps.json` sibling of the
    *  queue mirror. Absent means the table is in-memory only, the same
    *  as `pendingModelsPath` absent. */
   pendingStepsPath?: string;
   cap?: number;
-  /** Which projects may have a spec CREATED in them (spec 93). Absent
+  /** Which projects may have a spec CREATED in them. Absent
    *  means none: creating is off unless the server says otherwise, like
    *  every other capability here. */
   allowCreateProject?: CreateProjectAllower;
-  /** Something in here moved (spec 189). Called after the write has
+  /** Something in here moved. Called after the write has
    *  landed and been mirrored, and only when one really landed — a
    *  refused enqueue or an unknown id changed nothing, and a page told
    *  otherwise would redraw for news it does not have. Absent means

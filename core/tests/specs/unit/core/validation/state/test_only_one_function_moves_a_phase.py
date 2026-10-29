@@ -1,4 +1,4 @@
-"""Spec 356 (REQ-2, REQ-7): a spec's phase changes only through
+"""A spec's phase changes only through
 `apply_spec_transition` (core/scripts/lib/spec-transitions.sh) — the
 "Workflow steps completed" line, the `**Archived:**` stamp, and the
 `**Reopened:**`/`**Reset:**` marks are written nowhere else. Grepped for
@@ -17,7 +17,7 @@ BASH_SCRIPTS = ["core/scripts/aide-run-spec", "core/scripts/aide-archive-spec",
 
 # The exact write shapes that put a phase/stamp pattern into a file.
 # Anything matching one of these outside spec-transitions.sh is a second
-# writer REQ-2 forbids.
+# writer the rule forbids.
 WORKFLOW_LINE_WRITE_SHAPE = 'line="- **Workflow steps completed:**'
 ARCHIVED_STAMP_WRITE_SHAPE = "printf '\\n**Archived:** %s\\n'"
 REOPEN_RESET_STAMP_WRITE_SHAPE = "printf '\\n- **%s:** %s (history before"

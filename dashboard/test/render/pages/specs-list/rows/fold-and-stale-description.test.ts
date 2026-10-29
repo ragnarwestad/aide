@@ -5,11 +5,11 @@ import { row, openKeys } from "../../fixtures.ts";
 
 // Split out of grouping.test.ts by theme.
 
-// Spec 97: a description changed since the analysis takes analyze back
+// A description changed since the analysis takes analyze back
 // from done. Nothing is blocked — a person who knows the edit was
 // cosmetic can still start `implement`. The explanation itself is the
 // analyze phase's log's to say (`phase-messages/explanations.test.ts`).
-describe("a description changed since the analysis (criterion 3)", () => {
+describe("a description changed since the analysis", () => {
   const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({ id, specFolder: "97-stale", steps: [step], stepIndex: 0, state: "done", ...extra });
 
@@ -28,7 +28,7 @@ describe("a description changed since the analysis (criterion 3)", () => {
       Date.parse("2026-08-18T12:00:00Z"),
     );
 
-  /** The line the phase boxes are on, under the header (spec 109). */
+  /** The line the phase boxes are on, under the header. */
   const runLine = (html: string, folder: string) =>
     html.match(
       new RegExp(
@@ -40,7 +40,7 @@ describe("a description changed since the analysis (criterion 3)", () => {
   // `done` is what the server has already stripped `analyze`
   // out of; the row's job is to pre-tick the first phase
   // that is left, which is analyze — not implement.
-  test("analyze is pre-ticked again, not implement (criterion 3)", () => {
+  test("analyze is pre-ticked again, not implement", () => {
     const html = rows(
       [job("j1", "analyze"), job("j2", "implement")],
       [target("97-stale", { analyzeStale: true, done: ["implement"] })],
@@ -52,14 +52,14 @@ describe("a description changed since the analysis (criterion 3)", () => {
     expect(line).toMatch(/name="steps" value="implement"/);
     expect(line).not.toMatch(/value="implement" checked/);
     // `analyze` and `archive` are what is left to run, so both are
-    // pre-ticked (spec 200); `create`'s box carries no field name.
+    // pre-ticked; `create`'s box carries no field name.
     expect([...line.matchAll(/name="steps" value="[^"]*" checked/g)]).toHaveLength(2);
   });
 });
 
-// Spec 627: a row is opened by loading the spec's own address, so one row
+// A row is opened by loading the spec's own address, so one row
 // is open at a time and each chevron is a link to the page that shows it.
-describe("the open row and the chevrons (AC-3)", () => {
+describe("the open row and the chevrons", () => {
   const targets: SpecTarget[] = [
     { project: "aide", specFolder: "81-queue-x" },
     { project: "aide", specFolder: "82-queue-y" },
@@ -125,9 +125,9 @@ describe("a shut row's chevron title", () => {
   });
 });
 
-// Spec 629: the Specs list opens a row to the spec; what runs is on the
+// The Specs list opens a row to the spec; what runs is on the
 // Running tab, whose open row keeps the caption line and the phase lines.
-describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", () => {
+describe("an open row on the Specs list is the spec alone", () => {
   const NOW = Date.parse("2026-08-18T12:00:00Z");
   const archived: ArchivedSpecView = {
     project: "aide",
@@ -161,7 +161,7 @@ describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", (
   const onJobsTab = (key: string): string =>
     group(renderSpecsRows(list, { ...base, filter: { open: key, phases: "aide/81-queue-x:create" } }, NOW), key);
 
-  test("no caption line, phase line, message, select, Select box, Run, Cancel or row Reopen (AC-1)", () => {
+  test("no caption line, phase line, message, select, Select box, Run, Cancel or row Reopen", () => {
     for (const key of specs) {
       const html = onList(key);
       expect(html).toContain("THE-SPEC");
@@ -174,7 +174,7 @@ describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", (
     }
   });
 
-  test("the rows are the title line, the state line, the messages if any, the spec, then the gap (AC-2)", () => {
+  test("the rows are the title line, the state line, the messages if any, the spec, then the gap", () => {
     for (const key of specs) {
       const classes = [...onList(key).matchAll(/<tr class="([a-z]+)\b/g)].map((m) => m[1]);
       expect(classes.filter((c) => c !== "specnotice")).toEqual(["spechead", "specstate", "specdetail", "specgap"]);
@@ -182,7 +182,7 @@ describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", (
     }
   });
 
-  test("the approach choice's form is on the shut row and the Running tab's open row, not the Specs list's open row (AC-1)", () => {
+  test("the approach choice's form is on the shut row and the Running tab's open row, not the Specs list's open row", () => {
     const pending = [
       { letter: "A", title: "Hold", mark: "recommended" as const },
       { letter: "B", title: "End", mark: "real alternative" as const },
@@ -198,7 +198,7 @@ describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", (
     expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).not.toContain("/approach");
   });
 
-  test("the Depends on picker is on the Running tab's open row, not on a shut row or the Specs list's open row (AC-1, AC-5)", () => {
+  test("the Depends on picker is on the Running tab's open row, not on a shut row or the Specs list's open row", () => {
     const withSiblings: SpecTarget[] = [
       { project: "aide", specFolder: "81-queue-x", dependsOn: ["82-queue-y"] },
       { project: "aide", specFolder: "82-queue-y" },
@@ -211,7 +211,7 @@ describe("an open row on the Specs list is the spec alone (AC-1, AC-2, AC-3)", (
     expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).not.toContain("dependsform");
   });
 
-  test("drawn the Running tab's way, an open row has its caption line and its phase lines (AC-3)", () => {
+  test("drawn the Running tab's way, an open row has its caption line and its phase lines", () => {
     for (const key of specs) {
       const html = onJobsTab(key);
       expect([key, html.includes("data-caption")]).toEqual([key, true]);

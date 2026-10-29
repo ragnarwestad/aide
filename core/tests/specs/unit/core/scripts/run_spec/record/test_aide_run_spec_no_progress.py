@@ -18,7 +18,7 @@ from ..run_spec_status_files import conflicting_branch, recorded_line, status_wi
 def test_a_completed_claim_with_no_project_change_at_all_is_downgraded(
     runner, workspace, fake_claude
 ):
-    """AC5: the CLI reports success, but the child touched neither the
+    """The CLI reports success, but the child touched neither the
     project nor the specs repo at all."""
     status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
@@ -47,7 +47,7 @@ def test_a_rerun_over_code_already_on_the_branch_is_not_no_progress(
     """An earlier implement stopped on the clock or on red tests, its code
     on the branch. Pressed again, the session finds the work done, sees
     the tests green and changes nothing — and the step is done, not a
-    failure (488, 491, 2026-09-18). Measured against the project's
+    failure. Measured against the project's
     default branch, not only against this run's own start."""
     status_with_phase(workspace, "create, analyze", ["| a | ✅ | |"])
     _branch_with_earlier_implement_code(workspace)
@@ -93,7 +93,7 @@ def test_a_completed_claim_that_ticks_no_row_still_counts(
     assert recorded_line(workspace) == "create, analyze, implement"
 
 def test_a_genuine_implement_run_is_unaffected(runner, workspace, fake_claude):
-    """AC6: the project changed AND a row is ticked — exactly today's
+    """The project changed AND a row is ticked — exactly today's
     behavior for a real run, unaffected by the new check."""
     status_with_phase(workspace, "create, analyze", ["| a | ✅ | |", "| b | ⬜ | |"])
     claude = project_only_claude(fake_claude)
@@ -118,11 +118,11 @@ def test_no_progress_is_scoped_to_implement_only(runner, workspace, fake_claude)
 def test_archive_no_progress_guard_downgrades_when_the_folder_never_moved(
     runner, workspace, fake_claude
 ):
-    """AC3. The archive precheck meets an OPEN conflict (so the model is
+    """The archive precheck meets an OPEN conflict (so the model is
     spawned at all — `conflict-open` is not a skip-the-model outcome),
     the step resolves it and reports `completed`, but the spec folder
     itself was never actually moved under `archive/` — the exact shape
-    spec 278 produced."""
+    an earlier run produced."""
     status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
     conflicting_branch(workspace)
     claude = fake_claude(
@@ -193,7 +193,7 @@ def test_an_archive_claim_before_implement_is_not_implemented_yet(
     assert recorded_line(workspace) == "create, analyze"
 
 def test_a_genuine_archive_run_is_unaffected(runner, workspace, fake_claude):
-    """AC4. The spec folder genuinely moves under `archive/` (the
+    """The spec folder genuinely moves under `archive/` (the
     mechanical pre-check's own `archived` outcome, since `implement` is
     on the line and nothing conflicts) — `terminalReason` stays
     `completed` and `archive` is added to the line, unaffected by the
@@ -214,7 +214,7 @@ def test_a_genuine_archive_run_is_unaffected(runner, workspace, fake_claude):
 def test_archive_no_progress_guard_never_fires_for_other_steps(
     runner, workspace, fake_claude, step
 ):
-    """AC5. The new check is `archive`-specific — mirrors
+    """The new check is `archive`-specific — mirrors
     `test_no_progress_is_scoped_to_implement_only` above, extended to
     the sibling check `archive` gained. None of these three steps moves
     the spec folder, so if the check were not scoped to
@@ -245,7 +245,7 @@ def test_archive_no_progress_guard_never_fires_for_other_steps(
 def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded(
     runner, workspace, fake_claude
 ):
-    """AC1/REQ-1: spec 284's own incident — the CLI reports success, but
+    """A real incident — the CLI reports success, but
     the child left a real change in the project repo, which analyze must
     never do."""
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
@@ -260,7 +260,7 @@ def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded(
 def test_an_analyze_claim_that_advances_a_phase_row_is_downgraded(
     runner, workspace, fake_claude, mark
 ):
-    """AC2/REQ-1, REQ-2: a Phase-table row moved off "not started" during
+    """A Phase-table row moved off "not started" during
     an analyze run — that is implement's and archive's job — parametrized
     over every non-not-started mark a row could end up carrying."""
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
@@ -273,7 +273,7 @@ def test_an_analyze_claim_that_advances_a_phase_row_is_downgraded(
 def test_an_analyze_claim_that_names_implement_on_the_line_is_downgraded(
     runner, workspace, fake_claude
 ):
-    """AC3/REQ-2: the project did not change and no row advanced, but the
+    """The project did not change and no row advanced, but the
     raw `Workflow steps completed` line itself names a step beyond
     analyze that the pre-session line did not already carry."""
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
@@ -286,7 +286,7 @@ def test_an_analyze_claim_that_names_implement_on_the_line_is_downgraded(
 def test_an_analyze_that_names_create_on_a_line_that_did_not_exist_is_fine(
     runner, workspace, fake_claude
 ):
-    """Spec 348's refusal: the file had no steps line before the run, so
+    """A past refusal: the file had no steps line before the run, so
     the allowed set was `analyze` alone and the model's own `create` read
     as a step beyond scope. A spec that exists has been through create."""
     write_raw_status(
@@ -307,7 +307,7 @@ def test_an_analyze_that_names_create_on_a_line_that_did_not_exist_is_fine(
 def test_an_analyze_run_that_renames_the_header_columns_is_unaffected(
     runner, workspace, fake_claude
 ):
-    """REQ-1 regression (the description's own bug): renaming a Phase
+    """Regression (the description's own bug): renaming a Phase
     table's header away from `Task | Status | Notes` must never itself
     count as an advanced row, or a genuine no-op analyze run is wrongly
     downgraded to scope-violation."""
@@ -321,7 +321,7 @@ def test_an_analyze_run_that_renames_the_header_columns_is_unaffected(
 def test_completed_steps_for_ignores_a_step_the_current_sessions_own_edit_added(
     runner, workspace, fake_claude
 ):
-    """AC4/REQ-3: the actual trust hole — a step's own session writes a
+    """The actual trust hole — a step's own session writes a
     LATER step's name onto the Workflow-steps-completed line, unsupported
     by the commit history or by what the line said before this session
     ran. The timing fix (`existing_line` read from BEFORE this session,
@@ -343,10 +343,10 @@ def test_completed_steps_for_ignores_a_step_the_current_sessions_own_edit_added(
     assert recorded_line(workspace) == "create, analyze, implement"
 
 def test_a_genuine_analyze_run_is_unaffected(runner, workspace, fake_claude):
-    """AC5/REQ-1, REQ-2 (regression): a real analyze run — writes only
+    """Regression: a real analyze run — writes only
     2-analysis.md/3-solution.md, touches nothing in the project, and
     leaves the Phase-table row exactly as it found it — is unaffected by
-    the new checks, mirroring spec 268's own AC6."""
+    the new checks."""
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
     folder = workspace["folder"]
     claude = fake_claude(
@@ -363,7 +363,7 @@ def test_a_genuine_analyze_run_is_unaffected(runner, workspace, fake_claude):
     assert recorded_line(workspace) == "create, analyze"
 
 def test_every_bash_error_sentence_has_a_resolution_or_a_named_exemption(runner, run_spec_source):
-    """REQ-7: "A test SHALL fail for an error sentence that carries no
+    """"A test SHALL fail for an error sentence that carries no
     resolution, over the set of sentences the board can show" — this is
     that check for the bash-authored half of the set. Each registry entry
     names a literal or regex fragment expected in the script's own source
@@ -402,7 +402,7 @@ def test_a_local_branch_origin_no_longer_has_is_not_reused(runner, workspace, fa
     log = git(origin["project"], "log", "--pretty=%s", branch)
     assert "stale local commit" not in log, "the run was cut from the stale local branch"
 
-def test_an_archive_claim_over_not_verified_acceptance_rows_is_not_refused_AC_8(
+def test_an_archive_claim_over_not_verified_acceptance_rows_is_not_refused(
     runner, workspace, fake_claude
 ):
     """The runner's archive pre-check reads a Not verified Acceptance row

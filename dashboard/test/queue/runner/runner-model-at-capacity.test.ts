@@ -22,13 +22,13 @@ describe("a step stopped because the model is at capacity", () => {
     return store.get(job.id);
   };
 
-  test("ends stopped with the reason, not failed (AC-3)", () => {
+  test("ends stopped with the reason, not failed", () => {
     const after = atCapacity();
     expect(after?.state).toBe("stopped");
     expect(after?.stopReason).toBe("model-at-capacity");
   });
 
-  test("names the model, says it is at capacity right now, and says to press the button or choose another model (AC-3)", () => {
+  test("names the model, says it is at capacity right now, and says to press the button or choose another model", () => {
     const text = renderSentence("en", atCapacity()?.error as Parameters<typeof renderSentence>[1]) ?? "";
     expect(text).toContain("sonnet");
     expect(text).toContain("at capacity right now");

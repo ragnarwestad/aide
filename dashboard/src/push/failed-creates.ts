@@ -1,4 +1,4 @@
-// The record of a create that ended without a spec (spec 506): what was
+// The record of a create that ended without a spec: what was
 // typed, and why it failed, so the Specs list can offer "Try again" long
 // after the queue has forgotten the job. One JSON file, written to a temp
 // name and renamed, read like every sibling file — a missing or corrupt

@@ -1,4 +1,4 @@
-// Spec 388, REQ-7: stopTestServer reaches the round's whole process group by
+// StopTestServer reaches the round's whole process group by
 // sending SIGTERM to the NEGATED wrapper pid — the same primitive
 // job-actions.ts's own cancel route uses (`process.kill(-job.pgid, ...)`)
 // — and clears the registry entry, whether the board has finished

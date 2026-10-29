@@ -36,7 +36,7 @@ async function openEdit(width: number, group: "config" | "manifest" = "config"):
 
 const specsField = () => page.locator('textarea[name="specsPath"]');
 
-test("Enter raises one submit and leaves no line break; a filled break is folded (AC-3)", async () => {
+test("Enter raises one submit and leaves no line break; a filled break is folded", async () => {
   await openEdit(1280, "config");
   await page.evaluate(() => {
     (window as unknown as { __submits: number }).__submits = 0;

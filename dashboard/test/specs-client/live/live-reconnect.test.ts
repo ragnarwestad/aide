@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { harness, flush } from "../fixtures.ts";
 
-// --- spec 368: a restarted server behind a proxy heals itself too -----------
+// --- A restarted server behind a proxy heals itself too -----------
 //
 // A dropped network retries on its own — `readyState` goes back to
 // CONNECTING and the browser's own reconnect fires `open`, which
@@ -13,8 +13,8 @@ import { harness, flush } from "../fixtures.ts";
 
 const fresh = () => harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
 
-describe("a closed source is replaced (spec 368)", () => {
-  test("REQ-1: error with readyState CLOSED opens a new source, no reload", () => {
+describe("a closed source is replaced", () => {
+  test("error with readyState CLOSED opens a new source, no reload", () => {
     const h = fresh();
     h.visibility("visible");
     expect(h.sources).toHaveLength(1);
@@ -30,7 +30,7 @@ describe("a closed source is replaced (spec 368)", () => {
     expect(h.location.href).toBe("http://dash.test/");
   });
 
-  test("REQ-5: the replacement's own open event redraws the rows", async () => {
+  test("the replacement's own open event redraws the rows", async () => {
     const h = fresh();
     h.visibility("visible");
     h.live()!.fail();
@@ -43,7 +43,7 @@ describe("a closed source is replaced (spec 368)", () => {
     expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
   });
 
-  test("REQ-2: the wait doubles on each further failure, up to a ceiling", () => {
+  test("the wait doubles on each further failure, up to a ceiling", () => {
     const h = fresh();
     h.visibility("visible");
 
@@ -60,7 +60,7 @@ describe("a closed source is replaced (spec 368)", () => {
     h.timeouts[2]!.fn();
   });
 
-  test("REQ-2: the wait ceiling stops growing past its cap", () => {
+  test("the wait ceiling stops growing past its cap", () => {
     const h = fresh();
     h.visibility("visible");
 
@@ -76,7 +76,7 @@ describe("a closed source is replaced (spec 368)", () => {
     expect(h.timeouts[5]!.delayMs).toBe(30_000);
   });
 
-  test("REQ-2: a successful reconnect resets the wait back to the base", () => {
+  test("a successful reconnect resets the wait back to the base", () => {
     const h = fresh();
     h.visibility("visible");
 
@@ -96,7 +96,7 @@ describe("a closed source is replaced (spec 368)", () => {
     expect(h.timeouts[2]!.delayMs).toBe(1000);
   });
 
-  test("REQ-3: a reconnect that opens redraws the rows, catching up with no reload", async () => {
+  test("a reconnect that opens redraws the rows, catching up with no reload", async () => {
     const h = fresh();
     h.visibility("visible");
     h.live()!.fail();
@@ -109,7 +109,7 @@ describe("a closed source is replaced (spec 368)", () => {
     expect(h.location.href).toBe("http://dash.test/");
   });
 
-  test("REQ-4: a hidden tab drops a pending reconnect and does not retry", () => {
+  test("a hidden tab drops a pending reconnect and does not retry", () => {
     const h = fresh();
     h.visibility("visible");
     h.live()!.fail();
@@ -126,7 +126,7 @@ describe("a closed source is replaced (spec 368)", () => {
     expect(h.sources).toHaveLength(1);
   });
 
-  test("REQ-4: becoming visible again after a hidden pending reconnect opens fresh", () => {
+  test("becoming visible again after a hidden pending reconnect opens fresh", () => {
     const h = fresh();
     h.visibility("visible");
     h.live()!.fail();
@@ -138,13 +138,13 @@ describe("a closed source is replaced (spec 368)", () => {
   });
 });
 
-// --- spec 500: the stream is asked with the phases the tab has unfolded ------
+// --- The stream is asked with the phases the tab has unfolded ------
 //
 // The server tells a tab about a growing transcript only when the tab's
 // own stream query named that phase, so the stream has to be reopened
 // whenever the address's `phases` changes — and left alone otherwise.
 
-describe("the stream follows the address's phases (spec 500)", () => {
+describe("the stream follows the address's phases", () => {
   const OPEN = "aide%2F500-x";
   const A = "aide%2F500-x%3Aanalyze";
   const B = "aide%2F500-x%3Aimplement";
@@ -155,7 +155,7 @@ describe("the stream follows the address's phases (spec 500)", () => {
   };
   const query = (h: ReturnType<typeof start>) => h.live()!.url;
 
-  test("pressing a › closes the stream and opens it again with the new phases (AC-3)", () => {
+  test("pressing a › closes the stream and opens it again with the new phases", () => {
     const h = start();
     expect(h.sources).toHaveLength(1);
     void h.clickHref(`/?open=${OPEN}&phases=${A}`);
@@ -164,7 +164,7 @@ describe("the stream follows the address's phases (spec 500)", () => {
     expect(query(h)).toContain(`phases=${A}`);
   });
 
-  test("pressing another › reopens with both keys, and pressing one shut reopens with what is left (AC-3)", () => {
+  test("pressing another › reopens with both keys, and pressing one shut reopens with what is left", () => {
     const h = start();
     void h.clickHref(`/?open=${OPEN}&phases=${A}`);
     void h.clickHref(`/?open=${OPEN}&phases=${A}%2C${B}`);
@@ -176,7 +176,7 @@ describe("the stream follows the address's phases (spec 500)", () => {
     expect(query(h)).not.toContain(A);
   });
 
-  test("closing the last unfolded phase reopens the stream without phases (AC-3)", () => {
+  test("closing the last unfolded phase reopens the stream without phases", () => {
     const h = start();
     void h.clickHref(`/?open=${OPEN}&phases=${A}`);
     void h.clickHref(`/?open=${OPEN}`);
@@ -184,7 +184,7 @@ describe("the stream follows the address's phases (spec 500)", () => {
     expect(query(h)).not.toContain("phases");
   });
 
-  test("a press on a sort link leaves the stream alone (AC-3)", () => {
+  test("a press on a sort link leaves the stream alone", () => {
     const h = start();
     void h.clickHref(`/?open=${OPEN}&sort=cost`);
     expect(h.sources).toHaveLength(1);
@@ -204,7 +204,7 @@ describe("a job row's › reopens the stream with the address's open", () => {
     return h;
   };
 
-  test("opening a job row closes the stream and opens it again naming the row (AC-4)", async () => {
+  test("opening a job row closes the stream and opens it again naming the row", async () => {
     const h = start(true);
     h.foldAttrs["data-key"] = "aide/schedule-nightly";
     h.clickFold();
@@ -214,7 +214,7 @@ describe("a job row's › reopens the stream with the address's open", () => {
     expect(h.live()!.url).toContain(encodeURIComponent("aide/schedule-nightly"));
   });
 
-  test("a spec row's › leaves the stream as it was (AC-4)", async () => {
+  test("a spec row's › leaves the stream as it was", async () => {
     const h = start(false);
     h.clickFold();
     await flush();
@@ -259,7 +259,7 @@ describe("coming back into focus", () => {
 // A job page and a Steps tab hear a running step's log grow only when the
 // stream's address names the job's phases, and the marker an answer brings
 // back can name them later than the page did.
-describe("the stream follows the follow marker's phases (AC-2)", () => {
+describe("the stream follows the follow marker's phases", () => {
   const A = "aide/605-x:analyze";
   const B = "aide/605-x:implement";
   const answer = (phases: string) =>
@@ -271,7 +271,7 @@ describe("the stream follows the follow marker's phases (AC-2)", () => {
     });
   const phasesOf = (url: string) => new URL(url, "http://dash.test").searchParams.get("phases");
 
-  test("the stream's address carries the marker's phases beside the page's own query (AC-2)", () => {
+  test("the stream's address carries the marker's phases beside the page's own query", () => {
     const h = page({ "data-phases": `${A},${B}` }, () => answer(`${A},${B}`));
     h.visibility("visible");
     const url = new URL(h.live()!.url, "http://dash.test");
@@ -280,7 +280,7 @@ describe("the stream follows the follow marker's phases (AC-2)", () => {
     expect(url.searchParams.get("phases")).toBe(`${A},${B}`);
   });
 
-  test("an answer that names phases the stream was opened without closes it and opens it with them (AC-2)", async () => {
+  test("an answer that names phases the stream was opened without closes it and opens it with them", async () => {
     const h = page({}, () => answer(`${A},${B}`));
     h.visibility("visible");
     expect(phasesOf(h.live()!.url)).toBeNull();
@@ -291,7 +291,7 @@ describe("the stream follows the follow marker's phases (AC-2)", () => {
     expect(phasesOf(h.live()!.url)).toBe(`${A},${B}`);
   });
 
-  test("an answer that names the phases the stream already has leaves it open (AC-2)", async () => {
+  test("an answer that names the phases the stream already has leaves it open", async () => {
     const h = page({ "data-phases": A }, () => answer(A));
     h.visibility("visible");
     h.live()!.emit("changed");

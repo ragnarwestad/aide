@@ -35,7 +35,7 @@ const CONFIG = `{
 const pageText = async (url: string): Promise<string> => (await fetch(url)).text();
 
 describe("a press of Check reads the AI's models", () => {
-  test("the answer carries the reading, and the tab is drawn from it (AC-1)", async () => {
+  test("the answer carries the reading, and the tab is drawn from it", async () => {
     forgetChecks();
     const toolProbe = modelsProbe({ claude: CLAUDE_READING });
     const { base } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe });
@@ -47,7 +47,7 @@ describe("a press of Check reads the AI's models", () => {
     expect(toolProbe.modelReads).toEqual([{ tool: "claude", configured: ["opus", "fable"] }]);
   });
 
-  test("opening a tab reads no models (AC-8)", async () => {
+  test("opening a tab reads no models", async () => {
     forgetChecks();
     const toolProbe = modelsProbe({ claude: CLAUDE_READING });
     const { base } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe });
@@ -55,7 +55,7 @@ describe("a press of Check reads the AI's models", () => {
     expect(toolProbe.modelReads).toEqual([]);
   });
 
-  test("a Claude choice that never ran shows its version everywhere, also after a restart (AC-6)", async () => {
+  test("a Claude choice that never ran shows its version everywhere, also after a restart", async () => {
     forgetChecks();
     const { modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const toolProbe = modelsProbe({ claude: CLAUDE_READING });
@@ -77,7 +77,7 @@ describe("a press of Check reads the AI's models", () => {
     await shown(afresh.base);
   });
 
-  test("a choice named opus[1m] shows the name Claude Code gives it, also after a restart (AC-6)", async () => {
+  test("a choice named opus[1m] shows the name Claude Code gives it, also after a restart", async () => {
     forgetChecks();
     const { modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const choices = { ...CHOICES, "opus[1m]": {} };
@@ -96,7 +96,7 @@ describe("a press of Check reads the AI's models", () => {
     expect((await offeredChoices(afresh.base))["opus[1m]"]).toBe("Opus 5.5 (1M context)");
   });
 
-  test("the newest of a run and a Check names the version (AC-6)", async () => {
+  test("the newest of a run and a Check names the version", async () => {
     forgetChecks();
     const { modelIdsPath } = ownFiles(CONFIG, ownDirs);
     // As a run left it.
@@ -115,7 +115,7 @@ describe("a press of Check reads the AI's models", () => {
     expect((await offeredChoices(base)).Opus).toBe("Opus 5.6");
   });
 
-  test("a press of each AI's Check leaves the config file and the choices as they were (AC-8)", async () => {
+  test("a press of each AI's Check leaves the config file and the choices as they were", async () => {
     forgetChecks();
     const { file, modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const readings = {

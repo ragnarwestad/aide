@@ -117,8 +117,8 @@ const press = (base: string, folder = FOLDER) =>
 /** The archived row as the list draws it next. */
 const archivedBlock = async (base: string): Promise<string> => blockFor(await listUntil(base, FOLDER, ARCHIVED_VIEW), FOLDER);
 
-describe("Delete branch deletes a merged branch left on origin (AC-3)", () => {
-  test("once per repository, and the note leaves the row (AC-3)", async () => {
+describe("Delete branch deletes a merged branch left on origin", () => {
+  test("once per repository, and the note leaves the row", async () => {
     const { base, git } = startWith({ has: new Set([BRANCH]) });
     await listUntil(base, NOTE, ARCHIVED_VIEW);
     const res = await press(base);
@@ -128,7 +128,7 @@ describe("Delete branch deletes a merged branch left on origin (AC-3)", () => {
     expect(await archivedBlock(base)).not.toContain(NOTE);
   });
 
-  test("a branch origin no longer holds deletes nothing and answers ok (AC-3)", async () => {
+  test("a branch origin no longer holds deletes nothing and answers ok", async () => {
     const origin: Origin = { has: new Set([BRANCH]) };
     const { base, git } = startWith(origin);
     await listUntil(base, NOTE, ARCHIVED_VIEW);
@@ -145,20 +145,20 @@ const REVIEW_LINES = ["waiting on a pull request", "no pull request was opened"]
 // A project that reviews its code squash-merges the pull request, so git
 // never calls the branch merged; only GitHub says it did. The row must read
 // the Slett gren line, and the press must accept the head that merged.
-describe("a squash-merged pull request's branch left on origin (AC-1, AC-3, AC-4)", () => {
+describe("a squash-merged pull request's branch left on origin", () => {
   const MERGED_HEAD = "9f3c0de";
   const squashed = (over: Partial<Origin> = {}): Origin => ({
     has: new Set([BRANCH]), notMergedAnywhere: true, tip: MERGED_HEAD, ...over,
   });
 
-  test("the row reads the Slett gren line and no review line (AC-1, AC-4)", async () => {
+  test("the row reads the Slett gren line and no review line", async () => {
     const { base } = startWith(squashed(), { reviewed: { mergedHead: MERGED_HEAD } });
     const block = blockFor(await listUntil(base, NOTE, ARCHIVED_VIEW), FOLDER);
     expect(block).toContain(NOTE);
     for (const line of REVIEW_LINES) expect(block).not.toContain(line);
   });
 
-  test("the press deletes it once per repository and leaves no amber line (AC-3)", async () => {
+  test("the press deletes it once per repository and leaves no amber line", async () => {
     const { base, git } = startWith(squashed(), { reviewed: { mergedHead: MERGED_HEAD } });
     await listUntil(base, NOTE, ARCHIVED_VIEW);
     const res = await press(base);
@@ -169,7 +169,7 @@ describe("a squash-merged pull request's branch left on origin (AC-1, AC-3, AC-4
     for (const line of [NOTE, ...REVIEW_LINES]) expect(block).not.toContain(line);
   });
 
-  test("a tip that is no longer the merged head is refused, nothing deleted (AC-3)", async () => {
+  test("a tip that is no longer the merged head is refused, nothing deleted", async () => {
     const origin = squashed();
     const { base, git } = startWith(origin, { reviewed: { mergedHead: MERGED_HEAD } });
     await listUntil(base, NOTE, ARCHIVED_VIEW);
@@ -181,8 +181,8 @@ describe("a squash-merged pull request's branch left on origin (AC-1, AC-3, AC-4
   });
 });
 
-describe("Delete branch refuses rather than lose work (AC-3)", () => {
-  test("a root whose fresh answer is not merged: nothing deleted anywhere (AC-3)", async () => {
+describe("Delete branch refuses rather than lose work", () => {
+  test("a root whose fresh answer is not merged: nothing deleted anywhere", async () => {
     const origin: Origin = { has: new Set([BRANCH]) };
     const { base, git } = startWith(origin);
     await listUntil(base, NOTE, ARCHIVED_VIEW);
@@ -193,7 +193,7 @@ describe("Delete branch refuses rather than lose work (AC-3)", () => {
     expect(git.deletes()).toHaveLength(0);
   });
 
-  test("origin refusing the delete leaves the branch open and the note on the row (AC-3)", async () => {
+  test("origin refusing the delete leaves the branch open and the note on the row", async () => {
     const { base } = startWith({ has: new Set([BRANCH]), refuseDelete: true });
     await listUntil(base, NOTE, ARCHIVED_VIEW);
     const res = await press(base);
@@ -202,7 +202,7 @@ describe("Delete branch refuses rather than lose work (AC-3)", () => {
     expect(await archivedBlock(base)).toContain(NOTE);
   });
 
-  test("origin that cannot be asked deletes nothing and leaves the note (AC-3)", async () => {
+  test("origin that cannot be asked deletes nothing and leaves the note", async () => {
     const origin: Origin = { has: new Set([BRANCH]) };
     const { base, git } = startWith(origin);
     await listUntil(base, NOTE, ARCHIVED_VIEW);
@@ -218,7 +218,7 @@ describe("Delete branch refuses rather than lose work (AC-3)", () => {
   });
 });
 
-describe("Delete branch is only for an archived spec's leftover branch (AC-3)", () => {
+describe("Delete branch is only for an archived spec's leftover branch", () => {
   const job = (over: Record<string, unknown>) => ({
     id: "j1", project: "aide", specFolder: FOLDER, steps: ["reopen"], stepIndex: 0,
     state: "queued", model: {}, timeoutSec: {}, permissionMode: {}, effort: {},
@@ -226,7 +226,7 @@ describe("Delete branch is only for an archived spec's leftover branch (AC-3)", 
     ...over,
   });
 
-  test("a spec that is not archived is refused (AC-3)", async () => {
+  test("a spec that is not archived is refused", async () => {
     const { base, git } = startWith({ has: new Set([BRANCH, "aide/81-queue-and-runner"]) });
     const res = await press(base, "81-queue-and-runner");
     expect(res.status).toBe(400);
@@ -234,7 +234,7 @@ describe("Delete branch is only for an archived spec's leftover branch (AC-3)", 
     expect(git.calls.some((c) => c.args[0] === "push")).toBe(false);
   });
 
-  test("a closed spec is refused (AC-3)", async () => {
+  test("a closed spec is refused", async () => {
     const { base, git } = startWith({ has: new Set([BRANCH]) }, { closed: true });
     const res = await press(base);
     expect(res.status).toBe(400);
@@ -242,7 +242,7 @@ describe("Delete branch is only for an archived spec's leftover branch (AC-3)", 
     expect(git.deletes()).toHaveLength(0);
   });
 
-  test("a queued job for the spec is refused (AC-3)", async () => {
+  test("a queued job for the spec is refused", async () => {
     const { base, git } = startWith({ has: new Set([BRANCH]) }, { queueMirror: JSON.stringify([job({})]) });
     const res = await press(base);
     expect(res.status).toBe(400);
@@ -250,7 +250,7 @@ describe("Delete branch is only for an archived spec's leftover branch (AC-3)", 
     expect(git.deletes()).toHaveLength(0);
   });
 
-  test("a landing in progress in the project is refused (AC-3)", async () => {
+  test("a landing in progress in the project is refused", async () => {
     // A live spec's analyze, whose landing is held at its merge.
     let release = (): void => {};
     const holdMerge = new Promise<void>((r) => (release = r));
@@ -285,7 +285,7 @@ describe("Delete branch is only for an archived spec's leftover branch (AC-3)", 
     }
   });
 
-  test("any method but POST is not allowed, and an unknown spec is not found (AC-3)", async () => {
+  test("any method but POST is not allowed, and an unknown spec is not found", async () => {
     const { base } = startWith({ has: new Set([BRANCH]) });
     expect((await fetch(`${base}/api/queue/specs/aide/${FOLDER}/delete-branch`)).status).toBe(405);
     expect((await press(base, "999-nothing")).status).toBe(404);

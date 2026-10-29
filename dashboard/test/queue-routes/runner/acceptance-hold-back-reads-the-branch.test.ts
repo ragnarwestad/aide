@@ -1,9 +1,9 @@
 // The Checks tab writes a tick to `aide/<folder>` when that branch is
-// open (spec-edit.ts, REQ-4), and the disk copy stays unticked until
-// archive lands. Both the queue's archive hold-back and the row's
-// "archive held back" used to read disk alone, and held a spec whose
-// every row was ticked (364, 2026-09-03). Both now read the branch copy
-// the schedule keeps, and fall back to disk only without one.
+// open (spec-edit.ts), and the disk copy stays unticked until
+// archive lands. Reading disk alone would hold a spec whose every row
+// was ticked, so both the queue's archive hold-back and the row's
+// "archive held back" read the branch copy the schedule keeps, and fall
+// back to disk only without one.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -109,7 +109,7 @@ describe("the row's own archive held back", () => {
   });
 });
 
-// Spec 493: the Specs list unfolds these rows, so they ride on the target.
+// The Specs list unfolds these rows, so they ride on the target.
 describe("the rows the list unfolds", () => {
   test("the target's rows are the branch's when it has an answer", async () => {
     const { root, specDir } = projectsRoot();
@@ -151,7 +151,7 @@ describe("the rows the list unfolds", () => {
 
 // The branch answer is TTL-cached, and a tick that lands on the default
 // branch used to leave it saying "still open" for the rest of that
-// window (337, 2026-09-04). That was answered by letting the disk copy's
+// window. That was answered by letting the disk copy's
 // "all ticked" outvote it — safe only while a tick could ONLY ever be
 // added. A check can be taken back off now, and that rule let an untick
 // on the branch be outvoted by a disk copy ticked before the branch
@@ -237,7 +237,7 @@ describe("the queue's analyze gate", () => {
 });
 
 // A queued archive the script would only refuse is ended by the runner
-// (490, 2026-09-18) — but only on a branch answer read since the last
+// — but only on a branch answer read since the last
 // tick, since the Checks tab ticks the branch and disk lags behind it.
 describe("the queue's unticked-archive check", () => {
   const queuedArchive = { id: "job-3", project: "aide", specFolder: FOLDER, state: "queued", steps: ["implement", "archive"], stepIndex: 1 };
@@ -266,7 +266,7 @@ describe("the queue's unticked-archive check", () => {
   });
 
   // Implement never ran — it was taken out of the job while analyze ran
-  // (550, 2026-09-27). The script says so first; ended here, the row read
+  //. The script says so first; ended here, the row read
   // "acceptance criteria unticked", true but not the reason.
   test("a spec implement has not run on is left to the script, which says so", async () => {
     const { root, specDir } = projectsRoot();

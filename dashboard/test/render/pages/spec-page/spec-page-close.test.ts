@@ -1,4 +1,4 @@
-// Spec 406: the Close control and the sentence that says what it means
+// The Close control and the sentence that says what it means
 // sentence, and the closed-spec read-only line. Follows the shape
 // spec-page-reopen-and-reset.test.ts's own Reset suite already tests
 // against.
@@ -7,7 +7,7 @@ import { describe, expect, test } from "bun:test";
 import { btn } from "../../../../src/render/ui/components";
 import { page, view } from "../spec-page-fixtures.ts";
 
-describe("spec 406, REQ-1: the Close control", () => {
+describe("the Close control", () => {
   test("present and enabled beside Reset when both actions are offered", () => {
     const html = page(view({ closeAvailable: true }));
     const group = /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(html)?.[1] ?? "";
@@ -17,7 +17,7 @@ describe("spec 406, REQ-1: the Close control", () => {
     expect(group.indexOf("Reset")).toBeLessThan(group.indexOf("Close"));
   });
 
-  // REQ-1: "whatever phase it is in, including one where no step has
+  // "whatever phase it is in, including one where no step has
   // completed" — the render layer draws off `closeAvailable` alone,
   // which the server sets unconditionally for every non-archived spec
   // (spec-views/spec-page.ts), so a `created`-phase spec with no
@@ -36,13 +36,13 @@ describe("spec 406, REQ-1: the Close control", () => {
     expect(html).not.toContain("data-ask=\"closeask\"");
   });
 
-  test("disabled with its reason while busy, rather than absent or silently inert (REQ-11, AC-4)", () => {
+  test("disabled with its reason while busy, rather than absent or silently inert", () => {
     const html = page(view({ closeAvailable: true, closeUnavailableReason: "a job is running" }));
     expect(html).not.toContain("data-ask=\"closeask\"");
     expect(html).toContain(btn({ label: "Close", type: "button", disabled: true }));
-    // Spec 454: the reason is not a `title`. Spec 457: nor is it Close's
-    // own "(?)" any more — it is one sentence inside the action row's
-    // single shared mark, naming Close by name.
+    // The reason is not a `title`, nor is it Close's own "(?)": it is
+    // one sentence inside the action row's single shared mark, naming
+    // Close by name.
     expect(html).not.toMatch(/title="a job is running"/);
     expect(html).toContain("Close can't run right now because a job is running.");
   });

@@ -5,12 +5,12 @@
 # The dashboard lists specs by reading the spec folders straight off the
 # serving host's working copy. Nothing pulls that copy: a spec written
 # and pushed from another machine simply is not there, and the page says
-# so by not showing it. Measured 2026-08-20 — spec 137 was made on the
+# so by not showing it. Measured 2026-08-20 — a spec was made on the
 # laptop, pushed, and invisible on the dashboard until someone ran
 # `git pull` on the mini by hand.
 #
 # What it is NOT for: the aide checkout itself. Merging code and
-# installing it belong together (`AIDE_INSTALL_CMD`, spec 96), and a
+# installing it belong together (`AIDE_INSTALL_CMD`), and a
 # background pull would move the code under a server that goes on
 # running the old version — merged but not deployed, told as deployed.
 # This script carries DATA the dashboard reads, and refuses nothing else

@@ -83,7 +83,7 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
    buttons and the phases (2026-08-19). */
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
   max-width: 27rem; }
-/* The archive's Description column (spec 170). A spec's Description
+/* The archive's Description column. A spec's Description
    section runs to several paragraphs — the whole of it is in the cell, because
    the search reads the whole of it — so the cell is bounded here rather
    than left to the browser: two lines, and a measure that stops one
@@ -107,29 +107,29 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
   color: var(--text); font: var(--fs-m)/1 var(--sans); }
 /* The whole date, on one line, never cut. */
 .archive-date { white-space: nowrap; }
-/* And the same for what the spec cost (spec 207): "1h04m" broken over
+/* And the same for what the spec cost: "1h04m" broken over
    two lines reads as two numbers, not one. The cell is empty for a spec
    whose archive never recorded a figure, which is a blank and not a gap
    in the row. */
 .archive-duration { white-space: nowrap; }
-/* The search on the Specs list (spec 221), the field the archive page
+/* The search on the Specs list, the field the archive page
    had. A line of its own UNDER the filter row: at the six chips that
    control was then, a 26rem
    field on the same line wrapped the button onto a row by itself. The
-   (?) and New spec moved onto THIS line instead (spec 261) — readers
+   (?) and New spec moved onto THIS line instead — readers
    look for them beside the field they are about to use, not above it —
    and this row already tolerates the extra width by wrapping. */
 .specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
   margin: var(--sp-2) 0 0; }
 /* The whole controls line keeps clear air down to the table. Retargeted
-   from `#jobrows > .row:first-child` (spec 289): the state dropdown
+   from `#jobrows > .row:first-child`: the state dropdown
    folded the old chips row into `.specsearch`. Scoped to `.specsearch`
    itself, not `#jobrows > .specsearch` — `/schedule` uses the same
    `.specsearch` form (`schedule-page/list.ts`) but has no `#jobrows`
    of its own, and the ID-scoped version left it with no gap down to
    its own table at all. */
 .specsearch:first-child { margin: var(--sp-3) 0; }
-/* Caps this line at the table's own width (spec 381, REQ-1/REQ-2), so
+/* Caps this line at the table's own width, so
    New — pinned to the line's own right edge below — lands at the
    table's right edge instead of stretching to `#jobrows`'s full flex
    width. `max-width`, not `width`: this row has no scroll box of its
@@ -138,15 +138,15 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
    shared with `/schedule`, which has no such
    ancestor and must render exactly as it does today. */
 /* Centred the same way as .tablewrap just above, and for the same
-   reason page.css's own frame rule states (spec 325): a flex item with
+   reason page.css's own frame rule states: a flex item with
    auto cross-margins and no explicit width shrinks to its own content
    instead of stretching — this row's content (the search field, the
    state filter, New spec) is much narrower than --speclist-width, so
    without width: 100% here it would shrink far below the table's own
-   width and drift apart from it (spec 381). */
+   width and drift apart from it. */
 #jobrows .specsearch { max-width: var(--speclist-width); width: 100%; box-sizing: border-box;
   margin-inline: auto; }
-/* The clear control (spec 226) sits IN the field, at its right edge —
+/* The clear control sits IN the field, at its right edge —
    where every search box a reader has used before puts it. The wrapper
    is what the absolute position is measured from; it takes the field's
    own width so the flex row lays it out as the field it holds.
@@ -154,13 +154,13 @@ table.list tr.specstate > td { padding-top: var(--sp-1); }
    The field keeps room on its right for the control, so a long term
    does not run underneath it. */
 .searchfield { position: relative; display: inline-flex; width: 26rem; max-width: 100%; }
-/* Spec 460: above the 40rem phone step (its own harder rule, narrow.css,
+/* Above the 40rem phone step (its own harder rule, narrow.css,
    wins there by source order — see the min-width reset added there),
    the row must not wrap either. --speclist-width above steps down at
    the same widths the table drops a column at, and past that point the
    fixed controls (Search, "?", State, New) plus a fixed 26rem field no
    longer fit — New wraps onto its own line. The field is what gives up
-   the room (AC-2): flexible rather than a second guessed breakpoint,
+   the room: flexible rather than a second guessed breakpoint,
    since how much room the fixed controls need moves with the State
    dropdown's own chosen label. :where() adds no specificity, so this
    still loses to the phone step below and never reaches /schedule's own

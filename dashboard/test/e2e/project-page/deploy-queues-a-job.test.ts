@@ -54,7 +54,7 @@ afterAll(async () => {
 });
 
 describe("Deploy on the board's own project page", () => {
-  test("OK queues the job and the page lands on the Running tab with the job's row open (AC-1)", async () => {
+  test("OK queues the job and the page lands on the Running tab with the job's row open", async () => {
     const page = await browser.newPage();
     await page.goto(`${base}/projects/aide?tab=deploy&live=0`);
     await page.getByRole("button", { name: "Deploy", exact: true }).click();

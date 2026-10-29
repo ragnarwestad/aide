@@ -1,4 +1,4 @@
-// Spec 185: the seven `.aide/config` keys, each answered with where its
+// The seven `.aide/config` keys, each answered with where its
 // value came from.
 //
 // The description's bar is that a reader can tell, for every setting,
@@ -31,8 +31,8 @@ import {
 
 // Each row of the manifest group is keyed by the manifest's own key, so
 // the grey key the tab prints beside it is one a manifest can hold.
-describe("the manifest group is keyed by keys the parser reads (AC-3)", () => {
-  test("every key of the manifest group, set in a manifest, reads back under the same key (AC-3)", () => {
+describe("the manifest group is keyed by keys the parser reads", () => {
+  test("every key of the manifest group, set in a manifest, reads back under the same key", () => {
     const manifest = SETTING_GROUPS.find((g) => g.file === "manifest")!;
     for (const key of manifest.keys) {
       const result = parseManifest(`name: p\n${key}: x\n`);
@@ -147,7 +147,7 @@ describe("a value that does not resolve is marked, in the words readiness alread
     detail: "there is no specs root at /tmp/elsewhere, and a run refuses without one",
   };
 
-  test("a worktree link with nothing to link carries readiness's own sentence (criterion 4)", () => {
+  test("a worktree link with nothing to link carries readiness's own sentence", () => {
     const dir = project("");
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nworktreeLinks: node_modules\n");
     expect(row(dir, "worktreeLinks", readiness(missingLinks)).problem).toEqual({
@@ -156,7 +156,7 @@ describe("a value that does not resolve is marked, in the words readiness alread
     });
   });
 
-  test("a specs root that is not there carries readiness's own sentence (criterion 5)", () => {
+  test("a specs root that is not there carries readiness's own sentence", () => {
     const dir = project("AIDE_SPECS_PATH=/tmp/elsewhere\n");
     expect(row(dir, "AIDE_SPECS_PATH", readiness(missingSpecs)).problem).toEqual({
       text: missingSpecs.detail,
@@ -187,12 +187,12 @@ describe("a value that does not resolve is marked, in the words readiness alread
     }
   });
 
-  // Spec 378 (REQ-2): before this, an UNSET field-owned check's own
+  // Before this, an UNSET field-owned check's own
   // readiness note was visible only on the (now-removed) Health tab —
   // the row fell through to `origin: "unset"` with no `problem` at all.
   // Closing that gap is what makes the note reachable on Config once
   // Health is gone.
-  test("an unset key that readiness still has a note about carries it as a non-blocking problem (REQ-2)", () => {
+  test("an unset key that readiness still has a note about carries it as a non-blocking problem", () => {
     const unsetNote: ReadinessCheck = {
       check: "worktreeLinks",
       subject: "/tmp/p",
@@ -206,9 +206,9 @@ describe("a value that does not resolve is marked, in the words readiness alread
   });
 
   // The blocking case: AIDE_SPECS_PATH left unset and its fallback
-  // (<project>/specs) does not exist either — a run refuses, and REQ-2
-  // asks that this reads as a `failed`-styled problem on the row.
-  test("an unset, blocking key carries a failed-styled problem (REQ-2)", () => {
+  // (<project>/specs) does not exist either — a run refuses, and
+  // this must read as a `failed`-styled problem on the row.
+  test("an unset, blocking key carries a failed-styled problem", () => {
     const unresolvedFallback: ReadinessCheck = {
       check: "specsRoot",
       subject: "/tmp/p/specs",
@@ -238,18 +238,18 @@ describe("a value that does not resolve is marked, in the words readiness alread
   });
 });
 
-// Spec 255: the Worktree links row moved from raw `configValue()` to
+// The Worktree links row moved from raw `configValue()` to
 // `resolveWorktreeLinks()`'s manifest-then-config precedence, and
 // `DERIVABLE` is now exported so `render/projects-page.ts` can gate edit-mode on
 // key membership rather than a second, hand-duplicated list.
-describe("the Worktree links row is sourced from resolveWorktreeLinks() (spec 255)", () => {
+describe("the Worktree links row is sourced from resolveWorktreeLinks()", () => {
   test("DERIVABLE's export names the test command alone, and touches no row shape", () => {
     expect(Object.keys(DERIVABLE)).toEqual(["AIDE_TEST_CMD"]);
     const view = projectSettings(project(null), null);
     expect(view.rows.map((r) => r.key)).toEqual([...SETTING_KEYS]);
   });
 
-  test("the manifest's worktreeLinks: is the row's value, and the row names that file (criterion 2)", () => {
+  test("the manifest's worktreeLinks: is the row's value, and the row names that file", () => {
     const dir = project("");
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nworktreeLinks: deps\n");
     const r = row(dir, "worktreeLinks");
@@ -267,11 +267,11 @@ describe("the Worktree links row is sourced from resolveWorktreeLinks() (spec 25
   });
 });
 
-// Spec 549: the Install command row is sourced from resolveInstallCmd(),
+// The Install command row is sourced from resolveInstallCmd(),
 // `.aide/config` alone — a manifest `installCmd:` is never read, because
 // a value here can legitimately differ per machine.
-describe("the Install/Test command rows are sourced from resolveInstallCmd()/resolveTestCmd() (spec 345)", () => {
-  test("installCmd is read from .aide/config; a manifest installCmd: beside it is not read (AC-3)", () => {
+describe("the Install/Test command rows are sourced from resolveInstallCmd()/resolveTestCmd()", () => {
+  test("installCmd is read from .aide/config; a manifest installCmd: beside it is not read", () => {
     const dir = project("AIDE_INSTALL_CMD=./from-config.sh\n");
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ninstallCmd: ./from-manifest.sh\n");
     const r = row(dir, "AIDE_INSTALL_CMD");
@@ -280,7 +280,7 @@ describe("the Install/Test command rows are sourced from resolveInstallCmd()/res
     expect(r.source).toBe(".aide/config");
   });
 
-  test("a manifest installCmd: alone is not read: the row reads unset (AC-3)", () => {
+  test("a manifest installCmd: alone is not read: the row reads unset", () => {
     const dir = project("");
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ninstallCmd: ./from-manifest.sh\n");
     const r = row(dir, "AIDE_INSTALL_CMD");
@@ -298,9 +298,9 @@ describe("the Install/Test command rows are sourced from resolveInstallCmd()/res
   });
 });
 
-// Spec 552: the `?edit=` value <-> group mapping, read off SETTING_GROUPS
+// The `?edit=` value <-> group mapping, read off SETTING_GROUPS
 // rather than a second hand-written list.
-describe("groupForEditParam (spec 552)", () => {
+describe("groupForEditParam", () => {
   test("groupForEditParam round-trips every EDIT_GROUP_PARAM value", () => {
     for (const [group, param] of Object.entries(EDIT_GROUP_PARAM) as [SettingsGroupFile, string][]) {
       expect(groupForEditParam(param)).toBe(group);
@@ -314,10 +314,10 @@ describe("groupForEditParam (spec 552)", () => {
   });
 });
 
-// AC-7: every row's Comment-column purpose text starts with a capital
+// Every row's Comment-column purpose text starts with a capital
 // letter — the source text `settingRowHtml` lists first, before any
 // appended note.
-describe("every row's purpose starts with a capital letter (AC-7)", () => {
+describe("every row's purpose starts with a capital letter", () => {
   test("all five keys", () => {
     const dir = project(null);
     for (const key of SETTING_KEYS) {
@@ -327,8 +327,8 @@ describe("every row's purpose starts with a capital letter (AC-7)", () => {
   });
 });
 
-describe("the manifest's Description row (AC-2)", () => {
-  test("a description in the manifest is a row of the manifest group, posted as description (AC-2)", () => {
+describe("the manifest's Description row", () => {
+  test("a description in the manifest is a row of the manifest group, posted as description", () => {
     const dir = project(null);
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\ndescription: A board\n");
     const manifest = SETTING_GROUPS.find((g) => g.file === "manifest")!;
@@ -339,7 +339,7 @@ describe("the manifest's Description row (AC-2)", () => {
     expect(EDITABLE_FIELD.description).toBe("description");
   });
 
-  test("a manifest with no description leaves the row unset (AC-2)", () => {
+  test("a manifest with no description leaves the row unset", () => {
     const r = row(project(null), "description");
     expect(r.origin).toBe("unset");
     expect(r.value).toBeNull();

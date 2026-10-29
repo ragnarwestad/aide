@@ -8,7 +8,7 @@ import {
 
 afterEach(() => harness.cleanup());
 
-// --- criterion 1: the default view is the reading view, unchanged ----------
+// --- The default view is the reading view, unchanged ----------
 
 describe("the default filter", () => {
   test("is All, and it is the one the bare page resolves to", async () => {
@@ -45,10 +45,10 @@ describe("the default filter", () => {
   });
 });
 
-// --- criterion 2: the Archived chip ----------------------------------------
+// --- The Archived chip ----------------------------------------
 
 describe("the Archived chip", () => {
-  test("shows every archived spec and no live one (criterion 2)", async () => {
+  test("shows every archived spec and no live one", async () => {
     const html = await specsList(start().base, ARCHIVED_VIEW);
     for (const folder of Object.keys(ARCHIVED)) expect(html).toContain(folder);
     expect(order(html)).not.toContain(LIVE);
@@ -64,16 +64,16 @@ describe("the Archived chip", () => {
   });
 });
 
-// --- criterion 5: All means all, in ONE order ------------------------------
+// --- All means all, in ONE order ------------------------------
 
 describe("the All chip", () => {
   // Pinned to the "spec" sort explicitly: the list's own default
-  // changed to Created (spec 317), and this fixture's synthetic git
+  // changed to Created, and this fixture's synthetic git
   // answers no spec's real creation date — every row would tie there,
   // which proves nothing about interleaving. Folder number is still a
   // real, distinct value per row, live or archived, so it is what
   // proves the point this criterion is actually about.
-  test("interleaves live and archived by the same sort key (criterion 5)", async () => {
+  test("interleaves live and archived by the same sort key", async () => {
     const rows = order(await specsList(start().base, `${ALL_VIEW}&sort=spec`));
     // Folder number, descending: 150, 92, 81, 60, 31, 05, 01. The live
     // spec sits BETWEEN two archived ones, which a list that
@@ -91,7 +91,7 @@ describe("the All chip", () => {
   });
 });
 
-// --- spec 509: the Not verified entry, read off each spec's 4-status.json ---
+// --- The Not verified entry, read off each spec's 4-status.json ---
 
 const stateFile = (rows: { done: boolean; notVerified?: boolean }[]) =>
   JSON.stringify({
@@ -109,19 +109,19 @@ describe("the Not verified entry", () => {
       [SAME_DAY]: { ...ARCHIVED[SAME_DAY], state: stateFile([{ done: true }]) },
     }, stateFile([marked[0]!]));
 
-  test("lists the live spec and the archived spec with a count, and no other (AC-4)", async () => {
+  test("lists the live spec and the archived spec with a count, and no other", async () => {
     const html = await specsList(withMarks().base, "?state=not-verified");
     expect(order(html).sort()).toEqual([LIVE, STAMPED].sort());
     expect(html).toContain("2 not verified");
     expect(html).toContain("1 not verified");
   });
 
-  test("counts only the specs with a count, on a view that builds no archived row (AC-4)", async () => {
+  test("counts only the specs with a count, on a view that builds no archived row", async () => {
     const html = await specsList(withMarks().base, "?state=not-archived");
     expect(html).toMatch(/>Not verified \(2\)</);
   });
 
-  test("a spec with no Not verified row is in neither the list nor the count (AC-4)", async () => {
+  test("a spec with no Not verified row is in neither the list nor the count", async () => {
     const html = await specsList(start().base, "?state=not-verified");
     expect(order(html)).toEqual([]);
     expect(html).toMatch(/>Not verified \(0\)</);

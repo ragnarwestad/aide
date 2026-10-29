@@ -16,15 +16,15 @@ export function keepsItsStopReason(job: Job | undefined): boolean {
 // What a job remembers of a landing that failed, and who may forget it.
 //
 // `landingError` is the record of ONE step's landing, named by that step
-// (spec 327): a later step's own success leaves it alone, since the two
+// a later step's own success leaves it alone, since the two
 // are different facts about the same job. Its own step landing later —
-// a retry, or the step pressed again — is what resolves it. atlasaurus
-// 05's row said "could not assign this spec its number — nothing was
+// a retry, or the step pressed again — is what resolves it. A row once
+// said "could not assign this spec its number — nothing was
 // pushed; run the step again" while the number had been assigned and
 // pushed 27 seconds later (2026-09-20).
 
 /** The record to keep when a landing fails: the FIRST one a job hits is
- *  the one worth keeping (spec 327) — a later step's own failure is a
+ *  the one worth keeping — a later step's own failure is a
  *  symptom as often as a second, unrelated problem (the incident that
  *  spec is named for was exactly that: an `analyze` push failure,
  *  followed minutes later by an `archive` "cannot fast-forward main"
@@ -36,7 +36,7 @@ export function keepsItsStopReason(job: Job | undefined): boolean {
  *  itself. The step-name prefix this used to compose is redundant with
  *  the badge label the one display site (`row-marks.ts`'s `liveMarks()`)
  *  shows beside it — and a landing runs with nobody's browser attached,
- *  so there is no language here to render `msg` with (REQ-1/REQ-3). */
+ *  so there is no language here to render `msg` with. */
 export function firstLandingError(
   existing: Sentence | Sentence[] | undefined,
   msg: Sentence | Sentence[],

@@ -10,7 +10,7 @@
 /* The row's text fills the line; the warning mark keeps to the right of it. */
 .proj-row > div:first-child { flex: 1; min-width: 0; }
 .proj-row-link::after { content: ""; position: absolute; inset: 0; }
-/* Spec 369: the row's warning mark rises above the row-wide link, so it
+/* The row's warning mark rises above the row-wide link, so it
    is a link of its own; Remove rises with it, so a press opens its dialog
    and not the project. */
 .proj-row-warn, .proj-row > .btn { position: relative; z-index: 1; }

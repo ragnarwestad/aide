@@ -47,23 +47,23 @@ function run(opts: Opts = {}) {
 }
 
 describe("start-page.ts", () => {
-  test("a tab's first page that names a page to start on is replaced by it, once, and marks the tab (AC-1)", () => {
+  test("a tab's first page that names a page to start on is replaced by it, once, and marks the tab", () => {
     const { replaced, stored } = run({ meta: "/specs" });
     expect(replaced).toEqual(["/specs"]);
     expect(stored.get("aide-started")).toBe("1");
   });
 
-  test("a tab's first page with no such meta stays, and marks the tab (AC-2)", () => {
+  test("a tab's first page with no such meta stays, and marks the tab", () => {
     const { replaced, stored } = run();
     expect(replaced).toEqual([]);
     expect(stored.get("aide-started")).toBe("1");
   });
 
-  test("a page in a tab that has shown a board page stays, whatever its head names (AC-3, AC-4)", () => {
+  test("a page in a tab that has shown a board page stays, whatever its head names", () => {
     expect(run({ meta: "/specs", started: true }).replaced).toEqual([]);
   });
 
-  test("a tab whose storage throws throws nothing and keeps the page (AC-1, AC-3, AC-4)", () => {
+  test("a tab whose storage throws throws nothing and keeps the page", () => {
     expect(run({ meta: "/specs", storageThrows: true }).replaced).toEqual([]);
   });
 });

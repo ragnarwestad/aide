@@ -8,7 +8,7 @@
 // Analyze, reopen and reset land the specs repo alone now. Where the
 // specs live inside the code repo, that repo lands the spec's own folder
 // and nothing else of the branch — and so does a close there, whose
-// folder move went with the deleted branch (paceup:03, 2026-09-18).
+// folder move went with the deleted branch.
 
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";

@@ -76,14 +76,14 @@ async function fillSpec(page: Page): Promise<void> {
 }
 
 describe("the New spec page's two tabs", () => {
-  test("it opens on Spec, with Title shown and the Options settings not (AC-1)", async () => {
+  test("it opens on Spec, with Title shown and the Options settings not", async () => {
     const { page } = await open();
     expect(await tab(page, "Spec").getAttribute("aria-current")).toBe("page");
     expect(await title(page).isVisible()).toBe(true);
     expect(await page.locator("#new-spec-criteria-checks").isVisible()).toBe(false);
   });
 
-  test("Spec holds the Project picker, Title, Description and Depends on (AC-2)", async () => {
+  test("Spec holds the Project picker, Title, Description and Depends on", async () => {
     const { page } = await open();
     await page.locator('#new-spec-form select[name="project"]').selectOption("aide");
     expect(await page.locator('#new-spec-form select[name="project"]').isVisible()).toBe(true);
@@ -92,7 +92,7 @@ describe("the New spec page's two tabs", () => {
     expect(await page.locator('#new-spec-form label[data-depends="81-queue-and-runner"]').isVisible()).toBe(true);
   });
 
-  test("Options holds the four settings and every phase's box, AI and model, and keeps what Spec holds (AC-3)", async () => {
+  test("Options holds the four settings and every phase's box, AI and model, and keeps what Spec holds", async () => {
     const { page } = await open();
     await title(page).fill("Kept across tabs");
     await tab(page, "Options").click();
@@ -113,14 +113,14 @@ describe("the New spec page's two tabs", () => {
     expect(await title(page).inputValue()).toBe("Kept across tabs");
   });
 
-  test("Create is shown on either tab (AC-4)", async () => {
+  test("Create is shown on either tab", async () => {
     const { page } = await open();
     expect(await create(page).isVisible()).toBe(true);
     await tab(page, "Options").click();
     expect(await create(page).isVisible()).toBe(true);
   });
 
-  test("Create reads Creating… and is locked while its request is out, and Enter in Title presses it (AC-4, AC-6)", async () => {
+  test("Create reads Creating… and is locked while its request is out, and Enter in Title presses it", async () => {
     const held = await open({ hold: true });
     await fillSpec(held.page);
     await create(held.page).click();
@@ -141,7 +141,7 @@ describe("the New spec page's two tabs", () => {
 });
 
 describe("Create pressed with a required field on Spec empty", () => {
-  test("from Options with Title empty, Spec is shown with Title focused and its message, and nothing is sent (AC-5)", async () => {
+  test("from Options with Title empty, Spec is shown with Title focused and its message, and nothing is sent", async () => {
     const { page, posts } = await open({ query: "&tab=options" });
     await tab(page, "Spec").click();
     await page.locator('#new-spec-form select[name="project"]').selectOption("aide");
@@ -156,7 +156,7 @@ describe("Create pressed with a required field on Spec empty", () => {
     expect(posts.length).toBe(0);
   });
 
-  test("from Options with everything empty, Spec is shown with the Project picker focused (AC-5)", async () => {
+  test("from Options with everything empty, Spec is shown with the Project picker focused", async () => {
     const { page, posts } = await open({ query: "&tab=options" });
     await create(page).click();
     await settle(page);
@@ -183,7 +183,7 @@ describe("Create pressed with Spec filled in", () => {
     return { body: posts[0]!, stayed };
   }
 
-  test.each(["Options", "Spec"] as const)("from %s, it sends both tabs' values without switching tabs (AC-5, AC-6)", async (from) => {
+  test.each(["Options", "Spec"] as const)("from %s, it sends both tabs' values without switching tabs", async (from) => {
     const { body, stayed } = await pressFrom(from);
     expect(stayed).toBe(true);
     expect(body.get("project")).toBe("aide");

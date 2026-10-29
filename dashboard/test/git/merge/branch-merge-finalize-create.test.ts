@@ -1,4 +1,4 @@
-// Spec 453: the `create` step stops picking a number at all and creates
+// The `create` step stops picking a number at all and creates
 // its folder under the literal provisional key; the number is picked
 // exactly once, at the one point where two landings for the same specs
 // repo are already serialized by construction — inside `mergeAndGate()`,
@@ -72,7 +72,7 @@ describe("mergeBranchIntoDefault: finalizeCreate", () => {
     expect(argv(git.calls).some((a) => a.startsWith("push"))).toBe(false);
   });
 
-  // The exact race spec 453 exists to fix: a folder count taken on a
+  // The exact race this guards against: a folder count taken on a
   // dropped attempt must never survive onto the attempt that actually
   // lands. Modeled the same way branch-merge-push-retry.test.ts proves
   // the test gate re-runs on a base-moved retry: the push is rejected

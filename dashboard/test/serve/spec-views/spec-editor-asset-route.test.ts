@@ -1,4 +1,4 @@
-// GET /spec-editor.js (spec 315, REQ-1/REQ-2/REQ-5): the editor bundle,
+// GET /spec-editor.js: the editor bundle,
 // served from its own path instead of inlined into every document tab,
 // revalidated by ETag so a browser holding a copy asks "still this?"
 // instead of re-downloading ~770 KB.
@@ -10,7 +10,7 @@ const harness = queueHarness("aide-spec-editor-asset-route-");
 afterEach(() => harness.cleanup());
 
 describe("GET /spec-editor.js", () => {
-  // REQ-5: a fresh server that has never answered any request still
+  // A fresh server that has never answered any request still
   // serves the bundle on its very first request — no warm-up step.
   test("a fresh server's first request returns the bundle with an ETag", async () => {
     const { base } = harness.start();
@@ -22,7 +22,7 @@ describe("GET /spec-editor.js", () => {
     expect(body.length).toBeGreaterThan(1000);
   });
 
-  // REQ-2, reuse half: a repeat request carrying the first response's
+  // Reuse half: a repeat request carrying the first response's
   // own ETag is told nothing has changed, rather than sent the bundle
   // again.
   test("a repeat GET with If-None-Match set to the prior ETag returns 304 with an empty body", async () => {
@@ -42,7 +42,7 @@ describe("GET /spec-editor.js", () => {
   });
 });
 
-// REQ-2, second clause: two different bundle texts must never share an
+// Second clause: two different bundle texts must never share an
 // ETag — that is what makes a stale If-None-Match (computed by a browser
 // against a PRIOR process's build) fall through to the fresh-body path
 // above rather than a wrongly-served 304.

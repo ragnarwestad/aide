@@ -23,17 +23,17 @@ const view = (shown: QueueRowView[], createProjects: string[]): JobsView => ({
 const link = newSpecLink({ createProjects: ["aide"] }, "en");
 
 describe("New on the Running tab", () => {
-  test("a tab with a row offers New when a project may have a spec made in it (AC-1)", () => {
+  test("a tab with a row offers New when a project may have a spec made in it", () => {
     expect(renderJobsRows(view([close], ["aide"]))).toContain(link);
   });
 
-  test("an empty tab offers New (AC-1, AC-3)", () => {
+  test("an empty tab offers New", () => {
     const html = renderJobsRows(view([], ["aide"]));
     expect(html).toContain(t("en", "jobs.nothingRunning"));
     expect(html).toContain(link);
   });
 
-  test("an empty tab with failed-create notices respects New eligibility (AC-1, AC-3, AC-4)", () => {
+  test("an empty tab with failed-create notices respects New eligibility", () => {
     const failed: FailedCreate = {
       id: "cr", project: "aide", title: "x", description: "",
       reason: { key: "runner.serverRestarted", values: { button: "Create" } }, failedAt: "2026-10-14T19:00:00Z",
@@ -46,7 +46,7 @@ describe("New on the Running tab", () => {
     expect(renderJobsRows(v)).not.toContain('href="/new"');
   });
 
-  test("no project may have a spec made in it: no New, with a row or without (AC-2, AC-4)", () => {
+  test("no project may have a spec made in it: no New, with a row or without", () => {
     const withRow = renderJobsRows(view([close], []));
     const empty = renderJobsRows(view([], []));
     expect(withRow).not.toContain('href="/new"');

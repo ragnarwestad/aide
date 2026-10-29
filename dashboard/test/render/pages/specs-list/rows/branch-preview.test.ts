@@ -30,11 +30,11 @@ const render = (
   );
 
 describe("a row's preview link", () => {
-  test("implement done and an address kept: the notice links to the address (AC-1)", () => {
+  test("implement done and an address kept: the notice links to the address", () => {
     expect(render()).toContain(`href="${ADDRESS}"`);
   });
 
-  test("the address is asked about the spec's own project and folder (AC-1)", () => {
+  test("the address is asked about the spec's own project and folder", () => {
     const asked: string[] = [];
     render({ branchPreview: (project, folder) => {
         asked.push(`${project}/${folder}`);
@@ -43,22 +43,22 @@ describe("a row's preview link", () => {
     expect(asked).toContain(`woodstack/${FOLDER}`);
   });
 
-  test("no implement in the history: no link (AC-5)", () => {
+  test("no implement in the history: no link", () => {
     expect(render({ target: target({ historyDone: ["analyze"] }) })).not.toContain(ADDRESS);
   });
 
-  test("no address kept: no link (AC-4)", () => {
+  test("no address kept: no link", () => {
     expect(render({ branchPreview: () => undefined })).not.toContain("pages.dev");
   });
 
-  test("a row drawn without the option carries no link (AC-4)", () => {
+  test("a row drawn without the option carries no link", () => {
     const html = noticeCell(
       renderSpecsRows([], { runnerAvailable: true, targets: [target()], testServerAvailable: () => false }),
     );
     expect(html).not.toContain("pages.dev");
   });
 
-  test("a running analyze, implement or archive, or a queued archive: no link, and it is back once they end (AC-2)", () => {
+  test("a running analyze, implement or archive, or a queued archive: no link, and it is back once they end", () => {
     const withJob = (steps: string[], stepIndex: number, state: QueueRowView["state"]) =>
       render({ rows: [row({ project: "woodstack", specFolder: FOLDER, steps, stepIndex, state })] });
     const steps = ["analyze", "implement", "archive"];
@@ -69,7 +69,7 @@ describe("a row's preview link", () => {
     expect(render()).toContain(ADDRESS);
   });
 
-  test("an archived row carries no link (AC-2)", () => {
+  test("an archived row carries no link", () => {
     const html = noticeCell(
       renderSpecsRows([], {
         runnerAvailable: true,

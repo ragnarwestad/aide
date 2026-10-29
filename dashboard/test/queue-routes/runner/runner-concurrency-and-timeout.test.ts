@@ -19,7 +19,7 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// --- Spec 91, criterion 26: how many at once -------------------------------
+// --- How many at once -------------------------------
 // The slot count is a number, and a number that turns out wrong should
 // cost a config edit and a restart, not a release (`queue.ts:325-327`).
 describe("the queue config decides how many run at once", () => {
@@ -39,18 +39,18 @@ describe("the queue config decides how many run at once", () => {
     expect(parseQueueConcurrency(undefined)).toBe(2);
   });
 
-  test("the save's check takes the whole numbers 1 to 8 and nothing else (AC-3)", () => {
+  test("the save's check takes the whole numbers 1 to 8 and nothing else", () => {
     for (let n = 1; n <= 8; n++) expect(isQueueConcurrency(n)).toBe(true);
     for (const bad of [0, 9, 2.5, "3", Number.NaN, undefined]) expect(isQueueConcurrency(bad)).toBe(false);
   });
 
-  test("the Process tab shows the running queue's count and the machine's cores (AC-1)", () => {
+  test("the Process tab shows the running queue's count and the machine's cores", () => {
     expect(processSettings({ concurrency: 3 }, 6)).toEqual({
       concurrency: 3, cores: availableParallelism(), min: 1, max: 8,
     });
   });
 
-  test("with no value saved, the queue and the tab both use the built-in default (AC-5)", () => {
+  test("with no value saved, the queue and the tab both use the built-in default", () => {
     const ctx = {
       store: {}, machineryProjectDir: (p: string) => p, machinerySpecsRoot: () => undefined,
       queueRunnerBin: "/bin/true", queueResultDir: "/tmp", queueConcurrency: undefined,
@@ -110,7 +110,7 @@ describe("the queue config decides how many run at once", () => {
     }
   }, 30000);
 
-  test("a count saved from Settings starts the next step without a restart (AC-2)", async () => {
+  test("a count saved from Settings starts the next step without a restart", async () => {
     // The same bounded stand-in as the test above: one runs, a second
     // waits for a slot, and the save gives it one.
     const own = mkdtempSync(join(tmpdir(), "aide-concurrency-"));
@@ -167,7 +167,7 @@ describe("the queue config decides how many run at once", () => {
   }, 30000);
 });
 
-// Spec 125: the argv is where a tool choice becomes real. Two rules, and
+// The argv is where a tool choice becomes real. Two rules, and
 // the second one is the reason this is testable at all: the flag is
 // appended ONLY when the resolved tool is not claude, so every config
 // that predates this spec produces byte-for-byte the argv it always did.
@@ -231,7 +231,7 @@ describe("a model choice's tool reaches the runner", () => {
   });
 });
 
-// Spec 364: the sibling of the model/tool argv tests above, for effort.
+// The sibling of the model/tool argv tests above, for effort.
 describe("a chosen effort reaches the runner", () => {
   const effortJob = (effort: Record<string, string>) =>
     ({
@@ -262,8 +262,8 @@ describe("a chosen effort reaches the runner", () => {
   });
 });
 
-// Spec 386 introduced this as a whole-job field; spec 394 narrows it to
-// `create`'s own invocation (REQ-8) and moves `analyze`'s own answer to
+// This is `create`'s own invocation field; `analyze`'s own answer is
+// moved to
 // a fresh file read the caller resolves into `acceptanceNotRequiredForAnalyze`.
 describe("the acceptance-not-required switch reaches the runner", () => {
   const switchJob = (acceptanceNotRequired?: boolean) =>
@@ -317,9 +317,9 @@ describe("the acceptance-not-required switch reaches the runner", () => {
   });
 });
 
-// --- spec 152: the wall clock is per step, and a stand-in cost says so -------
+// --- The wall clock is per step, and a stand-in cost says so -------
 //
-// 149's implement was killed at its own 45-minute limit with its tests
+// An implement was killed at its own 45-minute limit with its tests
 // already green, and its cost was reported as unmeasured because a
 // SIGKILLed run prints no usage. Two seams in this file carried that: the argv the
 // runner is started with (one number for every step), and the `Job` →
@@ -362,11 +362,11 @@ describe("a step's own time limit reaches the runner", () => {
     expect(timeoutArg(argv)).toBe("1200");
   });
 
-  // Spec 177: the shape `parseJobRequest` actually produces. `perStep`
+  // The shape `parseJobRequest` actually produces. `perStep`
   // resolves the config's `default` into a concrete entry for each step
   // the request named, so a job's own table never carries a `default`
-  // key of its own — and a step ticked onto the tail afterwards (spec
-  // 160) has no entry at all. Both fallbacks above are therefore
+  // key of its own — and a step ticked onto the tail afterwards
+  // has no entry at all. Both fallbacks above are therefore
   // `undefined` for it, and the runner is handed the string
   // "undefined" as its deadline.
   test("a tail-added step the job's table cannot name falls to the live config", async () => {
@@ -386,14 +386,14 @@ describe("a step's own time limit reaches the runner", () => {
   });
 });
 
-// --- spec 177: a step added later brings its settings with it ---------------
+// --- A step added later brings its settings with it ---------------
 //
-// Spec 160 lets a reader tick a phase onto a job that is already
+// A reader can tick a phase onto a job that is already
 // running. The job's three per-step tables are built at CREATION from
 // the steps it had then, so the added step has no entry in any of them
 // — and each miss costs something different when the step comes up:
 // no deadline, `acceptEdits` where `implement` needs bypassPermissions
-// (specs 105 and 112 were each stamped-but-not-moved by exactly that),
+// (a spec was once stamped-but-not-moved by exactly that),
 // and no `--model` flag at all.
 describe("a tail-added step is spawned on the same terms as its siblings", () => {
   const jobWith = (over: Record<string, unknown> = {}) =>
@@ -435,7 +435,7 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
     expect(argv[argv.indexOf("--model") + 1]).toBe("sonnet");
   });
 
-  // Criterion 7: the fallback never overrides an entry the job already
+  // The fallback never overrides an entry the job already
   // has. Every step present at creation keeps running on exactly the
   // terms it was created with, config changes since then included.
   test("a step the job's own table names is untouched by the fallback", async () => {

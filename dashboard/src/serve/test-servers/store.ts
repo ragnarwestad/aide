@@ -1,4 +1,4 @@
-// The board registry (spec 388): one entry per project/specFolder,
+// The board registry: one entry per project/specFolder,
 // persisted to a small JSON sidecar the same way `pending-models.json`
 // is (`src/queue/persist.ts`'s own shape) — loaded once at construction,
 // kept in memory, written back on every change.
@@ -6,8 +6,8 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-// Named `status`, never `state` (which a repo-wide guard,
-// test/queue/store/transitions.test.ts's REQ-6b, reserves for a QUEUE
+// Named `status`, never `state` (which a repo-wide guard, in
+// test/queue/store/transitions.test.ts, reserves for a QUEUE
 // JOB's own state literals): a board's lifecycle is an unrelated
 // concept that happens to share two of the same words ("running",
 // "failed"), and the guard's naive text match cannot tell the two
@@ -92,13 +92,13 @@ export class TestServerStore {
     return this.entries[this.key(project, specFolder)];
   }
 
-  /** Every tracked board, for REQ-10's port-collision check. */
+  /** Every tracked board, for the port-collision check. */
   all(): TestServer[] {
     return Object.values(this.entries);
   }
 
   /** Every tracked board WITH the project/specFolder it belongs to
-   *  (REQ-3's board-wide overview) — `all()` alone drops that half of
+   *  (the board-wide overview) — `all()` alone drops that half of
    *  the key. Splitting on the FIRST "/" is safe: `key()` above is the
    *  only place that builds this string, and every project name is a
    *  directory entry (never containing "/") additionally constrained to

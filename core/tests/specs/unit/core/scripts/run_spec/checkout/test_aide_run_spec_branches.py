@@ -23,7 +23,7 @@ def test_a_reused_branch_is_brought_up_to_the_default_branch(runner, workspace, 
     implement build on each other. But the default branch moves on, and a
     branch left over from the morning made the step read the morning's
     code. Measured 2026-08-16, while review-plan was still a separate step
-    (spec 181 folded it into analyze): it reviewed a file whose bug had
+    (since folded into analyze): it reviewed a file whose bug had
     been fixed hours earlier."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
@@ -46,7 +46,7 @@ def test_a_reused_branch_is_brought_up_to_the_default_branch(runner, workspace, 
         "the step must see what landed on main after the branch was made"
     assert is_ancestor(project, "main", branch), "the branch must contain main"
 
-def test_the_code_an_earlier_implement_wrote_outlives_a_new_analysis_and_starts_the_next_implement_AC_3(
+def test_the_code_an_earlier_implement_wrote_outlives_a_new_analysis_and_starts_the_next_implement(
     runner, workspace, fake_claude
 ):
     """The new analysis resets what has RUN, never the branch: the code an
@@ -100,7 +100,7 @@ def test_a_reused_branch_keeps_its_own_work(runner, workspace, fake_claude):
     assert is_ancestor(project, "main", branch), "and main must be in there too"
 
 def test_a_held_back_specs_implement_reuses_the_existing_branch(runner, workspace, fake_claude):
-    """AC-7 (spec 471): a spec already implemented, held back only on
+    """A spec already implemented, held back only on
     an unticked acceptance-criteria row, still reuses its existing
     branch when Implement runs another round — branch reuse has no
     special case for a held-back spec at all (2-analysis.md), and this
@@ -136,14 +136,14 @@ def test_a_held_back_specs_implement_reuses_the_existing_branch(runner, workspac
 def test_a_rejected_push_that_only_needed_a_pull_is_retried_not_reported(
     runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
 ):
-    """REQ-1/REQ-4/REQ-6. Another process pushes to origin's copy of this
+    """Another process pushes to origin's copy of this
     exact branch while the step is still working — the run's own push is
     rejected as non-fast-forward, and `push_with_retry` must `pull
     --rebase` and push again before reporting anything. A retry-recovered
-    success must leave no `pushError` (REQ-4), and `repos_json`'s own
+    success must leave no `pushError`, and `repos_json`'s own
     `headAfter` for the rebased root must be the POST-rebase tip, the one
     origin actually holds — not the tip the commit loop left before the
-    retry ran (REQ-6, the field spec 343's own gate reads)."""
+    retry ran (the field the gate reads)."""
     branch = "aide/81-queue-and-runner"
     race_dir = tmp_path / "race-clone"
     race_marker = tmp_path / "raced-sha.txt"
@@ -165,7 +165,7 @@ def test_a_rejected_push_that_only_needed_a_pull_is_retried_not_reported(
 def test_a_push_that_cannot_reach_origin_is_retried_then_succeeds(
     runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
 ):
-    """REQ-2/REQ-4. Origin is briefly unreachable — not rejected, just
+    """Origin is briefly unreachable — not rejected, just
     not there — when the push loop's first attempt runs: the step's own
     script hides the bare repo, then backgrounds its own restore (never
     inheriting the step's stdout, or the runner would wait on that pipe
@@ -230,7 +230,7 @@ def test_origin_back_between_a_failed_push_and_the_check_is_pushed_not_rebased(
 def test_a_conflicting_rebase_is_reported_not_resolved(
     runner, workspace, fake_claude, fetchable_origin_both_roots, tmp_path
 ):
-    """REQ-3/REQ-7. The retry's `pull --rebase` hits a real conflict —
+    """The retry's `pull --rebase` hits a real conflict —
     both sides edited the same line of the same file — so the script
     must abort it, leave the branch exactly where its own commit left
     it, and report which commits are on each side, with no further push
@@ -249,7 +249,7 @@ def test_a_conflicting_rebase_is_reported_not_resolved(
     their_sha = race_marker.read_text().strip()
     assert their_sha[:7] in out["pushError"], "names the commit on origin's side"
     project = workspace["project"]
-    # REQ-7: never auto-resolved — their commit never entered this
+    # Never auto-resolved — their commit never entered this
     # branch, and the file still reads exactly what the step's own
     # commit wrote, not some -X-resolved blend of the two sides.
     assert not is_ancestor(project, their_sha, branch)
@@ -279,7 +279,7 @@ def test_a_push_origin_refuses_says_why_not_diverged(
 def test_a_push_that_cannot_reach_its_remote_at_all_still_needs_no_retry(
     runner, workspace, fake_claude
 ):
-    """Confirms the existing no-origin-remote case (spec 328/343) is
+    """Confirms the existing no-origin-remote case is
     untouched by push_with_retry: nothing to retry against, so it is
     still reported on the first and only attempt, exactly as before."""
     claude = writing_claude(fake_claude, workspace)
@@ -296,7 +296,7 @@ def test_a_reused_branch_is_taken_from_origin_not_from_this_checkout(
     """The branch is a shared thing; this machine's ref is one copy of it.
     A resolve done anywhere else leaves the serving host at the old tip,
     and reusing that ref re-runs the step against the code the conflict
-    was already resolved away from. Seen on spec 150 (2026-08-21): two
+    was already resolved away from. Seen on 2026-08-21: two
     Runs refused for a conflict fixed and pushed an hour earlier."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
@@ -440,7 +440,7 @@ def test_a_local_merge_that_resolved_a_conflict_is_still_refused_as_diverged(
 def test_a_step_that_pushed_its_own_commit_is_not_amended(
     runner, workspace, fake_claude, fetchable_origin, tmp_path
 ):
-    """REQ-1. `fetchable_origin` answers both fetch and push, so the
+    """`fetchable_origin` answers both fetch and push, so the
     pre-amend check can reach it and must catch the commit already being
     public — the leftover then belongs in a NEW commit, and the step's
     own commit must stay an ancestor of the branch tip, not get rewritten
@@ -461,14 +461,14 @@ def test_a_step_that_pushed_its_own_commit_is_not_amended(
 def test_the_leftover_after_a_self_pushed_commit_still_reaches_origin(
     runner, workspace, fake_claude, origin, tmp_path
 ):
-    """REQ-2/REQ-6, black-box. `origin` (unlike `fetchable_origin`) points
+    """Black-box. `origin` (unlike `fetchable_origin`) points
     the fetch url at an address nothing here can reach, so the pre-amend
     check cannot tell the step's commit is already public and misses it —
     the same best-effort shape `sync_branch_with_origin` already has. The
     commit loop then amends anyway, same as before this fix; what must be
     different is that the amended commit still reaches origin (a
     retried, scoped force-with-lease) rather than being silently rejected
-    the way spec 327's run was."""
+    the way an earlier run was."""
     sha_marker = tmp_path / "pushed-sha.txt"
     claude = self_pushing_claude(fake_claude, sha_marker)
     rc, out, _ = run(runner, workspace, claude, push="branch", command="implement")
@@ -482,7 +482,7 @@ def test_the_leftover_after_a_self_pushed_commit_still_reaches_origin(
 def test_a_second_run_after_a_self_pushing_step_does_not_see_a_diverged_branch(
     runner, workspace, fake_claude, fetchable_origin, tmp_path
 ):
-    """REQ-6, reusing `test_a_branch_that_has_diverged_from_origin_refuses_by_name`'s
+    """Reusing `test_a_branch_that_has_diverged_from_origin_refuses_by_name`'s
     own oracle: a branch this fix left consistent between local and
     origin must not refuse a later run as diverged from itself."""
     sha_marker = tmp_path / "pushed-sha.txt"
@@ -516,7 +516,7 @@ def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, wor
     assert rc == 2, out
     assert out["terminalReason"] == "refused"
     assert "up to date" in out["error"] or "conflict" in out["error"]
-    # Spec 153: and it says WHY in a field, not only in the sentence. The
+    # And it says WHY in a field, not only in the sentence. The
     # row draws its Resolve button off this, and the way out of a
     # conflict found here is the same step as the way out of one found
     # by a landing.
@@ -548,7 +548,7 @@ def test_a_close_is_not_stopped_by_a_code_branch_that_conflicts_with_main(runner
 def test_a_branch_already_landed_on_origin_is_not_reused(
     runner, workspace, fake_claude, fetchable_origin
 ):
-    """The state spec 181 hit: this checkout still holds the branch it
+    """The state a reopened spec hit: this checkout still holds the branch it
     made, but the work landed through a DIFFERENT checkout — so this
     checkout's own main, and its cached knowledge of origin's main, are
     both exactly what they were before any of that happened. A run must
@@ -577,7 +577,7 @@ def test_a_branch_already_landed_on_origin_is_not_reused(
     git(project, "update-ref", "-d", "refs/remotes/origin/main")
 
     # The step writes in the PROJECT, which is where the stale branch is:
-    # since spec 215 a branch carrying nothing does not outlive the run
+    # a branch carrying nothing does not outlive the run
     # that cut it, so a step committing nothing here would leave no
     # branch to ask a question about.
     claude = project_only_claude(fake_claude)

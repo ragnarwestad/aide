@@ -65,7 +65,7 @@ def landing_beside_claude(fake_claude, workspace):
 def self_committing_claude(fake_claude):
     """A step that commits its own work before it finishes — the way
     /aide-archive does. The run's own commit loop then finds a clean
-    tree, and that must not read as "nothing happened" (spec 98).
+    tree, and that must not read as "nothing happened".
 
     Only the written file is staged: the linked `deps` dependency
     directory is a symlink, which `/deps/` in .gitignore does not match,
@@ -83,7 +83,7 @@ def self_committing_claude(fake_claude):
 
 def partially_committing_claude(fake_claude, then=""):
     """A step that commits PART of its own work and leaves the rest on
-    disk — spec 142's actual shape, and what the global git rules
+    disk — a real shape, and what the global git rules
     produce headlessly: new files may be added by name, modified
     tracked files are left for a user in an IDE who is not there.
 
@@ -107,7 +107,7 @@ def race_pushing_claude(fake_claude, origin_bare, branch, race_marker, race_dir)
     file exactly as any real step does, and a stand-in for a second,
     concurrent process (another run, or a landing) that reaches origin's
     copy of the SAME branch first, via an independent clone. The race is
-    real git against a real bare repo — no mocking — the shape REQ-1's
+    real git against a real bare repo — no mocking — the shape the
     `pull --rebase` retry has to recover from."""
     return fake_claude(
         "cat > /dev/null\n"
@@ -126,7 +126,7 @@ def race_pushing_claude(fake_claude, origin_bare, branch, race_marker, race_dir)
 def conflicting_race_claude(fake_claude, origin_bare, branch, race_marker, race_dir):
     """Like `race_pushing_claude`, but the concurrent process edits the
     SAME line of a tracked file this step's own worktree also edits —
-    the shape REQ-3/REQ-7 need: a `pull --rebase` retry that hits a
+    the shape needed for a `pull --rebase` retry that hits a
     REAL, same-line conflict, which the script must abort and report,
     never resolve by force."""
     return fake_claude(
@@ -144,8 +144,8 @@ def conflicting_race_claude(fake_claude, origin_bare, branch, race_marker, race_
 
 def self_pushing_claude(fake_claude, sha_marker, then=""):
     """Commits part of its own work under a written message AND pushes
-    that commit to origin itself, then leaves more on disk — spec 146's
-    `partially_committing_claude` shape, plus the push spec 327's run
+    that commit to origin itself, then leaves more on disk — the
+    `partially_committing_claude` shape, plus the push an earlier run
     actually did. `sha_marker` records the step's own commit sha so a
     test can tell an amend (a new sha) from a second commit (this sha
     kept as an ancestor) after the run has torn the worktree down.
@@ -270,7 +270,7 @@ def analyzing_claude(fake_claude, workspace, last_analyzed="2026-08-01"):
 def analyze_claude_advancing_row(fake_claude, workspace, mark):
     """A stand-in analyze step that rewrites 4-status.md's own Phase 1
     row to a mark other than not-started — implement's and archive's job,
-    never analyze's own (REQ-1, REQ-2)."""
+    never analyze's own."""
     folder = workspace["folder"]
     body = (
         "# Queue - Status\n\n## Tracking info\n\n"
@@ -294,7 +294,7 @@ def analyze_claude_advancing_row(fake_claude, workspace, mark):
 def analyze_claude_naming_implement(fake_claude, workspace):
     """A stand-in analyze step that writes `implement` onto the Workflow
     steps line itself, with no project change and no row advanced — the
-    shape spec 284's own `1b3748a` produced (REQ-2)."""
+    shape a real run (`1b3748a`) produced."""
     folder = workspace["folder"]
     body = (
         "# Queue - Status\n\n## Tracking info\n\n"
@@ -340,7 +340,7 @@ def analyze_claude_writing_the_line_from_nothing(fake_claude, workspace):
 
 
 def analyze_claude_renaming_the_header(fake_claude, workspace):
-    """Spec 299: a stand-in analyze step that rewrites the Phase table's
+    """A stand-in analyze step that rewrites the Phase table's
     header to non-standard column names, leaving its one row exactly
     where it was (⬜) — nothing genuinely advanced, so the header itself
     must never be counted as the row that did."""
@@ -366,7 +366,7 @@ def analyze_claude_renaming_the_header(fake_claude, workspace):
 
 # --- a step writes only its own spec folder in the specs repo ---------------
 #
-# 366's implement created two specs beside its own and deleted them again
+# An implement once created two specs beside its own and deleted them again
 # on its branch; the creations landed, other runs built on them, and the
 # deletion landed on top of that work (2026-09-03). Under the specs root,
 # nothing but the spec's own folder (and its archive/ twin) may change;

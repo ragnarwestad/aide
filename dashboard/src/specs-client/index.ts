@@ -7,7 +7,7 @@
 // itself in place, and why every button on it posts from here rather
 // than letting the browser navigate. Create is the one deliberate
 // exception, and it is not one of "the buttons on it": it is on a page
-// of its own with nothing to keep (spec 121, see `submitCreate`).
+// of its own with nothing to keep (see `submitCreate`).
 //
 // It used to have a second — answering the spec dropdown above the
 // table, which had to update the step boxes, the "also touches" list
@@ -140,21 +140,21 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
     | null;
   if (setting && ["acceptanceRequired", "chooseApproach", "criteriaChecks"].includes(setting.name)) return pickSetting(setting);
   // A tail box's tick is a press, not something to remember for the
-  // next redraw (spec 160): it goes to the server now, and what comes
+  // next redraw: it goes to the server now, and what comes
   // back is what the row is drawn from. The promise is returned rather
   // than dropped — a listener's return value is nobody's to wait on,
   // and it is what lets the test wait for the request the tick makes.
   const tail = target?.closest?.("input[data-post-to]") as HTMLInputElement | null;
   if (tail) return postTailStep(tail);
-  // A phase's AI picker fills that phase's model in and is done (spec
-  // 179). It is intercepted BEFORE the branch below, and not only for
+  // A phase's AI picker fills that phase's model in and is done.
+  // It is intercepted BEFORE the branch below, and not only for
   // tidiness: it has no `name`, so `selectKey` would file every AI
   // select on the row under the same key — the form id and an empty
   // string — and the last one touched would decide the lot. Nothing
   // about it is remembered for the next redraw either; `applyAiPick`
   // records what it wrote under the select it wrote it into, and the
   // picker itself is set back from that select on the way out.
-  // Spec 225: the model select on a phase the running job has not
+  // The model select on a phase the running job has not
   // reached. Same reasoning as the box above — there is no Run button
   // on a busy row to submit it with — so the pick goes to the running
   // job's own route now. The AI select beside it is set from this one
@@ -177,7 +177,7 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
     // line shows has to follow it now, not at the next swap.
     if (select.name?.startsWith("model.")) {
       syncAiToModel(select);
-      // Spec 308: recorded on the server the instant it is made, not
+      // Recorded on the server the instant it is made, not
       // only in `chosen` — which is a fresh, empty map on every page
       // load and cannot survive leaving the page.
       void postPendingModel(select, select.name.slice("model.".length), select.value);
@@ -185,11 +185,11 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   }
   // And the phase boxes, for the same reason and in a map of their own:
   // what is remembered about a box is whether it is ticked, which is
-  // not a value a select can be restored from (spec 141).
-  // The acceptance criteria unfolded on a row (spec 493) are remembered
+  // not a value a select can be restored from.
+  // The acceptance criteria unfolded on a row are remembered
   // the same way: a `tick` box keyed by its own list's form, so an unsaved
   // tick outlives a redraw. Only a phase box has a Run button to relabel.
-  // A criterion's boxes (spec 509, `tick` and `unverified`; spec 510, `failed`
+  // A criterion's boxes (`tick` and `unverified`; `failed`
   // on an archived spec) are one answer: checking one clears the others
   // beside it, and all are remembered as they now stand.
   const step = target?.closest?.(
@@ -264,12 +264,12 @@ setInterval(() => {
   }
 }, 1000);
 
-// The Test servers list's own Stop button (spec 529) — bound once,
+// The Test servers list's own Stop button — bound once,
 // like the Schedule page's own controls below: this page is never
 // redrawn from the server on a timer, so there is nothing to rebind.
 document.getElementById("test-servers-rows")?.addEventListener("submit", submitTestServerStop as EventListener);
 
-// The /schedule page's own controls (spec 276): none of these sit
+// The /schedule page's own controls: none of these sit
 // inside `#jobrows`, and nothing on this page is swapped from the
 // server on a timer, so each is bound once here rather than delegated.
 for (const el of document.querySelectorAll("input.scheduleenabled[data-post-to]")) {

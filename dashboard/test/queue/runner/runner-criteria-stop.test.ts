@@ -29,7 +29,7 @@ const stopped = (criteriaFaults?: unknown) => {
 };
 
 describe("an analyze stopped on its acceptance criteria", () => {
-  test("is stopped with the acceptance-criteria reason, and its sentence names each fault (AC-4)", () => {
+  test("is stopped with the acceptance-criteria reason, and its sentence names each fault", () => {
     const after = stopped({ missing: true, notEars: ["AC-2", "AC-4"], noScenario: ["AC-5"] });
     expect(after?.state).toBe("stopped");
     expect(after?.stopReason).toBe("acceptance-criteria");
@@ -43,7 +43,7 @@ describe("an analyze stopped on its acceptance criteria", () => {
     expect(nb).not.toBe(en);
   });
 
-  test("names a contradiction and a criterion that cannot be built beside the other kinds (AC-4)", () => {
+  test("names a contradiction and a criterion that cannot be built beside the other kinds", () => {
     const after = stopped({
       missing: false,
       notEars: ["AC-2"],
@@ -59,13 +59,13 @@ describe("an analyze stopped on its acceptance criteria", () => {
     expect(nb).not.toBe(en);
   });
 
-  test("words the new kinds on their own in the board's sentence (AC-4)", () => {
+  test("words the new kinds on their own in the board's sentence", () => {
     const after = stopped({ missing: false, notEars: [], noScenario: [], contradictions: ["AC-1/AC-3"], cannotBuild: [] });
     expect(after?.error).not.toBe(SCRIPT_SENTENCE);
     expect(renderSentence("nb", after?.error as Sentence) ?? "").toContain("AC-1/AC-3");
   });
 
-  test("keeps the runner's own sentence when the result lists no faults (AC-4)", () => {
+  test("keeps the runner's own sentence when the result lists no faults", () => {
     const after = stopped();
     expect(after?.state).toBe("stopped");
     expect(after?.error).toBe(SCRIPT_SENTENCE);

@@ -1,4 +1,4 @@
-// Spec 291: read and write one file on a spec's own OPEN branch,
+// Read and write one file on a spec's own OPEN branch,
 // without ever checking it out.
 //
 // `implement` never merges its own work — only `archive` does — so a
@@ -146,16 +146,16 @@ export interface BranchFileEdit {
  *  `saveSpecFiles` already makes for `main`: that FIRST file's
  *  last-touch commit on the branch, read fresh right here, must still
  *  be what the page was drawn from — a mismatch refuses before anything
- *  is written. Every further entry (spec 355: `4-status.json`, landed
+ *  is written. Every further entry (`4-status.json`, landed
  *  beside `4-status.md` in the same commit) carries no baseSha of its
  *  own — nothing edits it directly, so there is nothing for a person's
  *  stale page to race. A concurrent write that landed AFTER this fetch
- *  (the race REQ-4b names) is instead caught by the push itself: it is
+ *  (the race the push closes) is instead caught by the push itself: it is
  *  explicitly non-force, and git rejects it server-side the moment the
  *  branch has moved past the parent this commit was built on.
  *
  *  A single-element array is exactly today's one-file call, unchanged
- *  in behavior — every caller before spec 355 passes one. */
+ *  in behavior — a caller with one file passes one. */
 export async function writeStatusToBranch(
   run: GitRunner,
   root: string,
@@ -201,7 +201,7 @@ export async function writeStatusToBranch(
       const blobSha = blobOut.stdout.trim();
       // `--add`: every existing single-file caller updated a path
       // `read-tree` already staged, so this was never needed before —
-      // spec 355's second entry (`4-status.json`) is often a path the
+      // the second entry (`4-status.json`) is often a path the
       // tip's tree has never had, and a bare `--cacheinfo` refuses to
       // ADD a new path, only update one already in the index.
       const updateIndex = await run(
@@ -258,9 +258,9 @@ export interface OpenBranchTarget {
 /** Whether `specFolder` has an open `aide/<folder>` branch in the specs
  *  repo `dir` sits in, and — when it does — everything
  *  `readStatusFromBranch`/`writeStatusToBranch` need to act on `file`
- *  there. `null` when no such branch is open (REQ-2's untouched path).
+ *  there. `null` when no such branch is open (the untouched path).
  *
- *  REQ-6: reuses `ctx.branchStatus.openSpecBranches()`/`ctx.specsRoot()`
+ *  Reuses `ctx.branchStatus.openSpecBranches()`/`ctx.specsRoot()`
  *  — the same primitive `rootsStillHolding()` already calls — rather
  *  than introducing a new "is this branch open" check. One function
  *  rather than one copy per call site (the read path's cached call and

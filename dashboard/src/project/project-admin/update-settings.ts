@@ -10,14 +10,14 @@ import { assessProjectReadiness } from "./readiness.ts";
 import { applySettingsEdits, manifestTracked } from "./settings-state.ts";
 import { fail, type ProjectAdminResult, type ProjectStep, type ProjectStepName } from "./types.ts";
 
-/** What a project may say about where its archived code goes (spec
- *  220). Two values, not the runner's three: `none` is an operational
+/** What a project may say about where its archived code goes.
+ *  Two values, not the runner's three: `none` is an operational
  *  choice about whether this host publishes anything at all, and it
  *  belongs to the machine's own queue config — this is the team's
  *  question of whether code is reviewed before it lands. */
 const CODE_LANDINGS = ["merge", "pr"] as const;
 
-/** Change a project's three settings after it was added (spec 184).
+/** Change a project's three settings after it was added.
  *
  *  Until this existed, the fields lived on the Add form and nowhere
  *  else: a project added with either left blank could only be fixed by
@@ -29,7 +29,7 @@ const CODE_LANDINGS = ["merge", "pr"] as const;
  *  point of the spec: the specs path names a directory on THIS machine
  *  and stays in the gitignored `.aide/config`, while the worktree links
  *  are true of the project on any machine and go in the committed
- *  manifest. Spec 220's code-landing choice joins the manifest half for
+ *  manifest. The code-landing choice joins the manifest half for
  *  a sharper version of the same reason — a review policy a fresh clone
  *  cannot read is not a policy the project has.
  *
@@ -57,7 +57,7 @@ export async function updateProjectSettings(
      *  `codeLanding` already reads that way (`req.codeLanding !==
      *  undefined`), and this one needs the same rule — a future caller
      *  posting only some fields must not blank ones it never intended
-     *  to touch (spec 255). */
+     *  to touch. */
     installCmd?: string;
     /** Read the same way, written to the MANIFEST rather than
      *  `.aide/config`: how a project is started for a look at one
@@ -77,7 +77,7 @@ export async function updateProjectSettings(
   },
   opts: {
     saveManifest?: SaveManifest;
-    /** The dashboard's own settings file (spec 512), where the manifest
+    /** The dashboard's own settings file, where the manifest
      *  keys go when the project's manifest is not tracked. */
     settingsFile?: string;
   } = {},
@@ -141,7 +141,7 @@ export async function updateProjectSettings(
   }
 
   const manifest = join(projectDir, ".aide", "project.yaml");
-  // Spec 512: where the manifest keys go depends on whether the project
+  // Where the manifest keys go depends on whether the project
   // tracks its own manifest. Tracked, it is the team's and is committed
   // as before; not tracked, the dashboard's own settings file holds them
   // and nothing reaches the project's repository; git unable to say
@@ -206,7 +206,7 @@ export async function updateProjectSettings(
       });
     }
   };
-  // Every setting now belongs to exactly one file (spec 549): the
+  // Every setting now belongs to exactly one file: the
   // install command always goes to `.aide/config`, and worktree links,
   // preview command and test command always go to the manifest —
   // regardless of which file, if either, a value currently lives in.
@@ -233,7 +233,7 @@ export async function updateProjectSettings(
   // own folded value and be rewritten by every save.
   save("description", req.description, "", "description", oneLine(fromManifest(manifestData.description)), false);
 
-  // Spec 220: `merge` is the default, so choosing it takes the key OUT
+  // `merge` is the default, so choosing it takes the key OUT
   // rather than spelling today's behaviour into every project's
   // manifest — which is exactly what `upsertManifestScalar` does with an
   // empty value.

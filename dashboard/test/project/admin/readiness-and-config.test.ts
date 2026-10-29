@@ -7,7 +7,7 @@ import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
 
-/** Where the dashboard keeps its settings files in these tests (spec 512),
+/** Where the dashboard keeps its settings files in these tests,
  *  under the projects root so the same cleanup removes it. */
 const checkoutsUnder = (projectsRoot: string): string => join(projectsRoot, ".dashboard-checkouts");
 
@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 
-// --- spec 138: whether a run can actually start there -------------------------
+// --- Whether a run can actually start there -------------------------
 //
 // Adding a project answered "added" and nothing else. Skjer was added on
 // 2026-08-20 and looked added: it was on the allowlist, its checkout was
@@ -32,14 +32,14 @@ afterEach(() => {
 // feature branch whose upstream was gone, no specs root had been named,
 // and no worktree links were configured, so the project's own test command
 // would have failed for a reason that had nothing to do with the change.
-// (Its untracked `.aide/` was a fourth refusal then; spec 144 removed
-// that one from the runner, and this preflight with it.)
+// (Its untracked `.aide/` was a fourth refusal then; the runner no longer
+// refuses on it, and neither does this preflight.)
 //
 // None of that was visible until Run was pressed. So the answer now says
 // both things: registration completed, AND whether `aide-run-spec` would
 // start. The rules mirrored here are the runner's own, read-only: nothing
 // below switches a branch, commits a file or creates a directory.
-describe("whether a run could start there (spec 138)", () => {
+describe("whether a run could start there", () => {
   /** A git that answers the readiness questions the way a clean checkout
    *  on its default branch would. Keyed by argv prefix like `fakeGit`,
    *  and overridable one answer at a time — every test below is "this
@@ -125,7 +125,6 @@ describe("whether a run could start there (spec 138)", () => {
   const blockers = (r: ProjectAdminResult) =>
     r.readiness!.checks.filter((c) => c.blocking).map((c) => c.detail).join(" | ");
 
-  // Criterion 1.
   test("a clean checkout on its default branch, with a specs root, can run", async () => {
     const { projectsRoot, dir } = checkout("ready");
     const result = await assess(dir, projectsRoot);
@@ -134,7 +133,7 @@ describe("whether a run could start there (spec 138)", () => {
     expect(result.readiness!.canRun).toBe(true);
   });
 
-  // Criterion 3: the fallback is named, not assumed. A blank Specs root
+  // The fallback is named, not assumed. A blank Specs root
   // field selects `<project>/specs`, and the runner refuses when that
   // directory is not there.
   test("no specs path and no specs/ directory blocks, naming the path it looked for", async () => {
@@ -145,7 +144,7 @@ describe("whether a run could start there (spec 138)", () => {
     expect(blockers(result)).toContain(join(dir, "specs"));
   });
 
-  // Criterion 4: the specs repo is a participating repository — it is
+  // The specs repo is a participating repository — it is
   // where analyze actually writes — so it is checked for the same two
   // things the project is.
   test("a configured specs root brings its own repository under the same checks", async () => {
@@ -166,7 +165,7 @@ describe("whether a run could start there (spec 138)", () => {
     expect(check(result, "defaultBranch").map((c) => c.subject).sort()).toEqual([dir, specs].sort());
   });
 
-  // Spec 144: the runner stopped caring whether a checkout is dirty —
+  // The runner stopped caring whether a checkout is dirty —
   // it works in a worktree cut from origin's default branch, so nothing
   // uncommitted in the main checkout reaches it. A preflight that still
   // predicted that refusal would be warning about something that no
@@ -202,7 +201,7 @@ describe("whether a run could start there (spec 138)", () => {
     expect(other.readiness!.note).not.toContain("dirty");
   });
 
-  // Criterion 5. The runner MOVES a clean checkout onto its default
+  // The runner MOVES a clean checkout onto its default
   // branch, so standing on a feature branch is not a refusal — it is
   // worth saying and nothing more. Skjer stood on `feature/248-meta-tagger`.
   test("a feature branch is reported and does not block, because the run switches it", async () => {
@@ -241,7 +240,6 @@ describe("whether a run could start there (spec 138)", () => {
     expect(blockers(result)).toContain("/elsewhere/wt");
   });
 
-  // Criterion 6.
   test("a directory inside a bigger repository is not its own git root, and blocks", async () => {
     const { projectsRoot, dir } = checkout("inner");
     const result = await assess(dir, projectsRoot, {
@@ -331,7 +329,7 @@ describe("whether a run could start there (spec 138)", () => {
     expect(check(result, "specsRepo")[0]!.detail).not.toContain("Specs root");
   });
 
-  // Criterion 7, the dashboard half. The runner half is in
+  // The dashboard half. The runner half is in
   // core/tests/specs/unit/core/scripts/test_aide_run_spec.py — one rule, two
   // places that have to agree about it.
   test.each([["/etc"], ["../escape"], ["deps/../../escape"]])(
@@ -341,7 +339,7 @@ describe("whether a run could start there (spec 138)", () => {
       // Hand-written into the manifest, not posted at the form: the
       // form's own value is refused before it is ever written (below).
       // This is the file as `aide-run-spec` would find it — worktreeLinks
-      // is read from the manifest alone now (spec 549), so a value hand-
+      // is read from the manifest alone now, so a value hand-
       // written into `.aide/config` would never be read at all.
       const result = await assess(dir, projectsRoot, {}, {}, {
         files: { ".aide/project.yaml": `name: x\nworktreeLinks: ${entry}\n` },
@@ -360,13 +358,13 @@ describe("whether a run could start there (spec 138)", () => {
     const result = await assess(dir, projectsRoot);
     const note = check(result, "worktreeLinks")[0]!;
     expect(note.blocking).toBe(false);
-    // The label the Config row shows, from the shared table (spec 318),
+    // The label the Config row shows, from the shared table,
     // and the tab it is on.
     expect(note.detail).toContain(SETTING_LABELS.worktreeLinks);
     expect(note.detail).toContain("Config tab");
   });
 
-  // Spec 186. A worktree link is a symlink into the ONE main checkout
+  // A worktree link is a symlink into the ONE main checkout
   // that every concurrent run shares — cheap for a dependency cache
   // nobody writes to, ruinous for anything a build writes into. The
   // source directory is created here on purpose, so the existence check
@@ -384,7 +382,7 @@ describe("whether a run could start there (spec 138)", () => {
     },
   );
 
-  // Criterion 4: this repo's own setting, unaffected by the new check.
+  // This repo's own setting, unaffected by the new check.
   test("the dependency caches a build only reads are not refused", async () => {
     const { projectsRoot, dir } = checkout("readonlylinks");
     const result = await assess(dir, projectsRoot, {}, { worktreeLinks: ".venv dashboard/node_modules" }, {
@@ -411,7 +409,7 @@ describe("whether a run could start there (spec 138)", () => {
     expect(check(result, "worktreeLinks")[0]!.ok).toBe(true);
   });
 
-  // Criterion 8: the dashboard cannot know which gitignored paths a
+  // The dashboard cannot know which gitignored paths a
   // project's own test command needs, so it never invents one — but it
   // says the field is empty, because that is what made Skjer's suite
   // fail for a reason that had nothing to do with the change.
@@ -424,7 +422,7 @@ describe("whether a run could start there (spec 138)", () => {
     expect(links.detail.toLowerCase()).toContain("worktree");
   });
 
-  // --- Spec 316: the same fixture the bash side reads, read here too ---------
+  // --- The same fixture the bash side reads, read here too ---------
   //
   // core/tests/fixtures/project-readiness-prerequisites.json is the one place
   // this list of prerequisites lives; test_aide_run_spec.py reads it for
@@ -464,7 +462,7 @@ describe("whether a run could start there (spec 138)", () => {
     "worktreeLinks: a configured worktree-link entry names a path that is not on disk": {}, // built via req.worktreeLinks
   };
 
-  describe("the readiness fixture's prerequisites (spec 316)", () => {
+  describe("the readiness fixture's prerequisites", () => {
     for (const c of READINESS_FIXTURE.prerequisites) {
       const id = `${c.check}: ${c.failsWhen}`;
       test(id, async () => {
@@ -480,7 +478,7 @@ describe("whether a run could start there (spec 138)", () => {
     }
   });
 
-  describe("readiness identifiers agree with the fixture (spec 316)", () => {
+  describe("readiness identifiers agree with the fixture", () => {
     const KNOWN_EXCLUSIONS: Record<string, string> = {
       specsRepo: "TypeScript treats a specs root outside git as blocking; aide-run-spec does not refuse on it today (2-analysis.md)",
       dashboardCheckout: "has no aide-run-spec counterpart at all — mirrors the dashboard's own clone machinery, always non-blocking",
@@ -506,7 +504,7 @@ describe("whether a run could start there (spec 138)", () => {
   // does — a project that must never merge straight into its main
   // branch should not spend its first specs doing exactly that.
   describe("Code landing, asked at Add", () => {
-    // Spec 512: the project's repository holds none — the dashboard's
+    // The project's repository holds none — the dashboard's
     // own settings file does.
     const manifestOf = (dir: string) =>
       readFileSync(dashboardSettingsFile(checkoutsUnder(dirname(dir)), basename(dir)), "utf-8");

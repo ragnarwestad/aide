@@ -29,7 +29,7 @@ def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp
     second = "82-second-spec"
     (specs / second).mkdir()
     (specs / second / "1-description.md").write_text("# Second - Description\n")
-    # Analyzed already: since spec 344 an implement is refused on a spec
+    # Analyzed already: an implement is refused on a spec
     # whose steps line lacks analyze, and both runs here are implements.
     (specs / second / "4-status.md").write_text(
         "# Second - Status\n\n## Tracking info\n\n- **Task:** `82-second-spec/`\n"
@@ -98,17 +98,17 @@ def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp
 def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
     runner, workspace, tmp_path, origin
 ):
-    """The measured failure (spec 256): spec 249's `implement` and spec
-    251's `implement`, both against the "aide" project, raced
+    """The measured failure: two `implement` runs,
+    both against the "aide" project, raced
     `git worktree add` against the same root and one refused with
-    "cannot create $branch in a worktree of $root". Covers acceptance
-    criteria 1, 2 and 6."""
+    "cannot create $branch in a worktree of $root". Both must succeed
+    and neither may wait on the other."""
     specs = workspace["specs"]
     project = workspace["project"]
     second = "82-second-spec"
     (specs / second).mkdir()
     (specs / second / "1-description.md").write_text("# Second - Description\n")
-    # Analyzed already: since spec 344 an implement is refused on a spec
+    # Analyzed already: an implement is refused on a spec
     # whose steps line lacks analyze, and both runs here are implements.
     (specs / second / "4-status.md").write_text(
         "# Second - Status\n\n## Tracking info\n\n- **Task:** `82-second-spec/`\n"
@@ -213,7 +213,7 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
         out = json.loads(p.stdout.read().strip().splitlines()[-1])
         assert out["terminalReason"] == "completed", (name, out, p.stderr.read())
 
-    # Criterion 2: whichever process reached its own worktree add SECOND
+    # Whichever process reached its own worktree add SECOND
     # must not have started it before the FIRST one's had already returned.
     log = [line.split() for line in events.read_text().splitlines() if line.strip()]
     ready_order = [name for name, event in log if event == "ready"]
@@ -230,7 +230,7 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
             f"returned: {log}"
         )
 
-    # Criterion 6: the fixed-name temp refs (refs/aide-branch/tip,
+    # The fixed-name temp refs (refs/aide-branch/tip,
     # refs/aide-branch/landed-base), exercised for real above since both
     # branches pre-existed and were pushed to origin, must not have
     # leaked either run's branch data into the other's.
@@ -250,7 +250,7 @@ def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
     same constraint `sweep_worktree` already lives with for a killed run's
     leftover worktree. The next run must reclaim a stale lock (owner pid
     no longer alive) immediately rather than waiting out the full
-    timeout. Covers acceptance criterion 4."""
+    timeout."""
     dead = subprocess.Popen(["true"])
     dead.wait()
     dead_pid = dead.pid
@@ -275,7 +275,7 @@ def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
 def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
     runner, workspace, fake_claude, tmp_path
 ):
-    """Acceptance criterion 5: a run that acquires the lock and is then
+    """A run that acquires the lock and is then
     killed with `SIGTERM` (the deadline/cancel path this script already
     handles) must release it through the existing `EXIT` trap — otherwise
     the next run waits out the full stale-lock timeout for a lock nobody

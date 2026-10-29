@@ -79,7 +79,7 @@ class TestBuildAgentsMd:
         silently — no warning, no marker, just the rest of the file gone.
         At 64399 bytes the cut landed mid-testing.md, and every Codex run
         for a month worked without the spec layout or the communication
-        rule (spec 147). Nothing caught it because nothing measured it.
+        rule. Nothing caught it because nothing measured it.
 
         Checked on both sides: the freshly built output (the rule set is
         small enough) and the committed core/AGENTS.md (it was actually
@@ -140,9 +140,9 @@ class TestSpecStructureSkillIsGenerated:
     Claude Code reads the spec layout from core/rules/spec-structure.md,
     path-scoped by its `paths` frontmatter. Codex and Copilot have no
     path-scoping at all, and the rule is too big to inline into AGENTS.md
-    (spec 147) — so they read the same content as a skill. Two copies of
-    the layout that drift apart is exactly the failure spec 82 spent a
-    whole spec cleaning up, so the skill is derived from the rule by
+    so they read the same content as a skill. Two copies of
+    the layout that drift apart is exactly the failure that once took a
+    whole spec to clean up, so the skill is derived from the rule by
     build-agents-md.sh and compared here byte for byte.
     """
 
@@ -204,7 +204,7 @@ class TestGenerateHtmlForArchivedSpec:
 
     Resolution returns "archive/NN-slug" for archived specs. The script
     used that full id (with its slash) in temp and output FILE NAMES,
-    so generation for an archived spec died in mktemp (spec 72 smoke test).
+    so generation for an archived spec died in mktemp (found by a smoke test).
     """
 
     def test_generates_html_inside_the_archive_folder(self, workspace_root, tmp_path):
@@ -217,7 +217,7 @@ class TestGenerateHtmlForArchivedSpec:
             (spec / name).write_text(f"# {name}\n\nContent.\n")
 
         # The project points at the external specs root via .aide/config —
-        # the AIDE_SPECS_PATH environment variable is retired (spec 73).
+        # the AIDE_SPECS_PATH environment variable is retired.
         project = tmp_path / "project"
         (project / ".aide").mkdir(parents=True)
         (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={specs_root}\n")

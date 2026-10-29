@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows, type ArchivedSpecView, type SpecsFilter, type SpecTarget } from "../../../../../src/render";
 
-// --- spec 509: the Not verified entry of the State dropdown -------------------
+// --- The Not verified entry of the State dropdown -------------------
 
 const archived = (folder: string, over: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
   project: "aide",
@@ -37,7 +37,7 @@ const entryCount = (html: string): number | null => {
 };
 
 describe("the Not verified entry lists rows with a count, live and archived alike", () => {
-  test("only the live and the archived spec with a count are listed (AC-4)", () => {
+  test("only the live and the archived spec with a count are listed", () => {
     const html = draw({
       targets: [live("10-live-with", { notVerified: 1 }), live("11-live-none")],
       archivedSpecs: [archived("20-arch-with", { notVerified: 2 }), archived("21-arch-none")],
@@ -47,7 +47,7 @@ describe("the Not verified entry lists rows with a count, live and archived alik
     expect(folders(html)).toEqual(["10-live-with", "20-arch-with"]);
   });
 
-  test("a spec with only a Failed row is listed by it too, live and archived (AC-6)", () => {
+  test("a spec with only a Failed row is listed by it too, live and archived", () => {
     const html = draw({
       targets: [live("10-live-failed", { failed: 1 }), live("11-live-none")],
       archivedSpecs: [archived("20-arch-failed", { failed: 1 }), archived("21-arch-none")],
@@ -57,7 +57,7 @@ describe("the Not verified entry lists rows with a count, live and archived alik
     expect(folders(html)).toEqual(["10-live-failed", "20-arch-failed"]);
   });
 
-  test("a spec whose Failed row was reopened has no count left, so it is not in the entry (AC-7)", () => {
+  test("a spec whose Failed row was reopened has no count left, so it is not in the entry", () => {
     const html = draw({
       targets: [live("10-was-failed", { failed: undefined })],
       archivedSpecs: [archived("20-was-failed", { failed: undefined })],
@@ -66,7 +66,7 @@ describe("the Not verified entry lists rows with a count, live and archived alik
     expect(folders(html)).toEqual([]);
   });
 
-  test("a closed spec is never listed by it (AC-4)", () => {
+  test("a closed spec is never listed by it", () => {
     const html = draw({
       archivedSpecs: [archived("30-closed", { closed: true, notVerified: 2 })],
       filter: { state: "not-verified" },
@@ -74,7 +74,7 @@ describe("the Not verified entry lists rows with a count, live and archived alik
     expect(folders(html)).toEqual([]);
   });
 
-  test("its count on the Active view includes the archived spec with a count and not every unbuilt archived key (AC-4)", () => {
+  test("its count on the Active view includes the archived spec with a count and not every unbuilt archived key", () => {
     const html = draw({
       targets: [live("10-live-with", { notVerified: 1 }), live("11-live-none")],
       archivedKeys: ["aide/20-arch-with", "aide/21-arch-none", "aide/22-arch-none"],
@@ -84,7 +84,7 @@ describe("the Not verified entry lists rows with a count, live and archived alik
     expect(entryCount(html)).toBe(2);
   });
 
-  test("its count is dropped while a search term is set (AC-4)", () => {
+  test("its count is dropped while a search term is set", () => {
     const html = draw({
       targets: [live("10-live-with", { notVerified: 1, title: "findme" })],
       archivedKeys: ["aide/20-arch-with"],
@@ -95,7 +95,7 @@ describe("the Not verified entry lists rows with a count, live and archived alik
     expect(entryCount(html)).toBe(1);
   });
 
-  test("a spec whose only Not verified row was ticked has no count, so it is not in the entry (AC-6)", () => {
+  test("a spec whose only Not verified row was ticked has no count, so it is not in the entry", () => {
     const html = draw({
       targets: [live("10-was-marked", { notVerified: undefined })],
       archivedSpecs: [archived("20-was-marked", { notVerified: undefined })],

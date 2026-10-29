@@ -1,4 +1,4 @@
-// Starting, polling and stopping a board (spec 388): a thin wrapper
+// Starting, polling and stopping a board: a thin wrapper
 // around `dashboard/test/round/run`, exactly as a person invokes it from
 // a terminal today — see 3-solution.md's own "Approach A" for why this
 // is a wrapper and not a second implementation of the round.
@@ -43,7 +43,7 @@ export interface TestServersContext {
   /** A fresh directory for this board's own log file. */
   makeWorkDir: () => string;
   /** The served board's own port, and any other tracked board's port
-   *  (REQ-10) — reserved before probing for a free one. */
+   *  reserved before probing for a free one. */
   reservedPorts: () => number[];
   findFreePort: (reserved: number[]) => Promise<number | undefined>;
   /** What is listening on one of the pool's ports, if it is a test
@@ -52,8 +52,8 @@ export interface TestServersContext {
    *  implementation reads the process table, and a test injects an
    *  answer. `undefined` for a free port, or one held by anything else. */
   testServerOnPort: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
-  /** Whether Tailscale exposes `port` on this host right now (spec 491)
-   *  — `undefined` when there is no Tailscale here at all, which AC-3
+  /** Whether Tailscale exposes `port` on this host right now
+   *  — `undefined` when there is no Tailscale here at all, which the caller
    *  reads as "the check does not apply, start as before". Asked once,
    *  for the port `findFreePort` (above) just picked. */
   portExposed: (port: number) => Promise<boolean | undefined>;
@@ -67,7 +67,7 @@ export interface TestServersContext {
 }
 
 /** `git ls-remote --heads origin <branch>`'s own SHA — never a local
- *  `rev-parse`, which would fail on exactly REQ-9's own motivating case
+ *  `rev-parse`, which would fail on exactly the case this exists for
  *  (a branch the checkout has not fetched yet; this runs BEFORE the
  *  round script's own fetch fallback). `undefined` when the branch does
  *  not exist on origin at all. */
@@ -91,7 +91,7 @@ export async function headCommit(gitRun: GitRunner, aideCheckout: string, branch
 export const TEST_SERVER_PORTS = [8801, 8802, 8803, 8804, 8805, 8806] as const;
 
 /** The first port in the pool that nothing is using. `reserved` is what
- *  this server and its other boards already hold (REQ-10); the probe is
+ *  this server and its other boards already hold; the probe is
  *  for anything else on the machine that took one meanwhile.
  *
  *  It used to ask the OS for any free port at all — reachable on the
@@ -140,7 +140,7 @@ function tailLine(logPath: string): string {
   }
 }
 
-/** The registry key `restartMainTestServer` tracks its board under (AC-6) —
+/** The registry key `restartMainTestServer` tracks its board under —
  *  never a real spec folder, so `isSpecFolder()` (`render/ui/shell.ts`)
  *  is what every reader of the registry uses to tell the two apart. */
 export const MAIN_TEST_SERVER_KEY = "main";
@@ -159,7 +159,7 @@ export async function startTestServer(
   const commit = await headCommit(ctx.gitRun, aideCheckout, branch);
   if (!commit) return { ok: false, error: `no such branch on origin: ${branch}` };
 
-  // REQ-6: the same branch AND commit already up (or starting) — hand
+  // The same branch AND commit already up (or starting) — hand
   // back that entry rather than spawning a second round.
   const existing = ctx.store.get(project, specFolder);
   if (
@@ -181,7 +181,7 @@ export async function startTestServer(
     stopTestServer(ctx, project, specFolder, `a board for ${commit.slice(0, 7)} replaces it`);
   }
 
-  // REQ-2 (spec 428): the pool being full is a refusal like any other in
+  // The pool being full is a refusal like any other in
   // this function — stating how many test servers are already running
   // and what the limit is, rather than a bare port list.
   const port = await ctx.findFreePort(ctx.reservedPorts());
@@ -237,7 +237,7 @@ export async function startTestServer(
  *  own — the page already polls every ten seconds. */
 export function refreshTestServerStatus(ctx: TestServersContext, project: string, specFolder: string): TestServer | undefined {
   const entry = ctx.store.get(project, specFolder);
-  // REQ-2: a "running" entry is never re-examined below this point — the
+  // A "running" entry is never re-examined below this point — the
   // early return just past this only ever revisits "starting". Once the
   // round has reported a board up, nothing asked again whether its
   // process was still there, so a board killed outside the Stop button
@@ -319,9 +319,9 @@ export function stopTestServer(ctx: TestServersContext, project: string, specFol
   ctx.store.delete(project, specFolder);
 }
 
-/** AC-6: pressing the Deploy tab's button always ends up running the
+/** Pressing the Deploy tab's button always ends up running the
  *  latest `branch` — never a second board beside a stale one. Unlike
- *  `startTestServer()`'s own REQ-6 dedup (right for a spec branch, which does
+ *  `startTestServer()`'s own dedup (right for a spec branch, which does
  *  not move), the `MAIN_TEST_SERVER_KEY` entry is always torn down and started
  *  fresh, whatever its status. */
 export async function restartMainTestServer(

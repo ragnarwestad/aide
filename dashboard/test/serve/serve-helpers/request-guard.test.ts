@@ -8,7 +8,7 @@ const hosts = createHostAllowlist({ extra: [], lookup: async () => undefined });
 const req = (method: string, headers: Record<string, string>, path = "/x") =>
   new Request(`http://127.0.0.1:8788${path}`, { method, headers });
 
-describe("Host (AC-3)", () => {
+describe("Host", () => {
   test("localhost, 127.0.0.1 and [::1] are admitted, in any case, with or without a port", async () => {
     for (const host of ["localhost:8788", "LOCALHOST:8788", "127.0.0.1:8788", "127.0.0.1", "[::1]:8788", "[::1]"]) {
       expect(await checkRequest(req("GET", { host }), hosts)).toBeNull();
@@ -28,7 +28,7 @@ describe("Host (AC-3)", () => {
   });
 });
 
-describe("Origin on a request that changes something (AC-2)", () => {
+describe("Origin on a request that changes something", () => {
   const host = "127.0.0.1:8788";
 
   test("an Origin equal to its own Host is admitted; no Origin is admitted", async () => {
@@ -74,7 +74,7 @@ describe("Origin on a request that changes something (AC-2)", () => {
   });
 });
 
-describe("the one GET that starts a test board (AC-2)", () => {
+describe("the one GET that starts a test board", () => {
   const host = "127.0.0.1:8788";
   const path = "/specs/aide/1-x?tab=steps&startTestServer=1";
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # spec-transitions.sh — the one table (core/scripts/lib/transitions.json)
-# and the one function pair (spec 356) that decide whether a spec may
+# and the one function pair that decide whether a spec may
 # move between phases and, when a move is granted, write the record of
 # it. Sourced by core/scripts/aide-run-spec and core/scripts/aide-archive-
 # spec; never invoked directly by a skill.
 #
 # may_apply_spec_transition($status_file, $event)
 #   Read-only. Reads the current phase via _peek_spec_state (below —
-#   not read_spec_state, spec 355's own reader, which self-heals by
+#   not read_spec_state, the shared reader, which self-heals by
 #   WRITING 4-status.json; a pre-check must not write on the strength of
 #   being asked), looks up [phase, event] in transitions.json, and
 #   evaluates the row's named condition (if any) via
@@ -26,14 +26,14 @@
 #   completed_steps_for), the "**Archived:**" line for archive, or the
 #   "**Reopened:**"/"**Reset:**" line with its boundary commit for
 #   reopen/reset ($value = the boundary sha) — then mirrors it into
-#   4-status.json via write_spec_state (spec 355). This is the one place
-#   any of those four writes happens (REQ-2): a caller that wants a
+#   4-status.json via write_spec_state. This is the one place
+#   any of those four writes happens: a caller that wants a
 #   pre-check without writing calls may_apply_spec_transition instead.
 #   Does NOT re-run may_apply_spec_transition's condition checks — the
 #   phase/event gate is the pre-check's job, run before the step starts;
 #   by the time a step's outcome is being recorded here the step already
 #   ran, and a write that recorded today unconditionally must keep doing
-#   so (REQ-8), not refuse on a gate that has already had its say.
+#   so, not refuse on a gate that has already had its say.
 
 _spec_transitions_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRANSITIONS_JSON="${TRANSITIONS_JSON:-$_spec_transitions_lib_dir/transitions.json}"
@@ -92,10 +92,10 @@ check_transition_condition() {
 # existing 4-status.json when there is one, else a value derived
 # in-memory from 4-status.md's own prose (the same fields
 # write_spec_state's cold-start branch derives), without ever writing
-# either file. read_spec_state (spec 355) self-heals by WRITING
+# either file. read_spec_state self-heals by WRITING
 # 4-status.json the first time it is asked — the right behavior for a
-# caller about to use the state, wrong for a pre-check that REQ-3
-# requires to leave both files byte-for-byte unchanged on a refusal.
+# caller about to use the state, wrong for a pre-check that must
+# leave both files byte-for-byte unchanged on a refusal.
 _peek_spec_state() {
   local status_file="$1" state_file
   state_file="$(_spec_state_file_for "$status_file")"
@@ -202,7 +202,7 @@ write_phase_stamp() {
   esac
 }
 
-# write_round_boundary_stamp($status_file, $specs_root, [$sha]) — spec 471: the
+# write_round_boundary_stamp($status_file, $specs_root, [$sha]) — the
 # moment a round is mechanically known to be held back (aide-archive-
 # spec's own acceptance-criteria-unticked decline), stamped once, in the
 # same "**Reopened:**"/"**Reset:**" grammar write_phase_stamp already
@@ -235,7 +235,7 @@ write_round_boundary_stamp() {
     "$(date -u +%Y-%m-%d)" "$head" >> "$status_file"
 }
 
-# untick_failed_acceptance_rows($status_file) — spec 510: in the
+# untick_failed_acceptance_rows($status_file) — in the
 # `## Acceptance criteria` section, a row whose Status cell reads Failed
 # (with or without its symbol) gets `⬜` in its place. The cell's padding,
 # the Notes cell and every other line stay byte for byte, so the row keeps
@@ -390,8 +390,8 @@ apply_spec_transition() {   # $1 = status_file, $2 = event ("reopen"|"reset"|"re
   # "," is not a valid override VALUE (split(",") of it yields nothing
   # but empty strings, filtered away) — it is how an override of "reset
   # completedPhases to empty" is told apart from write_spec_state's own
-  # "" meaning "no override given, preserve the existing value" (spec
-  # 355's ${2:-} default). A reopened/reset spec starts its new round
+  # "" meaning "no override given, preserve the existing value"
+  # (the ${2:-} default). A reopened/reset spec starts its new round
   # with nothing completed yet.
   write_spec_state "$status_file" ","
 }

@@ -14,7 +14,7 @@ import {
 export interface CoreRoutesContext {
   store: AideRunStore;
   notifyQueueChanged: () => void;
-  /** This process's own boot-time commit (spec 269), a getter since it
+  /** This process's own boot-time commit, a getter since it
    *  is read once, asynchronously, right after `createServer` starts —
    *  see `state.ts`'s own doc comment for why it stays `null` rather
    *  than "loading" until that resolves. */
@@ -40,7 +40,7 @@ export async function handleCore(
     const parsed = parseAideRun(raw);
     if (!parsed.ok) return json({ error: parsed.error }, 400);
     const stored = ctx.store.put(parsed.run, new Date().toISOString());
-    // The second source a row reads (spec 189). Cost, subagent count and
+    // The second source a row reads. Cost, subagent count and
     // live state arrive here and nowhere near the queue's own store, so
     // a push driven by that store alone would let them sit still for the
     // whole of a long step.
@@ -53,7 +53,7 @@ export async function handleCore(
     return json({ generatedAt: new Date().toISOString(), rows: ctx.store.list() });
   }
 
-  // What commit this process is actually running (spec 269) — read
+  // What commit this process is actually running — read
   // once at boot, in `process.cwd()`, and never refreshed. A restart
   // that silently failed to happen looks exactly like one that worked
   // until something asks this; a probe nobody's
@@ -73,7 +73,7 @@ export async function handleCore(
   const pwaAsset = servePwaAsset(path);
   if (pwaAsset) return pwaAsset;
 
-  // AC-1: the address people bookmarked before the overview became a
+  // The address people bookmarked before the overview became a
   // served route — answered here, not from a file, so nothing has to
   // regenerate it when the route it points at changes.
   if (path === "/projects.html") {

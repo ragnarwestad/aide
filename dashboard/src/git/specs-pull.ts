@@ -1,4 +1,4 @@
-// Spec 150: the Update button's pull.
+// The Update button's pull.
 //
 // The dashboard lists specs by reading the spec folders straight off the
 // serving host's working copy, which `aide-pull-specs` pulls from cron
@@ -29,7 +29,7 @@ import { lastCommitOf } from "./description-freshness.ts";
 import { errorSentence } from "../format/error-sentence.ts";
 
 /** The remedy every refusal below shares, once the specific fact has
- *  been said (REQ-3, spec 352): none of these is a press on the board —
+ *  been said: none of these is a press on the board —
  *  the fix is in the shared specs checkout itself. */
 const IN_THE_CHECKOUT = "in the checkout on the serving host";
 
@@ -158,7 +158,7 @@ export async function pullFastForward(
   }
 }
 
-// Spec 162: Save, on the same checkout.
+// Save, on the same checkout.
 //
 // The dashboard has written to git in exactly one other place —
 // `mergeBranchIntoDefault` — and one of its decisions is deliberately
@@ -187,7 +187,7 @@ export interface SpecsSaveResult {
 
 /** What a browser actually posts, made into what belongs in the file.
  *  Exported because a caller deciding whether the text CHANGED has to
- *  ask the same question this function answers (spec 188): a save that
+ *  ask the same question this function answers: a save that
  *  only ticked a box must not record itself as an edit to the prose.
  *
  *  A textarea is submitted with CRLF line endings whatever the file
@@ -223,11 +223,11 @@ export interface SpecFileEdit {
  *  top of the work tree.
  *
  *  `message` is the CALLER's, because a save records different things
- *  depending on what was in it (specs 182, 188): a description edit, a
+ *  depending on what was in it: a description edit, a
  *  check a person made that no step could make, or both at once.
  *
- *  EVERY edit's `baseSha` is checked before ANY file is written (spec
- *  188). A guard run file-by-file would leave the first file written
+ *  EVERY edit's `baseSha` is checked before ANY file is written. A guard run
+ *  file-by-file would leave the first file written
  *  and staged while a later one's refusal aborts the commit — and a
  *  dirty checkout is exactly what the next pull, this button's or the
  *  cron's, refuses for every project sharing this root. "Nothing was
@@ -268,7 +268,7 @@ export async function saveSpecFiles(
     // Captured BEFORE the writes, so a rollback undoes exactly this
     // save's commit and nothing the pull above brought in.
     const before = await run(root, ["rev-parse", "HEAD"]);
-    // `previous: null` (spec 355) is a file that did not exist before
+    // `previous: null` is a file that did not exist before
     // this save — `4-status.json`, the first time a spec's own tick or
     // Save lands after this feature ships. Every OTHER caller's files
     // already exist (a document tab reads them before it can be edited

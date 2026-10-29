@@ -19,15 +19,15 @@ const formPosting = (html: string, action: string): string =>
 /** The hooks on that form's class, which the page script selects on. */
 const hooksOf = (form: string): string[] => form.match(/^<form\b[^>]*\sclass="([^"]*)"/)?.[1]?.split(" ") ?? [];
 
-// --- the board line and its Stop control (spec 424) --------------------------
+// --- the board line and its Stop control --------------------------
 //
 // Which board a page is served from — a process-lifetime value read
 // directly by `pageHeader()` (`getBoardInfo()`), never threaded through
 // any of the call sites above. Covers two differently-shaped served
-// pages (`renderProjectsPage`, `renderSpecsPage`), since REQ-2 names
-// "headeren" with no page excluded.
+// pages (`renderProjectsPage`, `renderSpecsPage`), since the header
+// is meant to carry it with no page excluded.
 
-describe("the board line and its Stop control (spec 424)", () => {
+describe("the board line and its Stop control", () => {
   const project: ProjectView = { name: "aide", manifest: { ok: true, data: { name: "aide" } }, specs: [] };
   const entries = navEntries();
   const machine = process.env.AIDE_DASH_HOST ?? hostname();
@@ -42,7 +42,7 @@ describe("the board line and its Stop control (spec 424)", () => {
   }
 
   // The spec's number on the line, the folder and branch as hover text
-  // (2026-09-10): spec 424's "<spec> : <branch>" spelt the same long name
+  // (2026-09-10): a "<spec> : <branch>" line spelt the same long name
   // twice, since the branch is always aide/<folder>.
   test("a test board's header reads '<machine> - Test - <number>', with folder and branch on hover", () => {
     setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
@@ -56,7 +56,7 @@ describe("the board line and its Stop control (spec 424)", () => {
     }
   });
 
-  test("REQ-3: a test board's header carries a Stop form beside the line", () => {
+  test("a test board's header carries a Stop form beside the line", () => {
     setBoardInfo("424-headeren-sier-hvilket-board-du-er-pa-og-testserveren-kan-stoppes-derfra");
     for (const html of render()) {
       const stop = formPosting(html, "/api/self-stop");

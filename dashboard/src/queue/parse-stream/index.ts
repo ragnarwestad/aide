@@ -1,5 +1,5 @@
 // A kept transcript, turned into something a person can read at a
-// glance (spec 02). Split into a directory 2026-09-17; every function
+// glance. Split into a directory 2026-09-17; every function
 // keeps its name and its home is named after what it reads.
 export {
   keepsEntry,

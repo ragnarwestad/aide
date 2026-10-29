@@ -32,7 +32,7 @@ function ownConfig(contents: Record<string, unknown> = {}): string {
 }
 
 
-describe("Settings routes (spec 232)", () => {
+describe("Settings routes", () => {
   const DEFAULTS = {
     timeoutSec: { default: 1200, implement: 5400 }, permissionMode: { default: "acceptEdits" },
     model: { default: "sonnet" },
@@ -54,7 +54,7 @@ describe("Settings routes (spec 232)", () => {
     expect(html).toContain("Not checked yet.");
   });
 
-  test("the old Phases link still serves the models form (AC-4)", async () => {
+  test("the old Phases link still serves the models form", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const html = await (await fetch(`${base}/settings?tab=phases`)).text();
     expect(html).toContain("data-settings-form");
@@ -117,7 +117,7 @@ describe("Settings routes (spec 232)", () => {
     ["installation", "check", { checks: 1, usageReads: 0, modelReads: 0 }],
     ["subscription", "usage", { checks: 0, usageReads: 1, modelReads: 0 }],
     ["models", "models", { checks: 0, usageReads: 0, modelReads: 1 }],
-  ] as const)("a press on the %s tab reads only that, and leaves the other two readings as they were (AC-4)", async (part, kind, reads) => {
+  ] as const)("a press on the %s tab reads only that, and leaves the other two readings as they were", async (part, kind, reads) => {
     forgetChecks();
     storeEarlier();
     const toolProbe = countingProbe();
@@ -135,7 +135,7 @@ describe("Settings routes (spec 232)", () => {
     forgetChecks();
   });
 
-  test("a press naming no tab, or one it does not know, is refused and reads nothing (AC-4)", async () => {
+  test("a press naming no tab, or one it does not know, is refused and reads nothing", async () => {
     forgetChecks();
     const toolProbe = countingProbe();
     const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
@@ -148,7 +148,7 @@ describe("Settings routes (spec 232)", () => {
     expect(toolProbe.checks + toolProbe.usageReads + toolProbe.modelReads).toBe(0);
   });
 
-  test("an AI's tab opens on Models: the one Check on it reads the models (AC-2)", async () => {
+  test("an AI's tab opens on Models: the one Check on it reads the models", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const html = await (await fetch(`${base}/settings?tab=claude`)).text();
     const checks = [...html.matchAll(/<form [^>]*action="\/api\/queue\/settings\/check"[^>]*>([\s\S]*?)<\/form>/g)];
@@ -156,7 +156,7 @@ describe("Settings routes (spec 232)", () => {
     expect(checks[0]![1]).toContain('name="part" value="models"');
   });
 
-  test("a press of Check answers with the AI's usage, and stores it (AC-7)", async () => {
+  test("a press of Check answers with the AI's usage, and stores it", async () => {
     forgetChecks();
     const toolProbe = countingProbe();
     const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
@@ -168,7 +168,7 @@ describe("Settings routes (spec 232)", () => {
     forgetChecks();
   });
 
-  test("usage is read by a press of Check, never by opening a page (AC-6)", async () => {
+  test("usage is read by a press of Check, never by opening a page", async () => {
     forgetChecks();
     const toolProbe = countingProbe();
     const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
@@ -183,7 +183,7 @@ describe("Settings routes (spec 232)", () => {
     forgetChecks();
   });
 
-  test("a successful save affects later jobs but not an accepted job (AC-4)", async () => {
+  test("a successful save affects later jobs but not an accepted job", async () => {
     const file = ownConfig({ model: { default: "sonnet", future: "keep" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const accepted = await fetch(`${base}/api/queue`, {
@@ -213,7 +213,7 @@ describe("Settings routes (spec 232)", () => {
   // Settings has no Fallback row, so the route saves the step rows only:
   // a `default` posted beside them is an unknown step, and nothing on
   // disk changes; the step rows alone save.
-  test("a save naming model.default is refused and changes nothing (AC-2)", async () => {
+  test("a save naming model.default is refused and changes nothing", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const refused = await fetch(`${base}/api/queue/settings`, {
@@ -229,7 +229,7 @@ describe("Settings routes (spec 232)", () => {
     expect(saved.status).toBe(200);
   });
 
-  // Spec 494: a model typed in a different case is stored as listed.
+  // A model typed in a different case is stored as listed.
   test("a differently-cased model is saved under the listed spelling", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
@@ -309,17 +309,17 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     return html.match(/<input[^>]*name="concurrency"[^>]*>/)?.[0].match(/value="(\d+)"/)?.[1];
   }
 
-  test("the tab opens on the count the running queue uses (AC-1)", async () => {
+  test("the tab opens on the count the running queue uses", async () => {
     const { base } = withRunner({ queueConcurrency: 3 });
     expect(await shownCount(base)).toBe("3");
   });
 
-  test("with no value saved, the tab shows the built-in 2 (AC-5)", async () => {
+  test("with no value saved, the tab shows the built-in 2", async () => {
     const { base } = withRunner();
     expect(await shownCount(base)).toBe("2");
   });
 
-  test("a form post saves, answers the new count, and the tab shows it (AC-2)", async () => {
+  test("a form post saves, answers the new count, and the tab shows it", async () => {
     const file = ownConfig({ concurrency: 2 });
     const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings/concurrency`, {
@@ -331,7 +331,7 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     expect(await shownCount(base)).toBe("4");
   });
 
-  test("a count outside 1 to 8 is refused with a message and nothing is saved (AC-3)", async () => {
+  test("a count outside 1 to 8 is refused with a message and nothing is saved", async () => {
     const file = ownConfig({ concurrency: 2 });
     const before = readFileSync(file, "utf-8");
     const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
@@ -346,7 +346,7 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     expect(await shownCount(base)).toBe("2");
   });
 
-  test("a refused form post answers why, and nothing is saved (AC-3)", async () => {
+  test("a refused form post answers why, and nothing is saved", async () => {
     const file = ownConfig({ concurrency: 2 });
     const before = readFileSync(file, "utf-8");
     const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
@@ -360,7 +360,7 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     expect(readFileSync(file, "utf-8")).toBe(before);
   });
 
-  test("a server with no queue, or whose config file is missing, saves nothing (AC-3)", async () => {
+  test("a server with no queue, or whose config file is missing, saves nothing", async () => {
     const file = ownConfig({ concurrency: 2 });
     const before = readFileSync(file, "utf-8");
     const noRunner = start({ queueConfigFile: file });

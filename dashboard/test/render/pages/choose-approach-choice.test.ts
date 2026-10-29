@@ -25,13 +25,13 @@ function posted(form: HTMLFormElement): FormDataEntryValue | null {
 }
 
 describe("the Let me choose the approach box", () => {
-  test("an untouched New spec form posts nothing for it, so it is not ticked (AC-1)", () => {
+  test("an untouched New spec form posts nothing for it, so it is not ticked", () => {
     const form = newSpecForm();
     expect(form.querySelector('[name="chooseApproach"]')).not.toBeNull();
     expect(posted(form)).toBeNull();
   });
 
-  test("ticked, the form posts 1 (AC-10)", () => {
+  test("ticked, the form posts 1", () => {
     const form = newSpecForm();
     (form.ownerDocument.querySelector('[name="chooseApproach"]') as HTMLInputElement).checked = true;
     expect(posted(form)).toBe("1");

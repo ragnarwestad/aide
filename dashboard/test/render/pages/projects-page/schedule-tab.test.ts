@@ -24,7 +24,7 @@ function scheduleTab(
 }
 
 describe("a project's Schedule tab", () => {
-  test("lists Name, Next run and Enabled, then Run now and Delete, and leaves out cron, prompt and last run (AC-1)", () => {
+  test("lists Name, Next run and Enabled, then Run now and Delete, and leaves out cron, prompt and last run", () => {
     const table = scheduleTab();
     const words = [...table.querySelectorAll("thead th")].map((th) => th.textContent).filter(Boolean);
     expect(words).toEqual(["Name", "Next run", "Enabled"]);

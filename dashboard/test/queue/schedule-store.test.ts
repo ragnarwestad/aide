@@ -71,7 +71,7 @@ describe("parseScheduleEntries", () => {
 });
 
 describe("list", () => {
-  test("lists one project's entries and no other's (AC-2)", () => {
+  test("lists one project's entries and no other's", () => {
     writeFileSync(file, JSON.stringify({
       schedules: {
         aide: [{ name: "a", cron: "0 3 * * *", prompt: "a.md" }],
@@ -84,7 +84,7 @@ describe("list", () => {
     expect(store.list("other")).toEqual([]);
   });
 
-  test("no file path, a missing file or no key is an empty list without a log line (AC-3)", () => {
+  test("no file path, a missing file or no key is an empty list without a log line", () => {
     expect(createScheduleStore(undefined).list("aide")).toEqual([]);
     expect(createScheduleStore(file).list("aide")).toEqual([]);
     writeFileSync(file, "{}");
@@ -104,7 +104,7 @@ describe("list", () => {
     expect(store.list("paceup")).toEqual([]);
   });
 
-  test("a file that cannot be parsed is no jobs, and one line names the file, once (AC-2)", () => {
+  test("a file that cannot be parsed is no jobs, and one line names the file, once", () => {
     writeFileSync(file, "{ not json");
     const store = createScheduleStore(file);
     expect(store.list("aide")).toEqual([]);
@@ -122,7 +122,7 @@ describe("list", () => {
 });
 
 describe("save", () => {
-  test("creates the file and its directory, and the entry reads back (AC-1)", () => {
+  test("creates the file and its directory, and the entry reads back", () => {
     const nested = join(dir, "deep", "queue-config.json");
     const store = createScheduleStore(nested);
     expect(store.save("aide", [entry({ since: "2026-09-17T20:54:52.809Z", model: "Sonnet" })])).toBeNull();
@@ -140,13 +140,13 @@ describe("save", () => {
     expect("enabled" in written[1]).toBe(false);
   });
 
-  test("an empty or whitespace-only file starts from {} (AC-1)", () => {
+  test("an empty or whitespace-only file starts from {}", () => {
     writeFileSync(file, "  \n");
     expect(createScheduleStore(file).save("aide", [entry()])).toBeNull();
     expect(JSON.parse(readFileSync(file, "utf-8")).schedules.aide).toHaveLength(1);
   });
 
-  test("comments and other keys survive a save (AC-1)", () => {
+  test("comments and other keys survive a save", () => {
     const original = `{\n  // who may be queued\n  "projects": ["aide"],\n  "timeoutSec": { "implement": 100 }\n}\n`;
     writeFileSync(file, original);
     expect(createScheduleStore(file).save("aide", [entry()])).toBeNull();
@@ -166,7 +166,7 @@ describe("save", () => {
     expect(schedules.paceup).toHaveLength(1);
   });
 
-  test("refuses, naming the cause and leaving the file as it was: invalid JSONC, a non-object root, a non-object schedules (AC-1)", () => {
+  test("refuses, naming the cause and leaving the file as it was: invalid JSONC, a non-object root, a non-object schedules", () => {
     for (const [content, cause] of [
       ["{ not json", "valid"],
       ["[1, 2]", "object"],
@@ -193,13 +193,13 @@ describe("save", () => {
 describe("an entry's notification choice", () => {
   const base = { name: "n", cron: "0 3 * * *", prompt: "p.md" };
 
-  test("each of the three values is read back (AC-7)", () => {
+  test("each of the three values is read back", () => {
     for (const notify of ["never", "failure", "always"] as const) {
       expect(parseScheduleEntries([{ ...base, notify }])[0]!.notify).toBe(notify);
     }
   });
 
-  test("an entry with no choice, or an unusable one, is kept and read as failure (AC-7)", () => {
+  test("an entry with no choice, or an unusable one, is kept and read as failure", () => {
     for (const notify of [undefined, "", "sometimes", 3, null]) {
       const [kept] = parseScheduleEntries([{ ...base, notify }]);
       expect(kept).toBeDefined();
@@ -208,7 +208,7 @@ describe("an entry's notification choice", () => {
     }
   });
 
-  test("a saved choice is written to the file and only when present (AC-7)", () => {
+  test("a saved choice is written to the file and only when present", () => {
     const store = createScheduleStore(file);
     expect(store.save("aide", [entry({ notify: "always" }), entry({ name: "plain" })])).toBeNull();
     const written = JSON.parse(readFileSync(file, "utf-8")).schedules.aide;

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # aide-backfill-spec-state — the one-time, re-runnable pass that gives
-# every spec already under archive/ its own 4-status.json (spec 355,
-# REQ-5, REQ-9). Every other writer (aide-run-spec, aide-archive-spec,
+# every spec already under archive/ its own 4-status.json. Every other
+# writer (aide-run-spec, aide-archive-spec,
 # aide-write-spec) derives a state file the moment it next touches a
 # spec's prose; an already-finished, archived spec is never touched
 # again by any of the three, so this is the one place their shared
@@ -12,7 +12,7 @@
 # one whose prose parses the same way twice) rather than skipping
 # specs that already have a state file.
 #
-# Reports, never guesses (REQ-9): a spec whose `**Reopened:**`/
+# Reports, never guesses: a spec whose `**Reopened:**`/
 # `**Reset:**`/`**Archived:**` stamp is PRESENT in the prose but does
 # not match the one grammar spec-state.sh parses is named in the
 # summary as could-not-read-with-certainty, rather than silently

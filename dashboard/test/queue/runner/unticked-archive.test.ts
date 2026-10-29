@@ -1,7 +1,7 @@
 // A queued `archive` whose acceptance rows are still open is one
 // `aide-archive-spec` would only refuse. The runner ends it on the spot
 // with that same refusal, rather than holding it behind another archive
-// with two reasons on one row (490, 2026-09-18) — and never starts it
+// with two reasons on one row — and never starts it
 // by itself once the rows are ticked: a person presses Archive.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";

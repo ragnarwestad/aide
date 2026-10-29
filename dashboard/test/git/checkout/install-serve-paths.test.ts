@@ -1,13 +1,13 @@
-// The dashboard's source used to BE a git repo root; since spec 85 it is
+// The dashboard's source used to BE a git repo root; now it is
 // a subdirectory of the aide repo. `install-serve` used one variable for
 // two things that were identical back then and are not anymore: the repo
 // to clone/pull, and the directory bun runs in. Get that wrong and
 // nothing fails loudly — the launchd job on the serving host just keeps
 // running yesterday's code from a path that no longer receives commits.
 //
-// Since spec 223 that repo is the MACHINERY's checkout, not a person's:
+// That repo is the MACHINERY's checkout, not a person's:
 // a landing merges and installs in `~/.aide/dashboard/checkouts/aide/code`
-// (spec 205) and then restarts the launchd job, so the job has to be
+// and then restarts the launchd job, so the job has to be
 // executing from that same directory or it reloads the old code.
 //
 // Asserted against `make -n`, the real recipe expansion, rather than the
@@ -59,7 +59,7 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
     );
   });
 
-  // Spec 223's own regression: the service must not read from a
+  // The regression to guard: the service must not read from a
   // directory a person edits. `develop/` is where every such checkout on
   // these machines lives, and nothing in this recipe has a reason to
   // name one.
@@ -102,8 +102,8 @@ describe("the plist names the installed scripts by absolute path", () => {
   });
 });
 
-// The laptop path: one machine, no second host. Spec 223 repointed what
-// the SERVICE runs from, and this target must not have come along —
+// The laptop path: one machine, no second host. The SERVICE runs from
+// the dashboard's checkout, and this target must not follow it —
 // `serve-local` runs the checkout it is invoked in, which is the whole
 // point of it.
 describe("serve-local still runs from the checkout it is invoked in", () => {

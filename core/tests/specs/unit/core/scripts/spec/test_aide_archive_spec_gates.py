@@ -29,10 +29,10 @@ from .test_aide_archive_spec import (
 
 
 
-# --- the acceptance-criteria gate (spec 285) -------------------------------
+# --- the acceptance-criteria gate -------------------------------
 #
 # Scoped ONLY to a `## Acceptance criteria` section — never to the
-# ordinary Phase/Checklist rows AC3 above already lets through
+# ordinary Phase/Checklist rows the tests above already let through
 # regardless of their own tick state. These rows are for a person to
 # judge, and archive refuses until every one of them is ticked.
 
@@ -65,7 +65,7 @@ def test_fully_ticked_acceptance_criteria_archives_normally(script, project, spe
 
 
 def test_non_standard_header_acceptance_row_ticked_still_archives(script, project, specs):
-    """Spec 299/REQ-1: a header row named something other than `Task |
+    """A header row named something other than `Task |
     Status | Notes` must never count toward the acceptance gate's total
     — only its position above the separator marks it as a header, not
     its own column text."""
@@ -85,7 +85,7 @@ def test_non_standard_header_acceptance_row_ticked_still_archives(script, projec
 
 
 def test_no_acceptance_criteria_section_is_unaffected(script, project, specs):
-    """REQ-4: a spec with no `## Acceptance criteria` section behaves
+    """A spec with no `## Acceptance criteria` section behaves
     exactly as it did before this spec — implement present is enough."""
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"]))
@@ -96,7 +96,7 @@ def test_no_acceptance_criteria_section_is_unaffected(script, project, specs):
 
 
 def test_a_one_line_acceptance_note_does_not_block_archive(script, project, specs):
-    """Spec 386/REQ-4,5,7: a run that said acceptance ticking was not
+    """A run that said acceptance ticking was not
     required writes a `## Acceptance criteria` heading followed by ONE
     plain-prose line, never a `| REQ-n | Status | Notes |`-shaped row.
     The gate's own total is read off the table rows it finds — none
@@ -119,8 +119,8 @@ def test_a_one_line_acceptance_note_does_not_block_archive(script, project, spec
 
 
 def test_unticked_acceptance_criteria_note_names_the_checks_tab(script, project, specs):
-    """REQ-5: the tab that carries this checklist is called Checks
-    (spec 294 renamed it from Overview) — the note must send the reader
+    """The tab that carries this checklist is called Checks
+    (renamed from Overview) — the note must send the reader
     there, not to a name the tab no longer has."""
     configure(project, specs)
     body = status_md(
@@ -135,7 +135,7 @@ def test_unticked_acceptance_criteria_note_names_the_checks_tab(script, project,
 
 
 def test_acceptance_criteria_gate_keeps_refusing_on_every_run(script, project, specs):
-    """REQ-6: a spec whose acceptance-criteria row is never ticked stays
+    """A spec whose acceptance-criteria row is never ticked stays
     blocked indefinitely — the refusal is not a one-time hiccup, it
     repeats on every later archive run until a person ticks the row."""
     configure(project, specs)
@@ -153,7 +153,7 @@ def test_acceptance_criteria_gate_keeps_refusing_on_every_run(script, project, s
 
 
 def test_unticked_acceptance_criteria_blocks_before_the_test_command_runs(script, project, specs, tmp_path):
-    """Spec 346/REQ-1,2,5: the acceptance-criteria gate must answer before
+    """The acceptance-criteria gate must answer before
     the test-record gate ever gets a chance to shell out to the project's
     test command. No test-run.json record exists here, so the pre-fix
     order would have run AIDE_TEST_CMD (dropping the marker file) before
@@ -173,7 +173,7 @@ def test_unticked_acceptance_criteria_blocks_before_the_test_command_runs(script
 
 
 def test_declining_on_unticked_acceptance_writes_one_round_boundary_stamp(script, project, specs):
-    """Spec 471: the moment a round is mechanically known to be held
+    """The moment a round is mechanically known to be held
     back is stamped once, in the same **Reopened:**/**Reset:** grammar,
     so a later round can tell which open AC-n rows are unchanged since
     THIS round rather than since the spec's birth."""
@@ -208,7 +208,7 @@ def test_a_repeat_decline_with_nothing_changed_writes_no_second_stamp(script, pr
 
 
 def test_no_acceptance_criteria_section_never_gets_a_round_boundary_stamp(script, project, specs):
-    """AC-9: a spec that does not require acceptance ticking must never
+    """A spec that does not require acceptance ticking must never
     gain the round-boundary stamp — it never reaches this gate at all."""
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
@@ -221,7 +221,7 @@ def test_no_acceptance_criteria_section_never_gets_a_round_boundary_stamp(script
 
 
 def test_implement_absent_with_every_row_ticked_is_not_implemented_yet(script, project, specs):
-    """The other half of AC4: even a checklist that reads fully done
+    """The other half: even a checklist that reads fully done
     cannot stand in for the "Workflow steps completed" line actually
     naming implement — a hand-ticked box is not a run that happened."""
     configure(project, specs)
@@ -233,7 +233,7 @@ def test_implement_absent_with_every_row_ticked_is_not_implemented_yet(script, p
 
 
 def test_specs_dir_is_read_from_not_just_conflict_checked(project, specs, script, tmp_path):
-    """The bug behind specs 287, 288, 290 and 291 (2026-08-31): a
+    """The bug found on 2026-08-31: a
     headless run passes its own rebased per-run worktree as
     `--specs-dir`, but every status-file read fell back to the
     CONFIGURED `AIDE_SPECS_PATH` instead — the shared, un-rebased
@@ -298,9 +298,9 @@ def test_the_result_file_carries_the_same_json_as_stdout(script, project, specs,
     assert json.loads(result_file.read_text()) == out
 
 
-# --- the test-record gate (spec 329) --------------------------------------
+# --- the test-record gate --------------------------------------
 #
-# REQ-4: archive refuses without a passing test-run.json record for the
+# Archive refuses without a passing test-run.json record for the
 # exact commit being merged — or, only when that commit is a genuine
 # two-parent base-catch-up merge, its first parent. A record for any
 # OTHER earlier commit (real, untested work added afterward) must still
@@ -320,7 +320,7 @@ DONE_BODY = phase("Phase 1: RED", ["| a | ✅ | |"])
 
 
 
-# --- spec 355: the state file --------------------------------------------
+# --- The state file --------------------------------------------
 
 
 def test_archiving_writes_the_state_file_at_the_archive_location(script, project, specs):
@@ -338,7 +338,7 @@ def test_archiving_writes_the_state_file_at_the_archive_location(script, project
 
 
 def test_the_acceptance_criteria_gate_reads_the_state_file_not_the_prose(script, project, specs):
-    """REQ-3: constructing a state file that DISAGREES with the prose
+    """Constructing a state file that DISAGREES with the prose
     (an unticked row in 4-status.md, but a state file already claiming
     it done) proves the gate follows the state file, not a fresh
     re-parse of the prose beside it."""
@@ -358,7 +358,7 @@ def test_the_acceptance_criteria_gate_reads_the_state_file_not_the_prose(script,
 
 
 def test_the_implement_present_check_reads_the_state_file_not_the_prose(script, project, specs):
-    """REQ-3: a state file already claiming `implement` lets archive
+    """A state file already claiming `implement` lets archive
     proceed past not-implemented-yet even though the prose line itself
     only names `create, analyze` — proving the check no longer
     re-`sed`s the prose."""
@@ -377,11 +377,11 @@ def test_the_implement_present_check_reads_the_state_file_not_the_prose(script, 
 
 
 def test_a_spec_with_no_state_file_yet_answers_correctly_from_prose(script, project, specs):
-    """A spec that predates spec 355 has no 4-status.json at all — the
+    """A spec that was archived before state files existed has no 4-status.json at all — the
     gate must still answer correctly, derived from the prose, not refuse
     or silently pass.
 
-    Spec 356 (REQ-3): the gate's own pre-check (may_apply_spec_transition)
+    The gate's own pre-check (may_apply_spec_transition)
     is read-only and must leave the spec byte-for-byte unchanged on a
     refusal, so it no longer self-heals 4-status.json into existence the
     way the plain state-file read it replaced used to — only a granted
@@ -394,7 +394,7 @@ def test_a_spec_with_no_state_file_yet_answers_correctly_from_prose(script, proj
     assert not (specs / "81-x" / "4-status.json").exists()
 
 
-def test_acceptance_rows_all_done_or_not_verified_archive_AC_7(script, project, specs):
+def test_acceptance_rows_all_done_or_not_verified_archive(script, project, specs):
     configure(project, specs)
     body = status_md(
         "create, analyze, implement",
@@ -408,7 +408,7 @@ def test_acceptance_rows_all_done_or_not_verified_archive_AC_7(script, project, 
     assert (specs / "archive" / "81-x").exists()
 
 
-def test_a_not_verified_row_beside_an_open_row_still_blocks_archive_AC_7(script, project, specs):
+def test_a_not_verified_row_beside_an_open_row_still_blocks_archive(script, project, specs):
     configure(project, specs)
     body = status_md(
         "create, analyze, implement",
@@ -422,7 +422,7 @@ def test_a_not_verified_row_beside_an_open_row_still_blocks_archive_AC_7(script,
     assert (specs / "81-x").exists()
 
 
-def test_a_failed_row_blocks_archive_AC_4(script, project, specs):
+def test_a_failed_row_blocks_archive(script, project, specs):
     configure(project, specs)
     body = status_md(
         "create, analyze, implement",

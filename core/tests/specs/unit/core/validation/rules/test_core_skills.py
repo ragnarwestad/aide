@@ -39,7 +39,7 @@ def skills_over_the_size_limit(skills_dir):
 
 
 @pytest.mark.validation
-def test_every_core_skill_is_under_the_size_limit_AC_1_AC_5():
+def test_every_core_skill_is_under_the_size_limit():
     assert get_skill_dirs(), "No skill directories with SKILL.md in core/skills/"
     assert not (problems := skills_over_the_size_limit(CORE_SKILLS_DIR)), "\n".join(problems)
 
@@ -51,7 +51,7 @@ def test_every_core_skill_is_under_the_size_limit_AC_1_AC_5():
     (499, 20_000, True),
     (500, 20_000, True),
 ])
-def test_skill_size_boundaries_name_the_skill_AC_5(tmp_path, lines, characters, over):
+def test_skill_size_boundaries_name_the_skill(tmp_path, lines, characters, over):
     skill = tmp_path / "boundary-skill"
     skill.mkdir()
     (skill / "SKILL.md").write_text("é" * (characters - lines) + "\n" * lines, encoding="utf-8")
@@ -61,7 +61,7 @@ def test_skill_size_boundaries_name_the_skill_AC_5(tmp_path, lines, characters, 
 
 
 @pytest.mark.validation
-def test_long_analyze_references_start_with_contents_AC_4():
+def test_long_analyze_references_start_with_contents():
     problems = []
     for path in sorted((CORE_SKILLS_DIR / "aide-analyze" / "references").glob("*.md")):
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -205,7 +205,7 @@ class TestUninstallListsEverySkill:
 
 @pytest.mark.validation
 class TestUninstallReadsTheManifest:
-    """Spec 142: the static SKILLS list is a snapshot of what is shipped
+    """The static SKILLS list is a snapshot of what is shipped
     TODAY, and a name is taken out of it by the very commit that stops
     shipping the skill — which is the moment removal starts to matter.
     That is what happened on 2026-08-20: four skills left core/skills/
@@ -229,7 +229,7 @@ class TestUninstallReadsTheManifest:
         )
 
     def test_a_retired_skill_named_only_by_the_manifest_is_removed(self, workspace_root, tmp_path):
-        """Criterion 9: 'aide-to-html' is in no SKILLS array anymore."""
+        """'aide-to-html' is in no SKILLS array anymore."""
         home = tmp_path / "home"
         skills = home / ".claude" / "skills"
         (skills / "aide-to-html").mkdir(parents=True)
@@ -299,7 +299,7 @@ class TestUninstallReadsTheManifest:
 
 @pytest.mark.validation
 class TestInstallRetiresTheRulesThatBecameSkills:
-    """Spec 147: four rules became skills, and the rules side has no
+    """Four rules became skills, and the rules side has no
     pruning mechanism of its own.
 
     install.sh's rule loop only ever COPIES the files still on its list —
@@ -307,7 +307,7 @@ class TestInstallRetiresTheRulesThatBecameSkills:
     explicit removal step, a machine that installed before this change
     keeps loading ~/.claude/rules/workflows.md forever, so the four rules
     stay resident in every prompt AND ship again as skills: the resident
-    footprint goes up, not down. prune_retired_skills (spec 142) is the
+    footprint goes up, not down. prune_retired_skills is the
     equivalent on the skills side; this is the rules side.
     """
 
@@ -499,7 +499,7 @@ def sample_skill(tmp_path):
     ("under_score", False), ("é", False), ("-start", False),
     ("end-", False), ("two--hyphens", False),
 ])
-def test_name_boundaries_AC_1(sample_skill, value, valid):
+def test_name_boundaries(sample_skill, value, valid):
     problems = skill_standard_problems(sample_skill(name=value))
     assert bool(problems) is not valid
     assert all("sample: name" in p for p in problems)
@@ -508,7 +508,7 @@ def test_name_boundaries_AC_1(sample_skill, value, valid):
 @pytest.mark.parametrize("field,limit", [("description", 1024), ("compatibility", 500)])
 @pytest.mark.parametrize("size", [0, 1, -1, 1_000_000])
 @pytest.mark.parametrize("style", ["plain", "single", "double", "folded", "literal"])
-def test_decoded_field_limits_AC_2_AC_3(sample_skill, field, limit, size, style):
+def test_decoded_field_limits(sample_skill, field, limit, size, style):
     size = limit if size == -1 else limit + 1 if size == 1_000_000 else size
     value = "é" * size
     scalar = {"plain": value, "single": "'" + value + "'",
@@ -528,12 +528,12 @@ def test_decoded_field_limits_AC_2_AC_3(sample_skill, field, limit, size, style)
     ("'it''s fine'", "it's fine"), ('"one\\ntwo"', "one\ntwo"),
     ('"\\u00e9"', "é"), ("text # comment", "text"), ('" "', " "),
 ])
-def test_scalar_decoding_AC_2_AC_3(scalar, expected):
+def test_scalar_decoding(scalar, expected):
     assert parse_frontmatter(f"---\ndescription: {scalar}\neffort: high\n---\n")["description"] == expected
 
 
 @pytest.mark.parametrize("scalar", ["null", "~", "[]", "{}", "*alias", "&anchor text", "!tag text", '"unclosed', "'unclosed", ">2-\n  text"])
-def test_unsupported_scalars_fail_by_field_AC_2_AC_3(sample_skill, scalar):
+def test_unsupported_scalars_fail_by_field(sample_skill, scalar):
     problems = skill_standard_problems(sample_skill(description=scalar, fields=f"compatibility: {scalar}\n"))
     assert len(problems) == 2
     assert problems[0].startswith("sample: description")
@@ -547,7 +547,7 @@ def test_unsupported_scalars_fail_by_field_AC_2_AC_3(sample_skill, scalar):
     "```bash\npython scripts/extract.py\n```", "```text\nreferences/missing.md\n```",
     "```markdown\n[Read](references/missing.md)\n```",
 ])
-def test_resource_discovery_AC_4(sample_skill, body):
+def test_resource_discovery(sample_skill, body):
     problems = skill_standard_problems(sample_skill(body=body))
     assert len(problems) == 1
     assert problems[0].endswith(": file does not exist")
@@ -562,16 +562,16 @@ def test_resource_discovery_AC_4(sample_skill, body):
     "## Example\n[Read](references/missing.md)\n## Instructions\nNo resource here.",
     "- Reference images in markdown: `![Description](./assets/screenshot.png)`",
 ])
-def test_non_resources_are_ignored_AC_4(sample_skill, body):
+def test_non_resources_are_ignored(sample_skill, body):
     assert skill_standard_problems(sample_skill(body=body)) == []
 
 
-def test_example_does_not_hide_following_instruction_AC_4(sample_skill):
+def test_example_does_not_hide_following_instruction(sample_skill):
     body = "**Example:**\n```markdown\n[Demo](references/demo.md)\n```\n\nRead `references/real.md`."
     assert skill_standard_problems(sample_skill(body=body)) == ["sample: references/real.md: file does not exist"]
 
 
-def test_resource_rules_and_deduplication_AC_4(sample_skill, tmp_path):
+def test_resource_rules_and_deduplication(sample_skill, tmp_path):
     skill = sample_skill(body="[outside](../outside.md) [nested](references/deep/file.md)\n"
                          "`references/folder` `references/link.md` `references/missing.md`\n"
                          "[again](references/missing.md)")
@@ -590,7 +590,7 @@ def test_resource_rules_and_deduplication_AC_4(sample_skill, tmp_path):
     ]
 
 
-def test_valid_skill_and_encoded_links_AC_4_AC_5(sample_skill):
+def test_valid_skill_and_encoded_links(sample_skill):
     skill = sample_skill(fields="metadata:\n  nested: value\n", body="[root](guide.md#part) [space](<references/a%20b.md?raw=1#part>)")
     (skill / "guide.md").write_text("# part")
     (skill / "references").mkdir()
@@ -598,7 +598,7 @@ def test_valid_skill_and_encoded_links_AC_4_AC_5(sample_skill):
     assert skill_standard_problems(skill) == []
 
 
-def test_all_skills_report_all_failures_AC_1_AC_2_AC_3_AC_4_AC_5(tmp_path):
+def test_all_skills_report_all_failures(tmp_path):
     for name in ["a", "b"]:
         skill = tmp_path / name
         skill.mkdir()
@@ -609,7 +609,7 @@ def test_all_skills_report_all_failures_AC_1_AC_2_AC_3_AC_4_AC_5(tmp_path):
     assert all(p.startswith("b:") for p in problems[4:])
 
 
-def test_every_skill_meets_the_standard_AC_5():
+def test_every_skill_meets_the_standard():
     assert not (problems := all_skill_standard_problems(CORE_SKILLS_DIR)), "\n".join(problems)
 
 
@@ -617,11 +617,11 @@ def test_every_skill_meets_the_standard_AC_5():
     "Example: `references/demo.md`\n\nRead `references/real.md`.",
     "**Example:**\n`references/demo.md`\n\nRead `references/real.md`.",
 ])
-def test_inline_examples_end_before_real_instructions_AC_4(sample_skill, body):
+def test_inline_examples_end_before_real_instructions(sample_skill, body):
     assert skill_standard_problems(sample_skill(body=body)) == ["sample: references/real.md: file does not exist"]
 
 
-def test_missing_deep_escape_reports_each_breach_AC_4(sample_skill):
+def test_missing_deep_escape_reports_each_breach(sample_skill):
     assert skill_standard_problems(sample_skill(body="[bad](../elsewhere/missing.md)")) == [
         "sample: ../elsewhere/missing.md: outside the skill folder",
         "sample: ../elsewhere/missing.md: more than one folder below the skill",
@@ -630,5 +630,5 @@ def test_missing_deep_escape_reports_each_breach_AC_4(sample_skill):
 
 
 @pytest.mark.parametrize("scalar", ['"valid"\n  extra', "'valid'\n  extra"])
-def test_unsupported_quoted_continuations_are_not_truncated_AC_2(sample_skill, scalar):
+def test_unsupported_quoted_continuations_are_not_truncated(sample_skill, scalar):
     assert len(skill_standard_problems(sample_skill(description=scalar))) == 1

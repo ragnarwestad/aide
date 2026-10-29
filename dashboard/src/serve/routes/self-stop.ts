@@ -1,4 +1,4 @@
-// The test board's own Stop control (spec 424, REQ-3/REQ-4): a board
+// The test board's own Stop control: a board
 // reached at its own address can stop ITSELF, with no reason to know
 // its own process group or send a signal — `test/round/run`'s own EXIT
 // trap already tears down the worktree, the log and the temp directory
@@ -17,7 +17,7 @@ import type { RoutesContext } from "./";
 export function selfStopRoute(ctx: RoutesContext, req: Request, path: string): Response | null {
   if (path !== "/api/self-stop") return null;
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-  // REQ-5: an ordinary (prod) server never draws the Stop button, but a
+  // An ordinary (prod) server never draws the Stop button, but a
   // request can be sent by hand regardless of what the page draws.
   if (!getBoardInfo()) return new Response("not a test board", { status: 404 });
   // Deferred so the response below has left the socket first —

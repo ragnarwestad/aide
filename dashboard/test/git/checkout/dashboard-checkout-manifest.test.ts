@@ -1,4 +1,4 @@
-// Spec 512: a project keeps nothing of Aide's in its repository. The
+// A project keeps nothing of Aide's in its repository. The
 // dashboard's own settings file reaches the dashboard's clone as a
 // derived, git-ignored `.aide/project.yaml`, and a manifest the team
 // tracks always wins over it.
@@ -64,7 +64,7 @@ function world(files: Record<string, string> = { "README.md": "hi\n" }) {
 }
 
 describe("the dashboard's clone carries the settings file", () => {
-  test("the resolvers answer the settings file and the clone stays clean (AC-4)", async () => {
+  test("the resolvers answer the settings file and the clone stays clean", async () => {
     const w = world();
     writeFileSync(w.settings, SETTINGS);
     expect((await w.ensure()).ok).toBe(true);
@@ -74,7 +74,7 @@ describe("the dashboard's clone carries the settings file", () => {
     expect(git(w.code, "status", "--porcelain")).not.toContain(".aide/project.yaml");
   });
 
-  test("aide_manifest_get reads the same three values off the clone (AC-4)", async () => {
+  test("aide_manifest_get reads the same three values off the clone", async () => {
     const w = world();
     writeFileSync(w.settings, SETTINGS);
     await w.ensure();
@@ -88,7 +88,7 @@ describe("the dashboard's clone carries the settings file", () => {
     expect(get("codeLanding")).toBe("pr");
   });
 
-  test("a tracked manifest wins and nothing of it is touched (AC-4)", async () => {
+  test("a tracked manifest wins and nothing of it is touched", async () => {
     const tracked = "name: demo\npreviewCmd: team check\n";
     const w = world({ "README.md": "hi\n", ".aide/project.yaml": tracked });
     writeFileSync(w.settings, SETTINGS);
@@ -98,7 +98,7 @@ describe("the dashboard's clone carries the settings file", () => {
     expect(git(w.code, "status", "--porcelain")).not.toContain("project.yaml");
   });
 
-  test("the fast-forward over the derived copy succeeds when the team adds a manifest (AC-4)", async () => {
+  test("the fast-forward over the derived copy succeeds when the team adds a manifest", async () => {
     const w = world();
     writeFileSync(w.settings, SETTINGS);
     await w.ensure();
@@ -108,7 +108,7 @@ describe("the dashboard's clone carries the settings file", () => {
     expect(git(w.code, "ls-files", ".aide/project.yaml").trim()).toBe(".aide/project.yaml");
   });
 
-  test("the fast-forward over a legacy copy nobody excluded succeeds (AC-4)", async () => {
+  test("the fast-forward over a legacy copy nobody excluded succeeds", async () => {
     const w = world();
     await w.ensure();
     writeFileSync(join(w.code, ".aide/project.yaml"), "name: demo\n");
@@ -117,7 +117,7 @@ describe("the dashboard's clone carries the settings file", () => {
     expect(readFileSync(join(w.code, ".aide/project.yaml"), "utf-8")).toBe("name: demo\npreviewCmd: team check\n");
   });
 
-  test("worktree links are made in the clone on its first ensure (AC-4)", async () => {
+  test("worktree links are made in the clone on its first ensure", async () => {
     const w = world();
     mkdirSync(join(w.personDir, "node_modules"));
     writeFileSync(w.settings, SETTINGS);
@@ -125,7 +125,7 @@ describe("the dashboard's clone carries the settings file", () => {
     expect(existsSync(join(w.code, "node_modules"))).toBe(true);
   });
 
-  test("an untracked manifest in the person's checkout seeds the settings file and is left alone (AC-1)", async () => {
+  test("an untracked manifest in the person's checkout seeds the settings file and is left alone", async () => {
     const w = world();
     mkdirSync(join(w.personDir, ".aide"));
     writeFileSync(join(w.personDir, ".aide/project.yaml"), "name: demo\npreviewCmd: from draft\n");
@@ -135,7 +135,7 @@ describe("the dashboard's clone carries the settings file", () => {
     expect(resolvePreviewCmd(w.code).value).toBe("from draft");
   });
 
-  test("nothing is written into a person's checkout that links to the clone (AC-1)", async () => {
+  test("nothing is written into a person's checkout that links to the clone", async () => {
     const w = world();
     writeFileSync(w.settings, SETTINGS);
     await w.ensure();

@@ -1,5 +1,5 @@
 // A link that leaves this page for another document says so the moment
-// it is clicked, on every page (spec 312), as a pressed button does.
+// it is clicked, on every page, as a pressed button does.
 //
 // It used to be `specs-client.ts`'s own `markGoing()`, bound only in
 // that bundle, which only the Specs list page loads. Moved here so it

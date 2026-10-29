@@ -13,7 +13,7 @@ describe("every board message carries a text in every language", () => {
     }
   });
 
-  // Spec 484, AC-3: the same for the three languages added beside
+  // The same for the three languages added beside
   // English and Norwegian. `MessageEntry` already makes a missing field
   // a `tsc` error — this is the runtime half, proving the field is not
   // just present but non-empty.
@@ -24,7 +24,7 @@ describe("every board message carries a text in every language", () => {
   });
 });
 
-// Spec 484, Risk analysis: a translation that drops a `{placeholder}`
+// A translation that drops a `{placeholder}`
 // compiles fine (both sides are plain `string`) and only shows up as
 // literal braces in rendered text — this catches the drop at the source
 // instead.
@@ -32,7 +32,7 @@ function placeholders(text: string): Set<string> {
   return new Set([...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]!));
 }
 
-describe("every {placeholder} in an English string is present in every other language (spec 484)", () => {
+describe("every {placeholder} in an English string is present in every other language", () => {
   test.each(Object.entries(MESSAGES) as [string, MessageEntry][])("MESSAGES.%s", (key, entry) => {
     const want = placeholders(entry.en);
     for (const lang of ["nb", "es", "de", "fr"] as const) {

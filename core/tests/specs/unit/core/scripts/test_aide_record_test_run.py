@@ -1,4 +1,4 @@
-"""Tests for core/scripts/aide-record-test-run (spec 329): the ONLY
+"""Tests for core/scripts/aide-record-test-run: the ONLY
 thing that runs a project's resolved test command and captures the
 result — command, exit code, commit — so an exit code never travels
 through the model on its way into a spec's record.
@@ -147,10 +147,10 @@ def test_result_file_carries_the_same_json_as_stdout(script, project, specs_root
     assert json.loads(result_file.read_text()) == out
 
 
-# --- repeatable --cmd (spec 361, REQ-5) -------------------------------------
+# --- repeatable --cmd -------------------------------------
 #
 # A single --cmd must keep producing TODAY's exact record shape — this is
-# what makes REQ-6 a regression lock: every assertion above, unmodified,
+# what makes this a regression lock: every assertion above, unmodified,
 # is the no-scopes fallback path's own coverage.
 
 
@@ -194,7 +194,7 @@ def test_a_failing_first_command_does_not_skip_the_second(script, project, specs
 def test_single_cmd_shape_is_unchanged_even_when_passed_through_the_repeatable_flag(
     script, project, specs_root,
 ):
-    """REQ-6 regression lock: exactly one --cmd, however it is passed,
+    """Regression lock: exactly one --cmd, however it is passed,
     keeps today's scalar shape — no `commands` array at all."""
     rc, out, _ = run_many(script, project, specs_root, "81-x", ["true"])
     assert rc == 0, out
@@ -234,7 +234,7 @@ def test_the_recorded_tree_leaves_out_a_worktree_link(script, project, specs_roo
     runner's commit never carries — and a `node_modules/` ignore rule,
     trailing slash and all, does not match one. Counted, they made the
     tree a run recorded differ from the tree that landed with nothing
-    else between them (spec 480's archive, 2026-09-18)."""
+    else between them."""
     _linking_project(project, tmp_path)
 
     rc, out, _ = run(script, project, specs_root, "81-x", "true")

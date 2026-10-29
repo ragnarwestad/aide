@@ -6,7 +6,7 @@ import { ALL_VIEW, ARCHIVED, ARCHIVED_VIEW, STAMPED, harness, order, specsList, 
 
 afterEach(() => harness.cleanup());
 
-// --- criterion 10: the default view does not pay for the archive -----------
+// --- The default view does not pay for the archive -----------
 
 describe("building the archived rows", () => {
   // Asserted on the CODE, not on the response: a response that happened
@@ -30,7 +30,7 @@ describe("building the archived rows", () => {
     expect(calls.sort()).toEqual(["ACTIVE_FILTER_KEY", "ARCHIVED_STATE", "chosenState"]);
   });
 
-  test("skips a row before it reads anything for it (criterion 10)", () => {
+  test("skips a row before it reads anything for it", () => {
     const body = specViewsSrc.slice(specViewsSrc.indexOf("function archivedSpecRows"));
     const fn = body.slice(0, body.indexOf("\n}\n"));
     // The gate is the resolved filter's own answer...
@@ -71,9 +71,9 @@ describe("building the archived rows", () => {
   });
 });
 
-// --- spec 226, criterion 1: no view leaves a spec off the page -------------
+// --- No view leaves a spec off the page -------------
 //
-// This block pinned the opposite until spec 226: exactly 25 rows, and a
+// This block once pinned the opposite: exactly 25 rows, and a
 // line counting the rest. The archived and the combined views exist to
 // be browsed and searched with the browser's own find, and find cannot
 // reach a row the server never sent.
@@ -87,7 +87,7 @@ describe("an archive bigger than the page", () => {
     ]),
   );
 
-  test("the archived view shows all thirty (criterion 1)", async () => {
+  test("the archived view shows all thirty", async () => {
     const html = await specsList(start({}, MANY).base, ARCHIVED_VIEW);
     expect(order(html)).toHaveLength(30);
     expect(html).not.toContain("not shown");

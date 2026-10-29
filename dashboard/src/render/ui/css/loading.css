@@ -1,4 +1,4 @@
-/* The loading element the spec page's first chunk carries (spec 515): the
+/* The loading element the spec page's first chunk carries: the
    mark's four bars pulsing, and one word under it, over the whole viewport
    until the page's own rule after </main> hides it. It is not one of the
    page's sections: it is sent with that one page's head only, so the

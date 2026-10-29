@@ -86,7 +86,7 @@ const nightly = (over: Seed = {}): Seed => ({ name: "nightly", cron: "0 3 * * *"
 const weekly = (): Seed => ({ name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md" });
 
 describe("POST /api/queue/schedule — create, project read from the body", () => {
-  test("a valid entry is written to the config file and nothing goes to git (AC-1)", async () => {
+  test("a valid entry is written to the config file and nothing goes to git", async () => {
     const t = start();
     const before = Date.now();
     const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly() }));
@@ -100,14 +100,14 @@ describe("POST /api/queue/schedule — create, project read from the body", () =
     expect(t.wroteToGit()).toBe(false);
   });
 
-  test("a server with no config file refuses, naming the cause (AC-1)", async () => {
+  test("a server with no config file refuses, naming the cause", async () => {
     const t = start([], { queueConfigFile: undefined });
     const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly() }));
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toContain("--queue-config");
   });
 
-  test("a config file that is not valid JSON refuses and is left as it was (AC-1)", async () => {
+  test("a config file that is not valid JSON refuses and is left as it was", async () => {
     const t = start([], {}, "{ not json");
     const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly() }));
     expect(res.status).toBe(400);
@@ -162,7 +162,7 @@ describe("POST /api/queue/schedule — create, project read from the body", () =
 });
 
 describe("POST /api/queue/schedule/<project>/<name> — edit", () => {
-  test("editing the cron leaves the name and other entries alone, and nothing goes to git (AC-1)", async () => {
+  test("editing the cron leaves the name and other entries alone, and nothing goes to git", async () => {
     const t = start([nightly(), weekly()]);
     const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ cron: "0 5 * * *" })));
     expect(res.status).toBe(200);
@@ -189,7 +189,7 @@ describe("POST /api/queue/schedule/<project>/<name> — edit", () => {
 });
 
 describe("POST /api/queue/schedule/<project>/<name>/enabled", () => {
-  test("a plain body with only `enabled` pauses the entry, and `true` resumes it (AC-1)", async () => {
+  test("a plain body with only `enabled` pauses the entry, and `true` resumes it", async () => {
     const t = start([nightly()]);
     const off = await fetch(`${t.base}/api/queue/schedule/aide/nightly/enabled`, jsonPost({ enabled: false }));
     expect(off.status).toBe(200);
@@ -225,7 +225,7 @@ describe("the entry's model, over the wire", () => {
 });
 
 describe("the entry's notification choice, over the wire", () => {
-  test("create stores the posted choice, from JSON and from a form (AC-7)", async () => {
+  test("create stores the posted choice, from JSON and from a form", async () => {
     const t = start();
     const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ notify: "always" }) }));
     expect(res.status).toBe(200);
@@ -242,7 +242,7 @@ describe("the entry's notification choice, over the wire", () => {
     expect(form.stored()[0]!.notify).toBe("never");
   });
 
-  test("editing replaces the choice, and an edit that posts none keeps it (AC-7)", async () => {
+  test("editing replaces the choice, and an edit that posts none keeps it", async () => {
     const t = start([nightly({ notify: "never" })]);
     expect((await fetch(`${t.base}/api/queue/schedule/aide/nightly`, jsonPost(nightly({ notify: "always" })))).status).toBe(200);
     expect(t.stored()[0]!.notify).toBe("always");
@@ -250,7 +250,7 @@ describe("the entry's notification choice, over the wire", () => {
     expect(t.stored()[0]!.notify).toBe("always");
   });
 
-  test("a choice that is none of the three is refused, and nothing is written (AC-7)", async () => {
+  test("a choice that is none of the three is refused, and nothing is written", async () => {
     const t = start();
     const res = await fetch(`${t.base}/api/queue/schedule`, jsonPost({ project: "aide", ...nightly({ notify: "sometimes" }) }));
     expect(res.status).toBe(400);
@@ -284,7 +284,7 @@ describe("POST /api/queue/schedule/<project>/<name>/run", () => {
 
   // Run now is this entry firing early, not a different job: it has to
   // run on the model the entry names.
-  test("the job runs on the model the entry names (AC-5)", async () => {
+  test("the job runs on the model the entry names", async () => {
     const t = start([nightly({ model: "codex-fast" })], { queueDefaults: DEFAULTS });
     const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
     expect(res.status).toBe(200);
@@ -336,7 +336,7 @@ describe("Run now on an entry the queue refuses", () => {
 });
 
 describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
-  test("deletes the entry, leaves the others, and nothing goes to git (AC-1)", async () => {
+  test("deletes the entry, leaves the others, and nothing goes to git", async () => {
     const t = start([nightly(), weekly()]);
     const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/delete`, jsonPost({}));
     expect(res.status).toBe(200);
@@ -351,10 +351,10 @@ describe("POST /api/queue/schedule/<project>/<name>/delete", () => {
     expect(JSON.parse(readFileSync(t.file, "utf-8")).schedules).not.toHaveProperty("aide");
   });
 
-  // Moved from schedule-page-route.test.ts (spec 528): that file's own
+  // Moved from schedule-page-route.test.ts: that file's own
   // GET .../delete describe block is gone with the confirm page it
   // covered, but this test proves POST behavior unrelated to that page.
-  test("after a successful delete, the entry's own detail page is 404 (criterion 9)", async () => {
+  test("after a successful delete, the entry's own detail page is 404", async () => {
     const t = start([nightly()]);
     const res = await fetch(`${t.base}/api/queue/schedule/aide/nightly/delete`, jsonPost({}));
     expect(res.status).toBe(200);

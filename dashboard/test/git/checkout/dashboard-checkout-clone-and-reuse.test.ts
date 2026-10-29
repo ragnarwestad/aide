@@ -1,6 +1,6 @@
 // Split out of dashboard-checkout.test.ts by theme.
 //
-// Spec 205: the dashboard works in checkouts of its own.
+// The dashboard works in checkouts of its own.
 //
 // A run used to be cut from the same checkout a person edits, and the
 // two collided: on 2026-08-23 three specs were archived with their code
@@ -98,7 +98,7 @@ describe("ensureDashboardCheckout", () => {
     expect(existsSync(join(first.checkout!.code, "scratch.txt"))).toBe(true);
   });
 
-  // Spec 209. A clone killed part-way through leaves a `.git` holding
+  // A clone killed part-way through leaves a `.git` holding
   // `objects` and no `HEAD` — present, but not a repository that
   // answers. Read as "already cloned", every run afterwards refused,
   // and the refusal named a missing spec, which sends a reader looking
@@ -113,7 +113,7 @@ describe("ensureDashboardCheckout", () => {
 
 
 
-  // Requirement 3: a replacement that fails says which checkout and
+  // A replacement that fails says which checkout and
   // why. The one thing it must never do is report success, because the
   // next thing a reader sees then is `aide-run-spec` refusing an
   // "unknown spec" — a message about the wrong thing entirely.
@@ -132,7 +132,7 @@ describe("ensureDashboardCheckout", () => {
     expect(result.error).not.toContain("unknown spec");
   });
 
-  // Criterion 3, and the whole of the description's disk-use
+  // And the whole of the description's disk-use
   // requirement: one more copy per PROJECT, not one per run. Counted as
   // directories rather than compared as paths — a path equality would
   // pass just as well if a second checkout sat beside the first.

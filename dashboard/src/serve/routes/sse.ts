@@ -1,4 +1,4 @@
-// The SSE subscription route (spec 189). Extracted from routes.ts
+// The SSE subscription route. Extracted from routes.ts
 // (split of split serve.ts step 2) so the dispatcher's own body reads as
 // a short sequence of theme calls.
 import { parsePhaseKeys, scheduleStreamKey } from "../../render";
@@ -12,7 +12,7 @@ export function handleQueueEvents(ctx: RoutesContext, req: Request, path: string
       start(controller) {
         mine = controller;
         ctx.watchers.add(controller);
-        // The phases this tab has unfolded (spec 500): only these hear a
+        // The phases this tab has unfolded: only these hear a
         // transcript grow. A Close or Reopen row it has open hears its
         // job's log grow too: the row's key is the job's phase key, and the
         // open row lists the steps the log marks. So does a scheduled job's

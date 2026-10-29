@@ -12,7 +12,7 @@ import {
   openKeys,
 } from "../../fixtures.ts";
 
-// --- spec 169: one picker per phase, AI and model together -------------------
+// --- One picker per phase, AI and model together -------------------
 //
 // The row offered ONE AI for the whole spec and a model per phase, which
 // read as though the tool were a decision made once. It never was: the
@@ -26,11 +26,11 @@ import {
 // are grouped by tool in the selects themselves.
 //
 // What took its slot — a "set all" control for the whole group — is
-// gone again in spec 179, and what is left here is the half of spec
-// 169 that outlived it: every phase select offers every model, grouped
+// gone, and what is left here is the half that outlived it:
+// every phase select offers every model, grouped
 // by tool, hiding nothing, with the fallbacks that decide which one is
 // pre-filled.
-describe("spec 169: one picker per phase", () => {
+describe("one picker per phase", () => {
   const target = (specFolder = "169-one-picker"): SpecTarget => ({ project: "aide", specFolder });
 
   const BOTH = [
@@ -66,13 +66,11 @@ describe("spec 169: one picker per phase", () => {
   const phaseSelect = (html: string, step: string) =>
     html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";
 
-  // --- criterion 1 -----------------------------------------------------------
-
-  // --- criterion 5's server half: what a phase has already run on -----------
+  // --- the server half: what a phase has already run on ---------------------
 
   // `used` is what pre-fills a select with the model its phase really
   // ran on, and `data-ran="1"` is that fact said to the browser. It was
-  // "set all"'s scope until spec 179 removed the control; it stays
+  // "set all"'s scope, before the control was removed; it stays
   // because the server saying which phases have history, rather than
   // the browser re-deriving it, is the part worth keeping.
   test("a phase that has run says so on its select, and one that has not does not", () => {
@@ -85,14 +83,10 @@ describe("spec 169: one picker per phase", () => {
     }
   });
 
-  // --- criterion 7: the model selects stand on their own --------------------
-
-  // --- criterion 8 -----------------------------------------------------------
-
-  // --- criterion 9 -----------------------------------------------------------
+  // --- The model selects stand on their own --------------------
 
   // The fallback for an unconfigured, never-run phase was biased toward
-  // the row's "resting tool" (spec 141, spec 164). There is no resting
+  // the row's "resting tool". There is no resting
   // tool any more, so it is the first entry the configuration lists —
   // whatever tool that entry starts.
   test("an unconfigured, never-run phase falls back to the first configured model", () => {
@@ -125,7 +119,7 @@ describe("spec 169: one picker per phase", () => {
     expect(select).toMatch(/<option value="gpt-fast"[^>]*selected/);
   });
 
-  // --- the lock a busy row puts on every control on it (spec 105, 151) ------
+  // --- the lock a busy row puts on every control on it ------
 
   test("a busy row locks its AI selects for the same reason as its models", () => {
     const html = rows([
@@ -133,7 +127,7 @@ describe("spec 169: one picker per phase", () => {
     ]);
     const control = html.match(/<select[^>]*data-ai[^>]*>/)![0];
     expect(control).toContain("disabled");
-    // Spec 454: the reason is not the select's own `title`.
+    // The reason is not the select's own `title`.
     expect(control).not.toContain('title="Implement is running"');
   });
 
@@ -148,7 +142,7 @@ describe("spec 169: one picker per phase", () => {
     expect(html.match(/<select[^>]*data-ai="model\.archive"[^>]*>/)![0]).not.toContain("disabled");
   });
 
-  // --- spec 308: resolveChosenModel's new "pending" tier ---------------------
+  // --- ResolveChosenModel's new "pending" tier ---------------------
 
   // A pending pick wins over the configured default, exactly as a phase
   // with history wins over a pending pick (`used` > `pending` >

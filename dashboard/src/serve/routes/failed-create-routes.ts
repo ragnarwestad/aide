@@ -1,5 +1,5 @@
-// Dismissing the message a failed create left on the Specs list (spec
-// 506). The record stays retrievable by id, so a tap on the notification
+// Dismissing the message a failed create left on the Specs list.
+// The record stays retrievable by id, so a tap on the notification
 // still opens New spec filled in; only the message goes.
 import { json } from "../serve-helpers";
 import type { RoutesContext } from "./";

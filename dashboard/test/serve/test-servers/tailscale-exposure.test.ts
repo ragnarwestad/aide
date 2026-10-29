@@ -1,4 +1,4 @@
-// Spec 491: `parseExposedPorts()` is the pure half of the exposure
+// `parseExposedPorts()` is the pure half of the exposure
 // check — tested against literal JSON strings, never a spawned
 // `tailscale` binary (2-analysis.md's own "Test coverage": no test
 // anywhere in this suite spawns a real `tailscale`).

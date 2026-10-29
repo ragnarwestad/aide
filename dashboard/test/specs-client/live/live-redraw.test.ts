@@ -7,23 +7,22 @@ import {
   OK_ACTION,
 } from "../fixtures.ts";
 
-// --- spec 189: the page changes when something changes -----------------------
+// --- The page changes when something changes -----------------------
 
 // The five-second timer is gone. The page holds one connection open and
 // redraws when the server says something moved — so a reader with the
 // browser's own tools open can hold still on a row, and a step that
 // finishes shows up at once rather than up to five seconds later.
-describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
+describe("the rows are redrawn on a push, not on a timer", () => {
   const rowFetches = (h: ReturnType<typeof harness>) =>
     h.requests.filter((r) => r.url.includes("rows=1"));
 
   const fresh = () => harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
 
-  // It registered NO timer at all until spec 199, which added one that
-  // rewrites the text of running-phase marks and does nothing else. The
-  // rule spec 189 laid down survives that: no timer FETCHES, so the
+  // The one timer it registers rewrites the text of running-phase marks
+  // and does nothing else. The rule survives that: no timer FETCHES, so the
   // rows still change only when the server says something moved.
-  test("the page's one timer never fetches (criterion 1)", () => {
+  test("the page's one timer never fetches", () => {
     const h = fresh();
     h.visibility("visible");
     expect(h.intervals).toEqual([1000]);
@@ -32,10 +31,10 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
     expect(h.requests).toHaveLength(before);
   });
 
-  // --- spec 199: a running phase counts up while the reader watches ---
+  // --- A running phase counts up while the reader watches ---
   //
-  // Nothing on this page redraws because time passed — that is spec
-  // 189's whole point, and it is why an elapsed figure the server drew
+  // Nothing on this page redraws because time passed — that is the whole
+  // point, and it is why an elapsed figure the server drew
   // would sit still until something else happened. The clock below is
   // the exception, and it is deliberately the narrowest one there can
   // be: it rewrites the text of the marks that carry their own start,
@@ -43,7 +42,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
   describe("the elapsed mark on a running phase", () => {
     const started = "2026-08-23T11:58:00Z";
 
-    test("a tick advances the mark's own text (criterion 4)", () => {
+    test("a tick advances the mark's own text", () => {
       const h = fresh();
       h.visibility("visible");
       h.elapsed.push({ dataset: { elapsed: started }, textContent: "2m00s" });
@@ -56,7 +55,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
 
     // The requirement in full: nothing else on the page has changed —
     // no "changed" event, no row swap, no request at all.
-    test("it advances with no server round trip of any kind (criterion 4)", () => {
+    test("it advances with no server round trip of any kind", () => {
       const h = fresh();
       h.visibility("visible");
       h.elapsed.push({ dataset: { elapsed: started }, textContent: "" });
@@ -101,7 +100,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
 
     // A genuinely positive span must never round down to "0s" — that
     // reads as "nothing recorded", indistinguishable from a phase the
-    // queue never measured at all (spec 410, REQ-5).
+    // queue never measured at all.
     test("a sub-second span never rounds down to 0s, on either side of the hand-paired pair", () => {
       const h = fresh();
       h.visibility("visible");
@@ -138,9 +137,9 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
     expect(h.sources[0]!.url).toBe("/api/queue/events?state=active");
   });
 
-  // Criterion 1, said the only way it can be said: with the connection
+  // Said the only way it can be said: with the connection
   // open and nobody sending anything, the page does not fetch rows.
-  test("an idle connected page fetches nothing and redraws nothing (criterion 1)", async () => {
+  test("an idle connected page fetches nothing and redraws nothing", async () => {
     const h = fresh();
     h.visibility("visible");
     await flush();
@@ -148,7 +147,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
     expect(h.rows.innerHTML).toBe("");
   });
 
-  test("a `changed` event redraws the rows (criterion 2)", async () => {
+  test("a `changed` event redraws the rows", async () => {
     const h = fresh();
     h.visibility("visible");
     h.live()!.emit("changed");
@@ -160,7 +159,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
   // `open` fires on the first connect AND on every reconnect the
   // browser makes on its own — after a dropped network, after the
   // server was restarted under the page. Resyncing there is what makes
-  // criteria 4 and 5 self-healing without anyone reloading.
+  // the page self-healing without anyone reloading.
   test("`open` resyncs, so a reconnect picks up what was missed", async () => {
     const h = fresh();
     h.visibility("visible");
@@ -179,7 +178,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
   // server still shows the OLD state until the press answers, so a swap
   // in that window puts an untouched button back over the "cancelling…"
   // the press just drew.
-  test("a `changed` event during a press does not swap the rows (criterion 6)", async () => {
+  test("a `changed` event during a press does not swap the rows", async () => {
     let release: () => void = () => {};
     const held = new Promise<void>((r) => (release = r));
     const h = harness((url) =>
@@ -205,7 +204,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
   // Nobody is reading a hidden tab, and the mini has better things to do
   // than hold a socket for a closed laptop — the same reason the timer
   // used to skip while hidden, applied to the connection itself.
-  test("a hidden tab holds no connection and fetches nothing (criterion 7)", async () => {
+  test("a hidden tab holds no connection and fetches nothing", async () => {
     const h = fresh();
     h.visibility("visible");
     const first = h.live()!;
@@ -221,7 +220,7 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
     expect(h.sources).toHaveLength(0);
   });
 
-  test("becoming visible again opens a fresh connection and resyncs (criterion 8)", async () => {
+  test("becoming visible again opens a fresh connection and resyncs", async () => {
     const h = fresh();
     h.visibility("visible");
     h.visibility("hidden");
@@ -285,7 +284,7 @@ describe("?live=0 declines the live connection", () => {
   });
 });
 
-// --- spec 204: a redraw never takes a press with it -------------------------
+// --- A redraw never takes a press with it -------------------------
 //
 // Reported 2026-08-23: come back to the tab, click a row, and nothing
 // opens — the third press works. Coming back reconnects, the reconnect
@@ -297,7 +296,7 @@ describe("?live=0 declines the live connection", () => {
 // What is asserted here is therefore node identity, not markup: a row
 // the redraw had no reason to touch must be the same object afterwards.
 // That is the fix, and everything else about it is scaffolding.
-describe("a redraw touches only the specs that changed (spec 204)", () => {
+describe("a redraw touches only the specs that changed", () => {
   /** The shape the server actually sends: a filter bar, one table, and
    *  one `<tr class="spechead" id="spec-...">` per spec with its own
    *  rows beneath it. */
@@ -330,7 +329,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     await flush();
   };
 
-  test("an unchanged spec keeps its own row nodes across a redraw (criteria 1, 3)", async () => {
+  test("an unchanged spec keeps its own row nodes across a redraw", async () => {
     const same = page(group(A, "queued"), group(B, "queued"));
     const h = pages(same, same);
     await settle(h);
@@ -349,7 +348,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     expect(h.rowFor(`spec-${B}`)).not.toBeNull();
   });
 
-  test("the renderer's own head rows are found and kept across an unchanged redraw (AC-5)", async () => {
+  test("the renderer's own head rows are found and kept across an unchanged redraw", async () => {
     const own = renderSpecsRows(
       [],
       {
@@ -373,7 +372,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     heads.forEach((id, i) => expect(h.rowFor(id)).toBe(kept[i]!));
   });
 
-  test("a spec whose state moved IS replaced, and no other is (criterion 2)", async () => {
+  test("a spec whose state moved IS replaced, and no other is", async () => {
     const h = pages(
       page(group(A, "queued"), group(B, "queued")),
       page(group(A, "running"), group(B, "queued")),
@@ -391,7 +390,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     expect(h.rowFor(`spec-${B}`)).toBe(still);
   });
 
-  test("what the diff leaves behind is what the server sent (criterion 5)", async () => {
+  test("what the diff leaves behind is what the server sent", async () => {
     // An hour on a hidden tab: the queue moved several times and the
     // page saw none of it, because a hidden tab holds no connection.
     // One reconnect has to be enough to catch up on all of it.
@@ -405,7 +404,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     expect(h.rows.innerHTML).toBe(end);
   });
 
-  test("a spec that appeared while the tab was hidden is drawn in (criterion 4)", async () => {
+  test("a spec that appeared while the tab was hidden is drawn in", async () => {
     const h = pages(page(group(A, "queued")), page(group(A, "queued"), group(B, "queued")));
     await settle(h);
     const kept = h.rowFor(`spec-${A}`);
@@ -448,7 +447,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     expect(h.rows.innerHTML).toBe(page(group(A, "queued")));
   });
 
-  // --- spec 226: the refresh does not throw the reader back to the top ---
+  // --- The refresh does not throw the reader back to the top ---
   //
   // With the 25-row cap gone the list is as long as the archive is, and
   // it scrolls in a box of its own. A poll that lands while somebody is
@@ -461,7 +460,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
   // wrapper afresh, so a fix that only rode the keyed-diff path would
   // look right in a quiet minute and reset the scroll the next time
   // anything ran.
-  describe("the list's scroll position survives a redraw (spec 226)", () => {
+  describe("the list's scroll position survives a redraw", () => {
     /** The same page with one chip count changed — markup outside the
      *  rows, which is what makes `applyGroupDiff` decline. */
     const withCount = (n: number, ...groups: string[]): string =>
@@ -504,7 +503,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
 // flight. What the server pushes and what a return to the tab brings is the
 // same for them as for the list: the page asks. Without the marker it asks
 // nothing, and a page never reloads on a timer.
-describe("a page that follows its job asks for its parts (AC-1, AC-2, AC-6)", () => {
+describe("a page that follows its job asks for its parts", () => {
   const MARKER = { "data-tab": "steps", "data-running": "1" };
   const PARTS = `<div data-follow-part="head"><p>Running</p></div>`;
   /** The answer of a job still in flight: the marker, then the parts. */
@@ -515,7 +514,7 @@ describe("a page that follows its job asks for its parts (AC-1, AC-2, AC-6)", ()
   /** Each event comes two seconds after the last, the pace the asks keep. */
   const later = (h: ReturnType<typeof harness>) => void (h.clock.at += 2500);
 
-  test("a page without the marker asks nothing on `changed`, `open` or a return to the tab (AC-1)", async () => {
+  test("a page without the marker asks nothing on `changed`, `open` or a return to the tab", async () => {
     const h = harness(() => ({ ok: true }));
     h.visibility("visible");
     h.live()!.emit("changed");
@@ -526,7 +525,7 @@ describe("a page that follows its job asks for its parts (AC-1, AC-2, AC-6)", ()
     expect(asks(h)).toHaveLength(0);
   });
 
-  test("a followed page asks its own path, with its query and follow=1, on each of the three (AC-2)", async () => {
+  test("a followed page asks its own path, with its query and follow=1, on each of the three", async () => {
     const h = followed();
     h.visibility("visible");
     h.live()!.emit("changed");
@@ -547,7 +546,7 @@ describe("a page that follows its job asks for its parts (AC-1, AC-2, AC-6)", ()
     }
   });
 
-  test("while a press is in flight it does not ask (AC-2)", async () => {
+  test("while a press is in flight it does not ask", async () => {
     let release: () => void = () => {};
     const held = new Promise<void>((r) => (release = r));
     const h = harness(
@@ -566,7 +565,7 @@ describe("a page that follows its job asks for its parts (AC-1, AC-2, AC-6)", ()
     await pressed;
   });
 
-  test("an answer with no marker takes the page's away, and later events ask nothing (AC-6)", async () => {
+  test("an answer with no marker takes the page's away, and later events ask nothing", async () => {
     const h = followed(() => ({ ok: true, text: PARTS }));
     h.visibility("visible");
     h.live()!.emit("changed");
@@ -580,7 +579,7 @@ describe("a page that follows its job asks for its parts (AC-1, AC-2, AC-6)", ()
     expect(asks(h)).toHaveLength(1);
   });
 
-  test("a page opened with ?live=0 asks nothing (AC-1)", async () => {
+  test("a page opened with ?live=0 asks nothing", async () => {
     const h = harness(() => ({ ok: true, text: PARTS }), "actionform", "?live=0", { pathname: "/jobs/j1", follow: MARKER });
     h.visibility("visible");
     h.visibility("hidden");
@@ -592,14 +591,14 @@ describe("a page that follows its job asks for its parts (AC-1, AC-2, AC-6)", ()
 
 // The Jobs tab at `/` draws the Specs list's rows in the same `#jobrows`, so
 // the redraw asks the address of the page it runs on.
-describe("the redraw asks the page's own address (AC-8)", () => {
+describe("the redraw asks the page's own address", () => {
   const asked = (h: ReturnType<typeof harness>) =>
     h.requests.map((r) => r.url).filter((u) => u.includes("rows=1"));
 
   test.each([
     ["/", "/?"],
     ["/specs", "/specs?"],
-  ])("on %s the rows are asked at %s (AC-8)", async (pathname, prefix) => {
+  ])("on %s the rows are asked at %s", async (pathname, prefix) => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "actionform", "?open=aide%2F81-x", { pathname });
     h.visibility("visible");
     h.live()!.emit("changed");
@@ -612,7 +611,7 @@ describe("the redraw asks the page's own address (AC-8)", () => {
   test.each([
     ["/", "/?"],
     ["/specs", "/specs?"],
-  ])("on %s one spec's fold asks %s with only= (AC-8)", async (pathname, prefix) => {
+  ])("on %s one spec's fold asks %s with only=", async (pathname, prefix) => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "rowrun", "", { pathname });
     h.clickFold();
     await flush();

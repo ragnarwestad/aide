@@ -9,14 +9,14 @@ afterEach(() => {
 
 // The State filter lived in the query string alone too, and every
 // plain link to `/` threw it away the same way the sort was until the
-// fix above — the Specs tab, a bookmark, the back button (spec 338).
+// fix above — the Specs tab, a bookmark, the back button.
 describe("the state filter the reader chose is remembered", () => {
   /** The `Set-Cookie` this route writes for the state filter, if any. */
   const stateCookie = (res: Response, port: number | undefined): string =>
     res.headers.getSetCookie().find((c) => c.startsWith(`aide_state_${port}=`)) ?? "";
   /** Which state the rendered trigger says is chosen — its label,
-   *  without the count beside it (spec 374 dropped the "States:"
-   *  prefix in favour of the label and count alone). */
+   *  without the count beside it (there is no "States:" prefix, only
+   *  the label and count). */
   const triggerLabel = (html: string): string =>
     /<summary[^>]*>([^<]*) \(\d+\)/.exec(html)?.[1] ?? "";
 
@@ -58,7 +58,7 @@ describe("the state filter the reader chose is remembered", () => {
     expect(stateCookie(res, server.port)).toBe("");
   });
 
-  // REQ-5: the search term is not a citizen of this mechanism.
+  // The search term is not a citizen of this mechanism.
   test("a remembered search term never comes back on a bare /, even while a remembered state does", async () => {
     const { base, server } = start();
     const chosen = await fetch(`${base}/specs?state=not-archived&q=foo`);

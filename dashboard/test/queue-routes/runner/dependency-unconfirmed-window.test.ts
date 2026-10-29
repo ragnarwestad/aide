@@ -2,7 +2,7 @@
 // Held while the answer is missing, so a fetch that fails for a moment
 // does not release the job into the script's refusal; released after
 // `UNCONFIRMED_HOLD_MS`, so an origin that stays unreachable does not
-// park the job for good (spec 351).
+// park the job for good.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";

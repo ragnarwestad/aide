@@ -1,4 +1,4 @@
-// The panel a row's long messages go into (spec 143): a row of its own,
+// The panel a row's long messages go into: a row of its own,
 // spanning the table, wrapping rather than overflowing. Everything the
 // State column used to hold and could not — the spec's own reason for an
 // archive that declined, a job's failure — is said here, once for the
@@ -52,14 +52,14 @@ export const specLoadingRowTemplate = (columns: number, lang: Language): string 
 export const listRefusalLine = (): string => messageSlot("refused", "failed", { id: LIST_REFUSED_ID });
 
 /** The one phase whose own record disagrees with the files, worded for
- *  the panel (spec 195). The sentence used to be drawn under that
+ *  the panel. The sentence used to be drawn under that
  *  phase's badge, where it was the last thing on this page that could
  *  make one line taller than another.
  *
  *  The panel holds one message, and three disagreements listed in it
  *  would be the same growing block of text in a new place — so still
  *  exactly one sentence. But not always the EARLIEST phase in workflow
- *  order any more (spec 280): a phase whose own last attempt genuinely
+ *  order any more: a phase whose own last attempt genuinely
  *  FAILED outranks an earlier phase's softer, unrelated note — an
  *  earlier phase's `filesDisagree` must not hide a later phase's real
  *  failure. Among phases with no real failure, the earliest with any
@@ -116,7 +116,7 @@ export function specNoticeRow(
   lang: Language,
   testServerAvailable: (project: string, specFolder: string) => boolean,
   /** The view the row is drawn in: what the unfolded acceptance
-   *  criteria (spec 493) need to keep. */
+   *  criteria need to keep. */
   view: {
     filter?: SpecsFilter;
     branchPreview?: (project: string, specFolder: string) => string | undefined;
@@ -148,11 +148,11 @@ export function specNoticeRow(
   const notice = specNotice(
     lead,
     archiveHeldBack,
-    // A locked row's phases can carry queue-remembered attempts (spec
-    // 410, for the duration/cost cells) from a run that happened before
+    // A locked row's phases can carry queue-remembered attempts
+    // (for the duration/cost cells) from a run that happened before
     // the spec was archived or closed — nothing on a locked row is
     // still actionable, so a disagreement between the files and that
-    // leftover attempt is not shown as a warning (spec 483). The mark
+    // leftover attempt is not shown as a warning. The mark
     // and readyToArchive arguments beside this one already carry the
     // same gate.
     locked ? undefined : phaseDisagreement(g, lang, sharedFiles),

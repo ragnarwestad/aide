@@ -1,5 +1,5 @@
 """Tests for core/scripts/aide-emit-run — the UserPromptSubmit emitter
-that links a Claude Code session to the aide spec it works on (spec 80).
+that links a Claude Code session to the aide spec it works on.
 
 The script is a prompt hook: it must never write to stdout (that text
 is injected into the model's context), must always exit 0 (non-zero
@@ -163,10 +163,10 @@ class TestAideEmitRun:
 
 @pytest.mark.claude_code
 class TestPhaseMode:
-    """Criterion 10 (spec 81, slice 81c): reporting a TDD phase boundary
+    """Reporting a TDD phase boundary
     from inside an /aide-implement run.
 
-    Spec 80 handed sub-phase events to this stage. Pausing inside a step
+    This stage handles sub-phase events. Pausing inside a step
     is ruled out (print mode has nobody to answer a question), but
     REPORTING from inside one is a different thing: one command at each
     phase boundary, still silent, still exit 0, still inert without
@@ -233,7 +233,7 @@ class TestPhaseMode:
 class TestImplementSkillReportsItsPhases:
     def test_the_skill_reports_each_tdd_phase(self, workspace_root):
         """The events are worth nothing if the skill never sends them —
-        spec 81 §2 puts one line in each TDD phase."""
+        the design puts one line in each TDD phase."""
         skill = (workspace_root / "core" / "skills" / "aide-implement" / "SKILL.md").read_text()
         for phase in ("red", "green", "verify"):
             assert f"aide-emit-run --phase {phase}" in skill, (

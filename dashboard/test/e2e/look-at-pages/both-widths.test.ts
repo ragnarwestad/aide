@@ -22,7 +22,7 @@ afterAll(async () => {
 /** A PNG's width, read from its IHDR chunk. */
 const widthOf = (file: string): number => readFileSync(file).readUInt32BE(16);
 
-test("every page is taken at 1440 px and at a narrower phone width, and an earlier round is replaced (AC-1)", async () => {
+test("every page is taken at 1440 px and at a narrower phone width, and an earlier round is replaced", async () => {
   const out = mkdtempSync(join(tmpdir(), "look-at-pages-e2e-"));
   const paths = ["/", "/specs"];
 

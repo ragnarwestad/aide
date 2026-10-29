@@ -1,6 +1,6 @@
-// spec 355: readSpecState is the one reader of 4-status.json — this
+// ReadSpecState is the one reader of 4-status.json — this
 // pins its shape and its "missing means null, never a fallback parse"
-// contract (REQ-3, REQ-10).
+// contract.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -25,7 +25,7 @@ afterAll(() => {
 });
 
 describe("readSpecState", () => {
-  test("null when there is no 4-status.json at all (REQ-10)", () => {
+  test("null when there is no 4-status.json at all", () => {
     expect(readSpecState(join(dir, "does-not-exist"))).toBeNull();
   });
 
@@ -83,7 +83,7 @@ describe("readSpecState", () => {
   });
 });
 
-// spec 362: the branch reader (`BranchFileStepsChecker`) has `git show`
+// The branch reader (`BranchFileStepsChecker`) has `git show`
 // output, not a file path — `parseSpecStateText` is `readSpecState`'s
 // JSON-parsing core, pulled out so both readers share one parsing rule.
 describe("parseSpecStateText", () => {
@@ -183,10 +183,10 @@ describe("currentAcceptancePhase", () => {
   });
 });
 
-// --- spec 509: a Not verified row in 4-status.json ---------------------------
+// --- A Not verified row in 4-status.json ---------------------------
 
-describe("a Not verified row in the state file (spec 509)", () => {
-  test("the row's notVerified flag is read back, and its absence stays absent (AC-8)", () => {
+describe("a Not verified row in the state file", () => {
+  test("the row's notVerified flag is read back, and its absence stays absent", () => {
     const parsed = parseSpecStateText(
       JSON.stringify({
         acceptanceCriteria: [
@@ -199,7 +199,7 @@ describe("a Not verified row in the state file (spec 509)", () => {
     expect("notVerified" in parsed!.acceptanceCriteria[1]!).toBe(false);
   });
 
-  test("currentPhase and currentAcceptancePhase read a phase counted done as finished (AC-8)", () => {
+  test("currentPhase and currentAcceptancePhase read a phase counted done as finished", () => {
     // `phaseCounts` is written by the bash side, which counts the mark as done.
     const state = parseSpecStateText(
       JSON.stringify({ phaseCounts: { "Phase 1: RED": { done: 1, total: 1 }, "Acceptance criteria": { done: 2, total: 2 } } }),

@@ -7,7 +7,7 @@
 # that file, so the order, and every variable it shares with the rest
 # of the run, are exactly what they were.
 
-# The workflow's own vocabulary (spec 349): one file, read here and
+# The workflow's own vocabulary: one file, read here and
 # imported by the dashboard — see core/scripts/lib/workflow-steps.json's
 # own comment for what each list is and why it is shaped the way it is
 # (WORKFLOW_STEPS is the names --command accepts; DEPENDENCY_GATED_STEPS
@@ -25,7 +25,7 @@ WORKFLOW_ARC_RETIRED="$(jq -r '.workflowArcRetired | join(" ")' "$_workflow_step
 [ -n "$WORKFLOW_STEPS" ] \
   || { echo "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read workflowSteps from $_workflow_steps_file\"}"; exit 2; }
 
-# The effort levels a step may be run at (spec 364): the same
+# The effort levels a step may be run at: the same
 # shared-vocabulary pattern as workflow-steps.json above — one file, read
 # here and imported by the dashboard.
 _effort_levels_file="$SCRIPT_DIR/lib/effort-levels.json"
@@ -35,7 +35,7 @@ EFFORT_LEVELS="$(jq -r '.effortLevels | join(" ")' "$_effort_levels_file" 2>/dev
 [ -n "$EFFORT_LEVELS" ] \
   || { echo "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read effortLevels from $_effort_levels_file\"}"; exit 2; }
 # Directory names a build WRITES into, or that a tool locks a cache in —
-# never a dependency cache a build only reads (spec 186). A link is one
+# never a dependency cache a build only reads. A link is one
 # symlink into the main checkout that every concurrent run shares, so two
 # runs building through it overwrite each other's output. Third list of
 # the same shape as the two above: the dashboard holds the second copy
@@ -62,24 +62,24 @@ project_dir=""; command_name=""; spec_arg=""; timeout_sec=""
 specs_root_arg=""
 permission_mode=""; result_file=""; model=""; effort=""; session_id=""
 kill_grace_sec="30"; do_pull="no"; dry_run="no"
-# Which AI actually runs the step (spec 125). Defaults to claude, so
+# Which AI actually runs the step. Defaults to claude, so
 # every caller that predates this flag — the dashboard, a run started by
 # hand — is unaffected until it opts in. Everything around the
 # invocation stays one path: the queue, the worktrees, the timeout and
 # all the git handling never learn there is a second tool.
 tool="claude"
 review_tool=""; review_model=""; verify_tool=""; verify_model=""
-# What a `create` step is FOR (spec 93). Every other step names a folder
+# What a `create` step is FOR. Every other step names a folder
 # that is already on disk; this one makes it, so the two things
 # /aide-create needs come in as arguments instead. Required for a create
 # whose --spec does not resolve, meaningless everywhere else.
 title=""; description=""
-# What the new spec BUILDS ON (spec 110): the `Depends on:` line spec 92
-# gave a reader and no writer but a person at a shell. Comma-separated,
+# What the new spec BUILDS ON: the `Depends on:` line, which
+# has a reader and no writer but a person at a shell. Comma-separated,
 # exactly the shape the line has on disk — stated in the create prompt,
 # meaningless everywhere else.
 depends_on=""
-# Why a `close` step is closing the spec (spec 406, REQ-3/REQ-5): typed
+# Why a `close` step is closing the spec: typed
 # by the person closing it, stated in the close prompt so the skill can
 # hand it straight to `aide-close-spec --reason`, meaningless for every
 # other command.
@@ -87,7 +87,7 @@ reason=""
 # Create records this choice in the description. After analyze, the
 # runner reads that saved choice to mark every acceptance row Not verified.
 acceptance_not_required="no"
-# Whether a `create` step skips the AI session entirely (spec 433): the
+# Whether a `create` step skips the AI session entirely: the
 # New-spec form's "let AI formulate acceptance criteria" box, cleared. A
 # bare flag, same shape as --acceptance-not-required: nothing to
 # validate, and its absence is the byte-for-byte behaviour every caller
@@ -108,7 +108,7 @@ choose_approach_arg=""
 reset_files="no"
 resume_session=""
 # The file whose contents become the prompt VERBATIM, for `--command
-# schedule` alone (spec 259). A schedule entry names no aide skill and
+# schedule` alone. A schedule entry names no aide skill and
 # no spec folder — its whole "job" is the text at this path, read from
 # $project_root before the worktree is cut (see the prompt-construction
 # branch below). Meaningless for every other command.
@@ -124,7 +124,7 @@ sandbox="yes"
 # no existing caller changes behaviour.
 stream_file=""
 # Repos beyond the project and its specs root that this job is expected
-# to touch. Spec 81's own implement step wrote to a third repository
+# to touch. An implement step once wrote to a third repository
 # the run knew nothing about: that half was left uncommitted on the
 # machine while the result reported success.
 # Where the throwaway checkouts live. Outside every repo, keyed by
@@ -137,7 +137,7 @@ worktree_base=""
 # for. The queue passes the mode from its config, where the default is
 # `branch`.
 push_mode="none"
-# Whether that default was TYPED or merely left standing (spec 220). The
+# Whether that default was TYPED or merely left standing. The
 # project's manifest may raise it to `pr`, and it may only do so where
 # nobody said otherwise — so "explicitly passed" and "left at its
 # default" have to be told apart, which the variable above cannot do on
@@ -202,7 +202,7 @@ refuse() {
 }
 
 # --- nothing to do ----------------------------------------------------------
-# refuse()'s sibling, and deliberately a separate function (spec 211).
+# refuse()'s sibling, and deliberately a separate function.
 # Every one of refuse()'s dozen-plus callers relies on it meaning failure
 # and nothing else, and this is not a failure: a spec found under
 # `archive/` whose branch is gone from every root is finished work, not a

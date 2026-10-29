@@ -8,14 +8,14 @@ import type { LandContext } from "./types.ts";
 /** Everything about a spec that only git can answer, asked once per
  *  spec over the same checkout.
  *
- *  Spec 154: which steps it has HAD. The runner commits every step it
+ *  Which steps it has HAD. The runner commits every step it
  *  finishes, with the outcome in the subject, and that commit exists
  *  whether or not the model reached the instruction that writes
  *  `4-status.md` — which is what makes it the record and the file the
  *  claim. The file is still read (`fileSteps`), for one purpose: a
  *  row whose file and history disagree says so.
  *
- *  Spec 97: whether the plan is still about the problem the
+ *  Whether the plan is still about the problem the
  *  description states. A description committed after the last
  *  finished analyze means the plan on disk answers an older question,
  *  so the two phases that produced it stop counting as done and the
@@ -47,16 +47,15 @@ function stillStopped(stopped: Record<string, string>, t: SpecTarget): Record<st
 export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[] {
   return list.map((t) => {
     if (!t.dir) return t;
-    // Spec 302: the one canonical `{done, stopped, fileDisagrees,
+    // The one canonical `{done, stopped, fileDisagrees,
     // fileSteps}` — the `create` special case included — resolved from
-    // the same two peeks this used to assemble by hand (spec 208: peeks,
+    // the same two peeks this used to assemble by hand (peeks,
     // never the async methods — a render reads memory and disk and
     // nothing else; `refreshSpecCaches` is what keeps these fed, on a
     // schedule of its own). `null` when nothing has ever been asked
     // about this spec: not "no step has run" — that is a real answer
     // with a real, empty history — and the row draws "checking…" rather
-    // than a false negative, which is the class of bug spec 178's own
-    // plan review flagged.
+    // than a false negative.
     const resolved = resolveWorkflowState(
       ctx.workflowHistory, ctx.branchFileSteps, t.dir, t.specFolder, t.reopenedAfter, t.fileSteps,
     );
@@ -65,7 +64,7 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
     const withHistory: SpecTarget = {
       ...t,
       // Not `...resolved`: `resolved.fileSteps` is the prose half alone
-      // (spec 362, `resolveWorkflowState`'s own `answer.proseSteps`),
+      // (`resolveWorkflowState`'s own `answer.proseSteps`),
       // and nothing downstream ever reads `SpecTarget.fileSteps` again
       // once resolved — only `fileDisagrees` reaches the row. Spreading
       // it would overwrite `t.fileSteps`'s own `FileStepsAnswer` with a
@@ -76,7 +75,7 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
       historyDone: resolved.historyDone,
       superseded: resolved.superseded,
       sourcesCheckedAt: new Date(resolved.checkedAt).toISOString(),
-      // What the "Started" column holds (spec 199). Null when git
+      // What the "Started" column holds. Null when git
       // could not answer — a shallow clone, a folder moved without
       // `git mv` — and then the cell shows a dash rather than a
       // job's own time, which is the field this replaces.

@@ -1,4 +1,4 @@
-// Spec 495, criteria 7 and 11 (the document half): a report's HTML becomes
+// The document half: a report's HTML becomes
 // the framed document — the board's tokens in, the report's own styling and
 // script out.
 import { describe, expect, test } from "bun:test";

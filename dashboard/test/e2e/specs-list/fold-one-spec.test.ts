@@ -37,7 +37,7 @@ const detail = (key: string) => `tr[data-spec-detail="aide/${key}"]`;
 const openRows = () =>
   page.evaluate(() => [...document.querySelectorAll("tr.spechead a.fold[aria-expanded=true]")].map((a) => a.closest("tr")!.getAttribute("data-folder")));
 
-test("a chevron opens the spec at its own address, one row at a time, and Back shuts it (AC-3, AC-4)", async () => {
+test("a chevron opens the spec at its own address, one row at a time, and Back shuts it", async () => {
   await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/specs)");
   expect(await openRows()).toEqual([]);
 
@@ -144,7 +144,7 @@ async function pressAt(p: Page, selector: string): Promise<void> {
   await p.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
-test("the rest of the page stays drawn while a row loads, and Loading is only in that row (AC-1, AC-2)", async () => {
+test("the rest of the page stays drawn while a row loads, and Loading is only in that row", async () => {
   const p = await browser.newPage();
   await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
   const { release } = await holdDetail(p);
@@ -173,7 +173,7 @@ test("the rest of the page stays drawn while a row loads, and Loading is only in
   await p.close();
 });
 
-test("a press anywhere else does nothing while the row loads (AC-3)", async () => {
+test("a press anywhere else does nothing while the row loads", async () => {
   const p = await browser.newPage();
   await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
   const { release } = await holdDetail(p);
@@ -193,7 +193,7 @@ test("a press anywhere else does nothing while the row loads (AC-3)", async () =
   await p.close();
 });
 
-test("a spec opened in place mounts one editor (AC-4)", async () => {
+test("a spec opened in place mounts one editor", async () => {
   const p = await browser.newPage();
   await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
   const asked = p.waitForRequest((r) => isDetail(new URL(r.url())));
@@ -204,7 +204,7 @@ test("a spec opened in place mounts one editor (AC-4)", async () => {
   await p.close();
 });
 
-test("opening a second spec in place keeps its row where it was pressed, with one editor in its row (AC-1)", async () => {
+test("opening a second spec in place keeps its row where it was pressed, with one editor in its row", async () => {
   const many = queueHarness("aide-e2e-fold-place-");
   const folders = Array.from({ length: 12 }, (_, i) => `${100 + i}-spec-number-${i}`);
   const longBase = many.start({ extra: {}, alsoSpecs: folders }).base;
@@ -230,7 +230,7 @@ test("opening a second spec in place keeps its row where it was pressed, with on
   }
 });
 
-test("a request that fails says so in the row, and the page can be pressed again (AC-5)", async () => {
+test("a request that fails says so in the row, and the page can be pressed again", async () => {
   const p = await browser.newPage();
   await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
   const { fail } = await holdDetail(p);
@@ -245,7 +245,7 @@ test("a request that fails says so in the row, and the page can be pressed again
   await p.close();
 });
 
-test("Back from a spec opened in place shuts its row without loading the list again (AC-1)", async () => {
+test("Back from a spec opened in place shuts its row without loading the list again", async () => {
   const p = await browser.newPage();
   await withBrowser(p.goto(`${base}/specs?live=0`), "page.goto(/specs)");
   await p.evaluate(() => { (window as unknown as { sameDocument: boolean }).sameDocument = true; });

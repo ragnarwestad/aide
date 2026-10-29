@@ -72,7 +72,7 @@ def lines_for(output, address):
     return [line for line in output.splitlines() if address in line]
 
 
-def test_the_repo_s_table_names_a_tool_and_an_address_on_every_row_ac_1(module, workspace_root):
+def test_the_repo_s_table_names_a_tool_and_an_address_on_every_row(module, workspace_root):
     text = (workspace_root / "docs" / "AI_NEWS_LOG.md").read_text()
     rows = module.watched_pages(text)
     assert rows
@@ -84,7 +84,7 @@ def test_the_repo_s_table_names_a_tool_and_an_address_on_every_row_ac_1(module, 
     assert len(addresses) == len(set(addresses))
 
 
-def test_every_page_in_the_table_gets_a_line_in_table_order_ac_2(script, tmp_path):
+def test_every_page_in_the_table_gets_a_line_in_table_order(script, tmp_path):
     first = page(tmp_path, "first.html", article("First page."))
     second = page(tmp_path, "second.html", article("Second page."))
     store = tmp_path / "store"
@@ -103,7 +103,7 @@ def diff_file(line):
     return Path(line.rsplit(" in ", 1)[1].strip())
 
 
-def test_a_changed_page_keeps_its_diff_in_a_file_and_keeps_the_new_copy_ac_3(script, tmp_path):
+def test_a_changed_page_keeps_its_diff_in_a_file_and_keeps_the_new_copy(script, tmp_path):
     address = page(tmp_path, "p.html", article("Remove this advice.", "Stay as it was."))
     store = tmp_path / "store"
     log = write_log(tmp_path, [address])
@@ -173,7 +173,7 @@ def test_a_followed_page_that_changes_keeps_its_diff(script, tmp_path):
     assert "+New model advice." in diff_file(line).read_text()
 
 
-def test_a_change_inside_nav_header_footer_or_aside_is_unchanged_ac_4(script, tmp_path):
+def test_a_change_inside_nav_header_footer_or_aside_is_unchanged(script, tmp_path):
     def body(menu):
         return (
             f"<header>Header {menu}</header><nav>Menu {menu}</nav>{article('The advice stays.')}"
@@ -192,7 +192,7 @@ def test_a_change_inside_nav_header_footer_or_aside_is_unchanged_ac_4(script, tm
     assert "@@" not in result.stdout
 
 
-def test_only_main_s_text_is_compared_when_the_page_has_one_ac_4(script, tmp_path):
+def test_only_main_s_text_is_compared_when_the_page_has_one(script, tmp_path):
     def body(outside):
         return f"<p>Outside {outside}</p><main>{article('Inside stays.')}</main><p>After {outside}</p>"
 
@@ -208,7 +208,7 @@ def test_only_main_s_text_is_compared_when_the_page_has_one_ac_4(script, tmp_pat
     assert "@@" not in result.stdout
 
 
-def test_a_page_with_no_copy_is_stored_and_prints_no_diff_ac_5(script, tmp_path):
+def test_a_page_with_no_copy_is_stored_and_prints_no_diff(script, tmp_path):
     address = page(tmp_path, "p.html", article("Fresh page."))
     store = tmp_path / "store"
     log = write_log(tmp_path, [address])
@@ -221,7 +221,7 @@ def test_a_page_with_no_copy_is_stored_and_prints_no_diff_ac_5(script, tmp_path)
     assert len(list(store.iterdir())) == 1
 
 
-def test_a_page_that_cannot_be_fetched_keeps_its_copy_ac_6(script, tmp_path):
+def test_a_page_that_cannot_be_fetched_keeps_its_copy(script, tmp_path):
     address = page(tmp_path, "p.html", article("Here today."))
     store = tmp_path / "store"
     log = write_log(tmp_path, [address])
@@ -239,7 +239,7 @@ def test_a_page_that_cannot_be_fetched_keeps_its_copy_ac_6(script, tmp_path):
     assert copy.read_bytes() == before
 
 
-def test_a_page_with_almost_no_text_counts_as_failed_ac_6(script, tmp_path):
+def test_a_page_with_almost_no_text_counts_as_failed(script, tmp_path):
     address = page(tmp_path, "p.html", article("Good page."))
     store = tmp_path / "store"
     log = write_log(tmp_path, [address])
@@ -256,7 +256,7 @@ def test_a_page_with_almost_no_text_counts_as_failed_ac_6(script, tmp_path):
     assert copy.read_bytes() == before
 
 
-def test_the_copies_are_kept_under_home_by_default_ac_7(script, tmp_path):
+def test_the_copies_are_kept_under_home_by_default(script, tmp_path):
     address = page(tmp_path, "p.html", article("Kept elsewhere."))
     log = write_log(tmp_path, [address])
     home = tmp_path / "home"

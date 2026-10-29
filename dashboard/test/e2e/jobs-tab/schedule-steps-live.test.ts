@@ -31,8 +31,8 @@ afterEach(() => {
 const KEY = "aide/schedule-nightly";
 const said = (text: string) => JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text }] } }) + "\n";
 
-describe("a running scheduled job's open row (AC-4)", () => {
-  test("shows a step the log marks after the row was opened, without the page being loaded again (AC-4)", async () => {
+describe("a running scheduled job's open row", () => {
+  test("shows a step the log marks after the row was opened, without the page being loaded again", async () => {
     const own = mkdtempSync(join(tmpdir(), "aide-e2e-schedule-steps-own-"));
     ownDirs.push(own);
     const go = join(own, "go");

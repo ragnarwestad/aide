@@ -38,7 +38,7 @@ function checkForms(html: string): Record<string, string>[] {
 const TABLE = join(import.meta.dir, "../../../../core/scripts/lib/install-targets.txt");
 
 describe("the table of places", () => {
-  test("a blank line and a comment are skipped, and a short line throws naming it (AC-4)", () => {
+  test("a blank line and a comment are skipped, and a short line throws naming it", () => {
     const text = "# where aide installs\n\nclaude  skills  core/skills/  ~/.claude/skills/\n";
     expect(parseInstallTargets(text)).toEqual([
       { tool: "claude", place: "skills", from: "core/skills/", to: "~/.claude/skills/" },
@@ -46,13 +46,13 @@ describe("the table of places", () => {
     expect(() => parseInstallTargets("claude skills ~/.claude/skills/\n")).toThrow("claude skills ~/.claude/skills/");
   });
 
-  test("the dashboard's places are exactly the rows of core/scripts/lib/install-targets.txt (AC-4)", () => {
+  test("the dashboard's places are exactly the rows of core/scripts/lib/install-targets.txt", () => {
     expect(INSTALL_TARGETS).toEqual(parseInstallTargets(readFileSync(TABLE, "utf-8")));
   });
 });
 
 describe("the sentence above Check", () => {
-  test.each([...TOOL_TABS])("%s's names every place the table gives it (AC-1)", (tool) => {
+  test.each([...TOOL_TABS])("%s's names every place the table gives it", (tool) => {
     const rows = INSTALL_TARGETS.filter((row) => row.tool === tool);
     expect(rows.length).toBeGreaterThan(0);
     const sentence = toolWhere("en", tool, placesOf(INSTALL_TARGETS, tool));
@@ -60,7 +60,7 @@ describe("the sentence above Check", () => {
     expect(sentence).not.toContain("{");
   });
 
-  test("a table naming other places names those places (AC-4)", () => {
+  test("a table naming other places names those places", () => {
     const other = parseInstallTargets(
       "codex instructions core/AGENTS.md ~/.x/AGENTS.md\n" +
         "codex scripts core/scripts/ ~/.x/bin/\n" +
@@ -75,19 +75,19 @@ describe("the sentence above Check", () => {
 
 describe("each tab's own Check", () => {
   for (const tool of TOOL_TABS) {
-    test.each([...TOOL_PARTS])(`${tool}'s %s tab has one Check posting the AI and that tab, with its own (?) (AC-3)`, (part) => {
+    test.each([...TOOL_PARTS])(`${tool}'s %s tab has one Check posting the AI and that tab, with its own (?)`, (part) => {
       const html = toolPanel(tool, undefined, undefined, Date.now(), {}, "en", part);
       expect(checkForms(html)).toEqual([{ tool, part }]);
       expect(html).toContain(helpPopover(t("en", "settings.checkHelpTitle"), checkHelp("en", tool, part)));
     });
   }
 
-  test.each([...TOOL_TABS])("%s's three (?) say three different things (AC-3)", (tool) => {
+  test.each([...TOOL_TABS])("%s's three (?) say three different things", (tool) => {
     expect(new Set(TOOL_PARTS.map((part) => checkHelp("en", tool, part))).size).toBe(3);
   });
 });
 
-test("a Norwegian reader gets the Norwegian sentence, tabs, (?) and model headings (AC-15)", () => {
+test("a Norwegian reader gets the Norwegian sentence, tabs, (?) and model headings", () => {
   const html = toolPanel("codex", undefined, undefined, Date.now(), {
     reading: { tool: "codex", at: "2026-10-03T13:30:00.000Z", offered: [] },
   }, "nb");

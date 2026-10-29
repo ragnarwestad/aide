@@ -5,8 +5,8 @@ import type { CreateChoices } from "../../../project/discover";
 import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page";
 import type { Phase } from "../specs-list";
 
-/** One row of `4-status.md`'s Tasks tables, as the page shows it (spec
- *  182). `phase` and `line` are the row's identity: the checks form
+/** One row of `4-status.md`'s Tasks tables, as the page shows it.
+ *  `phase` and `line` are the row's identity: the checks form
  *  names the row by them so the server can refuse a row that has
  *  moved. */
 export interface SpecCheckView {
@@ -28,7 +28,7 @@ export interface SpecCheckView {
   untested?: boolean;
 }
 
-/** The spec's checks, on the Overview tab (specs 182, 188, 212).
+/** The spec's checks, on the Overview tab.
  *
  *  `rows` is every row in the file, done ones included. `phase` is the
  *  one phase whose open rows may be TICKED — the first section still
@@ -69,15 +69,15 @@ export interface SpecPageView {
   lead?: JobDetailView;
   /** Every step from every job in this spec's current work round,
    *  oldest job first, tagged with its attempt number when there is
-   *  more than one job (spec 242) — replaces the attempt picker.
+   *  more than one job — replaces the attempt picker.
    *  The server always sets it, empty jobs list included — optional
-   *  only in the same sense `phases?`/`done?` above already are (spec
-   *  239/241): a view built before this field existed (or by a test
+   *  only in the same sense `phases?`/`done?` above already are:
+   *  a view built before this field existed (or by a test
    *  fixture that has no reason to care about it) leaves it absent
    *  rather than every caller having to spell out `steps: []`. */
   steps?: JobStepResultView[];
   /** The spec's own run history, the same four-phase
-   *  chain the front page's row draws (spec 239) — read off the
+   *  chain the front page's row draws — read off the
    *  same source, never recomputed. Absent only for a view built before
    *  this field existed; the server always sets it, empty jobs list
    *  included. */
@@ -86,13 +86,13 @@ export interface SpecPageView {
    *  `phasePips` needs to mark a phase done rather than todo. From the
    *  same target `phases` above is built from. */
   done?: string[];
-  /** Whether the spec has been archived (spec 163). Its folder has
+  /** Whether the spec has been archived. Its folder has
    *  moved into `archive/` and the spec is a RECORD: the description's
    *  textarea was built for a description edited while the work is live
-   *  (spec 162), and a Save on an archived spec would have written,
+   *  and a Save on an archived spec would have written,
    *  committed and pushed into `archive/`. */
   archived?: boolean;
-  /** Closed rather than archived (spec 406, REQ-7) — a spec whose idea
+  /** Closed rather than archived — a spec whose idea
    *  did not hold, recorded with the reason it was closed. Always
    *  `false` unless `archived` is also `true`: the folder physically
    *  moves the same way either way, and this is what tells the two
@@ -101,7 +101,7 @@ export interface SpecPageView {
    *  when this is set, and `closeControl` stays hidden for the same
    *  `view.archived` check. */
   closed?: boolean;
-  /** The reason typed by the person who closed this spec (REQ-5), and
+  /** The reason typed by the person who closed this spec, and
    *  when — off the `**Closed:**` stamp. Present only when `closed` is. */
   closedDate?: string;
   closeReason?: string;
@@ -109,12 +109,12 @@ export interface SpecPageView {
    *  it knows the action's own path. */
   updateAction: string;
   /** Whether Close is offered for closing a spec that is not going to
-   *  work (spec 406, REQ-1) — true while the spec is active, absent
+   *  work — true while the spec is active, absent
    *  once it is archived (closed included: `closeControl` checks
-   *  `view.archived`). Close has no fallback page behind it (spec 527),
+   *  `view.archived`). Close has no fallback page behind it,
    *  so this is a flag, not a URL. */
   closeAvailable?: boolean;
-  /** Why Close cannot be selected at this instant (REQ-11): a job in
+  /** Why Close cannot be selected at this instant: a job in
    *  flight or a landing in progress blocks the move. */
   closeUnavailableReason?: string;
   /** Why the PDF icon cannot be pressed: `md-to-pdf` missing on the
@@ -122,36 +122,36 @@ export interface SpecPageView {
   pdfUnavailableReason?: string;
   /** Where the Description tab's Save posts. */
   saveAction: string;
-  /** Where the Overview tab's checks form posts (spec 212). Its own
+  /** Where the Overview tab's checks form posts. Its own
    *  route, and therefore its own commit: a person no longer has to
    *  open the description's editor in order to tick a box. */
   tickAction: string;
-  /** The spec's own checks (spec 182). Absent for a spec whose
+  /** The spec's own checks. Absent for a spec whose
    *  `4-status.md` has no phase section at all. */
   checks?: SpecChecksView;
   /** Whether the spec's own Tracking info says acceptance ticking is not
-   *  required (spec 394) — read fresh off `1-description.md`
+   *  required — read fresh off `1-description.md`
    *  (`specAcceptanceNotRequired`). Absent/false means "required", exactly as no line at
-   *  all does (REQ-11). */
+   *  all does. */
   acceptanceNotRequired?: boolean;
   /** The choices the spec was created with, read off its description. The
    *  banner shows three of them and cannot change them; absent, the banner
    *  draws what a spec with nothing recorded runs with. */
   createChoices?: CreateChoices;
-  /** Where the banner's combined depends-on/acceptance form posts (spec
-   *  394) — its own route, since the banner is drawn once per page load
+  /** Where the banner's combined depends-on/acceptance form posts
+   *  — its own route, since the banner is drawn once per page load
    *  regardless of which document tab is open, unlike `saveAction`
    *  below, which belongs to whichever tab's own textarea is showing. */
   trackingAction: string;
   /** The commit whichever document tab's own file was read at, carried
    *  through that tab's form so a save whose file has moved since can be
-   *  refused (spec 310: one field, since only one tab's form is ever
+   *  refused (one field, since only one tab's form is ever
    *  drawn per request). Absent for a file git has never committed,
    *  which is not a mismatch. */
   formBaseSha?: string;
-  /** Where the "Start board" form posts (spec 388). Absent means no
+  /** Where the "Start board" form posts. Absent means no
    *  control is drawn at all — the round is unavailable on this host, or
-   *  this spec's own code branch carries no commits (REQ-1). */
+   *  this spec's own code branch carries no commits. */
   testServerAction?: string;
   /** Where the "Stop board" form posts, once a board is up. */
   testServerStopAction?: string;
@@ -164,15 +164,15 @@ export interface SpecPageView {
    *  transient reason (another job running, a landing in progress), the
    *  same disabled-with-reason shape `closeUnavailableReason` uses. */
   testServerUnavailableReason?: string;
-  /** The board's own live status (REQ-4), read off the registry on every
+  /** The board's own live status, read off the registry on every
    *  render — absent means none has ever been started for this spec's
    *  current branch. */
   testServer?: TestServerStatusView;
 }
 
-/** A board's status, as the spec page shows it (spec 388). Named
+/** A board's status, as the spec page shows it. Named
  *  `status`, never `state`: a repo-wide guard
- *  (test/queue/store/transitions.test.ts's REQ-6b) reserves the literal
+ *  (test/queue/store/transitions.test.ts) reserves the literal
  *  "state:" for a queue JOB's own state, and a board's lifecycle is an
  *  unrelated concept the guard's naive text match cannot tell apart from
  *  it. */
@@ -180,7 +180,7 @@ export interface TestServerStatusView {
   status: "starting" | "running" | "failed";
   branch: string;
   commit: string;
-  /** Set once the round has reported itself up (REQ-4). */
+  /** Set once the round has reported itself up. */
   url?: string;
   /** Set once the board has failed to start. */
   error?: string;

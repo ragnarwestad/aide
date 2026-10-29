@@ -30,9 +30,9 @@ export function fact(label: string, value: string): string {
   return `<p class="desc"><strong>${esc(label)}</strong> <span class="muted">${value}</span></p>`;
 }
 
-/** What being closed actually means for this spec (spec 406, REQ-7) —
+/** What being closed actually means for this spec —
  *  Names the reason and
- *  the date (REQ-5's "travels with the spec"), never the word
+ *  the date (which "travel with the spec"), never the word
  *  "archived": the description's own emphasis is that closing must not
  *  look like archiving, and this is where a reader of the spec's own
  *  page meets that distinction stated as fact rather than left to be
@@ -44,21 +44,17 @@ export function closedLine(view: SpecPageView, lang: Language = "en"): string {
   return `<p class="desc"><span class="muted">${t(lang, "spec.closedLine", { when, reason })}</span></p>`;
 }
 
-/** The spec's checks, on the CHECKS tab (specs 182, 188, 212).
+/** The spec's checks, on the CHECKS tab.
  *
- *  Spec 182 put these rows at the top of the page because they were
- *  buried near the bottom of the fourth file, which is the last place
- *  anyone looks. Spec 188 then made every one of them inert and moved
- *  the tick onto the description's Edit form, because a second way of
- *  changing a spec was one too many for a reader to learn.
- *
- *  They are boxes again, with a Save of their own. That is not spec
- *  188 undone: a reader still has ONE place to tick, and the
+ *  They are not at the bottom of the fourth file, which is the last place
+ *  anyone looks, and they are boxes with a Save of their own. A second way of
+ *  changing a spec would be one too many for a reader to learn: a reader
+ *  still has ONE place to tick, and the
  *  description's editor is now a tab beside this one rather than a page
  *  behind a link, so ticking a box no longer means opening it.
  *
- *  On the Status PANEL rather than in the banner, which is where spec
- *  182 put the summary: a form in the banner rides onto every tab, and a
+ *  On the Status PANEL rather than in the banner, which is where the
+ *  summary is: a form in the banner rides onto every tab, and a
  *  half-ticked list is the first thing a refresh of the page wipes.
  *
  *  Done rows are shown too, dimmed: the list is what is left AND what
@@ -72,8 +68,8 @@ export function closedLine(view: SpecPageView, lang: Language = "en"): string {
  *
  *  The Phase tables (RED/GREEN/VERIFY, and a LOW spec's `## Checklist`)
  *  are the implement RUN's own record of its work, and nothing anywhere
- *  gates on them — archive's only gate is the Acceptance section, and
- *  has been since spec 268. Drawing them as boxes therefore asked a
+ *  gates on them — archive's only gate is the Acceptance section.
+ *  Drawing them as boxes therefore asked a
  *  person to do work that changed nothing, while making the page look
  *  like it was holding the spec back; a run that forgets to tick its own
  *  row is the run's record to fix, never a person's clicking. They stay
@@ -129,14 +125,14 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
     if (last && last.phase === row.phase) last.rows.push(row);
     else groups.push({ phase: row.phase, rows: [row] });
   }
-  // Spec 163: an archived spec is a RECORD, and a tick would write,
+  // An archived spec is a RECORD, and a tick would write,
   // commit and push into `archive/`. The rows stay — they are a fact
   // about the spec — and nothing on them presses.
   // Running, or landing — not queued: a queued job writes nothing yet,
   // and an archive job parked on this very tick is queued (the same
   // rule the tick route applies, `specWriteInFlight`).
   const activeJob = view.lead?.state === "running" || !!view.lead?.landing;
-  // Spec 163: an archived spec's rows stay, and nothing on them presses.
+  // An archived spec's rows stay, and nothing on them presses.
   // A job in flight is writing the file this form would commit onto.
   //
   // The section a tick is scoped to is the rows' OWN heading, taken from
@@ -192,7 +188,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
     g.rows.map(item).join("");
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;
   // The head line and, when the boxes are tickable, Save/Cancel beside it
-  // (spec 391) — one `.panelhead` div, the form's first child, so the
+  // one `.panelhead` div, the form's first child, so the
   // buttons sit on the same line as the mark rather than below the list.
   const panelHead = (actions = ""): string =>
     `<div class="panelhead"><p data-checkshead><strong>Checks</strong> ` +
@@ -212,7 +208,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
   return `<section class="checks">${body}</section>`;
 }
 
-/** The one action an archived spec offers (spec 198).
+/** The one action an archived spec offers.
  *
  *  Reopening used to be done by hand in a terminal — move the folder out
  *  of `archive/`, overwrite three files, hunt the branch down in two
@@ -240,13 +236,13 @@ export function reopenControl(view: SpecPageView, lang: Language = "en"): string
   );
 }
 
-/** The PDF button (spec 358): opens `GET .../pdf` in a new tab, where
+/** The PDF button: opens `GET .../pdf` in a new tab, where
  *  the browser's own viewer shows it — a plain link, never a form, so it
- *  works with JavaScript switched off (REQ-2). Disabled with its reason
- *  rather than hidden when the tool is missing (REQ-7), the exact shape
+ *  works with JavaScript switched off. Disabled with its reason
+ *  rather than hidden when the tool is missing, the exact shape
  *  `closeControl` below already uses.
  *
- *  An icon alone, not the word "PDF" beside it (spec 391): it opens a
+ *  An icon alone, not the word "PDF" beside it: it opens a
  *  document, so it reads as one — the same `aria-label` says what it
  *  does to a reader who cannot see the icon, on both branches. And no
  *  button frame around it (asked 2026-09-09): the red PDF icon is the
@@ -254,7 +250,7 @@ export function reopenControl(view: SpecPageView, lang: Language = "en"): string
 export const PDF_UNAVAILABLE = "md-to-pdf is not installed on this host";
 
 export function pdfLink(action: string, unavailableReason?: string): string {
-  // Trimmed from "...in a new tab" (spec 454): the design guard caps a
+  // Trimmed from "...in a new tab": the design guard caps a
   // title attribute at a few words, and the link's own target attribute
   // already says where it opens.
   const what = "Open this spec as a PDF";
@@ -276,8 +272,8 @@ export function pdfControl(view: SpecPageView): string {
 }
 
 /** What a board is doing, when one was ever asked for: starting,
- *  failed, or running at an address (REQ-4: its branch and commit;
- *  REQ-5: whose specs these are), with the Stop button beside it.
+ *  failed, or running at an address (its branch and commit;
+ *  whose specs these are), with the Stop button beside it.
  *
  *  There is no Start button on this page. It sat in the tab row, where
  *  it took the width that made the row wider than the fields and the
@@ -289,7 +285,7 @@ export function pdfControl(view: SpecPageView): string {
  *  Drawn in the banner, above the tabs: it is a sentence, and the tab
  *  row holds buttons only. */
 export function testServerStatus(view: SpecPageView): string {
-  // Spec 425, REQ-1: this used to also require `testServerAction` (whether a
+  // This used to also require `testServerAction` (whether a
   // NEW board may be started), which hid an already-running board's own
   // link and Stop button the moment the spec was archived. `testServerAction`
   // is unrelated to whether THIS board exists — nothing on this page has
@@ -332,9 +328,9 @@ export function testServerStatus(view: SpecPageView): string {
   );
 }
 
-/** The operation that ends a work round without archiving the work (spec
- *  406, REQ-1). Disabled rather than hidden for "possible in principle,
- *  not right now" (REQ-11) — `view.archived` hides it for an archived OR
+/** The operation that ends a work round without archiving the work.
+ *  Disabled rather than hidden for "possible in principle,
+ *  not right now" — `view.archived` hides it for an archived OR
  *  a closed spec alike, since the move does not apply once a spec has
  *  left the active list. */
 export function closeControl(view: SpecPageView, lang: Language = "en"): string {
@@ -342,16 +338,16 @@ export function closeControl(view: SpecPageView, lang: Language = "en"): string 
   // The reason itself is `actionsHelp()`'s, the row's one shared mark —
   // this button carries no popover of its own.
   if (view.closeUnavailableReason) return btn({ label: "Close", type: "button", disabled: true });
-  // Close has no fallback page behind it (spec 527) — this button needs
+  // Close has no fallback page behind it — this button needs
   // script to do anything, joining design-system.md's list of controls
   // that do.
   return askButton({ label: "Close", dialogId: CLOSE_ASK_ID }) + closeAskDialog(view.project, view.specFolder, lang);
 }
 
-/** One "(?)" for the whole action row (spec 457), replacing what used
+/** One "(?)" for the whole action row, replacing what used
  *  to be several separate ones: Reopen's own, Close's own disabled
- *  reason, what Close means (REQ-2 — a reader meets Close only in a
- *  `title` attribute otherwise, which REQ-2 explicitly says is not
+ *  reason, what Close means (a reader would meet Close only in a
+ *  `title` attribute otherwise, which is not
  *  enough; shares its exact wording with the close dialog's own prose,
  *  `CLOSE_SENTENCE` in ask-dialog.ts, so the two places can never say it
  *  differently), and Update's own. Drawn once, before the row's own

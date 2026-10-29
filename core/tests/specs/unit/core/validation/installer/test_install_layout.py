@@ -17,7 +17,7 @@ import pytest
 # .zshrc nor .bash_profile — so a tool in /opt/homebrew/bin, /usr/local/bin
 # or ~/.local/bin is "command not found" over ssh while a person sitting at
 # the machine finds it. install_shell_path writes the one file each shell
-# does read (spec 175).
+# does read.
 PATH_DIRS = ("/opt/homebrew/bin", "/usr/local/bin", "$HOME/.local/bin")
 PATH_BLOCK_MARKER = "aide PATH"
 
@@ -228,7 +228,7 @@ class TestInstallReplacesByRename:
 class TestSpecTransitionsLibIsInstalled:
     def test_spec_transitions_lib_and_table_are_installed(self, workspace_root, tmp_path):
         """aide-archive-spec's implement check calls may_apply_spec_transition
-        from lib/spec-transitions.sh (spec 356). It landed without an
+        from lib/spec-transitions.sh. It landed without an
         installer entry, so the serving host refused every archive as
         not-implemented-yet (2026-09-03)."""
         installer = workspace_root / "core" / "scripts" / "_install-bin.sh"

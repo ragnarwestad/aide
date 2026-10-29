@@ -36,7 +36,7 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("the viewer mounts and draws the file's first line as a heading (AC-2)", async () => {
+test("the viewer mounts and draws the file's first line as a heading", async () => {
   const page = await browser.newPage();
   await page.goto(`${base}/schedule/aide/nightly-report/prompt`);
   await page.locator("#spec-editor-host[data-mounted]").waitFor();

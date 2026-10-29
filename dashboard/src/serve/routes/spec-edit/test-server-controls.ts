@@ -1,4 +1,4 @@
-// The board's own start/stop routes (spec 388) — the family
+// The board's own start/stop routes — the family
 // `run-controls.ts` beside this file already established: a project/
 // specFolder path, `ctx.specRef` for the archived refusal, a JSON answer
 // for the page script.

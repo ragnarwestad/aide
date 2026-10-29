@@ -27,7 +27,7 @@ function posted(form: HTMLFormElement): FormDataEntryValue | null {
 }
 
 describe("the criteria checks choice", () => {
-  test("offers Off, Warn and Stop, in that order (AC-2)", () => {
+  test("offers Off, Warn and Stop, in that order", () => {
     expect(criteriaChecksChoices()).toEqual([
       { value: "off", label: "Off" },
       { value: "warn", label: "Warn" },
@@ -35,11 +35,11 @@ describe("the criteria checks choice", () => {
     ]);
   });
 
-  test("an untouched New spec form posts off (AC-2)", () => {
+  test("an untouched New spec form posts off", () => {
     expect(posted(newSpecForm())).toBe("off");
   });
 
-  test("a New spec form with Stop chosen posts stop (AC-2)", () => {
+  test("a New spec form with Stop chosen posts stop", () => {
     const form = newSpecForm();
     const select = form.querySelector("#new-spec-criteria-checks") as HTMLSelectElement;
     select.value = "stop";

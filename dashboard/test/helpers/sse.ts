@@ -1,5 +1,5 @@
 // One held-open `/api/queue/events` connection, read frame by frame.
-// Pulled out of queue-events.test.ts (spec 275) so a second suite that
+// Pulled out of queue-events.test.ts so a second suite that
 // needs to watch for `event: changed` — cache-warmer.test.ts, checking
 // that a background poll's own correction reaches an open tab — does
 // not carry a second copy of the same parser.
@@ -9,7 +9,7 @@ export interface Stream {
   /** The next real event. Keep-alive comments are skipped: they are the
    *  connection breathing, not news. */
   next(ms?: number): Promise<string>;
-  /** That nothing arrives inside `ms` — criterion 1's own assertion. */
+  /** That nothing arrives inside `ms` — the assertion that no event is pushed. */
   quiet(ms: number): Promise<void>;
   close(): Promise<void>;
 }

@@ -21,7 +21,7 @@ from ..run_spec_status_files import TIME_OF_DAY_RE, TIME_SPENT_RE, already_ran, 
 def test_a_create_run_records_its_own_outcome_and_no_repo_line(
     runner, workspace, fake_claude
 ):
-    """AC1: `create` gains a time of day on `Created:`, and `Model` (when
+    """`create` gains a time of day on `Created:`, and `Model` (when
     a model was named), `Result: completed` and `Time spent` — but no
     `Repo` line, since nothing was yet analyzed against."""
     made = CREATE_KEY
@@ -47,7 +47,7 @@ def test_a_create_run_records_its_own_outcome_and_no_repo_line(
     assert bullet(text, "Repo") is None
 
 def test_a_create_run_with_an_effort_records_it_beside_the_model(runner, workspace, fake_claude):
-    """REQ-5: an `--effort` a run was given lands as its own bullet in the
+    """An `--effort` a run was given lands as its own bullet in the
     phase file's own Tracking info, beside `- **Model:**`."""
     made = CREATE_KEY
     claude = fake_claude(
@@ -67,7 +67,7 @@ def test_a_create_run_with_an_effort_records_it_beside_the_model(runner, workspa
     assert bullet(text, "Effort") == "high"
 
 def test_a_run_with_no_effort_writes_no_effort_line(runner, workspace, fake_claude):
-    """REQ-4/REQ-5's second half: "absence over a guess" — a run given no
+    """The "absence over a guess" rule: a run given no
     `--effort` writes no `- **Effort:**` line at all, never an empty one."""
     with_status(workspace)
     claude = analyzing_claude(fake_claude, workspace)
@@ -95,7 +95,7 @@ def test_a_re_run_replaces_a_stale_effort_line_rather_than_duplicating_it(
     assert bullet(text, "Effort") == "max"
 
 def test_an_analyze_run_writes_one_repo_line_per_root(runner, workspace, fake_claude):
-    """AC2: `Last analyzed:` gains a time of day, and the Tracking info
+    """`Last analyzed:` gains a time of day, and the Tracking info
     gains one `Repo` line per repo root, each matching that root's own
     `head_before`."""
     with_status(workspace)
@@ -117,7 +117,7 @@ def test_an_analyze_run_writes_one_repo_line_per_root(runner, workspace, fake_cl
 def test_an_implement_run_stopped_by_timeout_records_the_stop(
     runner, workspace, fake_claude
 ):
-    """AC3: a run stopped by its own time limit records that in
+    """A run stopped by its own time limit records that in
     `3-solution.md`'s `Result` line rather than `completed`."""
     with_status(workspace, ["analyze"])
     with_solution(workspace)
@@ -137,7 +137,7 @@ def test_an_implement_run_stopped_by_timeout_records_the_stop(
 def test_a_failed_cli_run_records_a_sanitized_error_summary(
     runner, workspace, fake_claude
 ):
-    """AC4: a CLI failure's `Result` line carries `stopped (cli-error)`
+    """A CLI failure's `Result` line carries `stopped (cli-error)`
     followed by a one-line, backtick-free summary, truncated to at most
     200 characters — never the raw multi-line error verbatim."""
     with_status(workspace, ["analyze"])
@@ -157,7 +157,7 @@ def test_a_failed_cli_run_records_a_sanitized_error_summary(
 def test_an_archive_run_keeps_the_steps_line_and_adds_its_own_block(
     runner, workspace, fake_claude
 ):
-    """AC5: `4-status.md` keeps the unchanged `Workflow steps completed:`
+    """`4-status.md` keeps the unchanged `Workflow steps completed:`
     line AND gains the new outcome block for `archive` itself — with no
     `Model (create|analyze|implement):` lines written by this run."""
     with_status(workspace, done=True)
@@ -178,7 +178,7 @@ def test_an_archive_run_keeps_the_steps_line_and_adds_its_own_block(
 def test_a_re_run_of_the_same_step_replaces_the_block_not_duplicates_it(
     runner, workspace, fake_claude
 ):
-    """AC6: running the same step twice leaves the phase file's block
+    """Running the same step twice leaves the phase file's block
     reflecting only the newest run — no duplicate lines, and the date
     field's time is overwritten rather than duplicated."""
     with_status(workspace)
@@ -202,7 +202,7 @@ def test_a_re_run_of_the_same_step_replaces_the_block_not_duplicates_it(
 def test_a_result_bullet_outside_tracking_info_survives_the_write(
     runner, workspace, fake_claude
 ):
-    """AC7: a `Result:`-shaped bullet the model wrote elsewhere in the
+    """A `Result:`-shaped bullet the model wrote elsewhere in the
     same file (e.g. in prose about a past attempt) is not Tracking info,
     and the phase-outcome writer must not touch it."""
     with_status(workspace)
@@ -224,7 +224,7 @@ def test_a_result_bullet_outside_tracking_info_survives_the_write(
     assert bullet(text, "Result") == "completed"
 
 def test_a_codex_run_writes_a_tokens_line_with_no_cost_line(runner, workspace, fake_codex):
-    """AC3: a Codex phase's own file gains a `Tokens:` bullet off the
+    """A Codex phase's own file gains a `Tokens:` bullet off the
     same `tokens_json` the result JSON already carries, with no `Cost:`
     line at all."""
     with_status(workspace)
@@ -239,7 +239,7 @@ def test_a_codex_run_writes_a_tokens_line_with_no_cost_line(runner, workspace, f
     assert bullet(text, "Cost") is None
 
 def test_a_run_with_no_usage_block_writes_no_tokens_line(runner, workspace, fake_codex):
-    """AC4: a CLI that reported no usage block at all (a failed turn,
+    """A CLI that reported no usage block at all (a failed turn,
     here) leaves no `Tokens:` line — absence, not a `0`, mirroring how
     `Cost:` already behaves for an unmeasured figure."""
     with_status(workspace)
@@ -303,7 +303,7 @@ def test_a_run_with_no_usage_block_keeps_the_earlier_token_total(runner, workspa
     assert bullet(text, "Tokens") == "1000"
 
 def test_a_fresh_phase_stamps_its_first_attempt(runner, workspace, fake_claude):
-    """REQ-1: a phase with no prior `Attempts:` bullet at all gets `1` on
+    """A phase with no prior `Attempts:` bullet at all gets `1` on
     its first run."""
     with_status(workspace)
     claude = analyzing_claude(fake_claude, workspace)
@@ -313,8 +313,8 @@ def test_a_fresh_phase_stamps_its_first_attempt(runner, workspace, fake_claude):
     assert bullet(text, "Attempts") == "1"
 
 def test_a_re_run_increments_the_stamped_attempts_count(runner, workspace, fake_claude):
-    """REQ-1, and the same replace-not-duplicate guarantee AC6 already
-    gives Model/Result/Time spent: running the same step twice takes the
+    """And the same replace-not-duplicate guarantee Model/Result/Time
+    spent already give: running the same step twice takes the
     bullet from 1 to 2, never duplicating the line."""
     with_status(workspace)
     claude1 = analyzing_claude(fake_claude, workspace)
@@ -351,7 +351,7 @@ def test_an_archive_the_gates_refused_is_not_counted_as_an_attempt(runner, works
     assert "- **Tokens:**" not in text, text
 
 def test_a_run_continues_from_a_pre_existing_attempts_value(runner, workspace, fake_claude):
-    """REQ-1: the write reads the file's CURRENT value rather than
+    """The write reads the file's CURRENT value rather than
     assuming the writer's own internal counter starts at 0 — a phase
     file seeded with `Attempts: 5` (e.g. from before this feature
     shipped) becomes `6` after one more run."""
@@ -474,7 +474,7 @@ def _analysis_writing_claude(fake_claude, workspace, stream_before):
     )
 
 def test_a_claude_step_writes_the_model_id_directly_after_the_model_line(runner, workspace, fake_claude):
-    """AC-1: the phase's own Tracking info keeps the id, for a spec whose
+    """The phase's own Tracking info keeps the id, for a spec whose
     jobs have left the queue."""
     with_status(workspace)
     claude = _analysis_writing_claude(fake_claude, workspace, [init_event("claude-opus-5-5")])
@@ -485,7 +485,7 @@ def test_a_claude_step_writes_the_model_id_directly_after_the_model_line(runner,
     assert text.index("- **Model:**") < text.index("- **Model id:**") < text.index("- **Result:**")
 
 def test_a_step_whose_log_names_no_model_writes_no_model_id_line(runner, workspace, fake_claude):
-    """AC-1: absent, not a guess."""
+    """Absent, not a guess."""
     with_status(workspace)
     claude = _analysis_writing_claude(fake_claude, workspace, [init_event(None)])
     rc, out, _ = run(runner, workspace, claude, model="opus")
@@ -494,7 +494,7 @@ def test_a_step_whose_log_names_no_model_writes_no_model_id_line(runner, workspa
     assert "Model id" not in text
 
 def test_a_re_run_replaces_the_model_id_line_rather_than_duplicating_it(runner, workspace, fake_claude):
-    """AC-1: the awk removal list has to name the new bullet, or the
+    """The awk removal list has to name the new bullet, or the
     first run's id stays beside the newer one."""
     with_status(workspace)
     first = _analysis_writing_claude(fake_claude, workspace, [init_event("claude-opus-5-4")])

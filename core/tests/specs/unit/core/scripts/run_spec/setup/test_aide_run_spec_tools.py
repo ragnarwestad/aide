@@ -19,7 +19,7 @@ from ..run_spec_status_files import conflicting_branch, nested_workspace, status
 def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
     runner, workspace, fake_claude, origin
 ):
-    """Criterion 1 (spec 171). Archive lands in a worktree that is
+    """Archive lands in a worktree that is
     mid-merge, with MERGE_HEAD set and the conflict markers still in the
     file — the resolution is archive's own first piece of work, and
     refusing before it starts is what every other step does instead."""
@@ -36,7 +36,7 @@ def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
         'printf "resolved by the step\\n" > contested.txt\n'
         "git add -A\n"
         "git commit -q --no-edit\n"
-        # And archive's own work, or the no-progress check (spec 268)
+        # And archive's own work, or the no-progress check
         # rightly says the folder was never moved.
         + READ_SPECS
         + 'mkdir -p "$specs/archive" && git -C "$specs" mv 81-queue-and-runner archive/81-queue-and-runner '
@@ -60,7 +60,7 @@ def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
 def test_after_an_archive_resolution_the_default_branch_fast_forwards(
     runner, workspace, fake_claude
 ):
-    """Criterion 3 (spec 171). The point of pushing the branch is that
+    """The point of pushing the branch is that
     the landing that follows finds a fast-forward — the same routine that
     refused before now succeeds, because the branch changed, not the
     routine."""
@@ -84,7 +84,7 @@ def test_after_an_archive_resolution_the_default_branch_fast_forwards(
 def test_an_archive_that_gives_up_leaves_the_branch_exactly_where_it_was(
     runner, workspace, fake_claude, origin
 ):
-    """Criterion 4 (spec 171). Tests red, or a conflict the skill will
+    """Tests red, or a conflict the skill will
     not decide: the merge is undone, HEAD never moves, and the HEAD-moved
     push gate therefore publishes nothing. No new rollback machinery —
     the gate that already exists is the one that holds."""
@@ -109,7 +109,7 @@ def test_an_archive_that_gives_up_leaves_the_branch_exactly_where_it_was(
 def test_an_archive_that_walks_away_mid_merge_publishes_no_conflict_markers(
     runner, workspace, fake_claude, origin
 ):
-    """Criterion 5 (spec 171). Archive can die between opening the
+    """Archive can die between opening the
     conflict and deciding — a crash, a cancellation, a budget stop. The
     generic commit loop would otherwise `git add -A` the conflict markers
     and commit them as the merge, which is the half-merged tree the whole
@@ -127,7 +127,7 @@ def test_an_archive_that_walks_away_mid_merge_publishes_no_conflict_markers(
 
 @pytest.mark.parametrize("step", ["create", "analyze", "implement"])
 def test_every_other_step_still_refuses_a_conflict(runner, workspace, fake_claude, step):
-    """Criterion 2 (spec 171). The fork is on the literal string
+    """The fork is on the literal string
     `archive` and nothing else, so every step that refused yesterday
     refuses today — a step let past a conflict would commit the markers.
     All three are named, not the two that happened to be here before."""
@@ -143,7 +143,7 @@ def test_every_other_step_still_refuses_a_conflict(runner, workspace, fake_claud
 def test_a_4status_only_conflict_in_a_nested_specs_repo_resolves_to_mains_copy(
     runner, tmp_path, fake_claude
 ):
-    """AC1. A conflict confined to the spec's own `4-status.md`, in a
+    """A conflict confined to the spec's own `4-status.md`, in a
     NESTED specs-repo layout, resolves mechanically before the AI-
     judgment routine ever sees it — main's corrected copy wins, no
     markers remain."""
@@ -162,7 +162,7 @@ def test_a_4status_only_conflict_in_a_nested_specs_repo_resolves_to_mains_copy(
 def test_a_4status_conflict_with_another_file_also_conflicting_stays_open(
     runner, tmp_path, fake_claude
 ):
-    """AC2. Something OTHER than the spec's own `4-status.md` also
+    """Something OTHER than the spec's own `4-status.md` also
     conflicts — today's open-conflict behavior is unchanged, and the
     step is still handed the live conflict to resolve itself."""
     ws = nested_workspace(tmp_path)
@@ -197,7 +197,7 @@ def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
     git(project, "add", "-A")
     git(project, "commit", "-q", "-m", "later work on main")
     # In the project, because that is the branch the merge is asked
-    # about: since spec 215 a branch this run never advanced past its
+    # about: a branch this run never advanced past its
     # base is deleted at the end of it.
     claude = project_only_claude(fake_claude)
     rc, out, _ = run(runner, workspace, claude, command="archive")
@@ -207,7 +207,7 @@ def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
 def test_archive_skips_the_model_when_the_spec_has_not_reached_implement(
     runner, workspace, fake_claude
 ):
-    """Criterion 1. The fixture's default status file names `analyze` but
+    """The fixture's default status file names `analyze` but
     not `implement` — "nothing started yet" from archive's own point of
     view — ordinary progression, never a warning, and costs nothing."""
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
@@ -222,7 +222,7 @@ def test_archive_skips_the_model_when_the_spec_has_not_reached_implement(
 def test_archive_skips_the_model_when_acceptance_criteria_are_unticked(
     runner, workspace, fake_claude
 ):
-    """REQ-1: an unticked `## Acceptance criteria` row is a refusal a
+    """An unticked `## Acceptance criteria` row is a refusal a
     script already answers — costs nothing and never reaches claude."""
     with_status(workspace, done=True)
     status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
@@ -243,7 +243,7 @@ def test_archive_skips_the_model_when_acceptance_criteria_are_unticked(
 def test_archive_proceeds_past_an_in_progress_ordinary_row(
     runner, workspace, fake_claude
 ):
-    """Spec 268 stopped gating archive on ordinary Phase/Checklist rows —
+    """Archive is not gated on ordinary Phase/Checklist rows —
     only the `Workflow steps completed` line (has implement run at all)
     and, when present, the `## Acceptance criteria` section are read. A
     `🔄` row elsewhere is the implementer's own bookkeeping and no
@@ -288,7 +288,7 @@ def test_other_commands_still_spawn_the_model_with_no_status_file_at_all(
     """The new fast path is gated on the literal string `archive`, like
     every other archive-only fork in this script — a spec with no
     4-status.md is `analyze`'s normal starting point, not a reason to
-    skip it (spec 344 gives `implement` a status-file precondition of its
+    skip it (`implement` has a status-file precondition of its
     own; `analyze` keeps none)."""
     status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
     status_path.unlink()
@@ -308,7 +308,7 @@ def test_an_archive_that_drops_the_open_merge_is_merge_unfinished_not_completed(
     """An archive session that aborts the merge it was handed open —
     read as "leftover dirty state" — and still moves the folder used to
     end `completed`, and the landing then met the same conflict again
-    (454, 2026-09-14). The branch still lacks the base tip it was being
+   . The branch still lacks the base tip it was being
     merged with, and that is the tell: `merge-unfinished`, not done."""
     project = workspace["project"]
     with_status(workspace, ["create", "analyze", "implement"])

@@ -1,6 +1,6 @@
 // The steps table: what each of a job's steps did, and its own log
-// under a fold. Split out of job-page.ts by theme — exported since spec
-// 150, because the SPEC page's Steps tab is the lead job's own, and two
+// under a fold. Split out of job-page.ts by theme — exported
+// because the SPEC page's Steps tab is the lead job's own, and two
 // copies of this table would be a fourth instance of the
 // hand-paired-lists problem `development.md` already names three times
 // over.
@@ -31,7 +31,7 @@ function outcome(r: JobStepResultView, archiveHeldBack?: string, landingRefused?
   if (r.step === "archive" && r.ok && archiveHeldBack) {
     return `held back — ${esc(heldBackReasonText(lang, archiveHeldBack))}`;
   }
-  // Spec 433: a create step that skipped the AI session reads distinctly
+  // A create step that skipped the AI session reads distinctly
   // from an AI-run one, so a reader can tell which of the two paths
   // create took.
   if (r.step === "create" && r.ok && r.tool === "none") return "created (no AI)";
@@ -77,7 +77,7 @@ export function landingRefusal(
 }
 
 /** Which row a Steps tab has open, from the raw `step=` query value and the
- *  index the running step has among the results (spec 240) — or will have
+ *  index the running step has among the results — or will have
  *  once it finishes; undefined when none runs. `"none"` is an explicit
  *  close, the one value a click sends to collapse a row that defaulted open,
  *  and is kept apart from "absent": nothing in the URL defaults to the
@@ -122,19 +122,19 @@ function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
   return hasLog ? table : `${table}<p class="muted">${t(lang, "job.logMissing")}</p>`;
 }
 
-/** Exported since spec 150: the SPEC page's Steps tab is the lead job's
+/** Exported because the SPEC page's Steps tab is the lead job's
  *  own, and two copies of this table would be a fourth instance of the
  *  hand-paired-lists problem `development.md` already names three times
  *  over. A spec with no job at all renders through the same empty case
  *  an empty job does.
  *
- *  Since spec 240 this is also where the Activity tab's one job lives:
+ *  This is also where the Activity tab's one job lives:
  *  each row expands to ITS OWN transcript (`r.logs`, read from that
  *  step's own `streamFile` rather than the job's last one), and a step
  *  currently running gets a row of its own — `opts.runningStep` — since
  *  it has no `JobStepResultView` yet. `opts.tabHref` is absent only for
  *  a caller that wants the bare table with no expand control at all.
- *  `opts.mark` (spec 360) is the spec page's own "(?)"
+ *  `opts.mark` is the spec page's own "(?)"
  *  help popover, appended inside this table's own first line — this
  *  page draws none of its own, so it stays absent here. */
 export function stepResults(
@@ -164,9 +164,8 @@ export function stepResults(
   const open = resolveOpenStep(opts.openStep, opts.runningStep ? results.length : undefined);
   // The chevron toggles; the name beside it is plain text — the same
   // split the specs list's own `.fold` uses, rather than making the
-  // whole name the click target the way this used to (spec 240,
-  // adjusted 2026-08-25): a name with no visible affordance read as
-  // plain text with a hover underline, not as something to press.
+  // whole name the click target: a name with no visible affordance
+  // read as plain text with a hover underline, not as something to press.
   const stepCell = (label: string, key: string, isOpen: boolean): string =>
     opts.tabHref
       ? foldArrow({ href: `${opts.tabHref}&step=${isOpen ? "none" : key}`, open: isOpen, lang, title: "job.stepFoldTitle" }) +
@@ -183,7 +182,7 @@ export function stepResults(
         // A Codex step has no dollar figure ANYWHERE in its output, so
         // the money half is a dash rather than the $0.00 its stored
         // zero would print — and there is no estimate to mark either,
-        // because nothing was estimated (spec 125).
+        // because nothing was estimated.
         `<td class="num">${usdOrTokens(r.tool === "codex" ? undefined : r.costUsd, r.tokens)}` +
         `${r.tool === "codex" || r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
         `<td>${esc(r.terminalReason)}</td>` +
@@ -218,7 +217,7 @@ export function stepResults(
   })();
   // Six columns of names, figures and timestamps: wider than a phone
   // whatever it is told, so the box scrolls rather than the page
-  // (spec 155). The spec page's Steps tab is this same table.
+  // The spec page's Steps tab is this same table.
   return (
     `<div class="tablewrap"><table><thead><tr><th>Step</th><th>Outcome</th>` +
     `<th class="num">${unitLabel(t(lang, "job.cost"), t(lang, "job.tokens"))}</th>` +

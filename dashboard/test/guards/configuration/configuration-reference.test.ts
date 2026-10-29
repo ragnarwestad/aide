@@ -42,12 +42,12 @@ function manifestSetting(key: string): string {
 }
 
 describe("the configuration reference's manifest table", () => {
-  test("names at least the keys a run reads (AC-6)", () => {
+  test("names at least the keys a run reads", () => {
     const keys = manifestTableKeys();
     for (const key of ["AIDE_TEST_CMD", "worktreeLinks", "codeLanding", "name", "acPrefix"]) expect(keys).toContain(key);
   });
 
-  test("every key in it reads back through the parser (AC-4)", () => {
+  test("every key in it reads back through the parser", () => {
     for (const key of manifestTableKeys()) {
       const result = parseManifest(manifestSetting(key));
       if (!result.ok) throw new Error(result.error);
@@ -60,7 +60,7 @@ describe("the configuration reference's manifest table", () => {
 });
 
 describe("no page names a manifest key that nothing reads", () => {
-  test("none of the retired keys is written as a code span (AC-4)", () => {
+  test("none of the retired keys is written as a code span", () => {
     const hits: string[] = [];
     for (const page of pages) {
       const text = readFileSync(page, "utf-8");

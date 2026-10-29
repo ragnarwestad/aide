@@ -9,7 +9,7 @@
 import type { DashboardCheckout } from "./dashboard-checkout.ts";
 
 /** Who may be handed a bring-up-to-date that is already running, and who
- *  may not (spec 216).
+ *  may not.
  *
  *  One `git fetch` per project at a time is the right shape for almost
  *  everything here: a page read, the boot-time warm and a Settings save

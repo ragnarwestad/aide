@@ -1,5 +1,5 @@
 // The five settings a project's page shows, one row each, grouped by
-// the one file each now belongs to (spec 185, spec 549).
+// the one file each now belongs to.
 //
 // `.aide/config` is personal and gitignored, so the answer differs per
 // machine — and until this, the only way to see it was to open it in a
@@ -20,7 +20,7 @@
 // `project-admin.ts` already decides it, in the words the reader is
 // shown, and `.claude/rules/development.md` names a second,
 // hand-synchronised copy of that decision as a mistake this repo has
-// already paid for twice (specs 138 and 144). So the row's problem is
+// already paid for twice. So the row's problem is
 // read verbatim off a readiness result handed in from outside.
 
 import { existsSync } from "node:fs";
@@ -54,8 +54,8 @@ export interface SettingRow {
   toolchain?: string;
   /** Set where a CONFIGURED or an UNSET value does not resolve, and
    *  always the readiness check's own sentence, never a second wording
-   *  of the same fact. `blocking` is the same check's own flag (spec
-   *  372): `unifiedSettingsTable` reads it to choose `failed`/`waiting`
+   *  of the same fact. `blocking` is the same check's own flag:
+   *  `unifiedSettingsTable` reads it to choose `failed`/`waiting`
    *  for this row, and the checkout-level section above the table reads
    *  it the same way for a check no row owns — the same fact must not
    *  read red in one place and amber in the other. */
@@ -88,7 +88,7 @@ export const SETTING_KEYS = [
 ] as const;
 
 /** Which file each setting belongs to now that every key has exactly one
- *  (spec 549) — the Config tab draws one table per file, in this order:
+ *  the Config tab draws one table per file, in this order:
  *  `.aide/config` (Specs path, Install command), then the manifest
  *  (Worktree links, Preview command, Test command). A flat `SETTING_KEYS`
  *  order stays untouched elsewhere; this is only how the renderer groups
@@ -101,8 +101,8 @@ export const SETTING_GROUPS: { file: ".aide/config" | "manifest"; keys: readonly
 export type SettingsGroupFile = (typeof SETTING_GROUPS)[number]["file"];
 
 /** The `?edit=` value each group opens under, and the reverse lookup a
- *  GET reads it back with (spec 552: each of the Config tab's two tables
- *  gets its own edit state, in place of one shared `?edit=1`). */
+ *  GET reads it back with (each of the Config tab's two tables
+ *  gets its own edit state). */
 export const EDIT_GROUP_PARAM: Record<SettingsGroupFile, string> = {
   ".aide/config": "config",
   manifest: "manifest",
@@ -151,13 +151,13 @@ const RESOLVED_BY: Record<string, ReadinessCheckName> = {
   worktreeLinks: "worktreeLinks",
 };
 
-/** The checks a settings row already speaks for (spec 378) — exported so
+/** The checks a settings row already speaks for — exported so
  *  `project-page.ts` can filter its checkout-level section by the SAME
  *  set `RESOLVED_BY` names, rather than a second, hand-copied list. */
 export const FIELD_OWNED_CHECKS: ReadonlySet<ReadinessCheckName> = new Set(Object.values(RESOLVED_BY));
 
-/** What `key`'s own file says is configured, and its fixed source (spec
- *  549: every key has exactly one file now). `null` when nothing is
+/** What `key`'s own file says is configured, and its fixed source (every key
+ *  has exactly one file). `null` when nothing is
  *  configured, exactly as `configValue()` alone used to answer for every
  *  key including this one, before the Worktree links row started reading
  *  `resolveWorktreeLinks()` instead: raw `configValue()` skips the
@@ -194,7 +194,7 @@ function configuredValue(
 export function projectSettings(
   projectDir: string,
   readiness: ProjectReadiness | null = null,
-  /** Where the manifest-backed rows are read from (spec 512): the
+  /** Where the manifest-backed rows are read from: the
    *  dashboard's own checkout, which carries the manifest a run reads.
    *  The specs path and the config-file flag stay on `projectDir`. */
   manifestDir: string = projectDir,
@@ -230,7 +230,7 @@ export function projectSettings(
         toolchain: found.toolchain,
       };
     }
-    // Spec 378 (REQ-2): the same `problem` lookup the `configured`
+    // The same `problem` lookup the `configured`
     // branch above makes — an UNSET field-owned check can still be
     // `blocking` (no specs root, and the fallback does not exist
     // either) or worth a note (no worktree links configured at all),

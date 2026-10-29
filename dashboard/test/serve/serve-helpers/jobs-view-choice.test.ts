@@ -30,8 +30,8 @@ const stored = (setCookie: string | undefined): Record<string, string> => {
 
 const remembered = { [jobsViewCookieName(PORT)]: "state=stopped&q=nightly" };
 
-describe("an address that names a view key is the view and becomes the memory (AC-7)", () => {
-  test("the keys it names are the view, and a cookie of the tab's own holds them (AC-7)", () => {
+describe("an address that names a view key is the view and becomes the memory", () => {
+  test("the keys it names are the view, and a cookie of the tab's own holds them", () => {
     const { url, req } = ask("state=failed&sort=cost&dir=asc&q=nightly");
     const choice = jobsViewChoice(url, req, PORT);
     expect(choice.view).toEqual({ state: "failed", sort: "cost", dir: "asc", q: "nightly" });
@@ -40,14 +40,14 @@ describe("an address that names a view key is the view and becomes the memory (A
     expect(choice.setCookie).toContain("Path=/");
   });
 
-  test("it replaces the memory whole: a key the address leaves out is forgotten (AC-7)", () => {
+  test("it replaces the memory whole: a key the address leaves out is forgotten", () => {
     const { url, req } = ask("state=all", remembered);
     const choice = jobsViewChoice(url, req, PORT);
     expect(choice.view).toEqual({ state: "all" });
     expect(stored(choice.setCookie)).toEqual({ state: "all" });
   });
 
-  test("a key named empty counts as named, and is remembered as nothing (AC-7)", () => {
+  test("a key named empty counts as named, and is remembered as nothing", () => {
     const { url, req } = ask("q=", remembered);
     const choice = jobsViewChoice(url, req, PORT);
     expect(choice.view).toEqual({});
@@ -58,60 +58,60 @@ describe("an address that names a view key is the view and becomes the memory (A
     expect(jobsViewChoice(bare.url, bare.req, PORT).view).toEqual({});
   });
 
-  test("an address naming none gets the view last chosen, and sets no cookie (AC-7)", () => {
+  test("an address naming none gets the view last chosen, and sets no cookie", () => {
     const { url, req } = ask("rows=1&open=aide/81-x", remembered);
     const choice = jobsViewChoice(url, req, PORT);
     expect(choice.view).toEqual({ state: "stopped", q: "nightly" });
     expect(choice.setCookie).toBeUndefined();
   });
 
-  test("with no cookie and no key the view is empty: All, no search, the tab's order (AC-7)", () => {
+  test("with no cookie and no key the view is empty: All, no search, the tab's order", () => {
     const { url, req } = ask("");
     const choice = jobsViewChoice(url, req, PORT);
     expect(choice.view).toEqual({});
     expect(choice.setCookie).toBeUndefined();
   });
 
-  test("only the four view keys are remembered, whatever a cookie holds (AC-7)", () => {
+  test("only the four view keys are remembered, whatever a cookie holds", () => {
     const { url, req } = ask("", { [jobsViewCookieName(PORT)]: "q=x&open=aide/81-x&lang=nb&sort=cost" });
     expect(jobsViewChoice(url, req, PORT).view).toEqual({ q: "x", sort: "cost" });
   });
 });
 
 describe("a project key is no view key on the Running tab", () => {
-  test("a project beside other view keys is left out of the view and of the cookie (AC-3)", () => {
+  test("a project beside other view keys is left out of the view and of the cookie", () => {
     const { url, req } = ask("project=other&state=failed");
     const choice = jobsViewChoice(url, req, PORT);
     expect(choice.view).toEqual({ state: "failed" });
     expect(stored(choice.setCookie)).toEqual({ state: "failed" });
   });
 
-  test("a project alone names no view key: the view last chosen comes back and no cookie is set (AC-3)", () => {
+  test("a project alone names no view key: the view last chosen comes back and no cookie is set", () => {
     const { url, req } = ask("project=other", remembered);
     const choice = jobsViewChoice(url, req, PORT);
     expect(choice.view).toEqual({ state: "stopped", q: "nightly" });
     expect(choice.setCookie).toBeUndefined();
   });
 
-  test("a cookie written when the tab still remembered a project is read without it (AC-3)", () => {
+  test("a cookie written when the tab still remembered a project is read without it", () => {
     const { url, req } = ask("", { [jobsViewCookieName(PORT)]: "project=other&state=failed" });
     expect(jobsViewChoice(url, req, PORT).view).toEqual({ state: "failed" });
   });
 });
 
-describe("the Jobs tab and the Specs list never read each other's memory (AC-5)", () => {
-  test("the Specs list's state and sort cookies give the Jobs tab an empty view (AC-5)", () => {
+describe("the Jobs tab and the Specs list never read each other's memory", () => {
+  test("the Specs list's state and sort cookies give the Jobs tab an empty view", () => {
     const { url, req } = ask("", { [stateCookieName(PORT)]: "failed", [sortCookieName(PORT)]: "cost|asc" });
     expect(jobsViewChoice(url, req, PORT).view).toEqual({});
   });
 
-  test("the Jobs tab's cookie gives the Specs list nothing remembered (AC-5)", () => {
+  test("the Jobs tab's cookie gives the Specs list nothing remembered", () => {
     const { url, req } = ask("", remembered, "/specs");
     expect(stateChoice(url, req, PORT)).toEqual({});
     expect(sortChoice(url, req, PORT)).toEqual({});
   });
 
-  test("the cookie is named after the port, as the Specs list's two are (AC-5)", () => {
+  test("the cookie is named after the port, as the Specs list's two are", () => {
     expect(jobsViewCookieName(PORT)).toBe(`aide_jobs_view_${PORT}`);
     expect(jobsViewCookieName(PORT)).not.toBe(jobsViewCookieName(PORT + 1));
   });

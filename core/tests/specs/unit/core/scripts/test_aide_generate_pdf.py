@@ -1,6 +1,6 @@
-"""Tests for core/scripts/aide-generate-pdf — spec 358: the dashboard's
+"""Tests for core/scripts/aide-generate-pdf — the dashboard's
 own PDF route runs this exact script, so its two-argument form is what
-REQ-3/REQ-4 hold on.
+the route depends on.
 """
 import os
 import shutil

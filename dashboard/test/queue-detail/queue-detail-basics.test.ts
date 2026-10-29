@@ -1,6 +1,6 @@
 // Split out of queue-detail.test.ts by theme.
 //
-// Criteria 1, 2, 6, 7 (spec 02): the per-job detail page and its JSON
+// The per-job detail page and its JSON
 // counterpart. The list shows one row per JOB, so a three-step job shows
 // one line and its finished steps are invisible; and the row says
 // `02-job-detail-view` without saying what that spec is about.
@@ -41,11 +41,11 @@ async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<str
 }
 
 describe("GET /jobs/<id>", () => {
-  // Spec 150: the `## Description` prose left this page for the spec
+  // The `## Description` prose left this page for the spec
   // page, where the whole file is one of four. The title stays — a
   // reader still has to know which spec the job is about — and the
   // phase's own file takes the prose's place.
-  test("shows what the job IS: its spec's title and its phase's file (criterion 1)", async () => {
+  test("shows what the job IS: its spec's title and its phase's file", async () => {
     const { base, dir } = start();
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "3-solution.md"),
@@ -61,7 +61,7 @@ describe("GET /jobs/<id>", () => {
     expect(html).toContain("81-queue-and-runner");
   });
 
-  test("an unknown id is a 404, not an empty page (criterion 6)", async () => {
+  test("an unknown id is a 404, not an empty page", async () => {
     const { base } = start();
     const res = await fetch(`${base}/specs/no-such-job`);
     expect(res.status).toBe(404);
@@ -81,7 +81,7 @@ describe("GET /api/queue/<id>", () => {
     expect(body.job.results).toEqual([]);
   });
 
-  test("an unknown id is a 404 (criterion 6)", async () => {
+  test("an unknown id is a 404", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/no-such-job`);
     expect(res.status).toBe(404);
@@ -103,14 +103,14 @@ describe("GET /api/queue/<id>", () => {
   });
 });
 
-describe("the finished steps a job table cannot show (criterion 2)", () => {
+describe("the finished steps a job table cannot show", () => {
 
 });
 
-// --- spec 177: a job already carrying more steps than settings --------------
+// --- A job already carrying more steps than settings --------------
 //
-// The literal shape spec 176's own job was found in: started with two
-// steps, ticked up to four while it ran (spec 160), and its three
+// The literal shape one real job was found in: started with two
+// steps, ticked up to four while it ran, and its three
 // per-step tables still naming only the two it was created with. The
 // page reads those tables for whichever step is current, so a job in
 // this state shows a model it is not running on and a limit that is

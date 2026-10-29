@@ -13,7 +13,7 @@ export interface Page {
   html: string;
 }
 
-/** The last drift answer the server holds for a project (spec 203).
+/** The last drift answer the server holds for a project.
  *  `checkedAt` is `null` only where nothing has ever been asked — a
  *  fresh boot, or a project just added; `behind: null` with a real
  *  `checkedAt` is the fail-open case, asked and unanswerable. */
@@ -33,10 +33,10 @@ export interface ProjectPageOptions {
   /** How a spec's branch can be tried, as `resolvePreviewFrom()` reads
    *  it. Absent reads as `none`. */
   previewFrom?: PreviewFrom;
-  /** Where the settings are kept (spec 512), so the page says so above
+  /** Where the settings are kept, so the page says so above
    *  the table. Absent for a page built with no checkout to ask. */
   settingsHome?: "project" | "dashboard" | "shadowed" | "none";
-  /** This project's own recurring jobs (spec 259). Absent or empty
+  /** This project's own recurring jobs. Absent or empty
    *  means no Schedule section renders at all. */
   schedule?: readonly ScheduleEntry[];
   /** The Schedule tab's `?sort=` and `?dir=`, as the address gave them. */
@@ -45,15 +45,15 @@ export interface ProjectPageOptions {
    *  does not. Absent draws no flag. */
   scheduleModelNames?: readonly string[];
   worktreeLinkCandidates: string[];
-  /** From the request's own `?edit=` (spec 255; spec 552: names one of
-   *  the Config tab's two tables instead of a shared boolean) — never
+  /** From the request's own `?edit=` (names one of
+   *  the Config tab's two tables, not a shared boolean) — never
    *  stored, so a page reload with no query string always lands back on
    *  the read-only view. */
   editingGroup: SettingsGroupFile | null;
   /** Where "← Back" goes: the page the reader came from, resolved by the
    *  server from the request's `Referer`. Projects when there is none. */
   backHref?: string;
-  /** This checkout's last drift answer (spec 258). `undefined` for the
+  /** This checkout's last drift answer. `undefined` for the
    *  board's own project when no `AIDE_INSTALL_CMD` is configured, since
    *  its Deploy has nothing to act on then; every other project has one. */
   drift?: ProjectDrift;
@@ -61,18 +61,18 @@ export interface ProjectPageOptions {
    *  server until the next deploy starts. */
   deployFailure?: { step: string; error: string };
   /** This process's own boot-time commit vs. this checkout's current
-   *  HEAD (spec 269) — undefined for every project except the one this
+   *  HEAD — undefined for every project except the one this
    *  server is actually running from. */
   serving?: {
     sha: string;
     checkoutHead: string;
     current: boolean;
-    /** REQ-7 (spec 392): the checkout HEAD's own commit subject — only
+    /** The checkout HEAD's own commit subject — only
      *  fetched (and only ever rendered) while origin itself has not
      *  been checked yet; `undefined` when git could not answer, never a
      *  guess. */
     newestSubject?: string;
-    /** REQ-7 (spec 392): commits between the served SHA and the
+    /** Commits between the served SHA and the
      *  checkout HEAD, local to this checkout — never origin's drift
      *  count, which this state by definition does not have.
      *  `undefined` when `current` (there is nothing to count) or when
@@ -80,7 +80,7 @@ export interface ProjectPageOptions {
     behindCount?: number;
   };
   /** Non-empty while a Deploy press's restart is held back by these
-   *  landings in flight (spec 385) — undefined everywhere `serving` is. */
+   *  landings in flight — undefined everywhere `serving` is. */
   restartWaiting?: string[];
   /** This project is the checkout the board runs from, so its Deploy asks
    *  first and queues a job. Every other project is offered no Deploy. */
@@ -93,16 +93,16 @@ export interface ProjectPageOptions {
    *  Undefined only where the test-servers context was never wired (should not
    *  happen outside a test that omits it on purpose). */
   testServerAvailable?: boolean;
-  /** Which tab is open, off the request's own `?tab=` (spec 293) — the
+  /** Which tab is open, off the request's own `?tab=` — the
    *  same URL-driven pattern `ScheduleDetailPageOptions.tab` already
    *  uses, and for the same reason: this page reloads on a timer, so a
    *  tab held only in client state would snap back to the default on
    *  every reload. */
   tab?: string;
-  /** Spec 408. Absent means English — the same default `pageShell`'s
+  /** Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
+  /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page and tab. */
   currentUrl?: string;
 }

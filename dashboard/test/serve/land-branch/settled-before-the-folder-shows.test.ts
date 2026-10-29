@@ -47,7 +47,7 @@ describe("what is settled before the checkout moves", () => {
     expect(renamed).toBeDefined();
     expect(renamed!.at).toBeLessThanOrEqual(ff);
     // The pendingModels entry moves the same moment the job's own
-    // specFolder does, before the checkout moves (spec 465).
+    // specFolder does, before the checkout moves.
     const modelRename = renames.find((r) => r.project === "aide" && r.from === "new-abcd1234" && r.to === "151-the-real-name");
     expect(modelRename).toBeDefined();
     expect(modelRename!.at).toBeLessThanOrEqual(ff);

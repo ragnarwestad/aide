@@ -11,7 +11,7 @@ afterEach(() => {
 
 const hostOf = (base: string) => new URL(base).host;
 
-describe("no credential is asked for (AC-1)", () => {
+describe("no credential is asked for", () => {
   test("the pages answer 200 with nothing but a request, and set no token cookie", async () => {
     const { base } = start();
     for (const path of ["/", "/new", "/projects", "/settings", "/schedule"]) {
@@ -33,7 +33,7 @@ describe("no credential is asked for (AC-1)", () => {
   });
 });
 
-describe("a request from another site is refused (AC-2)", () => {
+describe("a request from another site is refused", () => {
   const FOREIGN = { origin: "https://evil.example" };
 
   test("a POST to one route of each family answers 403 and nothing is enqueued", async () => {
@@ -73,7 +73,7 @@ describe("a request from another site is refused (AC-2)", () => {
   });
 });
 
-describe("a Host that is not its own is refused (AC-3)", () => {
+describe("a Host that is not its own is refused", () => {
   test("on every route, the static site, /live and the emitter's POST included", async () => {
     const { base } = start();
     const headers = { host: "evil.example" };

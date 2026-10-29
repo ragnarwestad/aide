@@ -1,7 +1,7 @@
 // Cancel while a finished step's work is being merged and tested. The
 // job reads `done` then — its step ended — and Cancel used to refuse it,
 // leaving a suite that had already gone red once to run to its end with
-// nothing a person could do (498, 2026-09-19). The scripts a landing
+// nothing a person could do. The scripts a landing
 // runs for a job are tracked here by the job's id; Cancel stops them
 // and marks the landing, and the landing ends the job `cancelled`.
 

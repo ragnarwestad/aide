@@ -1,4 +1,4 @@
-// Spec 394: the `Acceptance:` line — the direct mirror of
+// The `Acceptance:` line — the direct mirror of
 // discover-description-and-depends.test.ts's own `specDependsOn` suite,
 // for the other whole-spec fact that sits above the tabs.
 
@@ -34,14 +34,14 @@ describe("specAcceptanceNotRequired", () => {
     expect(specAcceptanceNotRequired(spec("01-set", TRACKING("- **Acceptance:** not required")))).toBe(true);
   });
 
-  // REQ-11: a spec carrying no such record behaves exactly as it does
+  // A spec carrying no such record behaves exactly as it does
   // today — absence means required, not "not required".
   test("no line, an empty file, or no file at all is false — never a throw", () => {
     expect(specAcceptanceNotRequired(spec("02-none", TRACKING("")))).toBe(false);
     expect(specAcceptanceNotRequired(join(dir, "nowhere"))).toBe(false);
   });
 
-  test("acceptanceNotRequiredIn reads a description's text the way specAcceptanceNotRequired reads its file (AC-1)", () => {
+  test("acceptanceNotRequiredIn reads a description's text the way specAcceptanceNotRequired reads its file", () => {
     for (const line of ["- **Acceptance:** not required", ""]) {
       expect(acceptanceNotRequiredIn(TRACKING(line))).toBe(specAcceptanceNotRequired(spec(`in-${line.length}`, TRACKING(line))));
     }
@@ -106,12 +106,12 @@ describe("criteriaChecksIn", () => {
     `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-10-03\`\n` +
     `${line}\n---\n\n## Description\n\nBody.\n`;
 
-  test("gives the line's value as written (AC-7)", () => {
+  test("gives the line's value as written", () => {
     expect(criteriaChecksIn(DESC("- **Acceptance criteria checks:** stop"))).toBe("stop");
     expect(criteriaChecksIn(DESC("- **Acceptance criteria checks:** strict"))).toBe("strict");
   });
 
-  test("gives null for a description without the line (AC-7)", () => {
+  test("gives null for a description without the line", () => {
     expect(criteriaChecksIn(DESC(""))).toBeNull();
     expect(criteriaChecksIn(DESC("- **Acceptance:** not required"))).toBeNull();
   });

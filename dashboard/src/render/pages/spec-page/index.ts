@@ -1,5 +1,5 @@
 // /specs/<project>/<specFolder>: the whole spec, as it stands now, drawn in
-// the open row of the Specs list (spec 150).
+// the open row of the Specs list.
 //
 // The dashboard never showed a spec — it showed jobs. Every link on a
 // spec's row went to one queue RUN, whose Overview held the
@@ -15,12 +15,12 @@
 // at all. The Update button is the other half of that: it pulls, and
 // the reader can SEE the dashboard has the change before pressing Run.
 //
-// ONE TAB EACH since spec 212, where they used to be stacked in full on
+// ONE TAB EACH, rather than stacked in full on
 // Overview: for a spec of any size that was thousands of lines of
 // preformatted text before the reader reached whatever they came for.
 // The Status tab draws the acceptance criteria as real boxes with a
 // Save of their own, above its file. Update, the title, whether the spec is archived
-// and whether it requires acceptance ticking (spec 394) are the banner's,
+// and whether it requires acceptance ticking are the banner's,
 // visible on every tab rather than one.
 //
 // The reload went with that split. This page refreshed itself every ten
@@ -132,10 +132,10 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
   const lead = view.lead;
 
   // No title line. The project and folder sit directly above it and ARE
-  // the title (spec 404: the project leads, matching the identifier
-  // every other surface uses for this spec) — so the label spec 301
-  // added, to stop a bare bold sentence being read as anything but the
-  // title, was answering a question its own neighbour already answers.
+  // the title (the project leads, matching the identifier every other
+  // surface uses for this spec) — so a label to stop a bare bold sentence
+  // being read as anything but the title would answer a question its own
+  // neighbour already answers.
   // Three spellings of one name on one page; the document's own heading
   // below is the file's text and stays as it is.
   const banner =
@@ -156,8 +156,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     messageSlot("refused", "failed", { id: SPEC_REFUSED_LINE }) +
     messageSlot("notice", "info", { id: SPEC_NOTICE_LINE });
 
-  // The spec's own actions, at the end of the tab row (spec 300; sat on
-  // a line of its own above the tabs until then). Reopen goes BEFORE
+  // The spec's own actions, at the end of the tab row. Reopen goes BEFORE
   // Update, so the control that is always there keeps the same spot: an
   // Update that slid left whenever a spec was archived would be a
   // button moving because something else appeared.
@@ -173,10 +172,10 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     // Last, so it is not between two buttons.
     pdfControl(view);
 
-  // Every tab says what it is for (spec 311): a "(?)" at the right end of
+  // Every tab says what it is for: a "(?)" at the right end of
   // the tab's own first line, using the same shared component the search
   // field's own popover is built on — threaded into whichever function
-  // draws that line rather than prepended ahead of it (spec 360).
+  // draws that line rather than prepended ahead of it.
   const mark = helpPopover("What this tab shows", TAB_HELP[tab]);
   const panel =
     tab === "steps"
@@ -210,7 +209,7 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
   );
 }
 
-/** The spec page's first chunk (spec 515): the document up to `<body>`, the
+/** The spec page's first chunk: the document up to `<body>`, the
  *  stylesheet and scripts, and the loading element. Needs only what the
  *  route knows before any view data exists. */
 export function renderSpecPageHead(specFolder: string, lang: Language): string {

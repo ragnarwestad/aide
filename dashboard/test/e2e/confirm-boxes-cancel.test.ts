@@ -73,7 +73,7 @@ async function open(box: Box): Promise<void> {
 
 for (const box of BOXES) {
   for (const how of ["Cancel", "Escape"] as const) {
-    test(`${box.name}: ${how} closes it, navigates nowhere and posts nothing (AC-4)`, async () => {
+    test(`${box.name}: ${how} closes it, navigates nowhere and posts nothing`, async () => {
       await open(box);
       const posts: string[] = [];
       page.on("request", (r) => {

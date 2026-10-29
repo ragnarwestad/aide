@@ -1,7 +1,7 @@
 #!/bin/bash
 # aide-managed: commit-msg-spec-guard — installed by aide-install-spec-hook.
 #
-# Best-effort guardrail (spec 219): rejects a commit that touches a
+# Best-effort guardrail: rejects a commit that touches a
 # spec's 4/5-file layout (0-README.md, 1-description.md, 2-analysis.md,
 # 3-solution.md, 4-status.md) unless the message matches the convention
 # documented in core/rules/spec-structure.md's "Workflow steps

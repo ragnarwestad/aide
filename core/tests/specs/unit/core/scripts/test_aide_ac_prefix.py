@@ -57,27 +57,27 @@ def prefix_for(script, project_dir, spec):
     return prefix(script, project_dir, "--spec", spec)
 
 
-def test_the_prefix_has_the_folder_s_number_in_place_of_spec_AC_1(script, project):
+def test_the_prefix_has_the_folder_s_number_in_place_of_spec(script, project):
     write_manifest(project, "name: p\nacPrefix: F{spec}\n")
     assert prefix_for(script, project, FOLDER) == (0, {"ok": True, "prefix": "F652"})
 
 
-def test_the_number_keeps_the_folder_s_leading_zero_AC_1(script, project):
+def test_the_number_keeps_the_folder_s_leading_zero(script, project):
     write_manifest(project, "acPrefix: F{spec}\n")
     assert prefix_for(script, project, "02-totals") == (0, {"ok": True, "prefix": "F02"})
 
 
-def test_a_value_quoted_as_a_whole_is_read_without_its_quotes_AC_1(script, project):
+def test_a_value_quoted_as_a_whole_is_read_without_its_quotes(script, project):
     write_manifest(project, 'acPrefix: "{spec}"\n')
     assert prefix_for(script, project, FOLDER) == (0, {"ok": True, "prefix": "652"})
 
 
-def test_every_spec_in_the_value_is_replaced_AC_1(script, project):
+def test_every_spec_in_the_value_is_replaced(script, project):
     write_manifest(project, "acPrefix: '{spec}/F{spec}'\n")
     assert prefix_for(script, project, "02-totals") == (0, {"ok": True, "prefix": "02/F02"})
 
 
-def test_a_worktree_without_a_manifest_reads_the_main_checkout_AC_1(script, project, tmp_path):
+def test_a_worktree_without_a_manifest_reads_the_main_checkout(script, project, tmp_path):
     wt = tmp_path / "wt"
     git(project, "worktree", "add", "-q", "-b", "spec", str(wt))
     write_manifest(project, "acPrefix: F{spec}\n")
@@ -85,22 +85,22 @@ def test_a_worktree_without_a_manifest_reads_the_main_checkout_AC_1(script, proj
 
 
 @pytest.mark.parametrize("spec", ["652", f"specs/aide/{FOLDER}/", f"specs/aide/{FOLDER}"])
-def test_a_bare_number_and_a_path_name_the_same_number_AC_1(script, project, spec):
+def test_a_bare_number_and_a_path_name_the_same_number(script, project, spec):
     write_manifest(project, "acPrefix: F{spec}\n")
     assert prefix_for(script, project, spec) == (0, {"ok": True, "prefix": "F652"})
 
 
-def test_a_folder_without_a_number_has_no_prefix_AC_1(script, project):
+def test_a_folder_without_a_number_has_no_prefix(script, project):
     write_manifest(project, "acPrefix: F{spec}\n")
     assert prefix_for(script, project, "new-abc123de") == (0, {"ok": True, "prefix": ""})
 
 
-def test_no_acprefix_key_is_an_empty_prefix_AC_2(script, project):
+def test_no_acprefix_key_is_an_empty_prefix(script, project):
     write_manifest(project, "name: p\n")
     assert prefix_for(script, project, FOLDER) == (0, {"ok": True, "prefix": ""})
 
 
-def test_no_manifest_is_an_empty_prefix_AC_2(script, project):
+def test_no_manifest_is_an_empty_prefix(script, project):
     assert prefix_for(script, project, FOLDER) == (0, {"ok": True, "prefix": ""})
 
 

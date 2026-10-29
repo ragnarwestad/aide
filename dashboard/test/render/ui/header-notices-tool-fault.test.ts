@@ -28,7 +28,7 @@ function faultLines(html: string): Element[] {
 }
 
 describe("the tool-fault line", () => {
-  test("a Claude Code that is not logged in links to its Installation tab (AC-13)", () => {
+  test("a Claude Code that is not logged in links to its Installation tab", () => {
     setConfiguredTools(() => ["claude"]);
     recordCheck({
       tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true, lines: [],
@@ -42,7 +42,7 @@ describe("the tool-fault line", () => {
     ]);
   });
 
-  test("no tool with a fault draws no line (AC-13)", () => {
+  test("no tool with a fault draws no line", () => {
     setConfiguredTools(() => ["claude"]);
     recordCheck({ tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true, lines: [], extra: [] });
     expect(faultLines(headerNotices("en"))).toEqual([]);

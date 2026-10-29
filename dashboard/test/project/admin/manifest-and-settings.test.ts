@@ -27,8 +27,8 @@ afterEach(() => {
 });
 
 /** A checkout under a projects root of its own — the same shape the
- *  readiness tests above build, at module scope because spec 184's tests
- *  want it too. */
+ *  readiness tests above build, at module scope because the settings-file
+ *  tests want it too. */
 function checkoutFor(name: string): { projectsRoot: string; dir: string } {
   const projectsRoot = root();
   const dir = join(projectsRoot, name);
@@ -36,14 +36,14 @@ function checkoutFor(name: string): { projectsRoot: string; dir: string } {
   return { projectsRoot, dir };
 }
 
-// --- spec 184: the settings that travel with the repo ------------------------
+// --- The settings that travel with the repo ------------------------
 //
 // `.aide/config` is gitignored, so everything written there is lost the
 // moment the project meets a new machine — and one of the two keys it
 // held is true of the PROJECT rather than of the machine. The worktree
 // links live in the committed `.aide/project.yaml` now.
 
-describe("upserting one scalar into a manifest (spec 184)", () => {
+describe("upserting one scalar into a manifest", () => {
   const manifest = (text?: string): string => {
     const dir = root();
     const file = join(dir, "project.yaml");
@@ -79,7 +79,7 @@ describe("upserting one scalar into a manifest (spec 184)", () => {
     expect(readFileSync(file, "utf-8")).toBe("name: alpha\n");
   });
 
-  // Criterion 7. A manifest is a file a person wrote
+  // A manifest is a file a person wrote
   // by hand — comments, key order, multi-line blocks and all. A
   // parse-mutate-stringify round trip promises none of that back.
   test("every other line of a real manifest is byte-identical afterwards", () => {
@@ -148,7 +148,7 @@ describe("writing one key inside a block of the manifest", () => {
   };
   const LONG = "  command: " + "bun run build && ".repeat(12) + "bun run preview";
 
-  test("an existing line is replaced and every other byte stays (AC-3, AC-5)", () => {
+  test("an existing line is replaced and every other byte stays", () => {
     const before = [
       "name: demo",
       "deployment:",
@@ -165,7 +165,7 @@ describe("writing one key inside a block of the manifest", () => {
     expect(read(after)).toBe("cloudflare-pages");
   });
 
-  test("a block without the key gets the line at the block's own indentation (AC-3, AC-4)", () => {
+  test("a block without the key gets the line at the block's own indentation", () => {
     const before = "name: demo\ndeployment:\n    host: Cloudflare Pages\n    # a note\n\nlogging:\n  where: x\n";
     const after = write(before, "command");
     expect(after).toBe(
@@ -174,13 +174,13 @@ describe("writing one key inside a block of the manifest", () => {
     expect(read(after)).toBe("command");
   });
 
-  test("a bare header gets the line right after it (AC-3)", () => {
+  test("a bare header gets the line right after it", () => {
     const after = write("name: demo\ndeployment:\nlogging:\n  where: x\n", "command");
     expect(after).toBe("name: demo\ndeployment:\n  previewFrom: command\nlogging:\n  where: x\n");
     expect(read(after)).toBe("command");
   });
 
-  test("a comment at column 0 inside the block does not end it, and no second key appears (AC-3, AC-5)", () => {
+  test("a comment at column 0 inside the block does not end it, and no second key appears", () => {
     const before = "deployment:\n  host: x\n# written by hand\n  previewFrom: command\n";
     const after = write(before);
     expect(after).toBe("deployment:\n  host: x\n# written by hand\n  previewFrom: cloudflare-pages\n");
@@ -188,23 +188,23 @@ describe("writing one key inside a block of the manifest", () => {
     expect(read(after)).toBe("cloudflare-pages");
   });
 
-  test("a column-0 comment after the block's last key stays where it was (AC-3)", () => {
+  test("a column-0 comment after the block's last key stays where it was", () => {
     const after = write("deployment:\n  host: x\n# next part\nlogging:\n  where: y\n", "command");
     expect(after).toBe("deployment:\n  host: x\n  previewFrom: command\n# next part\nlogging:\n  where: y\n");
   });
 
-  test("no block at all appends one at the end (AC-3, AC-4)", () => {
+  test("no block at all appends one at the end", () => {
     const after = write("name: demo\ndescription: the demo app\n", "command");
     expect(after).toBe("name: demo\ndescription: the demo app\ndeployment:\n  previewFrom: command\n");
     expect(read(after)).toBe("command");
   });
 
-  test("an empty value removes the line, and has nothing to do without a block (AC-3)", () => {
+  test("an empty value removes the line, and has nothing to do without a block", () => {
     expect(write("deployment:\n  host: x\n  previewFrom: command\n", "")).toBe("deployment:\n  host: x\n");
     expect(write("name: demo\n", "")).toBe("name: demo\n");
   });
 
-  test("a block that is not a block of keys is refused and the text is unchanged (AC-3, AC-4)", () => {
+  test("a block that is not a block of keys is refused and the text is unchanged", () => {
     for (const before of [
       "name: demo\ndeployment: {}\n",
       "name: demo\ndeployment: Cloudflare Pages\n",
@@ -215,7 +215,7 @@ describe("writing one key inside a block of the manifest", () => {
     }
   });
 
-  test("a previewFrom that continues over several lines is refused (AC-3, AC-4)", () => {
+  test("a previewFrom that continues over several lines is refused", () => {
     for (const before of [
       "deployment:\n  previewFrom:\n    - command\n",
       "deployment:\n  previewFrom: command\n    and more\n",
@@ -226,7 +226,7 @@ describe("writing one key inside a block of the manifest", () => {
   });
 });
 
-describe("where the worktree links are read from (spec 184)", () => {
+describe("where the worktree links are read from", () => {
   const CASES: {
     cases: { name: string; manifest: string | null; links: string }[];
   } = JSON.parse(
@@ -268,7 +268,7 @@ describe("where the worktree links are read from (spec 184)", () => {
   }
 });
 
-describe("a refused link names the file it came out of (spec 184)", () => {
+describe("a refused link names the file it came out of", () => {
   // The manifest's `worktreeLinks` is the one spelling to refuse over;
   // `test_aide_run_spec.py` is the bash half of the same rule.
   test("a manifest value is refused in the manifest's own words", async () => {
@@ -283,7 +283,7 @@ describe("a refused link names the file it came out of (spec 184)", () => {
   });
 });
 
-describe("adding a project keeps its links in the dashboard's settings file (spec 184, 512)", () => {
+describe("adding a project keeps its links in the dashboard's settings file", () => {
   const settingsOf = (base: string, name: string) => readFileSync(dashboardSettingsFile(base, name), "utf-8");
 
   test("worktree links go into the settings file, not .aide/config and not the checkout", async () => {
@@ -358,7 +358,7 @@ describe("adding a project keeps its links in the dashboard's settings file (spe
   });
 });
 
-describe("changing a project's settings after it was added (spec 184)", () => {
+describe("changing a project's settings after it was added", () => {
   /** A project already on the dashboard: a checkout, a manifest, and
    *  whichever of the two settings it was added with. */
   function added(name: string, opts: { specsPath?: string; worktreeLinks?: string } = {}) {
@@ -373,7 +373,7 @@ describe("changing a project's settings after it was added (spec 184)", () => {
     return { projectsRoot, dir };
   }
 
-  // Criterion 4: a project added with the field left blank could only be
+  // A project added with the field left blank could only be
   // fixed by removing and re-adding it, or by opening a terminal.
   test("worktree links can be filled in afterwards, and land in the manifest", async () => {
     const { dir } = added("later");
@@ -407,7 +407,7 @@ describe("changing a project's settings after it was added (spec 184)", () => {
     expect(resolveWorktreeLinks(dir).links).toBe("node_modules");
   });
 
-  // Criterion 8: the other half of the same form, and it goes to the
+  // The other half of the same form, and it goes to the
   // other file — the specs path names a directory on THIS machine.
   test("the specs path can be changed afterwards, and the manifest is untouched", async () => {
     const { dir } = added("respec", { specsPath: "/old/specs" });
@@ -480,10 +480,10 @@ describe("changing a project's settings after it was added (spec 184)", () => {
   });
 });
 
-// Spec 255: two more `.aide/config` keys join `specsPath` on the same
+// Two more `.aide/config` keys join `specsPath` on the same
 // route, gated on presence in `req` the way `codeLanding` already is —
 // a caller that never mentions one of these must not blank it.
-describe("saving AIDE_INSTALL_CMD (spec 255)", () => {
+describe("saving AIDE_INSTALL_CMD", () => {
   /** A project already added, with a manifest but no `.aide/config` yet
    *  — the state `checkoutFor` alone leaves a project in. */
   function withManifest(name: string): string {
@@ -534,7 +534,7 @@ describe("saving AIDE_INSTALL_CMD (spec 255)", () => {
 // A description is written as YAML needs it, so it is written whole: on one
 // line, quoted where a plain line would not read back, and in place of every
 // line a folded or block form took.
-describe("saving a description over every form it can be stored in (AC-2)", () => {
+describe("saving a description over every form it can be stored in", () => {
   const typed = "Aide: the board for specs # not a comment, and long enough to pass the eighty character mark";
   const forms: { form: string; description: string[]; tail: string[] }[] = [
     { form: "folded over two lines", description: ["description: a board for", "  specs and jobs"], tail: ["", "# note", "AIDE_TEST_CMD: make test"] },
@@ -558,7 +558,7 @@ describe("saving a description over every form it can be stored in (AC-2)", () =
   };
 
   for (const { form, description, tail } of forms) {
-    test(`a description of over 80 characters reads back as typed over a description ${form} (AC-2)`, async () => {
+    test(`a description of over 80 characters reads back as typed over a description ${form}`, async () => {
       const { dir, file } = setup(description, tail);
       const result = await updateProjectSettings(run, dir, { description: typed });
       expect(result.steps.find((s) => s.step === "description")).toEqual({ step: "description", ok: true });
@@ -575,7 +575,7 @@ describe("saving a description over every form it can be stored in (AC-2)", () =
       expect(readFileSync(file, "utf-8")).toBe(saved);
     });
 
-    test(`a stored description ${form} posted back on one line writes nothing (AC-2)`, async () => {
+    test(`a stored description ${form} posted back on one line writes nothing`, async () => {
       const { dir, file, text } = setup(description, tail);
       const stored = parsed(file).description ?? "";
       const result = await updateProjectSettings(run, dir, { description: oneLine(stored) });
@@ -583,7 +583,7 @@ describe("saving a description over every form it can be stored in (AC-2)", () =
       expect(readFileSync(file, "utf-8")).toBe(text);
     });
 
-    test(`an empty description removes the key and its continuation lines ${form}, and nothing else (AC-2)`, async () => {
+    test(`an empty description removes the key and its continuation lines ${form}, and nothing else`, async () => {
       const { dir, file } = setup(description, tail);
       await updateProjectSettings(run, dir, { description: "" });
       expect(readFileSync(file, "utf-8")).toBe(`${["name: p", ...tail].join("\n")}\n`);
@@ -593,20 +593,20 @@ describe("saving a description over every form it can be stored in (AC-2)", () =
 
 // A criterion prefix is read by two readers, the page's YAML parser and the
 // implement command's `sed`, so the line is written as both read it back.
-describe("writing a criterion prefix (AC-5)", () => {
+describe("writing a criterion prefix", () => {
   const write = (value: string) => manifestWithScalar("name: demo\n", "acPrefix", value, "project.yaml");
   const read = (text: string) => {
     const parsed = parseManifest(text);
     return parsed.ok ? parsed.data.acPrefix : undefined;
   };
 
-  test("a prefix with the spec's number in it is written plain and reads back as typed (AC-5)", () => {
+  test("a prefix with the spec's number in it is written plain and reads back as typed", () => {
     const after = write("F{spec}");
     expect(after).toBe("name: demo\nacPrefix: F{spec}\n");
     expect(read(after)).toBe("F{spec}");
   });
 
-  test("a prefix that is only the spec's number is quoted, so it reads back as typed (AC-5)", () => {
+  test("a prefix that is only the spec's number is quoted, so it reads back as typed", () => {
     const after = write("{spec}");
     expect(after).toBe('name: demo\nacPrefix: "{spec}"\n');
     expect(read(after)).toBe("{spec}");

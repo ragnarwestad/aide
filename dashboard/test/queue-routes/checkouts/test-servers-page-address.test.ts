@@ -31,8 +31,8 @@ const pageFor = async (headers: Record<string, string>, allowedHosts: string[], 
   return (await fetch(`${base}/test-servers`, { headers })).text();
 };
 
-describe("the Address link on /test-servers (AC-4)", () => {
-  test("it carries the host and scheme the reader used, and no loopback address (AC-4)", async () => {
+describe("the Address link on /test-servers", () => {
+  test("it carries the host and scheme the reader used, and no loopback address", async () => {
     const html = await pageFor(
       { host: "rw-macmini.ts.net", "x-forwarded-proto": "https" },
       ["rw-macmini.ts.net"],
@@ -42,12 +42,12 @@ describe("the Address link on /test-servers (AC-4)", () => {
     expect(html).not.toContain("127.0.0.1");
   });
 
-  test("without a forwarding header the scheme is the request's own (AC-4)", async () => {
+  test("without a forwarding header the scheme is the request's own", async () => {
     const html = await pageFor({ host: "box.local:8788" }, ["box.local"], (s) => s.set("aide", FOLDER, board()));
     expect(html).toContain('href="http://box.local:8801/?token=t0ken"');
   });
 
-  test("the main board is built the same way, and a starting row has no link (AC-4)", async () => {
+  test("the main board is built the same way, and a starting row has no link", async () => {
     const html = await pageFor(
       { host: "box.local:8788" },
       ["box.local"],

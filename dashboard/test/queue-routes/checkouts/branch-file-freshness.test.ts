@@ -20,27 +20,27 @@ const { harness, start } = setupQueueRoutesHarness();
 
 afterEach(() => harness.cleanup());
 
-// Spec 154: the runner owns the record of what has run.
+// The runner owns the record of what has run.
 //
-// Two incidents on 2026-08-21, in opposite directions. 147's implement
+// Two incidents on 2026-08-21, in opposite directions. One implement
 // had RED and GREEN done and every test green, and was killed by the
 // step's own time limit before the model reached the part that writes
 // `4-status.md` — so the row read "implement not run" about a spec
-// whose code was committed on its branch. 153's four files were copied
+// whose code was committed on its branch. The other's four files were copied
 // from a sibling whose analyze had landed, so a brand-new spec claimed
 // three steps and the row offered implement first.
 //
 // The commits are the record now. The file's line is a claim, and a
 // claim the history does not support is said out loud on the row.
 
-// Spec 298: implement lands nothing until archive, so a finished
+// Implement lands nothing until archive, so a finished
 // implement's own rewrite of `4-status.md`'s "Workflow steps completed:"
 // line sits only on `aide/<folder>` — the DEFAULT-branch checkout this
 // suite's disk reads all come from never sees it, and reads as
 // disagreeing with a history that (via `--all`) does. The fix reads the
 // file from the branch instead, once it is still open, and falls back to
 // the disk read exactly as before when it is not.
-describe("spec 298: the file is read from the branch a still-open spec is on", () => {
+describe("the file is read from the branch a still-open spec is on", () => {
   const FOLDER = "81-queue-and-runner";
   const specDir = (dir: string) => join(dir, "root", "aide", "specs", FOLDER);
 
@@ -67,7 +67,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     // there — the active path above then names nothing at all, and git
     // answers a `log` for it with no sha, exactly as modelled below.
     const archivedRelPath = `aide/specs/archive/${FOLDER}/4-status.md`;
-    // The branch's own sibling state file (spec 362) — read alongside
+    // The branch's own sibling state file — read alongside
     // `relPath`, at the same active-folder path `4-status.md` sits at.
     const jsonRelPath = `aide/specs/${FOLDER}/4-status.json`;
     const ref = `refs/remotes/origin/${branch}`;
@@ -102,7 +102,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     };
   };
 
-  /** Same wait as the "spec 154" suite above: the schedule has to warm
+  /** Same wait as the other freshness suites: the schedule has to warm
    *  this spec at least once, and the disk scan has to catch up with
    *  the fixture's own writes. */
   const listPage = async (base: string): Promise<string> => {
@@ -110,7 +110,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     return listUntil(base, dated, undefined, "a dated Created cell for the spec");
   };
 
-  test("REQ-1: a branch copy that matches the history clears the qualifier the stale disk copy would raise", async () => {
+  test("a branch copy that matches the history clears the qualifier the stale disk copy would raise", async () => {
     const { base, dir } = start({
       gitRun: branchReadingGitRun({ open: true, branchText: statusSaying(["create", "analyze", "implement"]) }),
     });
@@ -124,7 +124,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     expect(line).not.toContain("disagree about whether");
   });
 
-  test("REQ-2: a branch copy that genuinely disagrees with the history still says so", async () => {
+  test("a branch copy that genuinely disagrees with the history still says so", async () => {
     const { base, dir } = start({
       gitRun: branchReadingGitRun({ open: true, branchText: statusSaying(["create", "analyze"]) }),
     });
@@ -134,7 +134,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     expect(line).toContain("disagree about whether");
   });
 
-  // Reported live on spec 306 (2026-09-01): `archive` had already run ON
+  // Reported live: `archive` had already run ON
   // THE BRANCH — the folder moved to `archive/<folder>` there and the
   // status file went with it — while the branch itself had not landed,
   // so the default branch still carried the folder in its active place
@@ -144,7 +144,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
   // that had it. Reading the branch means reading wherever the folder
   // is ON the branch — the same "active folder, then archive/" pair
   // `aide_resolve_spec`, `resolve_dependency_folder`, `status_file_for`
-  // and `aide-run-spec` (spec 202) already resolve.
+  // and `aide-run-spec` already resolve.
   test("a folder archive has already moved on the branch is still read from the branch", async () => {
     const { base, dir } = start({
       gitRun: branchReadingGitRun({
@@ -161,7 +161,7 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     expect(line).not.toContain("disagree about whether");
   });
 
-  test("REQ-3: no open branch falls back to the disk read, exactly as before this fix", async () => {
+  test("no open branch falls back to the disk read, exactly as before this fix", async () => {
     const { base, dir } = start({
       gitRun: branchReadingGitRun({ open: false }),
     });
@@ -184,11 +184,11 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     expect(specControls(html, FOLDER)).toContain("disagree about whether");
   });
 
-  // Spec 362 (REQ-1/REQ-5, branch path): the branch's own 4-status.json
+  // The branch path: the branch's own 4-status.json
   // is the truth once one exists there too — the five other specs still
   // on their own open branch (found during analysis) are reachable only
   // through this path, not the disk one above.
-  test("REQ-1: the branch's own state file claiming a phase git has no commit for raises no qualifier (spec 362)", async () => {
+  test("the branch's own state file claiming a phase git has no commit for raises no qualifier", async () => {
     const { base, dir } = start({
       gitRun: branchReadingGitRun({
         open: true,
@@ -209,10 +209,10 @@ describe("spec 298: the file is read from the branch a still-open spec is on", (
     expect(line).not.toContain("disagree about whether");
   });
 
-  // REQ-4: `withFreshness` stays synchronous, so a render never awaits
+  // `withFreshness` stays synchronous, so a render never awaits
   // the branch read. `bunx tsc --noEmit` catches a regression that made
   // it `async` at the type level; this proves it at the value level too.
-  test("REQ-4: withFreshness returns synchronously, with no await anywhere in the call", () => {
+  test("withFreshness returns synchronously, with no await anywhere in the call", () => {
     const list: SpecTarget[] = [
       { project: "aide", specFolder: FOLDER, dir: "/some/dir", fileSteps: { proseSteps: ["create"], stateSteps: undefined } },
     ];

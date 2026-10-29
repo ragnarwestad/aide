@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 describe("a project name has to be safe before anything is touched", () => {
-  // Criterion 3. The name becomes a directory under the projects root
+  // The name becomes a directory under the projects root
   // and a `git clone` argument, so it is checked FIRST — a refusal that
   // happens after the clone is not a refusal.
   test.each([["../escape"], ["a/b"], [".hidden"], [""], ["  "], ["a b"]])(
@@ -63,7 +63,6 @@ describe("a project name has to be safe before anything is touched", () => {
 });
 
 describe("adding a project by cloning it", () => {
-  // Criterion 1.
   test("clones into <root>/<name>, keeps a minimal manifest in the dashboard's settings file, reports every step", async () => {
     const projectsRoot = root();
     const base = root();
@@ -80,15 +79,15 @@ describe("adding a project by cloning it", () => {
     // `cwd` is the projects root, not the destination: the destination
     // does not exist yet, which is what makes this call different from
     // every other git call in the codebase. The CLONE calls alone —
-    // since spec 138 the same runner is asked the readiness questions
-    // too, and those are that spec's to assert.
+    // the same runner is also asked the readiness questions,
+    // and those are asserted elsewhere.
     expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([
       {
         dir: projectsRoot,
         args: ["-c", "credential.helper=", "clone", "https://example.com/newproj.git", "newproj"],
       },
     ]);
-    // Spec 512: nothing of Aide's is written into the clone.
+    // Nothing of Aide's is written into the clone.
     expect(existsSync(join(projectsRoot, "newproj", ".aide", "project.yaml"))).toBe(false);
     const manifest = dashboardSettingsFile(base, "newproj");
     expect(existsSync(manifest)).toBe(true);
@@ -96,7 +95,6 @@ describe("adding a project by cloning it", () => {
     expect(parsed).toEqual({ ok: true, data: { name: "newproj", description: "What it is for" } });
   });
 
-  // Criterion 2.
   test("a name already taken under the projects root is refused before the clone", async () => {
     const projectsRoot = root();
     mkdirSync(join(projectsRoot, "taken"));
@@ -190,7 +188,7 @@ describe("adding a project on a host whose projects root holds links", () => {
   });
 });
 
-// Spec 183: a clone of a private HTTPS repository hung for eleven
+// A clone of a private HTTPS repository hung for eleven
 // minutes on the serving host, because git handed the question to the
 // machine's credential helper and a background service has nobody to
 // answer it. The clone now runs with the helper list cleared for that
@@ -201,7 +199,7 @@ describe("a clone that cannot authenticate", () => {
   const PROMPTS_DISABLED =
     "fatal: could not read Username for 'https://example.com/owner/private.git': terminal prompts disabled";
 
-  // Criterion 2: the override rides on the clone call's own args, not
+  // The override rides on the clone call's own args, not
   // on the shared runner — every OTHER git call this dashboard makes
   // still consults the helper, which is what an already-added project
   // holding an HTTPS token depends on.
@@ -217,7 +215,6 @@ describe("a clone that cannot authenticate", () => {
     expect(clone.args.slice(0, 3)).toEqual(["-c", "credential.helper=", "clone"]);
   });
 
-  // Criterion 1.
   test("names the credentials problem and suggests the SSH address", async () => {
     const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: PROMPTS_DISABLED } });
     const result = await addProject(git.run, root(), {
@@ -231,7 +228,7 @@ describe("a clone that cannot authenticate", () => {
     expect(clone.error).toContain("git@example.com:owner/private.git");
   });
 
-  // Criterion 5: the address is derived, not echoed — an HTTPS one
+  // The address is derived, not echoed — an HTTPS one
   // without the suffix still gets an SSH one with it.
   test("an address with no .git suffix still gets one in the suggestion", async () => {
     const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: PROMPTS_DISABLED } });
@@ -245,7 +242,7 @@ describe("a clone that cannot authenticate", () => {
     );
   });
 
-  // Criterion 3: every other reason a clone fails keeps its own words.
+  // Every other reason a clone fails keeps its own words.
   // The classifier reads git's stderr, so an over-matching one would
   // fold "no such repository" into a message about credentials.
   test("an unrelated failure keeps today's plain message", async () => {
@@ -261,7 +258,7 @@ describe("a clone that cannot authenticate", () => {
     expect(clone.error).not.toContain("git@");
   });
 
-  // Criterion 7: an SSH address authenticates by key, never through
+  // An SSH address authenticates by key, never through
   // `credential.helper`, so clearing the helper changes nothing for it.
   test("an SSH address still clones", async () => {
     const projectsRoot = root();
@@ -279,7 +276,6 @@ describe("a clone that cannot authenticate", () => {
 });
 
 describe("adding a checkout that is already on the host", () => {
-  // Criterion 5.
   test("an existing manifest is kept, not overwritten", async () => {
     const projectsRoot = root();
     const dir = join(projectsRoot, "already");
@@ -300,10 +296,10 @@ describe("adding a checkout that is already on the host", () => {
     expect(readFileSync(manifest, "utf-8")).not.toContain("ignored");
   });
 
-  // Criterion 6: the same registration, with no manifest there. It
+  // The same registration, with no manifest there. It
   // succeeds — and SAYS where the settings are kept, without sending the
   // operator to a command.
-  test("a checkout with no manifest gets a minimal one in the dashboard's settings file, and the answer says so (AC-2)", async () => {
+  test("a checkout with no manifest gets a minimal one in the dashboard's settings file, and the answer says so", async () => {
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "bare");
@@ -336,7 +332,7 @@ describe("adding a checkout that is already on the host", () => {
     ["absent", undefined],
     ["empty", ""],
     ["only spaces", "   "],
-  ])("an Add with Code landing %s is refused before anything is cloned (AC-3)", async (_label, codeLanding) => {
+  ])("an Add with Code landing %s is refused before anything is cloned", async (_label, codeLanding) => {
     const git = cloningGit();
     const projectsRoot = root();
     const req = { name: "nochoice", gitUrl: "https://example.com/nochoice.git", codeLanding };
@@ -410,7 +406,7 @@ describe("where the project's specs live", () => {
     expect(text.match(/^AIDE_SPECS_PATH=/gm)!.length).toBe(1);
   });
 
-  // Spec 140, criterion 2: the form accepted a path that did not exist,
+  // The form accepted a path that did not exist,
   // wrote it into .aide/config, and then reported the project as not
   // ready BECAUSE it does not exist — a refusal loop over a path that
   // was known the moment it was written. Add makes it instead, with the
@@ -463,7 +459,7 @@ describe("where the project's specs live", () => {
 });
 
 describe("removing a project touches the allowlist and nothing else", () => {
-  // Criteria 7-8, at the level below HTTP: the mechanic itself. The
+  // At the level below HTTP: the mechanic itself. The
   // name had to be typed back here until 2026-09-08 — the page asks the
   // question in a sentence now, and the press is the answer.
   test("the press takes it off the allowlist, and touches nothing else", () => {

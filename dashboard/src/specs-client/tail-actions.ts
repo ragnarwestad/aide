@@ -16,7 +16,7 @@ export async function showRefusal(why: string, spec: string | undefined): Promis
   await swapRows();
 }
 
-/** A phase box that posts itself (spec 160). While a job runs, the
+/** A phase box that posts itself. While a job runs, the
  *  boxes for phases it has not reached stay live — and there is nothing
  *  to submit them with: a busy row draws Cancel where Run would be, and
  *  posting to `/api/queue` would ask for a second job the queue refuses
@@ -75,7 +75,7 @@ export async function postTailStep(box: HTMLInputElement): Promise<void> {
   }
 }
 
-/** The same press for the two SELECTS on a live phase line (spec 225).
+/** The same press for the two SELECTS on a live phase line.
  *
  *  Everything `postTailStep` does above and for the same reasons — the
  *  row locks while the request is out, the row is redrawn from the

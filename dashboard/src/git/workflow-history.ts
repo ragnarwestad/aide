@@ -1,13 +1,13 @@
-// Spec 154: which steps a spec has HAD, read off the runner's own
+// Which steps a spec has HAD, read off the runner's own
 // commits.
 //
 // It used to be read off one line of `4-status.md`, written by the
 // model that ran the step — and on 2026-08-21 that line was wrong in
-// both directions on the same day. Spec 147's implement finished RED
+// both directions on the same day. One spec's implement finished RED
 // and GREEN and was killed by the step's time limit before the model
 // reached the part that writes the file, so the row said "implement not
 // run" about a spec whose code was already committed on its branch.
-// Spec 153's four files were copied from a sibling whose analyze had
+// Another spec's four files were copied from a sibling whose analyze had
 // landed, so a folder minutes old claimed three steps it had never had.
 //
 // A commit cannot be copied into existence and does not depend on the
@@ -33,12 +33,12 @@ export type { BranchFileStepsOptions, FileStepsAnswer } from "./branch-file-step
  *  list `parse-status.ts` reads off the file, and deliberately NOT the
  *  nine the runner will execute: `explore` is a
  *  thing you can queue, not a place a spec gets to. Read from
- *  `core/scripts/lib/workflow-steps.json` (spec 349), the same file
+ *  `core/scripts/lib/workflow-steps.json`, the same file
  *  `core/scripts/aide-run-spec` reads with jq. */
 export const HISTORY_STEPS: readonly string[] = workflowStepsData.workflowArc;
 
 /** A step name retired FROM the arc, kept recognized when READING old
- *  commits (spec 181, description requirement 2: "every archived spec
+ *  commits (the requirement that "every archived spec
  *  whose history contains a review-plan run still displays that
  *  history"). `review-plan` folded into `analyze` and is gone from
  *  `HISTORY_STEPS` and `WORKFLOW_STEPS` (queue.ts) both — a NEW run can
@@ -46,8 +46,8 @@ export const HISTORY_STEPS: readonly string[] = workflowStepsData.workflowArc;
  *  commit made before this change is still on disk, and
  *  `readWorkflowSubjects` below has to keep recognizing it or an
  *  archived spec's history silently loses a step it actually had.
- *  Never grows for a step retired WITHOUT that requirement: spec 171's
- *  `resolve` was never part of this arc and needed no such entry.
+ *  Never grows for a step retired WITHOUT that requirement: `resolve`
+ *  was never part of this arc and needed no such entry.
  *
  *  `core/scripts/aide-run-spec` reads the same value from
  *  `workflow-steps.json`'s `workflowArcRetired`. */
@@ -73,7 +73,7 @@ const AFTER_ANALYZE: readonly string[] = HISTORY_STEPS.slice(HISTORY_STEPS.index
 //   names the folder it just made.
 // - ` (headless)` is present for a run `aide-run-spec` made and absent
 //   for one committed at somebody's keyboard. Both count.
-// - ` (model: <tool> [<model>])` is spec 217: who ran the step. The
+// - ` (model: <tool> [<model>])` says who ran the step. The
 //   tool is always known, the model value only when the caller named
 //   one. Nothing here reads the value — the field it feeds is written
 //   into `4-status.md` by `aide-run-spec` — but the group has to be in
@@ -130,7 +130,7 @@ export function workflowLogArgs(specFolder: string, boundarySha?: string): strin
   return [
     "log",
     "--all",
-    // Spec 198. `--not <sha>` excludes every commit REACHABLE from the
+    // `--not <sha>` excludes every commit REACHABLE from the
     // reopen mark — exactly the earlier round, since the mark is the
     // specs repo's default-branch tip at the moment of reopening and
     // that round's commits were landed onto that branch by its own
@@ -228,8 +228,8 @@ export class WorkflowHistoryChecker {
     // branch-status.ts gives: a NUL here makes git treat the source
     // file as binary, and every future diff of it pays for that.
     //
-    // The boundary is part of the QUESTION and so part of the key (spec
-    // 198): a spec reopened while the dashboard is running would
+    // The boundary is part of the QUESTION and so part of the key:
+    // a spec reopened while the dashboard is running would
     // otherwise answer from the pre-reopen entry for the whole TTL —
     // which is exactly the "everything shows done" the reopen exists to
     // end.
@@ -251,7 +251,7 @@ export class WorkflowHistoryChecker {
   }
 
   /** The LAST history this checker holds, without asking git at all
-   *  (spec 208) — the same read `peekDrift` gives the drift count, and
+   *  the same read `peekDrift` gives the drift count, and
    *  what the spec list calls now instead of `read`.
    *
    *  `history: null` is the whole point of the shape. A real, empty
@@ -262,7 +262,7 @@ export class WorkflowHistoryChecker {
    *  negative this spec exists to stop.
    *
    *  Keyed the same way `read` keys, boundary included: the boundary is
-   *  part of the QUESTION (spec 198). */
+   *  part of the QUESTION. */
   /** A step for this spec just ended, or its landing did: every cached
    *  answer for the spec is due for a fresh read, whatever reopen mark
    *  it was read under. Marked, not dropped — `peekHistory` keeps
@@ -288,16 +288,16 @@ export class WorkflowHistoryChecker {
  *  about.
  *
  *  Both directions count. A file naming a step with no commit behind it
- *  is spec 153's copied folder; a file missing a step git has is spec
- *  147's killed run. Neither decides anything — the row says so on the
+ *  is a copied folder; a file missing a step git has is a
+ *  killed run. Neither decides anything — the row says so on the
  *  phase it is about, and goes on reading git.
  *
- *  `implement` looked like a structural exception for one release (spec
- *  299): it lands nothing of its own, so `4-status.md`'s write to this
+ *  `implement` looked like a structural exception for one release:
+ *  it lands nothing of its own, so `4-status.md`'s write to this
  *  line — made on the spec's still-open branch — never reached the
  *  DEFAULT branch this used to read, and "git has implement, the file
  *  doesn't" was the guaranteed state of every such spec, not a killed
- *  run. Spec 298 fixed that at its actual source instead: `fileSteps`
+ *  run. That was fixed at its actual source instead: `fileSteps`
  *  now follows the open branch when one exists
  *  (`withFreshness`/`branchFileSteps`), so it sees implement's own
  *  write the moment implement makes it. With the right copy of the
@@ -308,19 +308,19 @@ export class WorkflowHistoryChecker {
  *
  *  Per step rather than per spec because the row has a line per phase
  *  and one sentence repeated down all five of them is the duplication
- *  spec 143 already took off this page once.
+ *  that was already taken off this page once.
  *
- *  Spec 355 changed what the truth is: once a spec has its own
+ *  The truth changed: once a spec has its own
  *  `4-status.json`, that file — not git — is what the runner's own
  *  gates read, and a git-history comparison can disagree with it for
- *  reasons that mean nothing (spec 349: an amended, unpushed commit
+ *  reasons that mean nothing (an amended, unpushed commit
  *  whose content landed anyway, inside a later step's commit). So git
  *  is asked only when there is NO state file for this copy of the
- *  spec (REQ-2, unchanged); once one exists, the one thing still worth
+ *  spec; once one exists, the one thing still worth
  *  a qualifier is the prose claiming a phase the state file does not
- *  have (REQ-1, REQ-3). */
+ *  have. */
 export function stepsFileDisagreesOn(fileSteps: FileStepsAnswer, history: Omit<WorkflowHistory, "superseded">): string[] {
-  // `create` is left out of the comparison since spec 176: the queue
+  // `create` is left out of the comparison because the queue
   // takes it as done for every spec whose folder exists, whatever git
   // holds, so comparing it against a status file would report a
   // disagreement about a step nothing disagrees on.
@@ -343,7 +343,7 @@ export interface ResolvedWorkflowState {
    *  (`git log --all`). Separate from `done` (which prefers the state
    *  file when one exists) because it is exactly the signal that tells
    *  "the work is on the branch" apart from "nothing was written"
-   *  (spec 418). */
+   */
   historyDone: string[];
   /** Steps git proves a completed analyze cancelled (`h.superseded`) —
    *  what tells "cancelled by a new analysis" from "never ran", for a
@@ -355,7 +355,7 @@ export interface ResolvedWorkflowState {
   checkedAt: number;
 }
 
-/** Spec 302: the one canonical `{ done, stopped, fileDisagrees, fileSteps }`
+/** The one canonical `{ done, stopped, fileDisagrees, fileSteps }`
  *  a spec's steps resolve to — the `create` special case included — built
  *  from the same two peeks `withFreshness` used to assemble by hand.
  *  `null` when nothing has asked git about this spec yet (the caller's
@@ -375,7 +375,7 @@ export function resolveWorkflowState(
   const answer: FileStepsAnswer = branchSteps ?? diskFileSteps ?? { proseSteps: [], stateSteps: undefined };
   // Only the disk answer carries `readAt`: the disk scan counts when it is the file source.
   const reads = [checkedAt, branchPeek.checkedAt, answer.readAt].filter((at): at is number => at != null);
-  // REQ-4: the state file is what a gate reads, so it is what the pips
+  // The state file is what a gate reads, so it is what the pips
   // and the done list read too, once one exists — git's own
   // `history.done` only when there is no state file for this spec yet.
   const doneSource = answer.stateSteps ?? h.done;

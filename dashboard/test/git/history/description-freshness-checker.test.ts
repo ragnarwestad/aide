@@ -1,4 +1,4 @@
-// Spec 97: a spec's 1-description.md can move on after `analyze` has
+// A spec's 1-description.md can move on after `analyze` has
 // run, and the row went on reading `analyze ✓` — the only person who
 // knew a re-run was due was the one who made the edit.
 //
@@ -42,7 +42,7 @@ describe("DescriptionFreshnessChecker", () => {
   const stale = () =>
     gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
 
-  test("a description newer than the last analyze is stale (criterion 1)", async () => {
+  test("a description newer than the last analyze is stale", async () => {
     const git = stale();
     const checker = new DescriptionFreshnessChecker({ run: git.run });
     expect(await checker.isStale(DIR, FOLDER)).toBe(true);
@@ -50,7 +50,7 @@ describe("DescriptionFreshnessChecker", () => {
 
   // The whole point of comparing content: a description rewritten to
   // exactly what it was has a newer commit and says nothing new. Seen
-  // on spec 132, where a section was added and taken out again and the
+  // on a real spec, where a section was added and taken out again and the
   // row went on asking for a re-analysis it did not need.
   test("a newer commit that changed nothing is not stale", async () => {
     const git = gitFor(
@@ -72,13 +72,13 @@ describe("DescriptionFreshnessChecker", () => {
     expect(git.calls.some((c) => c.args[0] === "diff")).toBe(false);
   });
 
-  test("a description older than the last analyze is not (criterion 4)", async () => {
+  test("a description older than the last analyze is not", async () => {
     const git = gitFor("2026-08-18T08:00:00+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
     const checker = new DescriptionFreshnessChecker({ run: git.run });
     expect(await checker.isStale(DIR, FOLDER)).toBe(false);
   });
 
-  test("one answer stands for the whole TTL (criterion 9)", async () => {
+  test("one answer stands for the whole TTL", async () => {
     const git = stale();
     let clock = 1000;
     const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
@@ -95,7 +95,7 @@ describe("DescriptionFreshnessChecker", () => {
     expect(git.calls.length).toBeGreaterThan(spawned);
   });
 
-  test("git failing or timing out degrades to not stale (criterion 10)", async () => {
+  test("git failing or timing out degrades to not stale", async () => {
     const thrower = new DescriptionFreshnessChecker({
       run: async () => {
         throw new Error("timed out");
@@ -117,7 +117,7 @@ describe("DescriptionFreshnessChecker", () => {
   });
 });
 
-// --- spec 198: the reopen boundary ------------------------------------------
+// --- The reopen boundary ------------------------------------------
 //
 // A reopened spec's earlier round is still in the repository, and its
 // `analyze` commit is still the newest one `lastAnalyzeCommit` can find.
@@ -148,7 +148,7 @@ describe("DescriptionFreshnessChecker with a reopen boundary", () => {
   });
 });
 
-// Spec 208: every question a page render asks gets a read that spawns
+// Every question a page render asks gets a read that spawns
 // nothing. The async methods above are unchanged — a background warmer
 // is what keeps calling them — and these are what the render calls
 // instead.
@@ -181,7 +181,7 @@ describe("DescriptionFreshnessChecker.peekStale", () => {
     expect(checker.peekStale(DIR, FOLDER)).toEqual({ stale: true, checkedAt: 1000 });
   });
 
-  // The boundary is part of the QUESTION (spec 198), so it is part of
+  // The boundary is part of the QUESTION, so it is part of
   // the peek's key too — a reopened spec must not read the pre-reopen
   // entry.
   test("a different reopen boundary is a different question", async () => {

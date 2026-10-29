@@ -1,6 +1,6 @@
 // Split out of parse-status.test.ts by theme.
 //
-// Criteria 2-3: every observed progress-line variant parses (fixtures
+// Every observed progress-line variant parses (fixtures
 // are copies of REAL status files from aide-specs and paceup); a file
 // without a recognizable line yields unknown progress; the phase is
 // the first phase section with unchecked tasks.
@@ -21,7 +21,7 @@ import {
 const fixture = (name: string) =>
   readFileSync(join(import.meta.dir, "..", "..", "fixtures", "status", name), "utf-8");
 
-describe("progress line variants (criterion 2)", () => {
+describe("progress line variants", () => {
   const cases: [string, { percent: number; done: number; total: number }][] = [
     ["canonical.md", { percent: 100, done: 8, total: 8 }],
     ["fremgang-prose.md", { percent: 93, done: 13, total: 14 }],
@@ -45,7 +45,7 @@ describe("progress line variants (criterion 2)", () => {
   });
 });
 
-describe("phase (criterion 3)", () => {
+describe("phase", () => {
   const openPhase = [
     "# X - Status",
     "",
@@ -76,7 +76,7 @@ describe("phase (criterion 3)", () => {
     expect(parseStatus("# X - Status\n\nProse only.\n").phase).toBeNull();
   });
 
-  // Spec 190, criterion 2: a step wrote `Waiting` where the notation
+  // A step wrote `Waiting` where the notation
   // table asks for `⬜`. Phase detection used to search the section's
   // raw text for the symbol, so a phase whose only open row is spelled
   // out read as settled — and with no later symbol anywhere, the whole
@@ -92,7 +92,7 @@ describe("phase (criterion 3)", () => {
     expect(parseStatus(words).phase).toBe("done");
   });
 
-  // Spec 266: a LOW-complexity spec's `4-status.md` uses `## Checklist`
+  // A LOW-complexity spec's `4-status.md` uses `## Checklist`
   // instead of `## Phase N: ...` — treated the same as `## Phase`/`##
   // Fase`, not as "no phase sections at all".
   const openChecklist = [
@@ -114,7 +114,7 @@ describe("phase (criterion 3)", () => {
     expect(parseStatus(openChecklist.replace("⬜", "✅")).phase).toBe("done");
   });
 
-  // Spec 285: `## Acceptance criteria`, placed after the last
+  // `## Acceptance criteria`, placed after the last
   // implementation phase, only becomes the current (and so tickable —
   // see overview.ts's `tickable()`) phase once every earlier phase's own
   // rows are done. No new code makes this true — it falls out of this
@@ -137,20 +137,20 @@ describe("phase (criterion 3)", () => {
     "",
   ].join("\n");
 
-  test("Acceptance criteria is not current while an earlier phase still has an open row (spec 285)", () => {
+  test("Acceptance criteria is not current while an earlier phase still has an open row", () => {
     expect(parseStatus(phaseThenAcceptance).phase).toBe("Phase 4: REFACTOR");
   });
 
-  test("Acceptance criteria becomes current once every earlier phase is done (spec 285)", () => {
+  test("Acceptance criteria becomes current once every earlier phase is done", () => {
     const allEarlierDone = phaseThenAcceptance.replace("| d    | ⬜     |       |", "| d    | ✅     |       |");
     expect(parseStatus(allEarlierDone).phase).toBe("Acceptance criteria");
   });
 
-  // Spec 299's follow-up: unlike `phase`, `acceptancePhase` reads as
+  // Unlike `phase`, `acceptancePhase` reads as
   // open EVEN WHILE an earlier phase still has one too — those rows are
   // the spec's own person to judge, never behind implement's own
   // checklist.
-  test("acceptancePhase is set even while an earlier phase is still current (spec 299)", () => {
+  test("acceptancePhase is set even while an earlier phase is still current", () => {
     const info = parseStatus(phaseThenAcceptance);
     expect(info.phase).toBe("Phase 4: REFACTOR");
     expect(info.acceptancePhase).toBe("Acceptance criteria");
@@ -166,13 +166,13 @@ describe("phase (criterion 3)", () => {
   });
 });
 
-// --- spec 108: an archive run that declined says so in the file --------------
+// --- An archive run that declined says so in the file --------------
 
 // A headless archive run that finds the status unfinished does not move
 // the folder — and the job's own exit status says nothing about that
 // either way. The reason is written into `4-status.md`, which is the
 // one place the dashboard can re-read it from.
-describe("spec 108: the archive-held-back reason (criteria 9-11)", () => {
+describe("the archive-held-back reason", () => {
   const withSection = (reason: string) =>
     [
       "# 108 - Status",
@@ -191,12 +191,12 @@ describe("spec 108: the archive-held-back reason (criteria 9-11)", () => {
       "",
     ].join("\n");
 
-  test("the bulleted reason comes back without its bullet or the divider (criterion 9)", () => {
+  test("the bulleted reason comes back without its bullet or the divider", () => {
     const reason = archiveHeldBackReason(withSection("- the Slack webhook (Phase 4, still unchecked)"));
     expect(reason).toBe("the Slack webhook (Phase 4, still unchecked)");
   });
 
-  test("no such section means nothing is held back (criterion 10)", () => {
+  test("no such section means nothing is held back", () => {
     expect(archiveHeldBackReason("# 108 - Status\n\nProse only.\n")).toBeNull();
   });
 
@@ -204,7 +204,7 @@ describe("spec 108: the archive-held-back reason (criteria 9-11)", () => {
     expect(archiveHeldBackReason("# X\n\n## Archive held back\n\n## Phase 1\n")).toBeNull();
   });
 
-  test("the LATER of two declined runs is the current reason (criterion 11)", () => {
+  test("the LATER of two declined runs is the current reason", () => {
     const twice =
       withSection("- the Slack webhook (Phase 4, still unchecked)") +
       "\n" +
@@ -226,7 +226,7 @@ describe("spec 108: the archive-held-back reason (criteria 9-11)", () => {
   });
 });
 
-// --- spec 285's gate, said plainly instead of read as "no real progress" ---
+// --- the archive gate, said plainly instead of read as "no real progress" ---
 //
 // `aide-run-spec`'s mechanical precheck already refuses cleanly on an
 // unticked Acceptance criteria row (no AI spent), but that reason never
@@ -235,7 +235,7 @@ describe("spec 108: the archive-held-back reason (criteria 9-11)", () => {
 // way. `acceptanceCriteriaUnticked` is the read `spec-lookup.ts` feeds
 // into the same `archiveHeldBack` field `restingChip()` already reads,
 // so the row explains itself without a second field to thread through.
-describe("acceptance criteria left unticked (spec 291's fix, applied 2026-08-31)", () => {
+describe("acceptance criteria left unticked", () => {
   const withAcceptance = (rows: string) =>
     [
       "# X - Status",
@@ -271,8 +271,8 @@ describe("acceptance criteria left unticked (spec 291's fix, applied 2026-08-31)
 // The validity rule for a held-back reason lives HERE, next to the
 // constant it compares against, so the layer rendering it (`heldBackFor`
 // in specs-list/data-model/phases.ts) asks instead of re-deriving the
-// comparison itself — re-deriving it is how spec 299's follow-up and
-// spec 298's fix collided in the first place.
+// comparison itself — re-deriving it is how two fixes to the same
+// rule collided in the first place.
 describe("archiveHeldBackApplies", () => {
   test("the acceptance-criteria note means nothing while implement is not done", () => {
     expect(archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["analyze"])).toBe(false);
@@ -347,9 +347,9 @@ describe("acceptanceStillOpen", () => {
   });
 });
 
-// --- spec 139: the one record of how far a spec has got ---------------------
+// --- The one record of how far a spec has got ---------------------
 
-// --- spec 493: the rows the Specs list unfolds -------------------------------
+// --- The rows the Specs list unfolds -------------------------------
 
 describe("acceptanceRowsOf", () => {
   const FILE = [
@@ -386,9 +386,9 @@ describe("acceptanceRowsOf", () => {
   });
 });
 
-// --- spec 509: a Not verified row is done for every gate ---------------------
+// --- A Not verified row is done for every gate ---------------------
 
-describe("Not verified is a done mark for every gate (spec 509)", () => {
+describe("Not verified is a done mark for every gate", () => {
   const file = (rows: string[]) =>
     [
       "# X - Status",
@@ -404,25 +404,25 @@ describe("Not verified is a done mark for every gate (spec 509)", () => {
   const DONE = "| AC-2: it saves | ✅ | |";
   const OPEN = "| AC-3: it loads | ⬜ | |";
 
-  test("acceptanceCriteriaUnticked does not hold on it, and still holds on a ⬜ row (AC-8)", () => {
+  test("acceptanceCriteriaUnticked does not hold on it, and still holds on a ⬜ row", () => {
     expect(acceptanceCriteriaUnticked(file([NV, DONE]))).toBe(false);
     expect(acceptanceCriteriaUnticked(file([NV, OPEN]))).toBe(true);
   });
 
-  test("acceptanceStillOpen reads a Not verified row as settled (AC-8)", () => {
+  test("acceptanceStillOpen reads a Not verified row as settled", () => {
     const rows = acceptanceRowsOf(file([NV, DONE]));
     expect(acceptanceStillOpen(undefined, rows)).toBe(false);
     expect(acceptanceStillOpen(undefined, acceptanceRowsOf(file([NV, OPEN])))).toBe(true);
   });
 
-  test("parseStatus's phase and acceptancePhase count it done (AC-8)", () => {
+  test("parseStatus's phase and acceptancePhase count it done", () => {
     const settled = parseStatus(file([NV, DONE]));
     expect(settled.acceptancePhase).toBeNull();
     expect(settled.phase).toBe("done");
     expect(parseStatus(file([NV, OPEN])).acceptancePhase).toBe("Acceptance criteria");
   });
 
-  test("the row is flagged on acceptanceRowsOf, so the Specs list can count it (AC-3)", () => {
+  test("the row is flagged on acceptanceRowsOf, so the Specs list can count it", () => {
     expect(acceptanceRowsOf(file([NV, DONE])).map((r) => r.notVerified === true)).toEqual([true, false]);
   });
 });

@@ -10,22 +10,22 @@ const { harness, start } = setupQueueRoutesHarness();
 
 afterEach(() => harness.cleanup());
 
-// Spec 108: the FILES say what has happened to a spec — not the queue's
+// The FILES say what has happened to a spec — not the queue's
 // own record of what it ran. The two used to be unioned, so either one
 // being true was enough, which is how an archive job that finished
 // without moving anything counted as an archived spec.
-// Spec 139: one record says how far a spec has got. The dashboard used
+// One record says how far a spec has got. The dashboard used
 // to GUESS — 2-analysis.md over 400 bytes meant analysed, a "Plan
 // review" heading in 3-solution.md meant reviewed, 100% in 4-status.md
-// meant implemented. On 2026-08-20 the first of those marked spec 138
+// meant implemented. The first of those marked a spec
 // analysed before any analyze had run: its untouched analysis template
 // is 693 bytes and carries a placeholder the check did not know. The
 // row then offered review-plan, and review-plan ran three times against
 // an empty template.
-describe("spec 139: the steps a spec has had say so themselves", () => {
+describe("the steps a spec has had say so themselves", () => {
   const specDir = (dir: string) => join(dir, "root", "aide", "specs", "81-queue-and-runner");
 
-  test("the recorded list is what the row marks done, and implement is next (criterion 3)", async () => {
+  test("the recorded list is what the row marks done, and implement is next", async () => {
     const { base, dir } = start();
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
@@ -38,11 +38,11 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
     expect(line).not.toMatch(/value="analyze" checked/);
   });
 
-  test("a spec with no status file at all has had nothing, and does not throw (criterion 4)", async () => {
+  test("a spec with no status file at all has had nothing, and does not throw", async () => {
     const { base, dir } = start();
     rmSync(join(specDir(dir), "4-status.md"));
     const line = specControls(await listUntil(base, rowSaysDone("create")), "81-queue-and-runner");
-    // Spec 176: the folder is on disk, so `create` happened — whatever
+    // The folder is on disk, so `create` happened — whatever
     // git records. The steps this test is the guard for are the other
     // four, which stay correctly not done.
     expect(phaseDone(line, "create")).toBe(true);
@@ -75,7 +75,7 @@ describe("the spec's own history says what has happened, not the queue's", () =>
       })
     ).json()) as { job: { id: string } };
     const mirror = JSON.parse(readFileSync(join(dir, "queue.json"), "utf-8")) as Record<string, unknown>[];
-    // Finished, not still queued: since spec 105 a spec with a job in
+    // Finished, not still queued: a spec with a job in
     // flight pre-ticks nothing at all — every box on the row is locked.
     mirror[0].state = "done";
     mirror[0].results = [
@@ -93,7 +93,7 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     });
     html = await listUntil(second.base, rowSaysDone("analyze"));
     expect(html).toMatch(/value="implement" checked/);
-    // `archive` is ticked here too and always is (spec 200: every phase
+    // `archive` is ticked here too and always is (every phase
     // the spec has left starts ticked), so what says implement is not
     // behind us is the BUTTON — it names the first ticked phase, and
     // would read "Archive" if the queue's own record counted.
@@ -118,7 +118,7 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     const html = await listUntil(base, rowSaysDone("implement"));
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(true);
     expect(html).toMatch(/value="archive" checked/);
-    // The button is named for the phase a press would run (spec 157) —
+    // The button is named for the phase a press would run —
     // the bare word "Run" went with the again-variant that preceded it.
     expect(html).not.toContain("Run again");
     expect(html).toContain(">Archive</button>");

@@ -64,44 +64,44 @@ describe("a phase line after a new analysis", () => {
     return dir;
   };
 
-  test("an implement job the queue remembers from before the analysis is not an attempt (AC-1)", () => {
+  test("an implement job the queue remembers from before the analysis is not an attempt", () => {
     const line = implementLine([analysis, earlierImplement], target());
     expect(line.attempts).toEqual([]);
     expect(line.fileResult).toBeUndefined();
     expect(wordOf([analysis, earlierImplement], target()).badge).toBeUndefined();
   });
 
-  test("an implement the stamped file remembers, with no job, is not a result either (AC-1)", () => {
+  test("an implement the stamped file remembers, with no job, is not a result either", () => {
     const t = target({ dir: specDirWithImplementRecord() });
     expect(implementLine([analysis], t).fileResult).toBeUndefined();
     expect(wordOf([analysis], t).badge).toBeUndefined();
   });
 
-  test("Implement is what the row offers next (AC-1)", () => {
+  test("Implement is what the row offers next", () => {
     const t = target();
     const [g] = groupBySpec([analysis, earlierImplement], [t]);
     expect(nextPhase(t.done!)).toBe("implement");
     expect(actionState(g!, {})?.label).toBe("Implement");
   });
 
-  test("an attempt in flight keeps every attempt (AC-1)", () => {
+  test("an attempt in flight keeps every attempt", () => {
     const running = row({ id: "running", steps: ["implement"], stepIndex: 0, state: "running", createdAt: LATER });
     const line = implementLine([analysis, earlierImplement, running], target());
     expect(line.attempts.map((a) => a.id)).toEqual(["running", "earlier"]);
   });
 
-  test("an attempt that ended after the analysis keeps every attempt (AC-1)", () => {
+  test("an attempt that ended after the analysis keeps every attempt", () => {
     const newer = finished("newer", "implement", LATER);
     const line = implementLine([analysis, earlierImplement, newer], target());
     expect(line.attempts.map((a) => a.id)).toEqual(["newer", "earlier"]);
   });
 
-  test("with implement done, the phase is untouched (AC-1)", () => {
+  test("with implement done, the phase is untouched", () => {
     const t = target({ done: ["create", "analyze", "implement"], historyDone: ["create", "analyze", "implement"] });
     expect(implementLine([analysis, earlierImplement], t).attempts.map((a) => a.id)).toEqual(["earlier"]);
   });
 
-  test("with no analysis named as superseding it, the phase is untouched (AC-4)", () => {
+  test("with no analysis named as superseding it, the phase is untouched", () => {
     const t = target({ superseded: undefined });
     expect(implementLine([analysis, earlierImplement], t).attempts.map((a) => a.id)).toEqual(["earlier"]);
   });

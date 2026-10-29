@@ -75,10 +75,10 @@ def test_reopen_takes_the_leftover_branch_out_of_both_roots(
     # branch, so what has to be gone is the earlier round's TIP — not the
     # name. A reopen writes spec files only, so the code root's branch
     # carries nothing and is deleted at the end of the run that cut it
-    # (spec 215); the specs root keeps its own, cut from main.
+    # the specs root keeps its own, cut from main.
     # The code root's leftover is simply gone: a reopen writes spec files
     # only, so the branch this run cut there carries nothing and is deleted
-    # at the end of the run that cut it (spec 215).
+    # at the end of the run that cut it.
     assert not has_branch(workspace["project"], BRANCH), "the leftover in the code root"
     # The specs root has the name again — the run's own branch, cut from the
     # default branch, carrying the reopen's commit and main's history.
@@ -224,7 +224,7 @@ def test_a_spec_that_has_never_been_reopened_counts_everything(
     assert recorded_line(workspace) == "create, analyze, implement"
 
 
-# --- spec 511: reopen keeps the files unless asked to reset them ------------
+# --- Reopen keeps the files unless asked to reset them ------------
 
 FULL_FILES = {
     "0-README.md": "# Queue\n\nThe readme.\n",
@@ -250,7 +250,7 @@ def archived_with_files(workspace):
     archive_the_spec(workspace)
 
 
-def test_a_reopen_without_reset_files_runs_no_model_and_keeps_the_files_AC_2(
+def test_a_reopen_without_reset_files_runs_no_model_and_keeps_the_files(
     runner, workspace, fake_claude, origin
 ):
     archived_with_files(workspace)
@@ -272,7 +272,7 @@ def test_a_reopen_without_reset_files_runs_no_model_and_keeps_the_files_AC_2(
     assert state["completedPhases"] == ["create", "analyze", "implement"], state
 
 
-def test_a_reopen_with_reset_files_regenerates_three_files_and_stamps_reopened_AC_3(
+def test_a_reopen_with_reset_files_regenerates_three_files_and_stamps_reopened(
     runner, workspace, fake_claude, origin
 ):
     """The reset mode runs no model either: aide-reopen-spec moves the folder
@@ -299,7 +299,7 @@ def test_a_reopen_with_reset_files_regenerates_three_files_and_stamps_reopened_A
 
 
 @pytest.mark.parametrize("reset", [False, True], ids=["keep", "reset"])
-def test_a_reopen_leaves_no_leftover_commit_on_any_of_the_four_branches_AC_4(
+def test_a_reopen_leaves_no_leftover_commit_on_any_of_the_four_branches(
     reset, runner, workspace, fake_claude, origin
 ):
     archived_with_files(workspace)
@@ -341,7 +341,7 @@ def keep_reopened(workspace, steps_line="create, analyze, implement"):
     return boundary
 
 
-def test_archive_does_not_come_back_on_a_later_step_of_a_reopened_round_AC_2(
+def test_archive_does_not_come_back_on_a_later_step_of_a_reopened_round(
     runner, workspace, fake_claude
 ):
     keep_reopened(workspace)
@@ -352,7 +352,7 @@ def test_archive_does_not_come_back_on_a_later_step_of_a_reopened_round_AC_2(
     assert "archive" not in state_of(workspace)["completedPhases"]
 
 
-def test_archive_counts_again_after_a_new_archive_commit_AC_2(runner, workspace, fake_claude):
+def test_archive_counts_again_after_a_new_archive_commit(runner, workspace, fake_claude):
     keep_reopened(workspace)
     already_ran(workspace, ["archive"])
     claude = writing_claude(fake_claude, workspace)
@@ -362,7 +362,7 @@ def test_archive_counts_again_after_a_new_archive_commit_AC_2(runner, workspace,
     assert "archive" in state_of(workspace)["completedPhases"]
 
 
-def test_a_new_analysis_takes_implement_and_a_newer_archive_off_the_line_and_the_state_AC_1(
+def test_a_new_analysis_takes_implement_and_a_newer_archive_off_the_line_and_the_state(
     runner, workspace, fake_claude
 ):
     keep_reopened(workspace)
@@ -374,7 +374,7 @@ def test_a_new_analysis_takes_implement_and_a_newer_archive_off_the_line_and_the
     assert state_of(workspace)["completedPhases"] == ["create", "analyze"]
 
 
-def test_a_spec_never_reopened_keeps_archive_on_its_line_AC_2(runner, workspace, fake_claude):
+def test_a_spec_never_reopened_keeps_archive_on_its_line(runner, workspace, fake_claude):
     already_ran(workspace, ["create", "analyze", "implement", "archive"])
     write_raw_status(
         workspace,

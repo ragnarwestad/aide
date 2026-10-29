@@ -56,7 +56,7 @@ function toastUiEditorResolveFix(): import("bun").BunPlugin {
   };
 }
 
-// The Description tab's own bundle (spec 292): same shape as
+// The Description tab's own bundle: same shape as
 // `specsClientScript()` above — cached, `format: "iife"`, fail-open on
 // a build error — so a failed build degrades to the plain textarea
 // rather than breaking the page. Its own CSS travels inside this same
@@ -81,9 +81,9 @@ export function specEditorClientScript(): Promise<string | undefined> {
 
 export const SPEC_EDITOR_ASSET_PATH = "/spec-editor.js";
 
-// A pure function on purpose (spec 315, REQ-2, second clause: "a new
-// version of the dashboard SHALL still reach a browser holding an old
-// copy"): two different texts MUST produce two different ETags, which
+// A pure function on purpose (a new
+// version of the dashboard must still reach a browser holding an old
+// copy): two different texts MUST produce two different ETags, which
 // is what makes a stale If-None-Match (computed by a browser against a
 // PRIOR process's build) fall through to the 200/fresh-body path below
 // rather than a wrongly-served 304.
@@ -91,10 +91,10 @@ export function etagFor(text: string): string {
   return `"${Bun.hash(text).toString(16)}"`;
 }
 
-// REQ-1/REQ-2: served at a fixed path, revalidated by ETag rather than
+// Served at a fixed path, revalidated by ETag rather than
 // re-sent whole — the same cache-control sw.js already uses below — so
 // a browser holding a copy asks "still this?" instead of downloading
-// ~770 KB again, and a new build (a fresh process, REQ-5) answers with
+// ~770 KB again, and a new build (a fresh process) answers with
 // a different ETag and the full body.
 let specEditorAsset: Promise<{ text: string; etag: string } | undefined> | null = null;
 function buildSpecEditorAsset(): Promise<{ text: string; etag: string } | undefined> {
@@ -117,9 +117,9 @@ export async function serveSpecEditorAsset(req: Request): Promise<Response> {
   return new Response(built.text, { headers });
 }
 
-// The read-only counterpart of `specEditorClientScript()` (spec 333,
-// finishing spec 315's split): a second, lighter bundle for the tabs
-// that cannot be edited, so REQ-4/REQ-5 hold structurally — the editor
+// The read-only counterpart of `specEditorClientScript()`: a
+// second, lighter bundle for the tabs
+// that cannot be edited, so the split holds structurally — the editor
 // bundle's own entrypoint no longer contains viewer code at all. No
 // `toastUiEditorResolveFix` plugin and no new `tsconfig.json` `paths`
 // entry: the `dist/toastui-editor-viewer` subpath this file's
@@ -205,9 +205,8 @@ export function tailFileAt(path: string, maxBytes = STREAM_TAIL_BYTES): { text: 
   }
 }
 
-// A traversal-safe read of one file under `root` (spec 80; the site
-// directory this originally served went at spec 530, leaving
-// `/schedule-output/`'s own recorded files as the one caller left).
+// A traversal-safe read of one file under `root` (`/schedule-output/`'s own
+// recorded files are the one caller).
 export function serveStatic(root: string, pathname: string): Response {
   const rel = decodeURIComponent(pathname.slice(1));
   const resolvedRoot = resolve(root);
@@ -220,7 +219,7 @@ export function serveStatic(root: string, pathname: string): Response {
   return new Response(readFileSync(target), { headers: { "content-type": type } });
 }
 
-/** What makes this page an app you install (spec 173): eight answers
+/** What makes this page an app you install: eight answers
  *  built in `render/pwa.ts` and served from memory, the same shape
  *  /api/aide-run has — a computed string, an explicit content type, no
  *  file on disk. There is nothing in any of them a reader could not already see

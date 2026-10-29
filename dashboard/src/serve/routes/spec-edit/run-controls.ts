@@ -12,7 +12,7 @@ export async function runControlRoutes(
   req: Request,
   path: string,
 ): Promise<Response | null> {
-  // Spec 308: a model picked for a phase before any job exists — the
+  // A model picked for a phase before any job exists — the
   // spec-scoped sibling of `POST /api/queue/:id/model` (job-actions.ts),
   // which needs a job to attach the pick to and this route does not.
   const modelPost = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/model$/);

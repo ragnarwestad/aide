@@ -5,7 +5,7 @@
 # that file, so the order, and every variable it shares with the rest
 # of the run, are exactly what they were.
 # --- a step writes only its own spec folder in the specs repo ----------------
-# 366's implement created two specs beside its own and deleted them again
+# An implement once created two specs beside its own and deleted them again
 # on its branch; the creations landed, other runs built on them, and the
 # deletion landed on top of that work (2026-09-03). Under the specs ROOT,
 # nothing but the spec's own folder — and its archive/ twin, which

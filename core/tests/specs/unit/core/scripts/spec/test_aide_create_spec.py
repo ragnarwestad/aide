@@ -1,6 +1,6 @@
 import os
 """Tests for core/scripts/aide-create-spec — the mechanical steps of
-/aide-create's Step 4 (spec 248): creating a spec's directory and its 5
+/aide-create's Step 4: creating a spec's directory and its 5
 files given specs-root/number/slug/title/description/depends-on.
 
 No AI is involved anywhere in this file: the point of the script is to
@@ -79,7 +79,7 @@ def run(script, specs_root, number, slug, title, description,
     return proc.returncode, json.loads(line), proc.stdout
 
 
-# --- happy path (AC1) -----------------------------------------------------
+# --- happy path -----------------------------------------------------
 
 
 def test_creates_the_folder_and_5_files(script, specs_root):
@@ -105,7 +105,7 @@ def test_substitutes_title_folder_and_date(script, specs_root):
     assert "Problem: X." in desc
 
 
-# --- depends-on (AC2, AC3) -------------------------------------------------
+# --- depends-on -------------------------------------------------
 
 
 def test_depends_on_formats_and_places_the_line(script, specs_root):
@@ -127,7 +127,7 @@ def test_no_depends_on_flag_writes_no_depends_line(script, specs_root):
     assert "Depends on" not in desc
 
 
-# --- acceptance (spec 394, REQ-9) ------------------------------------------
+# --- acceptance ------------------------------------------
 
 
 def test_acceptance_not_required_flag_writes_the_line_after_created(script, specs_root):
@@ -162,7 +162,7 @@ def test_acceptance_and_depends_on_both_land_after_created_in_order(script, spec
     assert lines[created_idx + 2] == "- **Acceptance:** not required"
 
 
-# --- refusal (AC4, AC5) ----------------------------------------------------
+# --- refusal ----------------------------------------------------
 
 
 def test_refuses_when_the_folder_already_exists(script, specs_root):
@@ -178,8 +178,8 @@ def test_refuses_when_the_folder_already_exists(script, specs_root):
 
 # A number a caller hands in must lie above every number already there
 # (2026-09-10): the
-# create session numbered a spec 100 by sorting the archive alphabetically
-# (where "99-…" is the highest), and 100 was already an archived spec's.
+# create session gave a new spec the number 100 by sorting the archive alphabetically
+# (where "99-…" is the highest), and 100 was already taken by an archived spec.
 def test_refuses_a_number_that_is_already_taken(script, specs_root):
     (specs_root / "archive").mkdir()
     (specs_root / "archive" / "99-old").mkdir()
@@ -225,7 +225,7 @@ def test_refuses_on_missing_required_flag(script, specs_root, missing):
     assert not (specs_root / "42-do-a-thing").exists()
 
 
-# --- result-file (AC6) ------------------------------------------------------
+# --- result-file ------------------------------------------------------
 
 
 def test_result_file_mirrors_stdout(script, specs_root, tmp_path):
@@ -238,7 +238,7 @@ def test_result_file_mirrors_stdout(script, specs_root, tmp_path):
     assert json.loads(result_file.read_text().strip()) == out
 
 
-# --- per-file structure (AC7) -----------------------------------------------
+# --- per-file structure -----------------------------------------------
 
 
 def _extract_readme_block(file_templates):
@@ -286,7 +286,7 @@ def test_status_opens_with_placeholder_progress_and_no_workflow_steps_line(scrip
     assert "Workflow steps completed" not in status
 
 
-# --- Acceptance criteria line format (spec 309, REQ-1) ---------------------
+# --- Acceptance criteria line format ---------------------
 
 
 def test_bolds_an_acceptance_criteria_line_written_without_bold(script, specs_root):
@@ -357,7 +357,7 @@ def test_description_with_slashes_backticks_and_multiple_lines_is_preserved(scri
     assert description in desc
 
 
-# --- --stamp-outcome (spec 274, AC1-5) --------------------------------------
+# --- --stamp-outcome --------------------------------------
 
 
 def run_stamp(script, specs_root, folder, start_epoch=None, model=None, result_file=None, now_epoch=None):
@@ -532,7 +532,7 @@ def test_two_creates_at_once_get_different_numbers(script, specs_root):
         assert (specs_root / f).is_dir()
 
 
-# --- --folder-name (spec 453): a headless create's literal name, no
+# --- --folder-name: a headless create's literal name, no
 # number or slug computed at all — the folder is renumbered later, at
 # landing, under the specs repo's own lock.
 
@@ -627,7 +627,7 @@ def test_folder_name_bolds_an_acceptance_criteria_line_too(script, specs_root):
     assert "- **AC-1:** forgot the bold markers." in desc
 
 
-# --- --assign-number (spec 453): landing's own finalize step, renaming
+# --- --assign-number: landing's own finalize step, renaming
 # an existing (literally-named) folder to its real number and slug, and
 # rewriting every file's own Task: line to match.
 
@@ -703,7 +703,7 @@ def test_assign_number_refuses_on_a_missing_folder(script, git_specs_root):
 
 
 def test_assign_number_refuses_when_a_task_line_is_missing(script, git_specs_root):
-    """A hand-edited Tracking info section (spec 453's own risk analysis):
+    """A hand-edited Tracking info section:
     refuse loudly rather than leave a stale Task: line behind."""
     rc, out, _ = run_folder_name(script, git_specs_root, "new-abcd1234", "A brand new spec", "Problem: X.")
     assert rc == 0, out

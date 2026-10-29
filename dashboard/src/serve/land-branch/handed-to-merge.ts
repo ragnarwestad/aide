@@ -79,7 +79,7 @@ export function handedToMerge(
         return verdict;
       }
     : undefined;
-  // Spec 453: a `create` job's folder exists only under its literal
+  // A `create` job's folder exists only under its literal
   // provisional key until this runs, under the SAME per-repo lock the
   // merge takes — the one place two landings for this repo cannot both
   // be renaming a folder at once.
@@ -95,7 +95,6 @@ export function handedToMerge(
         // ORIGINAL, still-correct provisional key, so a pick already
         // banked under it stays reachable rather than becoming orphaned
         // under a real folder the job itself has not moved to yet
-        // (spec 465).
         ctx.queue.renamePendingModel(job.project, job.specFolder, info.assignedSpecFolder);
         ctx.queue.update(job.id, { specFolder: info.assignedSpecFolder });
       }

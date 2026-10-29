@@ -2,7 +2,7 @@
 // discover-projects-and-owned-root.test.ts and
 // discover-phase-and-duration.test.ts (split out of discover.test.ts).
 //
-// Criterion 1: discovery from an injectable scan root; specs-root
+// Discovery from an injectable scan root; specs-root
 // resolution via .aide/config AIDE_SPECS_PATH vs the specs/ default;
 // a manifest whose specs root does not exist yields zero specs, no
 // error.

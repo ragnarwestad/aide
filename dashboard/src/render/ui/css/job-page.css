@@ -4,7 +4,7 @@ table.facts { width: auto; margin: var(--sp-3) 0 var(--sp-4); }
 table.facts td { padding: 2px var(--sp-4) 2px 0; }
 table.facts .label { color: var(--muted); font-weight: 500; white-space: nowrap; }
 table.facts .pipwrap { margin-left: var(--sp-2); vertical-align: middle; }
-/* Each Logs row expands to its own log (spec 240) rather than one
+/* Each Logs row expands to its own log rather than one
    shared Activity tab. The step link carries the same .fold chevron the
    specs list uses (2026-08-25) — sized and hover-styled entirely by
    .fold, nothing extra needed here — rather than making the step's own
@@ -24,7 +24,7 @@ tr.steplog td { padding-top: 0; }
 .tabpanel > h2:first-child { margin-top: var(--sp-2); }
 
 
-/* A scheduled run's report on the entry's page (spec 495): the header
+/* A scheduled run's report on the entry's page: the header
    line, and the sandboxed frame that holds the report. The frame's own
    document is styled by report-frame.css. */
 .reportpanel { margin-bottom: var(--sp-5); }

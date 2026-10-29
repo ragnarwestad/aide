@@ -83,7 +83,7 @@ async function unfolded(folder: string, width: number): Promise<void> {
   await page.waitForSelector(`tr.specnotice[data-folder="${folder}"] .rowchecks .check`);
 }
 
-describe("the boxes save as they did, and one clears the other (AC-3)", () => {
+describe("the boxes save as they did, and one clears the other", () => {
   test("on the Specs list, ticking Not yet clears Yes, and ticking Yes over it clears Not yet", async () => {
     await unfolded(LIVE, 1100);
     const yes = page.locator(`.rowchecks input[name="tick"][value="${LIVE_ONE}"]`);
@@ -104,7 +104,7 @@ describe("the boxes save as they did, and one clears the other (AC-3)", () => {
   });
 });
 
-describe("the archived note is bounded at 500 (AC-4)", () => {
+describe("the archived note is bounded at 500", () => {
   test("600 typed characters stop at 500 and the count says so", async () => {
     await unfolded(ARCHIVED, 1100);
     await page.locator(`.rowchecks input[name="failed"]`).check();

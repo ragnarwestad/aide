@@ -1,4 +1,4 @@
-// The notifier (spec 81, slice 81c): a job that stops at 02:00 — or
+// The notifier: a job that stops at 02:00 — or
 // fails there — must be visible in the morning without reading a log.
 //
 // The contract is claude-usage's, copied deliberately so ONE wrapper
@@ -11,9 +11,8 @@
 
 import { scriptArgv } from "./script-argv.ts";
 
-// `gate` was the fourth until spec 149: a job parked between two steps,
-// waiting for a person to press Approve. There is no stop between steps
-// any more, so nothing can announce one.
+// There is no `gate` event: no job parks between two steps waiting for
+// a person to press Approve, so nothing can announce one.
 export type NotifyEventName = "finished" | "stopped" | "failed";
 
 export interface NotifyEvent {

@@ -22,14 +22,14 @@ const opencode = (parts: unknown[]): string =>
   parts.map((part) => line({ type: "text", part })).join("\n");
 
 describe("linesWithFinalMessage: a last entry that repeats the final message", () => {
-  test("Claude: the whole message is the last line and appears once (AC-5)", () => {
+  test("Claude: the whole message is the last line and appears once", () => {
     expect(linesWithFinalMessage(claude([bash("bun test"), say("All done.")], "All done."))).toEqual([
       "Bash bun test",
       "All done.",
     ]);
   });
 
-  test("Codex: the whole message is the last line and appears once (AC-5)", () => {
+  test("Codex: the whole message is the last line and appears once", () => {
     const lines = linesWithFinalMessage(
       codex([
         { type: "command_execution", command: "bun test", exit_code: 0 },
@@ -39,12 +39,12 @@ describe("linesWithFinalMessage: a last entry that repeats the final message", (
     expect(lines).toEqual(["bun test", "All done."]);
   });
 
-  test("opencode: the whole message is the last line and appears once (AC-5)", () => {
+  test("opencode: the whole message is the last line and appears once", () => {
     const lines = linesWithFinalMessage(opencode([{ type: "tool", tool: "read" }, { type: "text", text: "All done." }]));
     expect(lines).toEqual(["tool read", "All done."]);
   });
 
-  test("escaped characters and a line break do not hide the repeat (AC-5)", () => {
+  test("escaped characters and a line break do not hide the repeat", () => {
     const message = 'Fixed <b> & "c"\nsecond line';
     expect(linesWithFinalMessage(claude([bash("x"), say(message)], message))).toEqual([
       "Bash x",
@@ -52,7 +52,7 @@ describe("linesWithFinalMessage: a last entry that repeats the final message", (
     ]);
   });
 
-  test("a message longer than the log's cut is recognised, and the last line is whole (AC-5)", () => {
+  test("a message longer than the log's cut is recognised, and the last line is whole", () => {
     const message = `${"word ".repeat(80)}end & <done>`;
     const lines = linesWithFinalMessage(claude([bash("x"), say(message)], message));
     expect(lines).toHaveLength(2);
@@ -60,13 +60,13 @@ describe("linesWithFinalMessage: a last entry that repeats the final message", (
     expect(lines[1]!.endsWith("end &amp; &lt;done&gt;")).toBe(true);
   });
 
-  test("a transcript whose only entry is the message is that one line (AC-5)", () => {
+  test("a transcript whose only entry is the message is that one line", () => {
     expect(linesWithFinalMessage(claude([say("Only this.")], "Only this."))).toEqual(["Only this."]);
   });
 });
 
 describe("linesWithFinalMessage: a last entry that is not a repeat", () => {
-  test("a last entry that is a tool call stays, and the message is appended (AC-5)", () => {
+  test("a last entry that is a tool call stays, and the message is appended", () => {
     expect(linesWithFinalMessage(claude([say("All done."), bash("bun test")], "All done."))).toEqual([
       "All done.",
       "Bash bun test",
@@ -74,7 +74,7 @@ describe("linesWithFinalMessage: a last entry that is not a repeat", () => {
     ]);
   });
 
-  test("a last text that differs from the message stays, and the message is appended (AC-5)", () => {
+  test("a last text that differs from the message stays, and the message is appended", () => {
     expect(linesWithFinalMessage(claude([bash("x"), say("Almost.")], "All done."))).toEqual([
       "Bash x",
       "Almost.",
@@ -82,7 +82,7 @@ describe("linesWithFinalMessage: a last entry that is not a repeat", () => {
     ]);
   });
 
-  test("a transcript with no final message is its lines alone (AC-5)", () => {
+  test("a transcript with no final message is its lines alone", () => {
     const text = [line({ type: "assistant", message: { content: [bash("bun test")] } })].join("\n");
     expect(linesWithFinalMessage(text)).toEqual(["Bash bun test"]);
   });

@@ -68,7 +68,7 @@ async function pressOk(page: Page, url: string, id: string, fulfil?: unknown): P
 }
 
 describe("OK posts once, to the old route", () => {
-  test("Cancel on a list row (AC-4)", async () => {
+  test("Cancel on a list row", async () => {
     const base = board();
     const page = await browser.newPage();
     const posts = await pressOk(page, `${base}/?live=0&open=aide%2F${FOLDER}`, "cancelask-run1", { ok: true });
@@ -77,7 +77,7 @@ describe("OK posts once, to the old route", () => {
     await page.close();
   });
 
-  test("Delete on a schedule row (AC-4)", async () => {
+  test("Delete on a schedule row", async () => {
     const base = board();
     const page = await browser.newPage();
     const posts = await pressOk(page, `${base}/projects/aide?tab=schedule&live=0`, "deleteask-aide/nightly-report");
@@ -87,7 +87,7 @@ describe("OK posts once, to the old route", () => {
     await page.close();
   });
 
-  test("Remove on a project's row opens Remove's dialog without opening the project, and OK posts once (AC-2)", async () => {
+  test("Remove on a project's row opens Remove's dialog without opening the project, and OK posts once", async () => {
     const base = board();
     const page = await browser.newPage();
     const posts: string[] = [];

@@ -1,4 +1,4 @@
-// The `Acceptance:` line in a spec's own `1-description.md` (spec 394):
+// The `Acceptance:` line in a spec's own `1-description.md`:
 // reading it, stripping it, and writing it back — the direct mirror of
 // `depends-on.ts`'s own three functions, for the OTHER whole-spec fact
 // that sits above the tabs.
@@ -14,7 +14,7 @@ const ACCEPTANCE_LINE = /^[ \t]*-[ \t]*\*\*Acceptance:\*\*[ \t]*not required[ \t
 const ACCEPTANCE_LINE_WITH_BREAK = /^[ \t]*-[ \t]*\*\*Acceptance:\*\*[ \t]*.*(\n|$)/m;
 
 /** Whether this spec's own Tracking info says acceptance ticking is not
- *  required (spec 394). Absence — like a spec written before this line
+ *  required. Absence — like a spec written before this line
  *  existed — means "required", the same convention `specDependsOn` uses
  *  for "nothing": the archiving gate keeps holding on unticked rows
  *  exactly as it does today. */
@@ -42,7 +42,7 @@ export function stripAcceptanceLine(text: string): string {
 }
 
 /** The text with a `- **Acceptance:** not required` line, or with no
- *  line at all when `notRequired` is false (spec 394).
+ *  line at all when `notRequired` is false.
  *
  *  Placed right after `- **Created:**`, the same anchor
  *  `withDependsOnLine` uses — `null` when there is no such line to

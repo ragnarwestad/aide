@@ -19,7 +19,7 @@ afterEach(() => {
 const scratch = (): string => mkdtempSync(join(tmpdir(), "look-at-pages-"));
 
 describe("serveScene", () => {
-  test("serves the scene's spec and its queued job on 127.0.0.1, and leaves the home folder empty (AC-8)", async () => {
+  test("serves the scene's spec and its queued job on 127.0.0.1, and leaves the home folder empty", async () => {
     const emptyHome = scratch();
     process.env.HOME = emptyHome;
     const board = await serveScene({
@@ -41,7 +41,7 @@ describe("serveScene", () => {
     expect(readdirSync(emptyHome)).toEqual([]);
   });
 
-  test("an empty scene serves the default board (AC-8)", async () => {
+  test("an empty scene serves the default board", async () => {
     const board = await serveScene({});
     stops.push(board.stop);
     const res = await fetch(`${board.base}/`);
@@ -51,7 +51,7 @@ describe("serveScene", () => {
 });
 
 describe("the command line", () => {
-  test("a scene that does not parse writes the reason to not-taken.txt and exits 1 (AC-5)", async () => {
+  test("a scene that does not parse writes the reason to not-taken.txt and exits 1", async () => {
     const dir = scratch();
     const scene = join(dir, "scene.json");
     writeFileSync(scene, "{ not json");

@@ -1,5 +1,5 @@
-// Spec 173: what makes the dashboard installable — a manifest, its
-// icons (SVG and, since spec 505, PNG), an apple-touch-icon and a service worker.
+// What makes the dashboard installable — a manifest, its
+// icons (SVG and PNG), an apple-touch-icon and a service worker.
 //
 // Every one of them is a resource at a URL, which is the one thing
 // `brand.ts` says this site never has ("a page that references
@@ -22,9 +22,9 @@ const start = () => harness.start();
 
 afterEach(() => harness.cleanup());
 
-// --- the eight routes (criteria 1-3) -----------------------------------------
+// --- the eight routes --------------------------------------------------------
 
-describe("the manifest (criterion 1)", () => {
+describe("the manifest", () => {
   test("it is served, as JSON of its own media type, with no token", async () => {
     const { base } = start();
     const res = await fetch(`${base}/manifest.webmanifest`);
@@ -56,21 +56,21 @@ describe("the manifest (criterion 1)", () => {
   const icons = async (base: string) =>
     ((await (await fetch(`${base}/manifest.webmanifest`)).json()) as { icons: Icon[] }).icons;
 
-  test("it lists a 192 and a 512 PNG for the launcher (AC-1)", async () => {
+  test("it lists a 192 and a 512 PNG for the launcher", async () => {
     const { base } = start();
     const list = await icons(base);
     for (const sizes of ["192x192", "512x512"])
       expect(list.some((i) => i.type === "image/png" && i.sizes === sizes && i.purpose === "any")).toBe(true);
   });
 
-  test("it lists a maskable PNG of at least 512 (AC-2)", async () => {
+  test("it lists a maskable PNG of at least 512", async () => {
     const { base } = start();
     const m = (await icons(base)).find((i) => i.purpose === "maskable" && i.type === "image/png");
     expect(m).toBeDefined();
     expect(Number(m!.sizes.split("x")[0])).toBeGreaterThanOrEqual(512);
   });
 
-  test("the SVG icons are still listed and still answer (AC-4)", async () => {
+  test("the SVG icons are still listed and still answer", async () => {
     const { base } = start();
     const list = await icons(base);
     const svgs = list.filter((i) => i.type === "image/svg+xml");
@@ -94,12 +94,12 @@ describe("the manifest's shortcuts", () => {
   const shortcuts = async (base: string) =>
     ((await (await fetch(`${base}/manifest.webmanifest`)).json()) as { shortcuts: Shortcut[] }).shortcuts;
 
-  test("it lists Running, Specs and New spec, in that order (AC-9)", async () => {
+  test("it lists Running, Specs and New spec, in that order", async () => {
     const { base } = start();
     expect((await shortcuts(base)).map((s) => s.url)).toEqual(["/", "/specs", NEW_SPEC_ROUTE]);
   });
 
-  test("each is named for its page and carries an icon the board serves as a PNG (AC-12)", async () => {
+  test("each is named for its page and carries an icon the board serves as a PNG", async () => {
     const { base } = start();
     const list = await shortcuts(base);
     expect(list[0]!.name).toBe(t("en", "shell.tabRunning"));
@@ -114,7 +114,7 @@ describe("the manifest's shortcuts", () => {
   });
 });
 
-describe("the service worker (criterion 2)", () => {
+describe("the service worker", () => {
   test("it is served with a fetch handler, a JavaScript type and no caching of its own", async () => {
     const { base } = start();
     const res = await fetch(`${base}/sw.js`);
@@ -128,7 +128,7 @@ describe("the service worker (criterion 2)", () => {
   });
 });
 
-describe("the icons (criterion 3)", () => {
+describe("the icons", () => {
   const cases: [string, string][] = [
     ["/icon-512.svg", "image/svg+xml; charset=utf-8"],
     ["/icon-512-maskable.svg", "image/svg+xml; charset=utf-8"],
@@ -177,7 +177,7 @@ describe("the eight answer any request with a Host of the dashboard's own", () =
     expect(res.status).toBe(405);
   });
 
-  test("a POST to a PNG icon is refused too (AC-1, AC-2)", async () => {
+  test("a POST to a PNG icon is refused too", async () => {
     const { base } = start();
     for (const path of ["/icon-192.png", "/icon-512.png", "/icon-512-maskable.png"])
       expect([path, (await fetch(`${base}${path}`, { method: "POST" })).status]).toEqual([path, 405]);
@@ -349,7 +349,7 @@ describe("the worker passes everything through and caches nothing", () => {
     expect(await w.navigate("no-cors")).toBeUndefined();
   });
 
-  test("a page load posted to an unreachable server gets the not reachable page at once (AC-5)", async () => {
+  test("a page load posted to an unreachable server gets the not reachable page at once", async () => {
     const w = worker(async () => {
       throw new Error("the tailnet is not there");
     });
@@ -377,7 +377,7 @@ function slowServer() {
 }
 
 describe("a slow page load gets a wait page", () => {
-  test("after half a second it is the moving mark and the host the app waits for (AC-1)", async () => {
+  test("after half a second it is the moving mark and the host the app waits for", async () => {
     const { w } = slowServer();
     const answer = w.navigate("navigate", "GET", "https://board.test/specs");
     await w.advance(499);
@@ -389,7 +389,7 @@ describe("a slow page load gets a wait page", () => {
     expect(html).toContain("Connecting to board.test…");
   });
 
-  test("a request that fails outright gets the wait page, not the not reachable page (AC-1)", async () => {
+  test("a request that fails outright gets the wait page, not the not reachable page", async () => {
     const { w, requests } = slowServer();
     const answer = w.navigate();
     await w.advance(200);
@@ -399,14 +399,14 @@ describe("a slow page load gets a wait page", () => {
     expect(await res.text()).toContain("Connecting to board.test…");
   });
 
-  test("it gives the page the time left of 30 seconds after the page load (AC-3)", async () => {
+  test("it gives the page the time left of 30 seconds after the page load", async () => {
     const { w } = slowServer();
     const answer = w.navigate();
     await w.advance(500);
     expect(await (await answer)!.text()).toContain("29500");
   });
 
-  test("a failure at 200 ms leaves 29800 ms of the 30 seconds (AC-3)", async () => {
+  test("a failure at 200 ms leaves 29800 ms of the 30 seconds", async () => {
     const { w, requests } = slowServer();
     const answer = w.navigate();
     await w.advance(200);
@@ -414,7 +414,7 @@ describe("a slow page load gets a wait page", () => {
     expect(await (await answer)!.text()).toContain("29800");
   });
 
-  test("a server that answers within half a second is shown with no wait page (AC-4)", async () => {
+  test("a server that answers within half a second is shown with no wait page", async () => {
     const { w, requests } = slowServer();
     const answer = w.navigate();
     await w.advance(100);
@@ -423,7 +423,7 @@ describe("a slow page load gets a wait page", () => {
     expect(await (await answer)!.text()).toBe("the live page");
   });
 
-  test("a page load that is not a GET goes to the server once and never gets the wait page (AC-5)", async () => {
+  test("a page load that is not a GET goes to the server once and never gets the wait page", async () => {
     const { w, requests } = slowServer();
     const answer = w.navigate("navigate", "POST");
     await w.advance(5000);
@@ -433,7 +433,7 @@ describe("a slow page load gets a wait page", () => {
     expect(requests).toHaveLength(1);
   });
 
-  test("the reload the wait page makes goes through with no timer, once (AC-2)", async () => {
+  test("the reload the wait page makes goes through with no timer, once", async () => {
     const { w, requests } = slowServer();
     const first = w.navigate();
     await w.advance(500);
@@ -448,7 +448,7 @@ describe("a slow page load gets a wait page", () => {
     expect(await (await next)!.text()).toContain("Connecting to");
   });
 
-  test("a server answer that arrives after the wait page is dropped, and a later load asks again (AC-6)", async () => {
+  test("a server answer that arrives after the wait page is dropped, and a later load asks again", async () => {
     const { w, requests } = slowServer();
     const first = w.navigate();
     await w.advance(500);
@@ -470,7 +470,7 @@ describe("the wait page itself", () => {
     return (await (await answer)!.text());
   };
 
-  test("it carries the board's tokens and the loading stylesheet, and asks the network for nothing (AC-11)", async () => {
+  test("it carries the board's tokens and the loading stylesheet, and asks the network for nothing", async () => {
     const html = await waitPage();
     expect(html).toContain(TOKENS_CSS);
     expect(html).toContain(LOADING_CSS);
@@ -505,7 +505,7 @@ function waitScript(asks: (n: number) => Promise<unknown>, leftMs = 29500) {
 }
 
 describe("the wait page's script", () => {
-  test("it asks for its own address again a second after a failure, and keeps doing so (AC-2)", async () => {
+  test("it asks for its own address again a second after a failure, and keeps doing so", async () => {
     const s = waitScript(async () => {
       throw new TypeError("down");
     });
@@ -519,7 +519,7 @@ describe("the wait page's script", () => {
     expect(s.fetches()).toBe(3);
   });
 
-  test("it reloads once at the first answer, whatever its status, and asks no more (AC-2)", async () => {
+  test("it reloads once at the first answer, whatever its status, and asks no more", async () => {
     const s = waitScript(async () => new Response("", { status: 500 }));
     await s.advance(0);
     expect(s.reloads()).toBe(1);
@@ -528,7 +528,7 @@ describe("the wait page's script", () => {
     expect(s.fetches()).toBe(1);
   });
 
-  test("at the deadline it shows the not reachable page and asks no more (AC-3)", async () => {
+  test("at the deadline it shows the not reachable page and asks no more", async () => {
     const s = waitScript(async () => {
       throw new TypeError("down");
     });
@@ -542,7 +542,7 @@ describe("the wait page's script", () => {
     expect(s.reloads()).toBe(0);
   });
 
-  test("an answer that comes after the deadline does not reload over the not reachable page (AC-3)", async () => {
+  test("an answer that comes after the deadline does not reload over the not reachable page", async () => {
     let answer!: () => void;
     const s = waitScript(() => new Promise<void>((resolve) => void (answer = resolve)));
     await s.advance(29500);
@@ -552,9 +552,9 @@ describe("the wait page's script", () => {
   });
 });
 
-// --- push: what the worker does with a message and a tap (spec 501) ---------
+// --- push: what the worker does with a message and a tap ---------
 
-describe("the worker shows every push and opens the spec on a tap (criterion 10)", () => {
+describe("the worker shows every push and opens the spec on a tap", () => {
   test("a push becomes a notification with the title, the body and the spec's path", async () => {
     const w = worker(async () => new Response("ok"));
     await w.push(() => ({ title: "aide · 81-x", body: "Implement failed.", url: "/specs/aide/81-x" }));
@@ -577,19 +577,19 @@ describe("the worker shows every push and opens the spec on a tap (criterion 10)
     expect(w.shown[1]!.options.data?.url).toBe("/");
   });
 
-  test("a tap with no window of the board open closes the notification and opens the spec's path (AC-8)", async () => {
+  test("a tap with no window of the board open closes the notification and opens the spec's path", async () => {
     const w = worker(async () => new Response("ok"));
     expect(await w.tap("/specs/aide/81-x")).toBe(true);
     expect(w.opened).toEqual(["/specs/aide/81-x"]);
   });
 
-  test("a notification with no address opens the Running tab (AC-8)", async () => {
+  test("a notification with no address opens the Running tab", async () => {
     const w = worker(async () => new Response("ok"));
     await w.tap(undefined);
     expect(w.opened).toEqual(["/"]);
   });
 
-  test("a tap with a window open brings it to the front and loads the spec in it (AC-7)", async () => {
+  test("a tap with a window open brings it to the front and loads the spec in it", async () => {
     const open = fakeWindow();
     const w = worker(async () => new Response("ok"), [open]);
     await w.tap("/specs/aide/81-x");
@@ -597,7 +597,7 @@ describe("the worker shows every push and opens the spec on a tap (criterion 10)
     expect(w.opened).toEqual([]);
   });
 
-  test("a window that refuses to navigate stays in front and no second window opens (AC-7)", async () => {
+  test("a window that refuses to navigate stays in front and no second window opens", async () => {
     const open = fakeWindow(true);
     const w = worker(async () => new Response("ok"), [open]);
     await w.tap("/specs/aide/81-x");
@@ -627,20 +627,20 @@ describe("the worker sets the number on the app's icon when a push arrives", () 
     return { calls, w: worker(async () => new Response("ok"), [], navigator) };
   }
 
-  test("a push carrying a count sets it and still shows the notification (AC-5)", async () => {
+  test("a push carrying a count sets it and still shows the notification", async () => {
     const { calls, w } = badged();
     await w.push(() => ({ title: "t", body: "b", url: "/", waiting: 2 }));
     expect(calls).toEqual(["set 2"]);
     expect(w.shown).toHaveLength(1);
   });
 
-  test("a push carrying 0 clears the icon and sets no number (AC-6)", async () => {
+  test("a push carrying 0 clears the icon and sets no number", async () => {
     const { calls, w } = badged();
     await w.push(() => ({ title: "t", body: "b", url: "/", waiting: 0 }));
     expect(calls).toEqual(["clear"]);
   });
 
-  test("a push with no count leaves the icon as it was and still shows the notification (AC-5)", async () => {
+  test("a push with no count leaves the icon as it was and still shows the notification", async () => {
     const { calls, w } = badged();
     await w.push(() => ({ title: "t", body: "b", url: "/" }));
     await w.push(() => {
@@ -650,7 +650,7 @@ describe("the worker sets the number on the app's icon when a push arrives", () 
     expect(w.shown).toHaveLength(2);
   });
 
-  test("a device without the Badging API still gets its notification (AC-7)", async () => {
+  test("a device without the Badging API still gets its notification", async () => {
     for (const navigator of [undefined, {}]) {
       const w = worker(async () => new Response("ok"), [], navigator);
       await w.push(() => ({ title: "t", body: "b", url: "/", waiting: 2 }));
@@ -658,7 +658,7 @@ describe("the worker sets the number on the app's icon when a push arrives", () 
     }
   });
 
-  test("a refused badge is caught and the notification is still shown (AC-7)", async () => {
+  test("a refused badge is caught and the notification is still shown", async () => {
     const { calls, w } = badged(true);
     await w.push(() => ({ title: "t", body: "b", url: "/", waiting: 2 }));
     expect(calls).toEqual(["set 2"]);

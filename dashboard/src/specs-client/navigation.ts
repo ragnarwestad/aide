@@ -1,7 +1,7 @@
 // The row-swap link on this page: one that stays and swaps the rows in
 // place rather than loading a new document. The other kind — a link
 // that leaves the page — is `nav-busy.ts`'s now, run on every page
-// rather than wired up here (spec 312).
+// rather than wired up here.
 
 import { connect, disconnect } from "./live.ts";
 import { SPINNER } from "./press.ts";
@@ -35,14 +35,14 @@ export function navigate(event: MouseEvent): void {
   const phasesBefore = new URLSearchParams(location.search).get("phases");
   history.replaceState(null, "", withFolds(link.getAttribute("href") ?? location.href));
   // The server tells a tab about a growing transcript only when the
-  // stream's own query named that phase (spec 500), so a change of
+  // stream's own query named that phase, so a change of
   // `phases` reopens the stream; a sort or a spec row's fold leaves it alone.
   if (new URLSearchParams(location.search).get("phases") !== phasesBefore) {
     disconnect();
     connect();
   }
-  // Spec 208. SOMETHING has to change the moment it is pressed — the
-  // same rule the buttons have kept since spec 96/101, applied to the
+  // SOMETHING has to change the moment it is pressed — the
+  // same rule the buttons have kept, applied to the
   // sort and the filter links, which changed nothing at all between the
   // click and the fetch resolving. The container carries it, because
   // the page stays and the rows are what get replaced.

@@ -1,6 +1,6 @@
 // Split out of specs-pull.test.ts by theme.
 //
-// Spec 150: the Update button's pull.
+// The Update button's pull.
 //
 // The dashboard reads spec folders straight off the serving host's
 // checkout, which a cron pulls every two minutes — so a description

@@ -14,7 +14,7 @@ const analyzeLine = (html: string) =>
 const box = (html: string, step: string) =>
   html.match(new RegExp(`<input type="checkbox" name="steps"[^>]*value="${step}"[^>]*>`))?.[0] ?? "";
 
-describe("a failed newest run is drawn as failed (AC-1)", () => {
+describe("a failed newest run is drawn as failed", () => {
   // What the workflow state hands the row when analysis was refused: the
   // done list no longer names it, and the history carries the reason.
   const refused: SpecTarget = {
@@ -24,7 +24,7 @@ describe("a failed newest run is drawn as failed (AC-1)", () => {
     stopped: { analyze: "model-refused" },
   };
 
-  test("the analyze line reads Failed, the button offers Analyze and Analyze is ticked (AC-1)", () => {
+  test("the analyze line reads Failed, the button offers Analyze and Analyze is ticked", () => {
     const html = render([], refused);
     expect(analyzeLine(html)).toContain("b-refused");
     expect(analyzeLine(html)).toContain(">Failed<");
@@ -32,7 +32,7 @@ describe("a failed newest run is drawn as failed (AC-1)", () => {
     expect(box(html, "analyze")).toContain("checked");
   });
 
-  test("a failed job over an analysis the files name as done draws Failed on the line (AC-1)", () => {
+  test("a failed job over an analysis the files name as done draws Failed on the line", () => {
     const failed = row({
       id: "j1",
       specFolder: FOLDER,

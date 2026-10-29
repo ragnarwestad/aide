@@ -29,7 +29,7 @@ afterAll(async () => {
 const newTab = async () => (await browser.newContext({ serviceWorkers: "block" })).newPage();
 
 describe("a board with nothing running", () => {
-  test("a browser tab whose first page is the Running tab ends on the Specs list, with no way Back to it (AC-1)", async () => {
+  test("a browser tab whose first page is the Running tab ends on the Specs list, with no way Back to it", async () => {
     const page = await newTab();
     await withBrowser(page.goto(`${base}/`), "page.goto(/)");
     await withBrowser(page.waitForURL(/\/specs$/), "the move to the Specs list");
@@ -37,7 +37,7 @@ describe("a board with nothing running", () => {
     expect(new URL(page.url()).pathname).not.toBe("/");
   });
 
-  test("a click on Running and a reload in a tab that has started show the Running tab (AC-3, AC-4)", async () => {
+  test("a click on Running and a reload in a tab that has started show the Running tab", async () => {
     const page = await newTab();
     await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(Specs)");
     await page.locator("nav.tabbar a.tab:visible", { hasText: "Running" }).click();

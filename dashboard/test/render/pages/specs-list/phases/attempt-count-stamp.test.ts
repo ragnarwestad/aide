@@ -1,4 +1,4 @@
-// Spec 341: a phase's own file remembers how many times it ran, past
+// A phase's own file remembers how many times it ran, past
 // both the two-hundred-deep queue's bounded memory and archiving —
 // `2-analysis.md`, "Findings" names the two gaps this file closes.
 //
@@ -38,8 +38,8 @@ const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
   ...extra,
 });
 
-describe("a phase's attempt count outlives the queue's memory (spec 341)", () => {
-  test("an archived phase with a stamped Attempts count of 3 and no queue jobs at all shows 3 attempts (REQ-2, REQ-3)", () => {
+describe("a phase's attempt count outlives the queue's memory", () => {
+  test("an archived phase with a stamped Attempts count of 3 and no queue jobs at all shows 3 attempts", () => {
     const archived: ArchivedSpecView = {
       project: "aide",
       folder: "aa-spec",
@@ -56,7 +56,7 @@ describe("a phase's attempt count outlives the queue's memory (spec 341)", () =>
     expect(subRow(html, "analyze")).toContain("3 attempts");
   });
 
-  test("a phase run exactly once shows nothing, stamp included (REQ-5)", () => {
+  test("a phase run exactly once shows nothing, stamp included", () => {
     const html = renderSpecsRows(
       [
         job("a1", {
@@ -126,7 +126,7 @@ describe("a phase's attempt count outlives the queue's memory (spec 341)", () =>
     expect(subRow(html, "analyze")).toContain("3 attempts");
   });
 
-  describe("the file's stamp wins once the queue has forgotten the earliest attempts (REQ-4, REQ-6)", () => {
+  describe("the file's stamp wins once the queue has forgotten the earliest attempts", () => {
     let dir: string;
     beforeAll(() => {
       dir = mkdtempSync(join(tmpdir(), "aide-attempt-count-"));

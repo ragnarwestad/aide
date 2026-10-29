@@ -1,4 +1,4 @@
-// The project page's settings tables: one per file (spec 549), view mode
+// The project page's settings tables: one per file, view mode
 // and edit mode in the same markup.
 
 import type { PreviewFrom } from "../../../project/parse-manifest.ts";
@@ -31,8 +31,7 @@ function unsetTestComment(r: SettingRow): string {
 
 /** The two values Code landing can take, and the words the page uses
  *  for each — shared between the row's read-only text and its `<select>`
- *  (spec 255; unchanged from the choices `runConfigurationBlock`'s old
- *  editor offered). */
+ *  (the same choices `runConfigurationBlock`'s old editor offered). */
 /** `defaultBranch` is the project's OWN branch name, off `origin/HEAD`
  *  — "the default branch" is GitHub's term for it, not a name anybody
  *  reading this row is looking at. `null` where there is no name to
@@ -61,8 +60,8 @@ export const previewFromChoices = (): { value: PreviewFrom; label: string }[] =>
  *  row's own current value, otherwise. A textarea wraps a long value,
  *  which an `<input>` cannot; `bindOneLineFields` gives back what the
  *  input did (growth, Enter to save, no line break). `isEditingThis` is
- *  whether THIS row's own table is the one being edited (spec 552: each
- *  table now has its own edit state). */
+ *  whether THIS row's own table is the one being edited (each
+ *  table has its own edit state). */
 function settingValueCell(r: SettingRow, isEditingThis: boolean, opts: ProjectPageOptions): string {
   if (!isEditingThis) {
     return r.value === null ? `<span class="muted">–</span>` : esc(r.value);
@@ -120,9 +119,9 @@ function choiceRow(
   return `<tr><td>${esc(label)}</td><td data-col="setting-value">${value}</td><td>${esc(purpose)}</td></tr>`;
 }
 
-/** The Code-landing row (spec 255), built from what
- *  `resolveCodeLanding()` answers. Lives in the manifest table (spec
- *  549): it is a manifest-only fact already. */
+/** The Code-landing row, built from what
+ *  `resolveCodeLanding()` answers. Lives in the manifest table:
+ *  it is a manifest-only fact already. */
 function codeLandingRow(codeLanding: "merge" | "pr", isEditingThis: boolean, defaultBranch: string | null): string {
   return choiceRow(
     "Code landing", "codeLanding", codeLandingChoices(defaultBranch), codeLanding, isEditingThis,
@@ -140,20 +139,20 @@ function previewFromRow(previewFrom: PreviewFrom, isEditingThis: boolean): strin
   );
 }
 
-/** The manifest table's own file name (spec 512): the project's tracked
+/** The manifest table's own file name: the project's tracked
  *  `.aide/project.yaml`, or the dashboard's derived `settings.yaml` when
  *  the project tracks none. This is the one fact the removed
- *  above-the-table sentence stated that still needs saying (AC-1) — said
+ *  above-the-table sentence stated that still needs saying — said
  *  once, in the table's own heading, instead of in a sentence above it
- *  (AC-2 drops that sentence). */
+ *  (that sentence is dropped). */
 function manifestFileHeading(home: ProjectPageOptions["settingsHome"]): string {
   return home === "dashboard" ? "the dashboard's settings.yaml" : ".aide/project.yaml";
 }
 
 /** One table's own Edit, or its Save/Cancel, on the same line as its
- *  heading (AC-1, AC-2): Save/Cancel while THIS table is being edited,
+ *  heading: Save/Cancel while THIS table is being edited,
  *  Edit — enabled — while nothing is, Edit — disabled — while the OTHER
- *  table is (AC-4: present in the markup, not removed). */
+ *  table is (present in the markup, not removed). */
 function settingsTableActions(file: SettingsGroupFile, editingGroup: SettingsGroupFile | null, path: string): string {
   if (editingGroup === file) {
     return (
@@ -161,7 +160,7 @@ function settingsTableActions(file: SettingsGroupFile, editingGroup: SettingsGro
       // No `${prefix}-cancel` id like the other Cancel controls on this
       // page's siblings (a plain link, not a submit-form pair) —
       // `data-discard-changes` gives unsaved-changes.ts the same
-      // exemption by a different marker (spec 438).
+      // exemption by a different marker.
       `${btnLink({ href: `${path}?tab=config`, label: "Cancel", data: { "discard-changes": "" } })}</span>`
     );
   }
@@ -188,13 +187,13 @@ function settingsTableFor(heading: string, rows: string, actions: string): strin
   );
 }
 
-/** One setting's `<tr>` — no Comment cell ever names a file (AC-2): which
+/** One setting's `<tr>` — no Comment cell ever names a file: which
  *  file a row belongs to is said once, in its table's own heading. */
 function settingRowHtml(r: SettingRow, isEditingThis: boolean, opts: ProjectPageOptions): string {
   // A value that does not resolve is marked where it is shown, in
   // readiness's own sentence — never a second wording of the same fact
-  // (`project-settings.ts` reads it verbatim). Blocking-aware (spec
-  // 372): the same check's `blocking` flag decides the kind here exactly
+  // (`project-settings.ts` reads it verbatim). Blocking-aware:
+  // the same check's `blocking` flag decides the kind here exactly
   // as it does above the table, so the two never disagree about the same
   // fact's colour.
   const problem = r.problem ? rowMessage(r.problem.blocking ? "failed" : "waiting", r.problem.text) : "";
@@ -207,9 +206,8 @@ function settingRowHtml(r: SettingRow, isEditingThis: boolean, opts: ProjectPage
   );
 }
 
-/** The Config tab's two settings tables (spec 549: one per file; spec
- *  552: each with its own Edit/Save/Cancel, in place of the single
- *  button row that used to sit above both) — at most one open for
+/** The Config tab's two settings tables (one per file, each with its own
+ *  Edit/Save/Cancel rather than a single button row above both) — at most one open for
  *  editing at a time, and both wrapped in one `<form>` while one is, so
  *  Save posts only that table's own fields.
  *
@@ -244,7 +242,7 @@ export function unifiedSettingsTable(
   if (editingGroup === null) return `<div class="configtables">${tables.join("")}</div>`;
   return (
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="pageform projectsettingsform">` +
-    // One `.frow` per table (spec 531's reasoning extends to two): each
+    // One `.frow` per table: each
     // is its own full-width line in `.pageform`'s flex-wrap layout, so
     // the two tables stack rather than squeeze onto one row beside it.
     tables.map((t) => `<span class="frow">${t}</span>`).join("") +

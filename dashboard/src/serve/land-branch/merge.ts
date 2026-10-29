@@ -1,6 +1,6 @@
 // The landing every self-landing step shares: merge a step's own
 // branch into the default branch of every repo it pushed to, and
-// report per repo (specs 93, 136, 149).
+// report per repo.
 
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
@@ -45,7 +45,7 @@ import { takeLandingCancel } from "./cancel-landing.ts";
 
 /** Merge a step's own branch into the default branch of every repo it
  *  pushed to, and report per repo — the landing every self-landing
- *  step shares (specs 93, 136 and 149).
+ *  step shares.
  *
  *  The branch and, by default, the repos come from the RESULT, never
  *  from `specBranch(...)` or `queue.branchesFor(...)`. Two reasons,
@@ -60,9 +60,9 @@ import { takeLandingCancel } from "./cancel-landing.ts";
  *  Every merge goes through `mergeLock`, one repo at a time. Four
  *  steps land themselves now, and two specs sharing one specs repo can
  *  finish within seconds of each other under queue concurrency — which
- *  is the collision the lock exists to serialize. `create` merged
- *  outside it until spec 149, which was survivable only because it was
- *  one of two rare self-landings.
+ *  is the collision the lock exists to serialize. `create` is inside
+ *  it too: outside it would be survivable only while self-landings
+ *  were rare.
  *
  *  Plan first, code last, for the same reason the manual route sorted
  *  them: a run records the project before its specs root, so a reader
@@ -72,7 +72,7 @@ import { takeLandingCancel } from "./cancel-landing.ts";
  *  which says what actually happened, unless a retry reached a verdict
  *  of its own (a conflict, a red suite). A retry that merely refused
  *  again used to overwrite "main moved on origin under this landing
- *  twice" with "cannot fast-forward main" (364, 2026-09-03). */
+ *  twice" with "cannot fast-forward main". */
 export function pickRefusal(first: RepoMergeResult, last: RepoMergeResult): RepoMergeResult {
   if (first.ok) return last;
   if (last.reason && last.reason !== first.reason) return last;
@@ -92,15 +92,15 @@ export async function landBranch(
     // Code roots last. `sort` is stable, so two repos of the same kind
     // keep the order the run recorded them in.
     //
-    // `archive` reverses this (spec 280): its specs root is the one
+    // `archive` reverses this: its specs root is the one
     // carrying the `Result: completed` / `Workflow steps completed`
     // stamp, and that stamp must never reach `main` before the code
     // root's own landing is confirmed — so for `archive` specifically,
     // code is attempted FIRST, and the loop below stops on a failed
     // code root before the specs root is ever attempted.
     //
-    // `schedule` needs the same guarantee, for the same reason (spec
-    // 558, AC-4): a schedule run that pushed to both roots must never
+    // `schedule` needs the same guarantee, for the same reason: a schedule
+    // run that pushed to both roots must never
     // have its specs-root commit land while the code root's own gated
     // merge can still fail — nothing may reach main out of a landing
     // that as a whole did not succeed.
@@ -112,7 +112,7 @@ export async function landBranch(
       const bv = Number(codeRoots.has(b.root));
       return codeFirst ? bv - av : av - bv;
     });
-    /** Roots this landing deliberately does not merge (spec 220): a
+    /** Roots this landing deliberately does not merge: a
      *  project whose manifest says `codeLanding: pr` has its CODE
      *  reviewed before it reaches the default branch, and the run has
      *  already opened the pull request.
@@ -124,7 +124,7 @@ export async function landBranch(
      *  description scopes this to the code. */
     const leaveOpen = (root: string): boolean =>
       what.step === "archive" && codeRoots.has(root) && ctx.codeLanding(job.project) === "pr";
-    /** The code root's branch on a `close` landing (spec 406): deleted,
+    /** The code root's branch on a `close` landing: deleted,
      *  never merged — the specs root merges normally, carrying the move
      *  and the `**Closed:**` stamp. Specs inside the code root land
      *  their folder alone first (`handed.specOnly`). */
@@ -134,14 +134,14 @@ export async function landBranch(
       return;
     }
     const failures: Sentence[] = [];
-    // Raw git output behind each failure above, if any (spec 352,
-    // REQ-5) — joined the same way, so a title carrying several repos'
-    // detail lines up with the sentence it belongs to.
+    // Raw git output behind each failure above, if any — joined the
+    // same way, so a title carrying several repos' detail lines up
+    // with the sentence it belongs to.
     const failureDetails: string[] = [];
     // Which refusal it was, when it is one the row can offer a way out
     // of. A conflict is the only one a `resolve` step could finish.
     let reason: Job["errorReason"];
-    // Spec 319: a merge that succeeded but whose delete failed, per
+    // A merge that succeeded but whose delete failed, per
     // repo. `leftBehindRoots` is what stops the post-loop check below
     // from re-flagging a root THIS loop already knows the story of;
     // `deleteErrors` is what the row reads afterwards instead of the
@@ -198,7 +198,7 @@ export async function landBranch(
       }
       if (!result.ok) result = pickRefusal(first, result);
       if (result.ok) {
-        // Spec 453: the real folder name, reported by the finalize step
+        // The real folder name, reported by the finalize step
         // that just ran under this repo's own merge — never guessed
         // from `outcome`, which still carries the provisional key a
         // create step wrote its files under.
@@ -208,7 +208,7 @@ export async function landBranch(
         // correction, and it is what the archived row reads. The branch
         // was forgotten before the checkout moved (`handed-to-merge.ts`);
         // a branch still on origin because its delete failed IS open,
-        // so it is taken back here, and spec 319's own sentence for that
+        // so it is taken back here, and the sentence for that
         // case is written from `deleteErrors` below.
         if (result.branchDeleteError) rememberUnderRoots(ctx, job.project, repo.root, branch);
         // Merged, so only a cleanup is left — never for a close's discarded
@@ -216,14 +216,14 @@ export async function landBranch(
         if (result.branchDeleteError && !result.discarded && !handed.specOnly) {
           rememberMergedUnderRoots(ctx, job.project, repo.root, branch);
         }
-        // spec 406: a discarded root never merged anything — nothing to
+        // A discarded root never merged anything — nothing to
         // install. The block below is `mergeBranchIntoDefault`'s own
         // success handling, which `deleteBranchOnly` never earns.
         if (!result.discarded) {
           // Merged is not deployed. For a tool that lives in
           // `~/.local/bin`, the code landing on the default branch
           // changes nothing on the machine until it is installed —
-          // which is why spec 92's merged code kept running as the old
+          // which is why merged code can keep running as the old
           // version. The install belongs to the project, so the project
           // says what it is.
           if (codeRoots.has(repo.root)) {
@@ -258,7 +258,7 @@ export async function landBranch(
           leftBehindRoots.add(repo.root);
           // The ROOT is folded into the message's own template here —
           // this is the one place that knows whether several repos are
-          // being reported at once (spec 319). `branch-merge.ts` always
+          // being reported at once. `branch-merge.ts` always
           // composes this as a `BoardMessage`, never a plain string.
           const del = result.branchDeleteError;
           deleteErrors.push(
@@ -272,8 +272,8 @@ export async function landBranch(
         }
       } else if (result.reason === "gone") {
         // Nothing to land in this repo, and not a failure of this
-        // landing (spec 153). An archive looks back through every
-        // branch the spec's steps pushed, and since spec 149 a
+        // landing. An archive looks back through every
+        // branch the spec's steps pushed, and a
         // `resolve` lands AND DELETES its own — so by the time archive
         // gets here, that branch is provably gone. Job 15932abc
         // (2026-08-21) was the first: archived, `ok: true`, and an
@@ -287,15 +287,15 @@ export async function landBranch(
         if (result.detail) failureDetails.push(result.detail);
         if (result.reason === "conflict") reason = "conflict";
         if (result.reason === "tests-red") reason = "tests-red";
-        // spec 280 (archive) and spec 558 (schedule): a code root that
+        // For archive and schedule alike: a code root that
         // fails to land stops the loop here — the specs root's own
         // merge has not run yet (code-first order, above) and must
         // never run now that the code side failed.
         if (codeFirst && codeRoots.has(repo.root)) break;
       }
     }
-    // Origin decides, not the queue's memory of its own pushes (spec
-    // 193). Archive's contract is that nothing of the spec stays
+    // Origin decides, not the queue's memory of its own pushes.
+    // Archive's contract is that nothing of the spec stays
     // open, and the loop above can only merge repos it was TOLD
     // about — a step run by hand, a job the LRU cap has evicted, a
     // push that half-succeeded, all leave a branch no `branchUrls`
@@ -323,15 +323,15 @@ export async function landBranch(
       const holding: string[] = [];
       for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
         // A root the loop above CHOSE not to merge is not a root that
-        // failed to merge (spec 220). Without this, every working
+        // failed to merge. Without this, every working
         // PR-mode archive reports itself as an unlanded failure — the
         // check asks origin about the project's roots with no
         // knowledge of which ones the landing skipped, and in `pr`
         // mode the code root always still holds the branch, by design.
         if (leaveOpen(root)) continue;
         // This loop already knows WHY this root still holds the branch:
-        // its own merge just succeeded and only the delete failed (spec
-        // 319). Not a second, contradicting "not landed" — `deleteErrors`
+        // its own merge just succeeded and only the delete failed.
+        // Not a second, contradicting "not landed" — `deleteErrors`
         // above already carries the sentence that says what actually
         // happened, and the row reads it from there.
         if (leftBehindRoots.has(root)) continue;
@@ -364,8 +364,8 @@ export async function landBranch(
       // than report it. The branch stays on the row either way.
       //
       // `errorReason` is STORED rather than carried in a redirect, and
-      // that is the whole difference between this and the Merge button
-      // spec 149 removed: nobody's browser is attached to a landing, so
+      // that is the whole difference between this and the Merge button's
+      // redirect: nobody's browser is attached to a landing, so
       // the row has to be able to read the reason on any later request
       // (`specs-list.ts`, `resolveForm`).
       // A red suite is the one failure here that is not a fault: the
@@ -395,7 +395,7 @@ export async function landBranch(
       // `stopReason` say what the row is waiting for RIGHT NOW, and a
       // job that has moved on is waiting for something else — only
       // `landingError`, the permanent record of this attempt,
-      // survives onto it (spec 393).
+      // survives onto it.
       if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorDetail: patch.landingErrorDetail });
       return;
     }
@@ -403,7 +403,7 @@ export async function landBranch(
     // advertising one: a compare page for a merged branch shows
     // nothing, and the row would otherwise name a branch it can
     // no longer derive (`specBranch` reads the RENAMED folder).
-    // ...except what was deliberately left open (spec 220), which
+    // ...except what was deliberately left open, which
     // still has a branch and still wants naming: the row is where a
     // reader learns the code is waiting on a review rather than
     // already on the default branch.
@@ -472,7 +472,7 @@ export async function landBranch(
     const note = what.failedNote(rawMsg);
     const patch = {
       error: note,
-      // Raw exception text (spec 352, REQ-5) — `note` itself carries
+      // Raw exception text — `note` itself carries
       // none, so a reader who needs the exact words has it on hover.
       errorDetail: rawMsg,
       // A thrown landing is not a conflict — the merge never got far
@@ -483,7 +483,7 @@ export async function landBranch(
       landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? rawMsg,
     };
     const result = ctx.queue.transition(job.id, "landing-failed", patch);
-    // Same reasoning as the ordinary failure branch above (spec 393):
+    // Same reasoning as the ordinary failure branch above:
     // a job that has moved on keeps only the permanent record.
     if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorDetail: patch.landingErrorDetail });
   } finally {

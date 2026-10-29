@@ -1,4 +1,4 @@
-// Spec 89: the dashboard's first WRITE path. Until now it only ever
+// The dashboard's first WRITE path. Until now it only ever
 // asked git a question (`branch-status.ts`); this merges a spec's branch
 // into a repo's default branch and pushes the result.
 //
@@ -31,7 +31,7 @@ export interface RepoMergeResult {
   /** Why not, naming the repo — a refusal that does not say WHERE is
    *  the same failure as no refusal at all when two repos are in play. */
   error?: Sentence;
-  /** Raw git output behind `error` (spec 352, REQ-5) — never part of
+  /** Raw git output behind `error` — never part of
    *  `error`'s own text, which stays a fixed, resolution-bearing
    *  sentence naming where to act. Hover-only detail. */
   detail?: string;
@@ -51,10 +51,10 @@ export interface RepoMergeResult {
   /** WHY it was refused, when the answer is one a machine acts on. Two
    *  refusals carry it and no others.
    *
-   *  `"conflict"` (spec 106) is the one a `resolve` step could finish,
+   *  `"conflict"` is the one a `resolve` step could finish,
    *  and the row offers that step on the strength of this field.
    *
-   *  `"gone"` (spec 129) is the one whose cached "not merged" answer the
+   *  `"gone"` is the one whose cached "not merged" answer the
    *  refusal itself just disproved: the landing invalidates
    *  `BranchStatusChecker` for exactly that branch rather than leaving
    *  the row reporting a branch that is not on origin for the rest of
@@ -70,14 +70,14 @@ export interface RepoMergeResult {
    *  sentence: the text is joined with every other repo's before the
    *  page sees it, and a rewording would silently take the action away. */
   reason?: "conflict" | "gone" | "tests-red";
-  /** This root's branch was DELETED, never merged (spec 406) — set only
+  /** This root's branch was DELETED, never merged — set only
    *  by `deleteBranchOnly`. `landBranch`'s own per-repo success branch
    *  reads this to skip the report and the install call a real merge
    *  would otherwise trigger: a root that never merged anything has
    *  nothing to report and nothing to install. */
   discarded?: boolean;
   /** The real `NN-slug` a `create` job's folder was renamed to, set only
-   *  by `finalizeCreate` (spec 453) — landing's own finalize step,
+   *  by `finalizeCreate` — landing's own finalize step,
    *  which runs under this merge's own retry loop rather than once
    *  outside it, since a `base` that moved between attempts changes the
    *  folder count the next attempt has to see fresh. Present only when
@@ -129,10 +129,10 @@ export const LOCK_WAIT_MS = 400;
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 export type Wait = (ms: number) => Promise<void>;
 
-/** REQ-2/REQ-5 (spec 359): the same bound `aide-run-spec`'s
+/** The same bound `aide-run-spec`'s
  *  `push_with_retry` uses (`PUSH_RETRY_WAITS`) — two extra tries,
  *  waiting longer between them than the lock retry above, since a
- *  network blip (spec 314) takes longer to clear than a lock held by a
+ *  network blip takes longer to clear than a lock held by a
  *  sibling git process on the same machine. */
 const PUSH_RETRY_WAITS_MS = [1000, 2000];
 
@@ -143,18 +143,18 @@ interface PushRetryResult {
   moved?: boolean;
 }
 
-/** One push, with its own recovery (spec 359, REQ-1/REQ-2/REQ-3) — the
+/** One push, with its own recovery — the
  *  landing's side of the same rule `aide-run-spec`'s `push_with_retry`
  *  follows. `root` here is the landing's own worktree, whose HEAD is
  *  DETACHED at the merge it just made — so the refspec is explicit.
  *  `push origin <base>` would push the shared checkout's own local
  *  branch of that name, which is the one thing on the machine that does
  *  NOT have the merge in it. The push failing means base moved on
- *  origin since the worktree was cut. Unreachable origin is retried blind (REQ-2); a reachable
+ *  origin since the worktree was cut. Unreachable origin is retried blind; a reachable
  *  origin that still rejected the push means base moved under us, which
- *  `pull --rebase` can settle on its own (REQ-1) — unless the rebase
+ *  `pull --rebase` can settle on its own — unless the rebase
  *  itself conflicts, which is a person's call and never this
- *  function's (REQ-3). */
+ *  function's. */
 export async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
   const refspec = `HEAD:refs/heads/${base}`;
   let pushed = await run(root, ["push", "-q", "origin", refspec]);
@@ -196,11 +196,11 @@ export async function mergeBranchIntoDefault(
   // branch — `worktree add` refuses a path that already exists.
   let work = "";
   try {
-    // The state of the working tree is not asked about at all (spec
-    // 144). It was, and refused: whoever got to the checkout first left
-    // it dirty and the other side backed off. Spec 91 ended that — a
-    // run works in a worktree of its own and only ever fast-forwards
-    // this one — and an unrelated uncommitted file then stopped merges
+    // The state of the working tree is not asked about at all.
+    // It was, and refused: whoever got to the checkout first left
+    // it dirty and the other side backed off. A run now
+    // works in a worktree of its own and only ever fast-forwards
+    // this one, and an unrelated uncommitted file then stopped merges
     // for no reason anybody could act on. The three commands below
     // write only what differs between the commits, so a file that has
     // nothing to do with the merge is untouched, and one that DOES
@@ -234,7 +234,7 @@ export async function mergeBranchIntoDefault(
     //    result, five and a half minutes for this repo. That directory
     //    is the one a starting run reads before it cuts its own
     //    worktree, so the scheduler had to hold every job for the
-    //    project until the landing finished (spec 402's `runner.ts`
+    //    project until the landing finished (the `runner.ts`
     //    pause). The work happens in a throwaway worktree at
     //    `origin/<base>` instead, and the shared checkout is only
     //    fast-forwarded at the end, once, in well under a second.
@@ -292,7 +292,7 @@ export async function mergeBranchIntoDefault(
     //      tests run on exactly what main is about to become, so a moved
     //      base means they run again — unless it reproduces a tree already
     //      gated once (below).
-    // Spec 402, REQ-5: a resulting tree already gated once for THIS
+    // A resulting tree already gated once for THIS
     // landing is never gated again. Scoped to the lifetime of this one
     // `mergeBranchIntoDefault()` call — never module- or server-lifetime
     // — so no verdict outlives the landing it was reached for.
@@ -302,7 +302,7 @@ export async function mergeBranchIntoDefault(
     // against the base that moved) is the one that survives.
     let assignedSpecFolder: string | undefined;
     const mergeAndGate = async (): Promise<RepoMergeResult | null> => {
-      // Spec 402, REQ-4: the tip BEFORE this attempt's own merge, so a
+      // The tip BEFORE this attempt's own merge, so a
       // branch that adds nothing to THIS repo can be told apart from one
       // that does.
       const preMergeHead = gate ? (await run(work, ["rev-parse", "HEAD"])).stdout.trim() : "";
@@ -351,12 +351,12 @@ export async function mergeBranchIntoDefault(
       // sees it; the branch is untouched, so implement can be run again
       // on it.
       if (gate) {
-        // Spec 402, REQ-4: an empty diff against the pre-merge tip means
+        // An empty diff against the pre-merge tip means
         // this merge added nothing to `root` — there is nothing the
         // suite could fail for that this merge caused, so it never runs.
         const changed = await run(work, ["diff", "--quiet", preMergeHead, "HEAD"]);
         if (changed.code !== 0) {
-          // Spec 402, REQ-5: an identical resulting tree reuses the
+          // An identical resulting tree reuses the
           // verdict already reached for it within this same call, rather
           // than running the suite again.
           const treeRes = await run(work, ["rev-parse", "HEAD^{tree}"]);
@@ -453,7 +453,7 @@ export async function mergeBranchIntoDefault(
       );
     }
 
-    // 7. A merged branch left on origin is what made spec 92's
+    // 7. A merged branch left on origin is what made the
     //    dependency guard refuse a fully-merged spec three times
     //    (2026-08-18): that guard asks origin directly, and a branch
     //    still there reads as "not merged yet". AFTER the push, never
@@ -464,19 +464,19 @@ export async function mergeBranchIntoDefault(
     //    a failure.
     const deleted = await run(root, ["push", "-q", "origin", "--delete", branch]);
     if (deleted.code !== 0) {
-      // The stderr tail (spec 352, REQ-5) is never part of the sentence
+      // The stderr tail is never part of the sentence
       // — it rides in `detail` instead, for whoever needs the exact
       // words; the board itself shows the fixed BRANCH_LEFT_BEHIND
       // sentence, never this text directly (`row-marks.ts`).
       const detail = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
       // Names the branch; the ROOT is added where this is composed for
-      // the row (`landBranch`, spec 319), which is the one place that
+      // the row (`landBranch`), which is the one place that
       // knows whether several repos are being reported at once.
       return {
         root,
         ok: true,
         // The ROOT is folded in where this is composed for the row
-        // (`landBranch`, spec 319), which is the one place that knows
+        // (`landBranch`), which is the one place that knows
         // whether several repos are being reported at once.
         branchDeleteError: { key: "landing.branchDeleteFailed", values: { branch } },
         detail,
@@ -484,11 +484,11 @@ export async function mergeBranchIntoDefault(
       };
     }
 
-    // 8. And this checkout's own copy (spec 197). The ref outlives the
+    // 8. And this checkout's own copy. The ref outlives the
     //    worktree that made it — `aide-run-spec` throws the worktree
     //    directory away at the end of a run, the branch it created stays
     //    in the shared refs — and nothing removed it until now: 260 had
-    //    piled up by 2026-08-23, one of which stopped spec 181 from
+    //    piled up by 2026-08-23, one of which stopped a spec from
     //    starting when it was reopened. Only reached once the ORIGIN
     //    delete has also succeeded, so the two copies go together or not
     //    at all. `-d` rather than `-D`: the safe form always succeeds
@@ -519,7 +519,7 @@ export async function mergeBranchIntoDefault(
   }
 }
 
-/** Delete a spec's branch without ever merging it (spec 406) — the code
+/** Delete a spec's branch without ever merging it — the code
  *  root's own landing for a `close` step, whose whole point is that
  *  none of that work is used. Steps 1, 7 and 8 of
  *  `mergeBranchIntoDefault` alone, with no merge, gate or push in
@@ -559,7 +559,7 @@ export async function deleteBranchOnly(run: GitRunner, root: string, branch: str
 }
 
 /** Bring `base` in `root` level with what origin has — no feature
- *  branch involved (spec 258). This is steps 2-3 of `mergeBranchIntoDefault`
+ *  branch involved. This is steps 2-3 of `mergeBranchIntoDefault`
  *  alone: the deploy button's whole job is a checkout that fell behind
  *  because a merge landed somewhere other than this dashboard's own
  *  Merge button, so there is nothing to merge IN, only to fast-forward.

@@ -90,7 +90,7 @@ def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation(runner, 
 def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation_when_specs_are_tracked_inside_the_project(
     runner, fake_claude, tmp_path
 ):
-    """REQ-2: specs TRACKED inside the project's own repository — the
+    """Specs TRACKED inside the project's own repository — the
     layout the description names, where `specs_repo == project_root`. An
     analyze step that writes only its own spec folder there must
     complete, not be downgraded because `git status` on the whole project
@@ -110,7 +110,7 @@ def test_a_run_that_writes_only_its_own_folder_is_not_a_scope_violation_when_spe
 def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_discarded_when_specs_are_tracked_inside_the_project(
     runner, fake_claude, tmp_path
 ):
-    """REQ-3: a foreign spec folder written under the same TRACKED,
+    """A foreign spec folder written under the same TRACKED,
     inside-the-project specs root is still caught and reverted —
     run-spec/record/specs-guard.sh's own existing behavior, now reached for this
     layout because the false positive that used to pre-empt it is gone."""
@@ -134,7 +134,7 @@ def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_dis
 def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded_when_specs_are_tracked_inside_the_project(
     runner, fake_claude, tmp_path
 ):
-    """REQ-4 regression: a step that writes a real project file OUTSIDE
+    """Regression: a step that writes a real project file OUTSIDE
     the specs root, in the tracked-inside-project layout, is still
     stopped — exactly as it is today."""
     ws = tracked_specs_inside_project_workspace(tmp_path)

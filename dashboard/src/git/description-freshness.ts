@@ -1,4 +1,4 @@
-// Spec 97: is the plan still about the problem the description states?
+// Is the plan still about the problem the description states?
 //
 // A spec's 1-description.md keeps being edited after `analyze` has run
 // — 94 and 96 each gained a paragraph once their plans were merged, 93
@@ -44,7 +44,7 @@ const isFinishedAnalyze = (line: string, subject: string): boolean =>
  *  description edit.
  *
  *  The SHA comes back as well as the time because the spec page stamps
- *  each of the four files with the version on the screen (spec 150), and
+ *  each of the four files with the version on the screen, and
  *  "which version" is what a stamp is for. The freshness check below
  *  wants only the time, and asks through `lastCommitAt` — one git shape
  *  for one question, whichever half of the answer the caller uses. */
@@ -60,7 +60,7 @@ export async function lastCommitOf(
 }
 
 /** When the FIRST commit touching `pathspec` was authored — when the
- *  spec began (spec 199).
+ *  spec began.
  *
  *  The Started column used to hold the most recent run's own start, so
  *  a spec jumped to the top of a list sorted by it every time a phase
@@ -87,7 +87,7 @@ export async function firstCommitAt(
 }
 
 /** The same question as `firstCommitAt`, crossing a rename of `file`'s
- *  own containing directory (spec 317) — what a plain directory
+ *  own containing directory — what a plain directory
  *  pathspec cannot see once `aide-archive-spec` has `git mv`'d a spec's
  *  whole folder into `archive/`: `git log -- .` against the new path
  *  only finds commits that touched THAT path, so the move commit reads
@@ -100,7 +100,7 @@ export async function firstCommitAt(
  *  file that is the same fixed template in every spec (e.g.
  *  `0-README.md`) can be paired with an unrelated spec's deleted copy of
  *  that same template and answer with a stranger's date instead of this
- *  spec's own (spec 324). Same oldest-line shape as `firstCommitAt`. */
+ *  spec's own. Same oldest-line shape as `firstCommitAt`. */
 export async function firstCommitAtFollowingRenames(
   run: GitRunner,
   dir: string,
@@ -146,7 +146,7 @@ export async function lastAnalyzeCommit(
   const subject = analyzeSubject(specFolder);
   const out = await run(dir, [
     "log",
-    // Spec 198: the third reader of the same commit grammar. A reopened
+    // The third reader of the same commit grammar. A reopened
     // spec's earlier round is still in the repository, and its analyze
     // commit is still the newest one this lookup can find — so without
     // the boundary the staleness badge goes on comparing THIS round's
@@ -177,7 +177,7 @@ export async function lastAnalyzeCommit(
  *  rewritten to exactly what it was — a section added and taken out
  *  again, a typo fixed, a `Depends on:` line tried and dropped — and
  *  the commit is newer every time while the file says the same thing.
- *  Seen on spec 132 (2026-08-20): two commits after the analysis, and
+ *  Seen once: two commits after the analysis, and
  *  `git diff` against the analyzed version was empty.
  *
  *  `--quiet` implies `--exit-code`: 0 means identical, 1 means
@@ -236,7 +236,7 @@ export class DescriptionFreshnessChecker {
     // file as binary, and every future diff of it pays for that.
     //
     // The boundary is part of the question and so part of the key, for
-    // the same reason `WorkflowHistoryChecker`'s is (spec 198).
+    // the same reason `WorkflowHistoryChecker`'s is.
     const key = JSON.stringify([dir, specFolder, boundarySha ?? null]);
     const hit = this.cache.get(key);
     const at = this.now();
@@ -266,7 +266,7 @@ export class DescriptionFreshnessChecker {
   }
 
   /** The LAST answer this checker holds, without asking git at all
-   *  (spec 208) — the same read `peekDrift` gives the drift count, and
+   *  the same read `peekDrift` gives the drift count, and
    *  what the spec list calls now instead of `isStale`.
    *
    *  `checkedAt` is `null` only where NOTHING has ever been asked, and
@@ -277,7 +277,7 @@ export class DescriptionFreshnessChecker {
    *  apart, which is why `checkedAt` rides with it.
    *
    *  Keyed the same way `isStale` keys, boundary included: the boundary
-   *  is part of the QUESTION (spec 198). */
+   *  is part of the QUESTION. */
   peekStale(dir: string, specFolder: string, boundarySha?: string): {
     stale: boolean;
     checkedAt: number | null;
@@ -294,7 +294,7 @@ export interface SpecCreatedAtOptions {
 }
 
 /** When each spec was made, cached, shaped exactly like the checker
- *  above it (spec 199) — same TTL, same key, same fail-to-nothing.
+ *  above it — same TTL, same key, same fail-to-nothing.
  *
  *  It fails to `null`, and deliberately never to a `Job` date. A
  *  job-backed fallback would put back the very thing this change
@@ -335,8 +335,8 @@ export class SpecCreatedAtChecker {
     return createdAt;
   }
 
-  /** The LAST date this checker holds, without asking git at all (spec
-   *  208). `checkedAt` is `null` only where nothing has ever been
+  /** The LAST date this checker holds, without asking git at all.
+   *  `checkedAt` is `null` only where nothing has ever been
    *  asked, and the Started cell then says "checking…"; a real,
    *  timestamped `null` is a spec git could not date, and that cell
    *  shows a dash, which is what it showed before this column meant
@@ -346,7 +346,7 @@ export class SpecCreatedAtChecker {
     return hit ? { createdAt: hit.createdAt, checkedAt: hit.at } : { createdAt: null, checkedAt: null };
   }
 
-  /** How long a RESOLVED archived answer stands (spec 317) — a day, not
+  /** How long a RESOLVED archived answer stands — a day, not
    *  the standard TTL above: an archived spec's history cannot change
    *  after the fact, so the per-tick cost `refreshSpecCaches` pays for
    *  it is owed once per archived spec ever, not once per sweep tick.
@@ -360,11 +360,11 @@ export class SpecCreatedAtChecker {
   // carry both.
   private readonly archivedCache = new Map<string, { at: number; createdAt: string | null }>();
 
-  /** The archived-row counterpart to `createdAt` (spec 317): the spec's
+  /** The archived-row counterpart to `createdAt`: the spec's
    *  true beginning, from before `aide-archive-spec`'s `git mv`, off a
    *  file that survives that move unedited AND holds content unique to
    *  this one spec (`1-description.md`, written once by `/aide-create`
-   *  with this spec's own problem statement — spec 324). Fails to `null`
+   *  with this spec's own problem statement). Fails to `null`
    *  on the same terms as `createdAt` — a missing or
    *  independently-rewritten `1-description.md` is an honest "cannot
    *  date", not a crash. */
@@ -414,8 +414,8 @@ export interface SpecFileCommitOptions {
 }
 
 /** WHICH VERSION of a spec file is on the screen — the commit that last
- *  touched it (spec 150), cached, shaped exactly like the two checkers
- *  above it (spec 208).
+ *  touched it, cached, shaped exactly like the two checkers
+ *  above it.
  *
  *  It is the one question in this codebase that was added without the
  *  cache every sibling has: the spec page ran `git log` for all four of

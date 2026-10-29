@@ -101,7 +101,7 @@ def _implement_claude(runner, workspace, fake_claude, own, fix, review):
     return out
 
 
-def test_the_most_tokens_of_one_call_are_the_input_and_both_caches_together_AC_1_AC_3(
+def test_the_most_tokens_of_one_call_are_the_input_and_both_caches_together(
     runner, workspace, fake_claude
 ):
     """The 120,000 call is 2 + 29,998 + 90,000: a reader of `input_tokens`
@@ -113,7 +113,7 @@ def test_the_most_tokens_of_one_call_are_the_input_and_both_caches_together_AC_1
     assert out["context"]["window"] == 1_000_000, out
 
 
-def test_a_step_with_no_follow_up_turn_has_the_same_figure_before_its_checks_AC_2(
+def test_a_step_with_no_follow_up_turn_has_the_same_figure_before_its_checks(
     runner, workspace, fake_claude
 ):
     calls = [_call_of(40_000), _call_of(120_000)]
@@ -122,7 +122,7 @@ def test_a_step_with_no_follow_up_turn_has_the_same_figure_before_its_checks_AC_
     assert out["context"]["beforeChecks"] == 120_000 == out["context"]["fullest"], out
 
 
-def test_the_figure_before_the_checks_leaves_out_the_fix_turn_that_follows_AC_2(
+def test_the_figure_before_the_checks_leaves_out_the_fix_turn_that_follows(
     runner, workspace, fake_claude
 ):
     out = _implement_claude(runner, workspace, fake_claude, own=[60_000, 100_000], fix=[150_000], review=[58_000])
@@ -130,14 +130,14 @@ def test_the_figure_before_the_checks_leaves_out_the_fix_turn_that_follows_AC_2(
     assert out["context"]["fullest"] == 150_000, out
 
 
-def test_both_figures_are_a_whole_number_percentage_of_the_window_AC_4(runner, workspace, fake_claude):
+def test_both_figures_are_a_whole_number_percentage_of_the_window(runner, workspace, fake_claude):
     """31.26 rounds down and 18.5 rounds up."""
     out = _implement_claude(runner, workspace, fake_claude, own=[185_000], fix=[312_600], review=[58_000])
     assert out["context"]["fullestPercent"] == 31, out
     assert out["context"]["beforeChecksPercent"] == 19, out
 
 
-def test_calls_without_a_result_event_leave_the_window_and_the_shares_out_AC_5(
+def test_calls_without_a_result_event_leave_the_window_and_the_shares_out(
     runner, workspace, fake_claude
 ):
     """A turn killed before it wrote its result still wrote each call as it
@@ -147,13 +147,13 @@ def test_calls_without_a_result_event_leave_the_window_and_the_shares_out_AC_5(
     assert out["context"] == {"fullest": 70_000, "beforeChecks": 70_000}, out
 
 
-def test_a_result_naming_a_window_but_no_call_leaves_context_out_AC_5(runner, workspace, fake_claude):
+def test_a_result_naming_a_window_but_no_call_leaves_context_out(runner, workspace, fake_claude):
     claude = fake_claude(stream_body(_result("s"), before=[init_event(MAIN_MODEL)]))
     rc, out, _ = run(runner, workspace, claude)
     assert "context" not in out, out
 
 
-def test_a_step_with_no_call_writes_the_result_line_it_wrote_before_AC_5(runner, workspace, fake_claude):
+def test_a_step_with_no_call_writes_the_result_line_it_wrote_before(runner, workspace, fake_claude):
     """The result without calls is the old line, every existing field in place."""
     claude = fake_claude(stream_body(RESULT_OK))
     rc, out, _ = run(runner, workspace, claude)
@@ -161,14 +161,14 @@ def test_a_step_with_no_call_writes_the_result_line_it_wrote_before_AC_5(runner,
     assert "context" not in out, out
 
 
-def test_a_subagents_calls_are_not_the_main_sessions_AC_6(runner, workspace, fake_claude):
+def test_a_subagents_calls_are_not_the_main_sessions(runner, workspace, fake_claude):
     calls = [_call_of(80_000), _call_of(500_000, parent="toolu_01subagent"), _call_of(100_000)]
     claude = fake_claude(stream_body(_result("s"), before=[init_event(MAIN_MODEL), *calls]))
     rc, out, _ = run(runner, workspace, claude)
     assert out["context"]["fullest"] == 100_000, out
 
 
-def test_the_reviews_own_session_is_not_the_main_session_AC_6(runner, workspace, fake_claude):
+def test_the_reviews_own_session_is_not_the_main_session(runner, workspace, fake_claude):
     out = _implement_claude(runner, workspace, fake_claude, own=[100_000], fix=[150_000], review=[400_000])
     assert out["context"]["fullest"] == 150_000, out
     assert out["context"]["beforeChecks"] == 100_000, out
@@ -231,7 +231,7 @@ def _implementing_codex(fake_codex, home, own, fix, review):
     )
 
 
-def test_codex_counts_the_input_once_whether_or_not_it_was_cached_AC_1(
+def test_codex_counts_the_input_once_whether_or_not_it_was_cached(
     runner, workspace, fake_codex, tmp_path, monkeypatch
 ):
     home = tmp_path / "codex-home"
@@ -242,7 +242,7 @@ def test_codex_counts_the_input_once_whether_or_not_it_was_cached_AC_1(
     assert out["context"]["fullest"] == 80_000, out
 
 
-def test_codex_states_its_window_on_the_counts_AC_3_AC_4(runner, workspace, fake_codex, tmp_path, monkeypatch):
+def test_codex_states_its_window_on_the_counts(runner, workspace, fake_codex, tmp_path, monkeypatch):
     home = tmp_path / "codex-home"
     monkeypatch.setenv("CODEX_HOME", str(home))
     codex = fake_codex(_writing_task(home, CODEX_THREAD_ID, [_count(80_000)], CODEX_STREAM_OK))
@@ -251,7 +251,7 @@ def test_codex_states_its_window_on_the_counts_AC_3_AC_4(runner, workspace, fake
     assert out["context"]["fullestPercent"] == 31, out
 
 
-def test_counts_that_state_no_window_leave_it_and_the_shares_out_AC_5(
+def test_counts_that_state_no_window_leave_it_and_the_shares_out(
     runner, workspace, fake_codex, tmp_path, monkeypatch
 ):
     home = tmp_path / "codex-home"
@@ -261,7 +261,7 @@ def test_counts_that_state_no_window_leave_it_and_the_shares_out_AC_5(
     assert out["context"] == {"fullest": 80_000, "beforeChecks": 80_000}, out
 
 
-def test_a_codex_thread_with_no_session_file_leaves_context_out_AC_5(
+def test_a_codex_thread_with_no_session_file_leaves_context_out(
     runner, workspace, fake_codex, tmp_path, monkeypatch
 ):
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "empty-codex-home"))
@@ -271,7 +271,7 @@ def test_a_codex_thread_with_no_session_file_leaves_context_out_AC_5(
     assert "context" not in out, out
 
 
-def test_codex_reads_each_turn_after_its_own_task_started_AC_2(
+def test_codex_reads_each_turn_after_its_own_task_started(
     runner, workspace, fake_codex, tmp_path, monkeypatch
 ):
     with_status(workspace, ["create", "analyze"])
@@ -285,7 +285,7 @@ def test_codex_reads_each_turn_after_its_own_task_started_AC_2(
     assert out["context"]["fullest"] == 90_000, out
 
 
-def test_codex_leaves_out_the_tasks_a_resumed_thread_ran_before_the_step_AC_1_AC_2(
+def test_codex_leaves_out_the_tasks_a_resumed_thread_ran_before_the_step(
     runner, workspace, fake_codex, tmp_path, monkeypatch
 ):
     """The implement resumes the analysis's thread, whose file already holds
@@ -300,7 +300,7 @@ def test_codex_leaves_out_the_tasks_a_resumed_thread_ran_before_the_step_AC_1_AC
     assert out["context"]["fullest"] == 50_000, out
 
 
-def test_codexs_review_thread_is_not_the_main_session_AC_6(runner, workspace, fake_codex, tmp_path, monkeypatch):
+def test_codexs_review_thread_is_not_the_main_session(runner, workspace, fake_codex, tmp_path, monkeypatch):
     with_status(workspace, ["create", "analyze"])
     home = tmp_path / "codex-home"
     monkeypatch.setenv("CODEX_HOME", str(home))

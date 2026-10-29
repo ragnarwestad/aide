@@ -27,12 +27,12 @@ describe("the Try a branch choice", () => {
   // The words the manifest parser keeps are the words the form offers:
   // a word in one list and not the other is a choice that saves as
   // something no reader recognises.
-  test("its values are the three words the manifest parser keeps (AC-1)", () => {
+  test("its values are the three words the manifest parser keeps", () => {
     expect(previewFromChoices().map((o) => o.value)).toEqual([...PREVIEW_FROMS]);
     expect(previewFromChoices().map((o) => o.value)).toEqual(["none", "command", "cloudflare-pages"]);
   });
 
-  test("the Add project form asks it and starts on none (AC-1)", () => {
+  test("the Add project form asks it and starts on none", () => {
     const html = renderAddProjectPage([{ label: "Projects", path: "/projects" }], "2026-09-20T00:00:00Z", {});
     const select = html.match(/<select name="previewFrom"[^>]*>([\s\S]*?)<\/select>/)?.[1] ?? "";
     expect([...select.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1])).toEqual(["none", "command", "cloudflare-pages"]);

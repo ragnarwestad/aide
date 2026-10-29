@@ -1,5 +1,5 @@
-// Cron due-ness for a project's own recurring jobs (spec 259).
-// Acceptance criteria 1-3: a schedule entry is due when the cron's most
+// Cron due-ness for a project's own recurring jobs.
+// A schedule entry is due when the cron's most
 // recent fire time is after the newest tracked job's
 // `startedAt ?? createdAt`, and not before.
 import { describe, expect, test } from "bun:test";
@@ -34,13 +34,13 @@ describe("mostRecentFireTime / nextFireTime", () => {
   });
 });
 
-describe("isDue (acceptance criteria 1-3)", () => {
-  test("AC1: due when no job has ever run for this entry", () => {
+describe("isDue", () => {
+  test("due when no job has ever run for this entry", () => {
     const now = new Date("2026-08-26T05:00:00Z");
     expect(isDue(ENTRY, now, [])).toBe(true);
   });
 
-  test("AC1: due when the newest job predates the most recent fire", () => {
+  test("due when the newest job predates the most recent fire", () => {
     const now = new Date("2026-08-26T05:00:00Z"); // most recent fire: 03:00 today
     const jobs: ScheduleJobRef[] = [
       { specFolder: "schedule-nightly-report", createdAt: "2026-08-25T03:00:01Z" },
@@ -48,7 +48,7 @@ describe("isDue (acceptance criteria 1-3)", () => {
     expect(isDue(ENTRY, now, jobs)).toBe(true);
   });
 
-  test("AC2: not due while a job is already queued for this window (startedAt unset)", () => {
+  test("not due while a job is already queued for this window (startedAt unset)", () => {
     const now = new Date("2026-08-26T05:00:00Z");
     const jobs: ScheduleJobRef[] = [
       { specFolder: "schedule-nightly-report", createdAt: "2026-08-26T03:00:05Z" },
@@ -56,7 +56,7 @@ describe("isDue (acceptance criteria 1-3)", () => {
     expect(isDue(ENTRY, now, jobs)).toBe(false);
   });
 
-  test("AC2: not due while a job is running for this window (startedAt set)", () => {
+  test("not due while a job is running for this window (startedAt set)", () => {
     const now = new Date("2026-08-26T05:00:00Z");
     const jobs: ScheduleJobRef[] = [
       {
@@ -68,7 +68,7 @@ describe("isDue (acceptance criteria 1-3)", () => {
     expect(isDue(ENTRY, now, jobs)).toBe(false);
   });
 
-  test("AC3: not due when the newest tracked job is after the most recent fire, whatever its outcome", () => {
+  test("not due when the newest tracked job is after the most recent fire, whatever its outcome", () => {
     const now = new Date("2026-08-26T05:00:00Z");
     // A job that finished (failed or not) already covers this window —
     // there is no catch-up run for a window already spent.
@@ -95,26 +95,26 @@ describe("isDue (acceptance criteria 1-3)", () => {
     expect(isDue(bad, new Date(), [])).toBe(false);
   });
 
-  test("a disabled entry is never due, even at a time the cron would otherwise fire (acceptance criterion 2)", () => {
+  test("a disabled entry is never due, even at a time the cron would otherwise fire", () => {
     const now = new Date("2026-08-26T05:00:00Z");
     const disabled: ScheduleEntry = { ...ENTRY, enabled: false };
     expect(isDue(disabled, now, [])).toBe(false);
   });
 
-  test("since (spec 461): a fire at or before since reads as already used, with no job at all", () => {
+  test("since: a fire at or before since reads as already used, with no job at all", () => {
     const now = new Date("2026-08-26T05:00:00Z"); // most recent fire: 03:00 today
     const entry: ScheduleEntry = { ...ENTRY, since: "2026-08-26T04:00:00Z" };
     expect(isDue(entry, now, [])).toBe(false);
   });
 
-  test("since (spec 461): a real fire after since is due again, with no job at all", () => {
+  test("since: a real fire after since is due again, with no job at all", () => {
     const entry: ScheduleEntry = { ...ENTRY, since: "2026-08-26T04:00:00Z" };
     const laterNow = new Date("2026-08-27T05:00:00Z"); // most recent fire: 03:00 the next day, after since
     expect(isDue(entry, laterNow, [])).toBe(true);
   });
 });
 
-// Acceptance criterion 1 (the path half): the write side
+// The path half: the write side
 // (`runner-setup.ts`) and the read side (`page-routes.ts`) both import
 // this function rather than each computing the join themselves — a
 // pure join with no side effects, so a test needs nothing on disk.

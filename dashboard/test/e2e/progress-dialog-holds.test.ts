@@ -40,7 +40,7 @@ async function tryToClose(page: Page): Promise<void> {
 }
 
 describe("a running step stands in its progress dialog", () => {
-  test("Remove project shows Removing… and not its question while its request is out, through Escape and a click outside (AC-1, AC-2)", async () => {
+  test("Remove project shows Removing… and not its question while its request is out, through Escape and a click outside", async () => {
     const page = await browser.newPage();
     await page.route(
       (u) => u.pathname.endsWith("/remove"),

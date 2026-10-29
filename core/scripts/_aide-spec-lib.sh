@@ -7,7 +7,7 @@
 # Flat structure: all issues live as <NN>-slug/ directly under the specs root
 # (an issue key in the title stays part of the slug).
 
-# Find the specs root for a project (spec 73: per-project config, no
+# Find the specs root for a project (per-project config, no
 # global state).
 #   aide_specs_root [project-root]
 # The root defaults to the git toplevel, falling back to the current
@@ -72,7 +72,7 @@ aide_next_spec_number() {
 }
 
 # The slug side of Step 3 in core/skills/aide-create/SKILL.md, made
-# deterministic (spec 433): lowercase, transliterate the diacritics this
+# deterministic: lowercase, transliterate the diacritics this
 # project's own titles actually use, drop anything else non-ASCII, spaces
 # and runs of special characters collapse to one hyphen, no leading or
 # trailing hyphen. SKILL.md's Step 3 names this exact algorithm so a
@@ -112,7 +112,7 @@ aide_config_get() {
 # file or the key is missing. Usage: aide_manifest_get KEY [project-root]
 #
 # The manifest is where a setting that travels with the REPO belongs
-# (spec 184): .aide/config is dropped by a global ignore rule, so
+# .aide/config is dropped by a global ignore rule, so
 # anything written there is lost the moment the project meets a new
 # machine, while .aide/project.yaml is committed.
 #
@@ -151,7 +151,7 @@ get_display_name() {
 }
 
 # The specs a spec builds on: the optional "Depends on:" line in its OWN
-# 1-description.md (spec 92), echoed one identifier per line. Comma
+# 1-description.md, echoed one identifier per line. Comma
 # separated, backticks and surrounding whitespace stripped.
 #   aide_spec_dependencies <specs-root> <spec-folder>
 # An absent field, an empty one, or a missing file is the normal case and
@@ -456,13 +456,13 @@ AIDE_EOF
 # paths a run points at the main checkout, a `node_modules/` ignore rule
 # does not match the symlink that stands in for one, and a session's own `git add -A` can
 # commit it — so counted, the tree a run tested differed from the tree
-# that landed with nothing else between them (spec 480's archive,
-# 2026-09-18), and the same tree hashed before and after a commit came
+# that landed with nothing else between them,
+# and the same tree hashed before and after a commit came
 # out different. A caller whose checkout does not carry the list — a
 # fresh worktree has no `.aide/config` — passes it as the second
 # argument; with none, the checkout's own files are read.
 #
-# An untracked `.aide/project.yaml` is left out as well (spec 512), unless
+# An untracked `.aide/project.yaml` is left out as well, unless
 # HEAD has it.
 #   aide_tree_hash <dir> [links]
 aide_tree_hash() {
@@ -480,7 +480,7 @@ aide_tree_hash() {
       git rm -r -q --cached --ignore-unmatch -- "$link" >/dev/null 2>&1 || true
     done
     # An untracked manifest is the dashboard's derived copy of its own
-    # settings (spec 512), copied into a worktree and kept out of the
+    # settings, copied into a worktree and kept out of the
     # commit — so it is not part of the tree that lands either. One the
     # commit already has stays.
     if ! git cat-file -e HEAD:.aide/project.yaml >/dev/null 2>&1; then

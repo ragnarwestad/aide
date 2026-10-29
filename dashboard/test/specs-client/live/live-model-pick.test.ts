@@ -5,20 +5,20 @@ import {
   harness,
 } from "../fixtures.ts";
 
-// --- spec 225: a live model pick posts itself ---------------------------------
+// --- A live model pick posts itself ---------------------------------
 
 // The same reasoning the tail box's tick rests on, applied to the two
 // selects beside it. A busy row has no Run button to submit them with,
 // and `/api/queue` would ask for a SECOND job — so a pick made on a
 // phase the run has not reached goes to the running job's own route the
 // moment it is made.
-describe("a live model pick posts itself (spec 225)", () => {
+describe("a live model pick posts itself", () => {
   const OK = { ok: true, job: { id: "job-1" } };
   const LIVE = 3; // archive — the phase the running job has not reached
   const posts = (h: ReturnType<typeof harness>) =>
     h.requests.filter((r) => r.url.includes("/api/queue/job-1/model"));
 
-  test("it posts the pick to the job's own route, not to /api/queue (criterion 4)", async () => {
+  test("it posts the pick to the job's own route, not to /api/queue", async () => {
     const h = harness(() => ({ ok: true, body: OK }));
     await h.changeModel(LIVE, "fable");
     const posted = posts(h)[0]!;
@@ -29,11 +29,11 @@ describe("a live model pick posts itself (spec 225)", () => {
     expect(h.requests.some((r) => r.url.endsWith("/api/queue"))).toBe(false);
   });
 
-  // Criterion 5. `applyAiPick` deliberately fires no `change` event —
+  // `applyAiPick` deliberately fires no `change` event —
   // it writes the model select's value and records it. On a live line
   // that would leave the row showing an AI the running job knows
   // nothing about, so the pick has to reach the same route by hand.
-  test("a picked AI posts the model it just wrote (criterion 5)", async () => {
+  test("a picked AI posts the model it just wrote", async () => {
     const h = harness(() => ({ ok: true, body: OK }));
     await h.changeAi(LIVE, "codex");
     const posted = posts(h)[0]!;
@@ -55,7 +55,7 @@ describe("a live model pick posts itself (spec 225)", () => {
     expect(posts(h)).toHaveLength(0);
   });
 
-  // Spec 151's rule, applied to a select: the whole row locks the
+  // The press-lock rule, applied to a select: the whole row locks the
   // instant the pick lands, and stays locked until it has been redrawn
   // from the server's own answer.
   test("the row locks at once and is redrawn from the answer", async () => {

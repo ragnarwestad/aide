@@ -36,8 +36,7 @@ describe("a spec's row runs its own phases", () => {
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
 
-  // The title and the phase came off the row on 2026-08-21, and the
-  // percentage followed them in spec 167: it counted the checkbox rows
+  // The row carries no title, phase or percentage: the percentage counted the checkbox rows
   // the implement step ticks, so it read 0 with analyze finished and
   // 90-something the moment implement ended, never
   // anything between — while the pips already say how far the spec has
@@ -47,7 +46,7 @@ describe("a spec's row runs its own phases", () => {
   // which is what this test was written for and still proves. The
   // percentage's absence is proved end to end from a real 4-status.md
   // by queue-routes.test.ts, "a spec's progress stays off its row".
-  test("a row's summary comes from its OWN target (criterion 9)", () => {
+  test("a row's summary comes from its OWN target", () => {
     const html = rows(
       [job("j1", "analyze")],
       [
@@ -78,25 +77,25 @@ describe("a spec's row runs its own phases", () => {
   });
 });
 
-// --- spec 101: one pass over the page as a whole -----------------------------
+// --- One pass over the page as a whole -----------------------------
 
 // The page was built one row-feature at a time and never looked at
 // whole. Three of the six complaints are render-level: a disabled box
 // that looks live, a job whose later steps read as free while it holds
 // them, and an intro paragraph standing between the title and the list
 // on every load.
-// Spec 105 widened the rule this block is about: the lock is read off
+// The rule this block is about: the lock is read off
 // the SPEC's state, not off the list of steps the in-flight job happens
 // to hold. A job queued as two steps together used to leave a LATER
 // step tickable, which promised a press the queue was going to refuse
 // anyway.
-describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () => {
+describe("a busy job holds every step on the row", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
   });
-  // The step boxes belong to the open row (spec 103); which of them a
+  // The step boxes belong to the open row; which of them a
   // busy job holds is what this block is about.
   const rows = (list: QueueRowView[], targets: SpecTarget[] = []) =>
     renderSpecsRows(
@@ -105,7 +104,7 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
       Date.parse("2026-08-18T12:00:00Z"),
     );
   /** The line an open row reveals under its header, where the phase
-   *  boxes have lived since spec 109. */
+   *  boxes live. */
   const runLine = (html: string, folder: string) =>
     html.match(
       new RegExp(
@@ -138,12 +137,12 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
     expect(box(l, "implement")).toContain("disabled");
   });
 
-  // Spec 105: the step the job never named is locked too. The queue
+  // The step the job never named is locked too. The queue
   // refuses a second job on a spec that already has one in flight
   // (`clashing()`), whatever steps the two name — so a tickable
   // `archive` beside a running `analyze` was an offer the page could
   // not keep.
-  test("a step the running job never held is locked all the same (spec 105)", () => {
+  test("a step the running job never held is locked all the same", () => {
     const l = line(pair("running"));
     expect(box(l, "archive")).toContain("disabled");
   });
@@ -154,7 +153,7 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
     expect(box(l, "implement")).toContain("disabled");
   });
 
-  test("a queued job holds the steps it never named either (spec 105)", () => {
+  test("a queued job holds the steps it never named either", () => {
     const l = line(pair("queued"));
     expect(box(l, "archive")).toContain("disabled");
   });
@@ -177,7 +176,7 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
   });
 });
 
-// --- spec 132: the first line says what is happening, or what is next --------
+// --- The first line says what is happening, or what is next --------
 //
 // One rule for the badge, whatever the row is doing: a verb while
 // something runs, and the resting state plus the next move when nothing
@@ -185,7 +184,7 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
 // `done` because the sentence disambiguating it sat one line lower, and
 // `queued` because nothing said WHICH step was waiting.
 
-describe("spec 132: the State line says what is happening, or what is next", () => {
+describe("the State line says what is happening, or what is next", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -214,7 +213,7 @@ describe("spec 132: the State line says what is happening, or what is next", () 
   };
   const done = () => row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done" });
 
-  // Criteria 8, 9: a queued row said one word and nothing else, while
+  // A queued row said one word and nothing else, while
   // the step it was waiting to run was known all along.
   test("a queued job names the step it is waiting to run", () => {
     const html = rows(
@@ -224,7 +223,7 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     expect(chip(html)).toBe("Implementing queued");
   });
 
-  // Spec 353: a row that carries its place in the queue says so in the
+  // A row that carries its place in the queue says so in the
   // State column. "Queued", not the step's own verb: "Implementing 7/11"
   // read as a step under way for a job still waiting its turn — the pips
   // already say which phase it waits for. No hover text: it said nothing
@@ -247,7 +246,7 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     expect(chipTitle(html)).toBeFalsy();
   });
 
-  // Criterion 1: the one action that used to live outside the panel.
+  // The one action that used to live outside the panel.
   test("a row whose only offer was Merge now has an empty action cell", () => {
     const cell = actionCell(rows([done()], [target("132-a")]));
     expect(cell).not.toContain("<form");

@@ -8,7 +8,7 @@ import { dir, events, spawns, store, enqueue, makeRunner, okResult, resetHarness
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
-// Spec 118: what a step actually METERED, beside what it cost. On a
+// What a step actually METERED, beside what it cost. On a
 // subscription plan the dollar figure is notional and this is the number
 // the plan bills against.
 describe("a step's token usage", () => {
@@ -68,17 +68,17 @@ describe("a step's context use", () => {
     return store.get(job.id)?.results[0]?.context;
   };
 
-  test("a result carrying context records it on the step (AC-1)", () => {
+  test("a result carrying context records it on the step", () => {
     const context = { fullest: 312600, beforeChecks: 185000, window: 1000000, fullestPercent: 31, beforeChecksPercent: 19 };
     expect(stored(context)).toEqual(context);
   });
 
-  test("a part that is not a number is dropped, the rest kept (AC-1)", () => {
+  test("a part that is not a number is dropped, the rest kept", () => {
     expect(stored({ fullest: 120000, beforeChecks: "lots", window: -5, fullestPercent: null, beforeChecksPercent: 12 }))
       .toEqual({ fullest: 120000, beforeChecksPercent: 12 });
   });
 
-  test("a result with no usable context leaves the step's undefined (AC-1)", () => {
+  test("a result with no usable context leaves the step's undefined", () => {
     expect(stored(undefined)).toBeUndefined();
     expect(stored("full")).toBeUndefined();
     expect(stored({ fullest: "lots" })).toBeUndefined();
@@ -87,7 +87,7 @@ describe("a step's context use", () => {
 
 // What the run's own log said it ran on. Another process's JSON, so it is
 // read as a question: a usable id is kept, anything else is nothing.
-describe("a step's model id (AC-1)", () => {
+describe("a step's model id", () => {
   const stored = (modelId: unknown) => {
     const job = enqueue();
     const runner = makeRunner({ readResult: () => ({ ...okResult(1), modelId }) });
@@ -96,12 +96,12 @@ describe("a step's model id (AC-1)", () => {
     return store.get(job.id)?.results[0]?.modelId;
   };
 
-  test("a result carrying a model id records it on the step (AC-1)", () => {
+  test("a result carrying a model id records it on the step", () => {
     expect(stored("claude-opus-5-5")).toBe("claude-opus-5-5");
   });
 
   test.each([["missing", undefined], ["empty", ""], ["a number", 5], ["a list", ["x"]]])(
-    "a model id that is %s leaves the step's undefined (AC-1)",
+    "a model id that is %s leaves the step's undefined",
     (_name, value) => {
       expect(stored(value)).toBeUndefined();
     },
@@ -192,7 +192,7 @@ describe("reconciliation after a restart", () => {
     const runner = makeRunner({ alive: () => false, readResult: () => null });
     runner.reconcile();
     expect(store.get(job.id)?.state).toBe("interrupted");
-    // Spec 385 (REQ-4): the STATE transition above is only half of what
+    // The STATE transition above is only half of what
     // the job's own row needs — the rendered "the server restarted while
     // this step was running..." sentence is drawn from this `error`
     // field, which this test used to leave unasserted.
@@ -201,8 +201,8 @@ describe("reconciliation after a restart", () => {
   });
 });
 
-describe("notifications (criterion 7)", () => {
-  // Spec 149. A gate parked a job between two steps and waited for a
+describe("notifications", () => {
+  // A gate parked a job between two steps and waited for a
   // person to press Approve. There is no stop between steps any more —
   // every step lands its own work, so there is nothing to hold a job for
   // — and the runner has no branch left that can produce the state.

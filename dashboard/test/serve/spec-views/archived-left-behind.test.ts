@@ -42,7 +42,7 @@ function ctxFor(o: { merged: boolean; closed?: boolean; open?: boolean; reviewin
 }
 
 describe("an archived spec whose branch is still on origin", () => {
-  test("merged: left behind, not 'not landed', and not built for the Active filter (AC-1)", () => {
+  test("merged: left behind, not 'not landed', and not built for the Active filter", () => {
     const { ctx } = ctxFor({ merged: true });
     const [row] = archivedSpecRows(ctx, "archived");
     expect(row?.branchLeftBehind).toBe(true);
@@ -51,7 +51,7 @@ describe("an archived spec whose branch is still on origin", () => {
     expect(archivedSpecRows(ctx, "failed")).toEqual([]);
   });
 
-  test("not merged, or never asked: not landed, built for the Active filter as today (AC-4)", () => {
+  test("not merged, or never asked: not landed, built for the Active filter as today", () => {
     const { ctx } = ctxFor({ merged: false });
     const [row] = archivedSpecRows(ctx, "not-archived");
     expect(row?.folder).toBe(FOLDER);
@@ -59,7 +59,7 @@ describe("an archived spec whose branch is still on origin", () => {
     expect(row?.branchLeftBehind).toBeFalsy();
   });
 
-  test("a closed spec's open branch reads as today, merged or not (AC-4)", () => {
+  test("a closed spec's open branch reads as today, merged or not", () => {
     const { ctx, deleteErrorAsked } = ctxFor({ merged: true, closed: true });
     const [row] = archivedSpecRows(ctx, "all");
     expect(row?.notLanded).toBe(true);
@@ -68,7 +68,7 @@ describe("an archived spec whose branch is still on origin", () => {
     expect(deleteErrorAsked).toEqual([FOLDER]);
   });
 
-  test("a branch that is gone is neither (AC-3)", () => {
+  test("a branch that is gone is neither", () => {
     const { ctx } = ctxFor({ merged: true, open: false });
     const [row] = archivedSpecRows(ctx, "all");
     expect(row?.notLanded).toBe(false);
@@ -77,7 +77,7 @@ describe("an archived spec whose branch is still on origin", () => {
 });
 
 describe("an archived spec of a project that reviews its code", () => {
-  test("whose pull request merged is left behind, not waiting on a review (AC-1, AC-4)", () => {
+  test("whose pull request merged is left behind, not waiting on a review", () => {
     const { ctx } = ctxFor({ merged: true, reviewing: true });
     const [row] = archivedSpecRows(ctx, "archived");
     expect(row?.branchLeftBehind).toBe(true);
@@ -86,7 +86,7 @@ describe("an archived spec of a project that reviews its code", () => {
     expect(row?.notLanded).toBe(false);
   });
 
-  test("whose pull request is still open keeps its review line and link (AC-2)", () => {
+  test("whose pull request is still open keeps its review line and link", () => {
     const { ctx } = ctxFor({ merged: false, reviewing: true });
     const [row] = archivedSpecRows(ctx, "archived");
     expect(row?.prOpen).toBe(true);
@@ -94,7 +94,7 @@ describe("an archived spec of a project that reviews its code", () => {
     expect(row?.branchLeftBehind).toBeFalsy();
   });
 
-  test("a closed spec keeps its review line as before (AC-2)", () => {
+  test("a closed spec keeps its review line as before", () => {
     const { ctx } = ctxFor({ merged: true, closed: true, reviewing: true });
     const [row] = archivedSpecRows(ctx, "all");
     expect(row?.prOpen).toBe(true);

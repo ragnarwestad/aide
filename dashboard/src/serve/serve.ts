@@ -54,7 +54,7 @@ import { clearCheckoutFaults } from "../render/ui/checkout-faults.ts";
 import { navEntries } from "../render";
 
 export function createServer(opts: ServerOptions) {
-  // Spec 363: a header this process trusts is only trustworthy because
+  // A header this process trusts is only trustworthy because
   // nothing OTHER than the proxy in front of it can reach the port
   // carrying it. Checked once, here, before anything else runs and
   // before `Bun.serve()` binds a socket — an unconditional throw, not a
@@ -71,14 +71,14 @@ export function createServer(opts: ServerOptions) {
   const store = new AideRunStore({ mirrorPath: opts.mirrorPath });
   const nav = () => opts.navEntries ?? navEntries();
   const state = createServerState();
-  // Spec 424: always set, including `undefined` — `board-info.ts`'s own
+  // Always set, including `undefined` — `board-info.ts`'s own
   // rule, since `bun test` runs many `createServer()` calls in one
   // process and a merge/leave-if-set read would let an earlier test's
   // board leak into a later, ordinary-server test.
   setBoardInfo(opts.testBoardSpec);
   const allowed = new Set(opts.queueProjects ?? []);
 
-  // Spec 358: `Bun.which` is synchronous, unlike `servingSha`'s check
+  // `Bun.which` is synchronous, unlike `servingSha`'s check
   // below, so this needs no `state.ts` field — a plain const, computed
   // once and captured by value in both contexts built later in this
   // function. `pdfToolAvailable` is overridable (the same shape
@@ -94,7 +94,7 @@ export function createServer(opts: ServerOptions) {
   const resolution = setupProjectResolution(opts, allowed, state, scheduleStore);
   const { targets, gitRun, branchStatus, ensureCheckout } = resolution;
 
-  // This process's own commit, read once (spec 269) — see state.ts's
+  // This process's own commit, read once — see state.ts's
   // own doc comment for why both fields start and stay `null` until
   // this resolves. `servingRepoRoot` is the repo this process runs
   // from, used to tell "the project whose checkout I am" from every
@@ -119,7 +119,7 @@ export function createServer(opts: ServerOptions) {
 
   // Built after `resolveProject`, which it takes. Nothing above it reads
   // it any more: `targets` used to ask the queue what it had run, and
-  // spec 108 made the spec's own files the only answer to that.
+  // the spec's own files are the only answer to that now.
   const push = setupPush(opts, { jobs: () => queue.list(), notify: () => watch.notifyQueueChanged(), scheduleStore, served: allowed });
   const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
@@ -170,8 +170,8 @@ export function createServer(opts: ServerOptions) {
   });
   resolution.attachBranchFileSteps(schedules.branchFileSteps);
 
-  // The board registry (spec 388) — built before `land`, which needs it
-  // to stop a spec's board once its archive actually lands (REQ-7).
+  // The board registry — built before `land`, which needs it
+  // to stop a spec's board once its archive actually lands.
   const { testServerStore, testServersCtx } = setupTestServers(state, {
     testServersPath: opts.testServersPath,
     machineryProjectDir: resolution.machineryProjectDir,
@@ -449,14 +449,14 @@ export function createServer(opts: ServerOptions) {
   return {
     port: server.port,
     hostname: server.hostname,
-    /** How many specs roots are being watched right now (spec 204).
+    /** How many specs roots are being watched right now.
      *  Here for one question nothing else can answer: that `stop()` let
      *  the handles go. A watcher nobody closes outlives the server for
      *  the life of the process, and the directories it points at are
      *  removed underneath it. */
     specWatchCount: () => watch.specWatchers.size,
     phaseWatchCount: () => watch.phaseWatchers.size,
-    /** The board registry itself (spec 425) — here for the same reason
+    /** The board registry itself — here for the same reason
      *  `specWatchCount` above is: a question a test needs answered (or,
      *  here, a fixture needs to seed directly — an archived spec whose
      *  board is already tracked, without spawning a real round to get

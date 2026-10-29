@@ -1,8 +1,8 @@
-// Spec 406: the Close POST route. Follows the shape run-controls.ts's own
+// The Close POST route. Follows the shape run-controls.ts's own
 // Reset-route suite already tests against (dashboard/test/queue-routes/admin/
 // auth-and-navigation.test.ts): a real createServer, real fixture
-// files, real HTTP. Spec 527: Close has no confirmation page of its own
-// any more — the GET route is gone, and the dialog it fell back to is
+// files, real HTTP. Close has no confirmation page of its own
+// — there is no GET route, and the dialog it falls back to is
 // close-ask.test.ts's own.
 import { afterEach, describe, expect, test } from "bun:test";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
@@ -14,7 +14,7 @@ afterEach(() => {
 
 const folder = "81-queue-and-runner";
 
-describe("spec 406, REQ-3/REQ-13: Close POST refuses an empty reason", () => {
+describe("Close POST refuses an empty reason", () => {
   test("an empty reason refuses and enqueues no job", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
@@ -49,7 +49,7 @@ describe("spec 406, REQ-3/REQ-13: Close POST refuses an empty reason", () => {
     expect(res.status).toBe(400);
   });
 
-  test("a form post with an empty reason refuses the same way, in JSON (AC-3)", async () => {
+  test("a form post with an empty reason refuses the same way, in JSON", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
       method: "POST",
@@ -62,7 +62,7 @@ describe("spec 406, REQ-3/REQ-13: Close POST refuses an empty reason", () => {
   });
 });
 
-describe("spec 406, REQ-3: Close POST with a reason enqueues a close job", () => {
+describe("Close POST with a reason enqueues a close job", () => {
   test("a non-empty reason enqueues a close job carrying it", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/specs/aide/${folder}/close`, {
@@ -80,7 +80,7 @@ describe("spec 406, REQ-3: Close POST with a reason enqueues a close job", () =>
   });
 });
 
-describe("spec 406, REQ-11: Close POST refuses while a job is in flight", () => {
+describe("Close POST refuses while a job is in flight", () => {
   test("another job for the same spec still queued refuses close with the busy sentence", async () => {
     const { base } = start();
     const enqueue = await fetch(`${base}/api/queue`, {

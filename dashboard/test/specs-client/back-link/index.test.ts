@@ -8,14 +8,14 @@ import { keepBack, keptBack, type Here } from "../../../src/specs-client/back-li
 const HERE: Here = { href: "http://dash.test/projects/aide?tab=config", host: "dash.test", pathname: "/projects/aide" };
 
 describe("keptBack", () => {
-  test("loaded from itself, it answers what was remembered and remembers nothing new (AC-1)", () => {
+  test("loaded from itself, it answers what was remembered and remembers nothing new", () => {
     const got = keptBack({
       served: "/projects", referrer: "http://dash.test/projects/aide?tab=deploy", here: HERE, stored: "/",
     });
     expect(got).toEqual({ href: "/" });
   });
 
-  test("opened with no referrer, it keeps the default and remembers it for the next tab (AC-2)", () => {
+  test("opened with no referrer, it keeps the default and remembers it for the next tab", () => {
     const first = keptBack({ served: "/projects", referrer: "", here: HERE, stored: "/" });
     expect(first).toEqual({ href: "/projects", remember: "/projects" });
     const next = keptBack({
@@ -24,14 +24,14 @@ describe("keptBack", () => {
     expect(next.href).toBe("/projects");
   });
 
-  test("opened again from another page, that page replaces what was remembered (AC-3)", () => {
+  test("opened again from another page, that page replaces what was remembered", () => {
     const got = keptBack({
       served: "/settings", referrer: "http://dash.test/settings", here: HERE, stored: "/specs/aide/81-queue-and-runner",
     });
     expect(got).toEqual({ href: "/settings", remember: "/settings" });
   });
 
-  test("a remembered value off the board, or on the page itself, is never used (AC-4)", () => {
+  test("a remembered value off the board, or on the page itself, is never used", () => {
     const bad = [
       "https://evil.example/",
       "//evil.example/x",
@@ -46,7 +46,7 @@ describe("keptBack", () => {
     }
   });
 
-  test("a referrer on the page's own path on another host counts as opened from elsewhere (AC-4)", () => {
+  test("a referrer on the page's own path on another host counts as opened from elsewhere", () => {
     const got = keptBack({ served: "/projects", referrer: "http://evil.example/projects/aide", here: HERE, stored: "/" });
     expect(got).toEqual({ href: "/projects", remember: "/projects" });
   });
@@ -84,14 +84,14 @@ function memory(held: Record<string, string> = {}) {
 }
 
 describe("keepBack", () => {
-  test("puts the remembered Back on the link when the page is loaded from itself (AC-1)", () => {
+  test("puts the remembered Back on the link when the page is loaded from itself", () => {
     const { doc, link } = page("/projects");
     const { storage } = memory({ "back:/projects/aide": "/" });
     keepBack(doc, { referrer: () => "http://dash.test/projects/aide?tab=deploy", here: () => HERE, storage: () => storage });
     expect(link.href).toBe("/");
   });
 
-  test("opened from elsewhere, it remembers the Back the server drew (AC-1)", () => {
+  test("opened from elsewhere, it remembers the Back the server drew", () => {
     const { doc, link } = page("/");
     const { storage, held } = memory();
     keepBack(doc, { referrer: () => "http://dash.test/", here: () => HERE, storage: () => storage });
@@ -99,7 +99,7 @@ describe("keepBack", () => {
     expect(held["back:/projects/aide"]).toBe("/");
   });
 
-  test("storage that cannot be reached leaves the link as drawn and throws nothing (AC-2)", () => {
+  test("storage that cannot be reached leaves the link as drawn and throws nothing", () => {
     const loadedFromItself = () => "http://dash.test/projects/aide?tab=deploy";
     const throwing = () => {
       throw new Error("blocked");
@@ -116,7 +116,7 @@ describe("keepBack", () => {
     }
   });
 
-  test("a page without a kept Back link is left alone, storage untouched (AC-2)", () => {
+  test("a page without a kept Back link is left alone, storage untouched", () => {
     const { doc } = page(null);
     let reached = false;
     keepBack(doc, {

@@ -31,7 +31,7 @@ export const displayProjectDir = (ctx: ProjectCheckoutContext, project: string) 
   projectCheckout(ctx.queueProjectRoot, project);
 
 /** Whether this project's archived code merges into its default branch
- *  or waits for a pull request (spec 220), read fresh off the
+ *  or waits for a pull request, read fresh off the
  *  MACHINERY's checkout — the one a run is cut from and a landing
  *  merges in, so the answer is the one the work is actually done
  *  against.
@@ -91,16 +91,16 @@ export function noSandboxFor(ctx: ProjectCheckoutContext, job: Job, step: string
   return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.sandbox === false;
 }
 
-/** Where a project's spec folders are LISTED from (spec 218): the
+/** Where a project's spec folders are LISTED from: the
  *  dashboard's own checkout once one has been resolved, and nothing
  *  otherwise — `discoverProjects` then walks the person's own, exactly
- *  as everything did before spec 205.
+ *  as if there were no dashboard checkout.
  *
  *  The same source a run resolves `--spec` against, which is the whole
  *  point: a folder committed in the person's checkout and never pushed
  *  used to get a row offering four steps, and every one of them
  *  refused with `unknown spec`. Sync and cache-only on purpose — a
- *  render never waits on a clone (spec 208), and `refreshSpecCaches`
+ *  render never waits on a clone, and `refreshSpecCaches`
  *  is what keeps the answer current.
  *
  *  Passed to every walk that lists specs FOR A READER, and to no

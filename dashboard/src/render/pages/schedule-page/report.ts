@@ -1,4 +1,4 @@
-// Spec 495: the panel on an entry's Overview tab that shows one run's
+// The panel on an entry's Overview tab that shows one run's
 // report — or says why there is none. This file alone writes the frame's
 // tag and escapes the framed document into its `srcdoc`.
 import { t, type Language } from "../../../i18n";

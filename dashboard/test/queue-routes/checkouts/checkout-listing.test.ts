@@ -22,15 +22,15 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// Spec 205: the dashboard works in checkouts of its own.
+// The dashboard works in checkouts of its own.
 //
 // Split out of checkout-and-render-safety.test.ts by theme: this file
-// carries the checkout-listing tests (spec 218). The write-direction
-// tests and the checkout-freshness (spec 216) test are their own sibling
+// carries the checkout-listing tests. The write-direction
+// tests and the checkout-freshness test are their own sibling
 // files, sharing `git`, `realProject` and `recording` via
 // ./checkout-safety-fixtures.ts.
-describe("the dashboard works in checkouts of its own (spec 205)", () => {
-  // Spec 218: what the list SHOWS and what a run can actually resolve
+describe("the dashboard works in checkouts of its own", () => {
+  // What the list SHOWS and what a run can actually resolve
   // were two different directories.
   //
   // `aide-run-spec` resolves `--spec` against the clone the dashboard
@@ -54,8 +54,8 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
    *
    *  Polling rather than one request, because the answer moves twice on
    *  purpose: the dashboard's own checkout is resolved by a background
-   *  ensure (spec 205), and a page rendered before it settles falls
-   *  back to the person's own list — which is criterion 3, not a
+   *  ensure, and a page rendered before it settles falls
+   *  back to the person's own list — which is expected, not a
    *  failure. What is asserted is where it ARRIVES. */
   async function untilPage(
     base: string,
@@ -117,9 +117,9 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     git(person, "commit", "-qm", `add ${folder}`);
   }
 
-  // Criteria 1, 2 and 6: the unpushed folder is hidden and the pushed
+  // The unpushed folder is hidden and the pushed
   // one is listed, on the page a reader actually reads a spec list from.
-  test("a spec only the person has is not listed, and one the dashboard has is (spec 218)", async () => {
+  test("a spec only the person has is not listed, and one the dashboard has is", async () => {
     const { projectsRoot, person, site, owned } = realProject();
     const made = await ensureDashboardCheckout(createGitRunner(), {
       base: owned,
@@ -146,7 +146,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
 
   // The same walk feeds the overview's counts, so they move with it: a
   // project's row said two specs while only one of them could be run.
-  test("the projects overview counts what the dashboard has, not what the person has (spec 218)", async () => {
+  test("the projects overview counts what the dashboard has, not what the person has", async () => {
     const { projectsRoot, person, site, owned } = realProject();
     const made = await ensureDashboardCheckout(createGitRunner(), {
       base: owned,
@@ -171,10 +171,10 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     }
   }, 30000);
 
-  // Criterion 3: a project whose own checkout CANNOT be made keeps
-  // working exactly as it did before spec 205 — the same fallback
+  // A project whose own checkout CANNOT be made keeps
+  // working exactly as it did before the own checkout existed — the same fallback
   // `machinerySpecDir` and `peekMachinerySpecDir` already take.
-  test("a project with no checkout of its own is listed from the person's, as before (spec 218)", async () => {
+  test("a project with no checkout of its own is listed from the person's, as before", async () => {
     const { projectsRoot, person, site, owned } = realProject({ ownClone: false });
     commitSpecUnpushed(person, "992-only-in-my-checkout");
     // The one question the clone rests on, refused: there is nothing to
@@ -202,12 +202,12 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     }
   }, 30000);
 
-  // Criterion 4: a project with NOTHING queued. `tickRunner`'s own
-  // per-project refresh (spec 216) never fires for one, so before this
+  // A project with NOTHING queued. `tickRunner`'s own
+  // per-project refresh never fires for one, so before this
   // spec its checkout was fetched once at boot and never again — a spec
   // pushed from another machine would have sat unlisted for as long as
   // the server ran.
-  test("a spec pushed with no job queued is listed within one poll (spec 218)", async () => {
+  test("a spec pushed with no job queued is listed within one poll", async () => {
     const { projectsRoot, person, site, owned } = realProject();
     const made = await ensureDashboardCheckout(createGitRunner(), {
       base: owned,
@@ -239,10 +239,10 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     }
   }, 45000);
 
-  // Criterion 5, and spec 208's rule kept: the fetch that made the row
+  // And the rule kept: the fetch that made the row
   // appear happened on the schedule. The request that shows it spawns
   // no git of its own.
-  test("the request that lists the dashboard's own specs spawns no git (spec 218)", async () => {
+  test("the request that lists the dashboard's own specs spawns no git", async () => {
     const { projectsRoot, person, site, owned } = realProject();
     const made = await ensureDashboardCheckout(createGitRunner(), {
       base: owned,
@@ -253,8 +253,8 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     pushSpecToOrigin(projectsRoot, "994-pushed-by-somebody-else");
     const recorded = recording();
 
-    // One tick and then nothing for a hundred seconds, exactly as spec
-    // 208's own suite does it: the schedule cannot fire again while the
+    // One tick and then nothing for a hundred seconds:
+    // the schedule cannot fire again while the
     // request is in flight, so the count taken across it is the
     // request's.
     const server = createServer({

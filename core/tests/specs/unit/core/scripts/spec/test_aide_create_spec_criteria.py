@@ -31,14 +31,14 @@ def assert_refused(out, specs_root, ac_id):
     assert not (specs_root / "42-do-a-thing").exists()
 
 
-def test_without_the_given_description_nothing_is_compared_AC_1(script, specs_root):
+def test_without_the_given_description_nothing_is_compared(script, specs_root):
     written = criteria("- **AC-2:** The board SHALL a.", "- **AC-5:** The board SHALL b.")
     rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", written)
     assert rc == 0, out
     assert ac_lines(specs_root) == ["- **AC-2:** The board SHALL a.", "- **AC-5:** The board SHALL b."]
 
 
-def test_refuses_a_given_criterion_written_with_other_words_AC_2(script, specs_root):
+def test_refuses_a_given_criterion_written_with_other_words(script, specs_root):
     given = criteria("- **AC-1:** WHEN x, the board SHALL y.")
     written = criteria("- **AC-1:** WHEN x, the board SHALL z.")
     rc, out, _ = create(script, specs_root, given, written)
@@ -46,7 +46,7 @@ def test_refuses_a_given_criterion_written_with_other_words_AC_2(script, specs_r
     assert_refused(out, specs_root, "AC-1")
 
 
-def test_refuses_a_given_criterion_left_out_AC_2(script, specs_root):
+def test_refuses_a_given_criterion_left_out(script, specs_root):
     given = criteria("- **AC-1:** The board SHALL a.", "- **AC-2:** The board SHALL b.")
     written = criteria("- **AC-1:** The board SHALL a.")
     rc, out, _ = create(script, specs_root, given, written)
@@ -54,7 +54,7 @@ def test_refuses_a_given_criterion_left_out_AC_2(script, specs_root):
     assert_refused(out, specs_root, "AC-2")
 
 
-def test_a_given_criterion_without_bold_counts_as_kept_once_bolded_AC_2(script, specs_root):
+def test_a_given_criterion_without_bold_counts_as_kept_once_bolded(script, specs_root):
     given = criteria("- AC-1: x")
     written = criteria("- **AC-1:** x")
     rc, out, _ = create(script, specs_root, given, written)
@@ -62,7 +62,7 @@ def test_a_given_criterion_without_bold_counts_as_kept_once_bolded_AC_2(script, 
     assert ac_lines(specs_root) == ["- **AC-1:** x"]
 
 
-def test_keeps_the_given_criterion_and_writes_the_added_one_AC_2_AC_3(script, specs_root):
+def test_keeps_the_given_criterion_and_writes_the_added_one(script, specs_root):
     given = criteria("- **AC-1:** The board SHALL a.")
     written = criteria("- **AC-1:** The board SHALL a.", "- **AC-2:** WHEN b, the board SHALL c.")
     rc, out, _ = create(script, specs_root, given, written)
@@ -73,7 +73,7 @@ def test_keeps_the_given_criterion_and_writes_the_added_one_AC_2_AC_3(script, sp
     ]
 
 
-def test_an_added_criterion_takes_the_id_after_the_highest_given_AC_4(script, specs_root):
+def test_an_added_criterion_takes_the_id_after_the_highest_given(script, specs_root):
     kept = ("- **AC-1:** The board SHALL a.", "- **AC-3:** The board SHALL c.")
     rc, out, _ = create(script, specs_root, criteria(*kept),
                         criteria(*kept, "- **AC-2:** The board SHALL b."))
@@ -85,7 +85,7 @@ def test_an_added_criterion_takes_the_id_after_the_highest_given_AC_4(script, sp
     assert rc == 0, out
 
 
-def test_added_criteria_run_on_without_a_gap_AC_4(script, specs_root):
+def test_added_criteria_run_on_without_a_gap(script, specs_root):
     kept = "- **AC-1:** The board SHALL a."
     rc, out, _ = create(script, specs_root, criteria(kept),
                         criteria(kept, "- **AC-2:** The board SHALL b.", "- **AC-4:** The board SHALL d."))
@@ -97,7 +97,7 @@ def test_added_criteria_run_on_without_a_gap_AC_4(script, specs_root):
     assert rc == 0, out
 
 
-def test_the_first_criterion_added_to_none_takes_AC_1_AC_4(script, specs_root):
+def test_the_first_criterion_added_to_none_takes(script, specs_root):
     given = "Problem: X.\n"
     rc, out, _ = create(script, specs_root, given, criteria("- **AC-2:** The board SHALL b."))
     assert rc != 0
@@ -108,7 +108,7 @@ def test_the_first_criterion_added_to_none_takes_AC_1_AC_4(script, specs_root):
     assert rc == 0, out
 
 
-def test_a_given_line_the_bold_rewrite_cannot_reach_counts_as_given_AC_4(script, specs_root):
+def test_a_given_line_the_bold_rewrite_cannot_reach_counts_as_given(script, specs_root):
     given = criteria("- AC-1 : a", "- **AC-2:** b")
     written = criteria("- **AC-1:** a", "- **AC-2:** b", "- **AC-3:** c")
     rc, out, _ = create(script, specs_root, given, written)
@@ -116,7 +116,7 @@ def test_a_given_line_the_bold_rewrite_cannot_reach_counts_as_given_AC_4(script,
     assert ac_lines(specs_root) == ["- **AC-1:** a", "- **AC-2:** b", "- **AC-3:** c"]
 
 
-def test_refuses_an_id_written_twice_AC_4(script, specs_root):
+def test_refuses_an_id_written_twice(script, specs_root):
     given = criteria("- **AC-1:** The board SHALL a.")
     written = criteria("- **AC-1:** The board SHALL a.", "- **AC-1:** The board SHALL b.")
     rc, out, _ = create(script, specs_root, given, written)
@@ -124,14 +124,14 @@ def test_refuses_an_id_written_twice_AC_4(script, specs_root):
     assert_refused(out, specs_root, "AC-1")
 
 
-def test_adding_nothing_keeps_the_criteria_exactly_as_given_AC_5(script, specs_root):
+def test_adding_nothing_keeps_the_criteria_exactly_as_given(script, specs_root):
     given = criteria("- **AC-1:** The board SHALL a.", "- **AC-2:** The board SHALL b.")
     rc, out, _ = create(script, specs_root, given, given)
     assert rc == 0, out
     assert ac_lines(specs_root) == ["- **AC-1:** The board SHALL a.", "- **AC-2:** The board SHALL b."]
 
 
-def test_an_id_the_description_itself_repeats_is_kept_as_given_AC_2(script, specs_root):
+def test_an_id_the_description_itself_repeats_is_kept_as_given(script, specs_root):
     kept = ("- **AC-1:** The board SHALL a.", "- **AC-1:** The board SHALL b.")
     rc, out, _ = create(script, specs_root, criteria(*kept),
                         criteria(*kept, "- **AC-2:** The board SHALL c."))

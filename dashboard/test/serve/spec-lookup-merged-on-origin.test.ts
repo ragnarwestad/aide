@@ -69,23 +69,23 @@ const MERGED: PullRequestAnswer = { merged: true, headSha: "abc" };
 const everyRoot = (): string[] => [codeRoot, join(codeRoot, "specs")];
 
 describe("a pull request that merged counts for a project that reviews its code", () => {
-  test("git says not an ancestor, GitHub says merged: merged (AC-1)", async () => {
+  test("git says not an ancestor, GitHub says merged: merged", async () => {
     const ctx = await lookup({ landing: "pr", notMerged: everyRoot(), answer: MERGED });
     expect(peekMergedOnOrigin(ctx, "aide", FOLDER)).toBe(true);
   });
 
-  test("git says an ancestor, nothing from GitHub yet: merged (AC-1)", async () => {
+  test("git says an ancestor, nothing from GitHub yet: merged", async () => {
     const ctx = await lookup({ landing: "pr", notMerged: [] });
     expect(peekMergedOnOrigin(ctx, "aide", FOLDER)).toBe(true);
   });
 
-  test("git says not an ancestor and GitHub has no merged request: not merged (AC-2)", async () => {
+  test("git says not an ancestor and GitHub has no merged request: not merged", async () => {
     const unmerged = everyRoot();
     expect(peekMergedOnOrigin(await lookup({ landing: "pr", notMerged: unmerged, answer: { merged: false } }), "aide", FOLDER)).toBe(false);
     expect(peekMergedOnOrigin(await lookup({ landing: "pr", notMerged: unmerged }), "aide", FOLDER)).toBe(false);
   });
 
-  test("a specs root in a repository of its own is answered by git alone (AC-1)", async () => {
+  test("a specs root in a repository of its own is answered by git alone", async () => {
     const ctx = await lookup({ landing: "pr", notMerged: [outsideSpecs], answer: MERGED, specsOutside: true });
     expect(peekMergedOnOrigin(ctx, "aide", FOLDER)).toBe(false);
     expect(mergedPullRequest(ctx, "aide", FOLDER, outsideSpecs)).toBeUndefined();
@@ -94,7 +94,7 @@ describe("a pull request that merged counts for a project that reviews its code"
 });
 
 describe("a project that merges its code at archive reads git's answer alone", () => {
-  test("a stored merged request changes nothing (AC-5)", async () => {
+  test("a stored merged request changes nothing", async () => {
     const notMerged = await lookup({ landing: "merge", notMerged: everyRoot(), answer: MERGED });
     const merged = await lookup({ landing: "merge", notMerged: [], answer: MERGED });
     expect(peekMergedOnOrigin(notMerged, "aide", FOLDER)).toBe(false);

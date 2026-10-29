@@ -21,7 +21,7 @@ import { isArchivedRow, phaseDuration, type Phase, type SpecGroup } from "./data
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
 // altitudes, and they must never be worded differently.
-// Spec 143: the job's own error is NOT written here any more. It is a
+// The job's own error is NOT written here any more. It is a
 // sentence a runner wrote — "the specs tree is dirty: /Users/…" — and
 // this cell is sized for a badge, so it went off the right edge of the
 // table. The row's panel says it instead (`specNoticeRow`).
@@ -31,7 +31,7 @@ export const stateCell = (r: QueueRowView, lang: Language, resting: RestingState
 // The same two-part shape, for a PHASE — whose state is the file's
 // answer (`wordPhase`), not the last job's. No badge at all means the
 // phase has neither happened nor been attempted. The attempt's own
-// error text is NOT repeated here since spec 143: the row's panel says
+// error text is NOT repeated here: the row's panel says
 // it once for the whole row, and the phase's own detail page — which
 // this line links to — carries it in Activity, where that phase
 // already reports what it did.
@@ -45,7 +45,7 @@ export const phaseWordCell = (
   attempts = 0,
 ): string =>
   // `w.qualifier` is NOT drawn here, and there is nowhere in this cell
-  // it could be (spec 195). It is a sentence, and spec 176's "beside
+  // it could be. It is a sentence, and the "beside
   // the badge" trick is only open to marks a word wide: a badge is
   // `nowrap`, so a sentence beside one runs off the right edge of the
   // table. Under the badge it made this line taller than the phase
@@ -59,8 +59,8 @@ export const phaseWordCell = (
     ? badge(
         w.badge.variant,
         attempts > 1 ? `${w.badge.label} (${attempts})` : w.badge.label,
-        // Always set, since spec 480 (Round 2): a phone's own state cell
-        // is now a fixed width and can ellipsis-clip the visible label
+        // Always set: a phone's own state cell
+        // is a fixed width and can ellipsis-clip the visible label
         // (narrow.css, tr.subrow[data-step] td[data-col="state"] .badge),
         // so the full text has to stay reachable through the title.
         attempts > 1 ? `${w.badge.label} (${attempts}) — ${attempts} attempts` : w.badge.label,
@@ -81,7 +81,7 @@ export const phaseWordCell = (
       `–${attempts > 1 ? ` (${attempts})` : ""}</span>`);
 
 /** The spec header row's own time cell: what its phases have come to so
- *  far, summed (spec 199, spec 281, spec 340).
+ *  far, summed.
  *
  *  Not "when the spec was made" any more — that read as a second,
  *  unrelated clock next to Cost, which already sums live — and not
@@ -103,14 +103,14 @@ export function activeDurationCell(g: SpecGroup): string {
 }
 
 /** The row's total as the head row's Time cell holds it, for the caption
- *  line's phone copy (spec 496): a locked row's figure is the archived
+ *  line's phone copy: a locked row's figure is the archived
  *  one, every other row's counts while a phase runs. */
 export function specTotalCell(g: SpecGroup): string {
   return isArchivedRow(g) ? archiveDateCell(g.totalDurationMs ?? 0) : activeDurationCell(g);
 }
 
 /** One phase line's time cell: how long that phase took, or how long it
- *  has been going (spec 199).
+ *  has been going.
  *
  *  A running one carries `data-elapsed` — the instant to count up from
  *  — and the page's own clock rewrites the text once a second from
@@ -121,7 +121,7 @@ export function specTotalCell(g: SpecGroup): string {
 export function phaseDurationCell(latest: QueueRowView | undefined, step: string, now: number): string {
   const d = latest ? phaseDuration(latest, step, now) : null;
   // Empty when the QUEUE has nothing to say, so the caller can fall back
-  // to the phase file's own `Time spent:` stamp (spec 284) — `create`'s
+  // to the phase file's own `Time spent:` stamp — `create`'s
   // is the only record there is for a phase no job ever ran. The `0s`
   // every phase ends up showing is written once, after that fallback,
   // rather than here where it would swallow the stamp.
@@ -137,7 +137,7 @@ export function phaseDurationCell(latest: QueueRowView | undefined, step: string
 // distinction is the whole reason this takes a parameter the shared
 // formatter does not — everything else about the cell is `usdOrTokens`,
 // which is where the dollar/token pair is decided for the whole site.
-// `settled` (spec 433): this figure is a real answer, not merely
+// `settled`: this figure is a real answer, not merely
 // unrecorded — a finished step whose own record genuinely says $0, which
 // reads exactly like "nothing here yet" without it. Opt-in and
 // default-false, so every existing caller that omits it keeps today's
@@ -152,10 +152,10 @@ export const costCell = (
   // `spentUsd || undefined` used to be enough: the guard above already
   // means spentUsd > 0 or spentTokens > 0, so a 0 here only ever meant
   // "nothing to say in dollars, read the tokens instead" (a Codex-only
-  // spend, spec 260). `settled` adds a case that must print as $0.00
+  // spend). `settled` adds a case that must print as $0.00
   // rather than fall through to that same undefined — but only when
   // there is no token figure either: a settled Codex step still owes
-  // spec 260's guarantee, tokens over an invented $0.00.
+  // the same guarantee, tokens over an invented $0.00.
   return usdOrTokens(
     spentUsd > 0 ? spentUsd : settled && !((spentTokens ?? 0) > 0) ? 0 : undefined,
     spentTokens,
@@ -167,14 +167,13 @@ export const costCell = (
  *  colour in the strip: a pip says how far the workflow got, and what
  *  went wrong is the badge's and the row message's to say. The whole workflow in six
  *  millimetres, on the line you are already reading — shared by the
- *  list's own row and the spec page's Overview tab (spec 239), so the
+ *  list's own row and the spec page's Overview tab, so the
  *  two can never show a different chain for the same spec.
  *
- *  `create` had no pip from spec 116 until spec 167: the glance was
- *  about the four phases a reader can still RUN. The hole made create
- *  read as a different kind of thing rather than as the phase already
- *  behind you — the same reason the phase line got a box of its own on
- *  2026-08-21 — so it is a pip like the other four now.
+ *  `create` has a pip like the other four phases. Without one, create
+ *  would read as a different kind of thing rather than as the phase
+ *  already behind you — the same reason the phase line got a box of its
+ *  own.
  *
  *  It does not go through `wordPhase` with them, though: create has
  *  only two states, past and running. A spec that exists was created,
@@ -182,8 +181,8 @@ export const costCell = (
  *  `done` used to be the reason — it comes from the git history, which
  *  counts only the runner's own `Run /aide-<step> for <folder>` commits,
  *  and a spec written by hand has no create commit, so every one of
- *  those showed a grey pip saying the spec had not been made yet. Spec
- *  176 closed that gap one layer down (`withFreshness` puts create into
+ *  those showed a grey pip saying the spec had not been made yet.
+ *  That gap is closed one layer down (`withFreshness` puts create into
  *  the set for any spec whose folder is on disk), so the phase LINE
  *  agrees now; the two states above are what is left. */
 export function phasePips(phases: Phase[], done: string[]): string {
@@ -191,7 +190,7 @@ export function phasePips(phases: Phase[], done: string[]): string {
     phases.map((p) => ({
       kind: phasePipKind(p, done),
       title: stepLabel(p.step),
-      // How much of a running implement is behind it (spec 210). The
+      // How much of a running implement is behind it. The
       // fallback above is the latest attempt whatever became of it,
       // so the "only while it runs" half of the rule is what keeps a
       // stale phase from filling a pip for work that has stopped —
@@ -236,7 +235,7 @@ export function archiveDateCell(durationMs: number): string {
   return `<span class="archive-duration">${esc(durationLabel(Math.max(0, durationMs)))}</span>`;
 }
 
-/** What the "not landed" mark says on hover, age included (spec 208).
+/** What the "not landed" mark says on hover, age included.
  *  Spelled out here rather than at the call site so the fact and its
  *  freshness cannot drift apart — the same reason `driftPrefix` exists,
  *  and the same idea: an answer a schedule took is shown WITH how old

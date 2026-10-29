@@ -10,7 +10,7 @@
    system at all. Attribute selectors rather than a wrapper — both
    attributes are already in the markup, so this stays a stylesheet
    change.
-   The pair sits side by side since spec 179, and the four rules below
+   The pair sits side by side, and the four rules below
    are what makes them read as a pair: same height, same border, same
    arrow, same disabled look. The one thing that differs is the face
    the text is set in, further down, and that is about what they HOLD
@@ -55,7 +55,7 @@ select[name^="model."]:disabled, select[data-ai]:disabled {
    stay in the sans face. --fs-s because mono runs wider at the same
    nominal size, and these sit in a table column whose width is argued
    over in the comments around .phasecell.
-   select[data-ai] is deliberately NOT here (spec 179), although it
+   select[data-ai] is deliberately NOT here, although it
    stands right beside the model select and shares every other rule
    above with it: "Claude Code" is a thing's NAME, which is the case
    the sentence above already carves out for the project and checkout
@@ -68,12 +68,12 @@ select[name^="model."] {
 .field textarea { height: auto; padding: var(--sp-2); line-height: var(--lh);
   min-height: 84px; resize: vertical; width: 100%; box-sizing: border-box; }
 .pageform textarea { overflow-x: auto; }
-/* The banner's own tracking form (spec 394), under its own class rather
+/* The banner's own tracking form, under its own class rather
    than `.specform` itself — the Checks tab's tick form already carries
    that class, and a second form sharing it on the same page would be
    two `.specform button[type="submit"]`s for anything that ever has to
    find one. Its Save sits below its own fields, unlike `.specform`'s
-   (spec 391, rows-and-forms.css's `.panelhead`), so it keeps this gap. */
+   (rows-and-forms.css's `.panelhead`), so it keeps this gap. */
 /* The same row `.panelhead` and `.pageform` give their own pair:
    `.factions` carries no spacing of its own, so Save and Cancel sat
    edge to edge here. No top margin: this pair rides on the "Depends on"
@@ -102,13 +102,13 @@ select[name^="model."] {
 .scheduleform .schedulenotify, .scheduleform .schedulebrowser, .scheduleform .schedulesandbox { grid-column: 1 / -1; }
 .cron-input { font-family: var(--mono), monospace; }
 .field.wide { flex-basis: 100%; max-width: 48rem; }
-/* Spec 474: the two columns of the New-spec page's side-by-side
-   Depends-on field (AC-1/AC-2). min-width: 0 lets a column's own chips
+/* The two columns of the New-spec page's side-by-side
+   Depends-on field. min-width: 0 lets a column's own chips
    wrap and the column shrink below its content's width. */
 .field.depends-pair { flex-direction: row; gap: var(--sp-3); align-items: flex-start; }
 .depends-col { display: inline-flex; flex-direction: column; gap: var(--sp-1); flex: 1 1 0; min-width: 0; }
 .field input[name="title"] { min-width: 18rem; }
-/* The editor mount point (spec 292): hidden until its client script
+/* The editor mount point: hidden until its client script
    sets data-mounted on it, so the fallback — the raw textarea beside
    it, already styled by the .field textarea rule above — is the
    DEFAULT a reader with JS off, or a failed bundle, gets. Once mounted,
@@ -122,7 +122,7 @@ select[name^="model."] {
    "…" menu — its own behaviour, which it never got to use.
 
    The library's own elements are not named here: their styling comes with
-   the editor's script (AC-9, spec 472), and the mount around them is
+   the editor's script, and the mount around them is
    enough to tell them the width. */
 .frow, .field, .spec-editor-mount { min-width: 0; max-width: 100%; }
 .spec-editor-mount { display: none; }

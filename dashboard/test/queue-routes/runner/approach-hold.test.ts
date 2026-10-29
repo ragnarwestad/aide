@@ -95,38 +95,38 @@ function ctxFor(root: string, jobs: QueuedJob[], checker: BranchFileStepsChecker
 const sentence = (m: unknown): string => renderSentence("en", m as Parameters<typeof renderSentence>[1]) ?? "";
 
 describe("which queued implements wait for a choice", () => {
-  test("an implement chained after the analyze waits, with the approach sentence (AC-3)", () => {
+  test("an implement chained after the analyze waits, with the approach sentence", () => {
     const { root } = projectsRoot();
     const holds = fixedSentenceHolds(ctxFor(root, [chained]));
     expect(holds.get("chained")).toEqual({ key: "runner.approachChoice" });
   });
 
-  test("an implement started on its own is never held for a choice (AC-8)", () => {
+  test("an implement started on its own is never held for a choice", () => {
     const { root } = projectsRoot();
     expect(fixedSentenceHolds(ctxFor(root, [alone])).has("alone")).toBe(false);
   });
 
-  test("fewer than two real alternatives hold nothing (AC-4)", () => {
+  test("fewer than two real alternatives hold nothing", () => {
     const { root } = projectsRoot({
       solution: solutionText("**Approach A: One (recommended).** a\n\n**Approach B: Two (considered and rejected).** b\n"),
     });
     expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
   });
 
-  test("a chosen approach written to 3-solution.md releases the hold (AC-5, AC-7)", () => {
+  test("a chosen approach written to 3-solution.md releases the hold", () => {
     const { root, specDir } = projectsRoot();
     expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(true);
     writeFileSync(join(specDir, "3-solution.md"), solutionText(APPROACHES, "A"));
     expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
   });
 
-  test("the branch copy decides when it has been read: a choice saved there releases the hold (AC-5)", async () => {
+  test("the branch copy decides when it has been read: a choice saved there releases the hold", async () => {
     const { root, specDir } = projectsRoot();
     const checker = await branchChecker(specDir, solutionText(APPROACHES, "A"));
     expect(fixedSentenceHolds(ctxFor(root, [chained], checker)).has("chained")).toBe(false);
   });
 
-  test("a spec that did not ask to choose holds nothing, whatever its plan says (AC-9)", () => {
+  test("a spec that did not ask to choose holds nothing, whatever its plan says", () => {
     const { root } = projectsRoot({ optedIn: false });
     expect(fixedSentenceHolds(ctxFor(root, [chained])).has("chained")).toBe(false);
   });
@@ -141,7 +141,7 @@ describe("the runner holds what the map names", () => {
   beforeEach(resetHarness);
   afterEach(cleanupHarness);
 
-  test("a held chained implement stays queued with the approach sentence and is not started (AC-3)", () => {
+  test("a held chained implement stays queued with the approach sentence and is not started", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
     store.update(job.id, { stepIndex: 1 });
     makeRunner().tick(undefined, new Map([[job.id, { key: "runner.approachChoice" }]]));
@@ -150,7 +150,7 @@ describe("the runner holds what the map names", () => {
     expect(sentence(store.get(job.id)?.error)).toContain("choose the approach");
   });
 
-  test("it starts at the next tick once the map no longer names it (AC-5)", () => {
+  test("it starts at the next tick once the map no longer names it", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
     store.update(job.id, { stepIndex: 1 });
     const runner = makeRunner();

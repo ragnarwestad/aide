@@ -1,4 +1,4 @@
-// spec 355: reading 4-status.json — the one file a spec's completed
+// Reading 4-status.json — the one file a spec's completed
 // phases, archived/reopened stamps and acceptance-criteria ticks are
 // derived into, by core/scripts/lib/spec-state.sh, at the same moment
 // the three writer scripts (aide-run-spec, aide-archive-spec,
@@ -71,11 +71,11 @@ export function currentAcceptancePhase(state: SpecState): string | null {
 }
 
 /** `4-status.json`'s own JSON-parsing core, text in — so a branch read
- *  (`BranchFileStepsChecker`, `git show` output rather than a file path,
- *  spec 362) shares the one parsing rule with `readSpecState` below
+ *  (`BranchFileStepsChecker`, `git show` output rather than a file path)
+ *  shares the one parsing rule with `readSpecState` below
  *  rather than growing a second one. `null` on invalid JSON or any shape
  *  that is not an object, never a throw — the same "missing means null"
- *  contract `readSpecState` gives its own callers (REQ-5, REQ-10). */
+ *  contract `readSpecState` gives its own callers. */
 export function parseSpecStateText(text: string): SpecState | null {
   try {
     const parsed = JSON.parse(text);
@@ -93,11 +93,11 @@ export function parseSpecStateText(text: string): SpecState | null {
 }
 
 /** `dir`'s own `4-status.json`, parsed. `null` covers every way there is
- *  nothing to read — no file yet (REQ-10: a spec no writer script has
- *  touched since spec 355 shipped, or an archived spec the backfill has
+ *  nothing to read — no file yet (a spec no writer script has
+ *  touched yet, or an archived spec the backfill has
  *  not reached yet), unreadable, not valid JSON — because every caller
  *  treats "missing" and "unreadable" the same way: show it as missing,
- *  never fall back to re-parsing the prose beside it (REQ-5, REQ-10). */
+ *  never fall back to re-parsing the prose beside it. */
 export function readSpecState(dir: string): SpecState | null {
   try {
     const path = join(dir, "4-status.json");

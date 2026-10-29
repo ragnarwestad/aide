@@ -1,10 +1,10 @@
-// Spec 387: the round trusts a bare HTTP 200 on its own port as proof the
+// The round trusts a bare HTTP 200 on its own port as proof the
 // board answering is the one it just started — so a port a `--keep`'d
 // earlier round still holds gets the new round's fixtures seeded into
 // it instead. This spawns the real script against a decoy that answers
 // exactly like a kept-alive board would (200 on the health check, 200 on
 // create/queue) and proves the round refuses before ever posting to it,
-// plus the REQ-4 regression: a free port behaves exactly as before.
+// plus the regression check: a free port behaves exactly as before.
 import { describe, expect, setDefaultTimeout, test } from "bun:test";
 import { join } from "node:path";
 
@@ -56,7 +56,7 @@ async function runToExit(args: string[]): Promise<{ code: number; stdout: string
 }
 
 describe("the round, against a port another board already holds", () => {
-  test("REQ-1..REQ-3: refuses before seeding anything on the decoy", async () => {
+  test("refuses before seeding anything on the decoy", async () => {
     const decoy = decoyBoard();
     try {
       const { code, stderr } = await runToExit(["--port", String(decoy.port), "--timeout", "5"]);
@@ -69,7 +69,7 @@ describe("the round, against a port another board already holds", () => {
     }
   });
 
-  test("REQ-2: a refusal with --keep never claims the dead pid is left running", async () => {
+  test("a refusal with --keep never claims the dead pid is left running", async () => {
     const decoy = decoyBoard();
     try {
       const { stdout } = await runToExit(["--port", String(decoy.port), "--timeout", "5", "--keep"]);
@@ -84,7 +84,7 @@ describe("the round, against a port another board already holds", () => {
 });
 
 describe("the round, on a port nothing else holds", () => {
-  test("REQ-4: reaches the queue step with none of the new refusal text", async () => {
+  test("reaches the queue step with none of the new refusal text", async () => {
     // A free port, picked the same way the queue-server test helper picks
     // one for its own in-process server: bind to 0, read back what the OS
     // gave, then let go of it for the round's own server to bind instead.
@@ -109,7 +109,7 @@ describe("the round, on a port nothing else holds", () => {
     reader.releaseLock();
     // trap stop EXIT tears the board and the throwaway directory down
     // the same way a person's Ctrl-C would — no need to wait out the
-    // full fixture run to prove REQ-4.
+    // full fixture run to prove a free port works.
     proc.kill("SIGTERM");
     await proc.exited;
     await stderrDone;

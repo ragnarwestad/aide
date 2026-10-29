@@ -41,7 +41,7 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("an approach's address shows its lead by scrolling the editor (AC-3)", async () => {
+test("an approach's address shows its lead by scrolling the editor", async () => {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?tab=solution&live=0#approach-b`), "page.goto(spec address)");
   await page.locator("#spec-editor-host[data-mounted]").waitFor();

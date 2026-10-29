@@ -22,8 +22,8 @@ const namesIn = (html: string, scope: string): Set<string> => {
   return new Set([...form.querySelectorAll("[name]")].map((el) => el.getAttribute("name")!));
 };
 
-describe("Add project and the Config tab post the same settings (AC-2, AC-3)", () => {
-  test("the Add form's fields, less name and gitUrl, are the fields the two tables post in edit mode (AC-2, AC-3, AC-5)", () => {
+describe("Add project and the Config tab post the same settings", () => {
+  test("the Add form's fields, less name and gitUrl, are the fields the two tables post in edit mode", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-add-and-config-"));
     dirs.push(dir);
     mkdirSync(join(dir, ".aide"));

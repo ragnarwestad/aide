@@ -1,6 +1,6 @@
 // Save and Cancel enable together the instant a field inside `.specform`
-// changes, and disable together again once Cancel restores it (spec
-// 391) — `spec-form-actions.ts` can neither import nor export anything,
+// changes, and disable together again once Cancel restores it
+// — `spec-form-actions.ts` can neither import nor export anything,
 // so, like its siblings under ui/, it is transpiled and run here.
 //
 // Unlike nav-busy.ts/nav-overlay.ts, this script reads
@@ -36,7 +36,7 @@ beforeEach(() => {
 
 /** A Checks-shaped form: a tick checkbox, and the Save/Cancel pair
  *  `saveCancelActions()` renders — Save enabled from the server, Cancel
- *  `disabled` (REQ-7's own shape, proven separately at the render
+ *  `disabled` (its shape is proven separately at the render
  *  layer; this file only proves what the SCRIPT then does to them). */
 function checksForm(): { form: HTMLFormElement; tick: HTMLInputElement } {
   document.body.innerHTML =
@@ -71,9 +71,9 @@ function documentForm(initialText: string): { form: HTMLFormElement; raw: HTMLTe
   };
 }
 
-/** A Settings-shaped form (spec 409): one text-ish field, plus the same
+/** A Settings-shaped form: one text-ish field, plus the same
  *  Save/Cancel pair, under the third registered prefix. Units left this
- *  form entirely (spec 436) — it renders in the header now, never as a
+ *  form entirely — it renders in the header now, never as a
  *  descendant of `.settingsform` — so there is no longer a field here
  *  that must NOT become dirty-tracked. */
 function settingsForm(): { form: HTMLFormElement; input: HTMLInputElement } {
@@ -104,7 +104,7 @@ function cancel(): HTMLButtonElement {
   return document.getElementById("specform-cancel") as HTMLButtonElement;
 }
 
-describe("REQ-2/REQ-9: Save is inactive until the form has seen an edit", () => {
+describe("Save is inactive until the form has seen an edit", () => {
   test("Save starts disabled once the script runs, even though the server rendered it enabled", () => {
     checksForm();
     expect(save().disabled).toBe(false);
@@ -135,7 +135,7 @@ describe("REQ-2/REQ-9: Save is inactive until the form has seen an edit", () => 
   });
 });
 
-describe("REQ-3/REQ-10: Cancel mirrors Save's disabled state exactly", () => {
+describe("Cancel mirrors Save's disabled state exactly", () => {
   test("Cancel starts disabled with Save, and enables with it on the same edit", () => {
     const { tick } = checksForm();
     mount();
@@ -146,7 +146,7 @@ describe("REQ-3/REQ-10: Cancel mirrors Save's disabled state exactly", () => {
   });
 });
 
-describe("REQ-4/REQ-10: Cancel restores every field and re-disables both controls", () => {
+describe("Cancel restores every field and re-disables both controls", () => {
   test("a ticked checkbox reverts to unticked, and both controls go inactive again", () => {
     const { tick } = checksForm();
     mount();
@@ -220,7 +220,7 @@ describe("REQ-4/REQ-10: Cancel restores every field and re-disables both control
   });
 });
 
-describe("REQ-5/REQ-10: Cancel writes nothing", () => {
+describe("Cancel writes nothing", () => {
   test("pressing Cancel fires no submit event", () => {
     const { tick, form } = checksForm();
     mount();
@@ -235,11 +235,11 @@ describe("REQ-5/REQ-10: Cancel writes nothing", () => {
   });
 });
 
-// Spec 409, REQ-9: a third form, "settingsform", gets the exact same
+// A third form, "settingsform", gets the exact same
 // dirty latch every `.specform` already has — nothing
 // new to prove about the mechanism itself, only that this prefix is
 // actually registered in the bind() loop.
-describe("spec 409: the settingsform prefix gets the same dirty latch", () => {
+describe("the settingsform prefix gets the same dirty latch", () => {
   test("Save/Cancel enable on an edit, and Cancel restores the field and re-disables both", () => {
     const { input } = settingsForm();
     mount();
@@ -285,7 +285,7 @@ describe("a field inside the form that posts elsewhere", () => {
   });
 });
 
-describe("a form drawn after the page loaded (AC-4)", () => {
+describe("a form drawn after the page loaded", () => {
   // The Specs list draws the open spec's forms into a row after load; the
   // page script says so with an event on the document, under its own name.
   test("the page script's event binds it: inactive until a field changes, and sending it twice binds it once", async () => {

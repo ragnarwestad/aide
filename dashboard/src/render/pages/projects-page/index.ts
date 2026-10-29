@@ -12,7 +12,7 @@
 // rows), settings-table.ts (the project page's unified settings table)
 // and project-page.ts (drift/deploy, readiness, schedule, and
 // `renderProjectPage` itself — the served page that carries the config
-// and readiness answer, without repeating the manifest, spec 238).
+// and readiness answer, without repeating the manifest).
 
 import {
   backLink,
@@ -64,11 +64,11 @@ export interface ProjectsPageOptions {
    *  control works without it, one page load at a time. */
   script?: string;
   /** The directories under the projects root that carry no manifest yet
-   *  — what "…or a path on this host" picks from (spec 131). Bare
+   *  — what "…or a path on this host" picks from. Bare
    *  names: the pick settles the project's name as well as where it is,
    *  and the server resolves it against the same root. */
   /** Gitignored paths read off those checkouts' own `.gitignore` files
-   *  (spec 140) — what the Worktree links field suggests. The union
+   *  what the Worktree links field suggests. The union
    *  across every offered checkout, deduped: the field is filled in
    *  before anything is picked, so scoping the list to one of them
    *  would mean knowing which, and that is what script would be for. */
@@ -77,14 +77,14 @@ export interface ProjectsPageOptions {
    *  root. Drawn at the top of the list. */
   error?: string;
   /** Whether a run could start in each project, recomputed per request
-   *  (spec 184). The Add flow used to say this exactly once, in the
+   *  The Add flow used to say this exactly once, in the
    *  query string of the redirect it landed on, and never again — so an
    *  operator who did not act on it there had no way to rediscover what
    *  was missing except by starting a run and having it refused. A
    *  project named by no key here gets no mark, which is what the
    *  generated page (no server, no git) shows.
    *
-   *  Spec 369: the full sentence lives on the project's own Config tab
+   *  The full sentence lives on the project's own Config tab
    *  — the list needs only whether a run can start, to gate the mark. */
   readinessByProject?: Record<string, boolean>;
   /** Whether a project's row offers Remove: a project on the allowlist.
@@ -96,13 +96,13 @@ export interface ProjectsPageOptions {
   specsPath?: string;
   worktreeLinks?: string;
   /** Whether this project's archived code merges into its default branch
-   *  or waits on a pull request (spec 220). The third field on the same
+   *  or waits on a pull request. The third field on the same
    *  form, and the one whose answer is a policy rather than a path —
    *  which is why it is a picker with two named options and not a text
    *  box: there is no third answer to type. */
   codeLanding?: "merge" | "pr";
   /** What each offered checkout's two fields would be, worked out by the
-   *  server (spec 184): its own lockfile for the links, the other
+   *  server: its own lockfile for the links, the other
    *  projects' layout for the specs root. An empty string is a proposal
    *  that could not be made, and is rendered as a blank field rather
    *  than a guess.
@@ -112,10 +112,10 @@ export interface ProjectsPageOptions {
    *  goes straight into the fields, which is what makes the help work
    *  with no script at all; with several, the map rides on the form and
    *  the pick fills them in. */
-  /** Spec 408. Absent means English — the same default `pageShell`'s
+  /** Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
+  /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
 }
@@ -141,9 +141,8 @@ export function renderProjectsPage(
     projectListBody(projects, {
       pageHref: (name) => projectPagePath(name),
       lang,
-      // Spec 369: the sentence itself lives on the Config tab now (moved
-      // off the Health tab by spec 378) — the list carries only a link
-      // to it, gated on the same answer the sentence used to be gated
+      // The sentence itself lives on the Config tab — the list carries
+      // only a link to it, gated on the same answer the sentence is gated
       // on.
       warnHref: (name) =>
         opts.readinessByProject?.[name] === false ? `${projectPagePath(name)}?tab=config` : undefined,
@@ -192,7 +191,7 @@ export function renderAddProjectPage(
     `<span class="frow">` +
     field(
       "Name",
-      // A project's name IS its directory name (spec 140), and here it
+      // A project's name IS its directory name, and here it
       // names the directory the clone is about to make.
       `<input type="text" name="name" maxlength="64" required ` +
         `pattern="[A-Za-z0-9][A-Za-z0-9._-]*" ` +
@@ -244,7 +243,7 @@ export function renderAddProjectPage(
     `</span>` +
     `<span class="frow">` +
     field(
-      // Spec 138: a run works in a `git worktree`, which carries
+      // A run works in a `git worktree`, which carries
       // TRACKED files only — so a project whose test command lives
       // behind a gitignored path fails in every run for a reason that
       // has nothing to do with its change. Nothing can derive which

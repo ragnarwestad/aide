@@ -63,18 +63,18 @@ const claudeAnswers = (argv: string[]): Partial<RunResult> => {
 };
 
 describe("asking Claude Code to name one model", () => {
-  test("the name is read from the result and the id from the init event, after hook events (AC-3)", async () => {
+  test("the name is read from the result and the id from the init event, after hook events", async () => {
     const run = fakeRun(() => ({ stdout: claudeStream("claude-fable-5-1", "Fable 5.1") }));
     expect(await askClaudeModel(run, "claude", "fable")).toEqual({ known: true, name: "Fable 5.1", id: "claude-fable-5-1" });
   });
 
-  test("an effort written after the name is left out of it (AC-3)", async () => {
+  test("an effort written after the name is left out of it", async () => {
     const stdout = claudeStream("claude-fable-5-1", "Fable 5.1").replace("`Fable 5.1`", "`Fable 5.1` (effort: medium)");
     const run = fakeRun(() => ({ stdout }));
     expect(await askClaudeModel(run, "claude", "fable")).toMatchObject({ known: true, name: "Fable 5.1" });
   });
 
-  test("it is asked with -p --model <m> /model, which runs no model (AC-3)", async () => {
+  test("it is asked with -p --model <m> /model, which runs no model", async () => {
     const run = fakeRun(claudeAnswers);
     await askClaudeModel(run, "claude", "opus");
     expect(run.calls).toEqual([[
@@ -83,24 +83,24 @@ describe("asking Claude Code to name one model", () => {
     ]]);
   });
 
-  test("an id answered with the id itself is one Claude Code does not know (AC-5)", async () => {
+  test("an id answered with the id itself is one Claude Code does not know", async () => {
     const run = fakeRun(claudeAnswers);
     expect(await askClaudeModel(run, "claude", "claude-opus-9-9")).toEqual({ known: false });
   });
 
-  test("an answer with no Current model line is an error, not a name (AC-3)", async () => {
+  test("an answer with no Current model line is an error, not a name", async () => {
     const run = fakeRun(() => ({ stdout: JSON.stringify({ type: "result", result: "Not logged in" }) }));
     expect(await askClaudeModel(run, "claude", "opus")).toMatchObject({ error: expect.any(String) });
   });
 
-  test("a run that does not end in time is an error (AC-3)", async () => {
+  test("a run that does not end in time is an error", async () => {
     const run = fakeRun(() => ({ timedOut: true }));
     expect(await askClaudeModel(run, "claude", "opus")).toMatchObject({ error: expect.any(String) });
   });
 });
 
 describe("Claude's models", () => {
-  test("the four families are asked, side by side, and offered with their names and ids (AC-3)", async () => {
+  test("the four families are asked, side by side, and offered with their names and ids", async () => {
     const run = fakeRun(claudeAnswers);
     const reading = await readModels("claude", opts(run));
     expect(run.calls.map((argv) => argv[3]).sort()).toEqual(["fable", "haiku", "opus", "sonnet"]);
@@ -116,7 +116,7 @@ describe("Claude's models", () => {
     });
   });
 
-  test("a configured full id is asked too, and offered when Claude Code names it (AC-3, AC-4)", async () => {
+  test("a configured full id is asked too, and offered when Claude Code names it", async () => {
     const run = fakeRun(claudeAnswers);
     const configured = ["opus", "Sonnet", "claude-opus-4-8", "claude-opus-9-9"];
     const reading = await readModels("claude", opts(run, configured));
@@ -129,7 +129,7 @@ describe("Claude's models", () => {
     );
   });
 
-  test("any other configured name is asked for its version, and never offered (AC-3, AC-6)", async () => {
+  test("any other configured name is asked for its version, and never offered", async () => {
     const run = fakeRun(claudeAnswers);
     const reading = await readModels("claude", opts(run, ["opusplan", "opus[1m]"]));
     expect(run.calls.map((argv) => argv[3])).toContain("opus[1m]");
@@ -140,14 +140,14 @@ describe("Claude's models", () => {
     ]);
   });
 
-  test("one ask that fails makes the whole reading an error (AC-3)", async () => {
+  test("one ask that fails makes the whole reading an error", async () => {
     const run = fakeRun((argv) => (argv[3] === "haiku" ? { timedOut: true } : claudeAnswers(argv)));
     const reading = await readModels("claude", opts(run));
     expect(reading.error).toBeTruthy();
     expect(reading.offered).toEqual([]);
   });
 
-  test("a CLI that cannot be started is a reading that failed, not a throw (AC-3)", async () => {
+  test("a CLI that cannot be started is a reading that failed, not a throw", async () => {
     const run = (async () => { throw new Error("ENOENT: claude"); }) as never as Run;
     const reading = await readModels("claude", opts(run));
     expect(reading.error).toContain("ENOENT");
@@ -164,7 +164,7 @@ const CODEX_MODELS = JSON.stringify({
 });
 
 describe("Codex's models", () => {
-  test("are read from codex debug models, leaving out the hidden ones (AC-7)", async () => {
+  test("are read from codex debug models, leaving out the hidden ones", async () => {
     const run = fakeRun(() => ({ stdout: CODEX_MODELS }));
     const reading = await readModels("codex", opts(run));
     expect(run.calls).toEqual([["codex", "debug", "models"]]);
@@ -175,7 +175,7 @@ describe("Codex's models", () => {
     expect(reading.error).toBeUndefined();
   });
 
-  test("an answer of another shape is a reading that failed, never an empty list (AC-7)", async () => {
+  test("an answer of another shape is a reading that failed, never an empty list", async () => {
     for (const stdout of ["not json", JSON.stringify({ data: [] }), JSON.stringify({ models: [{ id: "x" }] })]) {
       const reading = await readModels("codex", opts(fakeRun(() => ({ stdout }))));
       expect(reading.error).toBeTruthy();
@@ -184,21 +184,21 @@ describe("Codex's models", () => {
 });
 
 describe("OpenCode's models", () => {
-  test("are read from opencode models, one provider/model a line (AC-10)", async () => {
+  test("are read from opencode models, one provider/model a line", async () => {
     const run = fakeRun(() => ({ stdout: "opencode/gemini-3.1-pro\nopencode/glm-5\n\n" }));
     const reading = await readModels("opencode", opts(run));
     expect(run.calls).toEqual([["opencode", "models"]]);
     expect(reading.offered).toEqual([{ model: "opencode/gemini-3.1-pro" }, { model: "opencode/glm-5" }]);
   });
 
-  test("a run that fails is a reading that failed (AC-10)", async () => {
+  test("a run that fails is a reading that failed", async () => {
     const reading = await readModels("opencode", opts(fakeRun(() => ({ code: 1, stderr: "boom" }))));
     expect(reading.error).toBeTruthy();
   });
 });
 
 describe("Copilot's models", () => {
-  test("are not read: its command line cannot list them (AC-1)", async () => {
+  test("are not read: its command line cannot list them", async () => {
     const run = fakeRun(() => ({}));
     const reading = await readModels("copilot", opts(run));
     expect(reading).toMatchObject({ tool: "copilot", offered: [], noSource: true });

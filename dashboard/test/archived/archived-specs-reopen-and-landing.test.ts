@@ -4,19 +4,18 @@ import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { ARCHIVED_VIEW, SAME_DAY, STAMPED, UNSTAMPED, blockFor, gitDated, harness, listUntil, specsList, start } from "./archived-specs-fixtures.ts";
 
-// The reason a not-landed row carries moved from the badge itself
-// (spec 275's "archived, not landed") to the notice line beneath it
-// (spec 339) — the sentence to poll and assert on is that sentence now,
-// not the old badge word, which no row renders any more.
+// The reason a not-landed row carries is in the notice line beneath it,
+// not in the badge: the sentence to poll and assert on is that sentence,
+// not a badge word, which no row renders.
 const STILL_ON_ORIGIN = "its branch is still on origin — re-run archive";
 
 afterEach(() => harness.cleanup());
 
-// --- criterion 4: spec 193's mark carries over ------------------------------
+// --- The not-landed mark carries over --------------------------
 //
 // Three specs reached the archive with their code still on a branch,
 // and every row said done. This is the half that reaches a spec whose
-// job the queue's LRU cap has long since evicted — 146's case — so the
+// job the queue's LRU cap has long since evicted — which happened — so the
 // mark is derived from origin, not from the job.
 
 describe("an archived spec whose branch is still on origin", () => {
@@ -34,7 +33,7 @@ describe("an archived spec whose branch is still on origin", () => {
       return gitDated({ [UNSTAMPED]: "2026-07-30T11:02:00+02:00" })(dir, args);
     };
 
-  test("carries the not-landed mark (criterion 4)", async () => {
+  test("carries the not-landed mark", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
     const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
     expect(blockFor(html, STAMPED).toLowerCase()).toContain(STILL_ON_ORIGIN);

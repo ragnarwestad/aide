@@ -92,8 +92,8 @@ const hrefsOf = (html: string): string[] => [...html.matchAll(/<a\b[^>]*?href="(
 /** The line under a row's state that says why the job ended. */
 const noticeOf = (g: string): string => g.match(/<tr class="specnotice">[\s\S]*?<\/tr>/)?.[0] ?? "";
 
-describe("GET / answers the Jobs page, GET /?rows=1 its rows alone (AC-1)", () => {
-  test("the page holds its rows in #jobrows, the rows answer holds no page around them (AC-1)", async () => {
+describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
+  test("the page holds its rows in #jobrows, the rows answer holds no page around them", async () => {
     const { base } = board([job({})]);
     const page = await fetch(`${base}/`);
     expect(page.status).toBe(200);
@@ -107,26 +107,26 @@ describe("GET / answers the Jobs page, GET /?rows=1 its rows alone (AC-1)", () =
     expect(rows).toContain('id="spec-aide/81-queue-and-runner"');
   });
 
-  test("the tab for / reads Running and is current, and the document's title says Running (AC-1)", async () => {
+  test("the tab for / reads Running and is current, and the document's title says Running", async () => {
     const { base } = board([job({})]);
     const html = await (await fetch(`${base}/`)).text();
     expect(html).toContain('<a class="tab" data-nav data-goto href="/" aria-current="page">Running</a>');
     expect(html).toContain("<title>aide -board · Running</title>");
   });
 
-  test("a method other than GET is refused (AC-1)", async () => {
+  test("a method other than GET is refused", async () => {
     const { base } = board();
     expect((await fetch(`${base}/`, { method: "POST" })).status).toBe(405);
   });
 
-  test("an address with no list key is the Jobs page, in the reader's language (AC-1)", async () => {
+  test("an address with no list key is the Jobs page, in the reader's language", async () => {
     const { base } = board();
     const res = await fetch(`${base}/?lang=nb`, { redirect: "manual" });
     expect(res.status).toBe(200);
     expect(await res.text()).toContain('id="jobrows"');
   });
 
-  test("rows, only, open, checks and phases are the Jobs tab's own: it answers, it sends nothing on (AC-1)", async () => {
+  test("rows, only, open, checks and phases are the Jobs tab's own: it answers, it sends nothing on", async () => {
     const { base } = board([job({})]);
     for (const key of ["rows", "only", "open", "checks", "phases"]) {
       const res = await fetch(`${base}/?${key}=aide/81-queue-and-runner`, { redirect: "manual" });
@@ -137,7 +137,7 @@ describe("GET / answers the Jobs page, GET /?rows=1 its rows alone (AC-1)", () =
   });
 });
 
-describe("which kind of row a job gets (AC-5)", () => {
+describe("which kind of row a job gets", () => {
   const report = job({ id: "report1", specFolder: "schedule-report", steps: ["schedule"], createdAt: "2026-10-08T10:01:00Z" });
   const sched = job({
     id: "sched1", specFolder: "schedule-nightly", steps: ["schedule"], state: "queued", startedAt: undefined,
@@ -156,7 +156,7 @@ describe("which kind of row a job gets (AC-5)", () => {
     return new URL(href.replaceAll("&amp;", "&"), "http://board");
   };
 
-  test("a spec has its spec row; a running and a queued scheduled job show title, state, time and cost shut (AC-5)", async () => {
+  test("a spec has its spec row; a running and a queued scheduled job show title, state, time and cost shut", async () => {
     const { base } = board([job({}), report, sched]);
     const html = await rowsOf(base);
 
@@ -171,7 +171,7 @@ describe("which kind of row a job gets (AC-5)", () => {
     }
   });
 
-  test("a scheduled job's title line holds one link, to the project, shut or open (AC-3)", async () => {
+  test("a scheduled job's title line holds one link, to the project, shut or open", async () => {
     const { base } = board([report, sched]);
     for (const query of ["", OPEN_BOTH]) {
       const html = await rowsOf(base, query);
@@ -183,7 +183,7 @@ describe("which kind of row a job gets (AC-5)", () => {
     }
   });
 
-  test("shut, by default or with another row open, a job row has no links and no Stop or Cancel (AC-5)", async () => {
+  test("shut, by default or with another row open, a job row has no links and no Stop or Cancel", async () => {
     const { base } = board([report, sched]);
     for (const query of ["", "open=aide/81-queue-and-runner"]) {
       const html = await rowsOf(base, query);
@@ -198,7 +198,7 @@ describe("which kind of row a job gets (AC-5)", () => {
     }
   });
 
-  test("open or shut, a scheduled job's title line holds no link but the project's; open, it still offers Stop or Cancel (AC-1)", async () => {
+  test("open or shut, a scheduled job's title line holds no link but the project's; open, it still offers Stop or Cancel", async () => {
     const { base } = board([report, sched]);
     for (const query of ["", OPEN_BOTH]) {
       const html = await rowsOf(base, query);
@@ -218,7 +218,7 @@ describe("which kind of row a job gets (AC-5)", () => {
     expect(group(html, "spec-aide/schedule-nightly")).toContain('action="/api/queue/sched1/cancel"');
   });
 
-  test("a failed scheduled job says how it ended under its state, shut and open, and the line ends with its Log link (AC-2, AC-3)", async () => {
+  test("a failed scheduled job says how it ended under its state, shut and open, and the line ends with its Log link", async () => {
     const { base } = scheduled([failedReport]);
     for (const query of ["", "open=aide/schedule-report"]) {
       const g = group(await rowsOf(base, query), "spec-aide/schedule-report");
@@ -231,7 +231,7 @@ describe("which kind of row a job gets (AC-5)", () => {
     }
   });
 
-  test("a Close, a Reopen and a Deploy have no link under the title, open or shut, and none to a log while they run (AC-1, AC-4)", async () => {
+  test("a Close, a Reopen and a Deploy have no link under the title, open or shut, and none to a log while they run", async () => {
     const { base } = board([
       job({ id: "cl", specFolder: "82-no-job", steps: ["close"] }),
       job({ id: "re", specFolder: "90-finished", steps: ["reopen"] }),
@@ -249,7 +249,7 @@ describe("which kind of row a job gets (AC-5)", () => {
     }
   });
 
-  test("the › opens a shut row and shuts an open one, by the open key, and ?only= answers one row (AC-5)", async () => {
+  test("the › opens a shut row and shuts an open one, by the open key, and ?only= answers one row", async () => {
     const { base } = board([report, sched]);
 
     const shut = group(await rowsOf(base), "spec-aide/schedule-report");
@@ -269,14 +269,14 @@ describe("which kind of row a job gets (AC-5)", () => {
     expect(one).not.toContain('id="spec-aide/schedule-nightly"');
   });
 
-  test("a row's title line leads with its project: aide:report and aide:nightly (AC-5)", async () => {
+  test("a row's title line leads with its project: aide:report and aide:nightly", async () => {
     const { base } = board([report, sched]);
     const html = await rowsOf(base);
     expect(titleLine(group(html, "spec-aide/schedule-report"))).toBe("aide:report");
     expect(titleLine(group(html, "spec-aide/schedule-nightly"))).toBe("aide:nightly");
   });
 
-  test("a running job of a spec on the allowlist has the spec's row, not a job row (AC-5)", async () => {
+  test("a running job of a spec on the allowlist has the spec's row, not a job row", async () => {
     const { base } = board([job({ id: "here" })]);
     const on = group(await rowsOf(base), "spec-aide/81-queue-and-runner");
     expect(on).toContain('data-folder="81-queue-and-runner"');
@@ -300,7 +300,7 @@ describe("a create that ended without a spec shows as the Specs list's message",
     return board([failed], { failedCreatesPath, queueProjects: [] });
   }
 
-  test("its message coexists with the empty sentence until dismissed (AC-5)", async () => {
+  test("its message coexists with the empty sentence until dismissed", async () => {
     const { base } = withRecord();
     const html = await rowsOf(base);
     expect(html).toContain(renderFailedCreateNotices([record], "en"));
@@ -322,13 +322,13 @@ describe("a create that ended without a spec shows as the Specs list's message",
   });
 });
 
-describe("nothing running (AC-1)", () => {
-  test("with no Active spec, no scheduled row and no failed create the rows say so (AC-1, AC-2)", async () => {
+describe("nothing running", () => {
+  test("with no Active spec, no scheduled row and no failed create the rows say so", async () => {
     const empty = await rowsOf(board([], { queueProjects: [] }).base);
     expect(empty).toContain(t("en", "jobs.nothingRunning"));
   });
 
-  test("an empty tab with a saved search still reports nothing running (AC-2)", async () => {
+  test("an empty tab with a saved search still reports nothing running", async () => {
     const { base } = board([], { queueProjects: [] });
     const first = await fetch(`${base}/?rows=1&q=missing`);
     const cookie = first.headers.getSetCookie().map((c) => c.split(";")[0]!).find((c) => c.startsWith("aide_jobs_view_"));
@@ -339,7 +339,7 @@ describe("nothing running (AC-1)", () => {
     expect(html).not.toContain(t("en", "jobs.noRowMatchesFilter"));
   });
 
-  test("the full page on an empty board is the Running tab, not a redirect to the Specs list (AC-3)", async () => {
+  test("the full page on an empty board is the Running tab, not a redirect to the Specs list", async () => {
     const res = await fetch(`${board([], { queueProjects: [] }).base}/`, { redirect: "manual" });
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -347,21 +347,21 @@ describe("nothing running (AC-1)", () => {
     expect(html).toContain('<meta name="aide-start" content="/specs">');
   });
 
-  test("the full page with a row names no page to start on (AC-2)", async () => {
+  test("the full page with a row names no page to start on", async () => {
     const res = await fetch(`${board().base}/`, { redirect: "manual" });
     expect(res.status).toBe(200);
     expect(await res.text()).not.toContain('<meta name="aide-start"');
   });
 
-  test("an Active spec alone, with no job in the queue, is a row and not the empty sentence (AC-1)", async () => {
+  test("an Active spec alone, with no job in the queue, is a row and not the empty sentence", async () => {
     const busy = await rowsOf(board().base);
     expect(busy).not.toContain(t("en", "jobs.nothingRunning"));
     expect(busy).toContain("<table");
   });
 });
 
-describe("New (AC-1, AC-3)", () => {
-  test("the Running tab and the Specs list draw the same New for a project on the allowlist (AC-1, AC-3)", async () => {
+describe("New", () => {
+  test("the Running tab and the Specs list draw the same New for a project on the allowlist", async () => {
     const { base } = board();
     const link = newSpecLink({ createProjects: ["aide"] }, "en");
     expect(await rowsOf(base)).toContain(link);
@@ -376,8 +376,8 @@ const specKeys = (html: string): string[] =>
 const STATE_OF = (done: string[], criteria: { task: string; done: boolean }[] = []): string =>
   JSON.stringify({ completedPhases: done, archived: null, reopened: null, phaseCounts: {}, acceptanceCriteria: criteria });
 
-describe("every spec the Specs list shows under Active has a row, job or not (AC-1)", () => {
-  test("a spec implemented and waiting, one held back on an unticked criterion and one analyzed, with no job in the queue (AC-1)", async () => {
+describe("every spec the Specs list shows under Active has a row, job or not", () => {
+  test("a spec implemented and waiting, one held back on an unticked criterion and one analyzed, with no job in the queue", async () => {
     const folders = ["82-implemented", "83-held-back", "84-analyzed"];
     const { base, dir } = harness.start({ extra: { queueProjects: ["aide"] }, alsoSpecs: folders });
     const states: Record<string, string> = {
@@ -397,7 +397,7 @@ describe("every spec the Specs list shows under Active has a row, job or not (AC
   });
 });
 
-describe("the Jobs tab and the Specs list's Active entry show the same specs (AC-1, AC-2)", () => {
+describe("the Jobs tab and the Specs list's Active entry show the same specs", () => {
   const UNMERGED = "92-unmerged";
   const specsRepo = join("aide", "specs");
   // The unmerged spec's branch is on origin and not part of the default branch.
@@ -437,7 +437,7 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs (AC
     }
   }
 
-  test("the spec rows of both answers name the same <project>/<folder> keys (AC-1, AC-2)", async () => {
+  test("the spec rows of both answers name the same <project>/<folder> keys", async () => {
     const { base } = everyKind();
     const list = await activeList(base);
     const tab = await rowsOf(base);
@@ -449,7 +449,7 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs (AC
     expect(specKeys(tab)).not.toContain("retired/07-old");
   });
 
-  test("an archived spec whose branch is on origin and not merged has the list's row for it, with its mark (AC-1, AC-2)", async () => {
+  test("an archived spec whose branch is on origin and not merged has the list's row for it, with its mark", async () => {
     const { base } = everyKind();
     const list = group(await activeList(base), `spec-aide/${UNMERGED}`);
     const tab = group(await rowsOf(base), `spec-aide/${UNMERGED}`);
@@ -464,7 +464,7 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs (AC
     expect(withoutFold(tab)).toBe(withoutFold(asTab.replaceAll('href="/specs"', 'href="/"')));
   });
 
-  test("a closed spec with a failed job has no row of any kind (AC-2)", async () => {
+  test("a closed spec with a failed job has no row of any kind", async () => {
     const { base } = everyKind([job({ id: "bad", specFolder: "91-closed", steps: ["analyze"], state: "failed" })]);
     await activeList(base);
     const html = await rowsOf(base);
@@ -501,14 +501,14 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs (AC
   }
 });
 
-describe("a spec's title on the Running tab (AC-2)", () => {
+describe("a spec's title on the Running tab", () => {
   const FOLDER = "81-queue-and-runner";
   const titleHref = (html: string): string => {
     const g = group(html, `spec-aide/${FOLDER}`);
     return g.match(/<a class="specpart"[^>]*?href="([^"]*)"/)?.[1] ?? "";
   };
 
-  test("leads to the spec's own address, ending in its row's anchor, which answers the Specs list with that row (AC-2)", async () => {
+  test("leads to the spec's own address, ending in its row's anchor, which answers the Specs list with that row", async () => {
     const { base } = board([job({})]);
     const href = titleHref(await rowsOf(base));
     expect(href).toBe(`/specs/aide/${FOLDER}#spec-aide/${FOLDER}`);
@@ -519,8 +519,8 @@ describe("a spec's title on the Running tab (AC-2)", () => {
   });
 });
 
-describe("the rows stand in the tab's order (AC-4)", () => {
-  test("a running spec first, then the waiting scheduled jobs, the one that changed last first (AC-4)", async () => {
+describe("the rows stand in the tab's order", () => {
+  test("a running spec first, then the waiting scheduled jobs, the one that changed last first", async () => {
     const failedReport = (o: Record<string, unknown>) =>
       job({
         state: "failed", steps: ["schedule"], specFolder: "schedule-report",
@@ -541,10 +541,10 @@ describe("the rows stand in the tab's order (AC-4)", () => {
   });
 });
 
-// Spec 81: a done Analyze, then a failed Implement. Spec 82: an archive held
+// A done Analyze, then a failed Implement. An archive held
 // back on an unticked criterion. Both are shown on the Jobs tab, and both are
 // rows the Specs list draws.
-describe("a spec's shut row on the Jobs tab is the Specs list's row, and its open row adds the phase lines (AC-1, AC-3)", () => {
+describe("a spec's shut row on the Jobs tab is the Specs list's row, and its open row adds the phase lines", () => {
   const T = (m: number): string => `2026-10-08T10:${String(m).padStart(2, "0")}:00Z`;
   const step = (name: string, o: Record<string, unknown> = {}) => ({
     step: name, ok: true, exitCode: 0, costUsd: 0.1, costMeasured: true, terminalReason: "completed", repos: [], ...o,
@@ -602,7 +602,7 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
   const asJobs = (html: string): string =>
     withoutFold(html).replace(/<tr class="specdetail"[\s\S]*?<\/tr>/g, "").replace(/href="[^"]*"/g, 'href=""');
 
-  test("spec 81's rows are the list's rows for it (AC-3)", async () => {
+  test("the fixture spec's rows are the list's rows for it", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base), "spec-aide/81-queue-and-runner");
     const list = group(await (await fetch(`${base}/specs?rows=1`)).text(), "spec-aide/81-queue-and-runner");
@@ -614,7 +614,7 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
   const withoutPhaseLines = (html: string): string =>
     html.replace(/<tr class="(?:subrow|phasemsgs)\b[\s\S]*?<\/tr>/g, "");
 
-  test("a held-back spec opened on each: the Jobs tab's rows are the list's and the phase lines (AC-1, AC-3)", async () => {
+  test("a held-back spec opened on each: the Jobs tab's rows are the list's and the phase lines", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base, OPEN_82), "spec-aide/82-held-back");
     const list = group(await (await fetch(`${base}/specs/aide/82-held-back?rows=1&${OPEN_82}`)).text(), "spec-aide/82-held-back");
@@ -627,7 +627,7 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     expect(asJobs(withoutPhaseLines(jobsTab))).toBe(asJobs(list));
   });
 
-  test("a spec with no job opened on each: the Jobs tab has its Run, the list has none (AC-1, AC-3)", async () => {
+  test("a spec with no job opened on each: the Jobs tab has its Run, the list has none", async () => {
     const base = await settled();
     const open = "open=aide/83-idle";
     const jobsTab = group(await rowsOf(base, open), "spec-aide/83-idle");
@@ -639,14 +639,14 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     expect(asJobs(withoutPhaseLines(jobsTab))).toBe(asJobs(list));
   });
 
-  test("no link a spec row draws back to its page leads to /specs (AC-3)", async () => {
+  test("no link a spec row draws back to its page leads to /specs", async () => {
     const base = await settled();
     const html = await rowsOf(base, OPEN_82);
     expect(html).toContain("<thead>");
     expect(html).not.toMatch(/href="\/specs[?"]/);
   });
 
-  test("?only= answers that spec's rows alone; a spec with no row gets a table with none (AC-3)", async () => {
+  test("?only= answers that spec's rows alone; a spec with no row gets a table with none", async () => {
     const base = await settled();
     const one = await rowsOf(base, `only=aide/81-queue-and-runner&${OPEN_82}`);
     expect(one).toContain('id="spec-aide/81-queue-and-runner"');
@@ -660,7 +660,7 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
 });
 
 // A running spec and a failed scheduled job of `aide`.
-describe("the Jobs tab's view: its address, its cookie and its sentence for no row (AC-1, AC-5, AC-6, AC-7)", () => {
+describe("the Jobs tab's view: its address, its cookie and its sentence for no row", () => {
   const report = job({
     id: "reportf", specFolder: "schedule-report", steps: ["schedule"], state: "failed", createdAt: "2026-10-08T10:01:00Z",
     results: [{ step: "schedule", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
@@ -673,28 +673,28 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
   const jobsCookie = (res: Response): string | undefined =>
     res.headers.getSetCookie().map((c) => c.split(";")[0]!).find((c) => c.startsWith("aide_jobs_view_"));
 
-  test("a view key narrows the rows and the answer is 200, not a redirect (AC-1)", async () => {
+  test("a view key narrows the rows and the answer is 200, not a redirect", async () => {
     const { base } = withBoth();
     const html = await rowsOf(base, "state=failed");
     expect(html).toContain(REPORT_ID);
     expect(html).not.toContain(SPEC_ID);
   });
 
-  test("a view that hides every row answers the sentence for it, and no row (AC-1)", async () => {
+  test("a view that hides every row answers the sentence for it, and no row", async () => {
     const { base } = withBoth();
     const html = await rowsOf(base, "q=nothing-matches");
     expect(html).toContain(t("en", "jobs.noRowMatchesFilter"));
     expect(html).not.toContain("spechead");
   });
 
-  test("?only= follows the view: a row the view hides answers a table with none (AC-1)", async () => {
+  test("?only= follows the view: a row the view hides answers a table with none", async () => {
     const { base } = withBoth();
     const html = await rowsOf(base, "only=aide/81-queue-and-runner&state=failed");
     expect(html).toContain("<table");
     expect(html).not.toContain("spechead");
   });
 
-  test("the tab's own cookie is written, and neither of the Specs list's, and the list writes none of the tab's (AC-5)", async () => {
+  test("the tab's own cookie is written, and neither of the Specs list's, and the list writes none of the tab's", async () => {
     const { base } = withBoth();
     const tabRes = await fetch(`${base}/?rows=1&state=stopped&sort=cost&q=x`);
     const names = tabRes.headers.getSetCookie().map((c) => c.split("=")[0]);
@@ -705,7 +705,7 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     expect(listRes.headers.getSetCookie().some((c) => c.startsWith("aide_jobs_view_"))).toBe(false);
   });
 
-  test("the Jobs tab's second heading is Title and the Specs list's is unchanged (AC-6)", async () => {
+  test("the Jobs tab's second heading is Title and the Specs list's is unchanged", async () => {
     const { base } = withBoth();
     const tabHead = (await rowsOf(base)).match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
     expect(tabHead).toContain(t("en", "jobs.colTitle"));
@@ -719,7 +719,7 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     const withOther = () => scheduled([job({ id: "run81" }), report, reportOther]);
     const rowIds = (html: string): string[] => [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="([^"]+)"/g)].map((m) => m[1]!);
 
-    test("the filter bar holds the state dropdown alone, whatever the address carries (AC-1)", async () => {
+    test("the filter bar holds the state dropdown alone, whatever the address carries", async () => {
       const { base } = withOther();
       for (const query of ["", "project=other"]) {
         const html = await rowsOf(base, query);
@@ -729,14 +729,14 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
       }
     });
 
-    test("an address that carries one shows the rows it shows without it (AC-3)", async () => {
+    test("an address that carries one shows the rows it shows without it", async () => {
       const { base } = withOther();
       const without = rowIds(await rowsOf(base, "state=all"));
       expect(without).toContain("spec-other/schedule-report");
       expect(rowIds(await rowsOf(base, "state=all&project=other"))).toEqual(without);
     });
 
-    test("no link and no field the tab builds from its view carries one (AC-4)", async () => {
+    test("no link and no field the tab builds from its view carries one", async () => {
       const { base } = withOther();
       const html = await rowsOf(base, "state=all&project=aide&sort=cost&q=report");
       const form = html.match(/<form class="specsearch"[\s\S]*?<\/form>/)?.[0] ?? "";
@@ -748,7 +748,7 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     });
   });
 
-  test("a bare /?rows=1 brings back the view the cookie remembers (AC-7)", async () => {
+  test("a bare /?rows=1 brings back the view the cookie remembers", async () => {
     const { base } = withBoth();
     const first = await fetch(`${base}/?q=report`);
     const cookie = jobsCookie(first);

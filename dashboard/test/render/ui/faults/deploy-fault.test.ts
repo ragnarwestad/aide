@@ -11,7 +11,7 @@ afterEach(() => setDeployFaultNotice(null));
 const FAULT = { key: "landing.deployServiceOlder", values: { served: "abc1234", head: "9999999" } } as const;
 
 describe("headerNotices: the deploy fault", () => {
-  test("the server's own writer feeds it, clears it, and a fresh state starts without it (AC-7)", () => {
+  test("the server's own writer feeds it, clears it, and a fresh state starts without it", () => {
     const state = createServerState();
     setDeployFault(state, FAULT);
     expect(headerNotices("en")).toContain("deploy-fault");
@@ -22,7 +22,7 @@ describe("headerNotices: the deploy fault", () => {
     expect(headerNotices("en")).not.toContain("deploy-fault");
   });
 
-  test("a replaced server cannot write the shared notice (AC-7)", () => {
+  test("a replaced server cannot write the shared notice", () => {
     const old = createServerState();
     createServerState();
     setDeployFault(old, FAULT);

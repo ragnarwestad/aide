@@ -45,8 +45,8 @@ const answering = (testCmd: string | null, calls: { url: string; body: unknown }
     return { ok: true, json: async () => ({ ok: true, testCmd }) } as Response;
   }) as unknown as typeof fetch;
 
-describe("the Add form's Test command placeholder (AC-1)", () => {
-  test("a command the server answers becomes the placeholder (AC-1)", async () => {
+describe("the Add form's Test command placeholder", () => {
+  test("a command the server answers becomes the placeholder", async () => {
     const f = fakeForm();
     const calls: { url: string; body: unknown }[] = [];
     bindAddProjectForm(f.form, answering("npm test", calls));
@@ -56,7 +56,7 @@ describe("the Add form's Test command placeholder (AC-1)", () => {
     expect(f.testCmd.placeholder).toBe("npm test");
   });
 
-  test("a null answer, or a failed request, leaves the drawn placeholder (AC-1)", async () => {
+  test("a null answer, or a failed request, leaves the drawn placeholder", async () => {
     const nothing = fakeForm();
     bindAddProjectForm(nothing.form, answering(null));
     nothing.gitUrl.value = "https://example.com/p.git";
@@ -70,7 +70,7 @@ describe("the Add form's Test command placeholder (AC-1)", () => {
     expect(failing.testCmd.placeholder).toBe(DRAWN);
   });
 
-  test("a later address that gets no answer puts the drawn placeholder back (AC-1)", async () => {
+  test("a later address that gets no answer puts the drawn placeholder back", async () => {
     const f = fakeForm();
     let next: string | null = "npm test";
     bindAddProjectForm(f.form, (async () => ({ ok: true, json: async () => ({ ok: true, testCmd: next }) }) as Response) as unknown as typeof fetch);
@@ -83,7 +83,7 @@ describe("the Add form's Test command placeholder (AC-1)", () => {
     expect(f.testCmd.placeholder).toBe(DRAWN);
   });
 
-  test("an answer about an address the field no longer holds is ignored (AC-1)", async () => {
+  test("an answer about an address the field no longer holds is ignored", async () => {
     const f = fakeForm();
     let release: (cmd: string | null) => void = () => {};
     const slow = new Promise<string | null>((resolve) => { release = resolve; });
@@ -96,7 +96,7 @@ describe("the Add form's Test command placeholder (AC-1)", () => {
     expect(f.testCmd.placeholder).toBe(DRAWN);
   });
 
-  test("an emptied field puts the drawn placeholder back and asks nothing (AC-1)", async () => {
+  test("an emptied field puts the drawn placeholder back and asks nothing", async () => {
     const f = fakeForm();
     const calls: { url: string; body: unknown }[] = [];
     bindAddProjectForm(f.form, answering("npm test", calls));
@@ -109,7 +109,7 @@ describe("the Add form's Test command placeholder (AC-1)", () => {
     expect(calls).toHaveLength(1);
   });
 
-  test("a form without the two inputs is left alone (AC-1)", () => {
+  test("a form without the two inputs is left alone", () => {
     const form = { querySelector: () => null } as unknown as HTMLFormElement;
     expect(() => bindAddProjectForm(form, answering(null))).not.toThrow();
   });

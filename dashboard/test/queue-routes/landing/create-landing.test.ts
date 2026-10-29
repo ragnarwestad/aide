@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** The message a job carries, as text. Since spec 380 a job stores
+/** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it.
  *  These tests assert on what a reader would see, so they compose it
  *  the same way, in English. */
@@ -55,7 +55,7 @@ function gitFor({
   return { run, calls };
 }
 
-/** Spec 453: landing, never the step's own outcome, decides a create
+/** Landing, never the step's own outcome, decides a create
  *  job's real folder now — this is the finalize step's stand-in, the
  *  same shape `aide-create-spec --assign-number` answers with. A test
  *  that wants a different real name overrides it via `extra`. */
@@ -143,7 +143,7 @@ describe("a refused duplicate press", () => {
 // ran it. The list reads the main checkout and nothing else, so the spec
 // stays invisible until that branch is merged — which is why this one step
 // lands itself instead of waiting for a button nobody was told to press.
-describe("landing a created spec (spec 93)", () => {
+describe("landing a created spec", () => {
   const BRANCH = "aide/new-abc123de";
 
   /** The result `aide-run-spec` writes for a create step that worked. */
@@ -194,7 +194,7 @@ describe("landing a created spec (spec 93)", () => {
   // The landing races the runs that pull the same checkout: 111 and 112
   // were both stranded by a first-try index.lock loss. A transient
   // failure is retried; only a merge that keeps failing is reported.
-  // Spec 433: a no-AI create's result carries tool: "none" and costUsd 0
+  // A no-AI create's result carries tool: "none" and costUsd 0
   // — nothing about landing is keyed on how the step ran, only on
   // outcome.ok, so this must land exactly as an AI-run create does.
   test("a create result with tool: \"none\" still lands through landNewSpec", async () => {
@@ -268,13 +268,13 @@ describe("landing a created spec (spec 93)", () => {
     // Runnable from its own phase lines, like every other spec...
     expect(group).toContain('name="steps" value="analyze"');
     // ...and with nothing left to merge: the branch is landed, and
-    // since spec 149 there is no control to merge it with either.
+    // there is no control to merge it with either.
     expect(group).not.toContain("/merge");
     expect(group).not.toContain(">Merge</button>");
     expect(group).not.toContain("ready to merge");
   });
 
-  // Spec 465, AC-2+AC-3+AC-4 chained: a model picked on the New page for
+  // Chained: a model picked on the New page for
   // a phase this create job does not run — Implement's own box left
   // unticked — is banked as pending under the job's provisional folder,
   // carried to the real folder once landing assigns it, and shows up on
@@ -330,7 +330,7 @@ describe("landing a created spec (spec 93)", () => {
     expect(html).toContain("A brand new spec");
   });
 
-  // --- spec 342, REQ-5: a job that goes create -> analyze in one run ---------
+  // --- A job that goes create -> analyze in one run ---------
   //
   // No job's `steps` had ever carried a second entry after `create`
   // before this spec — the New spec page's phase table is what first
@@ -340,7 +340,7 @@ describe("landing a created spec (spec 93)", () => {
   // generic and was never written FOR this case, but had never been
   // exercised by it either — so this proves it end to end rather than
   // trusting the reasoning.
-  test("REQ-5: the step after create runs under the spec's real, renamed folder", async () => {
+  test("the step after create runs under the spec's real, renamed folder", async () => {
     const git = gitFor();
     const { base, results } = serverWithRunner(start, "aide-create-results-", git);
     const made = (await (

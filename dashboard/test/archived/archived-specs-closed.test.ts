@@ -1,4 +1,4 @@
-// Spec 406, REQ-7: a closed spec reads as closed, never as archived,
+// A closed spec reads as closed, never as archived,
 // wherever the Specs list shows a spec's state — extends the archived-
 // specs suite (split by theme, like its siblings) with the one row
 // shape those files never had: a folder under archive/ carrying a
@@ -48,7 +48,7 @@ describe("a status file that merely mentions the stamp", () => {
   });
 });
 
-describe("spec 406, REQ-7: a closed spec's own row", () => {
+describe("a closed spec's own row", () => {
   test("reads under the All chip, alongside the live and archived rows", async () => {
     const html = await specsList(start({}, WITH_CLOSED).base);
     expect(html).toContain(LIVE);

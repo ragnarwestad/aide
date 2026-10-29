@@ -17,13 +17,13 @@ import { SPEC, SAVE, DESCRIPTION_TAB, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED,
 const { harness, start, startArchived } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
 
-// REQ-4: a job queued or running is simulated the same way
+// A job queued or running is simulated the same way
 // queue-detail-spec-page-routes.test.ts does — enqueue for real, then
 // overwrite the mirror's own state, since a job in flight is not
 // otherwise reachable from a fixture that answers everything else
 // synchronously.
 
-// --- spec 212, criterion 8: the second page is gone -------------------------
+// --- The second page is gone -------------------------
 //
 // The textarea lives on the spec page's own Description tab now, so the
 // address it used to have has nothing behind it. Removed rather than
@@ -51,12 +51,10 @@ describe("POST the Save action", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
 
-  // REQ-6: a Save is now gated on job state, the same way the tick
-  // route already gates ticking a check — REQ-4 makes Save write onto
+  // A Save is now gated on job state, the same way the tick
+  // route already gates ticking a check — Save writes onto
   // an active spec's own open branch, and a save racing the run's own
-  // commits to it is exactly what this gate exists to prevent. (Until
-  // this spec, nothing gated Save on job state; that is the behavior
-  // this test used to assert and REQ-6 deliberately changes.)
+  // commits to it is exactly what this gate exists to prevent.
   test("a job queued for the same spec gates the save", async () => {
     const { base, dir } = start(savable("/host"));
     const queued = await fetch(`${base}/api/queue`, {
@@ -72,7 +70,7 @@ describe("POST the Save action", () => {
   });
 });
 
-// --- criteria 5, 6, 7: every way a save is refused --------------------------
+// --- every way a save is refused ----------------------------------------------
 
 describe("a save that cannot go through changes nothing", () => {
   for (const [what, extra, expected] of [
@@ -133,7 +131,7 @@ describe("a save that cannot go through changes nothing", () => {
   });
 });
 
-// --- criterion 10: a description is bigger than an action post --------------
+// --- A description is bigger than an action post --------------
 //
 // Every other POST here is a short action or a small JSON job, and the
 // shared 4096-byte cap is right for those. This spec's own
@@ -172,7 +170,7 @@ describe("the size of a real description", () => {
   });
 });
 
-// --- criterion 9: one checkout, one git sequence at a time ------------------
+// --- One checkout, one git sequence at a time ------------------
 //
 // Every project and every spec in this deployment's specs root shares
 // ONE `.git`. The lock was keyed on the spec's own subfolder, so two
@@ -207,8 +205,8 @@ describe("two specs sharing one checkout", () => {
       if (line === "rev-parse --show-toplevel") {
         const seen = (probes.get(dir) ?? 0) + 1;
         probes.set(dir, seen);
-        // Three times per request since spec 310: once, unlocked, for
-        // REQ-4's own "is this branch open" check (`resolveOpenBranchTarget`,
+        // Three times per request: once, unlocked, for
+        // the "is this branch open" check (`resolveOpenBranchTarget`,
         // which the save route now makes exactly as the tick route
         // already did); once to key the lock; once inside it. The third
         // is where that request's LOCKED git sequence begins.
@@ -231,7 +229,7 @@ describe("two specs sharing one checkout", () => {
     const { base } = harness.start({
       description: DESCRIPTION,
       alsoSpecs: [OTHER],
-      // Off (spec 298): the background schedule's own `warmSpec` asks
+      // Off: the background schedule's own `warmSpec` asks
       // `rev-parse --show-toplevel` for every live spec on its own
       // timer, and this fake counts exactly two such calls per SAVE
       // request to tell "key the lock" from "the sequence starts" apart
@@ -253,7 +251,7 @@ describe("two specs sharing one checkout", () => {
   });
 });
 
-// --- criterion 7 (spec 163): the save endpoint refuses an archived spec -----
+// --- The save endpoint refuses an archived spec -----
 
 describe("POST the Save action against an archived spec", () => {
   test("writes nothing, and says why", async () => {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # spec-state.sh — the one place a spec's machine-read state is derived
 # from 4-status.md's prose and written to 4-status.json beside it
-# (spec 355). Sourced by the three scripts that already own the
+# Sourced by the three scripts that already own the
 # machine-read lines — aide-run-spec, aide-archive-spec,
 # aide-write-spec — never invoked directly by a skill or a --file
 # argument. Reuses status_progress_for's row-shape/done-mark rule

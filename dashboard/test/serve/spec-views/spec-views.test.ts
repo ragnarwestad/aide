@@ -1,4 +1,4 @@
-// Spec 302, REQ-2: `specPageView` reads a spec's checks section from one
+// `specPageView` reads a spec's checks section from one
 // `parseStatus` call, not from `parseStatus` and `parseStatusChecks`
 // separately over the same text. A pure function's OUTPUT cannot tell
 // "parsed once" from "parsed twice", so the property is proven

@@ -7,8 +7,8 @@ import {
 } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  // Per step since spec 152: an implement is not an analyze, and one
-  // number for both stopped 149 mid-sentence with its tests green.
+  // Per step: an implement is not an analyze, and one number for both
+  // stopped an implement mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -25,7 +25,7 @@ const resolve = (project: string) =>
 
 const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
-// --- spec 198: reopening is a step like any other ---------------------------
+// --- Reopening is a step like any other ---------------------------
 //
 // The dashboard's Reopen control and `/aide-reopen` in a terminal are
 // one operation, and the way to keep them one is to give them one path:
@@ -33,8 +33,8 @@ const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analy
 // exactly as `archive` and `analyze` already do. Nothing about the
 // enqueue is special-cased for it — which is what the test below is
 // about.
-describe("spec 198: reopen", () => {
-  // Spec 270: `reopen` against an active spec is not the working case —
+describe("reopen", () => {
+  // `reopen` against an active spec is not the working case —
   // the request in REQ names "81-queue-and-runner", which `resolve`
   // lists in `specFolders`, never `archivedFolders`.
   test("a reopen is refused when the target spec is already active", () => {
@@ -65,7 +65,7 @@ describe("spec 198: reopen", () => {
     expect(r.ok).toBe(true);
   });
 
-  // Spec 193 relies on an archived spec being refused unless its branch
+  // The archive step relies on an archived spec being refused unless its branch
   // is still open, and that exception lives in `specFolders`. Admitting
   // the archive for `reopen` must not admit it for anything else.
   test("an archived spec is refused every other step, by name", () => {

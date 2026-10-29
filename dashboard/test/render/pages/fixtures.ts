@@ -83,7 +83,7 @@ export const generatedAt = "2026-08-16T12:00:00+02:00";
 // Every test below that loops `for (const page of site)` is really
 // testing `pageShell()`'s own shared markup (nav, theme menu, About
 // dialog, head tags) — a served page proves the same thing a generated
-// one used to (spec 530), and the Projects page is the one every such
+// one used to, and the Projects page is the one every such
 // test already expected as current.
 export const site: string[] = [renderProjectsPage([healthy, broken], generatedAt, navEntries(), {})];
 
@@ -123,7 +123,7 @@ export const noPullRequest = (step: string, why = "gh auth login required"): Par
   results: [{ step, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", prError: why }],
 });
 
-/** Since spec 103 a row is COLLAPSED unless the view names it: the
+/** A row is COLLAPSED unless the view names it: the
  *  phase lines, the run control and the "more" line come with opening
  *  it. A block that is about what an expanded row holds says so by
  *  opening every spec it renders. */

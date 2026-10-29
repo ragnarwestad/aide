@@ -1,5 +1,5 @@
 // What the server accepts as a subscription, and what it keeps
-// (AC-6, criterion 15). The endpoint is a URL this server will POST to,
+// The endpoint is a URL this server will POST to,
 // so the check on it is the security boundary of the whole feature.
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
@@ -12,7 +12,7 @@ afterEach(() => {
   while (cleanups.length) cleanups.pop()!();
 });
 
-describe("a subscribe request is checked before anything is stored (criterion 15)", () => {
+describe("a subscribe request is checked before anything is stored", () => {
   test("a good one is accepted, with its language and the origin it was made to", async () => {
     const body = await subscribeBody({ lang: "nb" });
     const parsed = parseSubscribe(body, "https://board.test");

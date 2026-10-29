@@ -1,4 +1,4 @@
-// Criterion 2 (spec 80): the run store validates the written-down
+// The run store validates the written-down
 // payload schema, keys on sessionId, mirrors to a JSON file and
 // reloads it on boot; unknown fields are ignored, not rejected.
 import { describe, expect, test } from "bun:test";
@@ -29,7 +29,7 @@ describe("parseAideRun (schema)", () => {
     expect(parseAideRun({ ...valid, command: "rm-rf" }).ok).toBe(false);
   });
 
-  // Criterion 10 (spec 81, slice 81c): an /aide-implement run reports
+  // An /aide-implement run reports
   // its TDD phase from inside the step. Same row, same session — the
   // phase is what moves.
   test("accepts a TDD phase, and refuses an invented one", () => {
@@ -39,7 +39,7 @@ describe("parseAideRun (schema)", () => {
     expect(parseAideRun({ ...valid, phase: "deploy" }).ok).toBe(false);
   });
 
-  test("a legacy 'refactor' report normalizes to 'verify' (AC-5)", () => {
+  test("a legacy 'refactor' report normalizes to 'verify'", () => {
     const r = parseAideRun({ ...valid, phase: "refactor" });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.run.phase).toBe("verify");
@@ -85,7 +85,7 @@ describe("AideRunStore", () => {
     expect(store.list().map((r) => r.sessionId).sort()).toEqual(["s2", "s3"]);
   });
 
-  // Spec 210: the store has been written to since spec 80 and read only
+  // The store used to be read only
   // as a whole list. A page asking "which third is this ONE run in?" has
   // the session id in hand and nothing to look it up with.
   describe("get", () => {

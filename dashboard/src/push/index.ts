@@ -1,4 +1,4 @@
-// The push notification for a spec that needs a person (spec 501): an
+// The push notification for a spec that needs a person: an
 // observer on the queue store's change hook, the subscriptions it sends
 // to, and the delivery. It reads the store, never writes to it, and
 // never holds a job up — a push that cannot be sent is logged and gone.
@@ -27,7 +27,7 @@ export interface PushOptions {
   subscriptionsPath?: string;
   /** Where the server's key pair is kept. Absent keeps it in memory only. */
   keyPath?: string;
-  /** Where the failed creates are kept (spec 506). Absent keeps them in memory only. */
+  /** Where the failed creates are kept. Absent keeps them in memory only. */
   failedCreatesPath?: string;
   /** A scheduled job's own choice of when to notify, by project and tracking key; null when its entry is gone. Absent sends none. */
   scheduleNotify?: (project: string, key: string) => ScheduleNotify | null;

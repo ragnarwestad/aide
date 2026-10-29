@@ -10,13 +10,13 @@ import { queueHarness, type QueueHarness } from "../helpers/queue-server.ts";
 
 export const SPEC = "81-queue-and-runner";
 export const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
-// Spec 394: the banner's own tracking route — what the spec depends on
+// The banner's own tracking route — what the spec depends on
 // and whether it requires acceptance ticking, both posted here now
 // instead of riding on the Description tab's own SAVE.
 export const TRACKING = `/api/queue/specs/aide/${SPEC}/tracking`;
 export const TICK = `/api/queue/specs/aide/${SPEC}/tick`;
 export const DESCRIPTION_TAB = `/specs/aide/${SPEC}?tab=description`;
-// REQ-2: two of the other document tabs, alongside DESCRIPTION_TAB.
+// Two of the other document tabs, alongside DESCRIPTION_TAB.
 export const ANALYSIS_TAB = `/specs/aide/${SPEC}?tab=analysis`;
 export const STATUS_TAB = `/specs/aide/${SPEC}?tab=status`;
 export const PAGE = `/specs/aide/${SPEC}`;
@@ -28,13 +28,13 @@ export const NEW_TEXT = "# Queue and runner - Description\n\n## Description\n\nA
 
 export const descriptionPath = (dir: string, folder = SPEC) => specFilePath(dir, "1-description.md", folder);
 
-// REQ-1/REQ-2: the same path Description's own `descriptionPath` names,
+// The same path Description's own `descriptionPath` names,
 // generalized to any of the four files — the three newly-editable tabs'
 // own save tests need it too.
 export const specFilePath = (dir: string, file: string, folder = SPEC) =>
   join(dir, "root", "aide", "specs", folder, file);
 
-// REQ-2: `project()` (queue-server.ts) writes only 1-description.md and
+// `project()` (queue-server.ts) writes only 1-description.md and
 // 4-status.md for the active spec — Analysis and Solution are the
 // analyze step's own output, which no test harness fixture claims this
 // spec has run. A suite that wants those two tabs non-empty writes them
@@ -46,7 +46,7 @@ export const fillAnalysisAndSolution = (dir: string, folder = SPEC): void => {
   writeFileSync(join(spec, "3-solution.md"), "# Q - Solution\n\nOne must-fix.\n");
 };
 
-// Spec 163: an archived spec is a record, and both halves of the edit
+// An archived spec is a record, and both halves of the edit
 // pair have to say so — hiding the button leaves the save endpoint live
 // for anyone who already has the URL.
 export const ARCHIVED = "150-one-page-shows-the-whole-spec";

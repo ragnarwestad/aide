@@ -35,7 +35,7 @@ export interface ProjectStep {
   note?: string;
 }
 
-/** What a readiness check is ABOUT (spec 138). Each one mirrors a
+/** What a readiness check is ABOUT. Each one mirrors a
  *  prerequisite `aide-run-spec` tests before it starts, and nothing
  *  else: a check the runner does not make would refuse a project that
  *  runs perfectly well. */
@@ -45,7 +45,7 @@ export type ReadinessCheckName =
   | "specsRepo"
   | "defaultBranch"
   /** Whether the dashboard's own checkout can be made, when it has not
-   *  been yet (spec 205). Once it exists it answers to `defaultBranch`
+   *  been yet. Once it exists it answers to `defaultBranch`
    *  like any other participating repository — the same question, about
    *  the checkout a run actually uses. */
   | "dashboardCheckout"
@@ -82,7 +82,7 @@ export interface ProjectAdminResult {
   steps: ProjectStep[];
   /** Whether a run could START in the project just added — a separate
    *  answer from `ok`, which says only that the registration completed
-   *  (spec 138). Absent when there was no successful registration to
+   *  Absent when there was no successful registration to
    *  assess, and on a removal, which registers nothing. */
   readiness?: ProjectReadiness;
 }

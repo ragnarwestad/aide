@@ -51,7 +51,7 @@ describe("the specs list offers a test server only while the spec's branch is on
     return await (await fetch(`${base}/specs?${OPEN_81}`)).text();
   }
 
-  test("a capable project whose branch is on origin has the link (AC-2)", async () => {
+  test("a capable project whose branch is on origin has the link", async () => {
     const git = originGit(true);
     const { base, dir } = start({ gitRun: git.run, testServersAvailable: true });
     ran(dir, ["create", "analyze", "implement"]);
@@ -64,12 +64,12 @@ describe("the specs list offers a test server only while the spec's branch is on
     expect(specPanel(html, FOLDER)).toContain(`/specs/aide/${FOLDER}?tab=steps&amp;${LINK}`);
   });
 
-  test("a branch origin does not hold has no link (AC-1)", async () => {
+  test("a branch origin does not hold has no link", async () => {
     const html = await listAfterOriginAnswered({ originHasBranch: false, testServersAvailable: true });
     expect(specPanel(html, FOLDER)).not.toContain(LINK);
   });
 
-  test("a project that cannot run a test server has no link, whatever origin holds (AC-2)", async () => {
+  test("a project that cannot run a test server has no link, whatever origin holds", async () => {
     const html = await listAfterOriginAnswered({ originHasBranch: true, testServersAvailable: false });
     expect(specPanel(html, FOLDER)).not.toContain(LINK);
   });

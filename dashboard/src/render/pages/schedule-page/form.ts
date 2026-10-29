@@ -1,4 +1,4 @@
-// The shared create/edit form (spec 276): same markup both for a brand
+// The shared create/edit form: same markup both for a brand
 // new entry and for editing an existing one, pre-filled on edit. The
 // Cron field's "Next run" line is computed here for the no-script
 // baseline and kept live by `schedule-actions.ts` (Phase 6) through the
@@ -18,15 +18,15 @@ export interface ScheduleFormOptions {
   entryName?: string;
   entry?: { name: string; cron: string; prompt: string; model?: string; notify?: ScheduleNotify; chrome?: boolean; sandbox?: false };
   action: string;
-  /** Every allowed project (spec 278): draws a `<select name="project">`
+  /** Every allowed project: draws a `<select name="project">`
    *  the same way the New-spec form's own Project field is
    *  (`new-spec-page/`). Mutually exclusive with `fixedProject`
    *  below — the New-job page used this; nothing else does now that it
-   *  is gone (spec 468). */
+   *  is gone. */
   projects?: readonly string[];
-  /** The project's own Schedule tab (spec 468): the project is fixed by
-   *  the page, so it rides as a hidden field instead of a select — AC-2
-   *  forbids a select here, but the create route still reads `project`
+  /** The project's own Schedule tab: the project is fixed by
+   *  the page, so it rides as a hidden field instead of a select — a
+   *  select is not allowed here, but the create route still reads `project`
    *  off the POST body (`schedule-admin-routes.ts`), so the value still
    *  has to be sent. Never set together with `projects`. */
   fixedProject?: string;

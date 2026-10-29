@@ -1,7 +1,7 @@
 """aide-run-spec: a scheduled job may commit to the project repository and
 the specs root, the same repositories a spec's step reaches. What it
 commits is pushed and left on its branch, exactly like every other
-command — the board is what lands it from there (spec 558).
+command — the board is what lands it from there.
 """
 
 import json
@@ -53,7 +53,7 @@ def heads(bare):
 
 
 @pytest.mark.usefixtures("origin")
-def test_a_job_that_only_writes_its_report_ends_completed_without_a_branch_AC_5(
+def test_a_job_that_only_writes_its_report_ends_completed_without_a_branch(
     runner, workspace, fake_claude
 ):
     with_prompt(workspace)
@@ -161,7 +161,7 @@ def test_a_scheduled_prompt_now_carries_a_request_for_a_commit_message(runner, w
     assert "write the commit message for that change to " in prompt, prompt
 
 
-def test_a_scheduled_prompt_asks_the_model_to_mark_its_steps_AC_3(runner, workspace, fake_claude):
+def test_a_scheduled_prompt_asks_the_model_to_mark_its_steps(runner, workspace, fake_claude):
     with_prompt(workspace)
     seen = fake_claude.calls.parent / "prompt-seen.txt"
     rc, out, _ = schedule(runner, workspace, fake_claude(f"cat > {seen}\n{FINISHED}"))

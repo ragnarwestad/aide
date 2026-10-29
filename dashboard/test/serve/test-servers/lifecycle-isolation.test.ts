@@ -1,4 +1,4 @@
-// Spec 388, REQ-8: starting or stopping a board must leave the served
+// Starting or stopping a board must leave the served
 // board's own queue, specs and checkouts untouched. `startTestServer`/
 // `stopTestServer` take a `TestServersContext` that never carries a `QueueStore`
 // or any checkout path at all — this test is the regression guard for

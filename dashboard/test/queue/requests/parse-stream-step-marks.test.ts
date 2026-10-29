@@ -67,7 +67,7 @@ describe("which lines are marks, for every case of the shared table", () => {
     text: string;
     shown: string[];
   }[];
-  test("the marks the Log shows are the table's `shown` lines (AC-1)", () => {
+  test("the marks the Log shows are the table's `shown` lines", () => {
     for (const c of cases) {
       const marks = summarizeEntries(say(c.text), { tool: "claude" }).filter((e) => e.mark);
       expect([c.name, marks.map((e) => e.text)]).toEqual([c.name, c.shown]);
@@ -127,7 +127,7 @@ describe("stepMarks", () => {
     stepMarks(stepLog({ text: transcript, start: 0 }, runLog, { tool: "claude", final }).logs);
   const shown = (marks: StepMark[]) => marks.map((m) => [m.title, m.state]);
 
-  test("a close's log gives one entry per step, in order, with its marks repeated in the final message read once (AC-1)", () => {
+  test("a close's log gives one entry per step, in order, with its marks repeated in the final message read once", () => {
     const skill = [
       "--- Step 1 of 4: Run the mechanical script — started",
       "--- Step 1 of 4: Run the mechanical script — done",
@@ -166,7 +166,7 @@ describe("stepMarks", () => {
     ]);
   });
 
-  test("a reopen's log, with no transcript, gives Preparing, Tests and commit and Merge into main (AC-1)", () => {
+  test("a reopen's log, with no transcript, gives Preparing, Tests and commit and Merge into main", () => {
     const runLog = run(
       "--- Step Aide: preparing — started",
       "--- Step Aide: preparing — done",
@@ -181,11 +181,11 @@ describe("stepMarks", () => {
     ]);
   });
 
-  test("a step marked started and not yet ended is running (AC-2)", () => {
+  test("a step marked started and not yet ended is running", () => {
     expect(shown(marksOf("", run("--- Step Aide: preparing — started", "fetching main"), false))).toEqual([["Preparing", "running"]]);
   });
 
-  test("a skipped step, a done with words after it, and a step left started before a later mark are done (AC-3)", () => {
+  test("a skipped step, a done with words after it, and a step left started before a later mark are done", () => {
     const text = [
       "--- Step 1 of 4: Read — started",
       "--- Step 1 of 4: Read — done (nothing to keep)",
@@ -201,7 +201,7 @@ describe("stepMarks", () => {
     ]);
   });
 
-  test("a merge stopped by the landing is failed, titled by the step alone, with the landing's reason (AC-4)", () => {
+  test("a merge stopped by the landing is failed, titled by the step alone, with the landing's reason", () => {
     const runLog = run(
       "--- Step 4 of 4: Merge into main — started",
       "error: --- Step 4 of 4: Merge into main — stopped: nothing was merged — the close is not finished",
@@ -215,7 +215,7 @@ describe("stepMarks", () => {
     });
   });
 
-  test("a mark worded differently from its heading keeps the step's place as its key, the key the plan gives (AC-3)", () => {
+  test("a mark worded differently from its heading keeps the step's place as its key, the key the plan gives", () => {
     const [mark] = marksOf(say("--- Step 1 of 4: Move the spec into the archive — started"), "", false);
     expect(mark!.key).toBe("Step 1 of 4");
     expect(mark!.title).toBe("Move the spec into the archive");
@@ -243,7 +243,7 @@ describe("stepPlan", () => {
     return dir;
   };
 
-  test("a close's plan is Aide's preparing, the skill's steps, Aide's tests and commit, then the heading Aide writes (AC-1)", () => {
+  test("a close's plan is Aide's preparing, the skill's steps, Aide's tests and commit, then the heading Aide writes", () => {
     const dir = skillsWith("close", skillText(["move the spec", "commit", "confirm", "merge into main"]));
     const plan = stepPlan("close", dir);
     expect(plan.map((s) => s.key)).toEqual([
@@ -257,13 +257,13 @@ describe("stepPlan", () => {
     expect(plan.map((s) => s.label)).toEqual(["Preparing", "Move the spec", "Commit", "Confirm", "Tests and commit", "Merge into main"]);
   });
 
-  test("a step that runs no model turn lists Aide's two parts and the heading Aide writes, none of the session's (AC-1)", () => {
+  test("a step that runs no model turn lists Aide's two parts and the heading Aide writes, none of the session's", () => {
     const [step] = [...NO_MODEL_TURN];
     const dir = skillsWith(step!, skillText(["find the spec", "move it back", "merge into main"]));
     expect(stepPlan(step!, dir).map((s) => s.key)).toEqual(["Step Aide: preparing", "Step Aide: tests and commit", "Step 3 of 3"]);
   });
 
-  test("the checkout's own skills are found: Close's and Reopen's plans start with preparing and end on a numbered step (AC-1)", () => {
+  test("the checkout's own skills are found: Close's and Reopen's plans start with preparing and end on a numbered step", () => {
     for (const step of ["close", "reopen"]) {
       const keys = stepPlan(step).map((s) => s.key);
       expect(keys.length).toBeGreaterThan(2);
@@ -272,7 +272,7 @@ describe("stepPlan", () => {
     }
   });
 
-  test("a skill rewritten with another heading and a later modification time is read again (AC-1)", () => {
+  test("a skill rewritten with another heading and a later modification time is read again", () => {
     const dir = skillsWith("close", skillText(["one", "two"]));
     const file = join(dir, "aide-close", "SKILL.md");
     expect(stepPlan("close", dir).map((s) => s.key)).toContain("Step 2 of 2");
@@ -282,7 +282,7 @@ describe("stepPlan", () => {
     expect(stepPlan("close", dir).map((s) => s.key)).toContain("Step 3 of 3");
   });
 
-  test("a file unchanged since it was read is not read again (AC-1)", () => {
+  test("a file unchanged since it was read is not read again", () => {
     const dir = skillsWith("close", skillText(["one", "two"]));
     const file = join(dir, "aide-close", "SKILL.md");
     utimesSync(file, 1_000_000, 1_000_000);
@@ -292,7 +292,7 @@ describe("stepPlan", () => {
     expect(stepPlan("close", dir)).toEqual(first);
   });
 
-  test("the pair the runner decides in bash is the pair stepPlan holds (AC-1)", () => {
+  test("the pair the runner decides in bash is the pair stepPlan holds", () => {
     const scripts = join(import.meta.dir, "../../../../core/scripts");
     const files = (dir: string): string[] =>
       readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)]));
@@ -309,7 +309,7 @@ describe("stepPlan", () => {
     expect(new Set(noModel)).toEqual(new Set(NO_MODEL_TURN));
   });
 
-  test("a skills folder with no file for the step, or a file with no Step N of X heading, gives no plan (AC-4)", () => {
+  test("a skills folder with no file for the step, or a file with no Step N of X heading, gives no plan", () => {
     const empty = mkdtempSync(join(tmpdir(), "step-plan-"));
     expect(stepPlan("close", empty)).toEqual([]);
     expect(stepPlan("close", skillsWith("close", "No steps here.\n"))).toEqual([]);

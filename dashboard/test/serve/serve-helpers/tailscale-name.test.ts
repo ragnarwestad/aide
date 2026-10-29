@@ -15,7 +15,7 @@ describe("parseSelfDnsName", () => {
   });
 });
 
-describe("createHostAllowlist (AC-3)", () => {
+describe("createHostAllowlist", () => {
   const NAME = "rw-macmini.tail1234.ts.net";
 
   test("loopback names and `extra` answer at once, without a lookup", async () => {

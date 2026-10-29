@@ -1,9 +1,9 @@
-// The other half of spec 327's rule. A landing failure is the record of
+// The other half of the rule. A landing failure is the record of
 // the step it names, and that step's own successful landing resolves it:
-// atlasaurus 05's row said "could not assign this spec its number —
+// A row once said "could not assign this spec its number —
 // nothing was pushed; run the step again" while the number had been
 // assigned and pushed since (2026-09-20). A LATER step's success still
-// leaves the record alone, which is what spec 327 is about.
+// leaves the record alone.
 
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
@@ -55,7 +55,7 @@ describe("a landing that succeeds", () => {
     expect(landed.landingErrorDetail).toBeUndefined();
   });
 
-  test("leaves another step's failure alone (spec 327)", async () => {
+  test("leaves another step's failure alone", async () => {
     const landed = await landAnalyzeWhile(failedAt("create"));
     expect("landingError" in landed).toBe(false);
     expect("landingErrorDetail" in landed).toBe(false);

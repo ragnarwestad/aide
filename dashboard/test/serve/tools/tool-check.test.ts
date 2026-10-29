@@ -95,7 +95,7 @@ describe("whether a tool is logged in", () => {
   const claudeStatus = (status: Record<string, unknown>) =>
     fakeRun({ ...preflight, "auth status": { stdout: JSON.stringify(status) } });
 
-  test("Claude Code answers from its own JSON, with how it is logged in (AC-9)", async () => {
+  test("Claude Code answers from its own JSON, with how it is logged in", async () => {
     const entry = login(await checkTool("claude", opts(claudeStatus({ loggedIn: true, authMethod: "claude.ai" }))));
     expect(entry.ok).toBe(true);
     expect(entry.answer).toEqual({ key: "login.inWith", values: { method: "claude.ai" } });
@@ -104,7 +104,7 @@ describe("whether a tool is logged in", () => {
 
   // Which account the board runs as, asked from the board's own
   // process — not from a terminal, whose login can be another one.
-  test("Claude Code names the account and the plan it runs on (AC-9)", async () => {
+  test("Claude Code names the account and the plan it runs on", async () => {
     const run = claudeStatus({
       loggedIn: true, authMethod: "claude.ai", email: "someone@example.com",
       orgName: "someone@example.com's Organization", subscriptionType: "max",
@@ -114,7 +114,7 @@ describe("whether a tool is logged in", () => {
     });
   });
 
-  test("an organization of its own is named beside the account (AC-9)", async () => {
+  test("an organization of its own is named beside the account", async () => {
     const run = claudeStatus({
       loggedIn: true, authMethod: "claude.ai", email: "someone@example.com",
       orgName: "Example AS", subscriptionType: "team",
@@ -124,7 +124,7 @@ describe("whether a tool is logged in", () => {
     });
   });
 
-  test("an account with no method named is logged in as that account (AC-9)", async () => {
+  test("an account with no method named is logged in as that account", async () => {
     const run = claudeStatus({ loggedIn: true, email: "someone@example.com" });
     expect(login(await checkTool("claude", opts(run))).answer).toEqual({
       key: "login.inAs", values: { account: "someone@example.com" },
@@ -153,35 +153,35 @@ describe("whether a tool is logged in", () => {
     );
   });
 
-  test("Claude Code says it is not logged in, with the command to fix it (AC-10)", async () => {
+  test("Claude Code says it is not logged in, with the command to fix it", async () => {
     const entry = login(await checkTool("claude", opts(claudeStatus({ loggedIn: false }))));
     expect(entry.ok).toBe(false);
     expect(entry.problem).toBe("not logged in");
     expect(entry.answer).toEqual({ key: "login.out", values: { command: "claude auth login" } });
   });
 
-  test("a shape Claude Code never printed is unanswered, and says which command (AC-11)", async () => {
+  test("a shape Claude Code never printed is unanswered, and says which command", async () => {
     const run = fakeRun({ ...preflight, "auth status": { stdout: "who knows" } });
     const entry = login(await checkTool("claude", opts(run)));
     expect(entry.ok).toBeNull();
     expect(entry.answer).toEqual({ key: "login.unreadable", values: { command: "claude auth status" } });
   });
 
-  test("a status command that does not finish is unanswered, and says which command (AC-11)", async () => {
+  test("a status command that does not finish is unanswered, and says which command", async () => {
     const run = fakeRun({ ...preflight, "auth status": { timedOut: true, code: 143 } });
     const entry = login(await checkTool("claude", opts(run)));
     expect(entry.ok).toBeNull();
     expect(entry.answer).toEqual({ key: "login.timedOut", values: { command: "claude auth status" } });
   });
 
-  test("Codex answers with its exit code, and how it is logged in from its one line (AC-9)", async () => {
+  test("Codex answers with its exit code, and how it is logged in from its one line", async () => {
     const run = fakeRun({ ...preflight, "login status": { stdout: "Logged in using ChatGPT\n" } });
     const entry = login(await checkTool("codex", opts(run)));
     expect(entry.ok).toBe(true);
     expect(entry.answer).toEqual({ key: "login.inWith", values: { method: "ChatGPT" } });
   });
 
-  test("Codex that is not logged in fails on the exit code, with the command to fix it (AC-10)", async () => {
+  test("Codex that is not logged in fails on the exit code, with the command to fix it", async () => {
     const run = fakeRun({ ...preflight, "login status": { code: 1, stdout: "Not logged in\n" } });
     const entry = login(await checkTool("codex", opts(run)));
     expect(entry.ok).toBe(false);
@@ -190,7 +190,7 @@ describe("whether a tool is logged in", () => {
 
   // The rule, again: no command means no answer, never a guess from a
   // token file whose location the CLI is free to move.
-  test("Copilot has no command for it and says so (AC-11)", async () => {
+  test("Copilot has no command for it and says so", async () => {
     const run = fakeRun(preflight);
     const entry = login(await checkTool("copilot", opts(run)));
     expect(entry.ok).toBeNull();
@@ -198,7 +198,7 @@ describe("whether a tool is logged in", () => {
     expect(run.calls.length).toBe(1);
   });
 
-  test("OpenCode answers through its providers, which are its credentials (AC-9)", async () => {
+  test("OpenCode answers through its providers, which are its credentials", async () => {
     const run = fakeRun({
       ...preflight,
       "opencode providers list": { stdout: "1 credentials\n" },
@@ -212,7 +212,7 @@ describe("whether a tool is logged in", () => {
 describe("checkTool for OpenCode", () => {
   const preflight = { "aide-preflight opencode": { stdout: "OpenCode found (1.18.31)\n" } };
 
-  test("no provider logged in is a failure, with the command to fix it (AC-10)", async () => {
+  test("no provider logged in is a failure, with the command to fix it", async () => {
     const run = fakeRun({
       ...preflight,
       "opencode providers list": { stdout: "Credentials\n0 credentials\n" },
@@ -250,7 +250,7 @@ describe("checkTool for OpenCode", () => {
   });
 
   // The rule this file exists for.
-  test("a question that could not be asked stays unanswered, never a failure (AC-11)", async () => {
+  test("a question that could not be asked stays unanswered, never a failure", async () => {
     const run = fakeRun({
       ...preflight,
       "opencode providers list": { code: 1 },

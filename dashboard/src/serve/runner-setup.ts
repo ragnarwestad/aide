@@ -37,7 +37,7 @@ export interface RunnerSetupContext {
   queueConfigFile?: string;
   dashboardCheckoutRoot?: string;
   machineryProjectDir: (project: string) => string;
-  /** `machineryProjectDir`'s sibling for the specs root (spec 402) —
+  /** `machineryProjectDir`'s sibling for the specs root —
    *  `setupLand()` already takes this for the identical reason; passed
    *  here too so `Runner.tick()` can scope its landing pause to a
    *  project's actual repos rather than holding the whole board. */
@@ -63,7 +63,7 @@ export interface RunnerSetupContext {
   landScheduleRun: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   /** Starts a `deploy` step, which this process runs itself. */
   startDeploy: (job: Job, resultFile: string) => SpawnResult;
-  /** The spec's own on-disk folder (spec 394) — the same `specDir` →
+  /** The spec's own on-disk folder — the same `specDir` →
    *  `peekMachinerySpecDir` chain `spec-views/spec-page.ts` already uses
    *  to reach it, added here so `analyze`'s own spawn can read the
    *  spec's RECORDED acceptance choice fresh, rather than trusting a
@@ -83,7 +83,7 @@ export interface RunnerSetupContext {
  *  branch; the two answers the row is drawn from — what git history says
  *  ran, what the file on the branch claims — are cached for 30 s, and a
  *  row read from the old answers said "last run reported done, but
- *  nothing reached the files" for those seconds (462, 2026-09-14). */
+ *  nothing reached the files" for those seconds. */
 export function forgetSpecCachesFor(
   ctx: Pick<RunnerSetupContext, "specDir" | "peekMachinerySpecDir" | "forgetSpecCaches">,
   job: Pick<Job, "project" | "specFolder">,
@@ -106,7 +106,7 @@ export function rereadSpecCachesFor(
 }
 
 /** Whether `analyze`'s own invocation of `job` should be told acceptance
- *  ticking is not required (spec 394, REQ-8) — read fresh off the
+ *  ticking is not required — read fresh off the
  *  spec's own `1-description.md` at spawn time, never off `job` itself:
  *  a job queued from the specs list long after `create` finished has no
  *  checkbox of its own to carry the choice on. `false`, never a throw,
@@ -150,7 +150,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     spawn: (job, step, resultFile, sessionId, streamFile) => {
       mkdirSync(dirname(resultFile), { recursive: true });
       if (step === "deploy") return ctx.startDeploy(job, resultFile);
-      // Spec 222. `aide-emit-run` reports each TDD phase and is
+      // `aide-emit-run` reports each TDD phase and is
       // inert unless `AIDE_RUN_URL` says where — so a headless step
       // reported into silence, because nothing from launchd down to
       // the spawned `claude` ever set it. This server knows its own
@@ -182,7 +182,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         ...(ctx.queueConfigFile ? { AIDE_QUEUE_CONFIG: ctx.queueConfigFile } : {}),
         ...(ctx.dashboardCheckoutRoot ? { AIDE_CHECKOUT_ROOT: ctx.dashboardCheckoutRoot } : {}),
       };
-      // Spec 272. Only a `schedule` step's own spawn gets this: the
+      // Only a `schedule` step's own spawn gets this: the
       // directory THIS run's prompt writes its output to, made
       // ahead of time so a prompt with no `mkdir -p` of its own still
       // lands its file. `scheduleRunOutputDir()` is the one function both
@@ -210,7 +210,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             // afterwards (`machinerySpecsRoot`), so the two cannot
             // disagree about where a spec belongs.
             specsRoot: ctx.machinerySpecsRoot(job.project),
-            // Spec 220. The global setting speaks for every project
+            // The global setting speaks for every project
             // on this host at once; a project that reviews its code
             // says so in its own committed manifest, and that
             // answer wins. It only ever raises the mode TO `pr` —
@@ -267,8 +267,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     // A step's work is invisible to this page until its branch is on
     // the default branch of the checkout the page reads — so every
     // step lands the work it produced, and nobody merges by hand
-    // (spec 149). `create` and `archive` already did (specs 93 and
-    // 136); `analyze` writes in the specs
+    // `create` and `archive` already did; `analyze` writes in the specs
     // repo exactly as those two do, so the same argument covers it
     // and it was simply never given it.
     //
@@ -327,7 +326,7 @@ export function stepDoneHandler(
       if (step === "create") return ctx.landNewSpec(job, outcome);
       // `reopen` lands for exactly the reason `analyze` does, and
       // for it the argument is not an improvement but the whole
-      // feature (spec 198): the un-archived folder is what makes
+      // feature: the un-archived folder is what makes
       // the spec active again, this page reads the MAIN checkout,
       // and a reopen left on its branch would show nowhere at all
       // — "reopening is one action" would then still end with
@@ -349,7 +348,7 @@ export function stepDoneHandler(
       if (step === "archive") {
         return outcome.terminalReason === "completed" ? ctx.landArchivedSpec(job, outcome) : undefined;
       }
-      // spec 406: `close` lands on `closed` alone, the same rule
+      // `close` lands on `closed` alone, the same rule
       // `archive` follows for `completed` — every other terminalReason
       // (`already-closed`, `already-archived`, `conflict-open`,
       // `refused`) moved nothing, so there is nothing to land.
@@ -360,7 +359,7 @@ export function stepDoneHandler(
       // report: queue a Create job for each. Independent of landing —
       // the report and any proposed specs live outside every repository
       // ($AIDE_SCHEDULE_OUTPUT_DIR), so this runs whether or not the
-      // same job also committed anything (spec 558).
+      // same job also committed anything.
       if (step === "schedule") {
         proposeSpecs({
           store: ctx.store,
@@ -381,9 +380,9 @@ export function stepDoneHandler(
     // A step stopped by its own clock still committed and pushed
     // whatever it had written before the deadline — `aide-run-spec`'s
     // commit loop runs on every path and the push is gated on the
-    // push mode, not on `ok` (spec 187). Left on the branch, that
-    // work is readable only by checking it out by hand: spec 184
-    // stopped with a finished analysis nothing on this page
+    // push mode, not on `ok`. Left on the branch, that
+    // work is readable only by checking it out by hand: an analyze
+    // once stopped with a finished analysis nothing on this page
     // mentioned.
     //
     // A stopped archive never lands: its pre-check already moved the

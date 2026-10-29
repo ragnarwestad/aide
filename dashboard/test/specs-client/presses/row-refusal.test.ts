@@ -70,7 +70,7 @@ const refusalRows = (doc: Document) => Array.from(doc.querySelectorAll("tr[data-
 const words = (el: Element | null | undefined) => el?.querySelector("span")?.textContent ?? "";
 
 describe("a refused press on the list", () => {
-  test("is written under its spec at once, before the group's gap (AC-6)", async () => {
+  test("is written under its spec at once, before the group's gap", async () => {
     const doc = list(rows(1), { rows: () => new Promise<string>(() => {}) as unknown as string });
     void showRefusal("the job is already done", "aide/a");
     const [row] = refusalRows(doc);
@@ -79,7 +79,7 @@ describe("a refused press on the list", () => {
     expect(row!.previousElementSibling?.id).toBe("spec-aide/a");
   });
 
-  test("stays through a redraw that replaces its spec's rows and one that leaves them (AC-6)", async () => {
+  test("stays through a redraw that replaces its spec's rows and one that leaves them", async () => {
     let fresh = rows(2);
     const doc = list(rows(2), { rows: () => fresh });
     await swapRows();
@@ -93,7 +93,7 @@ describe("a refused press on the list", () => {
     expect(refusalRows(doc)[0]!.previousElementSibling?.id).toBe("spec-aide/a");
   });
 
-  test("is gone once another press starts (AC-6)", async () => {
+  test("is gone once another press starts", async () => {
     const doc = list(rows(4), { rows: () => rows(4) });
     await showRefusal("the job is already done", "aide/a");
     doc.getElementById("spec-aide/b")!.insertAdjacentHTML(
@@ -106,7 +106,7 @@ describe("a refused press on the list", () => {
     expect(refusalRows(doc)).toHaveLength(0);
   });
 
-  test("closes the confirm dialog its form was posted from (AC-6)", async () => {
+  test("closes the confirm dialog its form was posted from", async () => {
     const reason = "the job is already done; only a queued or running job can be cancelled";
     const doc = list(rows(5, CANCEL), { rows: () => rows(5, CANCEL), press: { status: 409, body: { error: reason, spec: "aide/a" } } });
     const dialog = doc.getElementById("cancelask-j1") as unknown as HTMLDialogElement;
@@ -118,7 +118,7 @@ describe("a refused press on the list", () => {
     expect(refusalRows(doc).map(words)).toEqual(["The job is already done; only a queued or running job can be cancelled"]);
   });
 
-  test("naming no spec, goes into the list's own line, which a redraw leaves (AC-6)", async () => {
+  test("naming no spec, goes into the list's own line, which a redraw leaves", async () => {
     const doc = list(rows(6), { rows: () => rows(7, " changed") });
     await showRefusal("no such message", undefined);
     expect(refusalRows(doc)).toHaveLength(0);
@@ -127,7 +127,7 @@ describe("a refused press on the list", () => {
     expect(words(doc.getElementById("list-refused"))).toBe("No such message");
   });
 
-  test("names a spec not on the list, and is shown nowhere (AC-2)", async () => {
+  test("names a spec not on the list, and is shown nowhere", async () => {
     const doc = list(rows(8), { rows: () => rows(8) });
     await showRefusal("the job is already done", "aide/zz");
     expect(refusalRows(doc)).toHaveLength(0);

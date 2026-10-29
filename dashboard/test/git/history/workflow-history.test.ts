@@ -1,10 +1,10 @@
-// Spec 154: which steps a spec has HAD, asked of git rather than of a
+// Which steps a spec has HAD, asked of git rather than of a
 // markdown line somebody's model wrote.
 //
-// Two incidents on 2026-08-21, in opposite directions. 147's implement
+// Two incidents on 2026-08-21, in opposite directions. One implement
 // finished RED and GREEN and was killed by the step's time limit before
 // the model reached the part that writes `4-status.md`, so the row read
-// "implement not run" about a spec whose code was on the branch. 153's
+// "implement not run" about a spec whose code was on the branch. The other's
 // files were copied from a sibling whose analyze had landed, so a
 // brand-new spec claimed three steps it had never had.
 //
@@ -32,7 +32,7 @@ const subject = (
 ) =>
   `Run /aide-${step} for ${opts.folder ?? FOLDER}` +
   (opts.headless === false ? "" : " (headless)") +
-  // Spec 217's suffix sits BEFORE the stop reason, which is read
+  // The model suffix sits BEFORE the stop reason, which is read
   // greedily to the end of the subject — a suffix after it would be
   // swallowed into the reason.
   (opts.model ? ` (model: ${opts.model})` : "") +
@@ -43,7 +43,7 @@ const gitLogging = (...subjects: string[]) =>
   fakeGit({ log: { code: 0, stdout: subjects.join("\n") + "\n" } });
 
 describe("readWorkflowSubjects", () => {
-  // AC1, the 153 incident: the file can claim whatever it likes.
+  // The 153 incident: the file can claim whatever it likes.
   test("a spec with no matching commits has had no steps", () => {
     expect(readWorkflowSubjects([], FOLDER)).toEqual({ done: [], stopped: {}, superseded: [] });
   });
@@ -64,7 +64,7 @@ describe("readWorkflowSubjects", () => {
     expect(history.done).toEqual(["create", "analyze", "implement"]);
   });
 
-  // Criterion 2 (spec 181), description requirement 2: "every archived
+  // The requirement: "every archived
   // spec whose history contains a review-plan run still displays that
   // history". `review-plan` folded into `analyze` and is gone from
   // `HISTORY_STEPS` — a NEW run can neither be asked for it nor write
@@ -80,7 +80,7 @@ describe("readWorkflowSubjects", () => {
     expect(history.done).toEqual(["create", "analyze", "review-plan"]);
   });
 
-  // AC2, the 147 incident: the reason reaches the caller, so a row can
+  // The 147 incident: the reason reaches the caller, so a row can
   // say what happened instead of "not run".
   test("a stopped step is reported with its reason, and is not done", () => {
     const history = readWorkflowSubjects(
@@ -91,7 +91,7 @@ describe("readWorkflowSubjects", () => {
     expect(history.stopped).toEqual({ implement: "timeout" });
   });
 
-  // AC4: the newest commit for a step is the one that speaks for it.
+  // The newest commit for a step is the one that speaks for it.
   test("a completed re-run supersedes the stopped attempt before it", () => {
     const history = readWorkflowSubjects(
       [subject("implement"), subject("implement", { stopped: "timeout" })],
@@ -110,7 +110,7 @@ describe("readWorkflowSubjects", () => {
     expect(history.stopped).toEqual({ implement: "timeout" });
   });
 
-  // Spec 217, AC7: the grammar gained a `(model: ...)` suffix, and this
+  // The grammar gained a `(model: ...)` suffix, and this
   // side of the pair has to keep deriving the same answer from a
   // subject that carries one. Both regexes anchor on `$`, so a suffix
   // the pattern does not know about does not degrade — it stops
@@ -133,7 +133,7 @@ describe("readWorkflowSubjects", () => {
     expect(history.stopped).toEqual({ implement: "timeout" });
   });
 
-  // AC5: a step run at somebody's keyboard, committed by hand with the
+  // A step run at somebody's keyboard, committed by hand with the
   // same subject, counts exactly as a headless one does.
   test("an interactive commit without the headless marker counts", () => {
     const history = readWorkflowSubjects([subject("analyze", { headless: false })], FOLDER);
@@ -170,7 +170,7 @@ describe("readWorkflowSubjects", () => {
 // A completed analyze is newer than every implement and archive before it,
 // and those no longer count. The log is read newest first.
 describe("readWorkflowSubjects after a new analysis", () => {
-  test("a completed analyze above a completed implement leaves implement not done and not stopped (AC-1)", () => {
+  test("a completed analyze above a completed implement leaves implement not done and not stopped", () => {
     const history = readWorkflowSubjects(
       [subject("analyze"), subject("implement"), subject("analyze"), subject("create")],
       FOLDER,
@@ -180,13 +180,13 @@ describe("readWorkflowSubjects after a new analysis", () => {
     expect(history.superseded).toEqual(["implement"]);
   });
 
-  test("an implement above the analyze is done as before (AC-1)", () => {
+  test("an implement above the analyze is done as before", () => {
     const history = readWorkflowSubjects([subject("implement"), subject("analyze"), subject("create")], FOLDER);
     expect(history.done).toEqual(["create", "analyze", "implement"]);
     expect(history.superseded).toEqual([]);
   });
 
-  test("an implement that ran after the analysis is done, and the one before it is not reported as skipped (AC-1)", () => {
+  test("an implement that ran after the analysis is done, and the one before it is not reported as skipped", () => {
     const history = readWorkflowSubjects(
       [subject("implement"), subject("analyze"), subject("implement"), subject("create")],
       FOLDER,
@@ -195,7 +195,7 @@ describe("readWorkflowSubjects after a new analysis", () => {
     expect(history.superseded).toEqual([]);
   });
 
-  test("a stopped analyze above a completed analyze above an implement leaves implement not done (AC-5)", () => {
+  test("a stopped analyze above a completed analyze above an implement leaves implement not done", () => {
     const history = readWorkflowSubjects(
       [subject("analyze", { stopped: "timeout" }), subject("analyze"), subject("implement"), subject("create")],
       FOLDER,
@@ -205,7 +205,7 @@ describe("readWorkflowSubjects after a new analysis", () => {
     expect(history.superseded).toEqual(["implement"]);
   });
 
-  test("a stopped analyze directly above an implement does not take it off (AC-5)", () => {
+  test("a stopped analyze directly above an implement does not take it off", () => {
     const history = readWorkflowSubjects(
       [subject("analyze", { stopped: "timeout" }), subject("implement"), subject("analyze"), subject("create")],
       FOLDER,
@@ -214,7 +214,7 @@ describe("readWorkflowSubjects after a new analysis", () => {
     expect(history.superseded).toEqual([]);
   });
 
-  test("a stopped implement below a completed analyze is neither done nor stopped (AC-1)", () => {
+  test("a stopped implement below a completed analyze is neither done nor stopped", () => {
     const history = readWorkflowSubjects(
       [subject("analyze"), subject("implement", { stopped: "timeout" }), subject("analyze"), subject("create")],
       FOLDER,
@@ -224,7 +224,7 @@ describe("readWorkflowSubjects after a new analysis", () => {
     expect(history.superseded).toEqual(["implement"]);
   });
 
-  test("an archive below a completed analyze is not done (AC-1)", () => {
+  test("an archive below a completed analyze is not done", () => {
     const history = readWorkflowSubjects(
       [subject("analyze"), subject("archive"), subject("implement"), subject("analyze"), subject("create")],
       FOLDER,
@@ -233,7 +233,7 @@ describe("readWorkflowSubjects after a new analysis", () => {
     expect(history.superseded).toEqual(["implement", "archive"]);
   });
 
-  test("an analysis that never had an implement before it skips nothing (AC-4)", () => {
+  test("an analysis that never had an implement before it skips nothing", () => {
     const history = readWorkflowSubjects([subject("analyze"), subject("create")], FOLDER);
     expect(history.done).toEqual(["create", "analyze"]);
     expect(history.superseded).toEqual([]);
@@ -241,9 +241,9 @@ describe("readWorkflowSubjects after a new analysis", () => {
 });
 
 describe("stepsFileDisagreesOn", () => {
-  // REQ-2: no state file for this copy of the spec — today's unchanged
+  // No state file for this copy of the spec — today's unchanged
   // two-directional prose-vs-git comparison.
-  test("flags a step the file claims that git has no commit for (spec 153)", () => {
+  test("flags a step the file claims that git has no commit for", () => {
     expect(
       stepsFileDisagreesOn(
         { proseSteps: ["create", "analyze", "implement"], stateSteps: undefined },
@@ -252,11 +252,11 @@ describe("stepsFileDisagreesOn", () => {
     ).toEqual(["implement"]);
   });
 
-  // Spec 298: `fileSteps` now follows the open branch when one exists,
+  // `fileSteps` now follows the open branch when one exists,
   // which is where `implement` actually writes this line — so a
-  // disagreement in THIS direction is once more a real one (spec 147's
-  // killed run), not the structural lag spec 299 briefly special-cased
-  // this function for before spec 298 fixed it at the read side.
+  // disagreement in THIS direction is once more a real one (a
+  // killed run), not the structural lag this function once
+  // special-cased before it was fixed at the read side.
   test("flags implement when git has it but the file (read fresh) still doesn't", () => {
     expect(
       stepsFileDisagreesOn(
@@ -266,7 +266,7 @@ describe("stepsFileDisagreesOn", () => {
     ).toEqual(["implement"]);
   });
 
-  test("flags analyze when git has it but the file has not caught up (spec 147)", () => {
+  test("flags analyze when git has it but the file has not caught up", () => {
     expect(
       stepsFileDisagreesOn(
         { proseSteps: ["create"], stateSteps: undefined },
@@ -284,9 +284,9 @@ describe("stepsFileDisagreesOn", () => {
     ).toEqual([]);
   });
 
-  // REQ-1/REQ-5: once a state file exists, it is the truth — git is
+  // Once a state file exists, it is the truth — git is
   // never consulted again, however git's own history disagrees with it.
-  // Spec 349's own incident: an amended, unpushed `analyze` commit.
+  // The incident: an amended, unpushed `analyze` commit.
   test("a state file's own phase is never compared against git, once one exists", () => {
     expect(
       stepsFileDisagreesOn(
@@ -296,7 +296,7 @@ describe("stepsFileDisagreesOn", () => {
     ).toEqual([]);
   });
 
-  // REQ-3: the one case still caught with a state file present — the
+  // The one case still caught with a state file present — the
   // prose claims a phase the state file does not have. Git DOES have
   // the commit here, so a prose-vs-git comparison would find no
   // disagreement — only a prose-vs-state-file comparison catches this.
@@ -369,7 +369,7 @@ describe("WorkflowHistoryChecker", () => {
   });
 });
 
-// Spec 208: the read a page render makes. `history: null` is the whole
+// The read a page render makes. `history: null` is the whole
 // point of the shape — a spec the warmer has not reached yet is not a
 // spec with no steps, and a row that said "nothing has run" about it
 // would be exactly the false negative this spec exists to stop.
@@ -413,7 +413,7 @@ describe("WorkflowHistoryChecker.peekHistory", () => {
     expect(checker.peekHistory(DIR, FOLDER).checkedAt).toBe(1000);
   });
 
-  // The boundary is part of the question (spec 198), so it is part of
+  // The boundary is part of the question, so it is part of
   // the peek's key too.
   test("a different reopen boundary is a different question", async () => {
     const git = gitLogging(subject("analyze"));

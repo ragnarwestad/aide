@@ -22,7 +22,7 @@ import { fail, type AddProjectRequest, type ProjectAdminResult, type ProjectStep
 /** Whether a failed clone's stderr is git giving up on a login nobody
  *  was going to answer, rather than any other reason a clone fails.
  *
- *  Spec 183: `-c credential.helper=` on the clone call, plus the
+ *  `-c credential.helper=` on the clone call, plus the
  *  `GIT_TERMINAL_PROMPT=0` `createGitRunner` already sets, leave git no
  *  way at all to get credentials — so it fails in seconds with its own
  *  wording rather than handing the question to a helper that waits for
@@ -42,7 +42,7 @@ function needsAuthentication(stderr: string): boolean {
 }
 
 /** The SSH form of an HTTPS clone address, for the reader to copy — the
- *  request's own address is never rewritten (spec 183: someone using
+ *  request's own address is never rewritten (someone using
  *  HTTPS with a token is doing it on purpose). `null` when there is
  *  nothing to derive it from, and the message then names the problem
  *  without an example rather than guessing at one. */
@@ -218,7 +218,7 @@ export async function addProject(
    *  about it: made here, or not makeable. */
   let specsNote: string | undefined;
   // A specs root that is not there yet is MADE, with the `archive/`
-  // beside it a run walks (spec 140): the form used to write the path
+  // beside it a run walks: the form used to write the path
   // into `.aide/config` and then report the project as unable to run
   // because there is no such directory — a refusal over a path known at
   // the moment it was written. `mkdirSync` is idempotent with
@@ -234,7 +234,7 @@ export async function addProject(
       specsNote = `could not make ${req.specsPath}: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
-  // The two keys part company here (spec 184). The specs path names a
+  // The two keys part company here. The specs path names a
   // directory on THIS machine and stays in the personal, gitignored
   // `.aide/config`; the worktree links are true of the project wherever
   // it is checked out, so they go in the manifest, which is committed

@@ -7,7 +7,7 @@ afterEach(() => {
   harness.cleanup();
 });
 
-// Spec 350, REQ-3/REQ-4/REQ-5: the language, remembered the same way
+// The language, remembered the same way
 // as the sort column and the state filter.
 describe("the language the reader chose is remembered", () => {
   const langCookie = (res: Response): string =>
@@ -43,7 +43,7 @@ describe("the language the reader chose is remembered", () => {
     expect(langCookie(res)).toContain("aide_lang=nb");
   });
 
-  // Spec 435, AC-3: the cookie already carries a chosen language across
+  // The cookie already carries a chosen language across
   // navigation to a DIFFERENT page, not only a second fetch of the same
   // one — a regression guard, not a behaviour change.
   test("a language chosen on / is still in effect on a different route", async () => {

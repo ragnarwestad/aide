@@ -52,8 +52,8 @@ function watch(page: Page): { navigations: () => number; asks: () => number } {
   return { navigations: () => navigations, asks: () => asks };
 }
 
-describe("a page whose job is done holds still (AC-1)", () => {
-  test("twelve seconds on, with another job queued, neither page navigates or asks (AC-1)", async () => {
+describe("a page whose job is done holds still", () => {
+  test("twelve seconds on, with another job queued, neither page navigates or asks", async () => {
     const first = harness.start({ alsoSpecs: ["82-other"] });
     const id = await enqueue(first.base);
     const stream = join(first.dir, "analyze.stream.jsonl");
@@ -115,7 +115,7 @@ describe("a page whose job runs follows it in place", () => {
   const logHas = (page: Page, text: string) =>
     page.waitForFunction((t) => document.querySelector(".logbox pre")?.textContent?.includes(t) ?? false, text, { timeout: 5_000 });
 
-  test("lines reach the Log, keep the reader's place, and the finished step stays open (AC-2, AC-3, AC-4, AC-5, AC-6)", async () => {
+  test("lines reach the Log, keep the reader's place, and the finished step stays open", async () => {
     const run = await runningJob();
     writeFileSync(run.stream, lines(1, 150));
     const context = await browser.newContext({ viewport: { width: 1000, height: 700 } });
@@ -137,7 +137,7 @@ describe("a page whose job runs follows it in place", () => {
       await Promise.all([logHas(steps, "tests and commit"), logHas(jobPage, "tests and commit")]);
       expect([stepsSeen.navigations(), jobSeen.navigations()]).toEqual([1, 1]);
 
-      // At the end of a log longer than its box, new lines are followed (AC-4).
+      // At the end of a log longer than its box, new lines are followed.
       const place = () =>
         box(jobPage).evaluate((el) => ({ top: Math.abs(el.scrollTop), fromTop: el.scrollHeight - el.clientHeight - Math.abs(el.scrollTop), tall: el.scrollHeight > el.clientHeight }));
       expect((await place()).tall).toBe(true);
@@ -146,7 +146,7 @@ describe("a page whose job runs follows it in place", () => {
       await logHas(jobPage, "line 160");
       expect((await place()).top).toBeLessThanOrEqual(1);
 
-      // Scrolled up, the box stays where the reader is (AC-5).
+      // Scrolled up, the box stays where the reader is.
       await box(jobPage).evaluate((el) => {
         el.scrollTop = -Math.floor((el.scrollHeight - el.clientHeight) / 2);
       });
@@ -155,7 +155,7 @@ describe("a page whose job runs follows it in place", () => {
       await logHas(jobPage, "line 170");
       expect(Math.abs((await place()).fromTop - before.fromTop)).toBeLessThanOrEqual(1);
 
-      // The page's scroll, the open row and a selection in the earlier lines are kept (AC-3).
+      // The page's scroll, the open row and a selection in the earlier lines are kept.
       await jobPage.evaluate(() => {
         window.scrollTo(0, 200);
         const pre = document.querySelector(".logbox pre")!;
@@ -174,7 +174,7 @@ describe("a page whose job runs follows it in place", () => {
       const kept = await jobPage.evaluate(() => ({ y: window.scrollY, selected: String(window.getSelection()), open: !!document.querySelector(".logbox") }));
       expect(kept).toEqual({ ...held, open: true });
 
-      // The step finishes: its row shows the outcome, the log stays open with its last line, the address names it (AC-6).
+      // The step finishes: its row shows the outcome, the log stays open with its last line, the address names it.
       // A row that holds a selection waits for it to go, so the reader lets go first.
       await jobPage.evaluate(() => window.getSelection()!.removeAllRanges());
       appendFileSync(run.stream, said("the last line"));

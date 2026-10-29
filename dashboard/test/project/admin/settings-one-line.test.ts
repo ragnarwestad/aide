@@ -27,7 +27,7 @@ const files = (dir: string) => ({
 });
 
 describe("oneLine", () => {
-  test("folds a break with its spaces to one space and trims the ends (AC-3)", () => {
+  test("folds a break with its spaces to one space and trims the ends", () => {
     expect(oneLine("a\r\nb")).toBe("a b");
     expect(oneLine(" a\nb ")).toBe("a b");
     expect(oneLine("a  \n\n  b\rc")).toBe("a b c");
@@ -36,7 +36,7 @@ describe("oneLine", () => {
 });
 
 describe("updateProjectSettings folds line breaks", () => {
-  test("a break in each of the five text fields is written on one line (AC-3)", async () => {
+  test("a break in each of the five text fields is written on one line", async () => {
     const dir = project();
     const specs = join(dir, "sp");
     await updateProjectSettings(run, dir, {
@@ -56,13 +56,13 @@ describe("updateProjectSettings folds line breaks", () => {
     expect(config.split("\n").every((l) => l === "" || /^[A-Z_]+=/.test(l))).toBe(true);
   });
 
-  test("a break in the description is written on one line (AC-2)", async () => {
+  test("a break in the description is written on one line", async () => {
     const dir = project();
     await updateProjectSettings(run, dir, { description: "the\r\nboard\nfor specs" });
     expect(files(dir).manifest).toContain("description: the board for specs\n");
   });
 
-  test("a save carrying only the test command leaves the other four as they were (AC-3)", async () => {
+  test("a save carrying only the test command leaves the other four as they were", async () => {
     const dir = project();
     writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=bun install\n");
     await updateProjectSettings(run, dir, { installCmd: "bun install", worktreeLinks: "node_modules" });
@@ -74,7 +74,7 @@ describe("updateProjectSettings folds line breaks", () => {
     expect(after.manifest).toContain("AIDE_TEST_CMD: make test");
   });
 
-  test("values with no break write what they always did, and an unchanged value is not rewritten (AC-3)", async () => {
+  test("values with no break write what they always did, and an unchanged value is not rewritten", async () => {
     const dir = project();
     await updateProjectSettings(run, dir, { installCmd: "bun install" });
     const first = files(dir);

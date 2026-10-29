@@ -1,4 +1,4 @@
-// Spec 510, AC-4: the tick route on an ARCHIVED spec. A row marked Not verified
+// The tick route on an ARCHIVED spec. A row marked Not verified
 // may be completed or marked Failed with a note; nothing else on the spec moves.
 // Route only, against the real `aide-write-spec` and a recorded git runner.
 
@@ -47,7 +47,7 @@ const press = (
 
 const failedRow = (row: string, note: string) => row.replace(/\| Not verified \|[^|]*\|$/, `| ❌ Failed | Failed: ${note} |`);
 
-describe("an archived spec: a Not verified row can fail with a note (AC-4)", () => {
+describe("an archived spec: a Not verified row can fail with a note", () => {
   test("Failed with a note is written to 4-status.md and 4-status.json in one commit", async () => {
     const git = recording();
     const { base, dir } = start(NV_STATUS, git.run);
@@ -97,7 +97,7 @@ describe("an archived spec: a Not verified row can fail with a note (AC-4)", () 
   });
 });
 
-describe("an archived spec: the Failed note has a length bound (AC-4)", () => {
+describe("an archived spec: the Failed note has a length bound", () => {
   const folded = "x\r\n".repeat(250);
   const accepted = async (note: string) => {
     const git = recording();
@@ -106,13 +106,13 @@ describe("an archived spec: the Failed note has a length bound (AC-4)", () => {
     return { res, dir, git };
   };
 
-  test("a note of exactly 500 characters is written as Failed (AC-4)", async () => {
+  test("a note of exactly 500 characters is written as Failed", async () => {
     const { res, dir } = await accepted("a".repeat(500));
     expect(res.status).toBe(200);
     expect(readFileSync(fileOf(dir), "utf-8")).toContain("| ❌ Failed |");
   });
 
-  test("a note of 501 characters is refused, names 500, and nothing is written (AC-4)", async () => {
+  test("a note of 501 characters is refused, names 500, and nothing is written", async () => {
     const { res, dir, git } = await accepted("a".repeat(501));
     expect(res.status).toBe(409);
     expect(await res.text()).toContain("500");
@@ -120,19 +120,19 @@ describe("an archived spec: the Failed note has a length bound (AC-4)", () => {
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
   });
 
-  test("line breaks count once: 750 raw characters that fold to 500 are written (AC-4)", async () => {
+  test("line breaks count once: 750 raw characters that fold to 500 are written", async () => {
     expect(folded).toHaveLength(750);
     const { res } = await accepted(folded);
     expect(res.status).toBe(200);
   });
 
-  test("that note plus one more character folds to 501 and is refused (AC-4)", async () => {
+  test("that note plus one more character folds to 501 and is refused", async () => {
     const { res } = await accepted(`${folded}y`);
     expect(res.status).toBe(409);
   });
 });
 
-describe("an archived spec: nothing else moves (AC-4)", () => {
+describe("an archived spec: nothing else moves", () => {
   const refusals: [string, string, Parameters<typeof press>[1]][] = [
     ["a done row marked Failed", NV_STATUS, { rows: [DONE_ROW], failed: [DONE_ROW], notes: ["x"] }],
     ["a done row unticked", NV_STATUS, { rows: [DONE_ROW, NV_ROW], ticks: [NV_ROW] }],
@@ -162,7 +162,7 @@ describe("an archived spec: nothing else moves (AC-4)", () => {
   });
 });
 
-describe("a live spec: a Failed row is never moved by a press (AC-4)", () => {
+describe("a live spec: a Failed row is never moved by a press", () => {
   test("the failed field is ignored, and a post naming a Failed row is refused", async () => {
     const live = startWithChecks(harness, savable("/host"), WITH_FAILED);
     const ignored = await tick(live.base, { rows: [NV_ROW], unverified: [NV_ROW] });

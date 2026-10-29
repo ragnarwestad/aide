@@ -23,7 +23,7 @@ export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
  *  left open long enough for its own project/spec/model list to go
  *  stale before the post landed. What resolves either one is the same,
  *  so it is wrapped once here rather than worded by hand per call site
- *  (REQ-1, spec 352). */
+ */
 export const invalidRequest = (what: string): string =>
   errorSentence({
     what,
@@ -47,7 +47,7 @@ function tighten(raw: unknown, limit: number, name: string): number | Error {
   return raw;
 }
 
-/** The one table a posted model NAME is checked against (spec 228).
+/** The one table a posted model NAME is checked against.
  *
  *  It was `parseJobRequest`'s own closure until the New-spec form gained
  *  a Model choice of its own: two parsers now read a name off a request,
@@ -84,7 +84,7 @@ export function parseJobRequest(
   }
   // A `schedule` job never resolves under the specs root — a schedule
   // entry is not a spec, and its tracking key is a `schedule-<name>` key
-  // instead (spec 259), the same SHAPE `create`'s provisional
+  // instead, the same SHAPE `create`'s provisional
   // `new-<8hex>` key already has (though this exemption is new logic,
   // not a copy of `create`'s own — that one lives in a wholly separate
   // parser, `parseCreateRequest`). Gated on the STEPS actually being
@@ -126,11 +126,11 @@ export function parseJobRequest(
   // Checked here rather than beside the folder lookup above, so that the
   // errors keep the order they have always had: a request with a folder
   // nobody knows still hears about the folder first. An archived spec is
-  // admitted for `reopen` alone (spec 198) — every other step is refused
+  // admitted for `reopen` alone — every other step is refused
   // by name here, and `aide-run-spec`'s own `--spec` gate refuses it a
   // second time for a run started by hand.
   if (archivedOnly && steps.some((s) => s !== ARCHIVE_ONLY_STEP)) {
-    // spec 406, REQ-7: "closed" and "archived" must never blur into one
+    // "closed" and "archived" must never blur into one
     // word even in a refusal sentence — the gate itself (only `reopen`
     // is legal) is unchanged either way.
     const closed = (resolved.closedFolders ?? []).includes(r.specFolder);
@@ -141,7 +141,7 @@ export function parseJobRequest(
       ),
     };
   }
-  // The mirrored direction (spec 270): `reopen` exists to bring an
+  // The mirrored direction: `reopen` exists to bring an
   // archived spec back, so a request for it against a spec already in
   // `specFolders` is not a legitimate case, only a stale board row or a
   // caller that skipped the archived check above. `!archivedOnly` is not
@@ -155,11 +155,10 @@ export function parseJobRequest(
     };
   }
 
-  // `gateAfter` was parsed here until spec 149 — a list of steps to stop
-  // after. It is an unknown key now, and unknown keys are ignored rather
-  // than refused (see the header): the three jobs that ever carried one
-  // were posted as JSON by hand, and refusing the field would turn a
-  // retired feature into a new error.
+  // `gateAfter` (a list of steps to stop after) is an unknown key, and
+  // unknown keys are ignored rather than refused (see the header): the
+  // three jobs that ever carried one were posted as JSON by hand, and
+  // refusing the field would turn a retired feature into a new error.
 
   // `extraProjects` was parsed here — passenger repos a run would also
   // branch, commit and push, named on the row by a tick box per project.
@@ -170,7 +169,7 @@ export function parseJobRequest(
 
   // A model may be picked for the whole job — that is how the heaviest
   // model is reserved for the heaviest work — or once per STEP, which
-  // is what the phase lines post since spec 123. The NAME comes from
+  // is what the phase lines post. The NAME comes from
   // the request either way; everything it is granted comes from the
   // config, looked up in exactly the same table.
   let modelChoice: string | undefined;
@@ -202,11 +201,11 @@ export function parseJobRequest(
     }
   }
 
-  // The effort level a step runs at (spec 364), per step — the same
+  // The effort level a step runs at, per step — the same
   // per-step shape `stepModels` above takes, but with no whole-job
   // pick and no config lookup: the value IS the level, checked directly
   // against the fixed EFFORT_LEVELS list. An empty/untouched entry is
-  // skipped, not refused (REQ-4) — "the phase select posts an empty
+  // skipped, not refused — "the phase select posts an empty
   // value" is a real, valid resting state for effort, unlike model's
   // select, which is always pre-filled with a real name.
   const stepEffort: Record<string, string> = {};
@@ -222,15 +221,12 @@ export function parseJobRequest(
     }
   }
 
-  // `acceptanceNotRequired` was parsed here until spec 394 — spec 386's
-  // whole-job checkbox, read by `analyze`'s own invocation alone. The
-  // choice is recorded on the spec itself now
-  // (`specAcceptanceNotRequired`, read fresh at spawn time), so a second
-  // job for an existing spec has nothing left to post; the specs-list
-  // row that used to post it is gone (REQ-8). Like `gateAfter` above it
-  // is an unknown key now, ignored rather than refused.
+  // `acceptanceNotRequired` is not parsed: the choice is recorded on the
+  // spec itself (`specAcceptanceNotRequired`, read fresh at spawn time),
+  // so a second job for an existing spec has nothing left to post. Like
+  // `gateAfter` above it is an unknown key, ignored rather than refused.
 
-  // spec 406, REQ-3/REQ-5: why a `close` step is closing the spec — typed
+  // Why a `close` step is closing the spec — typed
   // by the person closing it, refused empty by close-controls.ts's own
   // POST route before a request ever reaches here, so an empty string
   // reaching this parser is only ever a hand-crafted request; bounded
@@ -249,7 +245,7 @@ export function parseJobRequest(
     closeReason = r.closeReason.trim();
   }
 
-  // spec 511: whether a reopen also resets the three files. Only a job that
+  // Whether a reopen also resets the three files. Only a job that
   // is exactly one `reopen` step can carry it.
   const resetFiles =
     steps.length === 1 && steps[0] === "reopen" &&
@@ -297,7 +293,7 @@ export function parseJobRequest(
   };
 }
 
-// --- a spec that does not exist yet (spec 93) -------------------------------
+// --- a spec that does not exist yet -------------------------------
 
 /** How long the two free-text fields may be. Bounded for the same reason
  *  every other field here is: they end up as arguments to an unattended
@@ -315,8 +311,7 @@ export const DESCRIPTION_MAX = 5000;
  *  is a paragraph, a title is a line. */
 const CONTROL_CHARS = /[\x00-\x08\x0b-\x1f\x7f]/;
 
-// A field a person actually types into the New-spec form (REQ-2, spec
-// 352): its resolution names the form, not the raw-request wording
+// A field a person actually types into the New-spec form: its resolution names the form, not the raw-request wording
 // `invalidRequest()` gives the rest of this file — a title over
 // `TITLE_MAX` is a real reader who typed too much, never a hand-crafted
 // request.
@@ -334,20 +329,20 @@ function text(raw: unknown, max: number, name: string, multiline = false): strin
 }
 
 /** The provisional key a create job carries in place of a spec folder,
- *  until landing decides the real name (spec 453). Obviously not a spec
+ *  until landing decides the real name. Obviously not a spec
  *  folder, on purpose: nothing in this codebase may compute a spec's
  *  number or slug except the two shared shell functions
  *  (`aide_next_spec_number`, `aide_slug_from_title` in
  *  `_aide-spec-lib.sh`) that both an interactive `/aide-create` session
  *  and landing's own `--assign-number` step call — never a second,
- *  independent count (spec 82's mistake was one rule written down
+ *  independent count (a second count would be one rule written down
  *  twice). */
 const provisionalKey = (): string =>
   `new-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
 
 /** `parseCreateRequest`'s own return shape, widened over the base
  *  `ParseResult`: the picks banked for a phase this create job does not
- *  run (spec 465) are consumed by its one caller, `enqueueCreate()`, not
+ *  run are consumed by its one caller, `enqueueCreate()`, not
  *  carried on the job itself. */
 export type CreateParseResult = ParseResult & { pendingStepModels?: Record<string, string> };
 
@@ -375,7 +370,7 @@ export function parseCreateRequest(
   const description = text(r.description, DESCRIPTION_MAX, "description", true);
   if (description instanceof Error) return { ok: false, error: description.message };
 
-  // What the new spec builds on (spec 110). Scoped to the SAME project a
+  // What the new spec builds on. Scoped to the SAME project a
   // dependency guard would later check it against — `aide-run-spec`
   // resolves every "Depends on:" entry inside its own $specs_root — and
   // read off the server's own resolver, never off whichever chips the
@@ -398,13 +393,13 @@ export function parseCreateRequest(
     }
   }
 
-  // Which phases this job runs, beyond `create` itself (spec 342). The
+  // Which phases this job runs, beyond `create` itself. The
   // New spec page's own phase table posts the same repeated `steps`
   // field the Specs list's row does, bounded to the same three phases
   // that row may tick (`PHASE_STEPS`) — never `create` a second time,
   // and never a step outside the workflow's own vocabulary. Omitted
   // entirely, an untouched form's `steps` is exactly `["create"]`,
-  // identical to today's behaviour (REQ-3).
+  // identical to today's behaviour.
   const extraSteps: WorkflowStep[] = [];
   if (r.steps !== undefined && r.steps !== null) {
     if (!Array.isArray(r.steps)) return { ok: false, error: "steps must be a list" };
@@ -417,8 +412,7 @@ export function parseCreateRequest(
   }
   const steps: WorkflowStep[] = ["create", ...extraSteps];
 
-  // Which model each of those steps is run ON (spec 228, widened by
-  // spec 342). Every step BUT `create` could already be pointed at one
+  // Which model each of those steps is run ON. Every step BUT `create` could already be pointed at one
   // from its own phase line; `create` MAKES the spec those lines belong
   // to, so there is no row to pick it from and the New-spec form is
   // where the choice is made instead — now for every step this job may
@@ -437,7 +431,7 @@ export function parseCreateRequest(
     // A name posted for a step this job does not run is not refused —
     // the rule `parseJobRequest` already follows, since a browser posts
     // every select it drew, whichever boxes are ticked — but a REAL
-    // phase's pick is not dropped either (spec 465): it is banked as a
+    // phase's pick is not dropped either: it is banked as a
     // pending choice for that phase, the same way the New page's own
     // phase table lines up with the Specs list row's model picker. A
     // key that names no real phase at all (junk, an unrelated field)

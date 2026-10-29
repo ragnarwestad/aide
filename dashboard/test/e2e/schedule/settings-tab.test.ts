@@ -38,7 +38,7 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-test("Edit, a refused Save that keeps what was typed, then a Save that shows the saved values (AC-5)", async () => {
+test("Edit, a refused Save that keeps what was typed, then a Save that shows the saved values", async () => {
   const page = await browser.newPage();
   await page.goto(`${base}/schedule/aide/nightly-report?tab=settings`);
   await page.getByRole("link", { name: "Edit", exact: true }).click();
@@ -58,7 +58,7 @@ test("Edit, a refused Save that keeps what was typed, then a Save that shows the
   await page.close();
 });
 
-test("Delete on the Settings tab lands on the project's Schedule tab, without the entry (AC-4)", async () => {
+test("Delete on the Settings tab lands on the project's Schedule tab, without the entry", async () => {
   const page = await browser.newPage();
   await page.goto(`${base}/schedule/aide/nightly-report?tab=settings`);
   await page.locator('button[data-ask="deleteask-aide/nightly-report"]').click();

@@ -9,13 +9,13 @@ export interface JobStepResultView {
   step?: string;
   ok: boolean;
   costUsd: number;
-  /** Which CLI ran this step (spec 125). Absent means claude — every
+  /** Which CLI ran this step. Absent means claude — every
    *  result written before the second tool existed says nothing here,
    *  and claude is what ran it. `none` is a `create` step that skipped
-   *  the AI session entirely (spec 433). */
+   *  the AI session entirely. */
   tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
   /** This step's token total, absent when the run did not measure one
-   *  (spec 118). A number, like the list's own view: the page shows a
+   *  A number, like the list's own view: the page shows a
    *  compact total, not the stored split. */
   tokens?: number;
   costMeasured: boolean;
@@ -24,7 +24,7 @@ export interface JobStepResultView {
   providerLimit?: ProviderLimit;
   subtype?: string;
   sessionId?: string;
-  /** Absent while this step's own work is still landing (spec 395) — see
+  /** Absent while this step's own work is still landing — see
    *  `StepResult.at`, the field this is built from. */
   at?: string;
   /** This step's Log, already-escaped, as parts in the order things
@@ -33,7 +33,7 @@ export interface JobStepResultView {
    *  no transcript of its own (a refused run, or one older than the field
    *  existing). */
   logs?: LogPart[];
-  /** Which attempt (job) ran this step, oldest = 1 (spec 242). Absent
+  /** Which attempt (job) ran this step, oldest = 1. Absent
    *  when the spec this row belongs to has only ever run once — nothing
    *  to disambiguate, so nothing is drawn. This page's own single-job
    *  table never sets this; only `spec-page.ts`'s flattened, multi-job
@@ -47,7 +47,7 @@ export interface JobStepResultView {
    *  the step ran no AI. */
   aiModel?: string;
   /** The files this step's own commit(s) touched, with lines added and
-   *  removed (spec 452) — `git diff --numstat` between the step's
+   *  removed — `git diff --numstat` between the step's
    *  `headBefore`/`headAfter`. Undefined means "not checked" (no `repos`
    *  recorded — a result written before this field existed); an empty
    *  array means "checked, nothing changed" (`headBefore === headAfter`). */
@@ -58,7 +58,7 @@ export interface JobStepResultView {
 }
 
 /** A spec's own file, or one section of one, as it stands on disk
- *  (spec 150). Shown preformatted and escaped: rendering markdown to
+ *  Shown preformatted and escaped: rendering markdown to
  *  HTML is its own decision and was put out of scope, and seeing which
  *  version is up needs the text, not a rendering of it.
  *
@@ -82,7 +82,7 @@ export interface SpecFileView {
 export interface JobDetailView extends QueueRowView {
   /** Which CLI is running (or last ran) this job's current step. Absent
    *  means claude. `none` is a finished `create` step that skipped the
-   *  AI session entirely (spec 433) — never a step actually IN FLIGHT,
+   *  AI session entirely — never a step actually IN FLIGHT,
    *  since a running step's tool always names a real CLI (`runningStep`
    *  is resolved from the config's own model choice, which has no "none"
    *  entry). */
@@ -91,22 +91,22 @@ export interface JobDetailView extends QueueRowView {
   title?: string;
   finishedAt?: string;
   results: JobStepResultView[];
-  /** What THIS job's step wrote (spec 150): analyze's 3-solution.md
+  /** What THIS job's step wrote: analyze's 3-solution.md
    *  (plan and, once the reviewer routine has run, its "Plan review"
-   *  section too — spec 181), implement's 4-status.md, archive's one
+   *  section too), implement's 4-status.md, archive's one
    *  outcome. Absent for a step that writes no file of its own — the
    *  page then shows its three facts and nothing else. */
   phase?: SpecFileView;
-  /** Why the spec's archive run did not move the folder (spec 108).
+  /** Why the spec's archive run did not move the folder.
    *  Read off the SPEC's `4-status.md`, exactly as the list's row reads
    *  it, so the two pages cannot word the same fact differently. */
   archiveHeldBack?: string;
-  /** The step running RIGHT NOW, when one is (spec 240). It has no
+  /** The step running RIGHT NOW, when one is. It has no
    *  `JobStepResultView` yet — a step only gets one when it ends — so
    *  it cannot live in `results`, and its transcript is the job's own
    *  live pointer, not a finished step's file. */
   runningStep?: { step: string; sessionId?: string; logs: LogPart[]; errors?: string[]; aiModel?: string; attempt?: number };
-  /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
+  /** Where "← Back" goes — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */
   backHref?: string;

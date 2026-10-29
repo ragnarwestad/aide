@@ -9,19 +9,19 @@ import {
 } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 
-// --- spec 195: a phase line shows its mark and nothing else -------------------
+// --- A phase line shows its mark and nothing else -------------------
 //
-// A qualifier is a sentence, and spec 108 drew it in a `<div>` under the
+// A qualifier is a sentence, and it was once drawn in a `<div>` under the
 // phase's badge. A `<div>` is a line of its own, so a phase with
 // something to say was taller than the phase above it — and everything
 // below the row moved the moment a run started, stopped, or a status
-// file fell out of step with the git history. Spec 176 already moved the
-// stale mark and the tries count BESIDE the badge for exactly this
+// file fell out of step with the git history. The
+// stale mark and the tries count already sit BESIDE the badge for exactly this
 // reason; the qualifier is the occupant it did not touch.
 //
-// The sentence is not lost: it goes into the panel spec 143 built for
+// The sentence is not lost: it goes into the panel built for
 // "a sentence too long for a cell", named for the phase it is about.
-describe("spec 195: a phase line shows its mark and nothing else", () => {
+describe("a phase line shows its mark and nothing else", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -46,7 +46,7 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
-  // Criterion 4: the ordinary case, and the one that must stay silent.
+  // The ordinary case, and the one that must stay silent.
   // A phase whose file and history agree has nothing to say anywhere —
   // a panel that repeats what a badge already shows is the same clutter
   // in a new place.
@@ -57,7 +57,7 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
     expect(panel(html)).toBe("");
   });
 
-  // Criterion 5: two phases disagreeing at once is the case
+  // Two phases disagreeing at once is the case
   // 1-description.md flags ("three of these can fire at once"). The
   // panel has one slot, so it states the EARLIEST phase in workflow
   // order and names it — never an arbitrary pick, and never a
@@ -94,7 +94,7 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
   });
 });
 
-// --- spec 210: a running implement says which third it is in -----------------
+// --- A running implement says which third it is in -----------------
 //
 // An implement runs for an hour and the row says only "running". Which
 // of its three parts it is in — writing the failing tests, making them
@@ -106,7 +106,7 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
 // (green)`); the spec head row's pip fills a third at a time. The pip's
 // own width never changes — a pip that grew would move everything on the
 // line beside it.
-describe("spec 210: a running implement says which third it is in", () => {
+describe("a running implement says which third it is in", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -135,7 +135,7 @@ describe("spec 210: a running implement says which third it is in", () => {
    *  on the spec page's own Overview
    *  (`spec-page-head-standing.test.ts`). */
 
-  // Criterion 2. `green` means RED is behind it: one third of three, not
+  // `green` means RED is behind it: one third of three, not
   // two. The natural-looking mapping is off by one and nothing in the
   // type system catches it, so the worked value is pinned here.
   test("a running implement in GREEN reads (green) and fills one third", () => {
@@ -146,7 +146,6 @@ describe("spec 210: a running implement says which third it is in", () => {
     expect(subRow(html, "implement")).toContain("Running (green)");
   });
 
-  // Criterion 3.
   test("a running implement in VERIFY reads (verify) and fills two thirds", () => {
     const html = rows(
       [row({ id: "impl", specFolder: "210-ref", steps: ["implement"], state: "running", tddPhase: "verify" })],
@@ -155,7 +154,7 @@ describe("spec 210: a running implement says which third it is in", () => {
     expect(subRow(html, "implement")).toContain("Running (verify)");
   });
 
-  // Criterion 4: zero thirds complete renders identically to "no report
+  // Zero thirds complete renders identically to "no report
   // arrived". A pip that looked 1/3 done five seconds into RED would
   // actively misinform, which is worse than saying nothing.
   test("a running implement in RED reads (red) and fills nothing", () => {
@@ -166,7 +165,7 @@ describe("spec 210: a running implement says which third it is in", () => {
     expect(subRow(html, "implement")).toContain("Running (red)");
   });
 
-  // Criterion 6: the report never arrived. Nothing throws, and the row
+  // The report never arrived. Nothing throws, and the row
   // reads exactly as it does today.
   test("a running implement nobody reported on reads plain running, unfilled", () => {
     const html = rows(
@@ -177,7 +176,7 @@ describe("spec 210: a running implement says which third it is in", () => {
     expect(subRow(html, "implement")).not.toContain("running (");
   });
 
-  // Criterion 5: analyze has no phase reports and is out of scope, so
+  // Analyze has no phase reports and is out of scope, so
   // its rows arrive without a `tddPhase` and read as they always did.
   // WHICH steps are given one is `jobRow`'s rule and is asserted where
   // that rule lives, in queue-detail.test.ts — naming the step a second
@@ -204,7 +203,7 @@ describe("spec 210: a running implement says which third it is in", () => {
     expect(subRow(html, "implement")).not.toContain("(green)");
   });
 
-  // Criterion 7: the phase is over. A stale entry from the session it
+  // The phase is over. A stale entry from the session it
   // once used must not fill a pip for a run that has stopped, nor
   // qualify a word that is no longer "running".
   test("an implement that is NOT running ignores a leftover phase", () => {

@@ -1,9 +1,9 @@
-// Spec 388, REQ-9: a branch pushed only to origin — never fetched into
+// A branch pushed only to origin — never fetched into
 // the checkout the round runs from — must be fetched and tracked
 // locally, not refused. Builds a throwaway bare "origin" and an AIDE
 // checkout cloned from it BEFORE the branch is pushed, so the clone's
 // own remote-tracking refs genuinely know nothing about it — the exact
-// gap REQ-9 closes. A decoy already holding the round's chosen port
+// gap the fetch closes. A decoy already holding the round's chosen port
 // (the same trick refuses-a-stolen-port.test.ts uses) gives a fast,
 // deterministic failure once the branch check has passed, so this test
 // never waits out a real board coming up.
@@ -49,7 +49,7 @@ async function runToExit(args: string[]): Promise<{ code: number; stdout: string
   return { code, stdout, stderr };
 }
 
-describe("spec 388, REQ-9: a branch that exists only on origin", () => {
+describe("a branch that exists only on origin", () => {
   test("is fetched and tracked instead of refused", async () => {
     const originBare = tmp("aide-round-origin-");
     git(originBare, ["init", "-q", "--bare", "-b", "main"]);
@@ -86,8 +86,8 @@ describe("spec 388, REQ-9: a branch that exists only on origin", () => {
       const { stderr } = await runToExit([aide, "--branch", "feature-x", "--port", String(decoy.port), "--timeout", "5"]);
       expect(stderr).not.toContain("no such branch");
       // The branch check fetched and tracked it locally — proceeding to
-      // whatever REQ-10-style refusal the held port produces next is
-      // this test's proof that REQ-9's own gate was cleared, not that
+      // whatever refusal the held port produces next is
+      // this test's proof that the branch gate was cleared, not that
       // the whole round finished.
       git(aide, ["show-ref", "--verify", "--quiet", "refs/heads/feature-x"]);
     } finally {

@@ -63,7 +63,7 @@ describe("whether a test server is offered for a project", () => {
     writeFileSync(join(dir, "dashboard", "src", "serve", "serve.ts"), "");
   };
 
-  test("command with a round script or a previewCmd is offered (AC-3)", () => {
+  test("command with a round script or a previewCmd is offered", () => {
     const withRound = root();
     manifest(withRound, "name: a\ndeployment:\n  previewFrom: command\n");
     roundScript(withRound);
@@ -74,14 +74,14 @@ describe("whether a test server is offered for a project", () => {
     expect(testServerOffered(withCmd)).toBe(true);
   });
 
-  test("command with nothing that can start a board is not offered (AC-3)", () => {
+  test("command with nothing that can start a board is not offered", () => {
     const dir = root();
     manifest(dir, "name: a\ndeployment:\n  previewFrom: command\n");
 
     expect(testServerOffered(dir)).toBe(false);
   });
 
-  test("none, no setting and cloudflare-pages are not offered, though a previewCmd could start a board (AC-4, AC-1)", () => {
+  test("none, no setting and cloudflare-pages are not offered, though a previewCmd could start a board", () => {
     for (const deployment of ["deployment:\n  previewFrom: none\n", "", "deployment:\n  previewFrom: cloudflare-pages\n"]) {
       const dir = root();
       manifest(dir, `name: a\npreviewCmd: pnpm dev --port $PORT\n${deployment}`);
@@ -89,7 +89,7 @@ describe("whether a test server is offered for a project", () => {
     }
   });
 
-  test("Aide's own manifest says command, so its row keeps the test server (AC-3)", () => {
+  test("Aide's own manifest says command, so its row keeps the test server", () => {
     const aide = join(import.meta.dir, "..", "..", "..");
 
     expect(testServerOffered(aide)).toBe(true);

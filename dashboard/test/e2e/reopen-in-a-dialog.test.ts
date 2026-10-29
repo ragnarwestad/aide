@@ -65,7 +65,7 @@ async function ask(page: Page): Promise<void> {
 }
 
 describe("Reopen asks in a dialog from the spec in its row", () => {
-  test("Reopen opens a modal headed with the spec's folder, and the address stays (AC-1)", async () => {
+  test("Reopen opens a modal headed with the spec's folder, and the address stays", async () => {
     const { page } = await open(SPEC);
     await ask(page);
     expect(await modal(page)).toBe(true);
@@ -74,7 +74,7 @@ describe("Reopen asks in a dialog from the spec in its row", () => {
     expect(new URL(page.url()).pathname).toBe(SPEC);
   });
 
-  test("OK posts resetFiles=1 only with the box ticked (AC-2)", async () => {
+  test("OK posts resetFiles=1 only with the box ticked", async () => {
     for (const tick of [true, false]) {
       const { page, posts } = await open(SPEC);
       await ask(page);
@@ -96,7 +96,7 @@ describe("Reopen asks in a dialog from the spec in its row", () => {
     expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${STAMPED}:reopen`);
   });
 
-  test("a refusal is written in the dialog, which stays, and a second OK posts again (AC-3)", async () => {
+  test("a refusal is written in the dialog, which stays, and a second OK posts again", async () => {
     const { page, posts } = await open(SPEC, { status: 400, json: { error: "Only an archived spec can be reopened." } });
     await ask(page);
     await ok(page);

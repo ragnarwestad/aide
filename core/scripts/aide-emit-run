@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # aide-emit-run — link a Claude Code session to the aide spec it works
-# on (spec 80), and report TDD phase boundaries from inside a run
-# (spec 81, slice 81c).
+# on, and report TDD phase boundaries from inside a run.
 #
 # Two modes, one payload:
 #

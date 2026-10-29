@@ -1,5 +1,5 @@
-// Spec 353: jobRow()'s queuePosition must come off the same
-// queuePriorityOrder() the runner picks from (REQ-6).
+// JobRow()'s queuePosition must come off the same
+// queuePriorityOrder() the runner picks from.
 
 import { describe, expect, test } from "bun:test";
 import { QueueStore, queuePriorityOrder } from "../../../src/queue/queue.ts";
@@ -21,7 +21,7 @@ function makeStore(): QueueStore {
   });
 }
 
-describe("jobRow()'s queuePosition (spec 353)", () => {
+describe("jobRow()'s queuePosition", () => {
   test("matches queuePriorityOrder()'s own order for a mix of quick and slow queued jobs", async () => {
     const store = makeStore();
     const runStore = new AideRunStore();
@@ -53,10 +53,10 @@ describe("jobRow()'s queuePosition (spec 353)", () => {
 
 });
 
-// Spec 396: a job the runner has held back (`errorReason: "held-back"`)
+// A job the runner has held back (`errorReason: "held-back"`)
 // is not competing for a slot at all, so it gets no place, and it must
 // not be counted in any OTHER queued job's total either.
-describe("jobRow()'s queuePosition excludes held-back jobs (spec 396)", () => {
+describe("jobRow()'s queuePosition excludes held-back jobs", () => {
   test("a held-back job gets no queuePosition, and the genuinely-queued job's total excludes it", async () => {
     const store = makeStore();
     const runStore = new AideRunStore();
@@ -96,12 +96,12 @@ describe("jobRow()'s queuePosition excludes held-back jobs (spec 396)", () => {
   });
 });
 
-// Spec 384: `Job.stepStartedAt`/`StepResult.startedAt` are the one link
+// `Job.stepStartedAt`/`StepResult.startedAt` are the one link
 // in the five-file thread that fails silently rather than loudly — a
 // dropped optional field compiles fine and simply reads as "no start
 // recorded" forever. Guarded here, independent of the math that
 // consumes the fields once they arrive.
-describe("jobRow() carries the per-step start stamps through (spec 384)", () => {
+describe("jobRow() carries the per-step start stamps through", () => {
   test("Job.stepStartedAt and StepResult.startedAt survive the hop into QueueRowView/StepResultView", async () => {
     const store = makeStore();
     const runStore = new AideRunStore();
@@ -128,7 +128,7 @@ describe("jobRow() carries the per-step start stamps through (spec 384)", () => 
 // Why `gh` opened no pull request is the step's own answer, and the phase's
 // log says it: the row the page draws from has to carry it.
 describe("jobRow()'s step results", () => {
-  test("carry why no pull request was opened (AC-4)", async () => {
+  test("carry why no pull request was opened", async () => {
     const store = makeStore();
     const queued = store.enqueue({ project: "aide", specFolder: "a", steps: ["archive"] });
     if (!queued.ok) throw new Error("enqueue failed");

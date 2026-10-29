@@ -1,4 +1,4 @@
-"""aide-run-spec: a project keeps nothing of Aide's in its repository (spec 512).
+"""aide-run-spec: a project keeps nothing of Aide's in its repository.
 
 An untracked `.aide/project.yaml` in the main checkout is the dashboard's
 derived copy of the settings it keeps for the project. A worktree carries
@@ -66,7 +66,7 @@ def _run_probing(runner, workspace, fake_claude, lib):
 def test_the_worktree_carries_the_manifest_by_the_rule_in_the_table(
     runner, workspace, fake_claude, workspace_root, row
 ):
-    """(AC-5) tracked: left alone; untracked with a source: copied in;
+    """Tracked: left alone; untracked with a source: copied in;
     no source: nothing."""
     _project_with(workspace, row)
     lib = workspace_root / "core" / "scripts" / "_aide-spec-lib.sh"
@@ -81,7 +81,7 @@ def test_the_worktree_carries_the_manifest_by_the_rule_in_the_table(
 def test_the_branch_holds_the_manifest_only_when_the_project_tracks_it(
     runner, workspace, fake_claude, workspace_root, row
 ):
-    """(AC-6) a copied manifest is never committed; a tracked one is."""
+    """A copied manifest is never committed; a tracked one is."""
     _project_with(workspace, row, excluded=False)
     lib = workspace_root / "core" / "scripts" / "_aide-spec-lib.sh"
     _run_probing(runner, workspace, fake_claude, lib)
@@ -93,7 +93,7 @@ def test_the_branch_holds_the_manifest_only_when_the_project_tracks_it(
 def test_the_main_checkout_is_as_it_was_and_the_worktree_is_gone(
     runner, workspace, fake_claude, workspace_root
 ):
-    """(AC-6) nothing of the copy is left behind in the main checkout."""
+    """Nothing of the copy is left behind in the main checkout."""
     _project_with(workspace, ROWS[0])
     before = git(workspace["project"], "status", "--porcelain")
     lib = workspace_root / "core" / "scripts" / "_aide-spec-lib.sh"
@@ -113,7 +113,7 @@ def _tree_hash(workspace_root, tree):
 
 
 def test_the_tree_hash_leaves_an_untracked_manifest_out(workspace, workspace_root):
-    """(AC-6) the hash of a worktree holding the copy equals the hash of
+    """The hash of a worktree holding the copy equals the hash of
     the same worktree without it — and a tracked manifest still counts."""
     project = workspace["project"]
     without = _tree_hash(workspace_root, project)

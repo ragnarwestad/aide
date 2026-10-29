@@ -16,13 +16,13 @@ const configFile = (contents: Record<string, unknown>): string => {
   return file;
 };
 
-describe("--token-file (AC-4)", () => {
+describe("--token-file", () => {
   test("is an unknown argument", () => {
     expect(() => parseArgs(["--token-file", "x"])).toThrow("unknown argument: --token-file");
   });
 });
 
-describe("allowedHosts in queue-config.json (AC-3)", () => {
+describe("allowedHosts in queue-config.json", () => {
   test("a list of names is read, lower-cased", () => {
     const opts = parseArgs(["--queue-config", configFile({ allowedHosts: ["Board.Example.com", "b.example"] })]);
     expect(opts.allowedHosts).toEqual(["board.example.com", "b.example"]);
@@ -49,7 +49,7 @@ describe("allowedHosts in queue-config.json (AC-3)", () => {
   });
 });
 
-describe("headerAuth is read as before (AC-6)", () => {
+describe("headerAuth is read as before", () => {
   test("a well-formed block is read; a malformed one is ignored", () => {
     const good = { header: "Tailscale-User-Login", users: ["alice@example.com"] };
     expect(parseArgs(["--queue-config", configFile({ headerAuth: good })]).headerAuth).toEqual(good);

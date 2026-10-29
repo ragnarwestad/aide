@@ -10,22 +10,21 @@ import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 // phase that has run shows the model it last ran on, one that has not
 // shows what the configuration would give it. What is posted is always
 // a real name — the queue skips names for steps a job does not run.
-/** Which model a phase is actually ON, in one place (spec 179).
+/** Which model a phase is actually ON, in one place.
  *
  *  A phase that HAS run shows what it ran on; an admin's configured
  *  default outranks the fallback beneath it; and the last resort is the
  *  first entry `modelChoices` LISTS, in configuration order. That last
- *  branch was the first entry of the row's own AI until spec 169 — spec
- *  141 scoped it to a literal `"claude"` and spec 164 to the tool the
- *  row's lead job ran on — but both were there to keep the select
- *  agreeing with a row-wide AI picker, and there is no row-wide AI.
+ *  branch is not scoped to a literal `"claude"` or to the tool the
+ *  row's lead job ran on: that would only keep the select agreeing
+ *  with a row-wide AI picker, and there is no row-wide AI.
  *
  *  It is a function rather than three lines inside `modelPicker`
  *  because `aiPicker` needs the same answer: the AI a line shows is the
  *  tool of the model that line is on, and a second copy of this
  *  reasoning is a second copy that can drift from it.
  *
- *  `pending` is a fourth, trailing tier (spec 308): a model picked for
+ *  `pending` is a fourth, trailing tier: a model picked for
  *  this phase before it ever ran, recorded the instant the pick was
  *  made so it survives leaving the page. It sits BENEATH `used` — a
  *  phase that has actually run shows what it ran on, never an earlier
@@ -48,7 +47,7 @@ export function resolveChosenModel(
   return has(pending) ? pending! : has(configured) ? configured! : models[0]!.name;
 }
 
-/** What an archived phase's own record wins with (spec 265). A locked
+/** What an archived phase's own record wins with. A locked
  *  row's select is a record, not a choice, so a genuine record always
  *  wins here — valid choice today or not — unlike `resolveChosenModel`'s
  *  `used`, which is dropped the moment it falls outside `models`. Absent
@@ -67,7 +66,7 @@ export function resolveRecordedModel(
   return models.find((m) => m.name.toLowerCase() === word || m.named?.id === recorded)?.name ?? recorded;
 }
 
-/** The model an AI choice fills in for one step (spec 179).
+/** The model an AI choice fills in for one step.
  *
  *  The step's configured default when that default belongs to the tool
  *  — "one the configuration names", and the same `defaultModels` table
@@ -90,7 +89,7 @@ export function defaultModelForTool(
 }
 
 /** The three fields any of `modelPicker`/`aiPicker`/`phaseCaptionCells`
- *  actually reads out of `SpecsPageOptions` (spec 342). The New spec
+ *  actually reads out of `SpecsPageOptions`. The New spec
  *  page's own options carry no `runnerAvailable`, no `targets` — a
  *  spec that does not exist yet has neither — so the three functions
  *  take this narrower shape rather than the whole options type. Every
@@ -159,7 +158,7 @@ export function phaseAiModel(
   return { model, tool: models.find((m) => m.name === model)?.tool ?? usedTool ?? "claude" };
 }
 
-/** The compact button's own text (AC-1/AC-2, spec 480): the model's
+/** The compact button's own text: the model's
  *  bare name, unless another entry in the SAME array carries that
  *  exact name — a tool prefix then goes in front, "Codex · gpt-6"
  *  (the description's own example). Written over the array
@@ -182,7 +181,7 @@ export function compactModelLabel(
 }
 
 /** The FULL text the growing button shows once there is room for it
- *  (AC-1, spec 488): always tool-prefixed, unlike `compactModelLabel()`'s
+ *  always tool-prefixed, unlike `compactModelLabel()`'s
  *  own collision-only rule. Identical to `compactModelLabel()`'s own
  *  output whenever a collision already forces the prefix there. Mirrored
  *  client-side by `refreshAiModelBox()` (`specs-client/ai-sync.ts`), the

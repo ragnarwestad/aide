@@ -15,8 +15,8 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-describe("what the page says about whether a run could start (criteria 4-6, 8)", () => {
-  test("a checkout a run cannot move to its default branch says so, with nothing pressed (criterion 6)", async () => {
+describe("what the page says about whether a run could start", () => {
+  test("a checkout a run cannot move to its default branch says so, with nothing pressed", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, stranded(root, "aide")), "aide")).text();
     expect(html).toContain("there is no such branch, here or on origin");
@@ -31,25 +31,25 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     expect(html).toContain("ready to run");
   });
 
-  test("a worktree link with nothing to link is on the page (criterion 4)", async () => {
+  test("a worktree link with nothing to link is on the page", async () => {
     const root = projectsRoot({ aide: null });
     setWorktreeLinks(root, "aide", "node_modules");
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toContain("A run refuses a worktree link with nothing to link");
   });
 
-  // Spec 378 (REQ-2): a field-owned check that is UNSET (nothing
+  // A field-owned check that is UNSET (nothing
   // configured at all, not merely misconfigured) now carries its
   // readiness note on the Config row too — closing the gap the Health
   // tab's removal would otherwise have left unreachable.
-  test("no worktree links configured at all is on the Config row (REQ-2)", async () => {
+  test("no worktree links configured at all is on the Config row", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toMatch(/worktree links/i);
     expect(html).toContain("No worktree links are configured");
   });
 
-  test("a specs root that is not there is on the page (criterion 5)", async () => {
+  test("a specs root that is not there is on the page", async () => {
     const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/tmp/aide-no-such-specs-root\n" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toContain("There is no specs root at /tmp/aide-no-such-specs-root");
@@ -58,7 +58,7 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   // Fail-open, the way the drift check on /projects already does: the
   // reader came for the project's page, and an unreachable git is no
   // reason to withhold the half of it that needs no git.
-  test("a git that answers nothing still leaves the page standing (criterion 8)", async () => {
+  test("a git that answers nothing still leaves the page standing", async () => {
     const root = projectsRoot({ aide: "" });
     setTestCmd(root, "aide", "make test");
     const res = await get(serve(root, fakeGit({})), "aide");
@@ -121,7 +121,7 @@ const serveBoard = (root: string, git: { run: GitRunner }, driftPollMs?: number)
 const askTag = (html: string): string => html.match(/<button\b[^>]*data-ask="deployask"[^>]*>/)?.[0] ?? "";
 
 describe("the Deploy tab of a project that is not the board's own", () => {
-  test("a project with an install command, behind origin, has no Deploy button (AC-1)", async () => {
+  test("a project with an install command, behind origin, has no Deploy button", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const html = await loadUntil(serve(root, behindBy(root, "aide", 2), 25), "aide", "2 commits behind origin", 2000, "deploy");
     expect(html).toContain("2 commits behind origin, checked");
@@ -129,13 +129,13 @@ describe("the Deploy tab of a project that is not the board's own", () => {
     expect(html).not.toContain('class="deployform"');
   });
 
-  test("a project with no install command has no Deploy button (AC-1)", async () => {
+  test("a project with no install command has no Deploy button", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide", "deploy")).text();
     expect(deployButtons(html)).toEqual([]);
   });
 
-  test("the tab says once that Deploy is not offered, with or without an install command, and never names the board (AC-2)", async () => {
+  test("the tab says once that Deploy is not offered, with or without an install command, and never names the board", async () => {
     for (const config of [INSTALLS, null]) {
       const root = projectsRoot({ aide: config });
       const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
@@ -145,7 +145,7 @@ describe("the Deploy tab of a project that is not the board's own", () => {
     }
   });
 
-  test("the tab bar offers Deploy, with or without an install command (AC-3)", async () => {
+  test("the tab bar offers Deploy, with or without an install command", async () => {
     for (const config of [INSTALLS, null]) {
       const root = projectsRoot({ aide: config });
       const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "config")).text();
@@ -153,21 +153,21 @@ describe("the Deploy tab of a project that is not the board's own", () => {
     }
   });
 
-  test("a project with no install command is counted against origin by the background poll, and the section carries the address the page asks origin through (AC-4)", async () => {
+  test("a project with no install command is counted against origin by the background poll, and the section carries the address the page asks origin through", async () => {
     const root = projectsRoot({ aide: null });
     const html = await loadUntil(serve(root, behindBy(root, "aide", 3), 25), "aide", "3 commits behind origin", 2000, "deploy");
     expect(html).toContain("3 commits behind origin, checked");
     expect(html).toContain('data-origin-check="/api/queue/projects/aide/drift"');
   });
 
-  test("a project with no install command and no answer from origin yet reloads itself (AC-4)", async () => {
+  test("a project with no install command and no answer from origin yet reloads itself", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
     expect(html).toContain("has not been checked yet");
     expect(html).toContain("data-reload-every=");
   });
 
-  test("the behind-origin sentence names no Deploy action (AC-5)", async () => {
+  test("the behind-origin sentence names no Deploy action", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const html = await loadUntil(serve(root, behindBy(root, "aide", 2), 25), "aide", "2 commits behind origin", 2000, "deploy");
     const lines = messages(html).filter((m) => m.includes("2 commits behind origin"));
@@ -175,7 +175,7 @@ describe("the Deploy tab of a project that is not the board's own", () => {
     expect(lines[0]).not.toContain("Deploy");
   });
 
-  test("a project level with origin says so (AC-4)", async () => {
+  test("a project level with origin says so", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const html = await loadUntil(serve(root, behindBy(root, "aide", 0), 25), "aide", "matches origin", 2000, "deploy");
     expect(html).toContain("This checkout matches origin.");
@@ -184,7 +184,7 @@ describe("the Deploy tab of a project that is not the board's own", () => {
 
   // The fail-open case: asked, unanswerable. Never "level" — that would
   // be a guess dressed as an answer.
-  test("an unanswerable drift check draws no claim (AC-4)", async () => {
+  test("an unanswerable drift check draws no claim", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, unanswerable(root, "aide"), 25);
     // Poll until the "not checked yet" state has cleared — a real,
@@ -205,7 +205,7 @@ describe("the Deploy tab of a project that is not the board's own", () => {
     expect(html).not.toContain("Whether this checkout is behind origin has not been checked yet");
   });
 
-  // Criterion 9: the request itself spawns no git — with the schedule
+  // The request itself spawns no git — with the schedule
   // disabled, any call at all could only have come from the GET handler.
   test("the request spawns no fetch, pull, merge or checkout", async () => {
     const root = projectsRoot({ aide: INSTALLS });
@@ -218,7 +218,7 @@ describe("the Deploy tab of a project that is not the board's own", () => {
 });
 
 describe("the Deploy tab of the board's own project", () => {
-  test("behind origin, it shows the count and a live Deploy ask button, and not the sentence that Deploy is not offered (AC-2, AC-7)", async () => {
+  test("behind origin, it shows the count and a live Deploy ask button, and not the sentence that Deploy is not offered", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const html = await loadUntil(serveBoard(root, behindBy(root, "aide", 3), 25), "aide", "commits behind origin", 2000, "deploy");
     expect(html).toContain("3 commits behind origin, checked");
@@ -231,7 +231,7 @@ describe("the Deploy tab of the board's own project", () => {
     expect(html).not.toContain("deploy is a hand step");
   });
 
-  test("level with origin, the ask button is off (spec 321)", async () => {
+  test("level with origin, the ask button is off", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const html = await loadUntil(serveBoard(root, behindBy(root, "aide", 0), 25), "aide", "matches origin", 2000, "deploy");
     expect(html).toContain("This checkout matches origin.");
@@ -239,7 +239,7 @@ describe("the Deploy tab of the board's own project", () => {
     expect(askTag(html)).toContain('title="This checkout matches origin."');
   });
 
-  // Spec 392 (REQ-1, REQ-2, REQ-3, REQ-4): the never-asked state says so
+  // The never-asked state says so
   // in the same one sentence every other state uses, with a present,
   // inactive button.
   test("with no drift check yet, it shows the not-yet-checked sentence and an off button", async () => {
@@ -253,15 +253,15 @@ describe("the Deploy tab of the board's own project", () => {
     expect(askTag(html)).toContain('title="Origin has not been checked yet."');
   });
 
-  // Spec 392 (REQ-1, REQ-7): the one state where the panel names what the
+  // The one state where the panel names what the
   // served commit actually is — how far behind it is, and what the newest
   // change was — rather than a bare hash, because origin itself is still
   // unknown here.
-  describe("the not-yet-checked sentence naming the served commit (REQ-7)", () => {
+  describe("the not-yet-checked sentence naming the served commit", () => {
     /** A never-checked drift (`settled`, no background poll) that is ALSO
      *  the checkout this server runs from: the boot-time `rev-parse HEAD`
      *  answers `bootSha` once, every later read (the page's own, and the
-     *  two REQ-7 reads gated on the not-yet-checked state) answers
+     *  two reads gated on the not-yet-checked state) answers
      *  `checkoutSha`/the given subject/count. */
     const servingUnchecked = (
       root: string,
@@ -278,7 +278,7 @@ describe("the Deploy tab of the board's own project", () => {
         "rev-list --count": { code: 0, stdout: `${behindCount}\n` },
       });
 
-    test("names how far behind the service is and the newest change (criteria 2, 8)", async () => {
+    test("names how far behind the service is and the newest change", async () => {
       const root = projectsRoot({ aide: INSTALLS });
       const base = serveBoard(
         root,
@@ -295,7 +295,7 @@ describe("the Deploy tab of the board's own project", () => {
       expect(askTag(html)).toMatch(/\bdisabled\b/);
     });
 
-    test("names the newest change with no 'behind' claim when the service is current (criterion 9)", async () => {
+    test("names the newest change with no 'behind' claim when the service is current", async () => {
       const root = projectsRoot({ aide: INSTALLS });
       const base = serveBoard(
         root,
@@ -342,14 +342,14 @@ describe("the Deploy tab of the board's own project", () => {
   });
 });
 
-// Spec 464: the Projects-list banner these two tests originally proved is
+// The Projects-list banner these two tests originally proved is
 // gone, but the schedule-level guarantee they prove — a hung origin never
 // blocks a request, and never stalls the OTHER projects' own ticks — is
 // still real, and `/projects/<name>?tab=deploy` makes the exact same
 // `peekDrift` read the list used to. Ported from `projects-route.test.ts`
-// rather than dropped (3-solution.md § Test coverage, AC-5).
+// rather than dropped.
 describe("refreshDrift's schedule-level guarantees (ported from the /projects route)", () => {
-  test("an origin that never answers does not hold a project's Deploy tab up (criterion 2)", async () => {
+  test("an origin that never answers does not hold a project's Deploy tab up", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const settledRun = settled(root, "aide").run;
     const stuck: GitRunner = async (dir, args) =>
@@ -400,10 +400,10 @@ describe("refreshDrift's schedule-level guarantees (ported from the /projects ro
   }, 15000);
 });
 
-// Spec 269: whether the process actually serving this page has picked up
+// Whether the process actually serving this page has picked up
 // what is on disk — a process-vs-disk question the drift banner above
 // cannot answer, because it only ever compares the checkout to origin.
-describe('the "Serving" line on a project\'s own page (spec 269)', () => {
+describe('the "Serving" line on a project\'s own page', () => {
   /** A checkout that is ALSO the repository this server process itself
    *  runs from — the scenario the comparison is built for. The bare
    *  `rev-parse HEAD` two different reads share (the server's own
@@ -429,7 +429,7 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
     return { run };
   }
 
-  test("matching SHAs draw an info line naming the short SHA (criterion 3)", async () => {
+  test("matching SHAs draw an info line naming the short SHA", async () => {
     const root = projectsRoot({ aide: null });
     const html = await loadUntil(
       serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef")),
@@ -441,7 +441,7 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
     expect(html).toContain("Serving commit abc1234 — matches this checkout.");
   });
 
-  test("a checkout that has moved past the served SHA draws a warn line naming both (criterion 4)", async () => {
+  test("a checkout that has moved past the served SHA draws a warn line naming both", async () => {
     const root = projectsRoot({ aide: null });
     const html = await loadUntil(
       serve(root, serving(root, "aide", "abc1234deadbeef", "9999999cafefeed")),
@@ -458,9 +458,9 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
 
   // `other` has neither drift (no AIDE_INSTALL_CMD) nor a Serving
   // comparison (this process runs from `aide`, not `other`) — its Deploy
-  // tab is still offered (spec 407, REQ-1), it just has no Serving line
+  // tab is still offered, it just has no Serving line
   // to show on it.
-  test("a project this server does not run from shows no Serving line at all (criterion 5)", async () => {
+  test("a project this server does not run from shows no Serving line at all", async () => {
     const root = projectsRoot({ aide: null, other: null });
     const base = serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef"));
     // Give the boot-time read every chance to resolve before asserting its
@@ -474,8 +474,8 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
 
 });
 
-// The served nav is Specs, Projects and Schedule — the Archive tab was
-// there from spec 163 until spec 221 put every archived spec on the
+// The served nav is Specs, Projects and Schedule — there is no Archive
+// tab, since every archived spec is on the
 // Specs list. A project is reached
 // from the Projects page, which lists every one of them with its
 // counts, its warnings and its controls — so naming them in the tab bar
@@ -483,7 +483,7 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
 // machine's project count. The GENERATED site keeps them: it has no
 // server, and its nav is the only way between its pages.
 // A tab per project came from the days this was a generated site with
-// a page per project and no server (aide-dashboard spec 01). Both went
+// a page per project and no server. Both went
 // on 2026-08-22: a project is reached from the Projects page, which
 // lists every one with its counts, its warnings and its controls.
 describe("the nav does not name the projects", () => {
@@ -506,7 +506,7 @@ describe("the nav does not name the projects", () => {
 // beats the first poll back. The sentence has to correct itself.
 describe("the Deploy tab asks for itself again while the origin answer is missing", () => {
 
-  test("no answer yet: the Deploy tab carries the reload marker (AC-5)", async () => {
+  test("no answer yet: the Deploy tab carries the reload marker", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     // Poll off, so the answer never arrives: the same state a page drawn
     // in the seconds after a restart is in.

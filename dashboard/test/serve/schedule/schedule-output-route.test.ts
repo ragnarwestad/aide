@@ -1,7 +1,7 @@
-// GET /schedule-output/<project>/<specFolder>/... (spec 272): whatever a
+// GET /schedule-output/<project>/<specFolder>/...: whatever a
 // schedule step wrote to its own output directory, served with the same
 // `serveStatic()` primitive the generated site already uses, pointed at
-// a different root. Acceptance criteria 2-4, 8.
+// a different root.
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,7 +28,7 @@ function writeOutput(outputRoot: string, project: string, specFolder: string, ht
   writeFileSync(join(dir, "index.html"), html);
 }
 
-describe("GET /schedule-output/... (spec 272)", () => {
+describe("GET /schedule-output/...", () => {
   test("a file written under the fixture root is served with a valid token", async () => {
     const outputRoot = freshOutputRoot();
     writeOutput(outputRoot, "aide", "schedule-nightly-report", "<h1>traffic</h1>");

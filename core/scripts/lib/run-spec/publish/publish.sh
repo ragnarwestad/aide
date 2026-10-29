@@ -6,7 +6,7 @@
 # of the run, are exactly what they were. Split out 2026-09-04: the
 # script had reached 2925 lines, five times the next largest file in
 # the repo, and no reader could hold it.
-# --- committing and publishing the work, confirmed against origin (spec 343)
+# --- committing and publishing the work, confirmed against origin
 # The commit loop and the push loop below both used to run exactly once.
 # Now they run as `commit_and_push_roots`, callable more than once in the
 # same invocation: once, unconditionally, for the step's own content
@@ -15,7 +15,7 @@
 # four WORKFLOW_ARC commands, a second time for the `Workflow steps
 # completed` line's own small commit — made only once the first pass has
 # been CONFIRMED against origin, so the line is never written on the
-# strength of a push that has not actually landed (REQ-1).
+# strength of a push that has not actually landed.
 #
 # Run-wide accumulators, initialized once, before either call — separate
 # from commit_and_push_roots's own per-call locals (amend_source), so a
@@ -50,10 +50,10 @@ note_push_error() {
   [ -z "$push_error" ] && push_error="$1" || push_error="$push_error; $1"
 }
 
-# Shared by both push paths below (a plain push and REQ-2's retried
+# Shared by both push paths below (a plain push and the retried
 # force-with-lease): the compare link and, for the reader who wants one
 # link, $branch_url — the project's own when the project changed,
-# otherwise whichever repo did. Second-call safe (spec 343): the same
+# otherwise whichever repo did. Second-call safe: the same
 # root pushed in an earlier call is not appended a second time when specs
 # live inside the project repo, since $branch_urls_json is no longer
 # reset between calls.
@@ -74,19 +74,19 @@ record_branch_url() {
   fi
 }
 
-# REQ-2/REQ-5 (spec 359): bounded, and the same bound the TypeScript
+# Bounded, and the same bound the TypeScript
 # side (`PUSH_RETRY_WAITS_MS` in branch-merge.ts) uses — long enough to
-# ride out a momentary GitHub blip (spec 314), short enough that a run
+# ride out a momentary GitHub blip, short enough that a run
 # that is really offline still finishes in seconds.
 PUSH_RETRY_WAITS=(1 2)
 
-# One push, with its own recovery (spec 359). Tries the plain push (and,
+# One push, with its own recovery. Tries the plain push (and,
 # for a root this run amended, the existing force-with-lease retry)
 # exactly as before. Only on failure does it ask WHY: origin unreachable
-# is retried blind (REQ-2); origin reachable but the push still rejected
+# is retried blind; origin reachable but the push still rejected
 # means the branch moved under us, which `pull --rebase` can settle on
-# its own (REQ-1) — unless the rebase itself conflicts, which is a
-# person's call and never the script's (REQ-3). Sets $push_retry_error
+# its own — unless the rebase itself conflicts, which is a
+# person's call and never the script's. Sets $push_retry_error
 # on failure and $push_retry_new_head when a rebase moved local HEAD —
 # the caller folds that into $head_after_per_root itself, since this
 # helper has no run-wide accumulator of its own to write into.
@@ -103,7 +103,7 @@ push_with_retry() {
   try_push && return 0
 
   if ! git -C "$wt" ls-remote origin >/dev/null 2>&1; then
-    # REQ-2: origin itself did not answer — retry the push, not a rebase.
+    # Origin itself did not answer — retry the push, not a rebase.
     local wait_s
     for wait_s in "${PUSH_RETRY_WAITS[@]}"; do
       sleep "$wait_s"
@@ -127,7 +127,7 @@ push_with_retry() {
     return 1
   fi
 
-  # REQ-1: origin answered, so the push was REJECTED — almost always
+  # Origin answered, so the push was REJECTED — almost always
   # because something else landed a commit on this branch since this
   # worktree last looked (another run, or the landing's own cleanup).
   if git -C "$wt" pull -q --rebase origin "$branch" >/dev/null 2>&1; then
@@ -137,7 +137,7 @@ push_with_retry() {
     return 1
   fi
 
-  # REQ-3: the rebase itself conflicted — real, different commits on
+  # The rebase itself conflicted — real, different commits on
   # both sides. Abort back to exactly where this worktree stood, and
   # name what a person has to reconcile rather than guessing.
   git -C "$wt" rebase --abort >/dev/null 2>&1 || true
@@ -157,7 +157,7 @@ push_with_retry() {
 # The pathspecs that keep a root's worktree links out of a commit. The
 # run's own list when it has one; read from the project again when it
 # does not — a Cancel mid-turn reached the commit without it once, and
-# committed the links (501, 2026-09-19).
+# committed the links.
 link_excludes_for() {
   local root="$1" links="" entry
   if [ -n "${git_add_excludes[*]:-}" ]; then
@@ -172,7 +172,7 @@ link_excludes_for() {
 
 # A commit some remote-tracking branch already holds is public: never
 # the step's own self-commit, whatever the run's recorded start says.
-# 501's Cancel amended main's last commit this way, message and all.
+# An earlier Cancel amended main's last commit this way, message and all.
 commit_is_public() {
   [ -n "$(git -C "$1" branch -r --contains "$2" 2>/dev/null)" ]
 }
@@ -223,7 +223,7 @@ EXCLUDES_EOF
       head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
       # Compared against ${head_after_per_root[$i]} — the tip as THIS
       # root stood when THIS call began — never ${head_before[$i]}, the
-      # run's own absolute start (spec 343). On a first call the two are
+      # run's own absolute start. On a first call the two are
       # identical (the run-wide accumulator seeds head_after_per_root
       # from head_before before either call). On a second call they are
       # not: head_before[$i] is now stale, still pointing at the tip
@@ -243,10 +243,10 @@ EXCLUDES_EOF
          && ! commit_already_on_origin "$root" "$head_now" \
          && ! commit_is_public "$wt" "$head_now"; then
         # The step already committed part of its own work under a written
-        # message (spec 146) — fold the leftover into THAT commit rather
+        # message — fold the leftover into THAT commit rather
         # than opening a second one under the generic subject. Only when
-        # that commit is not already public (REQ-1): amending a commit
-        # origin already has is what stranded spec 327's stamp on the
+        # that commit is not already public: amending a commit
+        # origin already has is what once stranded a stamp on the
         # machine that ran it.
         amend_source[i]="$head_now"
         if [ -n "$amend_note" ] && [ "$root" = "${specs_repo:-}" ]; then
@@ -254,7 +254,7 @@ EXCLUDES_EOF
           # onto the raw %B would land it mid-paragraph: give it a line of
           # its own and drop the leading space that only made sense
           # inline. `--no-edit` is what is left when the note has nothing
-          # to say at all — since spec 217 that means neither a stop
+          # to say at all — that means neither a stop
           # reason NOR a model, so it cannot be assumed from an empty
           # $suffix alone.
           existing_message="$(git -C "$wt" log -1 --pretty=%B)"
@@ -284,7 +284,7 @@ EXCLUDES_EOF
       idx=$i
       # A branch with nothing beyond the root's own default branch has
       # nothing to publish, whether this is its first run or its fifth:
-      # without this check, REQ-4's widened gate below would try to push
+      # without this check, the widened gate below would try to push
       # it too, since a brand new branch has no ref on origin yet to
       # compare against and so never reads as "already confirmed" either.
       # Asked as containment (`tip_has_nothing_of_its_own`), so the same
@@ -295,7 +295,7 @@ EXCLUDES_EOF
       i=$(( i + 1 ))
       [ -n "$wt" ] || continue
       tip_has_nothing_of_its_own "$root" "$head_is" && continue
-      # REQ-4: a root this run did not move ($head_was = $head_is) is
+      # A root this run did not move ($head_was = $head_is) is
       # STILL a candidate — but only when this run itself ended
       # `completed`. Widening this to "any root with unconfirmed content"
       # unconditionally would publish a branch's pre-existing content on
@@ -306,7 +306,7 @@ EXCLUDES_EOF
       # commits origin has never seen. `terminal_reason`, not `ok`: a
       # root this run DID move is pushed regardless of terminal_reason,
       # exactly as before (a stopped run still folds its work into its
-      # own commit, spec 146, and that commit still belongs on origin).
+      # own commit, and that commit still belongs on origin).
       if [ "$head_was" = "$head_is" ] && [ "$terminal_reason" != "completed" ]; then
         continue
       fi
@@ -329,7 +329,7 @@ EXCLUDES_EOF
         note_push_error "$push_retry_error"
       fi
       if [ -n "$push_retry_new_head" ]; then
-        # A REQ-1 rebase can move local HEAD whether or not the retried
+        # A rebase can move local HEAD whether or not the retried
         # push that follows it succeeds — this array means "this call's
         # true final local tip," not "the tip it managed to push," so it
         # is folded in unconditionally rather than only on success.

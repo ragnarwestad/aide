@@ -92,7 +92,7 @@ class TestPreflightIsWiredIn:
 @pytest.mark.validation
 class TestPreflightDrift:
     """aide-preflight names when the installed ~/.local/bin copy is behind
-    the repo it was installed from (REQ-7), via the version stamp
+    the repo it was installed from, via the version stamp
     install_common_bin writes."""
 
     @staticmethod

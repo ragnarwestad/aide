@@ -1,4 +1,4 @@
-// REQ-2/REQ-7: Toast UI Editor's markdown engine (`toastmark`) has no
+// Toast UI Editor's markdown engine (`toastmark`) has no
 // published standalone markdown-to-markdown serializer (2-analysis.md,
 // Codebase analysis) — the only way to reach `getMarkdown()`'s real
 // output is a live `Editor` instance, which needs a DOM. `happy-dom` is
@@ -17,8 +17,8 @@
 // here.
 //
 // REAL_DESCRIPTION is this very spec's own `1-description.md`, verbatim
-// (REQ-2: "verify round-trip fidelity against a real spec file's
-// content, not just a synthetic snippet") — embedded rather than read
+// (round-trip fidelity is verified against a real spec file's
+// content, not just a synthetic snippet) — embedded rather than read
 // from the specs repo at test time, so the test does not depend on a
 // sibling checkout existing at a particular path.
 
@@ -79,7 +79,7 @@ Ingen JIRA-sak.
 *This description can be edited before /aide-analyze runs.*
 `;
 
-// A synthetic addition covering the REQ-2-named structures the real
+// A synthetic addition covering the structures the real
 // file above happens not to use: a nested list, an ordered list, a code
 // fence, emphasis and a link.
 const NESTED_LISTS_AND_CODE_FENCES = `## Nested lists and code fences
@@ -141,7 +141,7 @@ async function roundtrip(text: string): Promise<string> {
   return editor.getMarkdown();
 }
 
-describe("the editor's markdown engine, configured for this repo's convention (REQ-2)", () => {
+describe("the editor's markdown engine, configured for this repo's convention", () => {
   beforeAll(async () => {
     const { GlobalRegistrator } = await import("@happy-dom/global-registrator");
     GlobalRegistrator.register();
@@ -166,7 +166,7 @@ describe("the editor's markdown engine, configured for this repo's convention (R
     expect(out).toContain("[link](https://example.com)");
   });
 
-  test("CONFIGURED: nested list indentation may widen, but nesting depth, order and marker do not change (accepted quirk, criterion 4)", async () => {
+  test("CONFIGURED: nested list indentation may widen, but nesting depth, order and marker do not change (accepted quirk)", async () => {
     const out = await roundtrip(NESTED_LISTS_AND_CODE_FENCES);
     expect(out).toContain("- Top level item one");
     expect(out).toContain("- Nested item A");
@@ -180,7 +180,7 @@ describe("the editor's markdown engine, configured for this repo's convention (R
 
 // What the editor does to markdown it is holding as literal TEXT rather
 // than as parsed markdown — a paste into the WYSIWYG surface, which is
-// how spec 417's own description lost its Requirements heading and its
+// how a real description lost its Requirements heading and its
 // REQ-n bullets to `\#\#` and `\-` (2026-09-08). The round-trips above
 // never reach it: everything they feed in is PARSED on the way in, so no
 // text node ever holds a `#` that has to survive.

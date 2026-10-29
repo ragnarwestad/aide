@@ -40,7 +40,7 @@ async function openHelp(tool: string, part: string, hidden: string): Promise<str
 }
 
 for (const tool of TOOL_TABS) {
-  test.each([...TOOL_PARTS])(`${tool}: what the %s tab's Check reads is behind the (?) in its Check form (AC-3)`, async (part) => {
+  test.each([...TOOL_PARTS])(`${tool}: what the %s tab's Check reads is behind the (?) in its Check form`, async (part) => {
     const help = t("en", `settings.checkHelp.${part}.${tool}`);
     expect(await openHelp(tool, part, help)).toBe(help);
   });

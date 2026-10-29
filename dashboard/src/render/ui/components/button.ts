@@ -11,7 +11,7 @@ import { ICON_CLOSE, SPINNER } from "./icons.ts";
 /** Bare is secondary — the default for a control that is NOT the one
  *  thing a page wants pressed: the escape-hatch Cancel link beside a
  *  primary Create or Save. A spec row's own action is never bare, and
- *  since spec 161 never `danger` either — `danger` means one thing on
+ *  never `danger` either — `danger` means one thing on
  *  this dashboard now, an action a mistake cannot undo. */
 export type BtnVariant = "" | "primary" | "ok" | "danger" | "busy";
 
@@ -148,9 +148,9 @@ export function btnLink(o: {
   return `<a class="${cls}" href="${esc(o.href)}"${dataAttrs(o.data)}>${esc(o.label)}</a>`;
 }
 
-/** The Save/Cancel pair every `.specform` carries (spec 391), on the
+/** The Save/Cancel pair every `.specform` carries, on the
  *  same line as the tab's own help mark rather than below the field it
- *  saves. Save renders enabled — REQ-7 needs it to keep working with
+ *  saves. Save renders enabled — it has to keep working with
  *  scripting off — and `spec-form-actions.ts` disables both the instant
  *  it runs, only re-enabling them once the form has seen an edit.
  *  Cancel renders `disabled` from the start: nothing asks it to work

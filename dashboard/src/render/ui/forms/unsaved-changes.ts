@@ -1,7 +1,7 @@
 // A native "leave this page?" confirmation, armed the instant a field
 // inside one of the tracked forms changes, and disarmed the instant
 // that form's own Save/Create is submitted or its Cancel is pressed
-// (spec 438). Reachable by every means a page can be left — an in-app
+// Reachable by every means a page can be left — an in-app
 // link, the browser's Back/Forward, a closed tab, a typed address —
 // because it rides the browser's own `beforeunload` event rather than
 // intercepting any one of those individually.
@@ -50,7 +50,7 @@
   // `data-discard-changes` on the one surface (project settings) that
   // has no such id.
   //
-  // An in-app link click while dirty (spec 478) is the one exit path a
+  // An in-app link click while dirty is the one exit path a
   // page's own script CAN intercept — Back/Forward, a closed tab and a
   // typed address still fall to the native beforeunload prompt below.
   // The `leaveapp` dialog (shell.ts) is a real <dialog>, always positioned

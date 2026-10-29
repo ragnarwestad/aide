@@ -1,4 +1,4 @@
-// Spec 512: Add keeps nothing of Aide's in the project's repository. The
+// Add keeps nothing of Aide's in the project's repository. The
 // description and the settings go to the dashboard's own settings file,
 // and a manifest that is already there is never written to.
 
@@ -25,7 +25,7 @@ const fixture = (files: Record<string, string> = {}) => {
 };
 
 describe("Add writes the dashboard's settings file, not the checkout", () => {
-  test("links and code landing go to the settings file and the checkout stays clean (AC-1)", async () => {
+  test("links and code landing go to the settings file and the checkout stays clean", async () => {
     const f = fixture();
     await addProject(
       run,
@@ -39,7 +39,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     expect(git(f.dir, "status", "--porcelain")).not.toContain("project.yaml");
   });
 
-  test("a tracked manifest is kept byte for byte and the links are written nowhere (AC-1)", async () => {
+  test("a tracked manifest is kept byte for byte and the links are written nowhere", async () => {
     const tracked = "name: demo\ninstallCmd: team check\n";
     const f = fixture({ ".aide/project.yaml": tracked });
     const result = await addProject(
@@ -54,7 +54,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     expect(step?.note).toContain("own manifest");
   });
 
-  test("an untracked manifest seeds the settings file and is left as it was (AC-1)", async () => {
+  test("an untracked manifest seeds the settings file and is left as it was", async () => {
     const f = fixture();
     // A checkout the dashboard had already made, holding a manifest
     // somebody drafted by hand and never committed. That is
@@ -70,7 +70,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     expect(readFileSync(join(f.dir, ".aide", "project.yaml"), "utf-8")).toBe(draft);
   });
 
-  test("an existing settings file is not clobbered by a second Add (AC-1)", async () => {
+  test("an existing settings file is not clobbered by a second Add", async () => {
     const f = fixture();
     mkdirSync(join(f.base, "demo"), { recursive: true });
     writeFileSync(dashboardSettingsFile(f.base, "demo"), "name: demo\ninstallCmd: mine\n");
@@ -78,7 +78,7 @@ describe("Add writes the dashboard's settings file, not the checkout", () => {
     expect(readFileSync(dashboardSettingsFile(f.base, "demo"), "utf-8")).toContain("installCmd: mine");
   });
 
-  test("a previewFrom that is not one of the three words is refused before anything is cloned (AC-2)", async () => {
+  test("a previewFrom that is not one of the three words is refused before anything is cloned", async () => {
     const f = fixture();
     const result = await addProject(
       run,

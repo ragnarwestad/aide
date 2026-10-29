@@ -137,8 +137,8 @@ const unsavedIn = (key: string): void => {
 };
 const detailRowOf = (key: string) => details().find((d) => d.getAttribute("data-spec-detail") === key)!;
 
-describe("a press on a shut › opens the row in place (AC-1, AC-2)", () => {
-  test("the press is taken, nothing else on the page is replaced, and the address pushed is the chevron's href (AC-1)", () => {
+describe("a press on a shut › opens the row in place", () => {
+  test("the press is taken, nothing else on the page is replaced, and the address pushed is the chevron's href", () => {
     const others = [headRow(A), headRow(C), win.document.querySelector(".tablewrap")];
     const href = chevron(B).getAttribute("href")!;
     const event = press(B);
@@ -150,7 +150,7 @@ describe("a press on a shut › opens the row in place (AC-1, AC-2)", () => {
     expect(chevron(B).getAttribute("aria-expanded")).toBe("true");
   });
 
-  test("a click the browser should handle itself is left to it (AC-1)", () => {
+  test("a click the browser should handle itself is left to it", () => {
     for (const init of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { button: 1 }]) {
       const event = press(B, init);
       expect([taken, event.defaultPrevented]).toEqual([false, false]);
@@ -158,13 +158,13 @@ describe("a press on a shut › opens the row in place (AC-1, AC-2)", () => {
     expect([asked, pushed]).toEqual([[], []]);
   });
 
-  test("an open spec's own › is left to the browser, which loads the list (AC-1)", async () => {
+  test("an open spec's own › is left to the browser, which loads the list", async () => {
     await openAndSettle(B);
     const event = press(B);
     expect([taken, event.defaultPrevented]).toEqual([false, false]);
   });
 
-  test("a spec open with no unsaved change is shut in place, its rows asked for again, and the new one opened (AC-1)", async () => {
+  test("a spec open with no unsaved change is shut in place, its rows asked for again, and the new one opened", async () => {
     await openAndSettle(A);
     const oldDetail = detailRowOf(A);
     press(B);
@@ -180,7 +180,7 @@ describe("a press on a shut › opens the row in place (AC-1, AC-2)", () => {
     expect(chevron(A).getAttribute("aria-expanded")).toBe("false");
   });
 
-  test("a spec open with an unsaved change leaves the press to the browser and asks for nothing (AC-1)", async () => {
+  test("a spec open with an unsaved change leaves the press to the browser and asks for nothing", async () => {
     await openAndSettle(A);
     unsavedIn(A);
     const event = press(B);
@@ -189,15 +189,15 @@ describe("a press on a shut › opens the row in place (AC-1, AC-2)", () => {
     expect(detailRowOf(A).isConnected).toBe(true);
   });
 
-  test("a page without the loading row leaves the press to the browser (AC-1)", () => {
+  test("a page without the loading row leaves the press to the browser", () => {
     win.document.getElementById("spec-loading-row")!.remove();
     const event = press(B);
     expect([taken, event.defaultPrevented]).toEqual([false, false]);
   });
 });
 
-describe("while the spec is on its way (AC-2, AC-3)", () => {
-  test("the page has one detail row, keyed to the pressed spec, before its gap row, holding the Loading line (AC-2)", () => {
+describe("while the spec is on its way", () => {
+  test("the page has one detail row, keyed to the pressed spec, before its gap row, holding the Loading line", () => {
     press(B);
     const rows = details();
     expect(rows).toHaveLength(1);
@@ -208,7 +208,7 @@ describe("while the spec is on its way (AC-2, AC-3)", () => {
     expect(win.document.body.textContent!.match(/Loading …/g)).toHaveLength(1);
   });
 
-  test("the page cannot be pressed, and a request is on its way for the spec alone (AC-3)", () => {
+  test("the page cannot be pressed, and a request is on its way for the spec alone", () => {
     press(B);
     expect(inert()).toBe(true);
     expect(asked).toHaveLength(1);
@@ -217,8 +217,8 @@ describe("while the spec is on its way (AC-2, AC-3)", () => {
   });
 });
 
-describe("when the spec arrives (AC-4)", () => {
-  test("its rows are the answer's, the Loading line is gone, the page can be pressed, the event is sent and the script added (AC-4)", async () => {
+describe("when the spec arrives", () => {
+  test("its rows are the answer's, the Loading line is gone, the page can be pressed, the event is sent and the script added", async () => {
     let drawn = 0;
     win.document.addEventListener(mod.SPEC_DETAIL_DRAWN, () => { drawn++; });
     press(B);
@@ -234,7 +234,7 @@ describe("when the spec arrives (AC-4)", () => {
     expect(Array.from(win.document.querySelectorAll("script[src]")).map((s) => s.getAttribute("src"))).toEqual(["/spec-editor.js"]);
   });
 
-  test("the rest of the list is asked for again for the new address once it has settled (AC-4)", async () => {
+  test("the rest of the list is asked for again for the new address once it has settled", async () => {
     press(B);
     held[0]!.resolve(answer(table(openGroup(B, "<p>the spec</p>"))));
     await settle();
@@ -243,14 +243,14 @@ describe("when the spec arrives (AC-4)", () => {
   });
 });
 
-describe("when the spec cannot be loaded (AC-5)", () => {
+describe("when the spec cannot be loaded", () => {
   const failures: [string, () => void][] = [
     ["a non-2xx answer", () => held[0]!.resolve(answer("nope", 500))],
     ["a rejected request", () => held[0]!.reject(new Error("offline"))],
     ["an answer with no detail row", () => held[0]!.resolve(answer(table(shutGroup(B))))],
   ];
   for (const [name, fail] of failures) {
-    test(`${name}: the row says so and not Loading, the page can be pressed, and the spec's rows are asked for again (AC-5)`, async () => {
+    test(`${name}: the row says so and not Loading, the page can be pressed, and the spec's rows are asked for again`, async () => {
       press(B);
       fail();
       await settle();
@@ -264,7 +264,7 @@ describe("when the spec cannot be loaded (AC-5)", () => {
   }
 });
 
-describe("Back (AC-1)", () => {
+describe("Back", () => {
   /** The page as Back finds it: the handler bound at load, on the list's address. */
   function bound(): () => void {
     const handlers: (() => void)[] = [];
@@ -272,7 +272,7 @@ describe("Back (AC-1)", () => {
     return () => handlers.forEach((h) => h());
   }
 
-  test("to the list shuts the open row at once, in place (AC-1)", async () => {
+  test("to the list shuts the open row at once, in place", async () => {
     const back = bound();
     await openAndSettle(B);
     const row = headRow(B);
@@ -284,7 +284,7 @@ describe("Back (AC-1)", () => {
     expect([assigned, reloads]).toEqual([[], []]);
   });
 
-  test("while the answer is held aborts the request and lifts the lock, and the late answer draws nothing (AC-1)", async () => {
+  test("while the answer is held aborts the request and lifts the lock, and the late answer draws nothing", async () => {
     const back = bound();
     press(B);
     place("/specs?q=x");
@@ -298,7 +298,7 @@ describe("Back (AC-1)", () => {
     expect(details()).toHaveLength(0);
   });
 
-  test("with the open spec's Save active puts the spec's address back and loads the list, so the leave question asks (AC-1)", async () => {
+  test("with the open spec's Save active puts the spec's address back and loads the list, so the leave question asks", async () => {
     const back = bound();
     await openAndSettle(B);
     unsavedIn(B);
@@ -311,7 +311,7 @@ describe("Back (AC-1)", () => {
     expect(detailRowOf(B).isConnected).toBe(true);
   });
 
-  test("to another spec's address loads that page (AC-1)", async () => {
+  test("to another spec's address loads that page", async () => {
     const back = bound();
     await openAndSettle(B);
     place(`/specs/${A}?q=x`);
@@ -319,7 +319,7 @@ describe("Back (AC-1)", () => {
     expect(reloads).toEqual([1]);
   });
 
-  test("with only the hash changed does nothing (AC-1)", async () => {
+  test("with only the hash changed does nothing", async () => {
     const back = bound();
     await openAndSettle(B);
     place(`/specs/${B}?q=x#other`);

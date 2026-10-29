@@ -27,7 +27,7 @@ function checkout(): { root: string; head: string } {
   return { root, head: git("rev-parse", "HEAD").stdout.toString().trim() };
 }
 
-test("the deploy left running after its restart is done once the new process has booted on its commit (AC-5)", async () => {
+test("the deploy left running after its restart is done once the new process has booted on its commit", async () => {
   const repo = checkout();
   const results = mkdtempSync(join(tmpdir(), "aide-boot-deploy-jobs-"));
   dirs.push(results);

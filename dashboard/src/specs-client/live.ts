@@ -1,4 +1,4 @@
-// --- spec 189: the server says when, and the page listens ------------------
+// --- The server says when, and the page listens ------------------
 //
 // This used to be a five-second timer that fetched the rows whether
 // anything had happened or not. Two costs came out of that: a reader

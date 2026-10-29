@@ -1,6 +1,6 @@
 // Split out of branch-merge.test.ts by theme.
 //
-// Spec 89: the dashboard's first WRITE path — merges a spec branch into
+// The dashboard's first WRITE path — merges a spec branch into
 // a repo's default branch and pushes the result. Every git call is
 // injected, so the suite spawns no subprocess.
 
@@ -9,7 +9,7 @@ import { fastForwardToOrigin, mergeBranchIntoDefault } from "../../../src/git/br
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** What a reader would see: since spec 380 a message is stored as
+/** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
@@ -34,7 +34,7 @@ const ran = (calls: GitCall[], prefix: string): boolean =>
 // ref reported it as a conflict, which is a different problem with a
 // different remedy.
 describe("mergeBranchIntoDefault: the branch is not on origin", () => {
-  test("it is refused by name, and never called a conflict (criterion 5)", async () => {
+  test("it is refused by name, and never called a conflict", async () => {
     const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
@@ -43,19 +43,19 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
     expect(sentence(result.error)).not.toContain("conflict");
   });
 
-  // Spec 129: 54 of the 75 refusals in the log were this one, across 23
+  // 54 of the 75 refusals in the log were this one, across 23
   // specs — a row offering a button for a branch that was not on origin
   // any more. The sentence alone cannot fix that: `isMerged()` caches
   // for 30 seconds, so the row goes on offering the same doomed press
   // until the TTL runs out. This field is what lets the merge route
   // correct the cache it just proved wrong.
-  test("it says GONE, so the caller can correct the cache it just disproved (criterion 4)", async () => {
+  test("it says GONE, so the caller can correct the cache it just disproved", async () => {
     const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.reason).toBe("gone");
   });
 
-  test("nothing beyond the two questions is run (criterion 5)", async () => {
+  test("nothing beyond the two questions is run", async () => {
     const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
     await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(ran(git.calls, "switch")).toBe(false);
@@ -64,7 +64,7 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
     expect(ran(git.calls, "fetch")).toBe(false);
   });
 
-  test("an ls-remote that fails for any other reason merges as before (criterion 5)", async () => {
+  test("an ls-remote that fails for any other reason merges as before", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
       "ls-remote": { code: 128 },
@@ -81,13 +81,12 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
   });
 });
 
-// --- spec 106/129/171: the field names only the refusals a machine acts on ---
+// --- the field names only the refusals a machine acts on ---
 //
 // `"conflict"` is what tells a reader the branch and the default branch
 // genuinely disagree, so a refusal that is NOT that must never be called
-// one. It carried a Resolve control until spec 171 folded resolving into
-// `archive`; the field's meaning is unchanged, the control is gone.
-// Spec 129 added the second, and only the second:
+// one.
+// The second, and only the second, is
 // `"gone"`, which the merge route reads to invalidate the branch-status
 // cache. Each of the others below is a refusal the merge route already
 // knows how to produce, and no machine has anything to do about any of
@@ -101,7 +100,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
     expect(result.reason).toBe("gone");
   });
 
-  // Spec 129: the other 21 refusals in the log, across 7 specs. Every
+  // The other 21 refusals in the log, across 7 specs. Every
   // one of them had to be finished by hand, and nobody ever saw why —
   // the reason went to the log and nowhere else. Nothing here needs a
   // code path of its own: this sentence is what the row shows, once the
@@ -206,7 +205,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
   });
 });
 
-// Spec 258: the Deploy button's whole job — a checkout that fell behind
+// The Deploy button's whole job — a checkout that fell behind
 // because a merge landed somewhere other than this dashboard's own
 // Merge button, so there is nothing to merge IN, only to fast-forward.
 // Steps 2-3 of `mergeBranchIntoDefault` alone, with no feature branch.
@@ -224,7 +223,7 @@ describe("fastForwardToOrigin", () => {
     expect(ran(git.calls, "push")).toBe(false);
   });
 
-  test("refuses, naming both branches, when not standing on base (criterion 7)", async () => {
+  test("refuses, naming both branches, when not standing on base", async () => {
     const git = fakeGit({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "feature-x\n" } });
     const result = await fastForwardToOrigin(git.run, ROOT, "master");
     expect(result.ok).toBe(false);

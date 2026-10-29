@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** What a reader would see: since spec 380 a message is stored as
+/** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
@@ -52,7 +52,7 @@ describe("with one slot, one job at a time", () => {
   });
 });
 
-// Spec 91, slice 91b. The shared working tree was the only thing that
+// Slice 91b. The shared working tree was the only thing that
 // made a single slot necessary; once every run has its own (slice 91a),
 // the slot count is a number, and the number belongs in the config.
 describe("several jobs at once", () => {
@@ -144,7 +144,7 @@ describe("several jobs at once", () => {
     expect(store.get(b.id)?.state).toBe("running");
   });
 
-  // Spec 453: the number is no longer picked inside the create step at
+  // The number is no longer picked inside the create step at
   // all — landing assigns it later, under the specs repo's own lock,
   // the one place two concurrent creates cannot both miss. So nothing
   // about two creates for the same project needs them ordered any more —
@@ -185,7 +185,7 @@ describe("several jobs at once", () => {
   // to leave `error`/`errorReason` naming that bygone attempt — a
   // RECORD, not a hold-back — so `hold()`'s guard refused to touch it
   // and the row went on naming a landing failure through every later
-  // hold reason (spec 393). `landingError` is where that record lives;
+  // hold reason. `landingError` is where that record lives;
   // `error`/`errorReason` say what the row is waiting for right now.
   test("a stale landing failure gives way to the reason a job is held for now", () => {
     const a = enqueue({ steps: ["archive"] });
@@ -250,7 +250,7 @@ describe("several jobs at once", () => {
     expect(spawns.length).toBe(0);
   });
 
-  // Spec 402, REQ-3/REQ-6: the whole-board pause used to hold every
+  // The whole-board pause used to hold every
   // queued job while ANY job was landing, whatever repo either one
   // touched. Two different project names whose `projectDir`s resolve to
   // two different paths never contend with each other.
@@ -266,8 +266,8 @@ describe("several jobs at once", () => {
     expect(store.get(b.id)?.state).toBe("running");
   });
 
-  // Spec 402 held a job back when it SHARED a repository with a landing.
-  // That is gone too, and for the same reason: sharing a repository was
+  // A job is not held back when it SHARES a repository with a landing:
+  // sharing a repository was
   // only dangerous because the landing stood in its checkout.
   test("a job sharing a repository with a merge starts anyway", () => {
     const sharedRoot = join(dir, "shared-repo");
@@ -305,12 +305,12 @@ describe("several jobs at once", () => {
 
 });
 
-// Spec 558, AC-6: a schedule job never starts while anything else for its
+// A schedule job never starts while anything else for its
 // project is running or landing — the same shape as the `archiveRunning`
 // hold above, but wider (any step, not only archive) and one-directional
 // (only the schedule job itself ever waits).
-describe("a schedule job holds while other work runs in its project (AC-6)", () => {
-  test("waits while a spec's own step is running (AC-6)", () => {
+describe("a schedule job holds while other work runs in its project", () => {
+  test("waits while a spec's own step is running", () => {
     const a = enqueue({ steps: ["implement"] });
     const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
     const runner = makeRunner({ maxConcurrent: 2 });
@@ -321,7 +321,7 @@ describe("a schedule job holds while other work runs in its project (AC-6)", () 
     expect(sentence(held.error)).toContain("another job");
   });
 
-  test("waits while another job's landing is in flight (AC-6)", () => {
+  test("waits while another job's landing is in flight", () => {
     const a = enqueue({ steps: ["analyze"] });
     store.update(a.id, { state: "done", landing: true });
     const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
@@ -331,7 +331,7 @@ describe("a schedule job holds while other work runs in its project (AC-6)", () 
     expect(store.get(b.id)?.state).toBe("queued");
   });
 
-  test("starts on a later tick once the project is free, the same night (AC-6)", () => {
+  test("starts on a later tick once the project is free, the same night", () => {
     const a = enqueue({ steps: ["implement"] });
     const b = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
     const runner = makeRunner({ maxConcurrent: 2, readResult: () => okResult(1) });
@@ -342,7 +342,7 @@ describe("a schedule job holds while other work runs in its project (AC-6)", () 
     expect(store.get(b.id)?.state).toBe("running");
   });
 
-  test("one-directional: a spec's own step is never held back for a queued schedule job (AC-6)", () => {
+  test("one-directional: a spec's own step is never held back for a queued schedule job", () => {
     const a = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
     const runner = makeRunner({ maxConcurrent: 2 });
     runner.tick();
@@ -353,7 +353,7 @@ describe("a schedule job holds while other work runs in its project (AC-6)", () 
   });
 });
 
-// Spec 353: a quick step (create/archive) jumps a queued slow step
+// A quick step (create/archive) jumps a queued slow step
 // (analyze/implement), whatever the age of either.
 describe("quick steps before slow ones", () => {
   test("a younger queued archive starts before an older queued analyze", () => {
@@ -445,12 +445,12 @@ describe("steps and cost", () => {
     expect(sentence(store.get(job.id)?.error)).toContain("dirty");
   });
 
-  // Spec 153. A step refused at START for a conflict — the runner
+  // A step refused at START for a conflict — the runner
   // cannot bring the spec's branch up to date with the base. The row
-  // reads that off `job.errorReason` alone (spec 149), so the reason
+  // reads that off `job.errorReason` alone, so the reason
   // has to survive the trip from the result file to the stored job;
   // without it the row read "press Run to try again", which fails
-  // identically. Since spec 171 the row shows it rather than acting on
+  // identically. The row shows it rather than acting on
   // it: `archive` is handed the conflict open and resolves it itself,
   // so one that reaches a reader is one no machine could settle.
   test("a refusal that names a conflict stores the reason on the job", () => {
@@ -509,7 +509,7 @@ describe("a result file that left fields out", () => {
     expect(store.get(job.id)?.results[0]?.terminalReason).toBeTruthy();
   });
 
-  // Spec 118. A cost has a default (the over-charge rule gives a killed
+  // A cost has a default (the over-charge rule gives a killed
   // run one); a token count has none, and inventing a zero would read as
   // "this step used nothing" on every job recorded before the field
   // existed.
@@ -545,7 +545,7 @@ describe("the count changes on a live runner", () => {
     enqueue({ project: "other-project" }),
   ];
 
-  test("raising it starts more from the next tick, and no more than that (AC-2)", () => {
+  test("raising it starts more from the next tick, and no more than that", () => {
     const [a, b, c] = three();
     const runner = makeRunner({ maxConcurrent: 1 });
     runner.tick();
@@ -559,7 +559,7 @@ describe("the count changes on a live runner", () => {
     expect(store.get(c!.id)?.state).toBe("queued");
   });
 
-  test("a count that is not a whole number above 0 is ignored (AC-2)", () => {
+  test("a count that is not a whole number above 0 is ignored", () => {
     const runner = makeRunner({ maxConcurrent: 2 });
     for (const bad of [0, 2.5, Number.NaN, -1]) {
       runner.setConcurrency(bad);
@@ -567,7 +567,7 @@ describe("the count changes on a live runner", () => {
     }
   });
 
-  test("lowering it stops nothing, and nothing starts until fewer than the new count run (AC-4)", () => {
+  test("lowering it stops nothing, and nothing starts until fewer than the new count run", () => {
     const [a, b, c] = three();
     const finished = new Set<string>();
     const runner = makeRunner({

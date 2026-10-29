@@ -1,4 +1,4 @@
-// The Notifications tab (spec 501): one control for the device the page
+// The Notifications tab: one control for the device the page
 // is open on. Everything the script needs rides on the panel's own
 // attributes — the server's public key to subscribe with and the
 // language the device reads, which is stored with its subscription so a

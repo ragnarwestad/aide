@@ -42,7 +42,7 @@ function boardWithScreenshots(): { base: string; id: string } {
 }
 
 describe("GET /jobs/<id>/screenshots/<step>/<file>", () => {
-  test("answers a kept picture as image/png with its bytes (AC-4)", async () => {
+  test("answers a kept picture as image/png with its bytes", async () => {
     const { base, id } = boardWithScreenshots();
     const res = await fetch(`${base}/jobs/${id}/screenshots/implement/01-jobs-1440.png`);
     expect(res.status).toBe(200);
@@ -50,7 +50,7 @@ describe("GET /jobs/<id>/screenshots/<step>/<file>", () => {
     expect(Buffer.from(await res.arrayBuffer()).equals(PNG)).toBe(true);
   });
 
-  test("answers 404 for a job, a step or a file it does not know, and for a name with a path in it (AC-4)", async () => {
+  test("answers 404 for a job, a step or a file it does not know, and for a name with a path in it", async () => {
     const { base, id } = boardWithScreenshots();
     const asked = [
       `/jobs/nobody/screenshots/implement/01-jobs-1440.png`,
@@ -63,7 +63,7 @@ describe("GET /jobs/<id>/screenshots/<step>/<file>", () => {
     for (const path of asked) expect((await fetch(`${base}${path}`)).status, path).toBe(404);
   });
 
-  test("a step run twice serves the newest attempt's folder (AC-4)", async () => {
+  test("a step run twice serves the newest attempt's folder", async () => {
     const first = harness.start();
     const older = join(first.dir, "job.implement.stream.jsonl");
     const newer = join(first.dir, "job2.implement.stream.jsonl");
@@ -83,7 +83,7 @@ describe("GET /jobs/<id>/screenshots/<step>/<file>", () => {
     expect(await (await fetch(`${base}/jobs/twice/screenshots/implement/01-jobs-1440.png`)).text()).toBe("new");
   });
 
-  test("the job page's Log tab links the picture (AC-4)", async () => {
+  test("the job page's Log tab links the picture", async () => {
     const { base, id } = boardWithScreenshots();
     const html = await (await fetch(`${base}/jobs/${id}?tab=steps&step=0&steptab=log`)).text();
     expect(html).toContain(`href="/jobs/${id}/screenshots/implement/01-jobs-1440.png"`);

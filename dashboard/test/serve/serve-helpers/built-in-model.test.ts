@@ -27,13 +27,13 @@ const argvFor = (step: string, defaults: ReturnType<typeof mergeQueueDefaults>):
   });
 
 describe("the built-in model for a step nothing was saved for", () => {
-  test("every step runs on opus when there is no queue config at all (AC-1)", () => {
+  test("every step runs on opus when there is no queue config at all", () => {
     for (const step of WORKFLOW_STEPS) {
       expect(resolveStepModel(unpicked(step), step, QUEUE_DEFAULTS.model)).toBe("opus");
     }
   });
 
-  test("every step runs on the host's Opus choice, on Claude Code (AC-1)", () => {
+  test("every step runs on the host's Opus choice, on Claude Code", () => {
     const host = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: HOST_CHOICES });
     for (const step of WORKFLOW_STEPS) {
       expect(resolveStepModel(unpicked(step), step, host.model)).toBe("Opus");
@@ -44,7 +44,7 @@ describe("the built-in model for a step nothing was saved for", () => {
     }
   });
 
-  test("a step with a saved model runs on that, not on the built-in (AC-4)", () => {
+  test("a step with a saved model runs on that, not on the built-in", () => {
     const host = mergeQueueDefaults(QUEUE_DEFAULTS, {
       modelChoices: HOST_CHOICES, model: { analyze: "Sonnet" },
     });

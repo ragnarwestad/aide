@@ -24,7 +24,7 @@ export interface NavEntry {
   label: string;
   path: string;
   /** Resolved per request, in `siteTabs()` below, in preference to `label`
-   *  (spec 482) — `navEntries()` builds this list at server start,
+   *  `navEntries()` builds this list at server start,
    *  before any reader's language is known, so a tab whose word can
    *  change per language names the catalogue KEY here instead of
    *  baking in English. Absent for every entry with nothing to
@@ -44,7 +44,7 @@ const transpile = (file: string): string =>
   );
 
 const THEME_SCRIPT = transpile("../scripts/theme-script.ts");
-// Spec 118's sibling to it: which UNIT the reader wants consumption in.
+// Its sibling: which UNIT the reader wants consumption in.
 // Its own file and its own IIFE, concatenated into the one <script> tag
 // below rather than given a second: the rule is page code kept off the
 // generated pages, not a second small setting sharing the allowance.
@@ -52,7 +52,7 @@ const UNIT_SCRIPT = transpile("../scripts/unit-script.ts");
 // Close-on-outside-click and Escape for the "…" menu: what makes the
 // disclosure BEHAVE as a menu rather than a box that stays open.
 const MENU_SCRIPT = transpile("../scripts/menu-script.ts");
-// Spec 173's fourth: the two lines that register the service worker,
+// The fourth: the two lines that register the service worker,
 // which is what a browser wants to see before it offers to install the
 // page. It shares the one <script> tag for the reason UNIT_SCRIPT
 // does.
@@ -61,18 +61,18 @@ const SW_REGISTER_SCRIPT = transpile("../scripts/sw-register.ts");
 // moment a page loads and again on every live update.
 const APP_BADGE_SCRIPT = transpile("../scripts/app-badge.ts");
 // The sixth: a link that leaves the page says so the moment it is
-// clicked, on every page (spec 312) — `specs-client.ts` used to own
+// clicked, on every page — `specs-client.ts` used to own
 // this for the one page it loads on.
 const NAV_BUSY_SCRIPT = transpile("busy/nav-busy.ts");
 // The seventh: the same click nav-busy.ts marks also gets a covering
 // layer, for the whole wait rather than only while the pointer sits
-// still over the link (spec 314).
+// still over the link.
 const NAV_OVERLAY_SCRIPT = transpile("busy/nav-overlay.ts");
-// The eighth (spec 358): the PDF button opens a NEW tab, which neither
+// The eighth: the PDF button opens a NEW tab, which neither
 // nav-busy.ts nor nav-overlay.ts covers (both decline a target="_blank"
 // link, since this document is never replaced).
 const PDF_BUSY_SCRIPT = transpile("busy/pdf-busy.ts");
-// The ninth (spec 391): Save and Cancel enable together the instant a
+// The ninth: Save and Cancel enable together the instant a
 // spec form has an edit, and disable together again once Cancel puts it
 // back — one script for every `.specform` on the page rather than one
 // per tab.
@@ -80,7 +80,7 @@ const SPEC_FORM_ACTIONS_SCRIPT = transpile("forms/spec-form-actions.ts");
 /** Ticking a dependency moves its chip between the two blocks at
  *  once, rather than only when the form comes back saved. */
 const DEPENDS_LIFT_SCRIPT = transpile("forms/depends-lift.ts");
-// The tenth (spec 438): a page with an unsaved edit in one of the
+// The tenth: a page with an unsaved edit in one of the
 // tracked forms warns before it is left, by any means — an in-app
 // link, the browser's Back/Forward, a closed tab, a typed address —
 // since it rides `beforeunload` rather than intercepting any one of
@@ -94,7 +94,7 @@ const START_PAGE_SCRIPT = transpile("../scripts/start-page.ts");
 // notice saying it waits does not outlive it.
 const RESTART_WATCH_SCRIPT = transpile("../scripts/restart-watch.ts");
 
-// Relocated from settings-page.ts's own unitsBlock (spec 436), markup
+// Relocated from settings-page.ts's own unitsBlock, markup
 // unchanged — unit-script.ts's mark() already targets every
 // [data-unit-choice] on the page, however many copies exist, so this
 // needs no script change of its own.
@@ -105,7 +105,7 @@ function unitChoiceRows(scope: string): string {
   );
 }
 
-// The header-level unit switch (spec 436), built the same way as
+// The header-level unit switch, built the same way as
 // themeControl()/languageControl(). A static "$", not a live icon:
 // unlike theme's three-way choice, where the trigger's own icon is the
 // only way to see which of three is active, a two-way choice does not
@@ -160,7 +160,7 @@ function aboutDialog(): string {
 
 // The board's one confirmation dialog, written once per page like About
 // rather than stamped out per row: this guard is a property of the whole
-// app, not of any one row (spec 478). It has no button — the
+// app, not of any one row. It has no button — the
 // unsaved-changes guard opens it from a dirty page's link click, finds it
 // by id, and reads OK's `leave` as its answer. A real <dialog>, unlike the
 // native beforeunload prompt it replaces for an in-app link, is positioned
@@ -176,7 +176,7 @@ function leaveAppDialog(lang: Language): string {
 }
 
 // Which board this page is served from, and — on a test board — the
-// Stop control beside it (spec 424, REQ-1..5). `getBoardInfo()` is
+// Stop control beside it. `getBoardInfo()` is
 // process-lifetime state, read directly here rather than threaded
 // through `pageShell()`'s 17 call sites, the same shape
 // `lastInstallWarning()` (header-notices.ts) already uses for `AIDE_INSTALL_LOG`.
@@ -253,7 +253,7 @@ export function isSpecFolder(folder: string): boolean {
  *  bar under the header is the one shown. */
 function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   // Theme, language and unit repeat here flat, with no second `<details>`
-  // wrapper (spec 436): the "…" menu's own `closeAll()` behaviour
+  // wrapper: the "…" menu's own `closeAll()` behaviour
   // (menu-script.ts) closes every open `details.menu`/`details.intro`
   // except the innermost the click landed in, and a nested `<details>`
   // here would make its own trigger close this outer menu instead of
@@ -266,7 +266,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
   return (
     `<header>${WORDMARK}${tabs}${boardLine(lang)}` +
     // Theme, language and unit sit beside the "…" trigger, all at the
-    // header's right-hand end (spec 243, spec 350, spec 436) —
+    // header's right-hand end —
     // header-level controls the reader reaches without opening the menu
     // first, not one more item behind it.
     // A <div>, not a <span>: a <details> is flow content, which a span cannot hold.
@@ -277,7 +277,7 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
     `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
     `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
-    // Settings, then the board-wide test-server overview (spec 425),
+    // Settings, then the board-wide test-server overview,
     // then About.
     `<div class="menupanel">${boardRow(lang)}${menuSettingRows(lang, currentUrl)}<a href="/settings">${t(lang, "shell.settings")}</a>` +
     `<a href="/test-servers">${t(lang, "shell.testServers")}</a>` +
@@ -294,11 +294,11 @@ function pageHeader(lang: Language, currentUrl: string, tabs = ""): string {
  *  projects were one too many. A project's own page counts as being "in"
  *  Projects, so that tab is current there too.
  *
- *  Except the sections (spec 163): anything among the rest with an ABSOLUTE
+ *  Except the sections: anything among the rest with an ABSOLUTE
  *  path is a half of the dashboard rather than a project — so it gets a tab of
  *  its own and is not one of the pages Projects is current on. The shape is
  *  what decides, not the label. A RELATIVE `<slug>.html` is read as a project
- *  page, which no build writes any more (spec 185 served it instead).
+ *  page, which no build writes any more (the server serves it instead).
  *
  *  Running is current on `/` and on every job's page, which passes `/`; Specs on
  *  `/specs`, which the list, New spec and the spec page pass. */
@@ -323,7 +323,7 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
   // Real tabs, not filter pills: a hairline the row sits on, and the
   // current tab marked by an underline in the accent colour (asked for
   // 2026-08-19, with PaceUp's tab bar as the reference).
-  // `data-goto` (spec 208): these are real page loads, and were the
+  // `data-goto`: these are real page loads, and were the
   // literal case 1-description.md measured — five seconds from Projects
   // to Specs with nothing on the screen saying anything had happened.
   // `data-nav` stays and is still inert for them: the only listener
@@ -346,7 +346,7 @@ function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): str
 /** Everything `pageShell` takes beyond the title, the tabs and the body. */
 export interface PageShellOpts {
   script?: string;
-  /** A second, distinct script tag (spec 315) — `src=` rather than
+  /** A second, distinct script tag — `src=` rather than
    *  inline text, for the one script this dashboard wants a browser
    *  to fetch once and reuse rather than re-send with every page. */
   scriptSrc?: string;
@@ -354,9 +354,9 @@ export interface PageShellOpts {
   hideHeading?: boolean;
   /** When this page is part of a static build: its generation time,
    *  shown labelled at the bottom of the About dialog. */
-  /** Spec 350. Absent (never required) on every page — every call site
-   *  passes some real `lang` since spec 408 (REQ-1, guarded at runtime
-   *  by `pageshell-lang-coverage.test.ts`, REQ-5), so absent still
+  /** Absent (never required) on every page — every call site
+   *  passes some real `lang` (guarded at runtime
+   *  by `pageshell-lang-coverage.test.ts`), so absent still
    *  means "nothing chose otherwise" rather than an unwired page. */
   lang?: Language;
   /** The exact request address (path + query, `lang` included) the
@@ -365,7 +365,7 @@ export interface PageShellOpts {
    *  `projects-page.ts` have no request to read one from, and always link
    *  home exactly as every page already did before this field existed. */
   currentUrl?: string;
-  /** REQ-2 (spec 408): Settings belongs to none of the tabs the bar
+  /** Settings belongs to none of the tabs the bar
    *  offers, so it draws no tab bar at all. Absent (never required)
    *  on every other page. */
   hideTabBar?: boolean;
@@ -376,7 +376,7 @@ export interface PageShellOpts {
 }
 
 /** The document up to and including `<body …>`: what a streamed page can
- *  send before it knows anything about its content (spec 515). */
+ *  send before it knows anything about its content. */
 export function shellHead(
   title: string,
   opts: { lang?: Language; docTitle?: string; startAt?: string } = {},

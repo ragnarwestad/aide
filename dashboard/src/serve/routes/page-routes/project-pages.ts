@@ -57,7 +57,7 @@ export async function projectPages(
 
   if (path === TEST_SERVERS_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    // Refresh and filter in one pass: REQ-2's own dead-board check may
+    // Refresh and filter in one pass: the dead-board check may
     // remove an entry right here (a "running" board whose process has
     // since died) — dropped from this page the same read that found it
     // gone, rather than drawn once more before the next visit clears it.
@@ -77,7 +77,7 @@ export async function projectPages(
         status: entry!.status,
         // The address the READER can reach: the round prints a loopback one.
         url: entry!.url ? testServerUrlFor(req, entry!.url) : undefined,
-        // AC-7: `MAIN_TEST_SERVER_KEY` has no real spec to be scoped to — the
+        // `MAIN_TEST_SERVER_KEY` has no real spec to be scoped to — the
         // spec-scoped route would 404 on it.
         stopAction: isSpecFolder(specFolder)
           ? `/api/queue${specPagePath(project, specFolder)}/test-server/stop`
@@ -131,7 +131,7 @@ export async function projectPages(
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(projectPage[1]!);
     if (!ctx.opts.projectRoot) return new Response("no such project\n", { status: 404 });
-    // AC-5: the tab the Deploy button's POST opened WAITS here, the same
+    // The tab the Deploy button's POST opened WAITS here, the same
     // way `spec-page.ts`'s own `?startTestServer=1` does — but this GET never
     // starts or restarts a board itself (the POST route already did, or
     // nobody ever pressed the button at all).
@@ -169,7 +169,7 @@ export async function projectPages(
     // Read-only, like `/projects`' own drift map: `peekDrift` is a
     // cache lookup, never a git call — the page's own "never merges,
     // pulls, fetches or checks anything out" contract
-    // (project-detail-readiness-and-deploy.test.ts) must hold here too (spec 258).
+    // (project-detail-readiness-and-deploy.test.ts) must hold here too.
     const driftRoot = ctx.machineryProjectDir(name);
     const boardItself = ctx.deploy.isBoard(driftRoot);
     // The board's own Deploy needs an install command; every other project
@@ -188,7 +188,7 @@ export async function projectPages(
             if (head.code !== 0) return undefined;
             const checkoutHead = head.stdout.trim();
             const current = servingSha === checkoutHead;
-            // REQ-7 (spec 392): only fetched while origin itself has not
+            // Only fetched while origin itself has not
             // been checked yet — the one sentence that needs to say what
             // the served commit actually is, never a bare hash.
             if (drift?.checkedAt !== null) return { sha: servingSha, checkoutHead, current };
@@ -204,8 +204,8 @@ export async function projectPages(
             return { sha: servingSha, checkoutHead, current, newestSubject, behindCount };
           })().catch(() => undefined)
         : undefined;
-    // The manifest a run reads is the dashboard's own checkout's (spec
-    // 512). A clone that is still being made, or has none yet, answers
+    // The manifest a run reads is the dashboard's own checkout's.
+    // A clone that is still being made, or has none yet, answers
     // with the project's own directory, as everything did before.
     const machinery = ctx.machineryProjectDir(name);
     const manifestDir = existsSync(join(machinery, ".aide", "project.yaml")) ? machinery : dir;
@@ -222,7 +222,7 @@ export async function projectPages(
         backHref: resolveBackHref(req.headers.get("referer"), url.origin, PROJECTS_ROUTE, url.pathname),
         script: await specsClientScript(),
         // Specs root and Worktree links are no longer read a second
-        // time here (spec 255): `projectSettings(dir, readiness)`
+        // time here: `projectSettings(dir, readiness)`
         // above already resolved both, and the table draws its Value
         // cells straight off those same rows — one read per row's
         // data, not two that could drift.
@@ -256,7 +256,7 @@ export async function projectPages(
         restartWaiting: ctx.readPendingRestart()?.jobs,
         boardItself,
         deployUnderWay: deployUnderWay(ctx, name),
-        // AC-8: the same capability check the spec-page's own
+        // The same capability check the spec-page's own
         // test-server link already gates on.
         testServerAvailable: ctx.testServers.previewAvailable(name),
         tab: url.searchParams.get("tab") ?? undefined,
@@ -294,7 +294,7 @@ export async function projectPages(
     // on it is not one of the board's projects.
     const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir))
       .filter((p) => ctx.allowed.has(p.name));
-    // Spec 184: whether a run could start in each project, asked on
+    // Whether a run could start in each project, asked on
     // every visit. The Add flow answered this exactly once, in the
     // query string of the redirect it landed on — so an operator who
     // did not act on it there had no way to rediscover what was
@@ -339,7 +339,7 @@ export async function projectPages(
     return new Response(html, { headers });
   }
 
-  // Spec 272. Whatever a `schedule` step wrote to its own output
+  // Whatever a `schedule` step wrote to its own output
   // directory, served with the same traversal-safe `serveStatic()`
   // primitive `schedule-pages.ts` uses for `/schedule-output/` —
   // pointed at a different root. `scheduleOutputDir()` is the SAME function

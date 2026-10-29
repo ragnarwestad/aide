@@ -30,13 +30,13 @@ const notice = (
   )?.[0] ?? "";
 
 describe("a row whose analyze stopped on shared files", () => {
-  test("with the job in the queue, it says the record's sentence in place of the job's own (AC-2)", () => {
+  test("with the job in the queue, it says the record's sentence in place of the job's own", () => {
     const html = notice([stoppedJob()], target({ stopped: { analyze: "shared-files" } }), () => OPEN);
     expect(html).toContain(NAMED);
     expect(html).not.toContain("603-b");
   });
 
-  test("without the job, it says the same sentence from the analyze phase's own history (AC-2)", () => {
+  test("without the job, it says the same sentence from the analyze phase's own history", () => {
     const withJob = notice([stoppedJob()], target({ stopped: { analyze: "shared-files" } }), () => OPEN);
     const withoutJob = notice([], target({ stopped: { analyze: "shared-files" } }), () => OPEN);
     expect(withoutJob).toContain(NAMED);
@@ -44,7 +44,7 @@ describe("a row whose analyze stopped on shared files", () => {
     expect(withoutJob.replace(/<[^>]*>/g, "")).toBe(withJob.replace(/<[^>]*>/g, ""));
   });
 
-  test("the record is asked about the row's own project and folder (AC-2)", () => {
+  test("the record is asked about the row's own project and folder", () => {
     const asked: string[] = [];
     notice([], target({ stopped: { analyze: "shared-files" } }), (project, folder) => {
       asked.push(`${project}/${folder}`);

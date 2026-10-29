@@ -5,7 +5,7 @@ const queue = (modelChoices: Record<string, { tool?: "claude" | "codex" | "openc
   ({ defaults: { modelChoices }, modelIds }) as Parameters<typeof modelChoiceOptions>[0];
 
 describe("the option array the model pickers are built from", () => {
-  test("a Claude alias that has run carries the id its newest run reported (AC-4)", () => {
+  test("a Claude alias that has run carries the id its newest run reported", () => {
     const options = modelChoiceOptions(queue({ Opus: {}, Sonnet: { tool: "claude" } }, { Opus: "claude-opus-5-5", Sonnet: "claude-sonnet-5" }));
     expect(options).toEqual([
       { name: "Opus", ranAs: "claude-opus-5-5" },
@@ -13,7 +13,7 @@ describe("the option array the model pickers are built from", () => {
     ]);
   });
 
-  test("an alias that has never run, another tool's choice and a choice named by its id carry none (AC-4)", () => {
+  test("an alias that has never run, another tool's choice and a choice named by its id carry none", () => {
     const options = modelChoiceOptions(
       queue(
         { Fable: {}, "gpt-6-sol": { tool: "codex" }, "claude-opus-4-1": {}, Stand: { tool: "fake-claude" } },

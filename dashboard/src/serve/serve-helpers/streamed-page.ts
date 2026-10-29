@@ -1,4 +1,4 @@
-// A page sent in two halves (spec 515): the head at once, the rest when it
+// A page sent in two halves: the head at once, the rest when it
 // is ready. The status is fixed at the first byte, so a page that has begun
 // can no longer become a 404 or a 500 — the route decides those first, and
 // a rest that fails ends the page with a fallback instead.

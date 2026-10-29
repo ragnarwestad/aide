@@ -1,4 +1,4 @@
-// Spec 291: the Overview page's Checks section reads from an active
+// The Overview page's Checks section reads from an active
 // spec's own OPEN `aide/<folder>` branch when one exists, instead of
 // from `main`'s copy in the shared machinery checkout — because
 // `implement` never merges its own work, only `archive` does, and
@@ -8,7 +8,7 @@
 //
 // Split out from spec-overview-checks.test.ts, whose own suite is about
 // the disk-only (no open branch) case this feature must leave
-// unchanged (REQ-2).
+// unchanged.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
@@ -23,18 +23,17 @@ afterEach(() => harness.cleanup());
 
 // The disk's own `4-status.md` — what `main` says — deliberately
 // UNLIKE the branch content below, so a test that sees the branch's
-// numbers instead of these proves REQ-1 rather than merely proving the
+// numbers instead of these proves the branch is read rather than merely proving the
 // route still answers with something.
 const MAIN_ONLY_STATUS = ["# Queue - Status", "", phaseSection(PHASE, [DONE_ROW])].join("\n");
 
-// `STATUS_TAB`, not the bare page: spec 291 named this helper when the
-// Checks section lived on the page's default tab, still called
-// "Overview" at the time. Spec 294, landed the same day, renamed that
-// tab to "Checks" and moved the default tab to Description — so the
-// bare URL now serves a different tab entirely.
+// `STATUS_TAB`, not the bare page: the helper is still called
+// `overview`, from when the Checks section lived on the page's default
+// tab, "Overview". That tab is now "Checks" and the default tab is
+// Description — so the bare URL serves a different tab entirely.
 const overview = (base: string) => fetch(`${base}${STATUS_TAB}`).then((r) => r.text());
 
-describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)", () => {
+describe("the Checks section reads an open branch's own progress", () => {
   test("an open branch's 4-status.md wins over main's, both rows and the open count", async () => {
     const { run } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
     const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
@@ -45,7 +44,7 @@ describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)",
     expect(html).toContain("1 of 2 still open");
   });
 
-  test("with no open branch, the Checks section reads main exactly as before (REQ-2)", async () => {
+  test("with no open branch, the Checks section reads main exactly as before", async () => {
     const { run } = branchAwareGitRunner({ open: false, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
     const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
     const html = await overview(base);
@@ -69,11 +68,11 @@ describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)",
   });
 });
 
-// REQ-3: which rows `checklist()` offers as boxes is decided the same
+// Which rows `checklist()` offers as boxes is decided the same
 // way whether its input came off a branch or off disk — and what it
 // decides is that the `## Acceptance criteria` rows are the person's
 // and the Phase tables are the implement run's own record.
-describe("the Acceptance-only rule still holds for a branch read (REQ-3)", () => {
+describe("the Acceptance-only rule still holds for a branch read", () => {
   test("an open Phase row on the branch is not a box, and not in the tick block", async () => {
     const branchStatus = [
       "# Queue - Status",
@@ -95,8 +94,8 @@ describe("the Acceptance-only rule still holds for a branch read (REQ-3)", () =>
   });
 });
 
-describe("a tick writes onto the open branch, not onto main (REQ-4a/REQ-4b)", () => {
-  test("REQ-4a: the write pushes a commit onto refs/heads/aide/<folder>, and the shared checkout stays untouched", async () => {
+describe("a tick writes onto the open branch, not onto main", () => {
+  test("the write pushes a commit onto refs/heads/aide/<folder>, and the shared checkout stays untouched", async () => {
     const { run, calls } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS() });
     const { base, dir } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
 
@@ -113,7 +112,7 @@ describe("a tick writes onto the open branch, not onto main (REQ-4a/REQ-4b)", ()
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(MAIN_ONLY_STATUS);
   });
 
-  test("REQ-4b: a headless run's commit landing between render and Save refuses the tick", async () => {
+  test("a headless run's commit landing between render and Save refuses the tick", async () => {
     const { run } = branchAwareGitRunner({ open: true, branchText: MAIN_STATUS_WITH_OPEN_ROWS(), pushFails: true });
     const { base, dir } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { gitRun: run } });
 
@@ -148,7 +147,7 @@ function MAIN_STATUS_WITH_OPEN_ROWS(): string {
 // main has it only once archive lands: the rows a person ticks before
 // then were drawn with nothing under them.
 describe("the tests behind an acceptance row come off the open branch too", () => {
-  test("a row names the test the branch's own record gives it (AC-6)", async () => {
+  test("a row names the test the branch's own record gives it", async () => {
     const branchStatus = [
       "# Queue - Status", "", "## Acceptance criteria", "",
       "| Task | Status | Notes |", "|------|--------|-------|", "| AC-1: The total SHALL show. | ⬜ | |", "",

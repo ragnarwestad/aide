@@ -1,5 +1,5 @@
 // What a run would use for a project's test, lint and build command
-// when `.aide/config` does not say (spec 185).
+// when `.aide/config` does not say.
 //
 // The table itself is old — `core/skills/tools-and-scripts/SKILL.md`
 // has carried it since long before this file, and every AI agent

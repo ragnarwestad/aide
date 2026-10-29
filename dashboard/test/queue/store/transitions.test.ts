@@ -1,8 +1,8 @@
-// Spec 354: one transition table is the only way a job's state changes.
-// This file pins the table itself (REQ-1), the store method's contract
-// (REQ-3, REQ-5), and the two structural guarantees that keep the table
-// from drifting — against the documentation (REQ-6a) and against any
-// write site outside the store (REQ-6b).
+// One transition table is the only way a job's state changes.
+// This file pins the table itself, the store method's contract
+// and the two structural guarantees that keep the table
+// from drifting — against the documentation and against any
+// write site outside the store.
 
 import { describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -20,12 +20,12 @@ const resolve = (project: string) => (project === "aide" ? { specFolders: ["81-q
 
 // Every event the table's own type declares — read off the table's keys
 // rather than hand-copied, so a member added to the union without a row
-// anywhere in the table is still covered by the REQ-1 loop below.
+// anywhere in the table is still covered by the per-event loop below.
 const ALL_EVENTS = Array.from(
   new Set(Object.values(TRANSITIONS).flatMap((row) => Object.keys(row ?? {}))),
 ) as TransitionEvent[];
 
-describe("TRANSITIONS (REQ-1)", () => {
+describe("TRANSITIONS", () => {
   test("every (state, event) pair names at most one next state, and every named state is real", () => {
     for (const state of JOB_STATES) {
       for (const event of ALL_EVENTS) {
@@ -64,7 +64,7 @@ function makeStore(): QueueStore {
   return new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });
 }
 
-describe("QueueStore.transition (REQ-3, REQ-5)", () => {
+describe("QueueStore.transition", () => {
   test("a refused transition leaves the job unchanged and reports the state and event refused", () => {
     const store = makeStore();
     const r = store.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
@@ -105,7 +105,7 @@ describe("QueueStore.transition (REQ-3, REQ-5)", () => {
   });
 });
 
-describe("the diagram and the table agree (REQ-6a)", () => {
+describe("the diagram and the table agree", () => {
   /** `A --> B: label` edges between two NAMED states — `[*]` excluded,
    *  since job creation has no prior state to look up (2-analysis.md,
    *  Patterns). Only the `(A, B)` pair matters; the label is free prose. */
@@ -160,7 +160,7 @@ describe("the diagram and the table agree (REQ-6a)", () => {
   });
 });
 
-describe("no state write outside the store (REQ-6b)", () => {
+describe("no state write outside the store", () => {
   // A literal `state:` key whose value is one of the seven JobState
   // members — narrow on purpose, so this does not also flag
   // filter-sort.ts's sort-direction `state: "asc"|"desc"` or

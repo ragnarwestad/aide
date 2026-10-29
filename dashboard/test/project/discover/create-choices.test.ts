@@ -13,7 +13,7 @@ const description = (...lines: string[]): string =>
   ["# A spec - Description", "", "## Tracking info", "", "- **Created:** `2026-10-10 11:11 UTC`", ...lines, "", "---", ""].join("\n");
 
 describe("createChoicesIn", () => {
-  test("a description with none of the lines reads as the defaults (AC-7)", () => {
+  test("a description with none of the lines reads as the defaults", () => {
     expect(createChoicesIn(description())).toEqual({
       acceptanceRequired: true,
       aiFormulate: true,
@@ -22,7 +22,7 @@ describe("createChoicesIn", () => {
     });
   });
 
-  test("each recorded value is read back (AC-5)", () => {
+  test("each recorded value is read back", () => {
     const text = description(
       "- **Acceptance:** not required",
       "- **Let AI formulate acceptance criteria:** no",
@@ -37,13 +37,13 @@ describe("createChoicesIn", () => {
     });
   });
 
-  test("only `no` turns the AI formulation off (AC-7)", () => {
+  test("only `no` turns the AI formulation off", () => {
     expect(createChoicesIn(description("- **Let AI formulate acceptance criteria:** yes")).aiFormulate).toBe(true);
     expect(createChoicesIn(description("- **Let AI formulate acceptance criteria:** maybe")).aiFormulate).toBe(true);
     expect(createChoicesIn(description("- **Let AI formulate acceptance criteria:** no")).aiFormulate).toBe(false);
   });
 
-  test("the level is read as the runner reads it, for every case of the shared table (AC-7)", () => {
+  test("the level is read as the runner reads it, for every case of the shared table", () => {
     const cases = JSON.parse(readFileSync(join(REPO, "core", "tests", "fixtures", "criteria-checks-level.json"), "utf-8")).cases as {
       name: string; description: string | null; level: string;
     }[];

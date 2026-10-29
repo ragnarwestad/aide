@@ -1,7 +1,7 @@
 // Where the specs live inside the code repo, one branch carries both.
 // A round's analyze landed that branch whole, putting an earlier
 // implement's code on main before archive; a close deleted it whole,
-// taking the folder move with it (paceup:03, 2026-09-18). These land the
+// taking the folder move with it. These land the
 // spec's own folder alone.
 //
 // Real git, a real bare origin: the rule is about what origin's main

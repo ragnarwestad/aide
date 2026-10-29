@@ -11,7 +11,7 @@ import { statusSaying } from "../helpers/queue-server.ts";
 const { harness, start } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
 
-// --- spec 212: the textarea lives on the spec page's own Description tab ----
+// --- The textarea lives on the spec page's own Description tab ----
 
 describe("the Description tab", () => {
   test("a spec nobody has is a 404, not a blank editor", async () => {
@@ -20,7 +20,7 @@ describe("the Description tab", () => {
   });
 });
 
-// --- spec 471, AC-1 regression lock ------------------------------------
+// --- regression lock: a held-back spec stays editable ------------------
 //
 // 2-analysis.md's own Codebase analysis found this already true today:
 // `descriptionPanel`/`documentPanel` gate read-only status on
@@ -28,9 +28,9 @@ describe("the Description tab", () => {
 // all — a held-back spec is neither archived nor busy, so its
 // Description tab was never actually locked. Guarded here as a
 // regression rather than left as an assumption, the same treatment
-// Step 0 already gives AC-7's own "already true" branch-reuse case.
+// the "already true" branch-reuse case gets.
 
-describe("AC-1 (spec 471): a held-back spec's description stays editable", () => {
+describe("a held-back spec's description stays editable", () => {
   test("Save on a spec held back on unticked acceptance criteria is not refused", async () => {
     const heldBackStatus = statusSaying(
       ["create", "analyze", "implement"],
@@ -67,14 +67,14 @@ describe("a Description Save and the recorded acceptance criteria checks level",
     ["changed to off", described(STOP), described("- **Acceptance criteria checks:** off")],
     ["removed", described(STOP), described("")],
     ["added where none was recorded", described(""), described(STOP)],
-  ])("a save with the line %s is refused, and the file is left as it was (AC-7)", async (_name, recorded, posted) => {
+  ])("a save with the line %s is refused, and the file is left as it was", async (_name, recorded, posted) => {
     const { status, body, onDisk } = await save(recorded, posted);
     expect(status).toBe(400);
     expect(body.error).toContain("Acceptance criteria checks");
     expect(onDisk).toBe(recorded);
   });
 
-  test("a save that keeps the line as recorded goes through (AC-7)", async () => {
+  test("a save that keeps the line as recorded goes through", async () => {
     const posted = described(STOP, "As it is now.");
     const { status, onDisk } = await save(described(STOP), posted);
     expect(status).toBe(200);

@@ -67,7 +67,7 @@ def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspa
 def test_the_prompt_itself_says_nobody_can_answer(runner, workspace, fake_claude):
     """AIDE_HEADLESS in the environment was not enough: a skill has to
     remember to go and read it, and on 2026-08-17 an archive run read
-    ABOUT the variable while analysing spec 88 and never checked its own.
+    ABOUT the variable while analysing a spec and never checked its own.
     It then stopped to ask a question nobody could answer, and reported
     success. A fact the model must act on belongs in the text it is
     given, not in a place it has to think to look."""
@@ -96,7 +96,7 @@ def test_the_prompt_says_never_to_wait_on_background_work(runner, workspace, fak
     assert "end your turn" in lowered
 
 def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_claude):
-    """Spec 144. The run works in a worktree cut from origin's default
+    """The run works in a worktree cut from origin's default
     branch, so nothing in the main checkout reaches it — dirty or not.
     A stray file used to refuse every job touching the repo, however
     unrelated it was to the spec being run."""
@@ -115,7 +115,7 @@ def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_clau
 def test_a_dirty_specs_root_does_not_stop_the_run(runner, workspace, fake_claude):
     """The specs repo is where /aide-analyze actually writes, so it was
     the root the old refusal guarded hardest. Its worktree is cut from
-    origin's default branch too (spec 144)."""
+    origin's default branch too."""
     (workspace["specs"] / "stray.md").write_text("uncommitted\n")
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
@@ -140,7 +140,7 @@ def test_refuses_bad_arguments(runner, workspace, fake_claude, kwargs, fragment)
     assert rc == 2, out
     assert out["ok"] is False
     assert fragment in out["error"].lower()
-    # Spec 153: a refusal with nothing a machine can act on says nothing
+    # A refusal with nothing a machine can act on says nothing
     # — the key is absent, not null and not empty. Same rule as
     # `specFolder` and `tokens`.
     assert "errorReason" not in out
@@ -212,14 +212,14 @@ def test_a_result_with_no_usage_at_all_records_no_tokens(runner, workspace, fake
     assert "tokens" not in out
 
 def test_a_claude_run_reports_the_model_its_log_names_on_init(runner, workspace, fake_claude):
-    """AC-1: the id the alias resolved to is read off the `init` event."""
+    """The id the alias resolved to is read off the `init` event."""
     claude = fake_claude(stream_body(RESULT_OK, before=[init_event("claude-opus-5-5")]))
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert out["modelId"] == "claude-opus-5-5"
 
 def test_the_last_init_that_names_a_model_wins(runner, workspace, fake_claude):
-    """AC-1: a resumed turn writes its own `init`; a later one that names
+    """A resumed turn writes its own `init`; a later one that names
     no model does not erase the earlier answer."""
     before = [init_event("claude-opus-5-4"), init_event("claude-opus-5-5"), init_event(None)]
     claude = fake_claude(stream_body(RESULT_OK, before=before))
@@ -235,7 +235,7 @@ def test_the_last_init_that_names_a_model_wins(runner, workspace, fake_claude):
     [init_event(["claude-opus-5-5"])],
 ], ids=["no-init", "no-model", "empty-model", "number", "list"])
 def test_a_log_that_names_no_model_stores_no_model_id(runner, workspace, fake_claude, before):
-    """AC-1: absent — not "", not null — and never taken from `modelUsage`."""
+    """Absent — not "", not null — and never taken from `modelUsage`."""
     result = {**RESULT_OK, "modelUsage": MODEL_USAGE}
     claude = fake_claude(stream_body(result, before=before))
     rc, out, _ = run(runner, workspace, claude)
@@ -243,7 +243,7 @@ def test_a_log_that_names_no_model_stores_no_model_id(runner, workspace, fake_cl
     assert "modelId" not in out
 
 def test_the_model_id_is_the_init_model_not_a_helper_from_model_usage(runner, workspace, fake_claude):
-    """AC-1: `modelUsage` lists helper models too, and its first key is
+    """`modelUsage` lists helper models too, and its first key is
     the helper here."""
     helper_first = {"claude-haiku-4-5": MODEL_USAGE["claude-haiku-4-5"], "claude-opus-5-5": MODEL_USAGE["claude-opus-5"]}
     result = {**RESULT_OK, "modelUsage": helper_first}
@@ -253,7 +253,7 @@ def test_the_model_id_is_the_init_model_not_a_helper_from_model_usage(runner, wo
     assert out["modelId"] == "claude-opus-5-5"
 
 def test_a_run_stopped_at_its_time_limit_keeps_the_model_id_but_no_tokens(runner, workspace, fake_claude):
-    """AC-1: the id is a fact the log states, not a measurement like the
+    """The id is a fact the log states, not a measurement like the
     tokens a stop throws away."""
     flushed = {**RESULT_OK, "subtype": "error_during_execution", "is_error": True, "modelUsage": MODEL_USAGE}
     claude = fake_claude(
@@ -268,7 +268,7 @@ def test_a_run_stopped_at_its_time_limit_keeps_the_model_id_but_no_tokens(runner
     assert "tokens" not in out
 
 def test_a_fake_claude_step_reports_no_model_id_even_when_its_stream_names_one(runner, workspace, fake_claude):
-    """AC-1: a scripted stand-in names no real model."""
+    """A scripted stand-in names no real model."""
     claude = fake_claude(stream_body(RESULT_OK, before=[init_event("claude-opus-5-5")]))
     rc, out, _ = run(runner, workspace, claude, tool="fake-claude")
     assert rc == 0, out
@@ -280,8 +280,8 @@ def test_the_run_happens_inside_the_project_not_the_callers_directory(runner, wo
     first real job ran with the server's cwd and analysed the wrong
     repository — it cost $0.45 to find out, so it gets a test.
 
-    Since spec 91 the directory is the project's WORKTREE rather than its
-    main checkout (criterion 2), but the property is the same one: the
+    The directory is the project's WORKTREE rather than its
+    main checkout, but the property is the same one: the
     step must stand in the tree the run will commit from.
     """
     claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
@@ -376,9 +376,9 @@ def test_a_run_starts_from_the_default_branch_not_the_last_job_s(runner, workspa
     merged and deleted upstream, the pull fails outright, which is how
     this was found.
 
-    Restated for spec 91: the step no longer runs in the main checkout at
+    The step no longer runs in the main checkout at
     all, so what is asserted is the branch the WORKTREE was cut from. The
-    main checkout's own branch is criterion 1's business.
+    main checkout's own branch is not asserted here.
     """
     stale = "aide/99-previous-job"
     subprocess.run(["git", "-C", str(workspace["project"]), "switch", "-q", "-c", stale], check=True)
@@ -461,7 +461,7 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
         workspace["project"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner"
     ).startswith("WIP: ")
 
-    # Spec 152: the sentence a reader actually sees. A stop at OUR OWN
+    # The sentence a reader actually sees. A stop at OUR OWN
     # limit is not an outside fault, and the work is not lost — the
     # commit asserted two lines above is exactly what makes that true.
     # `error` is read verbatim by the row's panel and the job page's
@@ -480,7 +480,7 @@ def test_a_stopped_run_reports_unmeasured_cost_even_when_it_flushes_json(runner,
     flushed = {
         "type": "result", "subtype": "error_during_execution",
         "is_error": True, "session_id": "abc", "total_cost_usd": 0,
-        # Spec 118: a flushed result carries a usage block too, and it
+        # A flushed result carries a usage block too, and it
         # is no more trustworthy than the $0 beside it.
         "modelUsage": MODEL_USAGE,
     }
@@ -506,7 +506,7 @@ def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fak
     assert marker.exists(), "SIGTERM must reach the child"
     assert out["terminalReason"] == "timeout"
 
-def test_analyze_prompt_does_not_delegate_acceptance_marks_AC_6(runner, workspace, fake_claude):
+def test_analyze_prompt_does_not_delegate_acceptance_marks(runner, workspace, fake_claude):
     rc, out, _ = run(
         runner, workspace, fake_claude("exit 1"), command="analyze",
         acceptance_not_required=True, dry_run=True,
@@ -587,7 +587,7 @@ def test_a_session_that_failed_closes_nothing(runner, workspace, fake_claude):
     assert not (workspace["specs"] / "archive" / workspace["folder"]).exists()
 
 def test_help_flag_never_runs_the_self_copy(runner, tmp_path):
-    """AC-2: --help must exit before the mktemp self-copy (the
+    """--help must exit before the mktemp self-copy (the
     "Run from a private copy of ourselves" block) ever runs. The run
     gets a TMPDIR of its own: the shared one also holds the copies of
     every other test's run going on at the same time."""
@@ -639,7 +639,7 @@ def test_the_prompt_asks_for_the_skill_steps_in_the_log(runner, workspace, fake_
 # what its prompt says, and the level lives in the spec's own description.
 
 @pytest.mark.parametrize("case", CRITERIA_CHECKS, ids=[c["name"] for c in CRITERIA_CHECKS])
-def test_analyze_states_the_specs_criteria_checks_level_AC_4_AC_5(runner, workspace, fake_claude, case):
+def test_analyze_states_the_specs_criteria_checks_level(runner, workspace, fake_claude, case):
     configure_criteria_checks(workspace, case["description"])
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
     assert rc == 0, out
@@ -649,7 +649,7 @@ def test_analyze_states_the_specs_criteria_checks_level_AC_4_AC_5(runner, worksp
     assert lines[0].endswith(f"criteriaChecks: {case['level']}"), lines
 
 
-def test_a_manifest_criteria_checks_key_is_not_read_AC_8(runner, workspace, fake_claude):
+def test_a_manifest_criteria_checks_key_is_not_read(runner, workspace, fake_claude):
     manifest = workspace["project"] / ".aide" / "project.yaml"
     manifest.write_text(manifest.read_text() + "criteriaChecks: stop\n")
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
@@ -658,7 +658,7 @@ def test_a_manifest_criteria_checks_key_is_not_read_AC_8(runner, workspace, fake
     assert lines and lines[0].endswith("criteriaChecks: off"), lines
 
 
-def test_only_analyze_is_told_the_criteria_checks_level_AC_4(runner, workspace, fake_claude):
+def test_only_analyze_is_told_the_criteria_checks_level(runner, workspace, fake_claude):
     configure_criteria_checks(workspace, "stop")
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement", dry_run=True)
     assert rc == 0, out
@@ -674,7 +674,7 @@ APPROACH_LINE = "Let me choose the approach is on for this spec"
 
 
 @pytest.mark.parametrize("case", CHOOSE_APPROACH, ids=[c["name"] for c in CHOOSE_APPROACH])
-def test_analyze_is_told_to_mark_the_approaches_only_when_the_spec_asked_AC_2_AC_9(runner, workspace, fake_claude, case):
+def test_analyze_is_told_to_mark_the_approaches_only_when_the_spec_asked(runner, workspace, fake_claude, case):
     configure_choose_approach(workspace, case["description"])
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
     assert rc == 0, out
@@ -688,7 +688,7 @@ def test_analyze_is_told_to_mark_the_approaches_only_when_the_spec_asked_AC_2_AC
         assert "real alternative" not in out["prompt"], out["prompt"]
 
 
-def test_only_analyze_is_told_to_mark_the_approaches_AC_9(runner, workspace, fake_claude):
+def test_only_analyze_is_told_to_mark_the_approaches(runner, workspace, fake_claude):
     configure_choose_approach(workspace, "yes")
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement", dry_run=True)
     assert rc == 0, out
@@ -719,7 +719,7 @@ SHORT_ANALYSIS_LINE = (
     ],
     ids=["the-offer", "nothing-recorded", "warn", "stop", "choose-approach", "not-analyze"],
 )
-def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose_AC_1_AC_2_AC_3(
+def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose(
     runner, workspace, fake_claude, command, choose, checks, offered,
 ):
     configure_choose_approach(workspace, choose)
@@ -730,11 +730,11 @@ def test_a_short_analysis_is_offered_unless_the_spec_asks_to_choose_AC_1_AC_2_AC
     assert lines == ([SHORT_ANALYSIS_LINE] if offered else []), out["prompt"]
 
 
-def test_the_runner_sets_no_limit_on_the_criteria_of_a_short_analysis_AC_7(run_spec_source):
+def test_the_runner_sets_no_limit_on_the_criteria_of_a_short_analysis(run_spec_source):
     assert not re.search(r"^\s*SHORT_ANALYSIS_\w*CRITERIA\w*=", run_spec_source, re.M)
 
 
-def test_the_short_analysis_line_says_tests_and_documentation_are_not_counted_AC_3(runner, workspace, fake_claude):
+def test_the_short_analysis_line_says_tests_and_documentation_are_not_counted(runner, workspace, fake_claude):
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
     assert rc == 0, out
     [line] = [l for l in out["prompt"].splitlines() if "A short analysis is allowed" in l]
@@ -742,7 +742,7 @@ def test_the_short_analysis_line_says_tests_and_documentation_are_not_counted_AC
 
 
 @pytest.mark.parametrize("case", SENT_BACK, ids=[c["name"] for c in SENT_BACK])
-def test_a_short_analysis_is_not_offered_to_a_spec_sent_back_to_a_full_one_AC_3(runner, workspace, fake_claude, case):
+def test_a_short_analysis_is_not_offered_to_a_spec_sent_back_to_a_full_one(runner, workspace, fake_claude, case):
     configure_sent_back(workspace, case)
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="analyze", dry_run=True)
     assert rc == 0, out

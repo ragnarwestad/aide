@@ -62,27 +62,27 @@ const names = (rows: Entry[]): string[] => rows.map((r) => r.name);
 const view = (rows: Entry[], f: SpecsFilter): string[] => names(jobsViewRows(rows, f));
 const factsOf = (rows: Entry[]): RowFacts[] => rows.map((r) => r.facts);
 
-describe("the state and the search narrow the rows as the Specs list's do (AC-1)", () => {
-  test("a state entry and a search each leave only the rows they match (AC-1)", () => {
+describe("the state and the search narrow the rows as the Specs list's do", () => {
+  test("a state entry and a search each leave only the rows they match", () => {
     expect(view(tab, { state: "stopped" })).toEqual(["idle83"]);
     expect(view(tab, { state: "failed" })).toEqual(["report-other"]);
     expect(view(tab, { q: "queue" })).toEqual(["run81"]);
     expect(view(tab, { state: "waiting", q: "night" })).toEqual(["nightly"]);
   });
 
-  test("a project in the filter narrows neither the rows nor the counts (AC-2)", () => {
+  test("a project in the filter narrows neither the rows nor the counts", () => {
     expect(view(tab, { project: "other" })).toEqual(view(tab, {}));
     expect(view(tab, { project: "other", q: "other:" })).toEqual(["report-other"]);
     expect(jobsStateOptions(factsOf(tab), { project: "aide" })).toEqual(jobsStateOptions(factsOf(tab), {}));
   });
 });
 
-describe("the state filter offers the states a row on the tab can be in (AC-2)", () => {
-  test("its entries are All, Running, Waiting, Stopped, Failed and Not verified, in that order (AC-2)", () => {
+describe("the state filter offers the states a row on the tab can be in", () => {
+  test("its entries are All, Running, Waiting, Stopped, Failed and Not verified, in that order", () => {
     expect(JOBS_STATE_FILTERS.map((s) => s.key)).toEqual(["all", "active:all", "waiting", "stopped", "failed", "not-verified"]);
   });
 
-  test("a key the tab does not offer is All, and filters as All does (AC-2)", () => {
+  test("a key the tab does not offer is All, and filters as All does", () => {
     for (const key of [undefined, "", "archived", "closed", "not-archived", "no-such-entry"]) {
       expect(jobsStateFilter(key).key).toBe("all");
     }
@@ -91,7 +91,7 @@ describe("the state filter offers the states a row on the tab can be in (AC-2)",
     expect(view(tab, { state: "archived" })).toEqual(view(tab, {}));
   });
 
-  test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one (AC-2)", () => {
+  test("the dropdown counts each entry over the rows the search lets through, and marks the chosen one", () => {
     const options = jobsStateOptions(factsOf(tab), { q: "other:", project: "aide" });
     expect(options.map((o) => [o.key, o.count])).toEqual([
       ["all", 1], ["active:all", 0], ["waiting", 0], ["stopped", 0], ["failed", 1], ["not-verified", 0],
@@ -102,32 +102,32 @@ describe("the state filter offers the states a row on the tab can be in (AC-2)",
     expect(jobsStateOptions(factsOf(tab), { state: "archived" }).find((o) => o.on)?.key).toBe("all");
   });
 
-  test("a search that names a project's rows counts those rows alone (AC-2)", () => {
+  test("a search that names a project's rows counts those rows alone", () => {
     const counts = jobsStateOptions(factsOf(tab), { q: "aide" }).map((o) => [o.key, o.count]);
     expect(counts).toEqual([["all", 3], ["active:all", 1], ["waiting", 1], ["stopped", 1], ["failed", 0], ["not-verified", 0]]);
   });
 
-  test("with no search term, or only spaces, each entry counts over every row on the tab (AC-2)", () => {
+  test("with no search term, or only spaces, each entry counts over every row on the tab", () => {
     for (const q of [undefined, "", "   "]) {
       expect(jobsStateOptions(factsOf(tab), { q }).map((o) => o.count)).toEqual([4, 1, 1, 1, 1, 0]);
     }
   });
 
-  test("a job row is never Not verified: only the spec with an open criterion is left (AC-2)", () => {
+  test("a job row is never Not verified: only the spec with an open criterion is left", () => {
     const unverified = spec("unverified", { specFolder: "84-held", state: "done", notVerified: 1 });
     expect(view([unverified, failedReport], { state: "not-verified" })).toEqual(["unverified"]);
   });
 });
 
-describe("a scheduled job is matched on its title and its project (AC-3)", () => {
-  test("a word of a scheduled job's title finds it and not another; its folder's prefix is not the title (AC-3)", () => {
+describe("a scheduled job is matched on its title and its project", () => {
+  test("a word of a scheduled job's title finds it and not another; its folder's prefix is not the title", () => {
     expect(failedReport.facts.title).toBe("report");
     expect(view([failedReport, nightly], { q: "report" })).toEqual(["report-other"]);
     expect(view([failedReport, nightly], { q: "night" })).toEqual(["nightly"]);
     expect(view([failedReport, nightly], { q: "other:" })).toEqual(["report-other"]);
   });
 
-  test("a job's facts read as a spec's group reads: a landing is running, the job's time spans its start to its finish (AC-3)", () => {
+  test("a job's facts read as a spec's group reads: a landing is running, the job's time spans its start to its finish", () => {
     const landing = jobFacts(jobRowView({ state: "done", landing: true }), NOW);
     expect(landing.state).toBe("running");
     expect(failedReport.facts.totalDurationMs).toBe(60 * 60 * 1000);
@@ -137,17 +137,17 @@ describe("a scheduled job is matched on its title and its project (AC-3)", () =>
   });
 });
 
-describe("the columns sort as the Specs list's do, and no sorting is the tab's own order (AC-4)", () => {
+describe("the columns sort as the Specs list's do, and no sorting is the tab's own order", () => {
   const inTabOrder = ["run81", "nightly", "report-other", "idle83"];
 
-  test("with no sort, or one that is not a column, the rows keep the tab's own order whatever order they come in (AC-4)", () => {
+  test("with no sort, or one that is not a column, the rows keep the tab's own order whatever order they come in", () => {
     const shuffled = [stopped, nightly, failedReport, running];
     expect(view(shuffled, {})).toEqual(inTabOrder);
     expect(view(shuffled, { sort: "no-such-column" })).toEqual(inTabOrder);
     expect([...tab].sort((a, b) => byTabPlace(a.place, b.place)).map((r) => r.name)).toEqual(inTabOrder);
   });
 
-  test("a column the view names orders rows of both kinds, in the column's direction (AC-4)", () => {
+  test("a column the view names orders rows of both kinds, in the column's direction", () => {
     const priced = [
       spec("cheap", { specFolder: "90-cheap", state: "stopped", spentUsd: 0.1 }),
       spec("dear", { specFolder: "91-dear", state: "stopped", spentUsd: 9 }),
@@ -157,7 +157,7 @@ describe("the columns sort as the Specs list's do, and no sorting is the tab's o
     expect(view(priced, { sort: "cost", dir: "asc" })).toEqual(["cheap", "job", "dear"]);
   });
 
-  test("the time column orders by the figure each row's Time cell shows, longest first (AC-4)", () => {
+  test("the time column orders by the figure each row's Time cell shows, longest first", () => {
     const rows = [
       spec("short-spec", { specFolder: "90-a", state: "stopped", totalDurationMs: 1000 }),
       jobEntry("long-job", { state: "failed", startedAt: T(2), finishedAt: T(2, 12) }),
@@ -166,7 +166,7 @@ describe("the columns sort as the Specs list's do, and no sorting is the tab's o
     expect(view(rows, { sort: "started" })).toEqual(["long-job", "mid-spec", "short-spec"]);
   });
 
-  test("a press on a heading sorts by it, a second turns it round, a third returns to the tab's order (AC-4)", () => {
+  test("a press on a heading sorts by it, a second turns it round, a third returns to the tab's order", () => {
     expect(jobsSortPatch({}, "cost")).toEqual({ sort: "cost", dir: "" });
     expect(jobsSortPatch({ sort: "cost" }, "cost")).toEqual({ sort: "cost", dir: "asc" });
     expect(jobsSortPatch({ sort: "cost", dir: "asc" }, "cost")).toEqual({ sort: "", dir: "" });
@@ -175,7 +175,7 @@ describe("the columns sort as the Specs list's do, and no sorting is the tab's o
     expect(jobsSortPatch({ sort: "cost" }, "state")).toEqual({ sort: "state", dir: "" });
   });
 
-  test("a view link leads to the Jobs tab, always names its state entry, and drops what the patch empties (AC-4)", () => {
+  test("a view link leads to the Jobs tab, always names its state entry, and drops what the patch empties", () => {
     expect(jobsViewPath({ sort: "cost", dir: "asc" }, jobsSortPatch({ sort: "cost", dir: "asc" }, "cost"))).toBe("/?state=all");
     const link = new URL(`http://x${jobsViewPath({ state: "failed", q: "nightly" }, { sort: "cost" })}`);
     expect(link.pathname).toBe("/");

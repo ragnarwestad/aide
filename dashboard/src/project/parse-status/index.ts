@@ -1,5 +1,5 @@
 // 4-status.md parsing only. The progress line exists in the wild in
-// several variants (measured in spec 79's analysis): progress /
+// several variants (measured across real files): progress /
 // fremgang / framdrift, optional leading "- ", optional backticks,
 // optional space before %, of / av, on any line. The phase is the
 // first phase section whose task table has unchecked rows; all
@@ -18,8 +18,8 @@ export interface Progress {
 export interface StatusInfo {
   progress: Progress | null;
   phase: string | null;
-  /** The `## Acceptance criteria` heading, when it has an open row (spec
-   *  299's follow-up). Computed separately from `phase`: those rows are
+  /** The `## Acceptance criteria` heading, when it has an open row.
+   *  Computed separately from `phase`: those rows are
    *  the spec's own person to judge, never `aide-implement`'s to tick,
    *  so they must not sit behind every ordinary Phase section being
    *  finished first — a run that reports "completed" while leaving one
@@ -28,7 +28,7 @@ export interface StatusInfo {
    *  the one section that is genuinely theirs. `null` when there is no
    *  such section, or it has nothing open. */
   acceptancePhase: string | null;
-  /** Which workflow steps this spec has HAD (spec 139), in workflow
+  /** Which workflow steps this spec has HAD, in workflow
    *  order. Empty when the file says nothing — never a guess. */
   workflowSteps: string[];
   /** The commit the current work round starts AFTER, or absent when no
@@ -38,14 +38,14 @@ export interface StatusInfo {
    *  `--not`. */
   reopenedAfter?: string;
   /** What each phase actually ran on, from its own `- **Model (<step>):**`
-   *  line (spec 217's write side, spec 244's read side) — keyed by step,
+   *  line — keyed by step,
    *  absent for a step the file names nothing for. Never a guess: an
-   *  archived spec from before spec 217 wrote nothing, and this returns
+   *  archived spec from before the line existed wrote nothing, and this returns
    *  `{}` for it exactly as `parseWorkflowSteps` returns `[]`. */
   stepModels: Record<string, string>;
   /** Every Tasks-table row `parseStatusChecks` would return for this same
    *  content — exposed so a caller needing both the rows and the phase
-   *  (spec 302: `specPageView`'s Checks section) can get both from one
+   *  (`specPageView`'s Checks section) can get both from one
    *  call instead of walking the file's phase sections twice. */
   checks: StatusCheck[];
 }
@@ -53,13 +53,13 @@ export interface StatusInfo {
 const PROGRESS_RE =
   /(?:progress|fremgang|framdrift):\*\*\s*`?\s*(\d+)\s*%\s*\((\d+)\s+(?:of|av)\s+(\d+)/i;
 
-// --- spec 139: the one record of how far a spec has got ---------------------
+// --- The one record of how far a spec has got ---------------------
 
 // The dashboard used to GUESS which workflow steps a spec had had, from
 // three unrelated things: the SIZE of 2-analysis.md, a `## Plan review`
 // heading in 3-solution.md, and the percentage in 4-status.md. Each is
 // a proxy for the question rather than an answer to it, and on
-// 2026-08-20 the first one broke — spec 138's untouched analysis
+// 2026-08-20 the first one broke — a spec's untouched analysis
 // template is 693 bytes, so the row read `analyze ✓` before any analyze
 // had run and offered a second pass at the plan instead, which then ran
 // three times against an empty template.
@@ -107,7 +107,7 @@ export function parseStatus(content: string): StatusInfo {
     ? { percent: Number(m[1]), done: Number(m[2]), total: Number(m[3]) }
     : null;
 
-  // Spec 190: the open rows come from `parseStatusChecks`, not from a
+  // The open rows come from `parseStatusChecks`, not from a
   // substring search for `⬜`/`🔄` in the section's raw text. Two
   // implementations of "is this row done" is how a step that wrote
   // `Waiting` into a Status cell made a whole file read as `done` — the
@@ -128,7 +128,7 @@ export function parseStatus(content: string): StatusInfo {
   }
   if (sawPhaseSection && phase === null) phase = "done";
 
-  // Independent of `phase` above (spec 299's follow-up): these rows are
+  // Independent of `phase` above: these rows are
   // never `phase`'s own to gate behind — see the field's own doc comment.
   const acceptanceCheck = checks.find((check) => /^acceptance\b/i.test(check.phase) && !check.done);
   const acceptancePhase = acceptanceCheck?.phase ?? null;
@@ -146,7 +146,7 @@ export function parseStatus(content: string): StatusInfo {
 
 const MODEL_LINE_RE = /^- \*\*Model \(([a-z][a-z-]*)\):\*\*[ \t]*(.*)$/gm;
 
-/** The model each recorded step actually ran on (spec 244) — the same
+/** The model each recorded step actually ran on — the same
  *  informal reading `parseWorkflowSteps` already gives the sibling line
  *  beside this one. Unknown step names (a retired step such as
  *  `review-plan`) are dropped, matching that function's own rule: "a
@@ -197,7 +197,7 @@ function parseWorkflowSteps(content: string): string[] {
   return WORKFLOW_STEPS.filter((step) => named.has(step));
 }
 
-// --- spec 182: the rows a person can tick off from the page -------------------
+// --- The rows a person can tick off from the page -------------------
 
 /** One `| Task | Status | Notes |` row of a `## Phase`/`## Fase`/`##
  *  Checklist` section, which is what a "checkbox" is in a
@@ -245,7 +245,7 @@ export const isAcceptanceHeading = (heading: string): boolean => /^acceptance\b/
 export const OPEN_MARK = "⬜";
 
 /** A `## Phase`/`## Fase` heading, or the `## Checklist` heading a
- *  LOW-complexity spec's status file uses instead (spec 266) — matching
+ *  LOW-complexity spec's status file uses instead — matching
  *  core/scripts/aide-archive-spec's own `[Pp]hase*|[Ff]ase*|[Cc]hecklist*`
  *  heading test exactly, so the two agree about what a phase is. One
  *  constant, read by both `parseStatus` and `phaseSections` below, so
@@ -266,22 +266,22 @@ const MAX_MARK_LENGTH = 30;
  *  on the list rather than quietly reporting a spec finished.
  *
  *  One predicate, asked by `parseStatusChecks`, `tickStatusLine` and
- *  (through the first of those) `parseStatus`. Spec 190: three separate
+ *  (through the first of those) `parseStatus`. Three separate
  *  string comparisons answering this same question is exactly how a fix
  *  in one of them stayed invisible to the other two.
  *
  *  A second implementation of this same rule exists in bash, in
  *  `core/scripts/aide-run-spec`'s `total_progress_for` — the bash
  *  implementation that used to live in `core/scripts/aide-archive-spec`
- *  (`is_done_mark`/`is_unstarted_mark`/`table_row`) was removed by spec
- *  268, which stopped that script reading a Phase table at all. No
+ *  (`is_done_mark`/`is_unstarted_mark`/`table_row`) was removed: that script no longer
+ *  reads a Phase table at all. No
  *  shared source between the two languages; change one and check the
  *  other.
  *
- *  Spec 509: `Not verified` is a done mark too (case-insensitive), in
+ *  `Not verified` is a done mark too (case-insensitive), in
  *  every section; `parseStatusChecks` flags it on Acceptance rows alone.
  *
- *  Spec 283: an anchored `✅ completed` (symbol and the word combined
+ *  An anchored `✅ completed` (symbol and the word combined
  *  in one cell) counts as done too, alongside the bare symbol and the
  *  bare word — a step wrote both into the same cell, and neither of
  *  the two original forms alone matched it. */
@@ -300,7 +300,7 @@ function splitRowCells(line: string): [string, string, string] | null {
 
 /** A well-formed three-column row's cells, or `null`.
  *
- *  Conservative on purpose (spec 182's risk analysis): anything that is
+ *  Conservative on purpose: anything that is
  *  not plainly one row of one three-column table is skipped rather than
  *  guessed at, so a hand-formatted file loses a row from the list
  *  instead of offering a tick that would land on the wrong line. The
@@ -310,7 +310,7 @@ function splitRowCells(line: string): [string, string, string] | null {
  *  is open, so a symbol added to the file's own Notation legend needs
  *  no change here.
  *
- *  The header row is NOT excluded here (spec 299): since spec 190 a
+ *  The header row is NOT excluded here: a
  *  mark can be a WORD, so a header using non-standard column names
  *  (e.g. `REQ | Criterion | Done`) reads no differently from a real
  *  row at this level. `dataRowIndices` below excludes it instead, by

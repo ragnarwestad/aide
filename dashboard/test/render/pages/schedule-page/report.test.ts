@@ -1,4 +1,4 @@
-// Spec 495, criteria 1, 3, 11, 13 and 15 as rendering: the panel that shows a
+// Rendering: the panel that shows a
 // run's report on the entry's page.
 import { describe, expect, test } from "bun:test";
 import { renderReportPanel, type QueueRowView } from "../../../../src/render";

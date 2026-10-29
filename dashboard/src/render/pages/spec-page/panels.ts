@@ -1,4 +1,4 @@
-// The document tabs: Description, plus (spec 310) Analysis, Solution and
+// The document tabs: Description, plus Analysis, Solution and
 // Status. The first three share the editor, Save and JS-off fallback;
 // Status is read-only under its acceptance-criteria form.
 
@@ -12,7 +12,7 @@ import { activeJob, EDITABLE_SPEC_FILE, SPEC_LINES, STATUS_SPEC_FILE } from "./t
 import type { SpecPageView } from "./types.ts";
 
 /** The read-only shape every document tab falls back to: archived, a
- *  job in flight, or (spec 303) the same WYSIWYG mount/raw pair a
+ *  job in flight, or the same WYSIWYG mount/raw pair a
  *  writable tab carries, so the client script renders it read-only
  *  rather than raw markup. */
 function readOnlyDocument(file: SpecFileView, now: number, mark = ""): string {
@@ -21,7 +21,7 @@ function readOnlyDocument(file: SpecFileView, now: number, mark = ""): string {
 
 /** Read-only counterpart of editableDocumentForm's mount/textarea
  *  pair — same fallback CSS (field.css), same JS-off/build-failure
- *  fallback (REQ-6), just no `<form>` around it. */
+ *  fallback, just no `<form>` around it. */
 export function viewerPair(text: string): string {
   return (
     `<div class="spec-editor-mount" id="spec-editor-host"></div>` +
@@ -46,12 +46,12 @@ function statusPanel(
   );
 }
 
-/** The form every document tab's Save shares (spec 310): the
- *  hidden `file`/`baseSha` fields the route reads (REQ-2/REQ-3), the
- *  heading and Save/Cancel on one line (spec 391), the mount/textarea
+/** The form every document tab's Save shares: the
+ *  hidden `file`/`baseSha` fields the route reads, the
+ *  heading and Save/Cancel on one line, the mount/textarea
  *  pair below it. `extra` is markup inserted between the hidden fields
  *  and the panel head — nothing uses it today (the Description tab's
- *  own depends-on picker moved to the banner, spec 394), kept for a
+ *  own depends-on picker moved to the banner), kept for a
  *  future tab that needs one.
  *
  *  Modelled on `new-spec-page/`, which is the other page here that is
@@ -68,7 +68,7 @@ function editableDocumentForm(
 ): string {
   return (
     `<form method="post" action="${esc(view.saveAction)}" class="pageform specform reloadform"${dataAttrs(SPEC_LINES)}>` +
-    // Which file this Save is about (REQ-2) — the allowlist the route
+    // Which file this Save is about — the allowlist the route
     // checks it against.
     `<input type="hidden" name="file" value="${esc(label)}">` +
     // Empty rather than absent when git has never committed the file:
@@ -95,7 +95,7 @@ function editableDocumentForm(
   );
 }
 
-/** One document tab: Analysis, Solution or Status (spec 310 — the same
+/** One document tab: Analysis, Solution or Status (the same
  *  editor, Save and JS-off fallback the Description tab has always had).
  *  A tab whose file the view does not carry at all, or that has never
  *  been written, keeps `specFilePanel`'s plain "not written yet" note —
@@ -120,10 +120,10 @@ export function documentPanel(
   return editableDocumentForm(view, label, heading, file.text);
 }
 
-/** The Description tab (spec 162, moved onto this page by spec 212).
+/** The Description tab.
  *
  *  The depends-on picker that used to sit above this tab's own Save
- *  moved into the banner above the tab row (spec 394, REQ-1): a
+ *  moved into the banner above the tab row: a
  *  dependency is a fact about the SPEC, not about this one document,
  *  and now lives beside the acceptance switch, the other whole-spec
  *  fact. This panel is left with exactly the shape every other document

@@ -75,7 +75,7 @@ const PRESSES: { name: string; path: (job: string) => string; fields?: [string, 
 
 describe("every action answers JSON, never a redirect", () => {
   for (const p of PRESSES) {
-    test(`${p.name} answers JSON to a form posted without Accept (AC-1)`, async () => {
+    test(`${p.name} answers JSON to a form posted without Accept`, async () => {
       const { base } = start();
       const job = await queued(base);
       await expectJson(await press(base, p.path(job), p.fields));

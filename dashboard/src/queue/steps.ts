@@ -7,14 +7,14 @@ import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" wi
 import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with { type: "json" };
 
 // `core/scripts/aide-run-spec` reads the same list from
-// core/scripts/lib/workflow-steps.json (spec 349) — the shared file both
+// core/scripts/lib/workflow-steps.json — the shared file both
 // sides import/read instead of declaring their own copy.
 //
-// `resolve` was here until spec 171 and is deliberately gone: a merge
+// There is deliberately no `resolve` step: a merge
 // that fails is the merging step's problem, so `archive` resolves the
 // conflict itself rather than a sixth phase standing beside the five.
 //
-// `reopen` joined it in spec 198: an archived spec whose work has to be
+// `reopen` is a step too: an archived spec whose work has to be
 // done again is taken back into the active list by a step like any
 // other, so that the dashboard's control and `/aide-reopen` in a
 // terminal are one operation with one path. Queueable, but deliberately
@@ -23,7 +23,7 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // through, and draws no phase line: `specPhases()` returns the four
 // and the Logs tab lists the step.
 //
-// `schedule` joined it in spec 259: a project's own recurring job — a
+// `schedule` is a step too: a project's own recurring job — a
 // cron entry naming a prompt file in its repo, not an aide skill — runs
 // through this same store, runner and render machinery. Its
 // `specFolder` is a `schedule-<name>` tracking key that never resolves
@@ -79,7 +79,7 @@ if (
   );
 }
 
-// The effort levels a step may be run at (spec 364), read the same way
+// The effort levels a step may be run at, read the same way
 // WORKFLOW_STEPS is above — one shared file, a hand-written literal
 // union for the type checker, and a runtime assertion that throws the
 // moment the two disagree. `ultracode` is deliberately not a member
@@ -124,7 +124,7 @@ export function currentWorkRoundJobs<T extends {
 }
 
 /** The steps a spec's row draws a box for, in the order they run — and
- *  so the steps a running job's tail may be given (spec 160). It is
+ *  so the steps a running job's tail may be given. It is
  *  narrower than `WORKFLOW_STEPS` on purpose: `create` cannot be run
  *  for a spec that exists, `explore` is not a phase of the work.
  *
@@ -134,8 +134,8 @@ export function currentWorkRoundJobs<T extends {
 export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
 
 /** The steps quick enough to jump a queued job ahead of a slower one
- *  (REQ-1): `create` and `archive` take minutes, `analyze` and
- *  `implement` a half hour or more. `close` (spec 406) does no model
+ *  `create` and `archive` take minutes, `analyze` and
+ *  `implement` a half hour or more. `close` does no model
  *  work either, in the same sense `archive` doesn't. Every step not
  *  named here — `explore`, `reopen`, `schedule` —
  *  stays in the slow group: none of them is characterized the way these
@@ -144,8 +144,8 @@ export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
  *  call). */
 const QUICK_STEPS: readonly WorkflowStep[] = ["create", "archive", "close"];
 
-/** The order a free slot is filled from (REQ-1), and the same order a
- *  queued row's position is read off (REQ-6): quick steps before slow
+/** The order a free slot is filled from, and the same order a
+ *  queued row's position is read off: quick steps before slow
  *  ones, oldest first within each group. A STABLE sort — handed an
  *  already oldest-first list, it only ever reorders across the quick/
  *  slow boundary, never within a group. */
@@ -228,13 +228,11 @@ export const waitsForPerson = (
 /** States where a job still owns its work. Anything else has released
  *  it, and the same step may be queued again.
  *
- *  `awaiting-approval` was the third of them until spec 149. It was a
- *  stop between steps, waiting for a person to press Approve — and
- *  since every step lands its own work now, there is nothing left to
- *  hold a job for. */
+ *  There is no `awaiting-approval` state: every step lands its own
+ *  work, so there is nothing between steps to hold a job for. */
 export const UNFINISHED = new Set<string>(["queued", "running"]);
 
-/** Every event that can move a job's state (spec 354), named for what
+/** Every event that can move a job's state, named for what
  *  actually triggers it rather than for the state it produces — two of
  *  these ("step-succeeded" and "step-succeeded-last") share a trigger
  *  the runner already distinguishes before it writes anything, so the
@@ -252,7 +250,7 @@ export type TransitionEvent =
   | "landing-held" // done -> stopped: the landing's suite went red
   | "landing-cancelled"; // done -> cancelled: Cancel pressed while it merged
 
-/** The one table every state change is checked against (spec 354). Each
+/** The one table every state change is checked against. Each
  *  entry is `(from, event) -> to`; anything absent is refused. This is
  *  the machine `dashboard/docs/job-states.md`'s diagram draws by hand —
  *  `test/queue/transitions.test.ts` fails if the two ever disagree. */
@@ -271,7 +269,7 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
     cancel: "cancelled",
   },
   done: {
-    // A landing that failed is not a spec that is done (spec 193). The
+    // A landing that failed is not a spec that is done. The
     // STEP succeeded, so `complete()` has already written `done`; only
     // from THAT state, because `complete()` may have queued the job's
     // next step before the landing settles, and a late landing failure
@@ -290,7 +288,7 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
   },
 };
 
-/** The one step an archived spec may be asked for (spec 198). A literal
+/** The one step an archived spec may be asked for. A literal
  *  step name and never a denylist of the others: a list to be kept in
  *  step with `WORKFLOW_STEPS` is the drift this repo already names
  *  three times over. */
@@ -312,7 +310,7 @@ export function asRunnableTool(value: unknown): RunnableTool | undefined {
 }
 
 /** The same, widened by the one value a result file carries that is not
- *  a CLI at all: `none` is spec 433's deterministic `create` path. */
+ *  a CLI at all: `none` is the deterministic `create` path. */
 export function asResultTool(value: unknown): RunnableTool | "none" | undefined {
   return value === "none" ? "none" : asRunnableTool(value);
 }

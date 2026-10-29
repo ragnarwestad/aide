@@ -1,4 +1,4 @@
-// A scheduled run's report sits in a sandboxed `srcdoc` frame (spec 495).
+// A scheduled run's report sits in a sandboxed `srcdoc` frame.
 // The frame is its own document, so two things the page owns have to be
 // carried in: the theme the reader chose, and the height the report needs.
 

@@ -2,7 +2,7 @@
 
 The same guards exist twice — as Claude Code hooks in settings.json and
 as Codex hook scripts. Both carry an E grade in the support matrix, so
-their pattern sets must not drift apart silently (spec 75). The Codex
+their pattern sets must not drift apart silently. The Codex
 scripts are exercised directly by test_hooks.py; this file pins the
 settings.json side to the same coverage.
 """

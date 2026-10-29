@@ -1,12 +1,12 @@
-// The background schedules that keep every peek fed (specs 203, 208,
-// 259) — pulled out of `createServer`'s closure the same way the
+// The background schedules that keep every peek fed — pulled out of
+// `createServer`'s closure the same way the
 // earlier clusters were (spec: split serve.ts, step 5). An explicit
 // context object stands in for the locals these functions used to read
 // directly. The timers themselves (`setInterval`, `.unref()`, clearing
 // in `stop()`) stay in `createServer`: only the work each tick does
 // moves here.
 //
-// What a tick must NOT let the runner start (spec 122, 344, 351) is a
+// What a tick must NOT let the runner start is a
 // separate theme, split out to schedules/blocked.ts; `tickRunner` below
 // is where the two meet.
 
@@ -59,7 +59,7 @@ export interface ScheduleContext {
   readFreshness: () => DescriptionFreshnessChecker;
   readSpecCreatedAt: () => SpecCreatedAtChecker;
   readSpecFileCommits: () => SpecFileCommitChecker;
-  /** Spec 298: the git root a spec's directory sits under — what
+  /** The git root a spec's directory sits under — what
    *  `resolveOpenBranchTarget` needs to ask whether `aide/<folder>` is
    *  still open there. */
   specsRoot: (dir: string) => Promise<string>;
@@ -85,7 +85,7 @@ export interface ScheduleContext {
   recheckTools?: (tools: CheckableTool[]) => Promise<void>;
   checkoutEnsurer: CheckoutEnsurer;
   /** Told once per tick, and only when a watched root's `openSpecBranches`
-   *  answer actually moved (spec 275) — the same "invalidate before you
+   *  answer actually moved — the same "invalidate before you
    *  notify" shape `scheduleNotify` (`sse-watchers.ts`) already carries
    *  for a `git pull` landing new files. Without it, a background tick
    *  that quietly CORRECTS a stale "not landed" mark left an already-open
@@ -118,7 +118,7 @@ export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
  *  once because two callers need it: the schedule below walks every
  *  live spec through it, and `landBranch` (`land-branch/merge.ts`)
  *  warms the spec it just landed unconditionally, on every landing
- *  (spec 208 — that path is a landing, not a render, and it needs a
+ *  (that path is a landing, not a render, and it needs a
  *  real answer rather than "not yet known"). */
 export async function warmSpec(
   ctx: ScheduleContext,
@@ -168,9 +168,9 @@ export async function rereadSpec(
   ctx.notifyQueueChanged();
 }
 
-/** Spec 208: the ONE schedule that feeds every peek on every page.
+/** The ONE schedule that feeds every peek on every page.
  *
- *  This is `refreshDrift`'s shape (spec 203) applied to the rest of
+ *  This is `refreshDrift`'s shape applied to the rest of
  *  the app. The same fix had been made three times, one page each —
  *  178 wrote it for the whole app and was never merged, 203 shipped
  *  it for `/projects`, and 193 put a network `ls-remote` back on the
@@ -187,10 +187,9 @@ export async function rereadSpec(
  *    branch origin holds in the code checkout), for the one network
  *    question (`openSpecBranches`), plus the archive DATE of an
  *    archived spec whose `4-status.md` carries no stamp — a small and
- *    shrinking set, since the archive step has written the stamp
- *    since spec 147. Warming an archived spec the way a live one is
- *    warmed is the unbounded cost spec 178's own plan review
- *    rejected, and is not done.
+ *    shrinking set, since the archive step writes the stamp. Warming an archived spec the way a live one is
+ *    warmed is the unbounded cost, and is not
+ *    done.
  *
  *  The roots go out CONCURRENTLY, unlike the `for`-loop this
  *  replaces: that loop paid one TCP/TLS round trip to GitHub per
@@ -214,7 +213,7 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
     const roots = new Set<string>();
     // A live spec's code checkout too: the specs list offers a test server only for a branch origin holds there.
     for (const t of live) for (const root of ctx.specRoots(t.project)) roots.add(root);
-    // Spec 317, REQ-6: every archived dir. There is no write-time stamp
+    // Every archived dir. There is no write-time stamp
     // for Created to short-circuit against, so this is the whole archive
     // on the first sweep that reaches it. `createdAtForArchived`'s
     // own long-lived cache (a day, once resolved) is what keeps that
@@ -239,9 +238,9 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       ...[...roots].map((root) => ctx.branchStatus.openSpecBranches(root)),
       ...createdAtTargets.map((t) => ctx.readSpecCreatedAt().createdAtForArchived(t.dir, t.folder)),
       ...live.map((t) => warmSpec(ctx, t)),
-      // And the checkout the LIST is read from (spec 218). Every other
+      // And the checkout the LIST is read from. Every other
       // caller of `ensureCheckout` is a project that has something
-      // going on — a job queued (spec 216's `tickRunner`), a spec page
+      // going on — a job queued (`tickRunner`), a spec page
       // open, a Save. A project with none of that had its checkout
       // fetched once at boot and never again, so a spec pushed from
       // another machine would have sat unlisted for as long as the
@@ -256,9 +255,9 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
     ]);
     const gitMoved = await refreshMergedAnswers(ctx, archivedKeys);
     const mergedMoved = (await refreshPullRequestAnswers(ctx, archivedKeys)) || gitMoved;
-    // Spec 275: only a root whose answer MOVED tells anyone, and only
+    // Only a root whose answer MOVED tells anyone, and only
     // once per tick, however many roots moved — a tick that finds
-    // nothing new stays silent, exactly as spec 189 already promises
+    // nothing new stays silent, exactly as it does
     // for every other reason a page might redraw.
     const moved = [...roots].some(
       (root) => !sameOpenSet(before.get(root) ?? null, ctx.branchStatus.peekOpenSpecBranches(root).open),
@@ -396,12 +395,12 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
 export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   const runner = ctx.readRunner();
   if (!runner) return;
-  // Spec 205: nothing may be STARTED in a checkout that is not there.
+  // Nothing may be STARTED in a checkout that is not there.
   // Every project with a job waiting, and only those — a clone is
   // made once and the call is a map lookup ever after, so this costs
   // one `existsSync` per waiting project per tick.
   //
-  // Spec 216: `fresh`, not `get`. This is the one caller that may not
+  // `fresh`, not `get`. This is the one caller that may not
   // be handed a bring-up-to-date that was already running when it
   // asked — such a fetch took its picture of origin before this job
   // was queued, and a spec pushed in between is one the step will

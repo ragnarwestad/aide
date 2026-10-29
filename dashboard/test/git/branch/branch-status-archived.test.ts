@@ -1,4 +1,4 @@
-// Spec 351: whether a dependency is DONE — its folder under archive/ on
+// Whether a dependency is DONE — its folder under archive/ on
 // origin's default branch — not whether its branch happens to be merged
 // or gone. Every git call is injected, the same way isMerged's own suite
 // (branch-status-is-merged.test.ts) asks about the LOGIC rather than a

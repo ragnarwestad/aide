@@ -1,7 +1,7 @@
 // A landing whose tests are red twice runs them once more on the default
 // branch alone, without the spec. Red there too, the failure is main's, and
-// the sentence says so: a browser test broken on main stopped 548's archive
-// as if 548 had broken it (2026-09-27).
+// the sentence says so: a browser test broken on main stopped an archive
+// as if the spec had broken it (2026-09-27).
 import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

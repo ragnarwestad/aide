@@ -64,13 +64,13 @@ export interface MessagePart {
 }
 
 /** `rowMessage()` for more than one ranked part, each keeping its own
- *  link (REQ-2, spec 403) rather than flattening to one string first —
+ *  link rather than flattening to one string first —
  *  a link lives inside a part's own sentence, so it survives being
  *  joined with another part's sentence on the same line, unlike `title`
  *  (notice.ts), which cannot be attributed once more than one part
  *  joins and is dropped instead.
  *
- *  Every link opens in a new tab (spec 411): what it points to — a pull
+ *  Every link opens in a new tab: what it points to — a pull
  *  request, a board this row's own link just started — is somewhere
  *  else, and a reader who follows one wants the row still open behind
  *  it. */

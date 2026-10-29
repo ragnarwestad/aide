@@ -19,9 +19,8 @@ import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, CLOSED_STATE, isFinishedGroup, typ
 // there is, which is a list that goes stale the first time a state is
 // added; the exception is what this entry IS, so it says so.
 //
-// The four in the middle are untouched by spec 221 BY CONSTRUCTION:
-// none of them names `ARCHIVED_STATE`, so each already excludes an
-// archived row without a line of new code.
+// The four in the middle exclude an archived row BY CONSTRUCTION:
+// none of them names `ARCHIVED_STATE`, so none needs a line of code for it.
 export const NOT_VERIFIED_KEY = "not-verified";
 
 /** What the state filter and the search read off a row: a spec's group, or a
@@ -51,7 +50,7 @@ export const STATE_FILTERS: StateFilterEntry[] = [
   // swap — the whole archive renders in the same tenth of a second the
   // active-only view does, so nothing here waits on paging.
   { key: "all", label: "All" },
-  // CLOSED_STATE joins the exclusion (spec 406, REQ-7): a closed spec
+  // CLOSED_STATE joins the exclusion: a closed spec
   // is no more "everything still going on" than an archived one is, but
   // it has its own word and must not borrow ARCHIVED_STATE's meaning
   // just to be kept out of this entry.
@@ -68,7 +67,7 @@ export const STATE_FILTERS: StateFilterEntry[] = [
     key: "failed",
     label: "Failed",
     // An archive that left its own branch open did not simply finish
-    // either, and it read as `failed` here before spec 221 gave it a
+    // either, so it counts as `failed` here rather than getting a
     // row of its own.
     states: ["failed", "interrupted", "cancelled", ARCHIVED_OPEN_STATE],
   },
@@ -83,7 +82,7 @@ export const STATE_FILTERS: StateFilterEntry[] = [
 export const DEFAULT_STATE_FILTER = STATE_FILTERS[0]!;
 
 /** `STATE_FILTERS`' own `label` field stays English — it is a fixed key
- *  for `stateFilter()`'s own lookup, not what the page draws (spec 350).
+ *  for `stateFilter()`'s own lookup, not what the page draws.
  *  What the page draws is this, keyed by the entry's `key` and read
  *  through `t()`, so a reader in `nb` mode sees "Alle"/"Aktive"/… while
  *  the filter logic above keeps matching on the same untranslated keys
@@ -105,7 +104,7 @@ export function stateFilterLabel(key: string, lang: Language): string {
 }
 
 export const SORTS = ["started", "spec", "state", "cost", "created"];
-// The default view: the newest spec MADE at the top (spec 317, REQ-3).
+// The default view: the newest spec MADE at the top.
 // Folder order was the default from 2026-08-19 (chosen over "last
 // activity", which put a spec that had just been created at the bottom
 // of the list — under everything that had ever run) until a real
@@ -119,8 +118,8 @@ export const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
 };
 
 export function stateFilter(key: string | undefined): StateFilterEntry {
-  // A bare "active" is the pre-374 key; an "active:<step>" is a sub-entry
-  // spec 381 removed, kept alive only in an old bookmark or a reader's
+  // A bare "active" is the older key; an "active:<step>" is a sub-entry
+  // that no longer exists, kept alive only in an old bookmark or a reader's
   // stored `aide_state` cookie. Both mean the same thing they always
   // meant to a reader who never saw the sub-menu — "show me what is
   // running" — so both resolve to the one Running entry rather than
@@ -142,7 +141,7 @@ export function matchesStateFilter(f: StateFilterEntry, g: FilterFacts): boolean
   return matchesState(f, g.state) && (!f.where || f.where(g));
 }
 
-/** Whether this view can show an archived spec at all (spec 221).
+/** Whether this view can show an archived spec at all.
  *
  *  The server asks before it builds the rows: the walk over every
  *  archived folder is the one expensive thing on this route, aide alone
@@ -161,7 +160,7 @@ export function filterShowsArchived(state: string | undefined): boolean {
 }
 
 /** Whether a row is LOCKED — built by `readerGroup()` off the archive
- *  walk, read-only, no live job. Kept under its old name (spec 406):
+ *  walk, read-only, no live job. Kept under its old name:
  *  every caller's own question is "does this row's shape carry a live
  *  job, or is it a record with nothing left to run" — true of a closed
  *  row in exactly the same sense as an archived one, since both are the
@@ -187,7 +186,7 @@ export const lockedAsArchived = (g: SpecGroup, step: string): boolean =>
  *  description, not the two lines a row shows: a term found in the
  *  clipped tail still turns up its row, and the note under the field
  *  says as much. Off `SpecGroup`, so one matcher reads a live spec and
- *  an archived one — the "across active AND archived" half of spec 221
+ *  an archived one — searching "across active AND archived"
  *  falls out of there being one row shape rather than two. */
 const haystack = (g: FilterFacts): string =>
   `${g.project}:${g.specFolder}\n${g.title ?? ""}\n${g.description ?? ""}`.toLowerCase();
@@ -224,8 +223,8 @@ export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   const sign = dir === "asc" ? 1 : -1;
   // Every row's Time cell shows its own summed duration now, live or
-  // archived (`activeDurationCell`/`archiveDateCell`, spec 281 made the
-  // live half match spec 273's archived one) — a column that DRAWS one
+  // archived (`activeDurationCell`/`archiveDateCell`, the live half
+  // matching the archived one) — a column that DRAWS one
   // figure has to SORT by that figure, for both kinds of row alike, or
   // a click on "Time" reorders the page by a number nobody can see.
   const key = (g: SortFacts): number | string =>
@@ -233,8 +232,8 @@ export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[
     : sort === "spec" ? g.specFolder
     : sort === "state" ? g.state
     // A spec git could not date sorts as the NEWEST, not the oldest.
-    // Spec 208's REQ-5 put it at the epoch, reasoning that "unknown"
-    // should land where it surprises least. In use it is the opposite:
+    // The epoch looks like where "unknown" would surprise least. In
+    // use it is the opposite:
     // the cell reads "–" because git has not caught up with a folder
     // that was made moments ago, so the one spec that is certainly
     // newest was the one sent to the bottom of a newest-first list.
@@ -260,16 +259,13 @@ export function sortGroups<T extends SortFacts>(groups: T[], f: SpecsFilter): T[
     // could date neither of. A general folder tie-break is not free: 29
     // job fixtures sharing one date all tie and keep their insertion
     // order, and a tie-break on the name would re-sort every one of
-    // them — a row moving for a reason nobody asked about. (This used
-    // to name a sharper harm: it moved the 25-row cap onto the wrong
-    // end of the list. Spec 226 removed the cap, not the reason.)
+    // them — a row moving for a reason nobody asked about.
     // Never-run specs have no insertion order worth keeping — theirs is
     // whatever the disk scan happened to produce.
     //
-    // `!g.lead` is what "never run" reads as since spec 199: it is
-    // absent exactly for a group `emptyGroup` built, which is the same
-    // set the old `activityAt === 0` test named. The datability half is
-    // new — two never-run specs git CAN date sort by their real dates,
+    // `!g.lead` is what "never run" reads as: it is
+    // absent exactly for a group `emptyGroup` built. The datability
+    // half is separate — two never-run specs git CAN date sort by their real dates,
     // and only when neither has one is there nothing left to sort by.
     if (!a.lead && !b.lead && !a.createdAt && !b.createdAt) {
       return b.specFolder.localeCompare(a.specFolder);

@@ -75,23 +75,23 @@ describe("one fold arrow, one tab strip, one table of facts, one one-button form
     expect(client.length).toBeGreaterThan(15);
   });
 
-  test("no file but the fold-arrow component writes an element with the fold class (AC-1)", () => {
+  test("no file but the fold-arrow component writes an element with the fold class", () => {
     expect(matching(all, (text) => /class=\\?"fold\b/.test(text), [FOLD])).toEqual([]);
   });
 
-  test("no file but the tab strip writes an element with the tab class (AC-2)", () => {
+  test("no file but the tab strip writes an element with the tab class", () => {
     expect(matching(all, (text) => /class=\\?"tab\b/.test(text), [TABS])).toEqual([]);
   });
 
-  test("no file but the facts component writes a table of facts (AC-3)", () => {
+  test("no file but the facts component writes a table of facts", () => {
     expect(matching(all, (text) => /class=\\?"facts\b/.test(text), [FACTS])).toEqual([]);
   });
 
-  test("no file but the button component writes a form holding one button (AC-4)", () => {
+  test("no file but the button component writes a form holding one button", () => {
     expect(matching(all, writesOneButtonForm, [BUTTON])).toEqual([]);
   });
 
-  test("the one-button rule flags a hand-written one and passes a form with other controls (AC-4)", () => {
+  test("the one-button rule flags a hand-written one and passes a form with other controls", () => {
     expect(
       writesOneButtonForm('`<form class="actionform" method="post" action="${esc(a)}">` + btn({ label: "Go" }) + `</form>`'),
     ).toBe(true);
@@ -111,11 +111,11 @@ describe("one fold arrow, one tab strip, one table of facts, one one-button form
     ).toBe(false);
   });
 
-  test("no file but the checkbox component writes a checkbox with its words beside it (AC-5)", () => {
+  test("no file but the checkbox component writes a checkbox with its words beside it", () => {
     expect(matching(all, writesLabelledCheckbox, [CHECKBOX, PHASE_CHIP])).toEqual([]);
   });
 
-  test("the labelled-checkbox rule flags a hand-written line and passes the model picker's box (AC-5)", () => {
+  test("the labelled-checkbox rule flags a hand-written line and passes the model picker's box", () => {
     expect(writesLabelledCheckbox('`<label class="row"><input type="checkbox" name="x" value="1">` +\n  `<span>Words</span></label>`')).toBe(
       true,
     );

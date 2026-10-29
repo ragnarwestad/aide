@@ -51,7 +51,7 @@
   }
 
   /** The header trigger's own icon, one of three spans already in the
-   *  DOM (spec 243) rather than markup swapped in — `hidden` is a plain
+   *  DOM rather than markup swapped in — `hidden` is a plain
    *  attribute the browser already knows how to act on, so there is
    *  nothing here to undo if this script never runs. */
   function markIcon(icons: NodeListOf<Element>, choice: string): void {

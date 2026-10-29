@@ -25,7 +25,7 @@ export interface ManifestData {
    *  reads as `none`. */
   deployment?: { previewFrom: PreviewFrom };
   /** The gitignored paths a run has to symlink into its worktree, space
-   *  separated (spec 184). Here rather than in `.aide/config` because it
+   *  separated. Here rather than in `.aide/config` because it
    *  is true of the PROJECT on any machine — that a Vite project needs
    *  `node_modules` does not depend on whose laptop it is checked out
    *  on — and `.aide/config` is dropped by a global ignore rule, so a
@@ -36,7 +36,7 @@ export interface ManifestData {
    *  refusal wording names this key when the value came from here. */
   worktreeLinks?: string;
   /** Whether this project's archived CODE goes straight onto its default
-   *  branch, or waits for a pull request (spec 220). Absent means
+   *  branch, or waits for a pull request. Absent means
    *  `merge`, which is what every project did before this key existed.
    *
    *  Here rather than in `.aide/config` for a sharper reason than the
@@ -66,8 +66,8 @@ export interface ManifestData {
   previewCmd?: string;
   /** What `/aide-implement` puts before a criterion's id in a test's name
    *  (`aide-ac-prefix`): `{spec}` stands for the spec's number as its
-   *  folder writes it, so `F{spec}` names spec 02's AC-2 `(F02 AC-2)`.
-   *  Absent means `(AC-2)`. */
+   *  folder writes it, so `F{spec}` names criterion n of spec NN as `(FNN AC-n)`.
+   *  Absent means ``. */
   acPrefix?: string;
 }
 

@@ -15,11 +15,11 @@ function th(html: string): { href: string | null; sort: string | null; text: str
 }
 
 describe("resolveSort", () => {
-  test("takes a known column and direction as they are (AC-5)", () => {
+  test("takes a known column and direction as they are", () => {
     expect(resolveSort(COLS, { sort: "b", dir: "asc" })).toEqual({ sort: "b", dir: "asc" });
   });
 
-  test("an unknown column is the fallback, an unknown direction the column's first (AC-5)", () => {
+  test("an unknown column is the fallback, an unknown direction the column's first", () => {
     expect(resolveSort(COLS, { sort: "zzz" })).toEqual({ sort: "a", dir: "asc" });
     expect(resolveSort(COLS, { sort: "b", dir: "up" })).toEqual({ sort: "b", dir: "desc" });
     expect(resolveSort(COLS, {})).toEqual({ sort: "a", dir: "asc" });
@@ -27,11 +27,11 @@ describe("resolveSort", () => {
 });
 
 describe("queryHref", () => {
-  test("writes every key that has a value, in the order given, encoded (AC-5)", () => {
+  test("writes every key that has a value, in the order given, encoded", () => {
     expect(queryHref("/x", { run: "r 1", sort: "", dir: undefined, q: "a&b" })).toBe("/x?run=r%201&q=a%26b");
   });
 
-  test("is the path alone when no key has a value (AC-5)", () => {
+  test("is the path alone when no key has a value", () => {
     expect(queryHref("/x", { sort: "" })).toBe("/x");
   });
 });
@@ -39,20 +39,20 @@ describe("queryHref", () => {
 describe("sortHeading", () => {
   const href = (sort: string, dir: string): string => queryHref("/x", { k: "1", sort, dir });
 
-  test("the sorted column is marked and turns round (AC-5)", () => {
+  test("the sorted column is marked and turns round", () => {
     expect(th(sortHeading(COLS, { sort: "a", dir: "asc" }, "a", "A", href))).toEqual({
       href: "/x?k=1&sort=a&dir=desc", sort: "ascending", text: "A",
     });
     expect(th(sortHeading(COLS, { sort: "b", dir: "desc" }, "b", "B", href)).sort).toBe("descending");
   });
 
-  test("another column links to its first direction, with dir left out (AC-5)", () => {
+  test("another column links to its first direction, with dir left out", () => {
     expect(th(sortHeading(COLS, { sort: "a", dir: "asc" }, "b", "B", href))).toEqual({
       href: "/x?k=1&sort=b", sort: null, text: "B",
     });
   });
 
-  test("escapes the address and the label once (AC-5)", () => {
+  test("escapes the address and the label once", () => {
     const cell = sortHeading(COLS, { sort: "a", dir: "asc" }, "b", "B & <C>", href);
     expect(cell).toContain('href="/x?k=1&amp;sort=b"');
     expect(th(cell).text).toBe("B & <C>");

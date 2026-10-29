@@ -1,8 +1,8 @@
-// A spec's page opens the spec as a PDF (spec 358): the server runs the
+// A spec's page opens the spec as a PDF: the server runs the
 // same `core/scripts/aide-generate-pdf` the `/aide-to-pdf` skill runs
-// (REQ-3), told to write outside every checkout (REQ-4), and streams the
-// result back inline so the browser's own viewer shows it (REQ-2). The
-// result is cached on the spec folder's own latest commit (REQ-5).
+// told to write outside every checkout, and streams the
+// result back inline so the browser's own viewer shows it. The
+// result is cached on the spec folder's own latest commit.
 
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
@@ -12,7 +12,7 @@ import type { RoutesContext } from "./";
 import { scriptArgv } from "../../integrations/script-argv.ts";
 
 /** Homedir, sibling of `queueResultDir`'s own default — never inside a
- *  checkout, which is the exact bug REQ-4 exists to prevent. */
+ *  checkout, which is the exact bug this guards against. */
 export const DEFAULT_PDF_CACHE_DIR = join(homedir(), ".aide", "dashboard", "pdf-cache");
 
 export async function handleSpecPdfRoute(
@@ -30,8 +30,8 @@ export async function handleSpecPdfRoute(
   // `aide_resolve_spec`'s `archive/` fallback only fires for a bare
   // number or an issue key — a full folder slug (the only shape this route
   // ever has) hits its "assume full folder ID" branch, which cannot find
-  // an archived spec on its own (verified empirically, spec 358's plan
-  // review). An archived spec's real path IS `archive/<folder>`, which
+  // an archived spec on its own (verified empirically). An archived
+  // spec's real path IS `archive/<folder>`, which
   // the script's own direct-match branch resolves correctly passed as-is.
   const ref = ctx.specRef(project!, specFolder!);
   const scriptSpecId = ref?.archived ? `archive/${specFolder}` : specFolder!;

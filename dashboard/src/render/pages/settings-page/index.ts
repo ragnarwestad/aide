@@ -63,7 +63,7 @@ export const UNROWED_STEPS = ["explore", "deploy"] as const;
 
 // Every step the queue can run is accounted for: in one of the two
 // groups, or deliberately unrowed. Derived-and-checked rather than
-// hand-picked (spec 420's own reason), so a step added to
+// hand-picked, so a step added to
 // workflow-steps.json cannot end up silently without a row.
 const STEP_COVERAGE = [...SPEC_STEPS, ...OTHER_STEPS, ...UNROWED_STEPS];
 if (
@@ -84,15 +84,15 @@ export interface SettingsPageOptions {
   defaultModels: Record<string, string>;
   timeoutSec: Record<string, number>;
   script?: string;
-  /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
+  /** Where "← Back" goes — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. Settings is reachable
    *  from every page's "…" menu, so this is genuinely unbounded. */
   backHref?: string;
-  /** Spec 408. Absent means English — the same default `pageShell`'s
+  /** Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
+  /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
   /** Which tab is open, off `?tab=`: a group, or a tab inside AI.
@@ -115,7 +115,7 @@ export interface SettingsPageOptions {
    *  what an AI's tab sets the reading against. */
   choices?: Record<string, ModelChoice>;
   /** The server's public key for push, which the Notifications tab's
-   *  script subscribes a device with (spec 501). */
+   *  script subscribes a device with. */
   pushPublicKey?: string;
   /** What the Process tab shows. The `/settings` route always gives it;
    *  a caller that never opens Process may leave it out. */

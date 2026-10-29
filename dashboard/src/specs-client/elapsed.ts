@@ -1,8 +1,8 @@
-// --- spec 199: a running phase counts up while the reader watches ---------
+// --- A running phase counts up while the reader watches ---------
 //
 // The one timer on this page, and deliberately the narrowest one there
-// can be. Spec 189 took the five-second POLL away so a reader with the
-// browser's own tools open could hold still on a row; that rule stands
+// can be. There is no five-second POLL, so a reader with the
+// browser's own tools open can hold still on a row; that rule stands
 // — this fetches nothing, swaps no rows, and touches no attribute that
 // could move anything. It rewrites the TEXT of the marks that carry
 // their own start, and nothing else on the page.
@@ -20,8 +20,8 @@
 // on every tick, which is what lets it survive `swapRows()` replacing
 // `#jobrows` underneath it with no rebinding at all.
 export function formatElapsed(ms: number): string {
-  // A genuinely positive span never rounds down to "0s" (spec 410,
-  // REQ-5) — the identical change to `durationLabel`'s own, kept in
+  // A genuinely positive span never rounds down to "0s", the same as `durationLabel`'s own,
+  // kept in
   // lock-step per this file's own hand-pairing comment above.
   const secs = ms > 0 ? Math.max(1, Math.round(ms / 1000)) : 0;
   if (secs < 60) return `${secs}s`;

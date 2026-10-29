@@ -24,7 +24,7 @@ interface StepBody {
   ok: boolean;
   project?: string;
   results: { step: string; ok: boolean; error?: string; note?: string }[];
-  /** Spec 138: whether `aide-run-spec` would START there — a separate
+  /** Whether `aide-run-spec` would START there — a separate
    *  answer from `ok`, which only says the registration completed. */
   readiness?: {
     canRun: boolean;
@@ -37,7 +37,7 @@ interface StepBody {
  *  step after the clone reads that directory, so a fake leaving nothing
  *  behind would exercise only the first one. */
 const cloningGit = (): ServerOptions["gitRun"] => async (dir, args) => {
-  // Located, not assumed at index 0: since spec 183 the real clone
+  // Located, not assumed at index 0: the real clone
   // carries a `-c credential.helper=` prefix ahead of the subcommand.
   const clone = args.indexOf("clone");
   if (clone !== -1) {
@@ -60,10 +60,9 @@ function ownConfig(contents: Record<string, unknown> = {}): string {
 const projectsIn = (file: string): string[] =>
   (JSON.parse(readFileSync(file, "utf-8")) as { projects?: string[] }).projects ?? [];
 
-describe("POST /api/queue/projects (spec 112)", () => {
+describe("POST /api/queue/projects", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 
-  // Criterion 1.
   test("a git URL is cloned, given a manifest, and put on the allowlist", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
@@ -76,7 +75,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(body.ok).toBe(true);
     expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
     expect(body.results.every((r) => r.ok)).toBe(true);
-    // Spec 512: nothing of Aide's is written into the clone; the
+    // Nothing of Aide's is written into the clone; the
     // dashboard keeps the settings beside its own checkouts.
     expect(existsSync(join(dir, "root", "newproj", ".aide", "project.yaml"))).toBe(false);
     expect(existsSync(join(dir, "owned", "newproj", "settings.yaml"))).toBe(true);
@@ -87,7 +86,6 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="newproj"');
   });
 
-  // Criterion 2.
   test("a name already taken under the projects root is refused, and names the collision", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
@@ -102,7 +100,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(existsSync(join(dir, "root", "aide", ".git"))).toBe(false);
   });
 
-  // Criterion 3, at the route level.
+  // At the route level.
   test("an unsafe name is refused before anything is cloned or written", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     for (const name of ["../escape", "a/b", ".hidden", ""]) {
@@ -117,7 +115,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(existsSync(join(dir, "root", ".hidden"))).toBe(false);
   });
 
-  test("an Add with no Code landing is refused, and nothing is cloned or put on the allowlist (AC-3)", async () => {
+  test("an Add with no Code landing is refused, and nothing is cloned or put on the allowlist", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
@@ -133,7 +131,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(html.slice(html.indexOf('action="/api/queue/create"'))).not.toContain('value="nochoice"');
   });
 
-  test("the Code landing refusal has the shape of the git-address refusal (AC-4)", async () => {
+  test("the Code landing refusal has the shape of the git-address refusal", async () => {
     const { base } = start({ gitRun: cloningGit() });
     const post = async (payload: object) => {
       const res = await fetch(`${base}/api/queue/projects`, { method: "POST", headers: AUTH, body: JSON.stringify(payload) });
@@ -155,7 +153,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(noAddress.body.results[0]!.error).toMatch(/^say/);
   });
 
-  test("a form post with no Code landing is refused with the same sentence (AC-4)", async () => {
+  test("a form post with no Code landing is refused with the same sentence", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     const FORM = { "content-type": "application/x-www-form-urlencoded" };
     const post = async (fields: Record<string, string>) => {
@@ -171,7 +169,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(existsSync(join(dir, "root", "nochoice"))).toBe(false);
   });
 
-  // Criterion 6: a clone with no manifest gets one, and the answer says
+  // A clone with no manifest gets one, and the answer says
   // so rather than leaving the operator to find out.
   test("a clone with no manifest is added, and the made manifest is reported", async () => {
     const { base } = start({ gitRun: cloningGit() });
@@ -196,7 +194,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     return parsed.ok ? parsed.data.deployment?.previewFrom : undefined;
   };
 
-  test("a previewFrom chosen on a project that tracks no manifest is saved to settings.yaml (AC-2, AC-4)", async () => {
+  test("a previewFrom chosen on a project that tracks no manifest is saved to settings.yaml", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
@@ -216,7 +214,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(previewFromIn(settings)).toBe("cloudflare-pages");
   });
 
-  test("none, no previewFrom and empty commands write no key and add no step (AC-1, AC-2)", async () => {
+  test("none, no previewFrom and empty commands write no key and add no step", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     for (const [name, extra] of [
       ["picked-none", { previewFrom: "none" }],
@@ -238,7 +236,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     }
   });
 
-  test("an unknown previewFrom is refused through the route, and nothing is cloned (AC-2)", async () => {
+  test("an unknown previewFrom is refused through the route, and nothing is cloned", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
@@ -250,7 +248,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(existsSync(join(dir, "root", "odd"))).toBe(false);
   });
 
-  test("a choice on a project that tracks its manifest is committed to it, and the rest of the file stays (AC-2)", async () => {
+  test("a choice on a project that tracks its manifest is committed to it, and the rest of the file stays", async () => {
     const manifest = "name: demo\ndeployment:\n  host: Cloudflare Pages\nlogging:\n  where: Cloudflare dashboard\n";
     const f = projectWithOrigin({ ".aide/project.yaml": manifest }, { clone: false });
     try {
@@ -272,7 +270,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     }
   });
 
-  test("the three commands typed on Add are saved where the Config tab saves them (AC-1)", async () => {
+  test("the three commands typed on Add are saved where the Config tab saves them", async () => {
     const { base, dir } = start({ gitRun: cloningGit() });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
@@ -298,7 +296,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(readFileSync(join(dir, "root", "commands", ".aide", "config"), "utf-8")).toContain("AIDE_INSTALL_CMD=make install\n");
   });
 
-  test("every setting typed on Add is committed to a tracked manifest, and the rest of the file stays (AC-1, AC-3, AC-5)", async () => {
+  test("every setting typed on Add is committed to a tracked manifest, and the rest of the file stays", async () => {
     const manifest = "name: demo\nlogging:\n  where: Cloudflare dashboard\n";
     const f = projectWithOrigin({ ".aide/project.yaml": manifest }, { clone: false });
     try {
@@ -339,7 +337,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     }
   });
 
-  test("the test-command route answers what a git address's root files point at, and refuses a GET (AC-1)", async () => {
+  test("the test-command route answers what a git address's root files point at, and refuses a GET", async () => {
     const f = projectWithOrigin({ "package-lock.json": "{}" }, { clone: false });
     try {
       git(f.origin, "config", "uploadpack.allowFilter", "true");
@@ -374,7 +372,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(projectsIn(file).sort()).toEqual(["aide", "picked"]);
   });
 
-  // Criterion 9: the change survives a restart, because it is written to
+  // The change survives a restart, because it is written to
   // the file the server reads on the way up.
   test("the new allowlist is persisted to the queue config", async () => {
     const file = ownConfig({ concurrency: 2 });
@@ -389,7 +387,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(JSON.parse(readFileSync(file, "utf-8")).concurrency).toBe(2);
   });
 
-  // Criterion 15: two requests in immediate succession, neither losing
+  // Two requests in immediate succession, neither losing
   // the other's change. Every write is derived from the live allowlist,
   // never from a copy of the file read before the other one landed.
   test("two changes in immediate succession both survive", async () => {

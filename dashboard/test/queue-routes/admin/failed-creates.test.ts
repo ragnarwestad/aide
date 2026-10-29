@@ -1,4 +1,4 @@
-// The round trip a person makes after a create failed (spec 506): the
+// The round trip a person makes after a create failed: the
 // message is first on `/`, "Try again" fills New spec, Dismiss hides it,
 // a restart keeps what was not dismissed. Through a real server.
 import { afterEach, describe, expect, test } from "bun:test";
@@ -38,27 +38,27 @@ const dismiss = (base: string, id: string) =>
   });
 
 describe("a failed create on the Specs list", () => {
-  test("is a message first on the page, with project, title and reason (AC-2)", async () => {
+  test("is a message first on the page, with project, title and reason", async () => {
     const s = served([record("first")]);
     const html = await home(s.base);
     expect(html).toContain("Creating “Title of first” in aide failed: the server restarted");
     expect(html.indexOf("Title of first")).toBeLessThan(html.indexOf("<table"));
   });
 
-  test("is there again when the server is rebuilt on the same file (AC-4)", async () => {
+  test("is there again when the server is rebuilt on the same file", async () => {
     const s = served([record("first")]);
     expect(await home(s.base)).toContain("Title of first");
     const again = start({ failedCreatesPath: s.failedCreatesPath });
     expect(await home(again.base)).toContain("Title of first");
   });
 
-  test("the rows swap carries it too, so a refresh does not lose it (AC-4)", async () => {
+  test("the rows swap carries it too, so a refresh does not lose it", async () => {
     const s = served([record("first")]);
     const rows = await (await fetch(`${s.base}/specs?rows=1`)).text();
     expect(rows).toContain("Title of first");
   });
 
-  test("a corrupt file starts the server and draws the list without a message (AC-4)", async () => {
+  test("a corrupt file starts the server and draws the list without a message", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-failed-creates-"));
     dirs.push(dir);
     const failedCreatesPath = join(dir, "failed-creates.json");
@@ -69,7 +69,7 @@ describe("a failed create on the Specs list", () => {
     expect(await res.text()).not.toContain("failedcreate");
   });
 
-  test("two messages, newest first; dismissing one leaves the other (AC-5)", async () => {
+  test("two messages, newest first; dismissing one leaves the other", async () => {
     const s = served([record("first"), record("second")]);
     const html = await home(s.base);
     expect(html.indexOf("Title of second")).toBeLessThan(html.indexOf("Title of first"));
@@ -79,7 +79,7 @@ describe("a failed create on the Specs list", () => {
     expect(after).toContain("Title of first");
   });
 
-  test("dismissing twice still answers ok, with or without an Accept header (AC-5)", async () => {
+  test("dismissing twice still answers ok, with or without an Accept header", async () => {
     const s = served([record("first")]);
     expect(await (await dismiss(s.base, "first")).json()).toEqual({ ok: true });
     expect(await (await dismiss(s.base, "first")).json()).toEqual({ ok: true });
@@ -89,7 +89,7 @@ describe("a failed create on the Specs list", () => {
     expect((await dismiss(s.base, "nothing")).status).toBe(404);
   });
 
-  test("a dismissal stays dismissed across a restart (AC-4)", async () => {
+  test("a dismissal stays dismissed across a restart", async () => {
     const s = served([record("first"), record("second")]);
     await dismiss(s.base, "first");
     const again = start({ failedCreatesPath: s.failedCreatesPath });
@@ -99,7 +99,7 @@ describe("a failed create on the Specs list", () => {
   });
 });
 
-describe("Try again opens New spec filled in (AC-3, AC-6)", () => {
+describe("Try again opens New spec filled in", () => {
   test("the project, title and description come from the record", async () => {
     const s = served([record("first")]);
     const html = await (await fetch(`${s.base}/new?retry=first`)).text();

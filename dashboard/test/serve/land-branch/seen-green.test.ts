@@ -1,7 +1,7 @@
 // The landing skips its own run when the step it merges already saw the
 // same commands green on the same tree — main has not moved since the
-// archive's own run on the merged result (spec 480's archive ran the
-// suite four times, 2026-09-18). Anything short of an exact match runs.
+// archive's own run on the merged result (an archive once ran the
+// suite four times). Anything short of an exact match runs.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

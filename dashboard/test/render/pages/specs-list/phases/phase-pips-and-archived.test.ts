@@ -7,13 +7,13 @@ import {
   type SpecsPageOptions,
 } from "../../../../../src/render";
 
-// Spec 265: an archived phase line draws the SAME aiPicker/modelPicker
+// An archived phase line draws the SAME aiPicker/modelPicker
 // controls a live one does, disabled, instead of a second, hand-rolled
 // rendering (`lockedModel`, removed). The route-level suite
 // (`archived-specs.test.ts`) covers the parse-through-render path; this
 // is the renderer on its own, with one fixture the bigger harness could
 // not shape as precisely — a recorded model string with no space at all.
-describe("spec 265: an archived phase line looks like a live one", () => {
+describe("an archived phase line looks like a live one", () => {
   const TOOLS: NonNullable<SpecsPageOptions["modelChoices"]> = [
     { name: "sonnet" },
     { name: "codex-fast",  tool: "codex" },
@@ -46,7 +46,7 @@ describe("spec 265: an archived phase line looks like a live one", () => {
   // now draws the exact same markup, disabled, with the bare recorded
   // name selected — never the "<tool> <model>" record itself, which is
   // what used to clip to "claude so".
-  test("shows the bare recorded model name, disabled, never the tool-prefixed record (criterion 1)", () => {
+  test("shows the bare recorded model name, disabled, never the tool-prefixed record", () => {
     const line = openLine({ analyze: "claude sonnet" }, "analyze");
     expect(line).toContain(" disabled");
     expect(line).toContain(
@@ -58,7 +58,7 @@ describe("spec 265: an archived phase line looks like a live one", () => {
   // A phase that never ran (`create`, on every archived spec today) reads
   // exactly as a live, not-yet-run phase does: the configured default,
   // never blank.
-  test("shows the configured default, disabled, for a step that recorded no model — never blank (criterion 2)", () => {
+  test("shows the configured default, disabled, for a step that recorded no model — never blank", () => {
     const line = openLine({}, "analyze");
     expect(line).toContain("<select");
     expect(line).toContain(" disabled");
@@ -70,7 +70,7 @@ describe("spec 265: an archived phase line looks like a live one", () => {
   // A model a spec ran on can be retired or renamed by the time anyone
   // reads the archive back — the record must still win, verbatim, rather
   // than being silently swapped for whatever is configured today.
-  test("still shows the exact recorded model when it is no longer a configured choice (criterion 3)", () => {
+  test("still shows the exact recorded model when it is no longer a configured choice", () => {
     const line = openLine({ analyze: "claude gpt-9000-old" }, "analyze");
     expect(line).toContain(" disabled");
     expect(line).toContain('<option value="gpt-9000-old" selected>gpt-9000-old</option>');

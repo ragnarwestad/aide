@@ -5,7 +5,7 @@ import {
   harness,
 } from "./fixtures.ts";
 
-// --- spec 138: a successful Add has something to say -------------------------
+// --- A successful Add has something to say -------------------------
 //
 // The answer the server worked out — whether a run can start in the
 // project just added, and every reason it cannot — must reach the
@@ -28,7 +28,7 @@ describe("a successful Add goes to the new project's Config tab", () => {
     },
   };
 
-  test("the page goes to the project it added, on the tab that says whether it can run (AC-2)", async () => {
+  test("the page goes to the project it added, on the tab that says whether it can run", async () => {
     const h = harness(() => ({ ok: true, body: BLOCKED }));
     await h.submitAdd();
     expect(h.location.href).toBe("/projects/skjer?tab=config");
@@ -56,14 +56,14 @@ describe("a successful Add goes to the new project's Config tab", () => {
   });
 });
 
-// --- spec 160: a tail box posts on its own -------------------------------------
+// --- A tail box posts on its own -------------------------------------
 
 // While a job runs, the boxes for phases it has not reached stay live.
 // There is no Run button on a busy row to submit them with — the row
 // shows Cancel — and posting to `/api/queue` would ask for a SECOND
 // job, which the clash check refuses outright. So the tick is the
 // press: it goes to the running job's own route, the moment it happens.
-describe("a tail box's tick posts itself (spec 160)", () => {
+describe("a tail box's tick posts itself", () => {
   const OK = { ok: true, job: { id: "job-1" } };
 
   test("it posts the tick to the job's own route, not to /api/queue", async () => {
@@ -84,10 +84,10 @@ describe("a tail box's tick posts itself (spec 160)", () => {
     expect(String(h.requests[0]!.init.body)).toContain("checked=0");
   });
 
-  // Spec 151's rule, applied to a control that is not a button: the
+  // The press-lock rule, applied to a control that is not a button: the
   // whole row locks the instant the tick lands, and stays locked until
   // the row has been redrawn from the server's own answer.
-  test("the row locks at once and is redrawn from the answer (criterion 7)", async () => {
+  test("the row locks at once and is redrawn from the answer", async () => {
     let atRequest = { run: false, box: false, tail: false, cancel: false, otherRow: false };
     let atRedraw = false;
     const h = harness((url) => {
@@ -114,7 +114,7 @@ describe("a tail box's tick posts itself (spec 160)", () => {
 
   // A refusal has to be visible on the box itself: the tick showed the
   // step as added, and the server did not add it.
-  test("a refused tick is put back, and the reason is shown (criterion 7)", async () => {
+  test("a refused tick is put back, and the reason is shown", async () => {
     let checkedWhenRedrawn: boolean | undefined;
     const h = harness((url) => {
       if (url.includes("/steps")) {

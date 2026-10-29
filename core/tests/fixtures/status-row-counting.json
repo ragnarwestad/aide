@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Spec 246: the row-counting rule `4-status.md`'s recomputed `Total",
+    "The row-counting rule `4-status.md`'s recomputed `Total",
     "progress` header must agree on. `core/scripts/aide-run-spec` (bash,",
     "total_progress_for) and `dashboard/src/parse-status.ts`",
     "(parseStatusChecks/isDoneMark) implement this rule independently — the",

@@ -25,11 +25,10 @@ export interface ActionResult {
   spec?: string;
   error?: string;
   /** The project routes answer step by step (`answerProjectChange`), so
-   *  a refusal can name WHICH step refused. The merge route answered in
-   *  the same shape, per repo, until spec 149 removed it. */
+   *  a refusal can name WHICH step refused. */
   results?: { error?: string }[];
   /** An Add that SUCCEEDED and still has something to say: whether a
-   *  run can start in the project it just registered (spec 138). */
+   *  run can start in the project it just registered. */
   readiness?: { canRun?: boolean; note?: string };
   /** The project a project route answered for (`answerProjectChange`). */
   project?: string;
@@ -70,8 +69,8 @@ export const attrValue = (v: string): string => v.replace(/["\\]/g, "\\$&");
 
 /** Everything written OUTSIDE a form and tied to it by name alone. On
  *  a spec's row that is the Run button, the four phase boxes, the five
- *  model selects and the five AI selects: the trick spec 123 introduced so
- *  the button could sit above the phase lines and the boxes on them,
+ *  model selects and the five AI selects: the trick that lets
+ *  the button sit above the phase lines and the boxes on them,
  *  while the form itself carries nothing but hidden fields. */
 export const namesForm = (id: string): Element[] =>
   id ? Array.from(document.querySelectorAll(`[form="${attrValue(id)}"]`)) : [];
@@ -97,10 +96,9 @@ export type Control = HTMLButtonElement | HTMLInputElement | HTMLSelectElement |
  *
  *  The HEAD row is the row's own container — the one `<tr>` every spec
  *  has, open or shut — and the form-attribute lookup reaches what sits
- *  outside it on the phase lines. It was the stack cell until spec 157
- *  moved the row's one button into the State column and deleted that
- *  cell; the head row is where a control lives now whether the row is
- *  open or shut, which the stack cell never was (a shut row had none).
+ *  outside it on the phase lines. A control lives in the head row
+ *  whether the row is open or shut, which a stack cell never was (a
+ *  shut row had none).
  *  The ids carry the spec's own key, so this reaches one row and never
  *  a neighbour. */
 export function rowControls(form: HTMLFormElement): Control[] {
@@ -168,15 +166,15 @@ export async function postForm(
   //
   // What changes is the LOOK, not the word: a button that swapped "Run"
   // for "starting…" grew to fit and took the whole row with it, at the
-  // one moment it should look most in control (spec 104). So it goes
+  // one moment it should look most in control. So it goes
   // busy — the same variant the server renders for a job already in
   // flight — and the server's own pending word (`data-pending`) moves
   // to the `title`, where it costs no width. The spinner goes inside
   // the button, where it costs no width either.
   //
   // It used to be put where the row's phase boxes were instead, and
-  // borrow their width. Those boxes are on the phase LINES since spec
-  // 124 — a different `<tr>` from the button — and the only `.phases`
+  // borrow their width. Those boxes are on the phase LINES now —
+  // a different `<tr>` from the button — and the only `.phases`
   // group left in a button's own row is "also touches", which is not
   // the row's spinner to take. One rule now, for every control alike:
   // the button that was pressed carries it.
@@ -225,7 +223,7 @@ export async function postForm(
     // the always-correct answer, because it asks the server again. With
     // the reader's own query string — the sort and the filter live
     // there, and a bare `/` threw them away. And with the reader's own
-    // PATH: this code runs on `/projects` too since spec 115.
+    // PATH: this code runs on `/projects` too.
     location.href = location.pathname + location.search;
   } finally {
     press.inFlight -= 1;

@@ -1,4 +1,4 @@
-// Whether a run could start there (spec 138), read-only.
+// Whether a run could start there, read-only.
 //
 // Adding a project said "added" and nothing more, and the things that
 // decide whether `aide-run-spec` will START were invisible until Run was
@@ -6,8 +6,8 @@
 // checkout where the form said, minimal manifest written — and refused,
 // because the checkout stood on a feature branch whose upstream was
 // gone, no specs root had been named, and no worktree links were set.
-// (Its untracked `.aide/` refused it a fourth time that day. Spec 144
-// took that refusal out of the runner, so this file no longer asks
+// (Its untracked `.aide/` refused it a fourth time that day. The runner
+// no longer refuses for that, so this file no longer asks
 // about it either — see the `ReadinessCheckName` union.)
 //
 // So the same prerequisites are read HERE, and only those: every check
@@ -66,8 +66,8 @@ async function branchHeldElsewhere(
 
 /** The question asked of EVERY participating repository, because the
  *  runner asks it of every root it touches: can the checkout be put on
- *  its default branch. Whether the tree is CLEAN was the second such
- *  question until spec 144, and is asked nowhere now — a run reads
+ *  its default branch. Whether the tree is CLEAN is not asked at
+ *  all — a run reads
  *  origin's default branch into a worktree of its own, so what sits
  *  uncommitted here decides nothing. */
 async function repoChecks(run: GitRunner, root: string, label: string): Promise<ReadinessCheck[]> {
@@ -153,7 +153,7 @@ function readinessNote(project: string, canRun: boolean, checks: ReadinessCheck[
 }
 
 /** The same question `repoChecks` asks, asked of the checkouts the
- *  dashboard owns (spec 205).
+ *  dashboard owns.
  *
  *  Two states, and only one of them is a refusal. A checkout that is
  *  already there answers for itself, exactly as the person's used to.
@@ -165,7 +165,7 @@ function readinessNote(project: string, canRun: boolean, checks: ReadinessCheck[
  *
  *  The person's own branch is not asked about at all. A run stopped
  *  moving that checkout, so what it is on decides nothing — the same
- *  reason spec 144 dropped the clean-tree question. */
+ *  reason the clean-tree question is not asked. */
 async function dashboardCheckoutChecks(
   run: GitRunner,
   roots: { root: string; label: string }[],
@@ -184,7 +184,7 @@ async function dashboardCheckoutChecks(
       // Worth SAYING and nothing more, the same shape as a checkout on
       // a feature branch. A project the dashboard cannot clone still
       // runs — it falls back to the checkout it was pointed at, exactly
-      // as every project did before spec 205 — so refusing the run here
+      // as it always did — so refusing the run here
       // would take away something that works. What the reader needs to
       // know is that this project is the one where a run and their own
       // editing can still meet.
@@ -204,16 +204,14 @@ async function dashboardCheckoutChecks(
  *  file injects it: a test spawns no subprocess, and a failure is a
  *  value rather than an exception to be guessed at.
  *
- *  It took a `justWritten` list until spec 144 — the paths the caller
- *  had written a moment earlier, so the dirty-tree answer could say
- *  what to do about dirt the Add itself made. Nothing here asks about a
- *  dirty tree any more, so nothing here needs to know. */
+ *  Nothing here asks about a dirty tree, so it takes no list of the
+ *  paths the caller has just written. */
 export async function assessProjectReadiness(
   run: GitRunner,
   projectDir: string,
   machineryDir?: string,
   /** The manifest to read the manifest-backed rows from, when it is not
-   *  the project's own `.aide/project.yaml` (spec 512): the dashboard's
+   *  the project's own `.aide/project.yaml`: the dashboard's
    *  settings file, right after an Add. Without it the dashboard's own
    *  clone is asked, since that is the file a run reads. */
   manifestFile?: string,
@@ -293,7 +291,7 @@ export async function assessProjectReadiness(
   }
 
   // 4. A reachable default branch, for every repository the run would
-  //    touch — and since spec 205 that means the checkouts the DASHBOARD
+  //    touch — and that means the checkouts the DASHBOARD
   //    owns, not the ones a person edits. Whichever checkout a run
   //    actually uses is the one asked; `machineryDir` is what names it,
   //    and a caller that names none is asking about `projectDir` itself,
@@ -311,7 +309,7 @@ export async function assessProjectReadiness(
   //    no source is a test command that will fail for a reason that has
   //    nothing to do with the change — the runner refuses it, and so
   //    does this.
-  //    Read from the COMMITTED manifest alone (spec 549), the same file
+  //    Read from the COMMITTED manifest alone, the same file
   //    `aide-run-spec` itself reads.
   const machineryManifest = machineryDir ? join(machineryDir, ".aide", "project.yaml") : undefined;
   const { links } = resolveWorktreeLinks(
@@ -336,7 +334,7 @@ export async function assessProjectReadiness(
           // readiness answer a person closes out themselves, and a note
           // that describes what is missing without saying where to put
           // it leaves them hunting. The label comes from the shared
-          // table (spec 318) so it is the same words the Config row
+          // table so it is the same words the Config row
           // shows.
           detail:
             `no ${SETTING_LABELS.worktreeLinks.toLowerCase()} are configured — a run's ` +

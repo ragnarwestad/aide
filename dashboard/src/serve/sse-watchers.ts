@@ -15,7 +15,7 @@ export interface SseWatchersContext {
   encoder: TextEncoder;
   watchers: Set<ReadableStreamDefaultController<Uint8Array>>;
   /** The subscribers that opened with `?phases=`, and the phase keys each
-   *  named (spec 500). Only these hear a transcript grow. */
+   *  named. Only these hear a transcript grow. */
   phaseWatchers: Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>;
   specWatchers: Map<string, { close: () => void }>;
   /** `notifySoon` is a `let` reassigned by both `scheduleNotify` (which
@@ -62,7 +62,7 @@ export const CHANGED_EVENT = "event: changed\ndata: {}\n\n";
 export const changedEvent = (waiting?: number): string =>
   waiting === undefined ? CHANGED_EVENT : `event: changed\ndata: {"waiting":${waiting}}\n\n`;
 
-// --- spec 204: a spec is a folder, and a folder changes no job -----------
+// --- A spec is a folder, and a folder changes no job -----------
 //
 // The two callers above are both the queue's own: a job moving, and
 // `POST /api/aide-run`. A spec created any other way — a `git pull`,
@@ -75,7 +75,7 @@ export const changedEvent = (waiting?: number): string =>
 // watch on the projects root would fire on every `.git` internal,
 // `node_modules` entry and build artefact in every checked-out
 // project — the ground moving under the reader constantly, which is
-// the cost spec 189 already removed once.
+// a cost to avoid.
 //
 // One echo comes with it, and is deliberately left alone: FSEvents
 // hands a fresh recursive watcher the changes made in the
@@ -117,7 +117,7 @@ export function closeSpecWatchers(ctx: SseWatchersContext): void {
   ctx.specWatchers.clear();
 }
 
-// --- spec 500: a step writes its transcript to a file, and nothing tells --
+// --- A step writes its transcript to a file, and nothing tells --
 //
 // The store is silent while a step runs, so a tab that unfolded a running
 // phase would show what the model said at the start and then stand still.

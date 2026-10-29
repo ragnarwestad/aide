@@ -9,7 +9,7 @@
 
 import { parseStatusChecks, type StatusCheck } from "./";
 
-// --- spec 108: an archive run that declined -----------------------------------
+// --- An archive run that declined -----------------------------------
 
 /** Why the last headless archive run did NOT move the folder, or `null`
  *  when nothing is holding it back.
@@ -49,7 +49,7 @@ export function archiveHeldBackReason(content: string): string | null {
 }
 
 /** The reason archive keeps refusing while a person has not yet judged
- *  the spec's own `## Acceptance criteria` rows (spec 285's gate).
+ *  the spec's own `## Acceptance criteria` rows.
  *
  *  `aide-run-spec`'s mechanical precheck already refuses cleanly here
  *  (no AI spent, `terminalReason: "acceptance-criteria-unticked"`), but
@@ -99,7 +99,7 @@ export const ACCEPTANCE_CRITERIA_UNTICKED_NOTE =
  *  archive start on a spec the reader had just reopened the question on.
  *
  *  What made the old rule necessary was a stale branch answer outliving
- *  a tick that landed on the default branch (337, 2026-09-04). That is
+ *  a tick that landed on the default branch. That is
  *  the tick route's own `forgetBranchFileSteps` now: the cached answer
  *  is dropped in the same request that writes the file, so preferring
  *  the branch cannot serve one from before the write. */
@@ -122,7 +122,7 @@ export function acceptanceStillOpen(
  *  was ever attempted — so while implement is still running, the
  *  Acceptance criteria are of course not all ticked yet, and that must
  *  not read as archive being "held back" for something well before
- *  archive is even next (reported live on spec 298, 2026-08-31). Every
+ *  archive is even next. Every
  *  other reason comes out of an ACTUAL declined archive run and needs
  *  no such gate: archive cannot have been attempted, let alone
  *  declined, before implement is done.
@@ -134,7 +134,7 @@ export function acceptanceStillOpen(
  *  merges it — so that list cannot name implement in exactly the state
  *  this note exists for, and the note was dropped from every row waiting
  *  on a tick. `historyDone` is the git-proved list, unlanded branches
- *  included (spec 418), and the same signal the phase line already reads
+ *  included, and the same signal the phase line already reads
  *  to draw Implement as done.
  *
  *  Owned here, next to the constant it compares against, so callers
@@ -152,7 +152,7 @@ export function archiveHeldBackApplies(
   );
 }
 
-// --- spec 471: another round on a held-back spec's open checks --------------
+// --- Another round on a held-back spec's open checks --------------
 
 /** The commit the LATEST `**Round boundary:**` stamp names — the moment
  *  `aide-archive-spec` most recently declined on unticked acceptance
@@ -186,7 +186,7 @@ export function reopenedRound(content: string): boolean {
   return lastStamp >= 0 && lastMark === lastStamp && boundary > lastStamp;
 }
 
-/** Spec 190 — `content` with every `## Archive held back` section
+/** `content` with every `## Archive held back` section
  *  removed, or `null` when there is none to remove.
  *
  *  A hold-back note names one open check and where to close it out.

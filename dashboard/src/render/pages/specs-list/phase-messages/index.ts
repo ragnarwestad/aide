@@ -1,4 +1,4 @@
-// A phase line unfolded to the model's latest messages (spec 500): the ›
+// A phase line unfolded to the model's latest messages: the ›
 // that opens them and the row that lists them. The state is in the
 // address (`?phases=`), like the row's own fold and the criteria's
 // (`?checks=`), so it survives the live redraw and works with script off.

@@ -22,20 +22,20 @@ describe("a step the model refused", () => {
     return store.get(job.id);
   };
 
-  test("ends failed with the board's message for the step, and keeps the script's sentence as detail (AC-2)", () => {
+  test("ends failed with the board's message for the step, and keeps the script's sentence as detail", () => {
     const after = refused();
     expect(after?.state).toBe("failed");
     expect(after?.error).toEqual({ key: "runner.modelRefused", values: { button: "Analyze" } });
     expect(after?.errorDetail).toBe(SCRIPT_SENTENCE);
   });
 
-  test("names Analyze and says the model declined to continue (AC-2)", () => {
+  test("names Analyze and says the model declined to continue", () => {
     const text = renderSentence("en", refused()?.error as Parameters<typeof renderSentence>[1]) ?? "";
     expect(text).toContain("Analyze");
     expect(text).toContain("declined to continue");
   });
 
-  test("suggests running the step again or another model, and never install, login or Settings (AC-3)", () => {
+  test("suggests running the step again or another model, and never install, login or Settings", () => {
     const text = renderSentence("en", refused()?.error as Parameters<typeof renderSentence>[1]) ?? "";
     expect(text).toContain("Press Analyze again");
     expect(text).toContain("another model");

@@ -7,12 +7,11 @@ import { join } from "node:path";
 import { specArchivedDate, specPhaseFile } from "../../../src/project/discover";
 
 
-// --- spec 150: what a phase MADE --------------------------------------------
+// --- What a phase MADE --------------------------------------------
 //
 // "A phase's page shows what that phase made": analyze wrote
-// 3-solution.md (the plan, and since spec 181 the "Plan review" section
-// too — the reviewer-perspectives routine that used to be its own
-// `review-plan` step runs inside `analyze` now), implement wrote
+// 3-solution.md (the plan, and the "Plan review" section
+// too — the reviewer-perspectives routine runs inside `analyze`), implement wrote
 // 4-status.md, and archive either moved the folder or said why it did
 // not. Nothing else of the spec is repeated there.
 
@@ -43,7 +42,7 @@ describe("specPhaseFile", () => {
     });
   });
 
-  // Spec 181, criterion 3: the reviewer-perspectives routine that used
+  // The reviewer-perspectives routine that used
   // to be its own `review-plan` step runs inside `analyze` now, writing
   // a "Plan review" section into 3-solution.md in the same run that
   // writes the plan — so the job page shows the WHOLE file, plan and
@@ -55,7 +54,7 @@ describe("specPhaseFile", () => {
     expect(specPhaseFile(dir, "analyze")?.text).toContain("Medium.");
   });
 
-  test("implement shows 4-status.md (criterion 7)", () => {
+  test("implement shows 4-status.md", () => {
     expect(specPhaseFile(dir, "implement")?.label).toBe("4-status.md");
     expect(specPhaseFile(dir, "implement")?.text).toContain("Phase 1: RED");
   });
@@ -71,7 +70,7 @@ describe("specPhaseFile", () => {
     rmSync(empty, { recursive: true, force: true });
   });
 
-  // Criterion 8. `archive` is the one phase whose answer is not a whole
+  // `archive` is the one phase whose answer is not a whole
   // file: it either moved the folder or declined to, and the two must
   // never both be on the page.
   describe("archive shows one of its two outcomes, never both", () => {
@@ -116,7 +115,7 @@ describe("specPhaseFile", () => {
   });
 });
 
-// Spec 163: the archive listing needs a DATE per row, and `4-status.md`
+// The archive listing needs a DATE per row, and `4-status.md`
 // carries one for every spec the archive step stamped. A second reader
 // of the same line as `specPhaseFile`'s, deliberately: that one returns
 // the whole line for a phase panel to show, this one returns the value

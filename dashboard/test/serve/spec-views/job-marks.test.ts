@@ -60,7 +60,7 @@ const STOPPED_IN_STEP_1 = () =>
   );
 
 describe("jobMarks", () => {
-  test("a failed job's last running step is failed, and the reason is its error in the reader's language (AC-4)", () => {
+  test("a failed job's last running step is failed, and the reason is its error in the reader's language", () => {
     const error = { key: "landing.deployNoAnswer" } as const;
     const got = jobMarks(job({ state: "failed", streamFile: STOPPED_IN_STEP_1(), error }), "nb");
     expect(got.marks.map((m) => [m.title, m.state])).toEqual([
@@ -70,14 +70,14 @@ describe("jobMarks", () => {
     expect(got.reason).toBe(renderSentence("nb", error)!);
   });
 
-  test("a failed job with no error gives the failed step's own reason (AC-4)", () => {
+  test("a failed job with no error gives the failed step's own reason", () => {
     const file = step([], ["--- Step 4 of 4: Merge into main — started", "error: --- Step 4 of 4: Merge into main — stopped: nothing was merged"]);
     const got = jobMarks(job({ state: "failed", results: [{ step: "close", streamFile: file } as never] }), "en");
     expect(got.marks.map((m) => m.state)).toEqual(["failed"]);
     expect(got.reason).toBe("nothing was merged");
   });
 
-  test("a done job whose merge into main stopped shows the merge failed, with the landing's reason (AC-4)", () => {
+  test("a done job whose merge into main stopped shows the merge failed, with the landing's reason", () => {
     const file = step([], [
       "--- Step Aide: tests and commit — done",
       "--- Step 4 of 4: Merge into main — started",
@@ -94,13 +94,13 @@ describe("jobMarks", () => {
     expect(unrecorded.reason).toBe("nothing was merged — the close is not finished");
   });
 
-  test("a done job turns no line failed and gives no reason (AC-4)", () => {
+  test("a done job turns no line failed and gives no reason", () => {
     const got = jobMarks(job({ state: "done", streamFile: STOPPED_IN_STEP_1() }), "en");
     expect(got.marks.some((m) => m.state === "failed")).toBe(false);
     expect(got.reason).toBeUndefined();
   });
 
-  test("a queued job with no stream file has no marks (AC-4)", () => {
+  test("a queued job with no stream file has no marks", () => {
     expect(jobMarks(job({ state: "queued" }), "en")).toEqual({ marks: [], logs: [] });
   });
 });
@@ -121,7 +121,7 @@ describe("closeOrReopenSteps", () => {
 
   // A step carries the run log's `+Ns` stamps: an ended one its seconds, a running
   // one the moment it started. A model's step has them when the runner recorded its marks.
-  test("an ended Aide step has its seconds, a running one when it started, and a model step marked in a run from before neither (AC-2)", () => {
+  test("an ended Aide step has its seconds, a running one when it started, and a model step marked in a run from before neither", () => {
     const file = step(
       [said("--- Step 1 of 4: Run the mechanical script — started"), said("--- Step 1 of 4: Run the mechanical script — done")],
       [
@@ -154,7 +154,7 @@ describe("closeOrReopenSteps", () => {
   ];
   const START = "2026-10-03T10:00:00Z";
 
-  test("a step the model marked has its seconds once done, and a count from its start while it runs (AC-2)", () => {
+  test("a step the model marked has its seconds once done, and a count from its start while it runs", () => {
     const got = closeOrReopenSteps(job({ streamFile: stamped(MARKED, LOG), stepStartedAt: START }), "close", "en");
     const of = (key: string) => got.find((s) => s.key === key);
     expect(of("Step 1 of 4")?.seconds).toBe(42);
@@ -162,20 +162,20 @@ describe("closeOrReopenSteps", () => {
     expect(of("Step 2 of 4")?.since).toBe("2026-10-03T10:00:50.000Z");
   });
 
-  test("a step the model never ended runs until Aide's next step starts (AC-2)", () => {
+  test("a step the model never ended runs until Aide's next step starts", () => {
     const log: [number, string][] = [...LOG, [90, "--- Step Aide: tests and commit — started"]];
     const got = closeOrReopenSteps(job({ streamFile: stamped(MARKED, log), stepStartedAt: START }), "close", "en");
     expect(got.find((s) => s.key === "Step 2 of 4")?.seconds).toBe(40);
   });
 
-  test("a step the log left running on a job that is no longer running does not count (AC-2)", () => {
+  test("a step the log left running on a job that is no longer running does not count", () => {
     const got = closeOrReopenSteps(job({ state: "done", streamFile: stamped(MARKED, LOG), stepStartedAt: START }), "close", "en");
     const two = got.find((s) => s.key === "Step 2 of 4");
     expect(two?.since).toBeUndefined();
     expect(two?.seconds).toBeUndefined();
   });
 
-  test("the tokens used between a step's marks reach its line, and a step with none has no key (AC-3, AC-4)", () => {
+  test("the tokens used between a step's marks reach its line, and a step with none has no key", () => {
     const transcript = [
       used("m1", "--- Step 1 of 4: Run the mechanical script — started", 100),
       used("m2", "--- Step 1 of 4: Run the mechanical script — done", 25),
@@ -186,7 +186,7 @@ describe("closeOrReopenSteps", () => {
     expect(got.find((s) => s.key === "Step 2 of 4")).not.toHaveProperty("tokens");
   });
 
-  test("a run from before shows no tokens, whatever its transcript holds (AC-3, AC-4)", () => {
+  test("a run from before shows no tokens, whatever its transcript holds", () => {
     const transcript = [used("m1", "--- Step 1 of 4: Run the mechanical script — started", 100), used("m2", "--- Step 1 of 4: Run the mechanical script — done", 25)];
     const file = step(transcript, ["--- Step Aide: preparing — started", "model turn started (transcript at byte 0)"]);
     const got = closeOrReopenSteps(job({ streamFile: file, stepStartedAt: START }), "close", "en");
@@ -216,7 +216,7 @@ describe("deploySteps", () => {
 
   // The run is cut at the restart: what it has marked is the fetch, the
   // install and the restart. The wait and the check are not marked yet.
-  test("lists the five deploy steps in order, each in the state the run log has it in (AC-3)", () => {
+  test("lists the five deploy steps in order, each in the state the run log has it in", () => {
     const file = step([], [
       "--- Step 1 of 5: Fetch from origin — started",
       "--- Step 1 of 5: Fetch from origin — done",
@@ -234,7 +234,7 @@ describe("deploySteps", () => {
 
   // The process that starts after the restart writes its marks to the same
   // log, its seconds counted from the job's `stepStartedAt`.
-  test("lines marked after the restart read done, each with its seconds (AC-3)", () => {
+  test("lines marked after the restart read done, each with its seconds", () => {
     const file = step([], [
       "--- Step 1 of 5: Fetch from origin — started",
       "--- Step 1 of 5: Fetch from origin — done",
@@ -251,7 +251,7 @@ describe("deploySteps", () => {
     expect(got[4]!.seconds).toBe(1);
   });
 
-  test("a deploy with nothing marked yet lists the five steps, none with a state (AC-3)", () => {
+  test("a deploy with nothing marked yet lists the five steps, none with a state", () => {
     const got = deploySteps(job({ specFolder: "deploy", steps: ["deploy"], state: "queued" }), "en");
     expect(got.map((s) => s.key)).toEqual(KEYS);
     expect(got.every((s) => s.state === undefined)).toBe(true);
@@ -272,7 +272,7 @@ describe("scheduleSteps", () => {
       ["--- Step Aide: preparing — started", "--- Step Aide: preparing — done", "model turn started (transcript at byte 0)"],
     );
 
-  test("lists only the steps the log has marked, in the order marked, each in its state (AC-1)", () => {
+  test("lists only the steps the log has marked, in the order marked, each in its state", () => {
     const got = scheduleSteps(scheduled({ streamFile: marked() }), "en");
     expect(got.map((s) => [s.label, s.state])).toEqual([
       ["Preparing", "done"],
@@ -281,14 +281,14 @@ describe("scheduleSteps", () => {
     ]);
   });
 
-  test("Aide's step has its seconds from the run log and a model's step marked in a run from before has none (AC-1)", () => {
+  test("Aide's step has its seconds from the run log and a model's step marked in a run from before has none", () => {
     const got = scheduleSteps(scheduled({ streamFile: marked() }), "en");
     expect(got[0]!.seconds).toBe(1);
     expect(got[1]!.seconds).toBeUndefined();
     expect(got[2]!.seconds).toBeUndefined();
   });
 
-  test("the model's steps have their seconds when the runner recorded their marks (AC-2)", () => {
+  test("the model's steps have their seconds when the runner recorded their marks", () => {
     const file = stamped(
       [said("--- Step 1 of 2: Read the list — started"), said("--- Step 1 of 2: Read the list — done"), said("--- Step 2 of 2: Write the report — started")],
       [
@@ -305,11 +305,11 @@ describe("scheduleSteps", () => {
     expect(got[2]).toMatchObject({ state: "running", since: "2026-10-03T10:00:20.000Z" });
   });
 
-  test("a queued job with no log yet has no steps (AC-1)", () => {
+  test("a queued job with no log yet has no steps", () => {
     expect(scheduleSteps(scheduled({ state: "queued", streamFile: undefined }), "en")).toEqual([]);
   });
 
-  test("each step carries its own part of the log (AC-2)", () => {
+  test("each step carries its own part of the log", () => {
     const got = scheduleSteps(scheduled({ streamFile: marked() }), "en");
     const text = (label: string) => (got.find((s) => s.label === label)?.logs ?? []).flatMap((p) => p.lines).join("\n");
     expect(text("Write the report")).toContain("wrote the report line");

@@ -46,7 +46,7 @@ describe("toolFailureSentence", () => {
 
   // The shape Claude Code writes when it is not logged in: an error result
   // with no error list, so the script's fallback sentence stands.
-  test("a login failure from Claude Code still sends the reader to Settings (AC-4)", () => {
+  test("a login failure from Claude Code still sends the reader to Settings", () => {
     const s = toolFailureSentence({
       tool: "claude",
       model: "Sonnet",

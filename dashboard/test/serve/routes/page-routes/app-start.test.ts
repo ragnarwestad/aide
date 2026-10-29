@@ -53,17 +53,17 @@ const launch = async (base: string, headers: Record<string, string> = {}) => {
 };
 
 describe("the installed app's start address sends it to the tab or the list", () => {
-  test("a board with an Active spec opens the Running tab (AC-1)", async () => {
+  test("a board with an Active spec opens the Running tab", async () => {
     const { base } = board();
     expect(await launch(base)).toEqual({ status: 302, location: "/" });
   });
 
-  test("a job row alone counts as a row: a Close running opens the Running tab (AC-1)", async () => {
+  test("a job row alone counts as a row: a Close running opens the Running tab", async () => {
     const { base } = board([job({ id: "close", specFolder: "82-no-job", steps: ["close"] })], { queueProjects: [] });
     expect(await launch(base)).toEqual({ status: 302, location: "/" });
   });
 
-  test("rows are counted before the tab's own view hides them (AC-1)", async () => {
+  test("rows are counted before the tab's own view hides them", async () => {
     const { base } = board();
     const hidden = await fetch(`${base}/?q=nothing-matches`, { redirect: "manual" });
     expect(await hidden.text()).toContain(t("en", "jobs.noRowMatchesFilter"));
@@ -75,12 +75,12 @@ describe("the installed app's start address sends it to the tab or the list", ()
     expect(await launch(base, { cookie: cookie! })).toEqual({ status: 302, location: "/" });
   });
 
-  test("a board with no row opens the Specs list bare, so its cookies decide the view (AC-2)", async () => {
+  test("a board with no row opens the Specs list bare, so its cookies decide the view", async () => {
     const { base } = board([], { queueProjects: [] });
     expect(await launch(base)).toEqual({ status: 302, location: "/specs" });
   });
 
-  test("a failed create's message is not a row: the app opens the Specs list (AC-2)", async () => {
+  test("a failed create's message is not a row: the app opens the Specs list", async () => {
     const record: FailedCreate = {
       id: "cr", project: "aide", title: "A spec that never was", description: "text",
       reason: { key: "runner.serverRestarted", values: { button: "Create" } },

@@ -10,10 +10,10 @@ const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 afterEach(() => harness.cleanup());
 
-// The row is where you SEE which phases have run; spec 94 makes it
+// The row is where you SEE which phases have run; it is also
 // where you run them. Any subset of the four, one job, on the model the
 // row picked.
-describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
+describe("running a spec's phases from its own row", () => {
   const CHOICES = {
     timeoutSec: { default: 1200 },
     permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
@@ -33,7 +33,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       body: new URLSearchParams(fields).toString(),
     });
 
-  test("the row's fields queue the step it ticked, on the model it picked (criteria 1-3)", async () => {
+  test("the row's fields queue the step it ticked, on the model it picked", async () => {
     const { base } = start({ queueDefaults: CHOICES });
     const res = await postRow(base, {
       project: "aide",
@@ -47,12 +47,12 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     };
     expect(body.job.steps).toEqual(["implement"]);
     expect(body.job.model).toEqual({ implement: "fable" });
-    // Spec 149: there is no gate to name at all any more, so the field
+    // There is no gate to name at all any more, so the field
     // is not on the job the queue hands back.
     expect(body.job.gateAfter).toBeUndefined();
   });
 
-  test("the default option queues no override at all (criterion 4)", async () => {
+  test("the default option queues no override at all", async () => {
     const { base } = start({ queueDefaults: CHOICES });
     const res = await postRow(base, {
       project: "aide",
@@ -65,11 +65,11 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(body.job.model).toEqual({ implement: "opus" });
   });
 
-  // Spec 181, criterion 7: the review of the plan runs inside analyze
+  // The review of the plan runs inside analyze
   // now, so the step is two steps' worth of work. The shipped table
   // gives it more clock than the fallback every unnamed step falls to
   // — `archive` is not in the table, so its limit IS that fallback.
-  test("analyze's own time limit is longer than the default (spec 181)", async () => {
+  test("analyze's own time limit is longer than the default", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
@@ -81,7 +81,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(job.timeoutSec.analyze!).toBeGreaterThan(job.timeoutSec.archive!);
   });
 
-  test("ticking two phases queues ONE job with both, in workflow order (criterion 3)", async () => {
+  test("ticking two phases queues ONE job with both, in workflow order", async () => {
     const { base } = start();
     // A browser sends one `steps` value per ticked box, in the order the
     // boxes are drawn — never in the order they were clicked.
@@ -102,11 +102,10 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(made.job.gateAfter).toBeUndefined();
   });
 
-  // The checkbox that used to send this key went in spec 133 and the
-  // gate itself in spec 149, so a urlencoded body naming `gate` is a
-  // stray from somewhere else. It is ignored, like any other unknown
+  // No checkbox sends this key and there is no gate, so a urlencoded
+  // body naming `gate` is a stray from somewhere else. It is ignored, like any other unknown
   // key, and the job runs straight through.
-  test("a stray gate key is ignored (criterion 3)", async () => {
+  test("a stray gate key is ignored", async () => {
     const { base } = start();
     const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
     body.append("steps", "analyze");
@@ -125,12 +124,12 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(made.job.state).toBe("queued");
   });
 
-  // Spec 267 reverses this row's own offer: a done phase's box is now
+  // The row does not offer a rerun: a done phase's box is
   // ticked and locked, the same treatment `create` already had (see
   // "a created spec reads create as done" above). The API route itself
   // is untouched (2-analysis.md, "API dependencies: None") — a rerun
   // sent straight to it, bypassing the row's own box, still succeeds.
-  test("a rerun of a done phase reaches the queue (criterion 4)", async () => {
+  test("a rerun of a done phase reaches the queue", async () => {
     const { base, dir } = start();
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));

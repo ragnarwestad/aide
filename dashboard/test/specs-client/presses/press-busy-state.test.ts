@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { harness } from "../fixtures.ts";
 
-// --- spec 104: a pressed button keeps its width -----------------------------
+// --- A pressed button keeps its width -----------------------------
 
-// --- spec 151: a press locks the row -----------------------------------------
+// --- A press locks the row -----------------------------------------
 //
 // Seen 2026-08-21: Run was pressed, nothing on the row changed, so it
 // was pressed again — and the second press was refused because the
@@ -22,7 +22,7 @@ import { harness } from "../fixtures.ts";
 // stack, the phase boxes and the model/AI selects on the phase lines
 // — and nothing is unlocked until the row has been redrawn from the
 // server.
-describe("a press locks every control on its row (spec 151)", () => {
+describe("a press locks every control on its row", () => {
   const OK = { ok: true, job: { id: "job-1" } };
   /** Every control the row has, as the press must leave them. */
   const rowState = (h: ReturnType<typeof harness>) => ({
@@ -73,7 +73,7 @@ describe("a press locks every control on its row (spec 151)", () => {
   // A form with no row whose button has no word of its own falls back to
   // one — and like every word the component writes, it starts with a
   // capital letter.
-  test("a button with no pending word of its own says 'Working…' (AC-5)", async () => {
+  test("a button with no pending word of its own says 'Working…'", async () => {
     let seen = "";
     const h = harness((url) => {
       if (url.includes("/create")) seen = h.createButton.textContent;
@@ -125,10 +125,10 @@ describe("a press locks every control on its row (spec 151)", () => {
   // A SHUT row used to be the case with no scope at all: it drew its
   // one control in the header's last cell, that control's button was
   // inside its own form, and `td.stackcell` — an open row's cell —
-  // found nothing. Spec 157 draws every row's control in the head row,
+  // found nothing. Every row's control is drawn in the head row,
   // open or shut, so a shut row's press locks exactly what an open
   // one's does. Nothing is left that has a row and no scope.
-  test("a shut row's control locks the whole row too (spec 157)", async () => {
+  test("a shut row's control locks the whole row too", async () => {
     let seen = {} as ReturnType<typeof rowState>;
     const h = harness((url) => {
       if (url.includes("/api/queue")) seen = rowState(h);
@@ -168,7 +168,7 @@ describe("a press locks every control on its row (spec 151)", () => {
     expect(h.button.classList.contains("busy")).toBe(false);
   });
 
-  // Spec 157, criteria 9 and 11. The row's one button sits inside
+  // The row's one button sits inside
   // `tr.spechead` now, and the fold's chevron is a `<a data-nav>` on
   // the same delegated listener. A press must RUN, never open the row
   // underneath the request — and it cannot, structurally: `navigate`

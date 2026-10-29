@@ -1,6 +1,6 @@
 // Split out of specs-pull.test.ts by theme.
 //
-// Spec 162: Save, on the same checkout.
+// Save, on the same checkout.
 //
 // The pull above is read-only apart from a fast-forward merge; this
 // writes a file, commits it and pushes it, which is the second place
@@ -68,8 +68,8 @@ const savable = (root: string, extra: Record<string, { code: number; stdout?: st
     ...extra,
   });
 
-// `message` became the caller's in spec 182, when the tick on a spec's
-// page needed to record something the description editor's sentence
+// `message` is the caller's, since the tick on a spec's
+// page needs to record something the description editor's sentence
 // does not say. Stated here exactly as the save route states it.
 const edit = (text: string, baseSha: string | null = FILE_SHA) => ({
   file: FILE,
@@ -228,7 +228,7 @@ describe("saveSpecFile", () => {
   });
 });
 
-// --- spec 188: two files, one commit ----------------------------------------
+// --- Two files, one commit ----------------------------------------
 //
 // Ticking a check is part of editing the spec now: one Save can carry
 // both a new `1-description.md` and a `4-status.md` with a row flipped,

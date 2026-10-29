@@ -34,7 +34,7 @@ export async function schedulePages(
 
   if (path === SCHEDULE_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    // Every allowed project's entries, flattened together (spec 278) —
+    // Every allowed project's entries, flattened together —
     // no per-project filter, mirroring how the Specs list's own
     // `listed` array is every allowed project's jobs at once.
     const projects = [...ctx.allowed].sort();

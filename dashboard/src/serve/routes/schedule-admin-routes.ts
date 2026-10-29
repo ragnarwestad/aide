@@ -1,4 +1,4 @@
-// The schedule entry API routes (spec 276): create, edit, the Enabled
+// The schedule entry API routes: create, edit, the Enabled
 // toggle, Run-now, and the live cron-next preview. Modeled on
 // `spec-edit.ts`'s reset route and `queue-admin.ts`'s settings route —
 // refuse before any write, then a JSON answer. A saved create or edit
@@ -38,7 +38,7 @@ export async function handleScheduleAdminRoutes(
   // Checked by exact path, and before the create route below: both are
   // one segment under `/api/queue/schedule/`, and only the method
   // differs — an exact match here never falls through to be read as a
-  // project named "cron-next" (acceptance criteria 10, 11).
+  // project named "cron-next".
   if (path === CRON_NEXT_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const cron = url.searchParams.get("cron") ?? "";
@@ -57,7 +57,7 @@ export async function handleScheduleAdminRoutes(
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     // No `confirm` field required, unlike the spec page's own Reset
-    // route (acceptance criterion 8) — a plain `{enabled}` body is
+    // route — a plain `{enabled}` body is
     // never refused for missing confirmation.
     const enabled = body.enabled === "1" || body.enabled === true;
     const result = setScheduleEnabled(ctx.scheduleStore, project, name, enabled);
@@ -72,7 +72,7 @@ export async function handleScheduleAdminRoutes(
     const name = decodeURIComponent(runPost[2]!);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     // A thin wrapper over the same enqueue/tick pair `refreshSchedules`
-    // itself calls (acceptance criterion 9) — no new mechanism. It reads
+    // itself calls — no new mechanism. It reads
     // the entry's own model for the same reason that tick does: "Run
     // now" is this entry firing early, not a different job, and it may
     // not quietly run on a different model than the schedule does.
@@ -121,7 +121,7 @@ export async function handleScheduleAdminRoutes(
     return json({ ok: true, location: renamedBack(back, project, name, str(body.name) || name) });
   }
 
-  // Project-agnostic, like `/api/queue/create` (spec 278): no
+  // Project-agnostic, like `/api/queue/create`: no
   // per-resource segment left to key on, so the route validates the
   // body's own `project` claim against the allowlist instead of a URL
   // segment — same `ctx.allowed.has(project)` guard every other route

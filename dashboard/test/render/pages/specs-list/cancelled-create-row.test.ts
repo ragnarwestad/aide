@@ -32,7 +32,7 @@ describe("a cancelled create job without a folder has no row", () => {
   const create = (over: Record<string, unknown>) =>
     row({ specFolder: key, steps: ["create"], stepIndex: 0, createTitle: "Layout", ...over });
 
-  // AC-1: with known targets, and in a project the list knows no spec of.
+  // With known targets, and in a project the list knows no spec of.
   for (const [name, list] of [["known targets", targets], ["no targets", [] as typeof targets]] as const) {
     test.each(["failed", "stopped", "interrupted"] as const)(`%s: no row (${name})`, (state) => {
       const groups = groupBySpec([create({ state })], list);

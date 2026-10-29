@@ -9,7 +9,7 @@ const { harness, start } = setupQueueRoutesHarness();
 afterEach(() => harness.cleanup());
 
 // A project taken out of the queue's allowlist (aide-dashboard, folded
-// into aide by spec 85) still has its jobs in the 200-job history, and
+// into aide) still has its jobs in the 200-job history, and
 // the page kept them as rows: three specs of a project that no longer
 // exists, with a Run button that could only be refused. The row list is
 // what the queue may run; a dead project's history is not on it.

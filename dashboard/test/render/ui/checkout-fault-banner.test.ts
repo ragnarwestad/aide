@@ -74,7 +74,7 @@ describe("what complain() sets", () => {
 // Which refusals belong at the top of the page, and which are the board
 // working as designed. A project whose own checkout has not been cloned
 // yet is read from its own directory instead — that is the fallback every
-// reader has had since spec 205, and shouting about it on every page
+// reader has, and shouting about it on every page
 // would put a red line on a board where nothing is wrong.
 describe("a checkout that is not there yet", () => {
   test("is the fallback, and says nothing on the page, when the project is readable", async () => {

@@ -37,7 +37,7 @@ def test_a_worktree_base_inside_the_specs_repo_is_refused(runner, workspace, fak
 @pytest.mark.parametrize("entry", ["/etc", "../escape", "deps/../../escape"])
 def test_a_link_that_escapes_the_root_is_refused(runner, workspace, fake_claude, entry):
     claude = fake_claude("exit 1")
-    # worktreeLinks is read from the manifest alone (spec 549): a
+    # worktreeLinks is read from the manifest alone: a
     # `.aide/config` value would never be read at all.
     (workspace["project"] / ".aide" / "project.yaml").write_text(
         f"AIDE_TEST_CMD: true\nworktreeLinks: {entry}\n"
@@ -65,7 +65,7 @@ def test_a_link_naming_a_build_output_is_refused(runner, workspace, fake_claude,
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 def test_the_dependency_caches_a_build_only_reads_are_not_refused(runner, workspace, fake_claude):
-    """Criterion 4: this repo's own setting, unaffected by the denylist."""
+    """This repo's own setting, unaffected by the denylist."""
     claude = fake_claude("exit 0")
     (workspace["project"] / ".venv").mkdir()
     (workspace["project"] / "dashboard" / "node_modules").mkdir(parents=True)
@@ -178,7 +178,7 @@ def test_a_manifest_link_with_no_source_is_refused_in_the_manifests_own_words(
     assert "worktreeLinks" in out["error"], out
 
 def test_aides_own_two_paths_are_both_linked_from_the_manifest(runner, workspace, fake_claude):
-    """Spec 184, requirement 3: aide's own settings survive the move,
+    """Aide's own settings survive the move,
     including that its links name TWO paths — one of them nested.
 
     The exact value aide's `.aide/project.yaml` now carries, run against
@@ -252,7 +252,7 @@ def test_a_failed_fetch_refuses_rather_than_creating_a_branch_from_a_stale_tip(
     """A spec branch that does not exist yet has never been fetched from
     origin, so a fetch that fails right here is exactly the case where
     base_ref_for would otherwise fall back to this checkout's own tip
-    (spec 347). Unlike the courtesy pull on the main checkout, this one
+    Unlike the courtesy pull on the main checkout, this one
     refuses rather than proceeding on local state."""
     bare = tmp_path / "gone.git"
     subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
@@ -303,7 +303,7 @@ def test_the_pull_advances_the_default_branch_not_whatever_was_checked_out(
 def test_a_new_branch_is_cut_from_origin_not_from_this_checkouts_stale_tracking_ref(
     runner, workspace, fake_claude, tmp_path
 ):
-    """REQ-5 (spec 347): a spec branch created for the first time must
+    """A spec branch created for the first time must
     come from origin's copy of the default branch, never from whatever
     this checkout's own refs/remotes/origin/<base> happened to hold last.
     Pushed here WITHOUT `-u`, so the current branch has no upstream
@@ -335,7 +335,7 @@ def test_a_new_branch_is_cut_from_origin_not_from_this_checkouts_stale_tracking_
 
 def test_an_untracked_aide_config_is_copied_into_the_worktree(runner, workspace, fake_claude):
     """.aide/config is never tracked, in any project including aide's own
-    (spec 345) — so a worktree, which checks out tracked files only, has
+    so a worktree, which checks out tracked files only, has
     no config at all unless it is copied in. Without that copy
     AIDE_SPECS_PATH would simply vanish for the step."""
     project = workspace["project"]

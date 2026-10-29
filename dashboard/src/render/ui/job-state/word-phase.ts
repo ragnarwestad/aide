@@ -1,4 +1,4 @@
-// The one rule for what a phase shows (spec 108).
+// The one rule for what a phase shows.
 
 import type { BadgeVariant, PipKind } from "../components";
 import { renderMessage } from "../../../i18n/message.ts";
@@ -51,13 +51,13 @@ export interface PhaseWord {
    *
    *  A sentence, not a word — so the phase LINE never draws it. The
    *  caller hands it to the row's panel instead, named for its phase
-   *  (`specNotice`, spec 195); on the queue list a phase line is the
+   *  (`specNotice`); on the queue list a phase line is the
    *  badge and nothing else, whatever has happened to that phase. */
   qualifier?: string;
 }
 
 /** The sentence for "these two records do not agree about this spec"
- *  (spec 154). Deliberately the same words the job-history version
+ *  Deliberately the same words the job-history version
  *  below uses — a reader has one thing to learn, and the file is the
  *  half that is wrong in both cases. */
 const filesDisagreeSentence = (lang: Language, step: string | undefined): string =>
@@ -66,17 +66,16 @@ const filesDisagreeSentence = (lang: Language, step: string | undefined): string
     values: { phase: step ?? "this phase", button: step ? stepButton(step) : "its button" },
   });
 
-/** The sentence for a last attempt that disagrees with the file (spec
- *  280): an `unlanded` failure is its own, specific story — the spec
+/** The sentence for a last attempt that disagrees with the file:
+ *  an `unlanded` failure is its own, specific story — the spec
  *  DID archive, but landing it failed and its branch is still open —
  *  not the generic "last re-run failed" every other failure kind
  *  shares. Attributing that generic sentence to whichever phase's badge
  *  happens to be drawing it is what let a genuinely successful
  *  `implement` phase's unrelated note hide `archive`'s real failure.
  *  Its resolution matches `notLandedTitle()`'s own "re-run archive"
- *  (cell-helpers.ts, REQ-1, spec 352) — the same fact worded two ways
- *  is what a plan review flagged as the clearest sign no shared
- *  convention existed yet. */
+ *  (cell-helpers.ts) — the same fact worded two ways
+ *  is the clearest sign no shared convention exists. */
 const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
   attempt.errorReason === "unlanded"
     ? renderMessage(lang, { key: "wordPhase.attemptQualifierUnlanded" })
@@ -84,7 +83,7 @@ const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
 
 /** The one rule, applied by everything that words a phase.
  *
- *  A row for spec 81 once said three things at once: pips and phase
+ *  A row could say three things at once: pips and phase
  *  lines read the JOB HISTORY (a cancelled July re-run spoke for an
  *  analysis long since done and merged), the checkbox read the files
  *  unioned with that history, and archive read "done" off a job that
@@ -114,7 +113,7 @@ function decidePhase(
   heldBack: { reason: string } | undefined,
   attempt: QueueRowView | undefined,
   /** What the spec's own git history says about this phase, beyond
-   *  whether it happened (spec 154). `stopped` is the reason the last
+   *  whether it happened. `stopped` is the reason the last
    *  run for this phase gave for not finishing; `fileDisagrees` is
    *  `4-status.md` claiming something the history does not show, or the
    *  reverse. */
@@ -123,7 +122,7 @@ function decidePhase(
     fileDisagrees?: boolean;
     fileResult?: "completed" | "stopped";
     /** Whether a completion commit for this phase exists anywhere in
-     *  git (spec 418) — what tells the two situations behind "last run
+     *  git — what tells the two situations behind "last run
      *  reported done, but the files disagree" apart: the work is on an
      *  unlanded branch, or nothing was written at all. */
     historyDone?: boolean;
@@ -151,7 +150,7 @@ function decidePhase(
   // a word.
   if (running) {
     // A step whose own process already ended is still "running" from a
-    // reader's chair while its work is being merged (spec 395, REQ-2):
+    // reader's chair while its work is being merged:
     // `attempt.state` reads "done" the instant the process exits, well
     // before `attempt.landing` clears, and a badge built from `state`
     // alone would say so. The word is "Running", the same as for any
@@ -169,7 +168,7 @@ function decidePhase(
       badge: {
         variant: BADGE_VARIANT[attempt!.state],
         // Which third of an implement is running, in the word as well as
-        // on the pip (spec 210): "running" for an hour says nothing, and
+        // on the pip: "running" for an hour says nothing, and
         // the State column reserves its width already, so the longer
         // word moves nothing outside it. Only implement reports phases,
         // so only implement's rows are given one (`jobRow`, serve.ts).
@@ -189,7 +188,7 @@ function decidePhase(
   // The history says the phase ran, but its own merge was refused — red
   // tests, a conflict, a branch that never landed: nothing of it reached
   // the default branch, and "Done" beside the row's "stopped" said two
-  // things at once (498, 2026-09-19). A re-run that was merely cancelled
+  // things at once. A re-run that was merely cancelled
   // is not this: the earlier run's work stands, and the line says done.
   if (happened && attempt && !running && attempt.state !== "done" && landingRefused(attempt)) {
     return {
@@ -228,20 +227,20 @@ function decidePhase(
       // `stopped` takes this amber.
       badge: { variant: "waiting", label: t(lang, "wordPhase.badgeHeldBack") },
       // Not the reason: it is a sentence, and the row's panel says it
-      // once for the whole row (spec 143). Said here as well, it was
+      // once for the whole row. Said here as well, it was
       // the same 130 characters twice on an open row — the duplication
       // 1-description.md reports.
       qualifier: disagrees ? attemptQualifier(attempt!, lang) : filesDisagree,
     };
   }
   // A step that RAN and did not finish, with nothing live left to say
-  // so (spec 154). Spec 147's implement was killed by its own time
+  // so. An implement killed by its own time
   // limit with RED and GREEN committed on the branch, and by the time
   // anyone read the row the queue's memory of that attempt was gone —
   // so the row said "not run yet" about work that was on disk. The
   // commit is what still knows, and it says why.
   //
-  // Checked whether or not a live attempt exists (spec 299): a
+  // Checked whether or not a live attempt exists: a
   // graceful decline — `not-implemented-yet`, `acceptance-criteria-
   // unticked` — leaves the queue's own attempt reading `"done"`
   // (nothing failed; the script simply declined), while the commit
@@ -260,7 +259,7 @@ function decidePhase(
       // run again.
       pip: running ? "now" : "todo",
       // The word alone in the badge; the reason is the row's error line
-      // (spec 339: the State column says where a spec stands, errors go
+      // (the State column says where a spec stands, errors go
       // in the error line).
       badge: { variant: failed ? BADGE_VARIANT.failed : "waiting", label: capitalizeFirst(word) },
       qualifier: `${word}: ${stopSentence(history.stopped, lang)}`,

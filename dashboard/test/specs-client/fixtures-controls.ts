@@ -23,7 +23,7 @@ export function classes(el: { className: string }) {
 }
 
 /** One button as the DOM reports it. Two of them are needed since
- *  spec 151: the one pressed, and the siblings on the same row that
+ *  the one pressed, and the siblings on the same row that
  *  must lock with it.
  *
  *  `form` is the attribute, and it is the whole point for Run: that
@@ -55,7 +55,7 @@ export const makeButton = (label: string, pending: string, variant: string, form
   return b;
 };
 
-// The five phase model selects, and (spec 179) the AI select each one
+// The five phase model selects, and the AI select each one
 // is paired with. `<option>` collections are scaffolding a chip cannot
 // stand in for: a select's value IS one of its options, which is the
 // whole of what a write has to move.
@@ -84,12 +84,12 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
     options,
     dataset: ran ? { ran: "1" } : ({} as { ran?: string }),
     tagName: "SELECT",
-    // Spec 151: a press locks the row, and a select is a control on
+    // A press locks the row, and a select is a control on
     // it. `isConnected` is what tells "the swap replaced me" from
     // "the swap never came".
     disabled: false,
     isConnected: true,
-    // Spec 225: a phase the running job has not reached keeps its
+    // A phase the running job has not reached keeps its
     // model select live, and the route it posts to is on the select
     // itself — the same attribute the tail box carries.
     getAttribute: (n: string) =>
@@ -98,7 +98,7 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
     // with `closest`. A model select is NOT an AI select and not a
     // phase box, so it answers those selectors with null and its own
     // with itself. `data-post-to` is asked in two shapes: the tail
-    // BOX's `input[data-post-to]` (never this) and, since spec 225,
+    // BOX's `input[data-post-to]` (never this) and
     // a live model select's own `select[data-post-to]`.
     closest: (sel: string): unknown =>
       // `.aimodel` is the compact picker a NARROW screen draws around
@@ -133,7 +133,7 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
   return self;
 };
 
-// Spec 179: one AI select per phase line, paired with that phase's
+// One AI select per phase line, paired with that phase's
 // model select by `data-ai` and the shared form id. The model it
 // fills in per tool is worked out by the SERVER and carried on each
 // option's `data-default` — the browser copies that value and never
@@ -183,7 +183,7 @@ export const aiSelect = (formId: string, step: string, tool: string) => {
   return self;
 };
 
-// Spec 141: the row's phase boxes. They share one `name` — the step
+// The row's phase boxes. They share one `name` — the step
 // is in the VALUE — which is why what is remembered about them is
 // keyed on three parts and not the two a select needs. `create` has
 // no box (a spec that exists cannot be created again), so the three
@@ -198,7 +198,7 @@ export const stepCheckbox = (formId: string, value: string, served: boolean) => 
     isConnected: true,
     // `aria-label` is the phase's reader-facing name, which the server
     // sets on every box (`phaseChip`) and which the button's label is
-    // read off. Since spec 181 no step is called anything other than
+    // read off. No step is called anything other than
     // its own value, so the two say the same thing.
     getAttribute: (n: string) =>
       n === "form" ? formId : n === "aria-label" ? value : null,
@@ -209,14 +209,14 @@ export const stepCheckbox = (formId: string, value: string, served: boolean) => 
     closest: (sel: string): unknown => (sel.includes('name="steps"') ? self : null),
     /** What the SERVER drew: `chosenSteps()` redraws the ticks fresh
      *  on every render — from a recorded choice or, absent one, the
-     *  row's own history (spec 439) — so a swap puts them back exactly
+     *  row's own history — so a swap puts them back exactly
      *  as they were before the reader touched them. */
     redraw: () => void (self.checked = served),
   };
   return self;
 };
 
-// Spec 493: an acceptance criterion's box in the list unfolded under a
+// An acceptance criterion's box in the list unfolded under a
 // held-back message. It is named `tick`, belongs to its own list's form
 // by `form=`, and is redrawn from what the server saw last.
 export const tickCheckbox = (formId: string, value: string, served: boolean, li?: unknown) => {
@@ -234,7 +234,7 @@ export const tickCheckbox = (formId: string, value: string, served: boolean, li?
   return self;
 };
 
-// Spec 510: the archived form's third choice, "Failed" — named `failed`, in the
+// The archived form's third choice, "Failed" — named `failed`, in the
 // same form, with the same value and in the same `li` as the tick box.
 export const failedCheckbox = (formId: string, value: string, served: boolean, li?: unknown) => {
   const self = {
@@ -251,7 +251,7 @@ export const failedCheckbox = (formId: string, value: string, served: boolean, l
   return self;
 };
 
-// Spec 509: the second box of a criterion, "Not verified" — named `unverified`,
+// The second box of a criterion, "Not verified" — named `unverified`,
 // in the same form and with the same value as the tick box beside it, and in
 // the same `li`.
 export const unverifiedCheckbox = (formId: string, value: string, served: boolean, li?: unknown) => {
@@ -269,7 +269,7 @@ export const unverifiedCheckbox = (formId: string, value: string, served: boolea
   return self;
 };
 
-// Spec 160: a box for a phase the RUNNING job has not reached yet. It
+// A box for a phase the RUNNING job has not reached yet. It
 // names the run form the way every other control on the row does —
 // that is how a press finds the row to lock — but carries no `name`,
 // so it is never posted with it. Its own route is in `data-post-to`,
@@ -294,7 +294,7 @@ export const tailBox = (formId: string) => {
   return self;
 };
 
-/** Spec 110's Depends-on chips: one wrapper per active spec, each
+/** The Depends-on chips: one wrapper per active spec, each
  *  naming its own project. */
 export const chip = (project: string) => {
   const input = { checked: true, disabled: false };

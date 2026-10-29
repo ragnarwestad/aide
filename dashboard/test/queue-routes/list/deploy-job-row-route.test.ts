@@ -62,8 +62,8 @@ const sentence = (s: Parameters<typeof renderSentence>[1]): string => {
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
-describe("a deploy job on the Running tab (AC-2)", () => {
-  test("it is one row of its own, keyed and named for the deploy, and no spec row is drawn for it (AC-2)", async () => {
+describe("a deploy job on the Running tab", () => {
+  test("it is one row of its own, keyed and named for the deploy, and no spec row is drawn for it", async () => {
     const { base } = board([deploy()]);
     const html = await rows(base);
     expect(html).toContain(`id="spec-${KEY}"`);
@@ -72,7 +72,7 @@ describe("a deploy job on the Running tab (AC-2)", () => {
     expect(html.match(/id="spec-aide\/deploy[^"]*"/g)).toHaveLength(1);
   });
 
-  test("a queued and a held-back deploy are there too (AC-2)", async () => {
+  test("a queued and a held-back deploy are there too", async () => {
     const queued = await rows(board([deploy({ state: "queued", startedAt: undefined })]).base);
     expect(queued).toContain(`id="spec-${KEY}"`);
     const held = await rows(
@@ -82,7 +82,7 @@ describe("a deploy job on the Running tab (AC-2)", () => {
   });
 });
 
-describe("its row, open and shut (AC-3)", () => {
+describe("its row, open and shut", () => {
   const marked = () =>
     runLog([
       "--- Step 1 of 5: Fetch from origin — started",
@@ -92,7 +92,7 @@ describe("its row, open and shut (AC-3)", () => {
       "--- Step 3 of 5: Restart the service — started",
     ]);
 
-  test("open, it lists the five steps in order (AC-3)", async () => {
+  test("open, it lists the five steps in order", async () => {
     const { base } = board([deploy({ streamFile: marked() })]);
     const html = await rows(base, KEY);
     expect([...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g)].map((m) => m[1])).toEqual([
@@ -100,14 +100,14 @@ describe("its row, open and shut (AC-3)", () => {
     ]);
   });
 
-  test("shut, it lists no step lines (AC-3)", async () => {
+  test("shut, it lists no step lines", async () => {
     const { base } = board([deploy({ streamFile: marked() })]);
     expect(await rows(base)).not.toContain('class="subrow"');
   });
 });
 
-describe("what its row says (AC-4, AC-6)", () => {
-  test("a hold shows its sentence on the row, shut, and the state reads Held back, also when running (AC-4)", async () => {
+describe("what its row says", () => {
+  test("a hold shows its sentence on the row, shut, and the state reads Held back, also when running", async () => {
     const error = { key: "runner.landingPause" } as const;
     for (const state of ["queued", "running"]) {
       const { base } = board([deploy({ state, errorReason: "held-back", error })]);
@@ -117,7 +117,7 @@ describe("what its row says (AC-4, AC-6)", () => {
     }
   });
 
-  test("a failed deploy keeps its row, with the failure's sentence on it (AC-6)", async () => {
+  test("a failed deploy keeps its row, with the failure's sentence on it", async () => {
     const error = { key: "landing.deployServiceOlder", values: { served: "9999999", head: "abc1234" } } as const;
     const { base } = board([deploy({ state: "failed", finishedAt: "2026-10-13T10:05:00Z", error })]);
     const html = await rows(base);
@@ -126,13 +126,13 @@ describe("what its row says (AC-4, AC-6)", () => {
   });
 });
 
-describe("what its row offers (AC-8)", () => {
-  test("a running deploy offers no Stop or Cancel (AC-8)", async () => {
+describe("what its row offers", () => {
+  test("a running deploy offers no Stop or Cancel", async () => {
     const { base } = board([deploy()]);
     expect(await rows(base, KEY)).not.toContain("/cancel");
   });
 
-  test("a queued deploy offers Cancel (AC-8)", async () => {
+  test("a queued deploy offers Cancel", async () => {
     const { base } = board([deploy({ state: "queued", startedAt: undefined })]);
     expect(await rows(base, KEY)).toContain("/api/queue/d1/cancel");
   });

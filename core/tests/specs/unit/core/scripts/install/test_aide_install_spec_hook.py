@@ -1,5 +1,5 @@
 """Tests for core/scripts/aide-install-spec-hook — the per-repo installer
-for commit-msg-spec-guard (spec 219).
+for commit-msg-spec-guard.
 
 Same repo-path-list shape as aide-pull-specs, same test style: real git
 repos built with subprocess, not mocked. This file is about INSTALL
@@ -90,7 +90,7 @@ def test_a_foreign_hook_is_left_untouched(installer, tmp_path):
 
 
 def test_installing_against_one_worktree_protects_every_worktree(installer, tmp_path):
-    """AC6. Hooks live in the repo's COMMON git dir, shared by every
+    """Hooks live in the repo's COMMON git dir, shared by every
     `git worktree` — proving that means the guard fires in a SECOND
     worktree the installer was never pointed at directly."""
     origin = tmp_path / "origin.git"
@@ -123,7 +123,7 @@ def test_installing_against_one_worktree_protects_every_worktree(installer, tmp_
 
 
 def test_a_repo_that_has_never_had_the_hook_installed_commits_unconditionally(tmp_path):
-    """AC5. The hook is opt-in per repo — a repo the installer never
+    """The hook is opt-in per repo — a repo the installer never
     touched has no guard at all, whatever the message."""
     repo = init_repo(tmp_path / "specs")
     spec_file = repo / "55-example" / "2-analysis.md"

@@ -1,6 +1,5 @@
 // Redrawing #jobrows from the server's own answer — only the specs
 // whose rows actually differ, and never a row a press is mid-click on
-// (spec 204).
 
 import { drawLimits } from "./limits";
 import { applyRefusal } from "./row-refusal";
@@ -14,8 +13,8 @@ import { holdSpecDetail } from "./spec-detail";
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
  *
- *  The server names the button from `actionState()` (`row-state.ts`,
- *  spec 439), its own suggestion. That is right for the row as drawn and
+ *  The server names the button from `actionState()` (`row-state.ts`),
+ *  its own suggestion. That is right for the row as drawn and
  *  wrong the instant a reader ticks something else: on 2026-08-21 a spec
  *  whose analyze was suggested, with only `archive` ticked by hand, went
  *  on offering "Analyze". The press was correct — an open row posts its
@@ -26,7 +25,7 @@ import { holdSpecDetail } from "./spec-detail";
  *  server already sets to the phase's reader-facing name, so the
  *  step-label table is not spelled a second time in the browser.
  *
- *  Nothing ticked no longer hides the button (spec 439): it disables it
+ *  Nothing ticked no longer hides the button: it disables it
  *  instead, named for the EARLIEST box on the row — which, since the
  *  boxes drawn here are exactly the not-yet-run phases in workflow
  *  order, is the same phase `nextPhase()` would name server-side. That
@@ -57,7 +56,7 @@ export function relabelRunButton(body: Element, formId: string): void {
   const boxes = Array.from(body.querySelectorAll(`input[name="steps"]${selector}`)) as HTMLInputElement[];
   const first = boxes.find((b) => b.checked);
   // No box ticked: named for the earliest one instead of hiding the
-  // button (spec 439) — `boxes[0]` because the boxes on a row are drawn
+  // button — `boxes[0]` because the boxes on a row are drawn
   // in workflow order and only for a phase that has not run yet, so the
   // first of them IS the phase a press would need ticked to do
   // anything. No boxes at all is the one case this file still hides
@@ -107,7 +106,7 @@ export function restoreChosen(body: Element): void {
     // The AI select this swap just redrew was drawn for the model the
     // SERVER chose, and the line above has put another one back over
     // it. It carries no memory of its own — it is set from the model,
-    // every time, which is what stops the two disagreeing (spec 179).
+    // every time, which is what stops the two disagreeing.
     syncAiToModel(model);
   }
   for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"]')) {
@@ -122,7 +121,7 @@ export function restoreChosen(body: Element): void {
   syncApproachCancels(body);
 }
 
-// --- spec 204: a redraw never takes a press with it ------------------------
+// --- A redraw never takes a press with it ------------------------
 //
 // Reported 2026-08-23: come back to the tab, click a row, nothing
 // opens; the third press works. Coming back reconnects, the reconnect
@@ -268,7 +267,7 @@ function insertGroup(groups: RowGroup[], at: number, held: Record<string, true>)
  *  fewer the moment a job finishes — and on the specs being reordered,
  *  because both move rows the reader is looking at whatever this does.
  *  It also used to decline on the "N older specs not shown" line, which
- *  went with the cap in spec 226. */
+ *  went with the cap. */
 function applyGroupDiff(prev: RowSplit, next: RowSplit): boolean {
   if (prev.prefix !== next.prefix || prev.suffix !== next.suffix) return false;
   const was: Record<string, string> = {};
@@ -400,7 +399,7 @@ export async function swapRows(): Promise<void> {
     // after its OK. The
     // next change once it is closed draws what this one would have.
     if (body.querySelector("dialog[open][data-progress-dialog]")) return;
-    // Spec 226: how far down the list is scrolled, kept across the
+    // How far down the list is scrolled, kept across the
     // redraw the way `restoreChosen` keeps a reader's own picks. The
     // wholesale replace below builds `.tablewrap` afresh, and a new
     // element starts at the top — so somebody reading the middle of the
@@ -414,7 +413,7 @@ export async function swapRows(): Promise<void> {
     // is exactly that.
     const scrolled = (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
     const open = openTestFiles(body);
-    // Spec 204. The first paint has nothing to diff against, markup the
+    // The first paint has nothing to diff against, markup the
     // split cannot account for is redrawn the old way, and a diff that
     // could not finish is repaired by the same line.
     const next = splitGroups(html);
@@ -429,7 +428,7 @@ export async function swapRows(): Promise<void> {
   } catch {
     // offline, server restarting, tailnet hiccup: try again next tick
   } finally {
-    // Spec 208. Whatever happened — swapped, refused, offline, or an
+    // Whatever happened — swapped, refused, offline, or an
     // answer that arrived stale — the waiting look comes off. A
     // container left wearing it would say the page is still working on
     // something that is over. `finally`, because three of the paths

@@ -16,7 +16,7 @@ describe("the primary button's label per row state (the design sheet's table)", 
     expect(buttons(rows([], { targets: [target()] }))).toContain("Analyze");
   });
 
-  // The bare word "Run" went in spec 157, and "Run again" before it
+  // The bare word "Run" is gone, and "Run again" before it
   // (2026-08-19): the again-variant guessed at history and guessed
   // wrong at the edges. The button names the phase a press would run,
   // which is the thing both wordings were groping for.
@@ -37,7 +37,7 @@ describe("the primary button's label per row state (the design sheet's table)", 
   test("a running job offers Cancel and nothing else", () => {
     const html = rows([row({ state: "running" })], { targets: [target()] });
     // Named for the step it would stop, so it reads like the Run
-    // button it replaces (spec 157).
+    // button it replaces.
     expect(buttons(html)).toContain("Cancel");
     // No Run at all — a greyed-out one beside a live Cancel is the
     // second control this spec removes. The busy VARIANT carries a
@@ -50,13 +50,13 @@ describe("the primary button's label per row state (the design sheet's table)", 
   });
 });
 
-// --- spec 171: a conflict is archive's to resolve ---------------------------
+// --- A conflict is archive's to resolve ---------------------------
 //
 // A conflict that reaches a reader is one no machine could settle, and
 // the row says so in the failure's own text beside the ordinary re-run
 // every other failed step offers.
 
-describe("a conflict refusal (spec 171)", () => {
+describe("a conflict refusal", () => {
   const CONFLICT = {
     error: "cannot merge aide/102 into main in /repos/aide (conflict)",
     errorReason: "conflict" as const,

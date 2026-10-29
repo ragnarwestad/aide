@@ -1,5 +1,5 @@
 // Whether Tailscale currently exposes one of the test-server pool's
-// ports on this host (spec 491) — asked of `tailscale serve status
+// ports on this host — asked of `tailscale serve status
 // --json`, the live half of the rules docs/tailscale.md has the user
 // set up by hand, once, when they want HTTPS. The pool can grow, or a
 // host's tailnet rules can be reset, without every host's `tailscale
@@ -43,7 +43,7 @@ export function parseExposedPorts(json: string): Set<number> | undefined {
   return new Set(ports);
 }
 
-/** `undefined` when there is no Tailscale on this host at all (AC-3):
+/** `undefined` when there is no Tailscale on this host at all:
  *  the command could not run, or exited non-zero. A defined, possibly
  *  empty Set is Tailscale's own live answer. */
 function exposedPorts(bin: string): Set<number> | undefined {
@@ -53,7 +53,7 @@ function exposedPorts(bin: string): Set<number> | undefined {
 
 /** Whether Tailscale exposes `port` on this host right now. `undefined`
  *  is "cannot tell" (no Tailscale here, or its answer did not parse) —
- *  `startTestServer` reads that as AC-3's own "start as before". */
+ *  `startTestServer` reads that as "start as before". */
 export async function portExposed(
   port: number,
   bin: string = Bun.which("tailscale") ?? DEFAULT_TAILSCALE_BIN,

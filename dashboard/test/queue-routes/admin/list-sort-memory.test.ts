@@ -52,7 +52,7 @@ describe("the column the reader sorted by is remembered", () => {
     expect(sortCookie(res, server.port)).toContain(`aide_sort_${server.port}=state`);
   });
 
-  // Spec 317 changed the default sort from Spec to Created.
+  // The default sort is Created.
   test("with nothing remembered the default stands", async () => {
     const { base, server } = start();
     const res = await fetch(`${base}/specs`);

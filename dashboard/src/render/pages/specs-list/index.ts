@@ -94,7 +94,7 @@ export { phaseKey, parsePhaseKeys, type PhaseMessages } from "./phase-messages";
 
 export interface SpecsPageOptions {
   /** The creates that ended without a spec and have not been dismissed
-   *  (spec 506): each is a message above the filter bar, never a row. */
+   *  each is a message above the filter bar, never a row. */
   failedCreates?: FailedCreate[];
   /** 81a ships no runner: the page says so rather than leaving jobs in
    *  "queued" with no explanation. */
@@ -105,7 +105,7 @@ export interface SpecsPageOptions {
    *  folder does not exist until it lands) — but once the spec has been
    *  archived, that exception would keep a ghost row forever. */
   archived?: string[];
-  /** The CLOSED subset of `archived` above (spec 406, REQ-7) — same
+  /** The CLOSED subset of `archived` above — same
    *  cheap key list, filtered to the ones carrying a `**Closed:**`
    *  stamp. Read by the filter's own counts (`filter-bar.ts`) so an unbuilt
    *  closed spec's key contributes to "All" but never to "Archived":
@@ -116,7 +116,7 @@ export interface SpecsPageOptions {
    *  verified: what the Not verified entry's count adds for the archived
    *  specs no row was built for. */
   notVerified?: string[];
-  /** The archived specs themselves, as reader rows (spec 221). The KEYS
+  /** The archived specs themselves, as reader rows. The KEYS
    *  above are cheap and always sent — `groupBySpec` drops job rows by
    *  them; THIS is the walk over every archived folder, and the server
    *  only makes it when the resolved filter can show one
@@ -124,12 +124,11 @@ export interface SpecsPageOptions {
    *  ask for them", not "there are none": the chip counts fall back to
    *  the keys above for exactly that reason.
    *
-   *  Spec 193's exception lives on `notLanded` here rather than as a
-   *  second visibility rule. An archived spec whose branch is still on
-   *  origin used to be the ONE archived spec with a row, and it came
-   *  through the ordinary interactive path — a Run, model selects and
-   *  tick boxes the server would have refused. It is the same reader
-   *  row as every other archived spec now, wearing the mark. */
+   *  The "branch still on origin" exception lives on `notLanded` here
+   *  rather than as a second visibility rule. Such a spec taking the
+   *  ordinary interactive path would offer a Run, model selects and
+   *  tick boxes the server would refuse. It is the same reader
+   *  row as every other archived spec, wearing the mark. */
   archivedSpecs?: ArchivedSpecView[];
   /** Browser code for this page, compiled from `specs-client.ts` by the
    *  server. Nothing is hardcoded as a string here: page code is
@@ -145,14 +144,14 @@ export interface SpecsPageOptions {
    *  the real name, never the word "default" (asked for 2026-08-19). */
   defaultModels?: Record<string, string>;
   /** A model picked for a phase before any job exists for it to attach
-   *  to (spec 308), keyed by `project/specFolder` and then by step —
+   *  to, keyed by `project/specFolder` and then by step —
    *  what `resolveChosenModel()`'s new tier reads to survive a reload,
    *  a different browser, or simply leaving the page. Absent or missing
    *  an entry means nobody has picked one yet, which falls through to
    *  the configured default exactly as before this existed. */
   pendingModels?: Record<string, Record<string, string>>;
   /** Which phases a reader chose — at create time, or at a later Run —
-   *  keyed by `project/specFolder` (spec 439): what `chosenSteps()` and
+   *  keyed by `project/specFolder`: what `chosenSteps()` and
    *  `actionState()` read the row's ticks and its action button from,
    *  falling back to the row's own git history only for a spec with no
    *  entry here at all. Absent or missing an entry behaves exactly as
@@ -186,16 +185,16 @@ export interface SpecsPageOptions {
   overlappingSpecs?: (project: string, specFolder: string) => OpenOverlap[] | undefined;
   /** The messages of one unfolded phase, for the attempts that may have
    *  run it (newest first) — called only for a phase the address names
-   *  in `phases` (spec 500). Undefined: nothing is kept to read. */
+   *  in `phases`. Undefined: nothing is kept to read. */
   phaseMessages?: (attemptIds: string[], step: string) => PhaseMessages | undefined;
   /** How the list is cut and ordered, straight from the query string.
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */
   filter?: SpecsFilter;
-  /** Spec 350. Absent means English (REQ-5) — the same default
+  /** Absent means English — the same default
    *  `pageShell`'s own `opts.lang` falls back to. */
   lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
+  /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page, filter and sort. */
   currentUrl?: string;
   /** The page the rows sit on, for every link a row draws back to it: the
@@ -280,13 +279,11 @@ export function activeSpecRows(
 
 function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set<string>): string {
   const testServerAvailable = opts.testServerAvailable ?? (() => true);
-  // An archived spec branched to a flat reader row of its own here
-  // until spec 224 — `archivedHeadRow`, a second row builder kept
-  // level with this one by hand, which had already drifted: no fold
-  // and no phase lines on its side alone. There is one builder now
-  // and `isArchivedRow` locks it, so the failure mode spec 193 met
-  // in the other direction — an archived spec drawn as a fully
-  // interactive row, offering a Run the server refuses — cannot be
+  // An archived spec does not branch to a row builder of its own: a
+  // second builder kept level with this one by hand would drift, with
+  // no fold and no phase lines on its side alone. There is one builder
+  // and `isArchivedRow` locks it, so an archived spec drawn as a fully
+  // interactive row, offering a Run the server refuses, cannot be
   // reached by forgetting a branch.
   //
   // The panel belongs to the row, not to the phase lines: a
@@ -341,7 +338,7 @@ function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set
 // every one, each showing a single progress pip. It is one spec, and it
 // gets one line, with its phases beneath it.
 //
-// EVERY spec the filter matches, for every filter (spec 226). There was
+// EVERY spec the filter matches, for every filter. There was
 // a 25-row cap here, with a line under the table counting what it had
 // dropped. Hiding rows is wrong in every view: the archived and the
 // combined views are read with the browser's own find, and find cannot
@@ -403,8 +400,8 @@ function specsPageBody(rows: QueueRowView[], opts: SpecsPageOptions): string {
     // and after the rows the row it copies under the spec the press was
     // for. Outside `#jobrows`, so no redraw of the rows replaces either.
     listRefusalLine() +
-    // The New spec link rides on the filter row now (right-hand end,
-    // after the (?)): it is a plain link since spec 121, so the
+    // The New spec link rides on the filter row (right-hand end,
+    // after the (?)): it is a plain link, so the
     // five-second swap of `#jobrows` holds no half-typed state to lose.
     table +
     refusalRowTemplate(LIST_COLUMNS) +
@@ -432,7 +429,7 @@ export function renderSpecsPage(
   });
 }
 
-/** The list's first chunk when it is streamed (spec 515): the document up to
+/** The list's first chunk when it is streamed: the document up to
  *  `<body>` and the loading element, needing nothing the route has yet to
  *  read. `title` names the page in the tab. */
 export function renderSpecsPageHead(title: string, lang: Language): string {

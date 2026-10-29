@@ -46,7 +46,7 @@ export const ICON_PDF =
   `<path d="M4.603 14.087a.8.8 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.7 7.7 0 0 1 1.482-.645 20 20 0 0 0 1.062-2.227 7.3 7.3 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.188-.012.396-.047.614-.084.51-.27 1.134-.52 1.794a11 11 0 0 0 .98 1.686 5.8 5.8 0 0 1 1.334.05c.364.066.734.195.96.465.12.144.193.32.2.518.007.192-.047.382-.138.563a1.04 1.04 0 0 1-.354.416.86.86 0 0 1-.51.138c-.331-.014-.654-.196-.933-.417a5.7 5.7 0 0 1-.911-.95 11.7 11.7 0 0 0-1.997.406 11.3 11.3 0 0 1-1.02 1.51c-.292.35-.609.656-.927.787a.8.8 0 0 1-.58.029m1.379-1.901q-.25.115-.459.238c-.328.194-.541.383-.647.547-.094.145-.096.25-.04.361q.016.032.026.044l.035-.012c.137-.056.355-.235.635-.572a8 8 0 0 0 .45-.606m1.64-1.33a13 13 0 0 1 1.01-.193 12 12 0 0 1-.51-.858 21 21 0 0 1-.5 1.05zm2.446.45q.226.245.435.41c.24.19.407.253.498.256a.1.1 0 0 0 .07-.015.3.3 0 0 0 .094-.125.44.44 0 0 0 .059-.2.1.1 0 0 0-.026-.063c-.052-.062-.2-.152-.518-.209a4 4 0 0 0-.612-.053zM8.078 7.8a7 7 0 0 0 .2-.828q.046-.282.038-.465a.6.6 0 0 0-.032-.198.5.5 0 0 0-.145.04c-.087.035-.158.106-.196.283-.04.192-.03.469.046.822q.036.167.09.346z"></path></svg>`;
 
 /** One chevron for every fold control on the site — the specs list's own
- *  row, a phase, and (since spec 240's Steps tab) a step's own log.
+ *  row, a phase, and (on the Steps tab) a step's own log.
  *  Shared rather than redefined per file: the `.fold`/`.fold.shut`
  *  rotate-in-CSS pair in css.ts is already one shared pattern, and a
  *  second copy of the SVG that drew it would be the same shape of
@@ -65,8 +65,7 @@ export const ICON_SEARCH =
   'stroke="currentColor" stroke-width="1.6">' +
   '<circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14" stroke-linecap="round"></path></svg>';
 
-/** The header's theme switch (spec 243, relocated out of the "…"
- *  menu): a sun, a crescent moon, and a half-filled circle for Auto. */
+/** The header's theme switch: a sun, a crescent moon, and a half-filled circle for Auto. */
 export const ICON_THEME_DARK =
   '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" ' +
   'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
@@ -84,7 +83,7 @@ export const ICON_THEME_AUTO =
   '<circle cx="8" cy="8" r="5.5"></circle>' +
   '<path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" stroke="none"></path></svg>';
 
-/** What a page says where an answer has not arrived yet (spec 208).
+/** What a page says where an answer has not arrived yet.
  *
  *  Every question a render used to block on is a peek now, and a peek
  *  can say three things, not two: the answer, "asked and unanswerable",

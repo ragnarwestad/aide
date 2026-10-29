@@ -1,4 +1,4 @@
-// spec 355 (REQ-4): the dashboard's own caller of `aide-write-spec` —
+// The dashboard's own caller of `aide-write-spec` —
 // landing `4-status.md` through the same script every skill already
 // uses, purely to get the `4-status.json` text it derives, rather than
 // computing that derivation a second time in TypeScript (which would
@@ -19,7 +19,7 @@
 // So this runs the script against a throwaway scratch directory,
 // invented for the call and discarded once its stdout is read — never
 // the caller's real specs root. This is still "a side effect of landing
-// `4-status.md`" exactly as REQ-2 frames it (the state file is never a
+// `4-status.md`" exactly as the description frames it (the state file is never a
 // `--file` a caller names directly); it just lands in scratch space
 // because the REAL landing, on a branch or on `main`, is git plumbing
 // this module has nothing to do with.

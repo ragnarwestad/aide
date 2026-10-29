@@ -1,8 +1,8 @@
 // `/new`: the form that makes a spec, and nothing else on the page.
 //
 // It used to be a disclosure folded into the spec list — press "New
-// spec" and the page unfolded under the button (spec 113 gave that
-// summary the primary-button look). Pressing a primary button and
+// spec" and the page unfolded under the button, with that
+// summary in the primary-button look. Pressing a primary button and
 // having the page grow under it reads oddly, and there was no way out
 // of the open form but pressing the same button again: no Cancel
 // existed, because a toggle needs none.
@@ -29,7 +29,7 @@ import { cardStep } from "../../../project/spec-card.ts";
 import { NEW_SPEC_VALUES, optionsTab } from "./options-tab.ts";
 
 export interface NewSpecPageOptions {
-  /** What a failed create had typed (spec 506): the form opens with it
+  /** What a failed create had typed: the form opens with it
    *  filled in. A project the form no longer offers is simply not selected. */
   prefill?: { project: string; title: string; description: string };
   /** Every project a spec may be CREATED in — the raw allowlist, not
@@ -48,20 +48,20 @@ export interface NewSpecPageOptions {
   /** Every model the config lists, and which CLI each starts — the
    *  same view the spec list's phase lines are given, built by the same
    *  helper in `serve.ts` so the two pages cannot come to offer
-   *  different lists (spec 228). */
+   *  different lists. */
   modelChoices?: SpecsPageOptions["modelChoices"];
   /** What the configuration would give each step. Only `create`'s entry
    *  (or the table's `default`) can matter here: a create job runs that
    *  one step. */
   defaultModels?: SpecsPageOptions["defaultModels"];
-  /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
+  /** Where "← Back" goes — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */
   backHref?: string;
-  /** Spec 408. Absent means English — the same default `pageShell`'s
+  /** Absent means English — the same default `pageShell`'s
    *  own `opts.lang` falls back to. */
   lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
+  /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
   /** Which tab the page opens on, off the address's `?tab=`; anything
@@ -69,7 +69,7 @@ export interface NewSpecPageOptions {
   tab?: string;
 }
 
-// What a spec builds on (spec 110). One chip per active spec, newest
+// What a spec builds on. One chip per active spec, newest
 // first — the number is the order a reader thinks in, and it is the
 // reverse of `discoverProjects`'s ascending sort.
 //
@@ -84,7 +84,7 @@ export interface NewSpecPageOptions {
 // refusal that catches it from the API — the convenience is lost, the
 // guard is not.
 //
-// Shared with the Edit page since spec 174, which had a free-text input
+// Shared with the Edit page, which had a free-text input
 // where this control already existed. Hence the two arguments rather
 // than the page's own options object: the list to offer, and which of
 // it is already ticked. A second copy of this markup would have drifted
@@ -93,7 +93,7 @@ export function dependsOnField(
   targets: SpecTarget[],
   checked: Set<string> = new Set(),
   // A row of its own, or a field sharing one. The New-spec page asks for
-  // the first since spec 228; the Edit page, the other caller, keeps the
+  // the first; the Edit page, the other caller, keeps the
   // layout it has by leaving this alone.
   // `locked`: folders this spec already depends on that are NOT among
   // the targets — archived ones, which cannot be chosen and so are not
@@ -113,7 +113,7 @@ export function dependsOnField(
      *  `plain`, so a ticked box stays visible instead of taking the
      *  padlock look, which hides it. */
     disabled?: boolean;
-    /** New-spec page only (spec 474): draw the picked box and the pick
+    /** New-spec page only: draw the picked box and the pick
      *  list as two same-styled fields side by side, each with its own
      *  label, no outer title and no "none" placeholder. */
     sideBySide?: { dependsOnLabel: string; selectLabel: string };
@@ -140,9 +140,9 @@ export function dependsOnField(
       plain: o.disabled,
     }) +
     `</span>`;
-  // Spec 404: what is already ticked sits above the scrolling list
-  // (REQ-1), never capped itself — one partition of the same set, not
-  // two controls (REQ-3): every chip still posts `dependsOn` from the
+  // What is already ticked sits above the scrolling list
+  // never capped itself — one partition of the same set, not
+  // two controls: every chip still posts `dependsOn` from the
   // one form, whichever half it renders in.
   // An archived dependency is an ordinary chip, ticked. It cannot be
   // ADDED — nothing archived is offered in the list below — but a
@@ -170,10 +170,10 @@ export function dependsOnField(
     "A dependency applies from this spec's next gated step (implement, resolve, archive) — " +
       "never to a step already running.",
   );
-  // Spec 474: the New-spec page's own shape — picked box and pick list
-  // side by side, both framed the same way (AC-3), no outer title
-  // (AC-6, the left column's own label is it) and no "none" placeholder
-  // (AC-4). One shared `.field` still wraps both: depends-lift.ts walks
+  // The New-spec page's own shape — picked box and pick list
+  // side by side, both framed the same way, no outer title
+  // (the left column's own label is it) and no "none" placeholder
+  // One shared `.field` still wraps both: depends-lift.ts walks
   // up to the nearest `.field` from a ticked box and queries DOWN for
   // `.phases.picked` / `.phases:not(.picked)` — both have to still be
   // found from one shared ancestor, never two.

@@ -3,7 +3,7 @@
 // nothing to say for itself, and the 303 landed on a page whose render
 // asks git once per spec — several seconds later, at the top of the
 // list, away from the row the reader was watching. Merge was fixed
-// first (spec 96); spec 101 gave Run, Cancel and Create the same
+// first; Run, Cancel and Create got the same
 // treatment and took the navigation out of the REFUSAL path too.
 //
 // Same request, same route; the answer is JSON, read here, and the
@@ -28,7 +28,6 @@ export async function submitAction(event: Event): Promise<void> {
     async () => {
       // The press has gone through - the row's own hand-made ticks
       // have done their job and must not go on deciding a later run
-      // (REQ-2, spec 419).
       clearChosenSteps(form.id);
       cardAnswered(form, "saved");
       // Now, not on the next five-second tick: the result belongs where
@@ -45,7 +44,7 @@ export async function submitAction(event: Event): Promise<void> {
   );
 }
 
-/** The Test servers list's own Stop button (spec 529). Removing the
+/** The Test servers list's own Stop button. Removing the
  *  row instead of navigating is what keeps "← Back" pointed at
  *  whatever page the list itself was opened from — a reload would
  *  recompute it off a Referer that has become this same page. A
@@ -69,7 +68,7 @@ export async function submitTestServerStop(event: Event): Promise<void> {
 
 // The New-spec form is the one control that is NOT about a spec that
 // exists, and it is bound directly rather than by delegation: it is
-// the whole of its own page (spec 121), with no #jobrows around it for
+// the whole of its own page, with no #jobrows around it for
 // a delegated listener to hang off.
 //
 // Its refusal has no row to land on: the spec it named was never made,
@@ -115,7 +114,7 @@ export function syncDependsOn(): void {
 }
 
 // The one control in this file that deliberately NAVIGATES on success,
-// against the rule at the top — because this form is a page (spec 121),
+// against the rule at the top — because this form is a page,
 // not a panel on one. There is nothing here to put back into a clean
 // state and no #jobrows beside it to refresh: the spec that was just
 // made is a row on the Running tab, opened by its job, and following it
@@ -154,7 +153,7 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
     async (body) => {
       if (!hold) formNote(form, "");
       // An Add lands on the new project's Config tab, which says whether
-      // a run can start there and every reason it cannot (spec 138): what
+      // a run can start there and every reason it cannot: what
       // hid Skjer's missing specs root until someone pressed Run. A
       // Remove — the press that asks in a dialog — lands on the list it
       // was pressed on, in the reader's own view.
@@ -170,7 +169,7 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
   );
 }
 
-// The project page's own Save (spec 486). It used to fall through to
+// The project page's own Save. It used to fall through to
 // `submitCreate` by accident — nothing excluded it from `NEW_SPEC_FORM`,
 // so it was bound as though it were the New-spec form, and a successful
 // save sent the reader to `/` instead of back to their own project. A

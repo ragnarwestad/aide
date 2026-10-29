@@ -40,7 +40,7 @@ describe("Settings page", () => {
     expect(html).not.toContain('data-step="explore"');
   });
 
-  test("the rows are the steps and nothing else: no Fallback row (AC-2)", () => {
+  test("the rows are the steps and nothing else: no Fallback row", () => {
     const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS, defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
     });
@@ -60,14 +60,14 @@ describe("what a Settings row shows", () => {
   ];
   const listed = { Fable: {}, Opus: {}, Sonnet: {}, "codex-fast": { tool: "codex" } };
 
-  test("a row nothing was saved for shows Claude Code and Opus (AC-3)", () => {
+  test("a row nothing was saved for shows Claude Code and Opus", () => {
     const { model } = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: listed });
     for (const step of SETTINGS_STEPS) {
       expect(settingsRowChoice(HOST_MODELS, model, step)).toEqual({ model: "Opus", tool: "claude" });
     }
   });
 
-  test("a step's own saved choice is what its row shows (AC-4)", () => {
+  test("a step's own saved choice is what its row shows", () => {
     const { model } = mergeQueueDefaults(QUEUE_DEFAULTS, {
       modelChoices: listed, model: { implement: "codex-fast" },
     });
@@ -91,23 +91,23 @@ describe("the Settings tabs", () => {
     };
   };
 
-  test("the top row is AI, Process and Notifications (AC-1)", () => {
+  test("the top row is AI, Process and Notifications", () => {
     expect([...SETTINGS_GROUPS]).toEqual(["ai", "process", "notifications"]);
     expect(SETTINGS_GROUPS.map(tabLabel)).toEqual(["AI", "Process", "Notifications"]);
   });
 
-  test("AI's row is the models table, then one tab per AI (AC-2)", () => {
+  test("AI's row is the models table, then one tab per AI", () => {
     expect([...AI_TABS]).toEqual(["phases", "claude", "codex", "copilot", "opencode"]);
     expect(AI_TABS.map(tabLabel)).toEqual(["Models per phase", "Claude Code", "Codex", "Copilot", "OpenCode"]);
   });
 
-  test("AI opens on Models per phase, as does no tab or an unknown one (AC-2)", () => {
+  test("AI opens on Models per phase, as does no tab or an unknown one", () => {
     for (const raw of ["ai", undefined, "nope"]) {
       expect(resolveSettingsTab(raw)).toEqual({ group: "ai", panel: "phases" });
     }
   });
 
-  test("every old tab opens its own panel in its new place (AC-4)", () => {
+  test("every old tab opens its own panel in its new place", () => {
     for (const old of AI_TABS) {
       expect(resolveSettingsTab(old)).toEqual({ group: "ai", panel: old });
     }
@@ -117,7 +117,7 @@ describe("the Settings tabs", () => {
     }
   });
 
-  test("the page offers the AI row only under AI (AC-1, AC-2)", () => {
+  test("the page offers the AI row only under AI", () => {
     const claude = links(render("claude"));
     expect(claude.keys).toEqual(new Set([...SETTINGS_GROUPS, ...AI_TABS]));
     expect(claude.current).toEqual(new Set(["ai", "claude"]));
@@ -126,7 +126,7 @@ describe("the Settings tabs", () => {
     expect(notifications.current).toEqual(new Set(["notifications"]));
   });
 
-  test("Process is its own group (AC-5)", () => {
+  test("Process is its own group", () => {
     expect(resolveSettingsTab("process")).toEqual({ group: "process", panel: "process" });
   });
 });
@@ -139,7 +139,7 @@ describe("the tabs inside an AI's tab", () => {
       label: m[2],
     }));
 
-  test("they are Models, Usage and Installation, in that order, each a link of its own (AC-1)", () => {
+  test("they are Models, Usage and Installation, in that order, each a link of its own", () => {
     expect([...TOOL_PARTS]).toEqual(["models", "subscription", "installation"]);
     for (const tool of ["claude", "codex", "copilot", "opencode"] as const) {
       expect(innerTabs(toolPanel(tool, undefined))).toEqual(TOOL_PARTS.map((part) => ({
@@ -149,11 +149,11 @@ describe("the tabs inside an AI's tab", () => {
     }
   });
 
-  test("an AI's tab opens on Models, as does an unknown inner tab (AC-2)", () => {
+  test("an AI's tab opens on Models, as does an unknown inner tab", () => {
     for (const raw of [undefined, "", "nope", "Models"]) expect(toolPart(raw)).toBe("models");
   });
 
-  test("a named inner tab opens that tab, not Models (AC-2)", () => {
+  test("a named inner tab opens that tab, not Models", () => {
     expect(toolPart("installation")).toBe("installation");
     expect(toolPart("subscription")).toBe("subscription");
   });
@@ -176,7 +176,7 @@ describe("the Settings answer lines", () => {
   // A refusal and "Defaults saved" each have a line of their own, so the
   // script never has to turn one kind into the other, and each answer
   // empties the other kind's line.
-  test("Models per phase and Process each hold a line for a save's answer and one for its refusal, each emptying the other (AC-3)", () => {
+  test("Models per phase and Process each hold a line for a save's answer and one for its refusal, each emptying the other", () => {
     for (const tab of ["phases", "process"]) {
       const f = settingsForm(render(tab));
       settingsAnswer(f, "timeout must be a number", false);

@@ -26,7 +26,7 @@ export interface Answer {
  *  last entry sticks once exhausted), so a test can say "the first push
  *  fails, the second succeeds" directly — the same idea `flippingGit`'s
  *  `schedule` already applies to `ls-remote` alone, generalized to any
- *  prefix (spec 359). */
+ *  prefix. */
 export function fakeGit(answers: Record<string, Answer | Answer[]>) {
   const calls: GitCall[] = [];
   const counts = new Map<string, number>();

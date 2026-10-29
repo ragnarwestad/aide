@@ -3,13 +3,13 @@
 // specs-client.ts still says why each piece of state exists; this file
 // only carries the declarations.
 
-/** The New-spec form, the whole of `/new` (spec 121). Its class is its
+/** The New-spec form, the whole of `/new`. Its class is its
  *  own: the other page-sized forms share its look through `pageform`,
  *  so none of them can answer in its place and be bound as a create. */
 export const NEW_SPEC_FORM = "form.newspecform";
 
-/** The look a control wears between the click and the answer (spec
- *  208). One class for both kinds of waiting — an in-page swap and a
+/** The look a control wears between the click and the answer.
+ *  One class for both kinds of waiting — an in-page swap and a
  *  real navigation — because they are the same promise to the reader:
  *  what has been pressed does not look untouched. */
 export const AWAITING = "awaiting";
@@ -61,7 +61,7 @@ export const selectKey = (el: HTMLSelectElement): string => `${el.getAttribute("
  *  press Run, and the job started whatever the SERVER had ticked. The
  *  server redraws the boxes fresh on every render — from a recorded
  *  choice when one is on record, from the spec's own history otherwise
- *  (`chosenSteps()`, `row-state.ts`, spec 439) — so a swap does not
+ *  (`chosenSteps()`, `row-state.ts`) — so a swap does not
  *  leave an UNSUBMITTED hand tick alone; it overwrites it with whatever
  *  it last recorded.
  *
@@ -78,7 +78,7 @@ export const checkboxKey = (el: HTMLInputElement): string =>
   `${el.getAttribute("form") ?? ""}|${el.name}|${el.value}`;
 
 /** Every hand-made tick that belonged to ONE row's own Run press,
- *  dropped the instant that press has gone through (REQ-2, spec 419):
+ *  dropped the instant that press has gone through:
  *  a choice made for one press must not go on deciding a later,
  *  unrelated run of the same spec. Keyed the same way `checkboxKey`
  *  builds a key, so the two can never drift apart. */

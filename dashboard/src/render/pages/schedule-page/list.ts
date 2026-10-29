@@ -1,4 +1,4 @@
-// The /schedule list body (spec 276, reworked spec 278): search and
+// The /schedule list body: search and
 // sort across every allowed project's entries at once, the same
 // pattern the Specs list already uses. It shows and links, and changes
 // nothing: the switch, Run now and Delete are on each project's own
@@ -21,7 +21,7 @@ export interface SchedulePageRow {
    *  displayed text stays `lastState` (2-analysis.md, Findings). */
   lastRunAt?: string;
   outputHref?: string;
-  /** AC-5 (spec 468): the project's own Schedule tab — where the
+  /** The project's own Schedule tab — where the
    *  New-job form and this entry's own row both now live. Computed by
    *  the route (`schedule-pages.ts`), the same way `outputHref` above
    *  is, so this file needs no import of `projects-page/routes.ts`
@@ -116,7 +116,7 @@ function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelN
     `<tr data-row-href="${esc(r.projectScheduleHref)}">` +
     // `project:name`, matching the Specs list's own row format — the
     // list is no longer scoped to one project, so the row has to say
-    // which one it belongs to. AC-5 (spec 468): the link goes to the
+    // which one it belongs to. The link goes to the
     // project's own Schedule tab, not the entry's own detail page.
     `<td><a href="${esc(r.projectScheduleHref)}">${esc(r.project)}:${esc(r.entry.name)}</a>` +
     modelFlag(o.lang ?? "en", r.entry.model, o.modelNames, scheduleSettingsPath(r.project, r.entry.name)) +

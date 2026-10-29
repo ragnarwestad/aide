@@ -1,4 +1,4 @@
-// Spec 97: a spec's 1-description.md can move on after `analyze` has
+// A spec's 1-description.md can move on after `analyze` has
 // run, and the row went on reading `analyze ✓` — the only person who
 // knew a re-run was due was the one who made the edit.
 //
@@ -43,11 +43,11 @@ const gitFor = (description: string | null, analyzeLog: string | null, differs =
 const analyzeLine = (at: string, subject = SUBJECT) => `deadbee\t${at}\t${subject}`;
 
 describe("isAnalyzeStale", () => {
-  test("a description committed after the analyze is stale (criterion 1)", () => {
+  test("a description committed after the analyze is stale", () => {
     expect(isAnalyzeStale("2026-08-18T09:10:36+02:00", "2026-08-18T08:57:16+02:00")).toBe(true);
   });
 
-  test("a description committed before the analyze is not (criterion 4)", () => {
+  test("a description committed before the analyze is not", () => {
     expect(isAnalyzeStale("2026-08-18T08:00:00+02:00", "2026-08-18T08:57:16+02:00")).toBe(false);
   });
 
@@ -57,7 +57,7 @@ describe("isAnalyzeStale", () => {
 
   // A spec analysed by hand leaves no commit to compare against. A
   // permanent badge nothing can clear is worse than no badge.
-  test("either timestamp missing means not stale (criterion 8)", () => {
+  test("either timestamp missing means not stale", () => {
     expect(isAnalyzeStale(null, "2026-08-18T08:57:16+02:00")).toBe(false);
     expect(isAnalyzeStale("2026-08-18T09:10:36+02:00", null)).toBe(false);
     expect(isAnalyzeStale(null, null)).toBe(false);
@@ -75,7 +75,7 @@ describe("lastCommitAt", () => {
     expect(await lastCommitAt(git.run, DIR, "1-description.md")).toBe("2026-08-18T09:10:36+02:00");
     // The pathspec is what keeps a plan-merge out of the answer: a
     // merge commit touches 2-analysis.md and 3-solution.md and never
-    // the description (criterion 6).
+    // the description.
     expect(git.calls[0]!.args).toEqual(["log", "-1", "--format=%H%x09%aI", "--", "1-description.md"]);
     expect(git.calls[0]!.dir).toBe(DIR);
   });
@@ -99,7 +99,7 @@ describe("lastAnalyzeCommit", () => {
   // The sharp edge: the success message is a PREFIX of the stopped
   // one, and a fixed-string grep matches prefixes. Only the equality
   // check in JS tells the two apart.
-  test("a stopped run with the same prefix is not a successful analyze (criterion 7)", async () => {
+  test("a stopped run with the same prefix is not a successful analyze", async () => {
     const git = gitFor(
       null,
       [
@@ -110,7 +110,7 @@ describe("lastAnalyzeCommit", () => {
     expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:00:00+02:00");
   });
 
-  // Every headless run names its model since spec 217, and an exact
+  // Every headless run names its model, and an exact
   // match on the bare subject then found no analyze at all.
   test("a run that names its model is a successful analyze", async () => {
     const git = gitFor(null, analyzeLine("2026-09-19T19:35:00+02:00", `${SUBJECT} (model: claude sonnet)`) + "\n");
@@ -128,7 +128,7 @@ describe("lastAnalyzeCommit", () => {
     expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-09-19T19:00:00+02:00");
   });
 
-  test("the newest of several re-runs wins (criterion 5)", async () => {
+  test("the newest of several re-runs wins", async () => {
     const git = gitFor(
       null,
       [
@@ -139,7 +139,7 @@ describe("lastAnalyzeCommit", () => {
     expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T11:00:00+02:00");
   });
 
-  test("a plan-merge commit is not mistaken for an analyze (criterion 6)", async () => {
+  test("a plan-merge commit is not mistaken for an analyze", async () => {
     const git = gitFor(
       null,
       [
@@ -150,7 +150,7 @@ describe("lastAnalyzeCommit", () => {
     expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:57:16+02:00");
   });
 
-  test("null when no analyze has ever been committed (criterion 8)", async () => {
+  test("null when no analyze has ever been committed", async () => {
     expect(await lastAnalyzeCommit(gitFor(null, "").run, DIR, FOLDER)).toBeNull();
     expect(await lastAnalyzeCommit(gitFor(null, null).run, DIR, FOLDER)).toBeNull();
   });
@@ -180,7 +180,7 @@ describe("descriptionDiffers", () => {
   });
 });
 
-// --- spec 198: the reopen boundary ------------------------------------------
+// --- The reopen boundary ------------------------------------------
 //
 // A reopened spec's earlier round is still in the repository, and its
 // `analyze` commit is still the newest one `lastAnalyzeCommit` can find.

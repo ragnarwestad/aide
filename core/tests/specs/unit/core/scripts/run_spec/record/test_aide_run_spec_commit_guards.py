@@ -1,4 +1,4 @@
-"""The commit a run makes is its own, whatever state reaches it. 501's
+"""The commit a run makes is its own, whatever state reaches it. An earlier
 Cancel reached the commit with neither the run's start nor its worktree
 links known: it folded the work into main's last commit, under that
 commit's message, links included — and merged, the links stopped the
@@ -74,7 +74,7 @@ def test_a_root_with_no_worktree_yet_commits_nothing_where_the_runner_stands(tmp
     with none for its roots. `git -C ""` is the current directory, so the
     run committed whatever was uncommitted in the checkout it was started
     from — a test's run, started from a spec's own worktree, committed that
-    spec's work under the test's own subject (555, 2026-09-28)."""
+    spec's work under the test's own subject."""
     root, _wt = _repo_with_a_run(tmp_path)
     here = tmp_path / "here"
     subprocess.run(["git", "init", "-q", "-b", "main", str(here)], check=True)

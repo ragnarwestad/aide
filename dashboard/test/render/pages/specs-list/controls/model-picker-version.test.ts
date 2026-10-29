@@ -28,7 +28,7 @@ describe("pickerModels", () => {
 });
 
 describe("a phase's recorded model", () => {
-  // 595's phases recorded `claude opus`; the choice is `Opus`, and the
+  // Phases once recorded `claude opus`; the choice is `Opus`, and the
   // picker took the lowercase word for a model since removed.
   test("finds its choice whatever the case", () => {
     expect(resolveRecordedModel([{ name: "Opus" }, { name: "Sonnet" }], undefined, "opus")).toBe("Opus");

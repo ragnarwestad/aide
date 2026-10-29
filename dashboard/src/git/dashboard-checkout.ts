@@ -1,4 +1,4 @@
-// Spec 205: the checkouts the dashboard owns.
+// The checkouts the dashboard owns.
 //
 // A run works in a worktree of its own, but that worktree was cut from
 // the checkout a person edits — `<projectsRoot>/<project>`, the one Add
@@ -85,7 +85,7 @@ export interface EnsureResult {
    *  answers `false`, which is what "reused, not re-cloned" means. */
   cloned: boolean;
   /** Not made yet, and the project is readable without it: every caller
-   *  falls back to the checkout it used before spec 205, so this is a
+   *  falls back to the checkout it used before this one, so this is a
    *  state the board works in rather than one to be looked at. It is
    *  what keeps the banner (`render/ui/checkout-faults.ts`) for the
    *  checkouts that ARE there and cannot be used. */
@@ -189,7 +189,7 @@ const topOf = async (run: GitRunner, dir: string): Promise<string | null> => {
 /** Whether there is anything here claiming to be a checkout. The
  *  ordinary first use answers `false`, and it answers without a
  *  subprocess and without suspending — which the caller depends on:
- *  spec 208 counts the git commands a cold page render spawns, and an
+ *  the cold-render budget counts the git commands a cold page render spawns, and an
  *  `await` reached on the nothing-is-there path moves the first clone's
  *  own git call out of boot and into the next request. */
 const looksCloned = (dir: string): boolean => existsSync(join(dir, ".git"));
@@ -197,7 +197,7 @@ const looksCloned = (dir: string): boolean => existsSync(join(dir, ".git"));
 /** Whether a checkout is one a run can work in — present is not the
  *  same as finished. A clone killed part-way through leaves a `.git`
  *  holding `objects` and no `HEAD`, which `existsSync` reads as done
- *  and git reads as no repository at all (spec 209).
+ *  and git reads as no repository at all.
  *
  *  `topOf` asked TWICE before its `null` is believed, because this is
  *  the answer that decides whether the directory gets deleted. A run's

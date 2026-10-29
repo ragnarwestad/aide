@@ -16,7 +16,7 @@ export function specTitle(dir: string): string | null {
 }
 
 /** The four files a spec is made of, in the order they are written and
- *  the order a reader goes through them (spec 150). The layout itself
+ *  the order a reader goes through them. The layout itself
  *  is `core/rules/spec-structure.md`'s; this is the dashboard's copy of
  *  the NAMES, which is all it needs to show them. */
 export const SPEC_FILES = [
@@ -77,7 +77,7 @@ export function specDescription(dir: string): string | null {
 }
 
 /** What ONE workflow step wrote, as a labelled slice of the spec's own
- *  files (spec 150). A phase's page is where a reader goes to find out
+ *  files. A phase's page is where a reader goes to find out
  *  what that phase did, and it used to show the same `## Description`
  *  prose every other page showed.
  *
@@ -86,7 +86,7 @@ export function specDescription(dir: string): string | null {
  *  file is not written yet keeps its NAME and answers `text: null`: the
  *  reader asked what analyze produced, and "nothing yet" is the answer.
  *
- *  `analyze` shows `3-solution.md`, not `2-analysis.md` (spec 181): the
+ *  `analyze` shows `3-solution.md`, not `2-analysis.md`: the
  *  reviewer-perspectives routine that used to be its own `review-plan`
  *  step now runs inside `analyze`, writing a "Plan review" section into
  *  `3-solution.md` in the same run that writes the plan — so the plan
@@ -113,7 +113,7 @@ export function specPhaseFile(dir: string, step: string): { label: string; text:
 }
 
 /** WHEN a spec was archived, off the `**Archived:** <date>` stamp the
- *  archive step writes into `4-status.md` (spec 163). The value alone,
+ *  archive step writes into `4-status.md`. The value alone,
  *  backticks stripped — both shapes are in aide's own archive today,
  *  a bare line and a Tracking-info bullet.
  *
@@ -124,7 +124,7 @@ export function specPhaseFile(dir: string, step: string): { label: string; text:
  *
  *  `null` covers every way the stamp can be missing — no file, no line,
  *  a line with nothing after it. The stamp only started being written
- *  at spec 147, so half the archive answers `null` and the caller has a
+ *  late, so half the archive answers `null` and the caller has a
  *  fallback for exactly that. */
 export function specArchivedDate(dir: string): string | null {
   const line = stampInEffect(specFileText(dir, "4-status.md"), /^.*\*\*Archived:\*\*/);
@@ -133,14 +133,14 @@ export function specArchivedDate(dir: string): string | null {
   return m[1].replace(/`/g, "").trim() || null;
 }
 
-/** Whether this spec was CLOSED rather than archived (spec 406), off
+/** Whether this spec was CLOSED rather than archived, off
  *  the `**Closed:** <date> — <reason>` stamp `aide-close-spec` writes —
  *  the same stamp `core/scripts/lib/spec-state.sh`'s
  *  `_spec_state_closed_json` reads on the bash side. Last match wins,
  *  same rule as `specArchivedDate`. */
 // The stamp is the START of a line (optionally a list item), the same
 // way the Archived stamp is read — never a mention anywhere in the text,
-// which a spec about closing (406's own status table) made and was read
+// which a spec about closing (its own status table) made and was read
 // as closed by.
 const CLOSED_STAMP = /^[ \t]*-?[ \t]*\*\*Closed:\*\*/;
 
@@ -173,7 +173,7 @@ export function specClosedDate(dir: string): string | null {
   return m[1].trim() || null;
 }
 
-/** The reason typed by the person who closed this spec (REQ-5), off the
+/** The reason typed by the person who closed this spec, off the
  *  same `**Closed:**` stamp. `null` covers a spec that was never closed
  *  and one whose stamp somehow carries no reason. */
 export function specCloseReason(dir: string): string | null {

@@ -12,7 +12,7 @@ import { feasibility, lines, S, sessionPath, T, writeSessions } from "../../help
 const tempHome = () => mkdtempSync(join(tmpdir(), "codex-home-"));
 
 describe("readCodexSession", () => {
-  test("a thread's file under the home's sessions folder is read as text (AC-2)", () => {
+  test("a thread's file under the home's sessions folder is read as text", () => {
     const home = tempHome();
     writeSessions(home, { [S]: feasibility.child });
 
@@ -20,13 +20,13 @@ describe("readCodexSession", () => {
     expect(readCodexSession(T, home)).toBeUndefined();
   });
 
-  test("the home is CODEX_HOME, else .codex in the home folder (AC-2)", () => {
+  test("the home is CODEX_HOME, else .codex in the home folder", () => {
     expect(codexHome({ CODEX_HOME: "/somewhere/codex", HOME: "/home/x" })).toBe("/somewhere/codex");
     expect(codexHome({ HOME: "/home/x" })).toBe(join("/home/x", ".codex"));
     expect(codexHome({ CODEX_HOME: "", HOME: "/home/x" })).toBe(join("/home/x", ".codex"));
   });
 
-  test("a thread with no file, a path, a directory, or an empty file gives undefined and never throws (AC-4)", () => {
+  test("a thread with no file, a path, a directory, or an empty file gives undefined and never throws", () => {
     const home = tempHome();
     mkdirSync(join(home, sessionPath(T)), { recursive: true });
     writeFileSync(join(home, sessionPath(S)), "");
@@ -39,7 +39,7 @@ describe("readCodexSession", () => {
   });
 
   // The same rule `codex_provider_limit` follows in bash, read from its own text.
-  test("the rule is provider-limit.sh's: the same home, folder and file name (AC-2)", async () => {
+  test("the rule is provider-limit.sh's: the same home, folder and file name", async () => {
     const bash = await Bun.file(new URL("../../../../core/scripts/lib/run-spec/turn/provider-limit.sh", import.meta.url)).text();
     const fallback = /home="\$\{CODEX_HOME:-\$HOME\/([^}]+)\}"/.exec(bash)?.[1];
     const folder = /\$home\/(\w+)"/.exec(bash)?.[1];

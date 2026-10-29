@@ -115,7 +115,7 @@
      content instead of forcing a fixed box that could be wider than
      the phone screen; flex-start keeps the badge and the button side by
      side with the ordinary gap once space-between's old reserved space
-     (REQ-4, spec 379) is gone. */
+     is gone. */
   table.list tr.specstate > td > .row { width: auto; justify-content: flex-start; }
   /* What IS reserved on this line is the badge's SLOT — or the action
      button after it starts wherever the state's wording happens to
@@ -140,7 +140,7 @@
      state on ONE line down to 360px, and 24px a side was what tipped
      the state onto a second line under 410px. */
   table.list td[data-col="state"] { padding-left: 0; padding-right: 0; }
-  /* An ORDINARY phase line's own state cell (spec 480, Round 2): fixed
+  /* An ORDINARY phase line's own state cell: fixed
      at --state-w, mirroring .phasecell's own `flex: 0 0 var(--phase-w)`
      (below) exactly — the same mechanism, on the same kind of element (a
      `<td>`, a direct flex child of `tr.subrow`), not a new one. Scoped to

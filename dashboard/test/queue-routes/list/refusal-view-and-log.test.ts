@@ -10,7 +10,7 @@ afterEach(() => {
 // A refusal landed on the page that followed the redirect, at the top,
 // belonging to no row — and serve.log had no line for any refusal at
 // all on the day this was written.
-describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () => {
+describe("a refusal names its spec and reaches the log", () => {
   const FORM = { "content-type": "application/x-www-form-urlencoded" };
   const SPEC = "aide/81-queue-and-runner";
 
@@ -29,13 +29,13 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     }
   }
 
-  // Spec 106's own chain — git says "conflict", and the row ends up
-  // showing it — used to run through this redirect, and was
-  // tested here. Since spec 149 the reason is stored on the JOB instead,
-  // because a landing has no browser to redirect; the chain is covered
+  // The chain — git says "conflict", and the row ends up
+  // showing it — does not run through this redirect. The reason is
+  // stored on the JOB instead, because a landing has no browser to
+  // redirect; the chain is covered
   // end to end in "every step lands its own work" above.
 
-  test("an enqueue refusal names the spec it was for (criterion 9)", async () => {
+  test("an enqueue refusal names the spec it was for", async () => {
     const { base } = start();
     const { result: res, lines } = await capturingLog(() =>
       fetch(`${base}/api/queue`, {
@@ -50,7 +50,7 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     expect(lines.join("\n")).toContain(SPEC);
   });
 
-  // Spec 101: the page stopped navigating on a refusal, so the row it
+  // The page stopped navigating on a refusal, so the row it
   // belongs to is now picked out from the JSON body rather than from a
   // redirect the server built. Merge already said which spec; Run and
   // approve said only why, which left three of the four actions with no

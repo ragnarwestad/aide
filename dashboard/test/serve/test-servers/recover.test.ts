@@ -93,7 +93,7 @@ describe("finding a test server again", () => {
     expect(entry?.url).toBe("http://127.0.0.1:8801/");
   });
 
-  // The Deploy tab's own test server (spec 441) serves the serving
+  // The Deploy tab's own test server serves the serving
   // checkout's branch from a DETACHED worktree, and a restart forgot it:
   // the next press then failed to start a second one on a port the
   // first still held (2026-09-13).

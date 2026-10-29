@@ -45,7 +45,7 @@ def test_refuses_while_a_named_dependency_is_still_unmerged(
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
     # The message names the spec, the dependency, and that it is not
-    # archived yet (spec 351) — nobody should have to guess which of the
+    # archived yet — nobody should have to guess which of the
     # two specs is the problem.
     assert workspace["folder"] in out["error"]
     assert "80-dependency" in out["error"]
@@ -70,8 +70,8 @@ def test_analyze_waits_for_the_dependency_too(runner, workspace, fake_claude, lo
 def test_a_dependency_merged_but_not_archived_still_refuses(
     runner, workspace, fake_claude, local_origins
 ):
-    """Merged is not the same question as archived (spec 351). The Merge
-    button deletes the branch after merging (spec 99), but an archive
+    """Merged is not the same question as archived. The Merge
+    button deletes the branch after merging, but an archive
     step re-creates it and merges it again minutes later — 97 and 102
     were each refused against a dependency whose branch was fully on
     main. Landing the code is not the same as archiving the spec: the
@@ -96,7 +96,7 @@ def test_a_dependency_merged_but_not_archived_still_refuses(
 def test_a_dependency_with_no_branch_and_not_archived_still_refuses(
     runner, workspace, fake_claude, local_origins
 ):
-    """The 340/341 shape (spec 351): a dependency whose last landed step
+    """The 340/341 shape: a dependency whose last landed step
     deleted its branch and whose next step has not pushed a new one has
     no branch on origin at all — and used to read as 'merged'. Its
     folder never reached origin either way, so it is not archived and
@@ -149,9 +149,9 @@ def test_refuses_a_spec_that_depends_on_itself(
 def test_an_archived_dependency_confirmed_on_origin_lets_the_run_proceed(
     runner, workspace, fake_claude, local_origins, tmp_path
 ):
-    """Archived is confirmed via a real read of origin (spec 351, REQ-2),
+    """Archived is confirmed via a real read of origin,
     never skipped because the local checkout already shows the folder
-    under archive/ — the same staleness spec 343 already refused to
+    under archive/ — the same staleness already refused to
     trust for a landed commit."""
     add_spec(workspace, "80-dependency", archived=True)
     git(workspace["specs"], "push", "-q", "origin", "main")
@@ -170,7 +170,7 @@ def test_a_dependency_archived_on_origin_is_confirmed_even_if_this_checkout_has_
     runner, workspace, fake_claude, local_origins, tmp_path
 ):
     """The check ASKS origin; it does not believe this checkout's own
-    directory listing (spec 351, REQ-2).
+    directory listing.
 
     A dependency archived somewhere else — a later run, another
     machine — must be seen even before this checkout has ever pulled

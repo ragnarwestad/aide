@@ -16,9 +16,9 @@ const PHASE_NOT_RUN = "–";
 const stateCell = (line: string): string =>
   line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
 
-// --- spec 108: one rule for what a phase shows -------------------------------
+// --- One rule for what a phase shows -------------------------------
 
-// The row for spec 81 said three things at once: pips and phase lines
+// A row once said three things at once: pips and phase lines
 // read the JOB HISTORY (a July analysis re-run, cancelled, spoke for an
 // analysis that was long since done and merged), the checkbox read the
 // files unioned with that same history, and archive read "done" from a
@@ -27,7 +27,7 @@ const stateCell = (line: string): string =>
 // One rule now, for every phase: the FILES say what has happened, the
 // last attempt is a qualifier when it disagrees, and archive says "held
 // back" with its reason when a run declined to move the folder.
-describe("spec 108: one rule per phase", () => {
+describe("one rule per phase", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -40,17 +40,17 @@ describe("spec 108: one rule per phase", () => {
       Date.parse("2026-08-19T12:00:00Z"),
     );
   const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
-  /** The Run button's own line, under the header since spec 109. */
+  /** The Run button's own line, under the header. */
   /** Everything one row draws: its header line and, when it is open,
-   *  the phase lines under it — where the boxes live since spec 124. */
+   *  the phase lines under it — where the boxes live. */
   const runLine = (html: string) =>
     html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
-  /** A phase's own line — an ordinary row of six cells since spec 157,
+  /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-  /** The row's one panel (spec 143), which is where every sentence a
-   *  phase used to write under its own badge is said instead (spec 195). */
+  /** The row's one panel, which is where every sentence a
+   *  phase used to write under its own badge is said instead. */
   const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   // The pips came off the list on 2026-09-07 — the button's own label
   // says how far a linear workflow has come, and the phase LINES say
@@ -61,7 +61,7 @@ describe("spec 108: one rule per phase", () => {
   // only open question is archive.
   const BUILT = ["analyze", "implement"];
 
-  test("a phase the files show done, with no job ever queued, reads done (criterion 1)", () => {
+  test("a phase the files show done, with no job ever queued, reads done", () => {
     const html = rows([], [target("108-hand-analysed", { done: ["analyze"] })]);
     const analyze = subRow(html, "analyze");
     expect(analyze).toContain("b-done");
@@ -79,22 +79,22 @@ describe("spec 108: one rule per phase", () => {
     expect(head(html)).not.toContain("b-running");
   });
 
-  test("a cancelled re-run never overturns a finished analysis (criterion 2)", () => {
+  test("a cancelled re-run never overturns a finished analysis", () => {
     const html = rows(
       [row({ id: "recancelled", specFolder: "108-recancelled", steps: ["analyze"], state: "cancelled" })],
       [target("108-recancelled", { done: ["analyze"] })],
     );
     const analyze = subRow(html, "analyze");
     expect(analyze).toContain("b-done");
-    // Spec 195: the qualifier is a sentence, and a sentence under a
+    // The qualifier is a sentence, and a sentence under a
     // badge makes one phase line taller than the ones beside it. The
     // row's panel says it instead — named for the phase it is about.
     expect(analyze).not.toContain("last re-run cancelled");
     expect(panel(html)).toContain("Analyze last re-run cancelled");
   });
 
-  // Criterion 3's "Run again" wording was retired 2026-08-19, and the
-  // bare word "Run" with it (spec 157): the button is named for the
+  // The "Run again" wording is retired, and the
+  // bare word "Run" with it: the button is named for the
   // phase a press would run, which says what "again" was groping for
   // and cannot be wrong at the edges.
   test("with every phase but archive done the button is named for archive", () => {
@@ -104,7 +104,7 @@ describe("spec 108: one rule per phase", () => {
     expect(runLine(html)).toContain(">Archive</button>");
   });
 
-  test("an archive run that declined reads held back, not done (criterion 4)", () => {
+  test("an archive run that declined reads held back, not done", () => {
     const html = rows(
       [row({ id: "declined", specFolder: "108-held", steps: ["archive"], state: "done" })],
       [
@@ -116,7 +116,7 @@ describe("spec 108: one rule per phase", () => {
     );
     const archive = subRow(html, "archive");
     expect(archive).toContain("Held back");
-    // Spec 143: the REASON is the row's panel's, said once for the
+    // The REASON is the row's panel's, said once for the
     // whole row. The phase line keeps the word that is its own answer.
     expect(archive).not.toContain("the Slack webhook (Phase 4, still unchecked)");
     expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
@@ -127,12 +127,11 @@ describe("spec 108: one rule per phase", () => {
     expect(archive).not.toContain("b-done");
   });
 
-  // Spec 291's acceptance-criteria note reads straight off the file,
+  // The acceptance-criteria note reads straight off the file,
   // whether or not archive was ever attempted — so while implement is
   // still running, the Acceptance criteria are of course not all
   // ticked yet, and that must not read as archive being "held back"
-  // for something well before archive is even next (reported live on
-  // spec 298, 2026-08-31).
+  // for something well before archive is even next.
   test("archive does not read held back while implement is still running", () => {
     const html = rows(
       [row({ id: "implementing", specFolder: "298-implementing", steps: ["implement"], state: "running" })],
@@ -158,7 +157,7 @@ describe("spec 108: one rule per phase", () => {
     expect(stateCell(implement)).not.toContain(PHASE_NOT_RUN);
   });
 
-  test("an archive run in flight outranks a stale held-back note (criterion 6)", () => {
+  test("an archive run in flight outranks a stale held-back note", () => {
     const html = rows(
       [row({ id: "retry", specFolder: "108-retry", steps: ["archive"], state: "running" })],
       [target("108-retry", { done: BUILT, archiveHeldBack: { reason: "the Slack webhook" } })],
@@ -166,12 +165,12 @@ describe("spec 108: one rule per phase", () => {
     expect(subRow(html, "archive")).toContain("b-running");
   });
 
-  // Spec 418: the flat "the files disagree" sentence split into two,
+  // The flat "the files disagree" sentence split into two,
   // on the one signal that already tells them apart — whether a
   // completion commit for the step exists anywhere in git
   // (`historyDone`).
-  test("REQ-1: a finished implement job whose commit is on the branch says archiving merges it in (criterion 8)", () => {
-    // Spec 557: this fixture's own `historyDone` is exactly what now also
+  test("a finished implement job whose commit is on the branch says archiving merges it in", () => {
+    // This fixture's own `historyDone` is exactly what now also
     // triggers the test-server-link mark, which outranks this phase's
     // disagreement sentence in the row's one panel — unrelated to what
     // this test proves, so the project is read as incapable of a test
@@ -190,8 +189,8 @@ describe("spec 108: one rule per phase", () => {
     // a fault in a phase that had none (2026-09-11).
     expect(implement).toContain("b-done");
     expect(implement).not.toContain("b-waiting");
-    // Never silently hidden — and never on the line either, since spec
-    // 195: the row's panel is where the sentence goes, named for the
+    // Never silently hidden — and never on the line either: the row's
+    // panel is where the sentence goes, named for the
     // phase it is about.
     expect(implement).not.toContain("its work is on the branch");
     expect(panel(html)).toContain(
@@ -199,7 +198,7 @@ describe("spec 108: one rule per phase", () => {
     );
   });
 
-  test("REQ-2: a finished implement job with no commit anywhere says run it again (criterion 8)", () => {
+  test("a finished implement job with no commit anywhere says run it again", () => {
     const html = rows(
       [row({ id: "unwritten", specFolder: "108-unwritten", steps: ["implement"], state: "done" })],
       [target("108-unwritten", { done: ["analyze"] })],
@@ -214,12 +213,12 @@ describe("spec 108: one rule per phase", () => {
 
   // A graceful decline — `not-implemented-yet`, `acceptance-criteria-
   // unticked` — leaves the queue's own attempt reading `"done"`, since
-  // nothing failed; only the commit records the real reason (spec
-  // 299). Ticking every box removes the held-back note that used to
+  // nothing failed; only the commit records the real reason.
+  // Ticking every box removes the held-back note that used to
   // mask this and reach the branch above instead, reading as an
   // unexplained disagreement about a run that said exactly what
   // happened.
-  test("a gracefully declined archive says so, not that the files disagree (spec 299)", () => {
+  test("a gracefully declined archive says so, not that the files disagree", () => {
     const html = rows(
       [row({ id: "declined", specFolder: "299-declined", steps: ["archive"], state: "done" })],
       [target("299-declined", { done: ["analyze"], stopped: { archive: "acceptance-criteria-unticked" } })],
@@ -242,7 +241,7 @@ describe("spec 108: one rule per phase", () => {
     expect(panel(html)).toContain("stopped: something-new");
   });
 });
-// --- spec 114: a spec with an unmerged dependency says so on the row ---------
+// --- A spec with an unmerged dependency says so on the row ---------
 
 // A dash means one thing on this page: no value, because nothing ran.
 // A phase whose own attempt reported done — its work on the branch, or
@@ -377,7 +376,7 @@ describe("a phase in transition reads as what it is doing", () => {
   });
 
   // The same round, started from analyze with implement left out so the
-  // reader can read the new plan first (paceup 02, 2026-09-18). The
+  // reader can read the new plan first. The
   // implement that is done belongs to the round before this analyze —
   // drawing it as Done, box ticked and locked "already done", took away
   // the one step the round exists to run again.

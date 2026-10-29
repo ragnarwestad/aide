@@ -225,7 +225,7 @@ export async function handleQueueAdminRoutes(
         });
         steps.push(...saved.steps);
       }
-      // Spec 205: eagerly, and here rather than inside `addProject` —
+      // Eagerly, and here rather than inside `addProject` —
       // the alternative is every project's first run, Save or Update
       // paying a full clone inside the request that happens to need
       // one, which is a latency regression nobody asked for. The
@@ -304,8 +304,7 @@ export async function handleQueueAdminRoutes(
     const result = await updateProjectSettings(ctx.gitRun, settingsDir, {
       ...("specsPath" in asked && { specsPath: str(asked.specsPath) }),
       ...("worktreeLinks" in asked && { worktreeLinks: str(asked.worktreeLinks) }),
-      // Only when the form actually sent one (spec 220, then 255 for
-      // the one that joined it): a caller posting only the older
+      // Only when the form actually sent one: a caller posting only the older
       // fields must not be read as clearing the ones it never
       // mentioned.
       ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
@@ -321,7 +320,7 @@ export async function handleQueueAdminRoutes(
     // would still read the old one.
     if (result.ok) ctx.invalidateScan();
     // And it is what `aide-run-spec` reads out of the DASHBOARD's own
-    // checkout (spec 205): the write above reached the person's
+    // checkout: the write above reached the person's
     // config, and `ensureCheckout` is what carries the new value
     // across. Without this the next run would still read the old
     // specs root — silently, which is the whole hazard of two config
@@ -339,7 +338,7 @@ export async function handleQueueAdminRoutes(
     return ctx.answerProjectChange("project-settings", name, result.steps, readiness);
   }
 
-  // AC-3/AC-5/AC-6: the Deploy tab's "Testserver med testspecene" button.
+  // The Deploy tab's "Testserver med testspecene" button.
   // Its form deliberately carries none of `deployform`/`actionform`/
   // `rowrun` (see `project-page.ts`'s `testServerSection`), so this is
   // always a plain browser POST followed by a real navigation — never an
@@ -368,7 +367,7 @@ export async function handleQueueAdminRoutes(
     });
   }
 
-  // AC-7: the Test servers list's own Stop button for a board tracked
+  // The Test servers list's own Stop button for a board tracked
   // under `MAIN_TEST_SERVER_KEY` — it has no real spec to be scoped to, so it
   // cannot reach `board-controls.ts`'s spec-scoped route. That row's form
   // carries `class="actionform"` (test-servers-page.ts), which IS posted

@@ -28,12 +28,12 @@ interface StepBody {
   };
 }
 
-// --- spec 184: settings that can be changed after Add -------------------------
+// --- Settings that can be changed after Add -------------------------
 //
 // The two fields lived on the Add form and nowhere else, so a project
 // added without them could only be fixed by removing and re-adding it,
 // or by editing a file on the serving host.
-describe("a project's settings route (spec 184)", () => {
+describe("a project's settings route", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   const settled = async (
@@ -91,7 +91,7 @@ describe("a project's settings route (spec 184)", () => {
     expect(res.status).toBe(404);
   });
 
-  // Criterion 4: the whole point — a project brought to runnable without
+  // The whole point — a project brought to runnable without
   // leaving the dashboard.
   test("a save writes the links to the manifest and answers with the new readiness", async () => {
     const { base, dir, project } = await settled();
@@ -108,7 +108,7 @@ describe("a project's settings route (spec 184)", () => {
     expect(body.readiness!.checks.find((c) => c.check === "worktreeLinks")!.ok).toBe(true);
   });
 
-  test("the description is saved to the manifest when posted, and left alone when not (AC-2)", async () => {
+  test("the description is saved to the manifest when posted, and left alone when not", async () => {
     const { base, dir } = await settled();
     const post = (payload: object) =>
       fetch(`${base}/api/queue/projects/aide/settings`, { method: "POST", headers: AUTH, body: JSON.stringify(payload) });
@@ -125,7 +125,7 @@ describe("a project's settings route (spec 184)", () => {
     expect(kept.ok && kept.data.AIDE_TEST_CMD).toBe("make test");
   });
 
-  test("a criterion prefix is saved to the manifest when posted, and left alone when not (AC-5)", async () => {
+  test("a criterion prefix is saved to the manifest when posted, and left alone when not", async () => {
     const { base, dir } = await settled();
     const post = (payload: object) =>
       fetch(`${base}/api/queue/projects/aide/settings`, { method: "POST", headers: AUTH, body: JSON.stringify(payload) });
@@ -194,7 +194,7 @@ describe("a project's settings route (spec 184)", () => {
     expect(onOrigin(dir)).toBe(saved);
   });
 
-  // Spec 220, acceptance criterion 5. A third field on the same form,
+  // A third field on the same form,
   // written to the same committed file the links go to — never to
   // `.aide/config`, which no clone on a second machine ever sees.
   test("the code-landing choice is on the form and saved to the manifest", async () => {
@@ -206,11 +206,11 @@ describe("a project's settings route (spec 184)", () => {
       Bun.spawnSync(["git", ...args], { cwd: project });
     }
     // The page reads the manifest a run reads — the dashboard's own
-    // checkout's (spec 512), once it has one — so that has the commit too.
+    // checkout's, once it has one — so that has the commit too.
     const owned = join(dir, "owned", "aide", "code");
     if (existsSync(join(owned, ".git"))) Bun.spawnSync(["git", "pull", "-q", "--ff-only"], { cwd: owned });
-    // Spec 255: Code landing's `<select>` only exists in edit mode now.
-    // It lives in the manifest table (spec 552).
+    // Code landing's `<select>` only exists in edit mode now.
+    // It lives in the manifest table.
     const form = await (await fetch(`${base}/projects/aide?edit=manifest`, )).text();
     expect(form).toContain('name="codeLanding"');
     expect(form).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
@@ -254,7 +254,7 @@ describe("a project's settings route (spec 184)", () => {
     return parsed.ok ? parsed.data.deployment?.previewFrom : undefined;
   };
 
-  test("a manifest that sets previewFrom shows it selected on the Config tab (AC-3, AC-5)", async () => {
+  test("a manifest that sets previewFrom shows it selected on the Config tab", async () => {
     const { base, dir, project } = await settled();
     commitManifest(dir, project, "name: aide\ndeployment:\n  previewFrom: cloudflare-pages\n");
     const form = await (await fetch(`${base}/projects/aide?edit=manifest`)).text();
@@ -262,7 +262,7 @@ describe("a project's settings route (spec 184)", () => {
     expect(form).not.toMatch(/<option value="none"[^>]*selected/);
   });
 
-  test("a save of previewFrom lands on origin and in the dashboard's checkout, and the rows read it (AC-3)", async () => {
+  test("a save of previewFrom lands on origin and in the dashboard's checkout, and the rows read it", async () => {
     const { base, dir, project } = await settled();
     commitManifest(dir, project, "name: aide\ndeployment:\n  host: Cloudflare Pages\n");
     const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
@@ -277,7 +277,7 @@ describe("a project's settings route (spec 184)", () => {
     expect(resolvePreviewFrom(join(dir, "owned", "aide", "code"))).toBe("command");
   });
 
-  test("a previewFrom neither side knows is refused, and nothing is written (AC-3)", async () => {
+  test("a previewFrom neither side knows is refused, and nothing is written", async () => {
     const { base, dir, project } = await settled();
     commitManifest(dir, project, "name: aide\n");
     const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
@@ -289,7 +289,7 @@ describe("a project's settings route (spec 184)", () => {
     expect(onOrigin(dir)).not.toContain("previewFrom");
   });
 
-  test("a posted criteria checks level is ignored, and the manifest gets no key (AC-6, AC-8)", async () => {
+  test("a posted criteria checks level is ignored, and the manifest gets no key", async () => {
     const { base, dir, project } = await settled();
     mkdirSync(join(project, ".aide"), { recursive: true });
     writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");

@@ -10,7 +10,7 @@ import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
 import { field, labelledCheckbox, progressDialog } from "../../ui/components";
 import { specPagePath } from "./tabs.ts";
 
-/** The one sentence stated wherever a reader meets Close (REQ-2): in this
+/** The one sentence stated wherever a reader meets Close: in this
  *  dialog's own body text, and again — via `overview.ts`'s `actionsHelp` —
  *  beside the control on the spec's own page. One string, so the two places
  *  can never say it differently. */
@@ -22,7 +22,7 @@ export const CLOSE_SENTENCE =
 export const CLOSE_EFFECT =
   "Closing merges this spec's files into archive/ as the record, and deletes its code branch (never merges it) — none of that work will be used.";
 
-// AC-4: joined once, here — closeAskDialog() and overview.ts's actionsHelp()
+// Joined once, here — closeAskDialog() and overview.ts's actionsHelp()
 // each read a value already assembled, neither concatenates it itself.
 const CLOSE_WORDING = `${CLOSE_SENTENCE} ${CLOSE_EFFECT}`;
 

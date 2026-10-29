@@ -20,7 +20,7 @@ describe("a test server takes a port that is actually exposed", () => {
     }
   });
 
-  // REQ-1/REQ-2: a full pool no longer throws — `startTestServer()` turns
+  // A full pool no longer throws — `startTestServer()` turns
   // an absent port into its own `{ ok: false, error }` refusal, stating
   // how many test servers are running and what the limit is
   // (`lifecycle.test.ts`); `findFreePort()` itself just reports "none

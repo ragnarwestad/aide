@@ -16,13 +16,13 @@ export type CreateChoices =
 const ticked = (value: unknown): boolean => value === "1" || value === true;
 
 export function parseCreateChoices(r: Record<string, unknown>): CreateChoices {
-  // Whether this run says acceptance ticking is not required (spec
-  // 386). The form posts what it says: ticked means it IS required, and
+  // Whether this run says acceptance ticking is not required.
+  // The form posts what it says: ticked means it IS required, and
   // a cleared checkbox sends nothing, so absent is "not required".
   const acceptanceRequired = ticked(r.acceptanceRequired);
 
-  // Whether AI formulates this create's acceptance criteria at all (spec
-  // 433) — the same checked-by-default, posts-when-ticked shape as
+  // Whether AI formulates this create's acceptance criteria at all
+  // — the same checked-by-default, posts-when-ticked shape as
   // `acceptanceRequired` above, inverted onto the job the same way.
   const aiFormulateAcceptance = ticked(r.aiFormulateAcceptance);
   const criteriaChecks = parseCriteriaChecks(r.criteriaChecks);

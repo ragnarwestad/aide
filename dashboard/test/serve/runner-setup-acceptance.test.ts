@@ -1,4 +1,4 @@
-// Spec 394 (REQ-8): `analyze`'s own invocation reads the spec's
+// `analyze`'s own invocation reads the spec's
 // RECORDED acceptance choice fresh off disk at spawn time, rather than
 // the job's own (now `create`-only) field — so a second job queued
 // later for the same spec, with no checkbox of its own to tick, still
@@ -137,20 +137,20 @@ describe("stepDoneHandler", () => {
 
   const branchUrls = [{ root: "/specs", branch: "aide/81-queue-and-runner", url: "https://example.com/specs" }];
   for (const terminalReason of ["timeout", "provider-limit", "cli-error"]) {
-    test(`an archive ending ${terminalReason} starts no landing (AC-1)`, () => {
+    test(`an archive ending ${terminalReason} starts no landing`, () => {
       const { calls, handle } = harness();
       expect(handle(job(), "archive", { ok: false, terminalReason, branchUrls })).toBeUndefined();
       expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "reread /machinery/81-queue-and-runner"]);
     });
   }
 
-  test("a stopped analyze still lands its specs branch (AC-1)", async () => {
+  test("a stopped analyze still lands its specs branch", async () => {
     const { calls, handle } = harness();
     await handle(job(), "analyze", { ok: false, terminalReason: "timeout", branchUrls });
     expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "land stopped"]);
   });
 
-  test("a completed archive uses the archive landing (AC-3)", async () => {
+  test("a completed archive uses the archive landing", async () => {
     const { calls, handle } = harness();
     await handle(job(), "archive", { ok: true, terminalReason: "completed", branchUrls });
     expect(calls).toEqual(["forget /machinery/81-queue-and-runner", "land archive"]);

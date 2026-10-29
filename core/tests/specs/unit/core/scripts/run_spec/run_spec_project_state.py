@@ -24,7 +24,7 @@ PRECEDENCE = json.loads(
 def configure_links(workspace, manifest):
     """Write a precedence case's two files, and make sure every path
     the manifest names is actually there — a link with no source is a
-    refusal of its own (spec 138), and it is not what these tests are
+    refusal of its own, and it is not what these tests are
     about."""
     project = workspace["project"]
     for entry in (manifest or "").split():
@@ -53,7 +53,7 @@ READINESS_FIXTURE = json.loads(
 # make that command produce true empty output also fails
 # `rev-parse --show-toplevel`, tripping gitRoot's refusal instead. There
 # is no known way to trigger this ONE refusal in isolation through
-# on-disk git state, so it is named in the fixture (for REQ-1, and
+# on-disk git state, so it is named in the fixture (and
 # because readiness.ts:76-85 genuinely mirrors it) and its bash-side
 # scenario is skipped, by identity, rather than faked.
 BASH_UNTESTABLE = {
@@ -80,7 +80,7 @@ def _break_default_branch_held_elsewhere(workspace):
 
 
 def _break_worktree_links(workspace):
-    # worktreeLinks is read from the manifest alone (spec 549) — a value
+    # worktreeLinks is read from the manifest alone — a value
     # hand-written into `.aide/config` would never be read at all.
     (workspace["project"] / ".aide" / "project.yaml").write_text(
         "AIDE_TEST_CMD: true\nworktreeLinks: nowhere\n"
@@ -197,7 +197,7 @@ def configure_sent_back(workspace, case):
     git(workspace["specs"], "commit", "-qm", "record whether the spec was sent back", "--allow-empty")
 
 
-# --- spec 352, REQ-7: the bash side of the sentence registry ---------------
+# --- The bash side of the sentence registry ---------------
 #
 # `aide-run-spec`'s own error strings reach the board unrewritten
 # (`runner.ts`'s `outcome.error ?? outcome.terminalReason` passthrough), so

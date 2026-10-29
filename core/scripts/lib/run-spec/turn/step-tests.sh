@@ -185,7 +185,7 @@ $step_tests_failing"
         stage_error "the tests are red — handing them back to the session (round $step_fix_round of $step_fix_rounds)"
         # The failing tests, then ONE full run: the runner runs the whole
         # suite again after this turn anyway. "Until it is green" sent
-        # 486's archive and 491's implement round and round the full
+        # an archive and an implement round and round the full
         # suite under the load of five jobs, rerunning for timing tests
         # that passed on their own, until both hit their time limit with
         # the change long done (2026-09-18).

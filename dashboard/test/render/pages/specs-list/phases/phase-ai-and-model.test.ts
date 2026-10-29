@@ -12,7 +12,7 @@ import {
   openKeys,
 } from "../../fixtures.ts";
 
-// --- spec 179: an AI and a model on every phase line -------------------------
+// --- An AI and a model on every phase line -------------------------
 //
 // The row's one "set all" control is gone, and every phase line carries
 // an AI select of its own beside its model select instead. Choosing an
@@ -30,7 +30,7 @@ import {
 // `data-default`: the step's configured default when that default
 // belongs to the tool, else the first entry `modelChoices` lists for
 // it. The browser copies a value; it never chooses one.
-describe("spec 179: an AI and a model on every phase line", () => {
+describe("an AI and a model on every phase line", () => {
   const target = (specFolder = "179-ai-per-phase"): SpecTarget => ({ project: "aide", specFolder });
 
   const BOTH = [
@@ -72,7 +72,7 @@ describe("spec 179: an AI and a model on every phase line", () => {
   const phaseSelect = (html: string, step: string) =>
     html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";
 
-  // --- criterion 1: one AI per phase, beside that phase's model ------------
+  // --- One AI per phase, beside that phase's model ------------
 
   test("a tool with no model configured is not offered as an AI", () => {
     // The count that decides WHAT is offered is TOOLS, not models: one
@@ -93,7 +93,7 @@ describe("spec 179: an AI and a model on every phase line", () => {
     expect(rows([], { modelChoices: undefined })).not.toContain('data-ai="');
   });
 
-  // --- criterion 2: the model an AI fills in is worked out here ------------
+  // --- The model an AI fills in is worked out here ------------
 
   test("each option carries the model its tool fills in", () => {
     const select = aiSelect(rows(), "analyze");
@@ -124,7 +124,7 @@ describe("spec 179: an AI and a model on every phase line", () => {
     expect(select).toMatch(/<option value="claude" data-default="sonnet"/);
   });
 
-  // --- criterion 3's server half: the AI shown is the model's own ----------
+  // --- the server half: the AI shown is the model's own ---------------------
 
   test("the AI shown is the tool of the model the phase is actually on", () => {
     const html = rows();
@@ -152,5 +152,5 @@ describe("spec 179: an AI and a model on every phase line", () => {
     expect(aiSelect(html, "analyze")).toMatch(/<option value="claude"[^>]*selected/);
   });
 
-  // --- criterion 8: nothing new is posted ---------------------------------
+  // --- Nothing new is posted ---------------------------------
 });

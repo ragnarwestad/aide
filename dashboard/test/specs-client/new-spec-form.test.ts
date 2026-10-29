@@ -23,17 +23,17 @@ async function matched(html: string): Promise<string[]> {
 }
 
 describe("which forms the New-spec handler binds", () => {
-  test("the New-spec form matches (AC-5)", async () => {
+  test("the New-spec form matches", async () => {
     expect(await matched(renderNewSpecPage(NAV, GENERATED, { createProjects: ["aide"] }))).toEqual([
       "/api/queue/create",
     ]);
   });
 
-  test("the Add project form does not (AC-5)", async () => {
+  test("the Add project form does not", async () => {
     expect(await matched(renderAddProjectPage(NAV, GENERATED, {}))).toEqual([]);
   });
 
-  test("the project settings form, open for editing, does not (AC-5)", async () => {
+  test("the project settings form, open for editing, does not", async () => {
     const html = renderProjectPage(project, { hasConfigFile: false, rows: [] }, null, GENERATED, NAV, {
       worktreeLinkCandidates: [],
       editingGroup: "manifest",
@@ -43,7 +43,7 @@ describe("which forms the New-spec handler binds", () => {
     expect(await matched(html)).toEqual([]);
   });
 
-  test("a spec's Description tab form does not (AC-5)", async () => {
+  test("a spec's Description tab form does not", async () => {
     const html = descriptionPanel(view(), NOW);
     expect(html).toContain("/save");
     expect(await matched(html)).toEqual([]);

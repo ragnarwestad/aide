@@ -83,7 +83,7 @@ def _implement(runner, workspace, claude, stream):
     )
 
 
-def test_the_prompt_names_the_folder_beside_the_steps_log_in_aides_own_repo_AC_1(
+def test_the_prompt_names_the_folder_beside_the_steps_log_in_aides_own_repo(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -97,7 +97,7 @@ def test_the_prompt_names_the_folder_beside_the_steps_log_in_aides_own_repo_AC_1
     assert f"{folder}/not-taken.txt" in prompt, prompt
 
 
-def test_a_project_without_the_script_gets_no_screenshots_line_and_no_folder_AC_1(
+def test_a_project_without_the_script_gets_no_screenshots_line_and_no_folder(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -111,7 +111,7 @@ def test_a_project_without_the_script_gets_no_screenshots_line_and_no_folder_AC_
     assert not any("screenshots" in s or "pages were not looked at" in s for s in _stamped(err))
 
 
-def test_kept_screenshots_are_logged_left_in_place_and_given_to_the_review_AC_3_AC_4(
+def test_kept_screenshots_are_logged_left_in_place_and_given_to_the_review(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -132,7 +132,7 @@ def test_kept_screenshots_are_logged_left_in_place_and_given_to_the_review_AC_3_
     assert "is a defect too" in review, review
 
 
-def test_a_stylesheet_alone_calls_for_screenshots_AC_1(runner, workspace, fake_claude, tmp_path):
+def test_a_stylesheet_alone_calls_for_screenshots(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     _aide_repo(workspace)
     stream, folder = _stream(tmp_path)
@@ -144,7 +144,7 @@ def test_a_stylesheet_alone_calls_for_screenshots_AC_1(runner, workspace, fake_c
     assert "screenshots: 1 of the changed pages, kept with the step's logs" in _stamped(err)
 
 
-def test_the_fix_turn_is_asked_to_take_the_screenshots_again_AC_3(runner, workspace, fake_claude, tmp_path):
+def test_the_fix_turn_is_asked_to_take_the_screenshots_again(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     _aide_repo(workspace)
     stream, folder = _stream(tmp_path)
@@ -158,7 +158,7 @@ def test_the_fix_turn_is_asked_to_take_the_screenshots_again_AC_3(runner, worksp
     assert f"{SCREENSHOTS_FIX_MARKER} {folder}" in fix, fix
 
 
-def test_a_review_of_a_branch_with_no_png_is_told_nothing_about_screenshots_AC_3(
+def test_a_review_of_a_branch_with_no_png_is_told_nothing_about_screenshots(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -172,7 +172,7 @@ def test_a_review_of_a_branch_with_no_png_is_told_nothing_about_screenshots_AC_3
     assert SCREENSHOTS_REVIEW_MARKER not in (tmp_path / "review-prompt.txt").read_text()
 
 
-def test_pages_not_looked_at_are_logged_with_the_reason_and_the_step_goes_on_AC_5(
+def test_pages_not_looked_at_are_logged_with_the_reason_and_the_step_goes_on(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -193,7 +193,7 @@ def test_pages_not_looked_at_are_logged_with_the_reason_and_the_step_goes_on_AC_
     assert "reviewing what the step changed" in stages, stages
 
 
-def test_pages_with_no_png_and_no_reason_say_so_and_never_count_an_earlier_attempts_png_AC_5(
+def test_pages_with_no_png_and_no_reason_say_so_and_never_count_an_earlier_attempts_png(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -212,7 +212,7 @@ def test_pages_with_no_png_and_no_reason_say_so_and_never_count_an_earlier_attem
     assert not (folder / "99-old-1440.png").exists()
 
 
-def test_a_branch_that_changes_no_page_keeps_no_screenshots_AC_6(runner, workspace, fake_claude, tmp_path):
+def test_a_branch_that_changes_no_page_keeps_no_screenshots(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     _aide_repo(workspace)
     stream, folder = _stream(tmp_path)

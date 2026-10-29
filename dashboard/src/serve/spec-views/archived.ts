@@ -9,14 +9,14 @@ import { filterShowsArchived, NOT_VERIFIED_KEY, PHASE_LINES, type ArchivedSpecVi
 import type { SpecViewsContext } from "./";
 
 /** Which steps an archived spec's own `4-status.md` CLAIMS it has had
- *  (spec 224) — what its phase lines and its pip strip are drawn from
+ *  what its phase lines and its pip strip are drawn from
  *  once its row is opened.
  *
  *  The file's own word, and deliberately: a LIVE row's done-set is
  *  git-verified, through the `workflowHistory` cache `withFreshness`
  *  peeks — and `refreshSpecCaches` never warms that cache for an
- *  archived spec, because doing so is the unbounded cost spec 178's
- *  plan review turned down. Reusing the live path here would read
+ *  archived spec, because doing so is the unbounded cost the design
+ *  rules out. Reusing the live path here would read
  *  `{history: null}` for every archived row and draw "checking…" for
  *  ever, which is not a truer answer than this one, only a slower way
  *  of giving none.
@@ -30,7 +30,7 @@ export function archivedSteps(dir: string): string[] {
 }
 
 /** What each of this archived spec's phases actually ran on, from its
- *  own `4-status.md` (spec 244) — the model reader beside
+ *  own `4-status.md` — the model reader beside
  *  `archivedSteps`' step reader, on the same terms: the file's own
  *  claim, and an empty map for a spec that predates the line or names
  *  nothing. */
@@ -40,7 +40,7 @@ export function archivedModels(dir: string): Record<string, string> {
 }
 
 /** What each of this archived spec's phases recorded about its OWN
- *  run (spec 245's write side, spec 247's read side) — Model, Time
+ *  run — Model, Time
  *  spent and Cost, each in the phase's own file rather than
  *  `4-status.md` alone. Beside `archivedModels` above, on the same
  *  terms: the file's own claim, an empty entry for a step whose file
@@ -55,8 +55,7 @@ export function archivedPhaseOutcomes(dir: string): Record<string, PhaseOutcome>
 }
 
 /** Every archived spec the reader's own filter asks for, as a row for
- *  the Specs list (spec 221; this built the `/archive` page until that
- *  page retired).
+ *  the Specs list.
  *
  *  Off the scan every other lookup on this route already shares:
  *  `refs` holds what each spec IS — title, description, folder,
@@ -71,32 +70,31 @@ export function archivedPhaseOutcomes(dir: string): Record<string, PhaseOutcome>
  *  **The state is what decides how much of this gets built, and that
  *  is the whole point.** A row costs three small file reads
  *  (`archivedAt`, the duration stamp and the steps its `4-status.md`
- *  claims — spec 224, when the row grew phase lines), aide alone archives about
+ *  claims), aide alone archives about
  *  150 specs, and this page rebuilds itself on every change event on
  *  every open tab. A view whose filter cannot show an archived row
- *  builds nothing for one — with ONE exception, and it is spec 193's:
+ *  builds nothing for one — with ONE exception:
  *  an archived spec whose own branch is still on origin has NOT
  *  finished, and taking its row off the reading view would hide the
- *  exact failure spec 193 exists to surface. 1-description.md asks for
+ *  exact failure that exception exists to surface. 1-description.md asks for
  *  the default filter to be today's reading view unchanged in content,
  *  and that is what this keeps. The set is `peekUnlanded()`, it is
  *  normally empty, and it is bounded by how many specs are genuinely
  *  stranded rather than by how big the archive has grown.
  *
  *  Nothing here runs git: `archivedAt` and the not-landed mark are
- *  peeks against caches a background schedule keeps warm (spec 208),
+ *  peeks against caches a background schedule keeps warm,
  *  exactly as `/archive` relied on. */
 export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefined): ArchivedSpecView[] {
   if (!ctx.projectRoot) return [];
   // Fills `scan`, and — through `peekUnlanded` below — refills
   // `unlanded`, which `resolveProject` reads to decide whether an
-  // archived spec may have `archive` asked for it a second time (spec
-  // 193's way out, spec 202's other half). Both are peeks and an
+  // archived spec may have `archive` asked for it a second time. Both are peeks and an
   // intersection in memory, never a walk, so neither is what the gate
   // below is holding back.
   ctx.targets();
   const open = new Set(ctx.peekUnlanded());
-  // Filled by the same call, and read after it (spec 220): the subset
+  // Filled by the same call, and read after it: the subset
   // of `open` that is open because the project reviews its code.
   const reviewing = new Set(ctx.readPrOpen());
   const openCheckedAt = ctx.peekUnlandedCheckedAt();
@@ -117,8 +115,8 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     // cleanup is left, so the spec is archived. A closed spec's branch
     // was never meant to merge, and its row reads as before.
     const merged = open.has(key) && !ref?.closed && ctx.peekMergedOnOrigin(project, key.slice(cut + 1));
-    // The two marks come from one fact and mean opposite things (spec
-    // 220), so one wins outright rather than both being set and the
+    // The two marks come from one fact and mean opposite things,
+    // so one wins outright rather than both being set and the
     // renderer picking: a review that is still open, unless the merged
     // answer says the pull request has nothing left to review.
     const prWaiting = reviewing.has(key) && !merged;
@@ -136,14 +134,14 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
     // on the ref, so the rest of the archive costs no file read. A row
     // that is built anyway (its branch is still open) is not skipped.
     if (state === NOT_VERIFIED_KEY && !notLanded && !(ref.notVerified ?? 0) && !(ref.failed ?? 0)) continue;
-    // Spec 319: the newest landing's own reason its delete failed, when
+    // The newest landing's own reason its delete failed, when
     // there is one — read off the job store rather than re-derived, so
     // this can never disagree with what `mergeBranchIntoDefault` itself
     // found. `undefined` here just means no job recorded one; the row
     // still falls through to the plain `NOT_LANDED` wording.
     const branchDeleteError = notLanded ? ctx.queue.branchDeleteErrorFor(project, ref.folder) : undefined;
-    // REQ-6: the spec's own creation date. A peek, never a
-    // take (spec 208's rule, held for every question on this route):
+    // The spec's own creation date. A peek, never a
+    // take (the rule for every question on this route):
     // `refreshSpecCaches` is what warms this, never a request.
     const created = ctx.specCreatedAt.peekCreatedAtForArchived(ref.dir, ref.folder);
     rows.push({
@@ -163,11 +161,11 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       // simply has no link — the mark still says the branch is open,
       // which is the part that matters.
       prUrl: prWaiting ? ctx.queue.pullRequestFor(project, ref.folder).prUrl : undefined,
-      // The row opens now (spec 224), and this is what it opens on.
+      // The row opens now, and this is what it opens on.
       done: archivedSteps(ref.dir),
       models: archivedModels(ref.dir),
       phaseOutcomes: archivedPhaseOutcomes(ref.dir),
-      // spec 406, REQ-7: off the same `SpecRef` the scan already carries
+      // Off the same `SpecRef` the scan already carries
       // `closed` on — `readerGroup()` (data-model/group-builders.ts) is
       // what turns this into the row's own `CLOSED_STATE`.
       closed: ref.closed,
@@ -184,7 +182,7 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
   return rows;
 }
 
-/** Spec 212: the page's own tab decides how much this has to ask git.
+/** The page's own tab decides how much this has to ask git.
  *  The Description tab's form carries `1-description.md`'s commit as
  *  its guard, and that is a `git log` this page never made before —
  *  so it is made for that tab and no other. The checks' own guard is
@@ -193,12 +191,12 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
  *  spec whose description carries no `Depends on:` line.
  *
  *  The Description tab is also the one that AWAITS the dashboard's own
- *  checkout rather than peeking (spec 205): the text in the box and
+ *  checkout rather than peeking: the text in the box and
  *  the commit Save compares it against have to come out of the same
  *  checkout Save will write through, or the first edit after a restart
  *  refuses as "changed since you opened it". Every other tab keeps the
  *  peek, because a spec page must not wait on the boot-time clone
- *  (spec 208, criterion 9) — including Overview, whose checks form
+ *  including Overview, whose checks form
  *  therefore carries a `4-status.md` sha read through whichever
  *  checkout answered. In the minutes before the clone lands that can
  *  be the person's own, and a tick drawn from it is REFUSED rather

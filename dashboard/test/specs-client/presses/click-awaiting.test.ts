@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { harness } from "../fixtures.ts";
 
-// Spec 208: every action says at once that it registered.
+// Every action says at once that it registered.
 //
-// Buttons have done this since spec 96/101 — the `busy` look, set
+// Buttons already do this — the `busy` look, set
 // synchronously on the press, before the answer exists. This file
 // covers the in-place case: opening a row, folding or sorting the
 // list. A real navigation — a spec's own name, a tab bar link — is

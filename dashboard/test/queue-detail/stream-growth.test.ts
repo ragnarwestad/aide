@@ -1,4 +1,4 @@
-// Spec 500: only a tab that named the growing step hears a transcript grow.
+// Only a tab that named the growing step hears a transcript grow.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { createStreamGrowth, type SseWatchersContext } from "../../src/serve/sse-watchers.ts";
@@ -29,8 +29,8 @@ function setup(keysOf: Record<string, string[]>) {
   return { subs, ctx };
 }
 
-describe("the growth check on the two-second tick (AC-3)", () => {
-  test("only the tab that named the running step is told, and only when the file grew (AC-3)", () => {
+describe("the growth check on the two-second tick", () => {
+  test("only the tab that named the running step is told, and only when the file grew", () => {
     const { subs, ctx } = setup({ named: [KEY], other: ["aide/500-x:implement"], elsewhere: ["aide/501-y:analyze"], none: [] });
     const sizes: Record<string, number> = { "/t/a": 10 };
     const growth = createStreamGrowth(ctx, () => [running("/t/a")], (f) => sizes[f] ?? 0);
@@ -44,7 +44,7 @@ describe("the growth check on the two-second tick (AC-3)", () => {
     expect(subs.named!.told()).toBe(2);
   });
 
-  test("a run log that grows while the transcript stands still is growth too (AC-2)", () => {
+  test("a run log that grows while the transcript stands still is growth too", () => {
     const { subs, ctx } = setup({ named: [KEY] });
     const sizes: Record<string, number> = { "/t/a.analyze.stream.jsonl": 10, "/t/a.analyze.run.log": 4 };
     const growth = createStreamGrowth(ctx, () => [running("/t/a.analyze.stream.jsonl")], (f) => sizes[f] ?? 0);
@@ -57,13 +57,13 @@ describe("the growth check on the two-second tick (AC-3)", () => {
     expect(subs.named!.told()).toBe(2);
   });
 
-  test("the first sight of an empty file is not growth (AC-3)", () => {
+  test("the first sight of an empty file is not growth", () => {
     const { subs, ctx } = setup({ named: [KEY] });
     createStreamGrowth(ctx, () => [running("/t/a")], () => 0).tick();
     expect(subs.named!.told()).toBe(0);
   });
 
-  test("a file whose job stopped running is forgotten, so a fresh sight counts as growth again (AC-3)", () => {
+  test("a file whose job stopped running is forgotten, so a fresh sight counts as growth again", () => {
     const { subs, ctx } = setup({ named: [KEY] });
     let jobs = [running("/t/a")];
     const growth = createStreamGrowth(ctx, () => jobs, () => 10);
@@ -75,7 +75,7 @@ describe("the growth check on the two-second tick (AC-3)", () => {
     expect(subs.named!.told()).toBe(2);
   });
 
-  test("while no subscriber has keys, no file is measured (AC-3)", () => {
+  test("while no subscriber has keys, no file is measured", () => {
     const { ctx } = setup({ none: [] });
     const measured: string[] = [];
     createStreamGrowth(ctx, () => [running("/t/a")], (f) => {
@@ -86,7 +86,7 @@ describe("the growth check on the two-second tick (AC-3)", () => {
   });
 });
 
-describe("GET /api/queue/events?phases=… (AC-3)", () => {
+describe("GET /api/queue/events?phases=…", () => {
   const harness = queueHarness("aide-stream-growth-");
   const opened: Stream[] = [];
   afterEach(async () => {
@@ -94,7 +94,7 @@ describe("GET /api/queue/events?phases=… (AC-3)", () => {
     harness.cleanup();
   });
 
-  test("registers its keys, closing the request removes them, and shutting down clears them (AC-3)", async () => {
+  test("registers its keys, closing the request removes them, and shutting down clears them", async () => {
     const { base, server } = harness.start();
     const s = await connectStream(base, `?phases=${encodeURIComponent(KEY)}`);
     opened.push(s);
@@ -124,7 +124,7 @@ describe("GET /api/queue/events?phases=… (AC-3)", () => {
   });
 
   // A scheduled job's row key is no phase key; the page asks for its log by it.
-  test("a tab with a scheduled job's row open hears that job's log grow (AC-4)", async () => {
+  test("a tab with a scheduled job's row open hears that job's log grow", async () => {
     const { base, server } = harness.start();
     const s = await connectStream(base, "?open=aide/schedule-nightly");
     opened.push(s);

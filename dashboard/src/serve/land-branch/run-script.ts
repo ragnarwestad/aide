@@ -49,7 +49,7 @@ export async function runScript(
   // suite's board, a decoy server — can be stopped with it without
   // touching this server. Left alive, those held the output pipes open
   // and ports taken, and the next landing's suite timed out on them
-  // (498, 2026-09-19).
+  //.
   const proc = Bun.spawn({ cmd: scriptArgv(argv, env.PATH), cwd, env, stdout: "pipe", stderr: "pipe", detached: true });
   if (owner) trackLandingProcess(owner, proc.pid);
   let timedOut = false;

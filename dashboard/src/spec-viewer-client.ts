@@ -1,7 +1,6 @@
-// The read-only counterpart of spec-editor/index.ts (spec 333,
-// finishing the split spec 315 started): a locked document tab's own
-// bundle, built from @toast-ui/editor's dedicated Viewer export rather
-// than the full Editor class, so REQ-4/REQ-5 hold because there is no
+// The read-only counterpart of spec-editor/index.ts: a locked document
+// tab's own bundle, built from @toast-ui/editor's dedicated Viewer export rather
+// than the full Editor class, so the split holds because there is no
 // editor code in this file to ship, not because nothing calls it.
 //
 // The import specifier below is `@toast-ui/editor/dist/toastui-editor-viewer`,
@@ -14,7 +13,7 @@
 // matches an ambient declaration the package ships
 // (`types/toastui-editor-viewer.d.ts`) and passes both tools cleanly.
 import viewerCss from "@toast-ui/editor/dist/toastui-editor-viewer.css" with { type: "text" };
-// REQ-5: the light stylesheet carries no `.toastui-editor-dark` rule at
+// The light stylesheet carries no `.toastui-editor-dark` rule at
 // all — the dark theme is a SEPARATE file, same as spec-editor/index.ts's
 // own two-stylesheet import.
 import editorDarkCss from "@toast-ui/editor/dist/theme/toastui-editor-dark.css" with { type: "text" };
@@ -34,7 +33,7 @@ if (host && raw) {
   // A link from the Specs list to one approach of the plan.
   requestAnimationFrame(() => scrollToApproach(host, location.hash));
 
-  // REQ-5: the same live light/dark/auto wiring spec-editor/index.ts
+  // The same live light/dark/auto wiring spec-editor/index.ts
   // carries for the editable path — but the class lands on `host`
   // itself here, since the Viewer renders no `.toastui-editor-defaultUI`
   // wrapper to put it on instead.

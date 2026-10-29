@@ -53,7 +53,7 @@ async function pressCreate(fill: { title: boolean }): Promise<{ requests: number
   }
 }
 
-test("Create with no project chosen focuses the project field and sends nothing (AC-1)", async () => {
+test("Create with no project chosen focuses the project field and sends nothing", async () => {
   const { requests, focused } = await pressCreate({ title: true });
   expect(focused).toBe("project");
   expect(requests).toBe(0);
@@ -61,7 +61,7 @@ test("Create with no project chosen focuses the project field and sends nothing 
   expect(message).not.toBe("");
 });
 
-test("with everything empty Create focuses the project field first (AC-2)", async () => {
+test("with everything empty Create focuses the project field first", async () => {
   const { focused } = await pressCreate({ title: false });
   expect(focused).toBe("project");
 });

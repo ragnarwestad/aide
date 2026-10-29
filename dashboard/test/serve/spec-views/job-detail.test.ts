@@ -171,21 +171,21 @@ describe("jobDetailView's log and error lines", () => {
       results: [{ step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile, tool: "claude" }],
     });
 
-  test("errors holds the failed command and the log holds both, in one ai part (AC-7)", async () => {
+  test("errors holds the failed command and the log holds both, in one ai part", async () => {
     const view = await jobDetailView(makeCtx(), finished(tempStreamFile(twoCommands("Done."))));
 
     expect(view.results[0]!.errors).toEqual(["Bash bun test"]);
     expect(view.results[0]!.logs).toEqual([{ by: "ai", lines: ["Bash bun test", "Bash git status", "Done."] }]);
   });
 
-  test("the log ends with the whole final message once, when the last line only repeats it (AC-5)", async () => {
+  test("the log ends with the whole final message once, when the last line only repeats it", async () => {
     const said = { type: "assistant", message: { content: [{ type: "text", text: "Done." }] } };
     const view = await jobDetailView(makeCtx(), finished(tempStreamFile(twoCommands("Done.", [said]))));
 
     expect(view.results[0]!.logs![0]!.lines).toEqual(["Bash bun test", "Bash git status", "Done."]);
   });
 
-  test("the parts come from a real transcript and the run log beside it, and Aide's error line is in errors (AC-3)", async () => {
+  test("the parts come from a real transcript and the run log beside it, and Aide's error line is in errors", async () => {
     const stream = withRunLog(tempStreamFile(twoCommands("Done.")), [
       "aide-run-spec 10:45:08 +0s fetching main",
       "aide-run-spec 10:45:09 +1s model turn started (transcript at byte 0)",
@@ -197,7 +197,7 @@ describe("jobDetailView's log and error lines", () => {
     expect(view.results[0]!.errors).toEqual(["Bash bun test", "10:52:13 +427s error: the tests are red — handing them back"]);
   });
 
-  test("the running step carries its parts, its error lines and no final message (AC-3)", async () => {
+  test("the running step carries its parts, its error lines and no final message", async () => {
     const stream = withRunLog(tempStreamFile(twoCommands("x").slice(0, 4)), [
       "aide-run-spec 10:45:08 +0s fetching main",
       "aide-run-spec 10:45:09 +1s model turn started (transcript at byte 0)",
@@ -211,7 +211,7 @@ describe("jobDetailView's log and error lines", () => {
     expect(view.runningStep!.errors).toEqual(["Bash bun test"]);
   });
 
-  test("a running step still preparing has its own lines as aide-before (AC-3)", async () => {
+  test("a running step still preparing has its own lines as aide-before", async () => {
     const stream = withRunLog(tempStreamFile([]), ["aide-run-spec 10:45:08 +0s waiting for the checkout lock"]);
     const view = await jobDetailView(makeCtx(), makeJob({ state: "running", streamFile: stream }));
 
@@ -222,14 +222,14 @@ describe("jobDetailView's log and error lines", () => {
 const twoCommandsOnly = () => [{ type: "result", subtype: "success", result: "x" }];
 
 describe("the AI's label", () => {
-  test("names the tool and the model choice, each word capitalised (AC-4)", () => {
+  test("names the tool and the model choice, each word capitalised", () => {
     expect(aiLabel("claude", "sonnet")).toBe("Claude Sonnet");
     expect(aiLabel("codex", "codex")).toBe("Codex");
     expect(aiLabel("claude", undefined)).toBe("Claude");
     expect(aiLabel("none", "sonnet")).toBeUndefined();
   });
 
-  test("a finished step carries the label of the choice its job named (AC-4)", async () => {
+  test("a finished step carries the label of the choice its job named", async () => {
     const job = makeJob({
       model: { implement: "sonnet" },
       results: [{ step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: tempStreamFile(twoCommandsOnly()), tool: "claude" }],
@@ -239,7 +239,7 @@ describe("the AI's label", () => {
     expect(view.results[0]!.aiModel).toBe("Claude Sonnet");
   });
 
-  test("a step that reported a model id carries it after the label, and one that did not carries the label alone (AC-2, AC-3)", async () => {
+  test("a step that reported a model id carries it after the label, and one that did not carries the label alone", async () => {
     const step = { step: "implement" as const, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: tempStreamFile(twoCommandsOnly()) };
     const job = makeJob({
       model: { implement: "opus" },
@@ -267,7 +267,7 @@ describe("jobDetailView reads a Codex step's session files", () => {
     }
   };
 
-  test("a finished step's log holds the subagent's part (AC-2)", async () => {
+  test("a finished step's log holds the subagent's part", async () => {
     const job = makeJob({
       results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: stream(), tool: "codex" }],
     });
@@ -276,7 +276,7 @@ describe("jobDetailView reads a Codex step's session files", () => {
     expect(view.results[0]!.logs!.map((p) => p.by)).toEqual(["ai", "subagent", "ai"]);
   });
 
-  test("a running step's log holds it too (AC-2)", async () => {
+  test("a running step's log holds it too", async () => {
     const view = await withHome(() => jobDetailView(makeCtx(), makeJob({ state: "running", streamFile: stream() })));
 
     expect(view.runningStep!.logs.map((p) => p.by)).toEqual(["ai", "subagent", "ai"]);
@@ -288,7 +288,7 @@ describe("jobDetailView's screenshots", () => {
     step: "implement" as const, ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed", streamFile, tool: "claude" as const,
   });
 
-  test("a finished step lists the PNGs in its screenshots folder by name, each with its link (AC-4)", async () => {
+  test("a finished step lists the PNGs in its screenshots folder by name, each with its link", async () => {
     const streamFile = tempStreamFile([{ type: "result", subtype: "success", result: "done" }]);
     const folder = streamFile.replace(/\.stream\.jsonl$/, ".screenshots");
     mkdirSync(folder);
@@ -302,7 +302,7 @@ describe("jobDetailView's screenshots", () => {
     ]);
   });
 
-  test("a step with no screenshots folder, or one with no PNG, has no screenshots (AC-4)", async () => {
+  test("a step with no screenshots folder, or one with no PNG, has no screenshots", async () => {
     const without = tempStreamFile([{ type: "result", subtype: "success", result: "done" }]);
     const empty = tempStreamFile([{ type: "result", subtype: "success", result: "done" }]);
     mkdirSync(empty.replace(/\.stream\.jsonl$/, ".screenshots"));

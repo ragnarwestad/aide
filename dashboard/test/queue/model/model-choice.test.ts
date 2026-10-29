@@ -11,8 +11,8 @@ import { RUNNABLE_TOOLS } from "../../../src/queue/steps.ts";
 import { QUEUE_DEFAULTS } from "../../../src/serve/serve-helpers";
 
 const DEFAULTS: QueueDefaults = {
-  // Per step since spec 152: an implement is not an analyze, and one
-  // number for both stopped 149 mid-sentence with its tests green.
+  // Per step: an implement is not an analyze, and one number for both
+  // stopped an implement mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -105,7 +105,7 @@ describe("per-job model choice", () => {
   });
 });
 
-// Spec 125: a pickable choice may name a TOOL as well as a model name of
+// A pickable choice may name a TOOL as well as a model name of
 // its own distinct from the entry's key. Both fields are optional, and
 // both defaults reproduce exactly what a config without them already
 // did — an existing queue-config.json must keep working untouched.
@@ -175,22 +175,22 @@ describe("a model choice may name its tool", () => {
 // The built-in `opus` means the choice a host lists under that name in any
 // case; a name the file saves is left as the file wrote it.
 describe("the built-in model names take the host's spelling", () => {
-  test("a single case-only match is spelled as listed (AC-3)", () => {
+  test("a single case-only match is spelled as listed", () => {
     const merged = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: { Fable: {}, Opus: {}, Sonnet: {} } });
     expect(merged.model.default).toBe("Opus");
   });
 
-  test("an exact match is kept as it is (AC-3)", () => {
+  test("an exact match is kept as it is", () => {
     const merged = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: { opus: {} } });
     expect(merged.model.default).toBe("opus");
   });
 
-  test("several case-only matches leave the built-in name alone (AC-3)", () => {
+  test("several case-only matches leave the built-in name alone", () => {
     const merged = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: { Opus: {}, OPUS: {} } });
     expect(merged.model.default).toBe("opus");
   });
 
-  test("a name the file saves is kept as written (AC-3)", () => {
+  test("a name the file saves is kept as written", () => {
     const merged = mergeQueueDefaults(QUEUE_DEFAULTS, {
       modelChoices: { Opus: {}, Sonnet: {} }, model: { analyze: "sonnet" },
     });

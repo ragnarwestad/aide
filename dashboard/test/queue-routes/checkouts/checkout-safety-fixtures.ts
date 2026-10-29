@@ -1,5 +1,5 @@
 // Shared test data for "the dashboard works in checkouts of its own
-// (spec 205)", split across checkout-write-safety.test.ts,
+// ", split across checkout-write-safety.test.ts,
 // checkout-freshness.test.ts and checkout-listing.test.ts (split out of
 // checkout-and-render-safety.test.ts by theme). `git`, `realProject` and
 // `recording` used to be closures inside one shared `describe` block;
@@ -60,7 +60,7 @@ export function checkoutSafetyHelpers(ownDirs: string[]) {
     if (opts.ownClone !== false) {
       Bun.spawnSync({ cmd: ["git", "clone", "-q", origin, join(owned, "aide", "code")] });
     }
-    // Not the generated site any more (spec 530) — just a scratch
+    // Not the generated site any more — just a scratch
     // directory this fixture's callers write their mirror/queue/job
     // files into, same as `owned` is one for the dashboard's own clone.
     const site = join(where, "site");

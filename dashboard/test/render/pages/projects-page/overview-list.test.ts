@@ -20,7 +20,7 @@ const draw = (projects: ProjectView[], removable: (name: string) => boolean): Do
 };
 
 describe("a project's row on the Projects list offers Remove", () => {
-  test("the button is the danger ask button labelled Remove, named for the project (AC-4, AC-5)", () => {
+  test("the button is the danger ask button labelled Remove, named for the project", () => {
     const [row] = draw([ok("aide")], () => true);
     const buttons = row!.querySelectorAll("button[data-ask]");
     expect(buttons.length).toBe(1);

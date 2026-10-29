@@ -5,7 +5,7 @@ serving host; HTTPS and other devices are an optional proxy, documented on
 its own page (`dashboard/docs/tailscale.md`), which carries the HTTPS
 placeholder address.
 
-Until spec 172 the dashboard was served over plain HTTP on a port, and
+The dashboard used to be served over plain HTTP on a port, and
 that address was written down in four places that no single test could
 see at once: the dashboard's own README, the root manifest, the ROADMAP,
 and the hook block `core/implementations/claude-code/install.sh` prints for

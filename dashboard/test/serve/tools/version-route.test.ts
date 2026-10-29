@@ -1,4 +1,4 @@
-// Spec 269: GET /api/version — the running server's own boot-time commit,
+// GET /api/version — the running server's own boot-time commit,
 // read once from `process.cwd()` and never refreshed for the life of the
 // process. A restart that silently failed to happen looks exactly like one
 // that worked until something asks what commit is actually running; this
@@ -44,14 +44,14 @@ async function pollVersion(base: string, want: string | null, budgetMs = 2000): 
   return sha;
 }
 
-describe("GET /api/version — this process's own boot-time commit (spec 269)", () => {
-  test("answers 200 with the SHA this process's own checkout is on (criterion 1)", async () => {
+describe("GET /api/version — this process's own boot-time commit", () => {
+  test("answers 200 with the SHA this process's own checkout is on", async () => {
     const { run } = bootGit({ code: 0, stdout: "abc1234deadbeef\n" });
     const { base } = harness.start({ extra: { gitRun: run } });
     expect(await pollVersion(base, "abc1234deadbeef")).toBe("abc1234deadbeef");
   });
 
-  test("a git that cannot answer still 200s, with sha null, never a 500 (criterion 2)", async () => {
+  test("a git that cannot answer still 200s, with sha null, never a 500", async () => {
     const { run } = bootGit({ code: 128 });
     const { base } = harness.start({ extra: { gitRun: run } });
     const res = await fetch(`${base}/api/version`);
@@ -63,7 +63,7 @@ describe("GET /api/version — this process's own boot-time commit (spec 269)", 
     expect(await pollVersion(base, null)).toBeNull();
   });
 
-  test("no credential at all — still 200 (criterion 6)", async () => {
+  test("no credential at all — still 200", async () => {
     const { run } = bootGit({ code: 0, stdout: "abc1234deadbeef\n" });
     const { base } = harness.start({ extra: { gitRun: run } });
     // Deliberately no header and no cookie of any kind.
@@ -80,7 +80,7 @@ describe("GET /api/version — this process's own boot-time commit (spec 269)", 
 
   // The page tells the process it is leaving from the one that replaced
   // it by this alone: two processes on one commit answer the same `sha`.
-  test("answers startedAt, the same on every call for the life of the process (AC-2)", async () => {
+  test("answers startedAt, the same on every call for the life of the process", async () => {
     const { run } = bootGit({ code: 0, stdout: "abc1234deadbeef\n" });
     const { base } = harness.start({ extra: { gitRun: run } });
     const first = (await (await fetch(`${base}/api/version`)).json()) as { startedAt: string };

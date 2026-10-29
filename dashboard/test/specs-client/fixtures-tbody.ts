@@ -1,6 +1,6 @@
 // The fake #jobrows table, extracted out of fixtures.ts.
 
-/** One `<tr>` of the fake `#jobrows` (spec 204). Only the surface the
+/** One `<tr>` of the fake `#jobrows`. Only the surface the
  *  per-group diff actually calls — an anchor's id, the class that says
  *  where a group ends, the walk to the next row, and the two mutations
  *  that replace a group's range. */

@@ -1,10 +1,10 @@
-// What a phase's unfolded row shows (spec 500): the Log of the newest
+// What a phase's unfolded row shows: the Log of the newest
 // attempt that ran the step — the same log the Logs tab shows, Aide's
 // lines and the AI's — and where that step is on the spec's Logs tab.
 //
 // The model's own messages alone were too little to follow a run by: a
 // session that works through commands writes a sentence every few
-// minutes (512's implement: nine in 33 minutes, over 107 commands), so
+// minutes (one implement: nine in 33 minutes, over 107 commands), so
 // the row looked frozen while the step was busy.
 import type { QueueStore } from "../../queue/queue.ts";
 import { stepLog, stepMarks, stepTokens } from "../../queue/parse-stream";

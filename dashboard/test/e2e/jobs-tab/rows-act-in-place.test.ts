@@ -57,7 +57,7 @@ afterAll(async () => {
 });
 
 describe("a spec's row on the Jobs tab acts in place", () => {
-  test("a spec's row is on the tab before any job, a job queued on it redraws it in place and Cancel ends the job, the row staying, with no page load (AC-1, AC-3)", async () => {
+  test("a spec's row is on the tab before any job, a job queued on it redraws it in place and Cancel ends the job, the row staying, with no page load", async () => {
     const { base } = harness.start({});
     const page = await browser.newPage();
     await page.goto(`${base}/`);
@@ -98,7 +98,7 @@ describe("a scheduled job's row folds and stops in place", () => {
   const STOP = `${JOB_ROW} + tr.specstate button[data-ask]`;
   const CHIP = `${JOB_ROW} + tr.specstate .badgeslot .badge`;
 
-  test("the row is shut, its › opens it with no page load and shuts it again, and Stop and its OK end the job cancelled (AC-5)", async () => {
+  test("the row is shut, its › opens it with no page load and shuts it again, and Stop and its OK end the job cancelled", async () => {
     const { base } = harness.start({ queueMirror: JSON.stringify([nightly]) });
     const page = await browser.newPage();
     await page.goto(`${base}/`);
@@ -131,7 +131,7 @@ describe("a scheduled job's row folds and stops in place", () => {
     await page.close();
   });
 
-  test("opened, the row shows its Stop and its state chip at desktop width and at a phone's (AC-5)", async () => {
+  test("opened, the row shows its Stop and its state chip at desktop width and at a phone's", async () => {
     const { base } = harness.start({ queueMirror: JSON.stringify([nightly]) });
     for (const width of [1280, 375]) {
       const page = await browser.newPage({ viewport: { width, height: 800 } });
@@ -144,7 +144,7 @@ describe("a scheduled job's row folds and stops in place", () => {
 });
 
 
-test("the first job arrives and the last leaves without a reload, then search still works (AC-6, AC-7)", async () => {
+test("the first job arrives and the last leaves without a reload, then search still works", async () => {
   const own = mkdtempSync(join(tmpdir(), "aide-empty-running-"));
   const emptyHarness = queueHarness("aide-empty-running-board-");
   const go = join(own, "go");
@@ -193,7 +193,7 @@ test("the first job arrives and the last leaves without a reload, then search st
 // A description changed since the analysis is said in the analysis phase's log, which opens even with
 // no transcript kept, and stays there while the new analysis runs; the phase's State/Action cell says
 // the standard word alone.
-test("a description changed since the analysis is in the analysis log, opened with a click, and stays there through a live update to Running (AC-2, AC-3)", async () => {
+test("a description changed since the analysis is in the analysis log, opened with a click, and stays there through a live update to Running", async () => {
   const own = mkdtempSync(join(tmpdir(), "aide-stale-log-"));
   const go = join(own, "go");
   const fakeRunner = join(own, "fake-run-spec");

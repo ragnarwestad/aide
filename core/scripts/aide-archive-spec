@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# aide-archive-spec — the mechanical steps of /aide-archive (spec 251):
+# aide-archive-spec — the mechanical steps of /aide-archive:
 # resolving the spec argument to a folder, checking whether a merge
 # conflict is open, reading 4-status.md's Tasks tables to decide whether
 # the work is done, and (when it is) stamping and moving the folder.
@@ -101,8 +101,8 @@ emit_ok() {
 # so every check below (`Workflow steps completed`, the Acceptance
 # criteria gate) was silently answering from stale content, wrongly
 # refusing with `not-implemented-yet` or `acceptance-criteria-unticked`
-# for work that had genuinely happened (found 2026-08-31, on specs 287,
-# 288, 290 and 291 — the same one-line bug behind all four). Untested
+# for work that had genuinely happened (found 2026-08-31 — the same
+# one-line bug behind four archives). Untested
 # until now because every existing fixture pointed `--specs-dir` and
 # the configured `AIDE_SPECS_PATH` at the very same directory.
 if [ -n "$specs_dir" ] && [ -d "$specs_dir" ]; then
@@ -177,14 +177,14 @@ for dir in "${check_dirs[@]}"; do
 done
 
 # --- the status-table read -------------------------------------------------
-# Archiving no longer reads the Tasks tables at all (spec 268) — a
+# Archiving no longer reads the Tasks tables at all — a
 # checklist row is the implementer's own record of what happened, not a
 # door a reader has to unlock by ticking boxes for work they did not do.
 # The only question left is whether `implement` actually ran, read from
 # the same `Workflow steps completed` line `aide-run-spec` writes.
 status_file="$specs_root/$spec_folder/4-status.md"
 
-# spec 356: the one table (core/scripts/lib/transitions.json) and its
+# The one table (core/scripts/lib/transitions.json) and its
 # read-only check decide whether `archive` is legal from this spec's
 # current phase — the same "not-implemented-yet" refusal, same words,
 # now looked up rather than re-derived here.
@@ -198,8 +198,8 @@ fi
 # --- removing the "## Archive held back" section ----------------------------
 # The section is still removed on the way through — a stale one from
 # before this change does not rot on an otherwise-finished spec — but
-# nothing writes a new one again (spec 268 retires the tick-based
-# held-back verdict entirely).
+# nothing writes a new one again (the tick-based
+# held-back verdict is retired entirely).
 remove_held_back_section() {
   grep -q '^## Archive held back[[:space:]]*$' "$status_file" 2>/dev/null || return 0
   local tmp="$status_file.aide-tmp"
@@ -218,16 +218,16 @@ if [ "$implement_present" = "no" ]; then
   emit_ok '{"terminalReason":"not-implemented-yet","note":"the spec has not reached implement yet — run /aide-implement next"}'
 fi
 
-# --- the acceptance-criteria gate (spec 285) --------------------------------
-# Scoped ONLY to the "## Acceptance criteria" section spec 268's own
-# description deferred — never to the ordinary RED/GREEN/VERIFY rows
-# spec 268 already fixed above. No such section: progress_total is 0 and
-# this check is a no-op, exactly REQ-4's "no Requirements section, no
+# --- the acceptance-criteria gate --------------------------------
+# Scoped ONLY to the "## Acceptance criteria" section — never to the
+# ordinary RED/GREEN/VERIFY rows handled above. No such section:
+# progress_total is 0 and
+# this check is a no-op: "no Requirements section, no
 # change in behavior." Reuses the same row-shape/done-mark rule
-# aide-run-spec's Total progress line already uses (REQ-5), rather than a
+# aide-run-spec's Total progress line already uses, rather than a
 # third, independent implementation of "is this row done".
 #
-# Checked BEFORE the test-record gate below (spec 346): these boxes can
+# Checked BEFORE the test-record gate below: these boxes can
 # only be ticked by a person, take no time to check, and answer for free
 # whatever the test-record gate would otherwise spend a full test run
 # reaching anyway.
@@ -238,7 +238,7 @@ read_spec_state "$status_file"
 acceptance_done="$(jq -r '[.acceptanceCriteria[] | select(.done)] | length' <<<"$state_json")"
 acceptance_total="$(jq -r '.acceptanceCriteria | length' <<<"$state_json")"
 if [ "$acceptance_total" -gt 0 ] && [ "$acceptance_done" -lt "$acceptance_total" ]; then
-  # spec 471: the moment a round is mechanically known to be held back —
+  # The moment a round is mechanically known to be held back —
   # stamp it once, so a later round can tell which open rows are
   # unchanged since THIS round rather than since the spec's birth.
   declare -f write_round_boundary_stamp >/dev/null 2>&1 && write_round_boundary_stamp "$status_file" "$specs_root"
@@ -252,7 +252,7 @@ fi
 # the dashboard when the step lands.
 
 # --- archived: stamp and move ----------------------------------------------
-# spec 356: write_phase_stamp (core/scripts/lib/spec-transitions.sh) is
+# write_phase_stamp (core/scripts/lib/spec-transitions.sh) is
 # the one place the **Archived:** stamp is formatted and written — called
 # here rather than through apply_spec_transition because the stamp goes
 # onto the OLD (pre-move) path and the state-file mirror below has to
@@ -271,7 +271,7 @@ else
   mv "$specs_root/$spec_folder" "$specs_root/archive/$spec_folder"
 fi
 
-# spec 355: re-derives at the NEW (archived) location, so the state file
+# Re-derives at the NEW (archived) location, so the state file
 # travels with the git-mv above and carries the `archived` stamp just
 # written into the prose. Staged alongside the rename (rather than left
 # untracked) so a caller that commits everything git-mv already staged

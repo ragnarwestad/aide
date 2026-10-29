@@ -7,15 +7,15 @@ import {
   OK_ACTION,
 } from "../fixtures.ts";
 
-// --- spec 419: a hand-made tick stops deciding once its own press has gone through ---
+// --- A hand-made tick stops deciding once its own press has gone through ---
 //
-// spec 141 above made a hand-touched box survive a redraw — and never
-// let go of it again: nothing removed the override once the press it
-// was made for had gone through, so it kept overriding every LATER,
-// unrelated redraw of the same row too (a later run's own fresh ticks
-// never got through). REQ-2 asks for the override to expire the moment
-// its own press succeeds.
-describe("a hand-made tick stops deciding once its own press has gone through (spec 419)", () => {
+// A hand-touched box survives a redraw — and must not hold on forever:
+// if nothing removed the override once the press it was made for had
+// gone through, it would keep overriding every LATER, unrelated redraw
+// of the same row too (a later run's own fresh ticks never got
+// through). The override has to expire the moment its own press
+// succeeds.
+describe("a hand-made tick stops deciding once its own press has gone through", () => {
   const ticks = (h: ReturnType<typeof harness>) => h.stepBoxes.map((b) => b.checked);
 
   test("the box follows the server again after its own Run has succeeded and a later redraw happens", async () => {
@@ -31,7 +31,7 @@ describe("a hand-made tick stops deciding once its own press has gone through (s
   });
 });
 
-// --- spec 141: the phase boxes survive the swap too --------------------------
+// --- The phase boxes survive the swap too --------------------------
 //
 // The 2026-08-20 fix above covered the row's SELECTS. The boxes beside
 // them were left out, and they are what a press actually runs: tick
@@ -39,7 +39,7 @@ describe("a hand-made tick stops deciding once its own press has gone through (s
 // started whatever the server had ticked, without a word. The server
 // re-derives its ticks from the row's history (`preTicked`) on every
 // render, so a swap is not a no-op for them; it is an overwrite.
-describe("a hand-ticked phase box survives the five-second swap (spec 141)", () => {
+describe("a hand-ticked phase box survives the five-second swap", () => {
   const ticks = (h: ReturnType<typeof harness>) => h.stepBoxes.map((b) => b.checked);
 
   const swap = async (h: ReturnType<typeof harness>) => {
@@ -52,7 +52,7 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
   // — so the label has to follow them as they are clicked. The server
   // names it from `preTicked`, its own suggestion, which is right for
   // the row as drawn and wrong the moment a reader ticks something
-  // else: on 2026-08-21 spec 162, with analyze suggested and only
+  // else: on 2026-08-21 a spec, with analyze suggested and only
   // `archive` ticked by hand, went on offering "Analyze". The press was
   // correct — an open row posts its boxes and no hidden steps — but the
   // row said one thing and did another.
@@ -66,7 +66,7 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
     h.changeStep(0, false); // analyze off — archive is first now
     expect(h.runButton.textContent).toBe("Archive");
 
-    // Nothing ticked at all (spec 439): the button stays on the row,
+    // Nothing ticked at all: the button stays on the row,
     // named for the earliest not-yet-run phase, but disabled — the same
     // "named, but not ticked" state `actionState()` draws server-side,
     // kept in step here rather than hidden the way it used to be.
@@ -81,11 +81,11 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
     expect(h.runButton.textContent).toBe("Implement");
   });
 
-  // spec 439: the disabled-but-named case, so the in-session client
+  // The disabled-but-named case, so the in-session client
   // script and the server's own next render never disagree about the
   // same row — the server draws exactly this state for a spec whose
   // recorded choice ticks nothing (`actionState()`, `active: false`).
-  test("a box unticked back to nothing disables the button rather than hiding it (spec 439)", () => {
+  test("a box unticked back to nothing disables the button rather than hiding it", () => {
     const h = harness(() => ({ ok: true }));
     h.changeStep(0, false); // analyze off — the only one served ticked
     expect(h.runButton.hidden).toBe(false);
@@ -150,7 +150,7 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
   });
 });
 
-// --- spec 129: an answer older than the press never lands on top of it -------
+// --- An answer older than the press never lands on top of it -------
 //
 // `inFlight` stops a NEW swap from STARTING while a press runs. It says
 // nothing about one that was already in the air when the press began:
@@ -163,9 +163,9 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
 // `isMerged()` for every branch of every listed job, and a cache miss
 // there costs up to three sequential git calls at four seconds each —
 // which is the 10-15 seconds of a pressed button sitting unchanged that
-// was measured on 2026-08-20 (on the Merge button, which spec 149 later
+// was measured on 2026-08-20 (on the Merge button, which has since been
 // removed; the window it measured belongs to every control alike).
-describe("a swap older than the press is discarded, not applied (spec 129)", () => {
+describe("a swap older than the press is discarded, not applied", () => {
   /** What the server said BEFORE the press, and what must never reach
    *  the page after it. */
   const STALE = "<tr>before the press</tr>";
@@ -241,12 +241,12 @@ describe("a swap older than the press is discarded, not applied (spec 129)", () 
   });
 });
 
-// --- spec 493: an unsaved tick in the unfolded criteria survives a redraw ----
+// --- An unsaved tick in the unfolded criteria survives a redraw ----
 //
 // The list is drawn again every few seconds, and the server draws the boxes
 // from the file. A reader half-way through ticking would otherwise have the
 // boxes reset under them, and then Save the file's own state back.
-describe("a tick in the unfolded acceptance criteria survives a redraw (spec 493)", () => {
+describe("a tick in the unfolded acceptance criteria survives a redraw", () => {
   const ticks = (h: ReturnType<typeof harness>) => h.tickBoxes.map((b) => b.checked);
   const swap = async (h: ReturnType<typeof harness>) => {
     h.document.visibilityState = "visible";
@@ -256,8 +256,8 @@ describe("a tick in the unfolded acceptance criteria survives a redraw (spec 493
 
   test("a ticked and an unticked box are both still as the reader left them after a group swap", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    h.changeTick(0, true); // the reader ticks AC-1
-    h.changeTick(1, false); // and takes AC-2 back off
+    h.changeTick(0, true); // the reader ticks `AC-1`
+    h.changeTick(1, false); // and takes `AC-2` back off
     await swap(h);
     expect(ticks(h)).toEqual([true, false, false]);
   });
@@ -271,7 +271,7 @@ describe("a tick in the unfolded acceptance criteria survives a redraw (spec 493
 
   test("two specs with the same criterion text keep separate ticks", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    h.changeTick(2, true); // AC-1 of the OTHER spec
+    h.changeTick(2, true); // `AC-1` of the OTHER spec
     await swap(h);
     expect(ticks(h)).toEqual([false, true, true]);
   });
@@ -295,16 +295,16 @@ describe("a tick in the unfolded acceptance criteria survives a redraw (spec 493
   });
 });
 
-// --- spec 509: a row's two boxes are one answer --------------------------------
+// --- A row's two boxes are one answer --------------------------------
 
-describe("a criterion's tick box and Not verified box (spec 509)", () => {
+describe("a criterion's tick box and Not verified box", () => {
   const swap = async (h: ReturnType<typeof harness>) => {
     h.document.visibilityState = "visible";
     h.tick();
     await flush();
   };
 
-  test("checking Not verified over a checked tick box clears the tick box, and a redraw restores exactly that (AC-6)", async () => {
+  test("checking Not verified over a checked tick box clears the tick box, and a redraw restores exactly that", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     h.changeTick(0, true);
     h.changeUnverified(0, true);
@@ -314,7 +314,7 @@ describe("a criterion's tick box and Not verified box (spec 509)", () => {
     expect(h.unverifiedBoxes[0]!.checked).toBe(true);
   });
 
-  test("checking the tick box over a checked Not verified box clears the second, and both stay so after a redraw (AC-6)", async () => {
+  test("checking the tick box over a checked Not verified box clears the second, and both stay so after a redraw", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     h.changeUnverified(0, true);
     h.changeTick(0, true);
@@ -324,7 +324,7 @@ describe("a criterion's tick box and Not verified box (spec 509)", () => {
     expect(h.unverifiedBoxes[0]!.checked).toBe(false);
   });
 
-  test("clearing a box leaves the other alone, and both are remembered (AC-6)", async () => {
+  test("clearing a box leaves the other alone, and both are remembered", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     h.changeUnverified(0, true);
     h.changeUnverified(0, false);
@@ -333,23 +333,23 @@ describe("a criterion's tick box and Not verified box (spec 509)", () => {
     expect(h.unverifiedBoxes[0]!.checked).toBe(false);
   });
 
-  test("a box nobody touched follows the server (AC-6)", async () => {
+  test("a box nobody touched follows the server", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     await swap(h);
     expect(h.unverifiedBoxes[0]!.checked).toBe(false);
   });
 });
 
-// --- spec 510: an archived criterion's Failed box is one more of the same answer ---
+// --- An archived criterion's Failed box is one more of the same answer ---
 
-describe("a criterion's Failed box (spec 510)", () => {
+describe("a criterion's Failed box", () => {
   const swap = async (h: ReturnType<typeof harness>) => {
     h.document.visibilityState = "visible";
     h.tick();
     await flush();
   };
 
-  test("checking Failed clears the tick box, and a redraw restores exactly that (AC-4)", async () => {
+  test("checking Failed clears the tick box, and a redraw restores exactly that", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     h.changeTick(0, true);
     h.changeFailed(0, true);
@@ -359,7 +359,7 @@ describe("a criterion's Failed box (spec 510)", () => {
     expect(h.failedBoxes[0]!.checked).toBe(true);
   });
 
-  test("checking the tick box over a checked Failed box clears Failed, and both stay so after a redraw (AC-4)", async () => {
+  test("checking the tick box over a checked Failed box clears Failed, and both stay so after a redraw", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     h.changeFailed(0, true);
     h.changeTick(0, true);
@@ -369,7 +369,7 @@ describe("a criterion's Failed box (spec 510)", () => {
     expect(h.failedBoxes[0]!.checked).toBe(false);
   });
 
-  test("an untouched Failed box follows the server (AC-4)", async () => {
+  test("an untouched Failed box follows the server", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     await swap(h);
     expect(h.failedBoxes[0]!.checked).toBe(false);

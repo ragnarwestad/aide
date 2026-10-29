@@ -38,8 +38,8 @@ class TestTheMergeInstallRefreshesEveryTool:
     Claude Code and Codex read the same skills and the same rules, but
     each has an installer of its own, and the post-merge script ran only
     Claude Code's. Codex therefore went on reading its install-time copy:
-    on 2026-08-19 it created a spec on the four-file layout spec 82
-    replaced, because its copy of `aide-create` still described the old
+    on 2026-08-19 it created a spec on the four-file layout that
+    was replaced, because its copy of `aide-create` still described the old
     one. Copilot needs no line of its own: it reads `~/.agents/skills/`
     and the instructions file the Codex installer already refreshes.
     """
@@ -65,7 +65,7 @@ class TestTheMergeInstallRefreshesEveryTool:
 
 @pytest.mark.validation
 class TestInstallAfterMergeLogsInsteadOfDiscarding:
-    """A tool the installer cannot declare (spec 334, REQ-5/REQ-6) has to
+    """A tool the installer cannot declare has to
     reach somewhere a reader can find it later — not /dev/null, which a
     headless merge nobody is watching would otherwise discard it into."""
 

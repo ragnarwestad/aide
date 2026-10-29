@@ -1,5 +1,5 @@
 // A spec's own claims as committed on its own open `aide/<folder>` branch
-// (spec 298), and what a spec's files claim in general (spec 362) — the
+// and what a spec's files claim in general — the
 // file half of `stepsFileDisagreesOn`'s comparison in `workflow-history.ts`,
 // which re-exports everything here.
 
@@ -15,19 +15,19 @@ import { parseApproaches, type ApproachChoice } from "../project/approach-choice
 /** How long one answer stands, for this checker and `WorkflowHistoryChecker` alike. */
 export const DEFAULT_TTL_MS = 30_000;
 
-/** What a spec's own files claim, kept apart by source (spec 362) — the
+/** What a spec's own files claim, kept apart by source — the
  *  prose's own line, and the state file's `completedPhases` when this
  *  copy of the spec (disk or branch) has one. */
 export interface FileStepsAnswer {
   /** What `4-status.md`'s own `Workflow steps completed` line claims. */
   proseSteps: string[];
   /** `4-status.json`'s own `completedPhases` — `undefined` when this
-   *  copy of the spec's files has no state file yet (spec 355 REQ-10),
-   *  the cue to keep comparing `proseSteps` against git (REQ-2). */
+   *  copy of the spec's files has no state file yet,
+   *  the cue to keep comparing `proseSteps` against git. */
   stateSteps: string[] | undefined;
   /** Whether the file has an acceptance row nobody has ticked — read
    *  off the same branch copy as the steps, since a tick on a spec
-   *  with an open branch is written THERE (spec-edit.ts, REQ-4) and the
+   *  with an open branch is written THERE (spec-edit.ts) and the
    *  default branch's copy stays unticked until archive lands. The
    *  row's "archive held back" and the queue's archive hold-back read
    *  this before the disk copy; absent when the answer came off disk. */
@@ -60,12 +60,12 @@ export interface BranchFileStepsOptions {
 }
 
 /** A spec's own claims as committed on its own open `aide/<folder>`
- *  branch (spec 298) — the file half of `stepsFileDisagreesOn`'s
+ *  branch — the file half of `stepsFileDisagreesOn`'s
  *  comparison, read from the same point in the graph the history half
  *  (`WorkflowHistoryChecker`, `git log --all`) already answers from,
  *  rather than from the default branch's stale copy. Both
  *  `4-status.md`'s prose and, alongside it, `4-status.json`'s own
- *  `completedPhases` when the branch has one (spec 362) — the state
+ *  `completedPhases` when the branch has one — the state
  *  file is what a gate reads there too, and a branch mid-`implement`
  *  must not keep comparing it against git once it exists. Shaped
  *  exactly like `WorkflowHistoryChecker`: async `read`, TTL-cached, and
@@ -74,7 +74,7 @@ export interface BranchFileStepsOptions {
  *  `null` means "no open branch, or the branch's copy could not be
  *  read" — the caller's own cue to fall back to the disk read, which is
  *  what every spec without an open branch keeps doing unchanged
- *  (REQ-3). */
+ */
 export class BranchFileStepsChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
@@ -106,10 +106,10 @@ export class BranchFileStepsChecker {
         for (const relPath of [target.relPath, target.archivedRelPath]) {
           const file = await readStatusFromBranch(this.run, target.root, target.branch, relPath);
           if (!file) continue;
-          // spec 362: the branch's own sibling `4-status.json`, at the
+          // The branch's own sibling `4-status.json`, at the
           // same place `4-status.md` sits — read alongside the prose,
           // never in its place, so `stateSteps` can stay `undefined` for
-          // a branch that has none yet (REQ-2).
+          // a branch that has none yet.
           const jsonPath = relPath.replace(/4-status\.md$/, "4-status.json");
           const jsonFile = await readStatusFromBranch(this.run, target.root, target.branch, jsonPath);
           const state = jsonFile ? parseSpecStateText(jsonFile.text) : null;
@@ -149,7 +149,7 @@ export class BranchFileStepsChecker {
     // to the default branch's copy of the file for as long as the
     // re-read took, and that copy still says what it said before
     // implement ran — so a tick on the Checks tab made the row announce
-    // that the files disagree (425, 2026-09-09).
+    // that the files disagree.
     const key = JSON.stringify([dir, specFolder]);
     const hit = this.cache.get(key);
     if (hit) this.cache.set(key, { ...hit, stale: true });
@@ -158,7 +158,7 @@ export class BranchFileStepsChecker {
   /** No git spawn, ever — what `withFreshness` calls. `steps: null`
    *  covers two different truths the caller does not need to tell
    *  apart: no open branch, and "not warmed yet" — both mean "fall back
-   *  to the disk read" (REQ-3's own behavior, unchanged). */
+   *  to the disk read" (unchanged behavior). */
   peekFileSteps(
     dir: string,
     specFolder: string,

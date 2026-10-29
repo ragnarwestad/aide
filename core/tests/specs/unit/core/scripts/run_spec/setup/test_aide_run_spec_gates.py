@@ -47,7 +47,7 @@ def test_analyze_is_unaffected_by_the_new_gate(runner, workspace, fake_claude):
 
 def test_archive_keeps_its_own_gate(runner, workspace, fake_claude):
     """`analyze` on the line satisfies THIS gate, but archive's own
-    not-implemented-yet check (spec 268) still asks about `implement`,
+    not-implemented-yet check still asks about `implement`,
     which is not there — proving the new gate does not short-circuit or
     replace it."""
     with_status(workspace, claims=["analyze"])
@@ -101,7 +101,7 @@ def test_create_proceeds_despite_an_unknown_or_self_dependency(
 def test_the_other_gated_steps_still_refuse_an_unmerged_dependency(
     runner, workspace, fake_claude, command
 ):
-    """Criterion 3: implement is not the only gated step. archive moves
+    """Implement is not the only gated step. archive moves
     the folder and lands the code — it builds on what has landed."""
     add_spec(workspace, "80-dependency")
     leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
@@ -117,7 +117,7 @@ def test_the_other_gated_steps_still_refuse_an_unmerged_dependency(
 def test_archive_recovers_an_already_archived_spec_whose_branch_is_still_open(
     runner, workspace, fake_claude
 ):
-    """Criterion 1. Pressing Archive again on an unlanded row must reach
+    """Pressing Archive again on an unlanded row must reach
     the skill, not refuse "unknown spec"."""
     add_spec(workspace, "77-recovered", archived=True)
     leave_branch_on_origin(workspace, "aide/77-recovered")
@@ -148,7 +148,7 @@ def test_archive_recovers_an_already_archived_spec_by_its_number(
 def test_archive_reports_an_already_landed_spec_as_done_not_refused(
     runner, workspace, fake_claude
 ):
-    """Criterion 1. An archived spec with nothing left on origin is
+    """An archived spec with nothing left on origin is
     finished work, not a name that does not exist. It is reported as
     success, and it names the folder so a reader can act on it."""
     add_spec(workspace, "77-recovered", archived=True)
@@ -199,7 +199,7 @@ def test_an_already_landed_spec_reports_the_same_outcome_to_the_result_file(
 def test_every_other_step_still_refuses_an_archived_spec_with_an_open_branch(
     runner, workspace, fake_claude, step
 ):
-    """Criterion 3. The fork is on the literal string `archive`: an
+    """The fork is on the literal string `archive`: an
     archived spec is finished work for every other step, whatever its
     branch looks like."""
     add_spec(workspace, "77-recovered", archived=True)
@@ -217,7 +217,7 @@ def test_every_other_step_still_refuses_an_archived_spec_with_an_open_branch(
 def test_create_does_not_resolve_an_archived_spec_with_an_open_branch(
     runner, workspace, fake_claude
 ):
-    """Criterion 3, for the one step that has no "unknown spec" refusal
+    """For the one step that has no "unknown spec" refusal
     to give: `create` MAKES the folder, so a name it cannot resolve is
     its normal case. What it must not do is resolve the archived folder
     and archive-step its way past its own required arguments — so the
@@ -237,9 +237,9 @@ def test_create_does_not_resolve_an_archived_spec_with_an_open_branch(
     assert not fake_claude.calls.exists()
 
 def test_workflow_steps_json_holds_the_known_lists(workspace_root):
-    """REQ-1: one data file holds the workflow steps, the dependency-gated
+    """One data file holds the workflow steps, the dependency-gated
     steps and the workflow arc — each matching today's known-good
-    values. AC-2: the list has no step that starts a removed skill."""
+    values. The list has no step that starts a removed skill."""
     path = workspace_root / "core" / "scripts" / "lib" / "workflow-steps.json"
     assert path.is_file(), f"the shared workflow-step file is missing: {path}"
     data = json.loads(path.read_text())
@@ -251,7 +251,7 @@ def test_workflow_steps_json_holds_the_known_lists(workspace_root):
     assert data["workflowArcRetired"] == ["review-plan"]
 
 def test_bash_no_longer_declares_the_step_lists_as_literals(run_spec_source):
-    """REQ-2: the runner reads all four lists from workflow-steps.json now.
+    """The runner reads all four lists from workflow-steps.json now.
     WORKFLOW_STEPS keeps its old NAME (assigned from `$(jq ...)`, still a
     `NAME="..."` shape once computed), so this checks for the absence of
     the OLD LITERAL VALUE rather than the variable's name."""
@@ -265,10 +265,10 @@ def test_bash_no_longer_declares_the_step_lists_as_literals(run_spec_source):
         assert literal not in bash, f"aide-run-spec still declares {literal!r} as a literal"
 
 def test_dashboard_no_longer_declares_the_step_lists_as_literals(workspace_root):
-    """REQ-2: none of the three plain-import TypeScript files may keep a
+    """None of the three plain-import TypeScript files may keep a
     hand-written array literal once they import workflow-steps.json
     instead. `dashboard/src/queue/steps.ts` is excluded here — its
-    `WorkflowStep` type is checked separately (REQ-4b), since a JSON
+    `WorkflowStep` type is checked separately, since a JSON
     import cannot give TypeScript a literal union."""
     config_ts = (workspace_root / "dashboard" / "src" / "serve" / "serve-helpers" / "config.ts").read_text()
     assert not re.search(r"export const DEPENDENCY_GATED_STEPS = \[.*?\] as const;", config_ts, re.S), (
@@ -320,7 +320,7 @@ def test_runner_refuses_by_name_when_one_of_its_own_parts_is_missing(runner, wor
 
 
 def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspace, fake_claude, tmp_path):
-    """REQ-3: a runner that cannot find the shared file refuses loudly,
+    """A runner that cannot find the shared file refuses loudly,
     naming the file, rather than running with the four lists silently
     unset under `set -u`."""
     lone_copy = tmp_path / "aide-run-spec-under-test"
@@ -353,7 +353,7 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 def test_create_runs_for_a_spec_that_does_not_exist_yet(runner, workspace, fake_claude):
-    """The whole refusal spec 87 hit: the spec-folder lookup is
+    """The whole refusal a `create` once hit: the spec-folder lookup is
     unconditional, so a spec that does not exist yet can never resolve
     and every `create` is refused before a worktree is even made."""
     claude = creating_claude(fake_claude)
@@ -388,7 +388,7 @@ def test_the_time_limit_must_be_a_number_above_zero(runner, workspace, fake_clau
         assert rc == 2 and out["error"] == f"invalid --timeout-sec: {value}", out
 
 
-def test_a_refusal_is_an_error_line_in_the_log_AC_7(runner, workspace, fake_claude):
+def test_a_refusal_is_an_error_line_in_the_log(runner, workspace, fake_claude):
     with_status(workspace, claims=["create"])
     rc, out, _, err = run(runner, workspace, fake_claude("exit 1"), command="implement", return_stderr=True)
     assert out["terminalReason"] == "refused", out

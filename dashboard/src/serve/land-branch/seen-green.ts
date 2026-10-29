@@ -3,7 +3,7 @@
 // (`run-spec/turn/step-tests.sh`), and it records the tree it saw green on;
 // when main has not moved since, the landing's own merge is that same
 // tree, and running the same commands on it a second time costs a whole
-// suite to learn nothing (spec 480, 2026-09-18). When main HAS moved,
+// suite to learn nothing. When main HAS moved,
 // the trees differ and the landing runs as before.
 
 import type { Job } from "../../queue/queue.ts";
@@ -19,7 +19,7 @@ async function treeOf(dir: string, liveRoot: string, scriptDir?: string): Promis
   const lib = scriptFor("_aide-spec-lib.sh", { beside: scriptDir, override: process.env.AIDE_SPEC_LIB });
   // The live checkout's own answer first; the tree's when it has none —
   // a project that keeps its settings in the dashboard has them in an
-  // untracked manifest the gate copied into the tree (spec 512).
+  // untracked manifest the gate copied into the tree.
   const links = resolveWorktreeLinks(liveRoot).links || resolveWorktreeLinks(dir).links || "";
   const hashed = await runScript(
     ["/bin/bash", "-c", 'source "$1" && aide_tree_hash "$2" "$3"', "_", lib, dir, links],

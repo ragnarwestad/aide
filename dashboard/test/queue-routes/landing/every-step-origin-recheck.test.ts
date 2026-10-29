@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** The message a job carries, as text. Since spec 380 a job stores
+/** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it.
  *  These tests assert on what a reader would see, so they compose it
  *  the same way, in English. */
@@ -25,7 +25,7 @@ afterEach(() => {
   cleanupOwnDirs();
 });
 
-// --- spec 193: a landing that failed is not a spec that is done ----------
+// --- A landing that failed is not a spec that is done ----------
 //
 // Split out of stopped-and-every-step.test.ts by theme.
 //
@@ -42,7 +42,7 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     git: { run: (dir: string, args: string[]) => Promise<unknown> },
   ) => serverWith(harness, dir, paths, git);
 
-  /** Spec 146's shape: the implement was run BY HAND, so the queue
+  /** The shape: the implement was run BY HAND, so the queue
    *  holds no job carrying the project root and archive's own run
    *  reports the specs repo alone. Nothing in the merge loop ever
    *  mentions the code branch, and it is still on origin. */
@@ -50,7 +50,6 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
   });
 
-  // Criterion 2.
   test("a branch left on origin in a repo the loop never saw is a failed job", async () => {
     const dir = own("aide-193-unlanded-");
     const paths = repos(dir);
@@ -69,13 +68,13 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     expect(failed.errorReason).toBe("unlanded");
     expect(sentence(failed.error)).toContain(paths.project);
     expect(sentence(failed.error)).toContain(BRANCH);
-    // Spec 201: the state is half the sentence — the other half is
+    // The state is half the sentence — the other half is
     // the move. The row's own button already offers it; the message
     // has to say so.
     expect(sentence(failed.error).toLowerCase()).toContain("run archive again");
   }, 20000);
 
-  // Criterion 3. The happy path is the one this whole change must not
+  // The happy path is the one this whole change must not
   // break: a landing that merged everything leaves no branch behind,
   // so origin agrees and the job stays exactly as it was.
   test("a landing that left nothing on origin stays done, with no error", async () => {
@@ -98,8 +97,8 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     expect(landed.errorReason).toBeFalsy();
   });
 
-  // Criterion 4. An unanswerable question is not evidence. Same
-  // fixture as criterion 2 — the branch really is still open — with
+  // An unanswerable question is not evidence. Same
+  // fixture as the test above — the branch really is still open — with
   // an origin that cannot be reached.
   test("a question origin cannot answer invents no failure", async () => {
     const dir = own("aide-193-unanswerable-");
@@ -113,7 +112,7 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     expect(landed.error).toBeFalsy();
   });
 
-  // Criterion 9. The verification is ARCHIVE's alone. An analyze runs
+  // The verification is ARCHIVE's alone. An analyze runs
   // while implement's code branch is legitimately open, and the same
   // check there would call a healthy landing failed.
   test("an analyze landing is not asked, and stays done beside an open code branch", async () => {
@@ -125,9 +124,9 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     const landed = await stepWithResult(base, dir, "analyze", onlyTheSpecsRepo(paths));
 
     // Archive's own unlanded-branch verdict (`errorReason: "unlanded"`)
-    // is what this criterion is about, and it is untouched: analyze
-    // stays done, with no error. (Spec 298 gave every landing's own
-    // `warmSpec` call a second, unrelated reason to ask the same
+    // is what this test is about, and it is untouched: analyze
+    // stays done, with no error. (Every landing's own
+    // `warmSpec` call has a second, unrelated reason to ask the same
     // `ls-remote --heads origin refs/heads/aide/*` question — reading a
     // still-open branch's own `4-status.md` — so the call itself is no
     // longer a reliable stand-in for "archive's sweep ran.")
@@ -136,12 +135,12 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     expect(landed.errorReason).toBeFalsy();
   });
 
-  // Criterion 10. `complete()` may already have queued the job's NEXT
+  // `complete()` may already have queued the job's NEXT
   // step by the time the landing's promise settles, and a landing
   // must not overwrite a job that has moved on. `error`/`errorReason`
   // say what the row is waiting for RIGHT NOW — queued for implement,
   // not the analyze landing's bygone refusal — so only `landingError`,
-  // the permanent record of that attempt, survives onto it (spec 393).
+  // the permanent record of that attempt, survives onto it.
   test("a failed landing does not overwrite a job whose next step is queued", async () => {
     const dir = own("aide-193-moved-on-");
     const paths = repos(dir);
@@ -169,7 +168,7 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     expect(sentence(after.landingError)).toContain(paths.specs);
   }, 20000);
 
-  // Criterion 8. The way out. A re-run of `archive` needs no new step:
+  // The way out. A re-run of `archive` needs no new step:
   // the runner hands archive the open merge, the skill resolves it,
   // and the landing that follows merges cleanly.
   describe("archive can be enqueued again for such a spec", () => {
@@ -205,13 +204,13 @@ describe("an archive landing asks origin whether anything stayed open", () => {
       expect((await enqueue(base)).status).toBeGreaterThan(399);
     });
 
-    // --- spec 198: the other way out ------------------------------------
+    // --- The other way out ------------------------------------
     //
     // An archived spec can also be REOPENED, and unlike the re-run
     // above that does not depend on a branch being open — a spec whose
     // work has to be done again is one that finished cleanly, most of
     // the time. The two exceptions are kept apart in the resolver for
-    // that reason: `specFolders` carries spec 193's open-branch
+    // that reason: `specFolders` carries the open-branch
     // exception and admits every step, `archivedFolders` carries this
     // one and admits `reopen` alone.
     const enqueueReopen = (base: string, steps: string[] = ["reopen"]) =>

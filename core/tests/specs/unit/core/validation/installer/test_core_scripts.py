@@ -33,7 +33,7 @@ class TestCoreScriptsAreWellFormed:
     def test_the_installers_parse_as_bash(self, workspace_root):
         # The installers live outside core/scripts and so fell outside the
         # check above — a syntax error in one of them used to reach a user
-        # before anything noticed (spec 175).
+        # before anything noticed.
         scripts = [workspace_root / "install-all.sh", workspace_root / "uninstall-all.sh"]
         for tool in ("claude-code", "codex", "copilot"):
             scripts.append(workspace_root / "core" / "implementations" / tool / "install.sh")
@@ -75,7 +75,7 @@ class TestInstallCommonBin:
             "aide-record-test-run is not in COMMON_BIN_SCRIPTS, so the archive gate cannot run it"
 
     def test_spec_state_lib_and_backfill_are_installed(self, workspace_root, tmp_path):
-        """Spec 355 moved the spec's state into lib/spec-state.sh, which
+        """The spec's state lives in lib/spec-state.sh, which
         aide-archive-spec sources when present — and treats every spec as
         not implemented when absent. It shipped without being in the
         installer's lists, so the serving host refused every archive."""
@@ -92,7 +92,7 @@ class TestInstallCommonBin:
             "aide-backfill-spec-state is not in COMMON_BIN_SCRIPTS"
 
     def test_workflow_steps_json_is_installed(self, workspace_root, tmp_path):
-        """Spec 349, REQ-3a. workflow-steps.json is the one file both
+        """workflow-steps.json is the one file both
         aide-run-spec (jq) and the dashboard (import) read the workflow's
         step lists from — if it drops out of COMMON_BIN_LIB_SCRIPTS, a
         freshly installed runner has no file to read and refuses every
@@ -131,7 +131,7 @@ class TestInstallCommonBin:
 class TestInstalledVersionStamp:
     """install_common_bin records which repo checkout and commit produced
     this ~/.local/bin copy, so aide-preflight can later tell it apart from
-    the repo's current HEAD (REQ-7)."""
+    the repo's current HEAD."""
 
     def test_install_common_bin_writes_a_stamp(self, workspace_root, tmp_path):
         installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
@@ -159,7 +159,7 @@ class TestInstalledVersionStamp:
 @pytest.mark.validation
 class TestJqRequiredContractStaysConsistent:
     """Every script that refuses to run without jq must say so in the same
-    JSON shape (REQ-6) — widened to five scripts after plan review found
+    JSON shape — widened to five scripts after plan review found
     aide-run-spec's own check was weaker than the other four."""
 
     JQ_REQUIRING_SCRIPTS = (
@@ -229,9 +229,9 @@ def _help_checked_scripts(directory):
 @pytest.mark.validation
 class TestCoreScriptsSupportHelp:
     """Every script in core/scripts/ and scripts/ answers --help and -h
-    with its own usage text and exits 0 (AC-1) — swept once over every
+    with its own usage text and exits 0 — swept once over every
     executable file so a script added later with no help arm fails this
-    same test, naming itself (AC-3)."""
+    same test, naming itself."""
 
     @staticmethod
     def _all_scripts(workspace_root):

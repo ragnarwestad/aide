@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { harness, OK_ACTION, swapUrl } from "../fixtures.ts";
 
-describe("a row button posts from the page (criteria 10-12)", () => {
+describe("a row button posts from the page", () => {
   test("it asks for JSON on the form's own route", async () => {
     const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION } : { ok: true }));
     await h.submit();
@@ -10,7 +10,7 @@ describe("a row button posts from the page (criteria 10-12)", () => {
     expect((posted.init.headers as Record<string, string>).accept).toBe("application/json");
   });
 
-  test("the rows are swapped as soon as the answer arrives, not on the next tick (criterion 11)", async () => {
+  test("the rows are swapped as soon as the answer arrives, not on the next tick", async () => {
     const h = harness(() => ({ ok: true, body: OK_ACTION }));
     await h.submit();
     expect(swapUrl(h)).toContain("rows=1");
@@ -35,7 +35,7 @@ describe("a row button posts from the page (criteria 10-12)", () => {
     expect(h.button.classList.contains("busy")).toBe(true);
     release();
     await pressed;
-    // Once the answer is in, the rows are fetched (criterion 11) — once.
+    // Once the answer is in, the rows are fetched — once.
     expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(1);
     h.tick();
     await Promise.resolve();
@@ -47,7 +47,7 @@ describe("a row button posts from the page (criteria 10-12)", () => {
   // server restarted used to land on a bare `/`, and the sort and
   // filter they had set were gone (seen 2026-08-19: "Spec ▴" reset to
   // "Started ▾" with no press of theirs).
-  test("a press that cannot be sent at all reloads rather than lying — and keeps the view (criterion 12)", async () => {
+  test("a press that cannot be sent at all reloads rather than lying — and keeps the view", async () => {
     const h = harness(() => ({ ok: false, throws: true }), "actionform", "?sort=spec&dir=asc");
     await h.submit();
     expect(h.location.href).toBe("/?sort=spec&dir=asc");
@@ -63,14 +63,14 @@ describe("a row button posts from the page (criteria 10-12)", () => {
     expect(h.button.textContent).toBe("Cancel");
   });
 });
-// --- spec 99/101: a refused press keeps the page, and says why -------------
+// --- a refused press keeps the page, and says why --------------------------
 
 // A refusal does not navigate: the page keeps the reader's view, the
 // scroll position and the form they were filling in, and the rows are
 // asked for again in that same view. The page script keeps the sentence
 // itself (`row-refusal/`); where it is drawn is `row-refusal.test.ts`'s.
-describe("a refused action keeps the view and says why (criteria 7, 8)", () => {
-  test("the rows are asked for again in the reader's own view, with the address left as it is (AC-2)", async () => {
+describe("a refused action keeps the view and says why", () => {
+  test("the rows are asked for again in the reader's own view, with the address left as it is", async () => {
     const refused = { ok: false, spec: "aide/99-x", error: "the tree is dirty in /repos/aide-specs" };
     const h = harness(
       (url) => (url.includes("/cancel") ? { ok: true, body: refused } : { ok: true }),
@@ -85,7 +85,7 @@ describe("a refused action keeps the view and says why (criteria 7, 8)", () => {
     expect(h.location.href).toBe("http://dash.test/");
   });
 
-  test("a refusal the server did not attribute is written in the list's own line (AC-6)", async () => {
+  test("a refusal the server did not attribute is written in the list's own line", async () => {
     const h = harness((url) =>
       url.includes("/cancel") ? { ok: true, body: { ok: false, error: "the tree is dirty" } } : { ok: true },
     );
@@ -93,14 +93,14 @@ describe("a refused action keeps the view and says why (criteria 7, 8)", () => {
     expect(h.listRefused.textContent).toBe("The tree is dirty");
   });
 });
-// --- spec 101: every control answers the press ------------------------------
+// --- Every control answers the press ------------------------------
 
 // Run and Cancel were plain form posts: the browser navigated on the
 // click, the button froze mid-navigation, and the redirect target
 // re-rendered the whole page (a git call per spec) before anything came
 // back. Same request, same route, same answer — the wait and the jump
 // are what go.
-describe("every action button says it was pressed (criteria 4, 5)", () => {
+describe("every action button says it was pressed", () => {
   const OK = { ok: true, job: { id: "job-1" } };
 
   for (const formClass of ["rowrun", "actionform"] as const) {
@@ -144,7 +144,7 @@ describe("every action button says it was pressed (criteria 4, 5)", () => {
 // The one form that is not about a spec that exists. It has no row for
 // a refusal to land on — the spec it names was never made — so the
 // reason goes beside the form the reader was typing into.
-describe("the New-spec form answers for itself (criteria 7, 8)", () => {
+describe("the New-spec form answers for itself", () => {
   test("a refusal is written beside the form, and the reader stays on the page", async () => {
     const h = harness(() => ({ ok: false, body: { error: "no such project: nope" } }));
     await h.submitCreate();
@@ -155,7 +155,7 @@ describe("the New-spec form answers for itself (criteria 7, 8)", () => {
     expect(h.replaced).toHaveLength(0);
   });
 
-  // Spec 121, criterion 8. The form has a page of its own now: there is
+  // The form has a page of its own now: there is
   // no panel to shut, no #jobrows beside it to swap, and the thing the
   // reader asked to see — the new spec's row, with its progress — is on
   // the page this navigates to.
@@ -168,8 +168,8 @@ describe("the New-spec form answers for itself (criteria 7, 8)", () => {
     expect(h.requests.some((r) => r.url.includes("rows=1"))).toBe(false);
   });
 
-  // Spec 104 changed what the four ROW buttons do while their request
-  // is out, and deliberately left this one alone: it has no row to
+  // The four ROW buttons change while their request is out; this one
+  // deliberately does not: it has no row to
   // shift and no phase boxes to lend their space, so the word it swaps
   // to costs nothing.
   test("the button says it is working, and its fields go with it", async () => {
@@ -195,7 +195,7 @@ describe("the New-spec form answers for itself (criteria 7, 8)", () => {
     expect(h.requests).toHaveLength(0);
   });
 });
-// --- spec 110: the Depends-on chips follow the chosen project ----------------
+// --- The Depends-on chips follow the chosen project ----------------
 
 // A dependency is resolved inside ONE specs root, so a chip belonging to
 // another project is not a choice anyone can make. The server refuses it
@@ -223,8 +223,8 @@ describe("the Depends-on chips are scoped to the chosen project", () => {
     expect(h.chips[1]!.input.disabled).toBe(false);
   });
 
-  // Spec 121 retired the re-sync that used to follow a create: the
-  // success path navigates now, so there is no reset to chase and no
+  // There is no re-sync after a create: the
+  // success path navigates, so there is no reset to chase and no
   // half-cleared form to leave behind. What the reader picked stands
   // until the browser leaves the page.
   test("a successful create leaves them alone — the page is on its way out", async () => {

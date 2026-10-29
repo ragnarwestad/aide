@@ -68,15 +68,15 @@ function run(opts: Opts = {}) {
 }
 
 describe("the page sets the count it loaded with", () => {
-  test("a count above 0 is set once (AC-3)", () => {
+  test("a count above 0 is set once", () => {
     expect(run({ meta: "2" }).calls).toEqual(["set 2"]);
   });
 
-  test("a count of 0 clears the icon and sets no number (AC-6)", () => {
+  test("a count of 0 clears the icon and sets no number", () => {
     expect(run({ meta: "0" }).calls).toEqual(["clear"]);
   });
 
-  test("a page with no count leaves the icon as it was (AC-3)", () => {
+  test("a page with no count leaves the icon as it was", () => {
     expect(run().calls).toEqual([]);
     expect(run({ meta: "" }).calls).toEqual([]);
     expect(run({ meta: "many" }).calls).toEqual([]);
@@ -84,19 +84,19 @@ describe("the page sets the count it loaded with", () => {
 });
 
 describe("the page follows its live update", () => {
-  test("a new number from the live client is set (AC-4)", () => {
+  test("a new number from the live client is set", () => {
     const page = run({ meta: "1" });
     page.announce(3);
     expect(page.calls).toEqual(["set 1", "set 3"]);
   });
 
-  test("0 from the live client clears the icon rather than being dropped as false (AC-6)", () => {
+  test("0 from the live client clears the icon rather than being dropped as false", () => {
     const page = run({ meta: "1" });
     page.announce(0);
     expect(page.calls).toEqual(["set 1", "clear"]);
   });
 
-  test("a detail that is not a whole number is ignored (AC-4)", () => {
+  test("a detail that is not a whole number is ignored", () => {
     const page = run({ meta: "1" });
     page.announce(undefined);
     page.announce("3");
@@ -105,15 +105,15 @@ describe("the page follows its live update", () => {
   });
 });
 
-describe("a browser without the Badging API is left alone (AC-7)", () => {
-  test("the script throws nothing and calls nothing, on load or on an update (AC-7)", () => {
+describe("a browser without the Badging API is left alone", () => {
+  test("the script throws nothing and calls nothing, on load or on an update", () => {
     expect(() => run({ supported: false, meta: "2" })).not.toThrow();
     const page = run({ supported: false, meta: "2" });
     expect(() => page.announce(3)).not.toThrow();
     expect(page.calls).toEqual([]);
   });
 
-  test("a refused badge is caught rather than left to the console (AC-7)", () => {
+  test("a refused badge is caught rather than left to the console", () => {
     const page = run({ meta: "2", refuses: true });
     page.announce(0);
     expect(page.calls).toEqual(["set 2", "clear"]);

@@ -1,4 +1,4 @@
-// Shared test data for the "every step lands its own work (spec 149)"
+// Shared test data for the "every step lands its own work"
 // suite, split across every-step-basic-landing.test.ts,
 // every-step-origin-recheck.test.ts and every-step-pull-request.test.ts
 // (split out of stopped-and-every-step.test.ts by theme). Every function
@@ -38,7 +38,7 @@ export function createOwnDirs() {
  *  merge fails both ways. `slow` delays the ff-only merge, so two
  *  landings on one root can be caught overlapping.
  *
- *  `openOn` (spec 193) names the roots whose ORIGIN still has the
+ *  `openOn` names the roots whose ORIGIN still has the
  *  spec branch, and a merge that succeeds in a root takes it out of
  *  that set — which is what `mergeBranchIntoDefault` really does, by
  *  deleting the branch on origin once it has landed. `lsRemoteCode`
@@ -86,7 +86,7 @@ export function gitFor({
  *  own checkout, plus the specs repo the run pushes to.
  *
  *  `archiveSpec` is what the specs-root merge brings into the main
- *  checkout (spec 193): the folder move the archive run committed on
+ *  checkout: the folder move the archive run committed on
  *  its branch. Until it is called the spec is LIVE on disk, which is
  *  why an archive-landing test that never calls it steps straight
  *  past the archived filter and can assert nothing about it. */

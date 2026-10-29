@@ -28,20 +28,20 @@ const STAMP = "- **Round boundary:** 2026-09-19 (history before `abc1234` does n
 const ARCHIVED = "- **Archived:** 2026-09-10";
 
 describe("reopenedRound", () => {
-  test("an Archived stamp followed by a Round boundary stamp is a reopened round AC-5", () => {
+  test("an Archived stamp followed by a Round boundary stamp is a reopened round", () => {
     expect(reopenedRound(`${ARCHIVED}\n${STAMP}\n`)).toBe(true);
   });
-  test("a Closed stamp followed by a Round boundary stamp is a reopened round AC-5", () => {
+  test("a Closed stamp followed by a Round boundary stamp is a reopened round", () => {
     expect(reopenedRound(`- **Closed:** 2026-09-10\n${STAMP}\n`)).toBe(true);
   });
-  test("a boundary with no Archived or Closed stamp before it is not (a held-back spec) AC-5", () => {
+  test("a boundary with no Archived or Closed stamp before it is not (a held-back spec)", () => {
     expect(reopenedRound(`${STAMP}\n`)).toBe(false);
   });
-  test("a Reopened or Reset mark in between makes it not a keep-reopen AC-5", () => {
+  test("a Reopened or Reset mark in between makes it not a keep-reopen", () => {
     expect(reopenedRound(`${ARCHIVED}\n- **Reopened:** 2026-09-12\n${STAMP}\n`)).toBe(false);
     expect(reopenedRound(`${ARCHIVED}\n- **Reset:** 2026-09-12\n${STAMP}\n`)).toBe(false);
   });
-  test("archived again after the boundary is history, not an open round AC-5", () => {
+  test("archived again after the boundary is history, not an open round", () => {
     expect(reopenedRound(`${ARCHIVED}\n${STAMP}\n- **Archived:** 2026-09-20\n`)).toBe(false);
   });
 });

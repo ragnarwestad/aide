@@ -118,7 +118,7 @@
   table.list tr.subrow[data-jobstep] .phasecell { flex: 1 1 0; min-width: 0; white-space: normal; }
   /* The compact button/panel toggle, the caption's AI/Model merge and
      the selects' own width un-cap all move to the two `@media` blocks at
-     the end of this file (spec 488) — they are the one thing that now
+     the end of this file — they are the one thing that now
      differs between the 400-600px and 600-640px bands, everything else
      here stays exactly as it reads. */
 
@@ -149,7 +149,7 @@
      The Specs list keeps it: an open row there reads as a shut one. */
   table.list:not([data-list="specs"]) tr.spechead:not([data-job]):has(.fold[aria-expanded="true"]) + tr.specstate { display: none; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="ai"] { order: 4; }
-  /* Same tier as "ai" (spec 488): a tie in flex `order` falls back to DOM
+  /* Same tier as "ai": a tie in flex `order` falls back to DOM
      order, and the caption line writes "ai" ahead of "model" — this only
      matters once [data-cap="model"] stops being hidden, at 600-640px
      (the block at the end of this file), so it never shows up out of
@@ -157,7 +157,7 @@
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { order: 4; }
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] { order: 5; }
   /* The AI/Model merge into one caption, and the two selects' own width
-     un-cap, are the 400-600px band's own doing now (spec 488, end of
+     un-cap, are the 400-600px band's own doing (end of
      this file) — the tick's own caption keeps its --tick-w width at
      every step, unlike the AI one beside it. */
   table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="box"] {
@@ -165,7 +165,7 @@
 
   /* And the width the cell reserves on a desktop is given back.
      Reserving it here would put a floor into a 23rem screen and the
-     table would scroll — the one thing spec 155 exists to prevent, and
+     table would scroll — the one thing this layout exists to prevent, and
      a full-width block honours a min-width exactly as a table cell
      does. It is not needed at this width: the controls have wrapped, so
      there is no second column inside the cell to line a caption up
@@ -185,12 +185,12 @@
      onto their own line instead of cramming two fields into 20rem. */
   .scheduleform { grid-template-columns: 1fr; }
 
-  /* Same idea, for spec 474's side-by-side Depends-on field: one column
+  /* Same idea, for the side-by-side Depends-on field: one column
      on a phone, the picked box above the pick list. */
   .depends-pair { flex-direction: column; }
 
   /* The search field crowds "Search" and "New spec" onto their own
-     line at phone width (spec 263): 26rem does not fit beside two
+     line at phone width: 26rem does not fit beside two
      buttons under 40rem. Narrow it enough that all three share one
      line at rest, and let it reclaim the row on focus - "New spec" is
      what gives, per the description, never "Search". */
@@ -199,11 +199,11 @@
   .searchfield:focus-within { flex: 1 1 auto; width: auto; }
   .specsearch:has(.searchfield:focus-within) .btn.primary { display: none; }
 
-  /* REQ-8, spec 338: the desktop-only extra margin above must not reach
+  /* The desktop-only extra margin above must not reach
      phone width — the row already runs `nowrap` on a tight budget here. */
   .menu.state { margin-left: 0; }
 
-  /* Spec 436: theme, language and unit each stand as their own header
+  /* Theme, language and unit each stand as their own header
      trigger on desktop; at phone width they hide, and the "…" menu's
      own flat morerows copy (rows-and-forms.css) takes over instead. */
   .menu.theme, .menu.lang, .menu.unit { display: none; }
@@ -221,7 +221,7 @@
   .menu .morerows { display: flex; }
 }
 
-/* The acceptance criteria unfolded on a row (spec 493), at a phone's
+/* The acceptance criteria unfolded on a row, at a phone's
    width: no indent to spend, so the criterion's text keeps every pixel the
    boxes leave it. */
 @media (max-width: 40rem) {
@@ -229,21 +229,20 @@
   .checksunread { padding-left: 0; }
 }
 
-/* --- the compact AI/model button, 640px down to 400px (spec 488) ------ */
+/* --- the compact AI/model button, 640px down to 400px ------ */
 /* Everything the button/panel/select toggle needs, moved out of the
    block above: below THIS block's own 600px (37.5rem), the two ordinary
-   selects do not fit (spec 155's own reasoning still holds), so one box
-   says what the line is ON and a tap lays the pair over it — exactly as
-   the whole 400-640px band drew it before spec 488. From 600px up this
-   block stops applying, and list.css's own unconditional rules
+   selects do not fit (the same reasoning as above), so one box
+   says what the line is ON and a tap lays the pair over it. From 600px
+   up this block stops applying, and list.css's own unconditional rules
    (`.aimodelopen, .aimodelnow { display: none; }` and
    `.aimodelpanel, .aimodelfield { display: contents; }`) are the only
    thing left standing, which is what puts the two selects back side by
-   side, exactly as above 640px — AC-3 is this cutoff moving, not a new
+   side, exactly as above 640px — this is the cutoff moving, not a new
    rule of its own. */
 @media (max-width: 37.5rem) {
   /* The sub-400px default: 3.125rem, 12px less than the 3.875rem that
-     held "Sonnet" bare (spec 480). The room goes to the phase line's
+     held "Sonnet" bare. The room goes to the phase line's
      own fold control, which every line reserves here since 2026-09-22
      so the names read down one edge; the button's own text ellipsis-
      clips a word earlier, and its full name is a tap away. The band
@@ -267,7 +266,7 @@
     text-overflow: ellipsis; cursor: pointer; }
     table.list tr.subrow .aimodelnow[aria-disabled="true"] { color: var(--muted);
     background: var(--surface-2); cursor: default; }
-  /* Two candidate strings live in the button at once (AC-1/AC-2); which
+  /* Two candidate strings live in the button at once; which
      one shows is this band's own choice, below, and the 400-600px block
      narrows it again. Each gets its own overflow handling — the parent's
      `overflow: hidden` above does not reliably clip a block-level
@@ -287,7 +286,7 @@
     table.list tr.subrow .aimodelfield > span { display: block; font-size: var(--fs-s); color: var(--muted); }
     table.list tr.subrow .aimodelpanel select { width: 100%; min-width: 0; max-width: none; }
 
-  /* The caption line's own AI/Model merge (spec 155): one word, "AI",
+  /* The caption line's own AI/Model merge: one word, "AI",
      heads the button's whole width, since the button is one control for
      both — undone by list.css's own separate 8rem caps the moment this
      block stops applying. */
@@ -305,7 +304,7 @@
   table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 0; max-width: none; }
 }
 
-/* The growing step (AC-1/AC-2, spec 488): once there is enough of the
+/* The growing step: once there is enough of the
    line left to widen the button, it shows the tool ahead of the model
    ("Claude · Sonnet") instead of the model alone. Measured with a
    headless browser, walking pixel by pixel with this project's own
@@ -315,7 +314,7 @@
    400px (25rem) start of this whole band that ONE step, from 400px,
    was not safe, contrary to this file's first guess. 27.5rem (440px) is
    the inner cutoff instead, with room under that measured edge; below
-   it AC-2 applies (the pair does not fit yet, so the button stays the
+   it the compact button applies (the pair does not fit yet, so the button stays the
    sub-400px default, unchanged) and this block does not apply at all.
    It moved out from 27rem on 2026-09-22, when the phase line began
    reserving its fold control's width: at 432px the Norwegian labels
@@ -336,7 +335,7 @@
    window out.
 
    `min-width: 0` and `overflow-x: auto` are what keep a third tab
-   (spec 272, Schedule) from doing here what the board's name already
+   (Schedule) from doing here what the board's name already
    gives way for: a flex item's default `min-width: auto` refuses to
    shrink it below its own content's width, which would otherwise widen
    the whole header — and with it the page — past the viewport instead

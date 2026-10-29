@@ -4,24 +4,22 @@ import { describe, expect, test } from "bun:test";
 import type { SpecCheckView, SpecPageView } from "../../../../src/render";
 import { lead, page, view } from "../spec-page-fixtures.ts";
 
-// --- spec 182, ticked again by spec 212: the spec's remaining checks --------
+// --- The spec's remaining checks ----------------------------------
 //
 // A check only a person can make — look at the page at 375px and say
 // whether it holds — was a row buried near the bottom of the fourth
 // file. The rows came to the top of the page instead.
 //
-// Spec 188 made every row inert and moved the tick onto the Edit form,
-// because a second way of changing a spec was one too many to learn.
-// Spec 212 gives the boxes back, on the Overview PANEL rather than in
+// The boxes sit on the Overview PANEL rather than in
 // the banner: the description's own editor is now a tab beside it
 // rather than a page behind a link, so a reader still has one place to
 // tick — and a form in the banner would ride onto Activity and Steps,
 // which reload every ten seconds and would wipe a half-ticked list.
 //
-// Spec 294: Overview is gone — this is now the Checks tab, so every
+// Overview is gone — this is now the Checks tab, so every
 // call below names it explicitly rather than riding the page's default.
 
-describe("the checks block (specs 182, 188, 212)", () => {
+describe("the checks block", () => {
   const PHASE = "Acceptance criteria";
   const check = (extra: Partial<SpecCheckView> = {}): SpecCheckView => ({
     phase: PHASE,
@@ -52,7 +50,7 @@ describe("the checks block (specs 182, 188, 212)", () => {
 
   // Running, or a landing in flight — not queued: a queued job writes
   // nothing yet, and an archive job parked on the acceptance hold-back
-  // is queued precisely for this tick (371, 2026-09-03).
+  // is queued precisely for this tick.
   for (const lead_ of [lead({ state: "running" }), lead({ state: "done", landing: true })]) {
     test(`a ${lead_.landing ? "landing" : lead_.state} job leaves every check visible but removes the controls`, () => {
       const checks = section(page(withChecks([check(), DONE, LATER], { lead: lead_ }), "status"));

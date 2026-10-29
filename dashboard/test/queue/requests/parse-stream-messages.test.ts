@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { summarizeEntries } from "../../../src/queue/parse-stream";
 
-// The messages filter (spec 500): only what the model wrote, asked for
+// The messages filter: only what the model wrote, asked for
 // before the bound, in all three transcript schemas.
 
 const line = (o: unknown) => JSON.stringify(o);
@@ -20,7 +20,7 @@ const texts = (stream: string, tool?: "claude" | "codex" | "opencode") =>
   summarizeEntries(stream, { only: "messages", max: 10, tool }).map((e) => e.text);
 
 describe("the messages filter", () => {
-  test("Claude: the last ten text blocks, oldest first, nothing from a tool call (AC-2)", () => {
+  test("Claude: the last ten text blocks, oldest first, nothing from a tool call", () => {
     const lines: string[] = [];
     for (let i = 1; i <= 12; i++) {
       lines.push(claudeText(`message ${i}`));
@@ -30,17 +30,17 @@ describe("the messages filter", () => {
     expect(out).toEqual(Array.from({ length: 10 }, (_, i) => `message ${i + 3}`));
   });
 
-  test("Codex: agent_message items only (AC-2)", () => {
+  test("Codex: agent_message items only", () => {
     const stream = [codexMessage("one"), codexCommand("ls"), codexFile("a.ts"), codexMessage("two")].join("\n");
     expect(texts(stream, "codex")).toEqual(["one", "two"]);
   });
 
-  test("opencode: text parts only (AC-2)", () => {
+  test("opencode: text parts only", () => {
     const stream = [opencodeText("one"), opencodeTool("bash"), opencodeText("two")].join("\n");
     expect(texts(stream, "opencode")).toEqual(["one", "two"]);
   });
 
-  test("the filter is applied before the bound: ten messages survive forty commands after them (AC-2)", () => {
+  test("the filter is applied before the bound: ten messages survive forty commands after them", () => {
     const lines: string[] = [];
     for (let i = 1; i <= 10; i++) lines.push(claudeText(`note ${i}`));
     for (let i = 0; i < 40; i++) lines.push(claudeTool("Bash", { command: `cmd ${i}` }));

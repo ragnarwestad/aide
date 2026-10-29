@@ -1,4 +1,4 @@
-// Spec 500: the rows carry an unfolded phase's messages and follow the
+// The rows carry an unfolded phase's messages and follow the
 // transcript as it grows.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -23,7 +23,7 @@ async function enqueue(base: string): Promise<string> {
 }
 
 describe("GET /?rows=1&phases=…", () => {
-  test("a message the transcript gains between two requests appears last, and the phase stays unfolded (AC-3)", async () => {
+  test("a message the transcript gains between two requests appears last, and the phase stays unfolded", async () => {
     const { base, dir } = harness.start();
     const id = await enqueue(base);
     const stream = join(dir, "analyze.stream.jsonl");

@@ -1,4 +1,4 @@
-// documentTabScript (spec 333, extending spec 315's REQ-4): the one
+// documentTabScript: the one
 // predicate both panels.ts (what to draw) and spec-edit.ts (which
 // bundle, if any, to fetch) ask — mirroring documentPanel's own
 // branching exactly, so the two can never again disagree. Returns which
@@ -84,18 +84,18 @@ describe("documentTabScript", () => {
   const statusView = (overrides: Partial<SpecPageView> = {}): SpecPageView =>
     baseView({ files: [{ label: "4-status.md", text: "# S\n" }], ...overrides });
 
-  test("viewer for the Status tab of an active spec, never the editor (AC-9)", () => {
+  test("viewer for the Status tab of an active spec, never the editor", () => {
     expect(documentTabScript(statusView(), "status")).toBe("viewer");
   });
 
-  test("viewer for the Status tab of an archived spec and of one with a job in flight (AC-9)", () => {
+  test("viewer for the Status tab of an archived spec and of one with a job in flight", () => {
     expect(documentTabScript(statusView({ archived: true }), "status")).toBe("viewer");
     expect(
       documentTabScript(statusView({ lead: { state: "running" } as SpecPageView["lead"] }), "status"),
     ).toBe("viewer");
   });
 
-  test("undefined for a Status tab whose file has no text (AC-9)", () => {
+  test("undefined for a Status tab whose file has no text", () => {
     expect(documentTabScript(baseView(), "status")).toBeUndefined();
   });
 

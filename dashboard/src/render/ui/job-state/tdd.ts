@@ -3,8 +3,8 @@
 import { TDD_PHASES } from "../../../queue/aide-run-store.ts";
 import type { QueueRowView } from "./types.ts";
 
-/** How many of a running implement's three parts are BEHIND it (spec
- *  210) — what the pip fills in, as `pips()` wants it. Answered about
+/** How many of a running implement's three parts are BEHIND it
+ *  — what the pip fills in, as `pips()` wants it. Answered about
  *  the ROW, so the "only while it is actually running" half of the rule
  *  is written once rather than at each of the two call sites.
  *

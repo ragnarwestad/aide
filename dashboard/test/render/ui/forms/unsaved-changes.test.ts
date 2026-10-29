@@ -1,7 +1,7 @@
 // A native "leave this page?" confirmation, armed the instant a field
-// inside one of the seven AC-2 surfaces' tracked forms changes, and
+// inside one of the seven surfaces' tracked forms changes, and
 // disarmed the instant that form's own Save/Create is submitted or its
-// Cancel is pressed (spec 438).
+// Cancel is pressed.
 //
 // `unsaved-changes.ts` can neither import nor export anything, and its
 // own listeners only ever call `.closest()` on the event target — no
@@ -164,15 +164,15 @@ function harness() {
   };
 }
 
-describe("a page with an unsaved edit warns before it is left (spec 438)", () => {
-  test("nothing edited: beforeunload does nothing (AC-4)", () => {
+describe("a page with an unsaved edit warns before it is left", () => {
+  test("nothing edited: beforeunload does nothing", () => {
     const h = harness();
     const { prevented } = h.beforeunload();
     expect(prevented).toBe(false);
   });
 
   for (const cls of ["specform", "settingsform", "pageform", "scheduleform"]) {
-    test(`an input inside .${cls} arms the guard (AC-1/AC-2)`, () => {
+    test(`an input inside .${cls} arms the guard`, () => {
       const h = harness();
       h.input(element({ classes: [cls] }));
       const { prevented, returnValue } = h.beforeunload();
@@ -181,7 +181,7 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
       expect(returnValue).toBeUndefined();
     });
 
-    test(`a change inside .${cls} arms the guard (AC-1/AC-2)`, () => {
+    test(`a change inside .${cls} arms the guard`, () => {
       const h = harness();
       h.change(element({ classes: [cls] }));
       const { prevented } = h.beforeunload();
@@ -211,7 +211,7 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
     expect(prevented).toBe(false);
   });
 
-  test("submitting the tracked form disarms an already-armed guard (AC-5, Save/Create)", () => {
+  test("submitting the tracked form disarms an already-armed guard (Save/Create)", () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
     h.submit(element({ classes: ["specform"] }));
@@ -219,7 +219,7 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
     expect(prevented).toBe(false);
   });
 
-  test("clicking a [id$='-cancel'] control disarms it (AC-5, six of the seven surfaces)", () => {
+  test("clicking a [id$='-cancel'] control disarms it (six of the seven surfaces)", () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
     h.click(element({ id: "specform-cancel" }));
@@ -227,7 +227,7 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
     expect(prevented).toBe(false);
   });
 
-  test("clicking a [data-discard-changes] control disarms it (AC-5, project settings' Cancel link)", () => {
+  test("clicking a [data-discard-changes] control disarms it (project settings' Cancel link)", () => {
     const h = harness();
     h.input(element({ classes: ["pageform"] }));
     h.click(element({ discardChanges: true }));
@@ -236,15 +236,15 @@ describe("a page with an unsaved edit warns before it is left (spec 438)", () =>
   });
 });
 
-// Spec 478: the native beforeunload prompt is drawn by the browser/OS
+// The native beforeunload prompt is drawn by the browser/OS
 // and centers on the screen, not the app window — a limitation no page
 // can work around. For the one exit path a page CAN intercept (an
 // in-app link), a real <dialog> replaces it, which the browser always
-// positions inside the document's own viewport (AC-1/AC-2). Back/
+// positions inside the document's own viewport. Back/
 // Forward, a closed tab and a typed address still fall to the
 // unchanged native prompt above.
-describe("a same-document link click while dirty opens the leaveapp dialog instead of navigating (spec 478)", () => {
-  test("dirty + a same-document link click: preventDefault and showModal both fire (AC-1/AC-2)", () => {
+describe("a same-document link click while dirty opens the leaveapp dialog instead of navigating", () => {
+  test("dirty + a same-document link click: preventDefault and showModal both fire", () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
     const prevented = h.click(anchor({ href: "/other-page" }));

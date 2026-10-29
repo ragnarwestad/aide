@@ -7,17 +7,17 @@ import { ICON_CHECK, ICON_LOCK } from "./icons.ts";
 /** A phase, as a control. Four states: the plain box, the ticked box,
  *  a finished phase (checkmark, text dimmed), and one that will not
  *  take a click (lock, and the reason in `title` — the only place the
- *  reason fits on a row). There was a fifth, the phase running right
- *  now, drawn with a spinner in the checkbox's place; spec 168 took it
- *  away. A box is a CONTROL, so a spinner on it read as "this box is
- *  working" rather than "this phase is running" — and it was only ever
+ *  reason fits on a row). There is no fifth for the phase running right
+ *  now, drawn with a spinner in the checkbox's place. A box is a
+ *  CONTROL, so a spinner on it would read as "this box is
+ *  working" rather than "this phase is running" — and it would only be
  *  visible on an open row, while the fact it reported belongs on the
  *  closed one. The running phase is said by its Progress marker now.
  *
  *  The checkbox is a REAL one, kept visible rather than replaced by a
  *  drawn square: the row is a plain form, and it has to work with
  *  script off and from a keyboard. One box is outside that promise and
- *  says so: a `postTo` box (spec 160) belongs to no form at all and
+ *  says so: a `postTo` box belongs to no form at all and
  *  needs the page's script to do anything. */
 export function phaseChip(o: {
   /** The technical name — the form value and the `data-` attribute. */
@@ -35,7 +35,7 @@ export function phaseChip(o: {
   dataAttr: string;
   /** The name assistive tech reads, for a box drawn with no visible
    *  label of its own — a phase line's box, whose name is the next
-   *  thing on the line rather than inside the label (spec 124). */
+   *  thing on the line rather than inside the label. */
   ariaLabel?: string;
   checked?: boolean;
   done?: boolean;
@@ -46,7 +46,7 @@ export function phaseChip(o: {
    *  only the interactivity — the padlock is for a control with
    *  nothing else on it to say why it will not take a click, and a
    *  phase queued behind the running one has its tick to say it with
-   *  (spec 145). */
+   */
   plain?: boolean;
   title?: string;
   /** The id of the form this box belongs to, for a box drawn OUTSIDE
@@ -55,7 +55,7 @@ export function phaseChip(o: {
    *  inside it. Without this the browser posts the form without them. */
   form?: string;
   /** Where this ONE box posts itself, for a box that is not part of any
-   *  submission (spec 160): a phase a running job has not reached, whose
+   *  submission: a phase a running job has not reached, whose
    *  tick is the press. The page's own script reads it off the input and
    *  posts there on `change`. Such a box carries no `name` — it names
    *  the row's form only so a press can find the row to lock — and it is

@@ -73,7 +73,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
 
 });
 
-describe("what the page says about the settings (criteria 1-3, 7)", () => {
+describe("what the page says about the settings", () => {
 
   // Edit offers the worked-out command as a placeholder, never as the
   // field's value: a save that never touched the row must not configure
@@ -87,18 +87,17 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
 
 });
 
-// Spec 259: a project's own recurring jobs, shown on its own page —
-// acceptance criteria 6 and 7.
-describe("what the page says about its schedule (spec 259, acceptance criteria 6-7)", () => {
+// A project's own recurring jobs, shown on its own page.
+describe("what the page says about its schedule", () => {
   const NIGHTLY = { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" };
 
-  test("the queue config's jobs for the project are listed, each linking to its own page (AC-5)", async () => {
+  test("the queue config's jobs for the project are listed, each linking to its own page", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide"), undefined, scheduleConfig([NIGHTLY])), "aide", "schedule")).text();
     expect(html).toContain('<a href="/schedule/aide/nightly-report">nightly-report</a>');
   });
 
-  test("a manifest's own schedule: list is not shown — only the config's jobs are (AC-2)", async () => {
+  test("a manifest's own schedule: list is not shown — only the config's jobs are", async () => {
     const root = projectsRoot({ aide: null });
     writeFileSync(
       join(root, "aide", ".aide", "project.yaml"),
@@ -109,7 +108,7 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
     expect(html).toMatch(/nothing is scheduled/i);
   });
 
-  // Spec 468, Risk 2: a project outside the queue's own allowlist is
+  // A project outside the queue's own allowlist is
   // still reachable from /projects and still gets the New page — its
   // submission is refused by the create route.
   test("a project outside the queue's allowlist still gets the New page, and a submission is refused (Risk 2)", async () => {
@@ -130,11 +129,11 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
   });
 });
 
-// Spec 255: the edit/save/cancel controls the unified table gained.
-describe("editing the unified settings table (spec 255)", () => {
+// The edit/save/cancel controls the unified table gained.
+describe("editing the unified settings table", () => {
   const POST_AUTH = { "content-type": "application/json", accept: "application/json" };
 
-  test("saving a changed AIDE_INSTALL_CMD writes .aide/config and the redirect target shows it in view mode (criterion 5)", async () => {
+  test("saving a changed AIDE_INSTALL_CMD writes .aide/config and the redirect target shows it in view mode", async () => {
     const root = projectsRoot({ aide: null });
     const project = join(root, "aide");
     const base = serve(root, settled(root, "aide"));
@@ -150,7 +149,7 @@ describe("editing the unified settings table (spec 255)", () => {
     expect(view).not.toContain('name="installCmd"');
   });
 
-  test("saving AIDE_INSTALL_CMD left unchanged rewrites nothing (criterion 6)", async () => {
+  test("saving AIDE_INSTALL_CMD left unchanged rewrites nothing", async () => {
     const root = projectsRoot({ aide: "AIDE_INSTALL_CMD=make install\n" });
     const project = join(root, "aide");
     const before = readFileSync(join(project, ".aide", "config"), "utf-8");

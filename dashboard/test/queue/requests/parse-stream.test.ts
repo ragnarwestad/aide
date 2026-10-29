@@ -1,4 +1,4 @@
-// Criterion 11 (spec 02): a kept stream-json transcript becomes a
+// A kept stream-json transcript becomes a
 // bounded, escaped activity list. The input is arbitrary text a model
 // wrote and arbitrary text a tool was handed, so two properties matter
 // more than prettiness: the list can never grow without limit, and
@@ -102,7 +102,7 @@ describe("summarizeStream", () => {
   });
 });
 
-// Spec 125: the second tool writes a different transcript. `codex exec
+// The second tool writes a different transcript. `codex exec
 // --json` emits `thread.started` / `turn.*` / `item.*` events instead of
 // claude's `assistant` messages, and the activity list is the same list
 // either way — same shape, same bound, same escaping. The fixture PAIR
@@ -211,7 +211,7 @@ describe("summarizeCodexStream", () => {
     // Measured against codex-cli 0.148.0 on 2026-08-20, from a real
     // `codex exec --json` turn: the completed item carries
     // `{"id":"item_0","type":"agent_message","text":"ok"}` — `type`,
-    // not `item_type`. Spec 125 wrote the parser from the binary's
+    // not `item_type`. The parser was first written from the binary's
     // strings, where both names appear, and picked the one this
     // version does not send, so every Activity line came out empty.
     // Both are read, because the field name is the CLI's to change and

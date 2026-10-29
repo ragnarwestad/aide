@@ -74,7 +74,7 @@ def specs_named(entries):
     return {e["spec"]: e["files"] for e in entries}
 
 
-def test_an_analysed_spec_sharing_a_file_is_named_with_that_file_AC_1(script, root):
+def test_an_analysed_spec_sharing_a_file_is_named_with_that_file(script, root):
     make_spec(root, SPEC, ["x.ts", "only-mine.ts"], phase="created")
     make_spec(root, OTHER, ["x.ts", "only-theirs.ts"])
     rc, out = overlap(script, root)
@@ -85,7 +85,7 @@ def test_an_analysed_spec_sharing_a_file_is_named_with_that_file_AC_1(script, ro
     assert out["warned"] == [] and out["landed"] == [], out
 
 
-def test_each_spec_is_named_with_its_own_shared_files_sorted_AC_1(script, root):
+def test_each_spec_is_named_with_its_own_shared_files_sorted(script, root):
     make_spec(root, SPEC, ["z.ts", "y.ts", "x.ts"], phase="created")
     make_spec(root, THIRD, ["z.ts"])
     make_spec(root, OTHER, ["y.ts", "x.ts", "w.ts"])
@@ -94,7 +94,7 @@ def test_each_spec_is_named_with_its_own_shared_files_sorted_AC_1(script, root):
     assert specs_named(out["overlaps"]) == {OTHER: ["x.ts", "y.ts"], THIRD: ["z.ts"]}, out
 
 
-def test_a_path_is_compared_without_a_leading_dot_slash_or_a_trailing_line_range_AC_1(script, root):
+def test_a_path_is_compared_without_a_leading_dot_slash_or_a_trailing_line_range(script, root):
     make_spec(root, SPEC, ["./a/x.ts:12", "b/y.ts"], phase="created")
     make_spec(root, OTHER, ["a/x.ts", "b/y.ts:3-9"])
     _, out = overlap(script, root)
@@ -112,7 +112,7 @@ def test_a_shared_markdown_file_is_not_an_overlap(script, root):
     assert specs_named(out["overlaps"]) == {THIRD: ["x.ts"]}, out
 
 
-def test_only_the_newest_round_of_each_analysis_is_compared_AC_1(script, root):
+def test_only_the_newest_round_of_each_analysis_is_compared(script, root):
     rounds = (
         "# X - Analysis\n\n## Findings\n\n### Files to change\n\n- `old.ts`\n"
         "\n## Round 2\n\n### Files to change\n\n- `new.ts`\n"
@@ -127,14 +127,14 @@ def test_only_the_newest_round_of_each_analysis_is_compared_AC_1(script, root):
     assert specs_named(out["overlaps"]) == {THIRD: ["new.ts"]}, out
 
 
-def test_a_spec_without_a_files_to_change_list_is_never_named_AC_1(script, root):
+def test_a_spec_without_a_files_to_change_list_is_never_named(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="created")
     make_spec(root, OTHER, None)
     _, out = overlap(script, root)
     assert out["overlaps"] == [], out
 
 
-def test_a_spec_already_in_the_record_is_left_out_but_a_new_one_still_counts_AC_4(script, root):
+def test_a_spec_already_in_the_record_is_left_out_but_a_new_one_still_counts(script, root):
     make_spec(root, SPEC, ["x.ts", "y.ts"], phase="created", warned={OTHER: ["x.ts"]})
     make_spec(root, OTHER, ["x.ts"])
     _, out = overlap(script, root)
@@ -146,7 +146,7 @@ def test_a_spec_already_in_the_record_is_left_out_but_a_new_one_still_counts_AC_
     assert specs_named(out["warned"]) == {OTHER: ["x.ts"]}, out
 
 
-def test_landed_needs_the_record_depends_on_and_an_archived_folder_AC_5(script, root):
+def test_landed_needs_the_record_depends_on_and_an_archived_folder(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="created", warned={OTHER: ["x.ts"]}, depends=[OTHER])
     make_spec(root, OTHER, ["x.ts"], archived=True)
     _, out = overlap(script, root)
@@ -154,35 +154,35 @@ def test_landed_needs_the_record_depends_on_and_an_archived_folder_AC_5(script, 
     assert out["overlaps"] == [], out
 
 
-def test_landed_reads_a_bare_number_in_depends_on_AC_5(script, root):
+def test_landed_reads_a_bare_number_in_depends_on(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="created", warned={OTHER: ["x.ts"]}, depends=["701"])
     make_spec(root, OTHER, ["x.ts"], archived=True)
     _, out = overlap(script, root)
     assert [e["spec"] for e in out["landed"]] == [OTHER], out
 
 
-def test_landed_is_empty_when_depends_on_does_not_name_the_spec_AC_5(script, root):
+def test_landed_is_empty_when_depends_on_does_not_name_the_spec(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="created", warned={OTHER: ["x.ts"]})
     make_spec(root, OTHER, ["x.ts"], archived=True)
     _, out = overlap(script, root)
     assert out["landed"] == [], out
 
 
-def test_landed_is_empty_while_the_spec_has_not_been_archived_AC_5(script, root):
+def test_landed_is_empty_while_the_spec_has_not_been_archived(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="created", warned={OTHER: ["x.ts"]}, depends=[OTHER])
     make_spec(root, OTHER, ["x.ts"], phase="implemented")
     _, out = overlap(script, root)
     assert out["landed"] == [], out
 
 
-def test_landed_is_empty_when_the_spec_was_never_in_the_record_AC_5(script, root):
+def test_landed_is_empty_when_the_spec_was_never_in_the_record(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="created", depends=[OTHER])
     make_spec(root, OTHER, ["x.ts"], archived=True)
     _, out = overlap(script, root)
     assert out["landed"] == [], out
 
 
-def test_record_drops_an_archived_spec_and_adds_the_new_overlaps_AC_5(script, root):
+def test_record_drops_an_archived_spec_and_adds_the_new_overlaps(script, root):
     spec = make_spec(root, SPEC, ["x.ts", "y.ts"], phase="created", warned={OTHER: ["x.ts"]}, depends=[OTHER])
     make_spec(root, OTHER, ["x.ts"], archived=True)
     make_spec(root, THIRD, ["y.ts"])
@@ -197,7 +197,7 @@ def test_record_drops_an_archived_spec_and_adds_the_new_overlaps_AC_5(script, ro
     assert specs_named(again["warned"]) == {THIRD: ["y.ts"]}, again
 
 
-def test_record_writes_the_overlaps_so_the_next_comparison_has_them_as_warned_AC_4(script, root):
+def test_record_writes_the_overlaps_so_the_next_comparison_has_them_as_warned(script, root):
     spec = make_spec(root, SPEC, ["x.ts", "y.ts"], phase="created")
     make_spec(root, OTHER, ["y.ts", "x.ts"])
     _, out = overlap(script, root, SPEC, "--record")
@@ -210,7 +210,7 @@ def test_record_writes_the_overlaps_so_the_next_comparison_has_them_as_warned_AC
     assert specs_named(again["warned"]) == {OTHER: ["x.ts", "y.ts"]}, again
 
 
-def test_record_makes_the_subsection_inside_the_newest_round_AC_4(script, root):
+def test_record_makes_the_subsection_inside_the_newest_round(script, root):
     rounds = "# X - Analysis\n\n## Findings\n\n### Files to change\n\n- `x.ts`\n\n## Round 2\n\n### Files to change\n\n- `x.ts`\n"
     spec = make_spec(root, SPEC, phase="created", analysis=rounds)
     make_spec(root, OTHER, ["x.ts"])
@@ -220,7 +220,7 @@ def test_record_makes_the_subsection_inside_the_newest_round_AC_4(script, root):
     assert OTHER in text.split("## Round 2")[1], text
 
 
-def test_the_analysis_is_untouched_when_nothing_is_recorded_AC_7(script, root):
+def test_the_analysis_is_untouched_when_nothing_is_recorded(script, root):
     spec = make_spec(root, SPEC, ["x.ts"], phase="created")
     make_spec(root, OTHER, ["elsewhere.ts"])
     before = (spec / "2-analysis.md").read_bytes()
@@ -229,7 +229,7 @@ def test_the_analysis_is_untouched_when_nothing_is_recorded_AC_7(script, root):
     assert (spec / "2-analysis.md").read_bytes() == before
 
 
-def test_without_record_the_analysis_is_never_written_AC_1(script, root):
+def test_without_record_the_analysis_is_never_written(script, root):
     spec = make_spec(root, SPEC, ["x.ts"], phase="created")
     make_spec(root, OTHER, ["x.ts"])
     before = (spec / "2-analysis.md").read_bytes()
@@ -237,7 +237,7 @@ def test_without_record_the_analysis_is_never_written_AC_1(script, root):
     assert (spec / "2-analysis.md").read_bytes() == before
 
 
-def test_nothing_shared_answers_an_empty_overlaps_AC_7(script, root):
+def test_nothing_shared_answers_an_empty_overlaps(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="created")
     make_spec(root, OTHER, ["y.ts"])
     make_spec(root, THIRD, ["z.ts"], phase="implemented")
@@ -248,7 +248,7 @@ def test_nothing_shared_answers_an_empty_overlaps_AC_7(script, root):
     assert out["warned"] == [] and out["landed"] == [], out
 
 
-def test_a_created_spec_and_an_archived_spec_are_not_named_AC_8(script, root):
+def test_a_created_spec_and_an_archived_spec_are_not_named(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="created")
     make_spec(root, OTHER, ["x.ts"], phase="created")
     make_spec(root, THIRD, ["x.ts"], archived=True)
@@ -256,20 +256,20 @@ def test_a_created_spec_and_an_archived_spec_are_not_named_AC_8(script, root):
     assert out["overlaps"] == [], out
 
 
-def test_an_implemented_spec_that_has_not_archived_is_named_AC_8(script, root):
+def test_an_implemented_spec_that_has_not_archived_is_named(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="created")
     make_spec(root, OTHER, ["x.ts"], phase="implemented")
     _, out = overlap(script, root)
     assert specs_named(out["overlaps"]) == {OTHER: ["x.ts"]}, out
 
 
-def test_the_spec_itself_is_never_a_candidate_AC_8(script, root):
+def test_the_spec_itself_is_never_a_candidate(script, root):
     make_spec(root, SPEC, ["x.ts"], phase="analyzed")
     _, out = overlap(script, root)
     assert out["overlaps"] == [], out
 
 
-def test_analysis_reads_this_specs_list_and_record_from_the_given_file_AC_4(script, root, tmp_path):
+def test_analysis_reads_this_specs_list_and_record_from_the_given_file(script, root, tmp_path):
     make_spec(root, SPEC, ["unrelated.ts"], phase="created")
     make_spec(root, OTHER, ["x.ts"])
     older = tmp_path / "older-analysis.md"

@@ -34,7 +34,7 @@ export const configSpecsPath = (projectDir: string): string | null => configValu
 export type WorktreeLinksSource = "project.yaml";
 
 /** The gitignored paths a run must symlink into its worktree, and where
- *  they were read from (spec 184; manifest-only since spec 549).
+ *  they were read from.
  *
  *  `.aide/project.yaml` alone: it is COMMITTED, so a checkout that has
  *  never been configured on this machine still knows what its own
@@ -62,7 +62,7 @@ export function resolveWorktreeLinks(
  *  branch, or leave it on its branch for a pull request. */
 export type CodeLanding = "merge" | "pr";
 
-/** Which of the two this project chose (spec 220).
+/** Which of the two this project chose.
  *
  *  The COMMITTED manifest and nothing else; like `resolveWorktreeLinks`
  *  above, it never reads `.aide/config`, so a gitignored file on one
@@ -97,8 +97,8 @@ export function resolvePreviewFrom(projectDir: string): PreviewFrom | undefined 
 export type ConfigOverrideSource = ".aide/config" | "project.yaml";
 
 /** What installing this project means on this machine, and where that
- *  answer came from (spec 345). `.aide/config`'s `AIDE_INSTALL_CMD`
- *  alone (spec 549) — a manifest `installCmd:` is never read, since an
+ *  answer came from. `.aide/config`'s `AIDE_INSTALL_CMD`
+ *  alone — a manifest `installCmd:` is never read, since an
  *  install command legitimately differs per machine (a PATH prefix a
  *  shell needs, say).
  *
@@ -124,7 +124,7 @@ export function resolveTestCmd(
 }
 
 /** How this project is started for a look at one branch, and where that
- *  came from — the manifest's `previewCmd:` alone (spec 549), the same
+ *  came from — the manifest's `previewCmd:` alone, the same
  *  shape as `resolveTestCmd`. */
 export function resolvePreviewCmd(projectDir: string): { value: string | null; source: "project.yaml" | null } {
   const manifestFile = join(projectDir, ".aide", "project.yaml");

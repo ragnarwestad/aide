@@ -17,7 +17,7 @@ export interface QueueRowView {
   steps: string[];
   stepIndex: number;
   /** The steps whose box a reader may still tick or untick while this
-   *  job runs (spec 160): the tail that has not started, plus every
+   *  job runs: the tail that has not started, plus every
    *  later phase the job does not have. Worked out server-side, by the
    *  same function that decides what the edit route accepts — a box
    *  drawn live for an edit the store would refuse is a click that
@@ -25,13 +25,13 @@ export interface QueueRowView {
    *  every job that is not running: then the row locks as it always
    *  did. */
   editableSteps?: string[];
-  /** Where a queued job stands among every job waiting its turn (REQ-4):
+  /** Where a queued job stands among every job waiting its turn:
    *  `n` is its 1-indexed place in `queuePriorityOrder()`'s order
-   *  (REQ-1), `total` the number of jobs `queued` right now. Computed by
-   *  `jobRow()` off the SAME function `Runner.tick()` calls (REQ-6), so
+   *  `total` the number of jobs `queued` right now. Computed by
+   *  `jobRow()` off the SAME function `Runner.tick()` calls, so
    *  the two cannot disagree. Absent for every state but `queued`
    *  genuinely waiting for a slot — a job the runner is holding back for
-   *  a different reason (`errorReason === "held-back"`, spec 396) gets
+   *  a different reason (`errorReason === "held-back"`) gets
    *  none either, however `queuePriorityOrder()` would have sorted it. */
   queuePosition?: { n: number; total: number };
   state:
@@ -39,7 +39,7 @@ export interface QueueRowView {
     | "stopped" | "failed" | "cancelled" | "interrupted";
   landing?: boolean;
   spentUsd: number;
-  /** The same figure in tokens (spec 118). A NUMBER here, not the stored
+  /** The same figure in tokens. A NUMBER here, not the stored
    *  split: the page shows a compact total and nothing else, and the
    *  render layer has no business knowing the shape of a result file.
    *  Absent means nothing measured it — the cell shows a dash. */
@@ -50,37 +50,37 @@ export interface QueueRowView {
   /** When the job ended, as the queue recorded it: an interrupted job has
    *  this though it left no result to take an end from. */
   finishedAt?: string;
-  /** The render-side mirror of `Job.stepStartedAt` (spec 384): when the
+  /** The render-side mirror of `Job.stepStartedAt`: when the
    *  step now in flight was actually spawned. Absent whenever the job has
    *  no step actually running right now — including while merely `queued`
    *  for its next one. */
   stepStartedAt?: string;
   stopReason?: "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files" | "sent-back";
   /** The pull request a `pr`-mode run opened for this job's code branch
-   *  (spec 220). Stored on the job rather than derived at render time —
+   *  Stored on the job rather than derived at render time —
    *  only the run that called `gh` knows the URL, and there is nothing
    *  on this machine to re-derive it from. */
   prUrl?: string;
-  /** Why the branch itself did not reach origin (spec 328). Shown beside
+  /** Why the branch itself did not reach origin. Shown beside
    *  the branch: the step succeeded and its work is committed, only the
    *  push failed. Why `gh` opened no pull request is NOT here — that one
    *  is the step's own answer, on `StepResultView.prError` below. */
   pushError?: string;
   error?: Sentence | Sentence[];
   /** Why the job's own landing was refused, when it was refused for
-   *  something the row can offer a way out of. Stored on the job since
-   *  spec 149 and read from here: a landing happens with nobody's
+   *  something the row can offer a way out of. Stored on the job
+   *  and read from here: a landing happens with nobody's
    *  browser attached, so the reason cannot ride in a redirect the way
-   *  the Merge button's refusal used to.
+   *  a button's refusal does.
    *
    *  Hand-paired with the same union on `Job` in `queue.ts` — the two
    *  layers deliberately do not import each other, so change one and
    *  change the other. */
   errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded";
-  /** The job's own persisted landing failure (spec 327), independent of
+  /** The job's own persisted landing failure, independent of
    *  `state`/`error` — see `Job.landingError`. */
   landingError?: Sentence | Sentence[];
-  /** Raw git/tool output behind `error` (spec 352, REQ-5) — see
+  /** Raw git/tool output behind `error` — see
    *  `Job.errorDetail`. */
   errorDetail?: string;
   /** What this job ran on. Shown next to the cost, because a figure
@@ -93,12 +93,12 @@ export interface QueueRowView {
    *  step can carry THAT step's model rather than the row's (which is
    *  the running or last step's). */
   stepModels?: Record<string, string>;
-  /** The effort level this step ran at, when one was chosen (spec 364).
+  /** The effort level this step ran at, when one was chosen.
    *  Absent means none was — a real, valid resting state, unlike
    *  `model`, which a job always carries a real value for. */
   effort?: string;
-  /** Which third of an `implement` step is running RIGHT NOW (spec
-   *  210), from the report `/aide-implement` sends at each TDD
+  /** Which third of an `implement` step is running RIGHT NOW,
+   *  from the report `/aide-implement` sends at each TDD
    *  boundary. Set by the server only for a running implement whose
    *  session the store has an answer for — every other row leaves it
    *  absent and reads exactly as it did before. Absent is the ordinary
@@ -108,8 +108,8 @@ export interface QueueRowView {
   /** One entry per step the job has FINISHED, in the order they ran.
    *  A job is not one step: `steps[stepIndex]` names only the last one
    *  it reached, and placing a two-step job by that alone left the
-   *  first step's line speaking for an older attempt (measured on spec
-   *  90, 2026-08-17: a finished analysis read as failed). */
+   *  first step's line speaking for an older attempt: a finished
+   *  analysis read as failed. */
   results?: StepResultView[];
 }
 
@@ -129,11 +129,11 @@ export interface StepResultView {
    *  apart from a run that was actually tried. */
   terminalReason?: string;
   costUsd: number;
-  /** When this step ENDED (spec 199). Absent on a result written before
+  /** When this step ENDED. Absent on a result written before
    *  the runner recorded it, and then that step simply has no duration
    *  to show. */
   at?: string;
-  /** When this step STARTED (spec 384) — the render-side mirror of
+  /** When this step STARTED — the render-side mirror of
    *  `StepResult.startedAt`. Absent on a result written before the runner
    *  recorded one, or before this field existed; the step's duration then
    *  falls back to the boundary it always used. */
@@ -162,7 +162,7 @@ export interface StepResultView {
 
 /** Whether anything summed over these steps was a stand-in rather than a
  *  measurement. The job page's Steps table marks each step for itself;
- *  this is what the TOTALS built on top of them ask (spec 152), so a
+ *  this is what the TOTALS built on top of them ask, so a
  *  spec total of "41.13" cannot read as money spent when 35 of it is a
  *  ceiling nobody measured. */
 export function anyCostUnmeasured(results: StepResultView[] | undefined): boolean {

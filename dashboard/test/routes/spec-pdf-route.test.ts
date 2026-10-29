@@ -1,4 +1,4 @@
-// Spec 358: a spec's page opens the spec as a PDF.
+// A spec's page opens the spec as a PDF.
 //
 // `pdfGeneratorBin` is always a stub here — never the real
 // `aide-generate-pdf` — the same reason `queueRunnerBin` and every other
@@ -65,14 +65,13 @@ function start(extra: Partial<ServerOptions> = {}) {
   return { base, dir, server, logPath, cacheDir };
 }
 
-describe("spec 358: GET a spec's PDF", () => {
+describe("GET a spec's PDF", () => {
   test("an unknown spec is 404", async () => {
     const { base } = start();
     const res = await fetch(`${base}/specs/aide/does-not-exist/pdf`);
     expect(res.status).toBe(404);
   });
 
-  // REQ-7
   test("the tool being unavailable answers 503, and spawns nothing", async () => {
     const { base, logPath } = start({ pdfToolAvailable: false });
     const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
@@ -80,7 +79,6 @@ describe("spec 358: GET a spec's PDF", () => {
     expect(invocations(logPath)).toHaveLength(0);
   });
 
-  // REQ-2, REQ-3
   test("an active spec's PDF is generated inline with the right headers", async () => {
     const { base, dir, logPath } = start();
     ran(dir, []);
@@ -94,7 +92,7 @@ describe("spec 358: GET a spec's PDF", () => {
     expect(calls[0]![0]).toBe(SPEC);
   });
 
-  // REQ-1b, REQ-3: the archived spec's own identifier, not the bare folder.
+  // The archived spec's own identifier, not the bare folder.
   test("an archived spec is generated with the archive/ prefix", async () => {
     const { base, dir, logPath } = start();
     ran(dir, []);
@@ -105,7 +103,6 @@ describe("spec 358: GET a spec's PDF", () => {
     expect(calls[0]![0]).toBe("archive/77-old-spec");
   });
 
-  // REQ-5
   test("a second press with no new commit serves the cache and spawns nothing more", async () => {
     const { base, dir, logPath } = start();
     ran(dir, []);
@@ -116,7 +113,6 @@ describe("spec 358: GET a spec's PDF", () => {
     expect(invocations(logPath)).toHaveLength(1);
   });
 
-  // REQ-5
   test("a commit landing on the spec folder invalidates the cache", async () => {
     const { base, dir, logPath } = start();
     ran(dir, []);
@@ -131,7 +127,6 @@ describe("spec 358: GET a spec's PDF", () => {
     expect(invocations(logPath)).toHaveLength(2);
   });
 
-  // REQ-4, REQ-9a
   test("nothing is written into the specs checkout", async () => {
     const { base, dir } = start();
     ran(dir, []);

@@ -1,4 +1,4 @@
-// The aide-run store (spec 80): one row per session, keyed on
+// The aide-run store: one row per session, keyed on
 // sessionId (a later command in the same session replaces the row —
 // that is how the phase advances). LRU-capped, mirrored to a JSON file
 // (write-then-rename) and reloaded on boot so restarts keep the runs.
@@ -14,7 +14,7 @@ export const AIDE_COMMANDS = [
 export type AideCommand = (typeof AIDE_COMMANDS)[number];
 
 // The three TDD phases and nothing else: a typo must not reach the
-// page as if it were a phase (spec 81, criterion 10).
+// page as if it were a phase.
 export const TDD_PHASES = ["red", "green", "verify"] as const;
 export type TddPhase = (typeof TDD_PHASES)[number];
 
@@ -71,7 +71,7 @@ export function parseAideRun(raw: unknown): ParseResult {
   if (r.phase !== undefined && r.phase !== null) {
     if (typeof r.phase !== "string") return { ok: false, error: "invalid phase" };
     // An installation whose own aide-emit-run has not been upgraded still
-    // reports the old name — treated as this phase's new one (AC-5).
+    // reports the old name — treated as this phase's new one.
     const reported = r.phase === "refactor" ? "verify" : r.phase;
     if (!(TDD_PHASES as readonly string[]).includes(reported)) {
       return { ok: false, error: "invalid phase" };
@@ -120,7 +120,7 @@ export class AideRunStore {
     return stored;
   }
 
-  /** One session's row, for a page that has the id in hand (spec 210).
+  /** One session's row, for a page that has the id in hand.
    *  A running implement's row asks this and nothing else: `list()`
    *  hands back every run there is, which is the wrong question and the
    *  wrong cost to pay per row. */

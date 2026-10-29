@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** The message a job carries, as text. Since spec 380 a job stores
+/** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it,
  *  and so does a test that asserts on what a reader would see. */
 function sentence(s: unknown): string {
@@ -24,15 +24,15 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// --- spec 122: a queued step waits for its dependency, it does not fail -----
+// --- A queued step waits for its dependency, it does not fail -----
 //
 // Before this, a queued implement whose dependency was still unmerged
 // started, was refused by `aide-run-spec`, and landed in `failed` — a
 // state nothing retries. The queue now asks the same question the script
-// asks — is the dependency archived on origin? (spec 351) — BEFORE
+// asks — is the dependency archived on origin? — BEFORE
 // spawning anything, and leaves the job queued with the reason on its
 // row until the answer changes.
-describe("a job parked on an unmerged dependency (spec 122)", () => {
+describe("a job parked on an unmerged dependency", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
   const DEPENDENT = "# Queue - Description\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n";
 
@@ -51,14 +51,14 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     mkdirSync(join(specs, "81-queue-and-runner"), { recursive: true });
     writeFileSync(join(specs, "81-queue-and-runner", "1-description.md"), DEPENDENT);
     // `analyze` already on the line: this suite is about the DEPENDENCY
-    // gate, and a job parked by spec 344's own analyze gate instead would
+    // gate, and a job parked by the analyze gate instead would
     // make every assertion below about the dependency's name fail for an
     // unrelated reason.
     writeFileSync(
       join(specs, "81-queue-and-runner", "4-status.md"),
       "# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** analyze\n",
     );
-    // spec 355: `blockedForMissingAnalyze` now reads 4-status.json, which
+    // `blockedForMissingAnalyze` now reads 4-status.json, which
     // only a writer script derives — this fixture hand-writes 4-status.md
     // directly (never through aide-write-spec), so it hand-writes the
     // state file beside it too, exactly as that script would have.
@@ -83,7 +83,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
   }
 
   /** A git that answers the archived-check for the SPECS root alone
-   *  (spec 351): `fetch` always succeeds, and
+   *  `fetch` always succeeds, and
    *  `cat-file -e ...:./archive/<folder>` reports found or not found
    *  per `archived()`. Read through a function, so one test can watch
    *  the answer change under a live server. Simpler than the old
@@ -187,7 +187,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
 
   test("only the specs root is ever asked — the project root plays no part in this question", async () => {
     // Whether a spec is archived is a fact about one folder's location
-    // in one repository (spec 351): the project root is never even
+    // in one repository: the project root is never even
     // asked, unlike the old branch-merge question this replaced.
     const dir = own("aide-queue-parked-root-");
     const { bin, argvFile } = stub(dir);
@@ -215,7 +215,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(asksThisQuestion(paths.project)).toBe(false);
   });
 
-  // Spec 213; spec 351. This one is about how old the archived answer
+  // This one is about how old the archived answer
   // may be: `archivedOnOrigin` carries no TTL cache at all, unlike the
   // old `isMerged` answer it replaced, so there is no window in which a
   // stale "not archived" or "archived" can be handed out.
@@ -247,7 +247,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     // The question has to be put to git again on a later tick, since
     // there is no cache to expire. Waited for, not slept for: a 2 s tick
     // on an idle machine is a much longer one beside other suites'
-    // load, and a fixed 2.5 s pause failed there (491, 2026-09-18).
+    // load, and a fixed 2.5 s pause failed there.
     expect(await until(() => asked() > first)).toBe(true);
     expect(existsSync(argvFile)).toBe(false);
 
@@ -284,12 +284,12 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(job?.state).toBe("cancelled");
     // The held-back reason answered "why is this not running" — a
     // question cancelling already answered a different way. It must not
-    // survive onto the cancelled job (REQ-1).
+    // survive onto the cancelled job.
     expect(job?.error).toBeUndefined();
     expect(job?.errorReason).toBeUndefined();
   });
 
-  // --- spec 344: the same park, one question earlier -------------------------
+  // --- The same park, one question earlier -------------------------
   //
   // `blockedForMissingAnalyze()` rather than `blockedDependencies()` —
   // asked before a job is spawned, the same shape as the dependency park
@@ -320,7 +320,7 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
 
     // Not parked for the tick, and not started either: the runner ends
     // it with the refusal `aide-archive-spec`'s own pre-check would have
-    // given (490, 2026-09-18), so the row carries one reason and a
+    // given, so the row carries one reason and a
     // person presses Archive once the rows are ticked.
     test("the job ends with the acceptance refusal, and nothing is started", async () => {
       const dir = own("aide-queue-unticked-acceptance-");

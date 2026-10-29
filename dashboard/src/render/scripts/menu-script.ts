@@ -43,7 +43,7 @@
     }
     closeAll(target?.closest?.(DISCLOSURES) ?? null);
   });
-  // The phone menu's language is a dropdown (spec 507), which does not
+  // The phone menu's language is a dropdown, which does not
   // navigate by itself as the header's links do. The page reloads, so a
   // one-shot flag asks the next load to open the "…" menu again: a
   // setting changed in the menu leaves the menu open.
@@ -73,7 +73,7 @@
     closeAll();
     closeBoxes();
   });
-  // Spec 477: each "(?)" popover has a static default side (CSS alone).
+  // Each "(?)" popover has a static default side (CSS alone).
   // On open, measure it against the viewport and flip it to the other
   // side when the default would run past the left or right edge — the
   // only two edges a popover's own icon can be positioned near enough

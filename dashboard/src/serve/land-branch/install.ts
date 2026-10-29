@@ -26,7 +26,7 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     // Said out loud for every project that has not configured one:
     // the alternative is a page that reads as "deployed" when nothing
     // was deployed, which is the whole complaint. Named in plain words,
-    // not the raw env-var key (spec 318, REQ-1) — REQ-3, spec 352 adds
+    // not the raw env-var key; the sentence also says
     // where that setting lives, in the same plain words.
     const label = SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase();
     result.installError = { key: "landing.noInstallCommand", values: { label } };
@@ -54,7 +54,7 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
       result.installError = { key: "landing.installTimedOut", values: { seconds: timeoutMs / 1000 } };
       failed = true;
     } else if (code !== 0) {
-      // The stderr tail (spec 352, REQ-5) stays out of the board-facing
+      // The stderr tail stays out of the board-facing
       // sentence — logged here instead, so the exact words are still on
       // the machine for whoever goes looking, just never the sentence.
       console.error(`land-branch: install exited ${code}: ${tail.trim().slice(-200)}`);

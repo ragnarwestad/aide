@@ -39,7 +39,7 @@ afterAll(async () => {
 });
 
 describe("opening the Deploy tab asks origin", () => {
-  test("a commit pushed since the last answer turns the sentence in place, with one document load, and no Deploy button appears (AC-4)", async () => {
+  test("a commit pushed since the last answer turns the sentence in place, with one document load, and no Deploy button appears", async () => {
     ahead = 1;
     const page = await browser.newPage();
     let documents = 0;

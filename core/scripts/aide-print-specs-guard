@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # aide-print-specs-guard — prints a ready-to-paste Write/Edit deny-rule
-# snippet for THIS project's own specs root (spec 282, REQ-4). Never
+# snippet for THIS project's own specs root. Never
 # writes anywhere itself — the same "never auto-edit
 # ~/.claude/settings.json" philosophy install.sh's own dashboard-hook
 # block already established, extended to a per-project path install.sh

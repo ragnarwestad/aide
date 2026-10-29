@@ -1,4 +1,4 @@
-// The `Depends on:` line in a spec's own `1-description.md` (spec 92):
+// The `Depends on:` line in a spec's own `1-description.md`:
 // reading it, stripping it, and writing it back.
 
 import { existsSync, readFileSync } from "node:fs";
@@ -11,7 +11,7 @@ const DEPENDS_ON_LINE = /^[ \t]*-[ \t]*\*\*Depends on:\*\*[ \t]*(.*)$/m;
 // the newline behind would put a blank line where the line used to be.
 const DEPENDS_ON_LINE_WITH_BREAK = /^[ \t]*-[ \t]*\*\*Depends on:\*\*[ \t]*.*(\n|$)/m;
 
-// The `Depends on:` line in Tracking info (spec 92) — the specs this one
+// The `Depends on:` line in Tracking info — the specs this one
 // builds on, comma-separated, backticks and whitespace stripped. A
 // SECOND reader of the same on-disk format, not a shared one: the shell
 // side has had `aide_spec_dependencies` since the line existed, and a
@@ -40,7 +40,7 @@ export function dependsOnIn(text: string): string[] {
     .filter(Boolean);
 }
 
-/** The same line, taken OUT of a description's text (spec 166).
+/** The same line, taken OUT of a description's text.
  *
  *  CRLF is normalised on the way, because a textarea posts CRLF
  *  whatever the file had and `asFileText` (`specs-pull.ts`) normalises
@@ -51,7 +51,7 @@ export function stripDependsOnLine(text: string): string {
 }
 
 /** The text with the line naming exactly `ids`, or with no line at all
- *  when `ids` is empty (spec 166).
+ *  when `ids` is empty.
  *
  *  The Edit page's field is the SOLE writer of this line: whatever the
  *  submitted text says about it is stripped first, so a hand-typed line

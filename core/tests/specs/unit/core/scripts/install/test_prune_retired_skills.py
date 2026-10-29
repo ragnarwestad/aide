@@ -72,7 +72,7 @@ def dirs(tmp_path):
 @pytest.mark.unit
 class TestPruneRetiredSkills:
     def test_a_skill_that_left_the_source_is_removed(self, helper, dirs):
-        """Criterion 6: the manifest names four, the source ships three."""
+        """The manifest names four, the source ships three."""
         source, target, manifest = dirs
         for name in ("aide-create", "aide-analyze", "aide-implement"):
             skill(source, name)
@@ -88,7 +88,7 @@ class TestPruneRetiredSkills:
             assert (target / name).exists(), f"{name} is still shipped and must stay"
 
     def test_the_manifest_is_rewritten_to_what_is_shipped_now(self, helper, dirs):
-        """Criterion 6: and the next install has a current memory to diff
+        """And the next install has a current memory to diff
         against, or the same name is pruned forever."""
         source, target, manifest = dirs
         skill(source, "aide-create")
@@ -100,7 +100,7 @@ class TestPruneRetiredSkills:
         assert sorted(manifest.read_text().split()) == ["aide-analyze", "aide-create"]
 
     def test_a_first_install_removes_nothing_and_writes_a_manifest(self, helper, dirs):
-        """Criterion 7: a machine with no history yet has nothing to
+        """A machine with no history yet has nothing to
         accuse. Whatever is in the target was not put there by a prior
         install this mechanism knows about."""
         source, target, manifest = dirs
@@ -129,7 +129,7 @@ class TestPruneRetiredSkills:
         assert (target / "dataviz").exists()
 
     def test_a_name_whose_directory_is_already_gone_is_not_an_error(self, helper, dirs):
-        """Criterion 8: removal is idempotent — somebody deleted it by
+        """Removal is idempotent — somebody deleted it by
         hand, which is exactly what happened on 2026-08-20."""
         source, target, manifest = dirs
         skill(source, "aide-create")

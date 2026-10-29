@@ -27,7 +27,7 @@ table.list tr.specstate:has(+ tr.subrow) td { padding-bottom: var(--sp-2); }
 /* A message under a shut spec — `N not verified` among them — brings its
    own box, so the state line leaves it less air than a row edge needs. */
 table.list tr.specstate:has(+ tr.specnotice) td { padding-bottom: 6px; }
-/* The row's message panel (spec 143): part of the row above it, not a
+/* The row's message panel: part of the row above it, not a
    row of its own. It draws no rule and adds no padding the message's
    own box already brings — the separator a reader sees is still the
    next spec's top border. */
@@ -38,7 +38,7 @@ table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom:
   font-size: var(--fs-s); }
 /* Air under an OPEN spec's last phase line, so it does not sit hard
    against the next spec's name. The rule read :last-child alone until
-   spec 167, and :last-child means the last row in the TABLE — so it
+   and :last-child means the last row in the TABLE — so it
    fired only when the open spec happened to be the bottom one, and any
    spec below it left the last phase line on its ordinary 2px. A
    collapsed row looks right because its air comes from ABOVE: the head
@@ -62,13 +62,12 @@ table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice:has(+ tr
 table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice td { padding-top: var(--sp-2); }
 table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice:is(:last-child, :has(+ tr.spechead)) td,
 table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice:is(:last-child, :has(+ tr.spechead)) td { padding-bottom: var(--sp-3); }
-/* A phase line is TWO cells since spec 192 — the name, then the three
-   choices the line offers together. It was three real columns from spec
-   165 (the name, the phase's AI, the model with the box beside it), and
-   three flex children of one cell up to then, each pinned to a fixed
-   width so every select started at the same x.
-   A real column ended the hand-pinning, and charged a reserved width
-   and a cell's padding for it — three columns is two lots of both
+/* A phase line is TWO cells — the name, then the three
+   choices the line offers together. Not three real columns (the name,
+   the phase's AI, the model with the box beside it), and not three flex
+   children of one cell each pinned to a fixed width either.
+   A real column charges a reserved width
+   and a cell's padding — three columns is two lots of both
    between the name and the box, which is the gap that made the three
    controls read as three separate things. They share a cell again, and
    the pinned widths do NOT come back: the one width reserved below is
@@ -106,15 +105,14 @@ table.list tr.subrow .modelcell > .row { flex-wrap: nowrap; }
    other's. A floor, not a fix — a model name longer than any real
    configuration widens the select and takes the box with it, which is
    better than clipping the name.
-   6.25rem, not the 10rem it was: the list used to carry every model
-   under both tools, and now carries one tool's at a time (spec 179's
-   filter), so the floor no longer has to clear the widest name in the
-   whole configuration. Asked for 2026-08-22 — the reserved width was
-   pushing the phase, the AI and the model apart.
+   A small floor: the list carries one tool's models at a time, so the
+   floor does not have to clear the widest name in the whole
+   configuration, and a larger reserved width would push the phase, the
+   AI and the model apart.
    Selected by the select's own NAME, never by its position: the AI
    select sits in front of it whenever two tools are configured, so
    a :first-child rule would cap that one instead and let the model select
-   regrow to its widest option — the exact crowding spec 192 removes. */
+   regrow to its widest option — the exact crowding to avoid. */
 table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 8rem; max-width: 8rem; }
 /* A caption is as wide as the control under it, so "AI" stands over the
    AI select and "Model" over the model select rather than the three
@@ -149,7 +147,7 @@ table.list tr.subrow .modelcell > .row > .phase[data-phase] {
    before this control existed. The mobile media query below is what
    gives the chevron a shape and the checkbox a job. */
 .phasefold { display: inline-flex; align-items: center; gap: var(--sp-1); }
-/* The AI/model pair (spec 179) is one control on a narrow screen and
+/* The AI/model pair is one control on a narrow screen and
    two side by side here — one DOM either way, because the two selects
    post what a press sends and drawing them twice would post them twice.
    At this width the compact box is not drawn at all and its panel is
@@ -194,7 +192,7 @@ table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { 
    gap per column (matching `.pip`'s own width below) so a letter
    always sits centred over its own pip whatever the viewport — same
    two numbers, twice, not a variable, since `.pip`'s width is itself
-   pinned to a literal by a test (spec 210: divisible by three).
+   pinned to a literal by a test (divisible by three).
    `.pipwrap` is what a caller's own layout treats as the pips now: it
    is the flex/table-cell item, not `.pips` (see `table.facts .pipwrap`
    in job-page.css for the one place that mattered). */
@@ -219,7 +217,7 @@ table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { 
 .pips { display: flex; gap: 3px; }
 /* 21px, not 14: a third of the bar has to be a thing a reader can see,
    and 21 is the smallest width divisible by three that stays a mark
-   rather than a bar (spec 210). Widened ONCE, for every pip, rather
+   rather than a bar. Widened ONCE, for every pip, rather
    than while a run is going — a pip that grew mid-run would move
    everything on the line beside it. The position and overflow are what
    the fill below is drawn inside. */
@@ -230,10 +228,10 @@ table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { 
    back or stopped, red for one that failed (2026-09-11). */
 .pip.waiting { background: var(--warn); }
 .pip.refused { background: var(--danger); }
-/* The one moving thing on the page that says a phase is RUNNING (spec
-   168). It was a spinner on that phase's checkbox, which only exists
+/* The one moving thing on the page that says a phase is RUNNING.
+   A spinner on that phase's checkbox would only exist
    on an open row — so the closed row, the whole interface for the
-   ordinary case since spec 157, showed no motion at all. The mark
+   ordinary case, would show no motion at all. The mark
    already answers half the question in --accent alone: WHICH phase.
    A lighter band travelling along it says "and it is alive" in the
    same 14x4 glyph, taking no space and needing no new element.
@@ -266,7 +264,7 @@ table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { 
   .pip.now { animation: none; background: var(--accent); }
   .checking { animation: none; background: var(--warn); }
 }
-/* Which THIRD of a running implement is behind it (spec 210). The parts
+/* Which THIRD of a running implement is behind it. The parts
    already done stand still in solid --accent; the rest goes on
    shimmering underneath, so the pip says "this much is finished, and it
    is still working" in the one glyph. Inside the pip, never around it:
@@ -286,7 +284,7 @@ table.list tr.subrow[data-caption="1"] .modelcell > .row > [data-cap="model"] { 
    rows: the side edges on each row's outer cells, the top on its head row,
    the bottom on whichever row comes last before its gap row. */
 tr.specgap > td { height: 10px; padding: 0; border: 0; background: none; }
-/* The open spec sits in one cell that spans the card (spec 627). Its frame is
+/* The open spec sits in one cell that spans the card. Its frame is
    the spec's own `.doc`, which stops at the width its fields cap themselves
    at. The spec is shown whole: the editor and the viewer grow with their
    text, and the list's scroller scrolls around them. */
@@ -300,7 +298,7 @@ tr.specdetail > td { padding: var(--sp-3); }
   table.list tr.spechead td.foldcell { vertical-align: top; }
   table.list tr.spechead td.foldcell > .fold { margin-top: 14px; }
   /* The headings stand on the page's own ground, above the cards: opaque,
-     since they stay pinned while the cards scroll under them (spec 440). */
+     since they stay pinned while the cards scroll under them. */
   table.speclist thead th { background: var(--bg); border-bottom: 0; }
   table.speclist > tbody > tr:not(.specgap) > td { background: var(--surface); border-bottom: 0; }
   /* The fold cell spans the title and the state line, so the state

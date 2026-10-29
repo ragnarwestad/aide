@@ -9,7 +9,7 @@ import {
   resolveInstallCmd, resolvePreviewCmd, resolveTestCmd, specFileText,
 } from "../../../src/project/discover";
 
-// Spec 96: `AIDE_SPECS_PATH` stopped being the only key this file reads
+// `AIDE_SPECS_PATH` stopped being the only key this file reads
 // — the dashboard also asks a project what installing it means here.
 // The reader was generalised for that, and generalising a parser is
 // exactly where it quietly starts accepting more than it used to.
@@ -47,7 +47,7 @@ describe("one key out of a project's own .aide/config", () => {
   });
 });
 
-// Spec 549: AIDE_INSTALL_CMD/installCmd is read from `.aide/config`
+// AIDE_INSTALL_CMD/installCmd is read from `.aide/config`
 // alone now — a manifest `installCmd:` is never read, even with no
 // `.aide/config` entry. The test command is the manifest's alone.
 describe("resolveInstallCmd / resolveTestCmd", () => {
@@ -80,9 +80,9 @@ describe("resolveInstallCmd / resolveTestCmd", () => {
     });
   });
 
-  // AC-4: the reverse of resolveInstallCmd — the preview command is the
+  // The reverse of resolveInstallCmd — the preview command is the
   // manifest's alone.
-  test("the preview command is the manifest's previewCmd (AC-4)", () => {
+  test("the preview command is the manifest's previewCmd", () => {
     expect(resolvePreviewCmd(project(null, "bun run dev", "previewCmd", ""))).toEqual({
       value: "bun run dev",
       source: "project.yaml",
@@ -90,7 +90,7 @@ describe("resolveInstallCmd / resolveTestCmd", () => {
   });
 });
 
-// Spec 140: nothing can DERIVE which gitignored paths a project's own
+// Nothing can DERIVE which gitignored paths a project's own
 // test command needs — which is why the Add form asks — but the
 // checkout's own `.gitignore` names the candidates, and the form read
 // no such file. This is the reader of it: suggestions for a field, not
@@ -114,7 +114,6 @@ describe("gitignoreCandidates", () => {
     rmSync(checkouts, { recursive: true, force: true });
   });
 
-  // Criterion 5.
   test("plain top-level entries are offered, and nothing else is", () => {
     const dir = withIgnore(
       "mixed",
@@ -134,7 +133,7 @@ describe("gitignoreCandidates", () => {
   });
 });
 
-// --- spec 150: the whole spec, read off disk ---------------------------------
+// --- The whole spec, read off disk ---------------------------------
 //
 // `specTitle` and `specDescription` read one section of one file. The
 // spec page shows all four files as they stand, so it needs the raw
@@ -192,10 +191,8 @@ describe("the four spec files, raw", () => {
 // `markdownSection` is the rule `specDescription` has always used to
 // find one section of a file: to the next heading or the next `---`,
 // and no markdown parser. `specPhaseFile` no longer uses it for a
-// step's own page since spec 181 (the `review-plan` phase that used to
-// slice one section of 3-solution.md is gone — `analyze` shows the
-// whole file now), but the function itself is still exercised directly
-// here.
+// step's own page (`analyze` shows the whole file), but the function
+// itself is still exercised directly here.
 describe("markdownSection", () => {
   const SOLUTION =
     "# S - Solution\n\n## Recommended solution\n\nApproach 1.\n\n## Plan review\n\n" +

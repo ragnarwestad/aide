@@ -1,5 +1,5 @@
 // The message at the top of the Specs list for each create that ended
-// without a spec (spec 506): which project, which title and why, with a
+// without a spec: which project, which title and why, with a
 // way to try again and a way to be rid of it. It is drawn from the record
 // `push/failed-creates.ts` keeps, so it outlives the queue's memory of the job.
 

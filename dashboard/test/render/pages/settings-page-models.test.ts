@@ -55,12 +55,12 @@ const CLAUDE: ToolModels = {
 };
 
 describe("modelLists", () => {
-  test("a model the AI offers that is no choice of it is offered to add (AC-1)", () => {
+  test("a model the AI offers that is no choice of it is offered to add", () => {
     const choices: Record<string, ModelChoice> = { "gpt-6.1-sol": { tool: "codex" } };
     expect(modelLists("codex", choices, CODEX).offered.map((m) => m.model)).toEqual(["gpt-5.5"]);
   });
 
-  test("a choice of the AI that it no longer offers is listed to remove (AC-2)", () => {
+  test("a choice of the AI that it no longer offers is listed to remove", () => {
     const choices: Record<string, ModelChoice> = {
       "gpt-6.1-sol": { tool: "codex" },
       "gpt-5.6-luna": { tool: "codex" },
@@ -69,7 +69,7 @@ describe("modelLists", () => {
     expect(modelLists("codex", choices, CODEX).gone.map((c) => c.name)).toEqual(["gpt-5.6-luna", "gpt-reserve"]);
   });
 
-  test("a Claude choice matches its family without case, and other names are no longer offered (AC-3)", () => {
+  test("a Claude choice matches its family without case, and other names are no longer offered", () => {
     const choices: Record<string, ModelChoice> = {
       Opus: { model: "opus" },
       Sonnet: {},
@@ -82,7 +82,7 @@ describe("modelLists", () => {
     expect(lists.gone.map((c) => c.name)).toEqual(["plan", "best", "opus[1m]"]);
   });
 
-  test("OpenCode's models compare exactly, each as its provider/model (AC-10)", () => {
+  test("OpenCode's models compare exactly, each as its provider/model", () => {
     const reading: ToolModels = {
       tool: "opencode", at: AT, offered: [{ model: "opencode/gemini-3.1-pro" }, { model: "opencode/glm-5" }],
     };
@@ -96,7 +96,7 @@ describe("modelLists", () => {
     expect(lists.gone.map((c) => c.name)).toEqual(["gemini-2-pro", "glm"]);
   });
 
-  test("another AI's choice and a stand-in's belong to no list of this one (AC-2)", () => {
+  test("another AI's choice and a stand-in's belong to no list of this one", () => {
     const choices: Record<string, ModelChoice> = {
       "gpt-5.5": { tool: "codex" },
       stand: { tool: "fake-claude", model: "opus" },
@@ -104,7 +104,7 @@ describe("modelLists", () => {
     expect(modelLists("claude", choices, CLAUDE)).toEqual({ supported: [], offered: CLAUDE.offered, gone: [] });
   });
 
-  test("the models that can be picked are this AI's choices, gone or not, and no other AI's (AC-6)", () => {
+  test("the models that can be picked are this AI's choices, gone or not, and no other AI's", () => {
     const choices: Record<string, ModelChoice> = {
       "gpt-6.1-sol": { tool: "codex" },
       luna: { tool: "codex", model: "gpt-5.6-luna" },
@@ -118,7 +118,7 @@ describe("modelLists", () => {
 });
 
 describe("the models on an AI's tab", () => {
-  test("the Codex tab lists them under its three headings, with Add and Remove (AC-6)", () => {
+  test("the Codex tab lists them under its three headings, with Add and Remove", () => {
     const html = toolPanel("codex", undefined, undefined, Date.parse(AT), {
       reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" }, "gpt-5.6-luna": { tool: "codex" } },
     });
@@ -128,28 +128,28 @@ describe("the models on an AI's tab", () => {
     expect(posted(html, REMOVE)).toEqual([{ name: "gpt-5.6-luna" }]);
   });
 
-  test("each model offered and no choice has an Add that posts the AI and the model (AC-1)", () => {
+  test("each model offered and no choice has an Add that posts the AI and the model", () => {
     const html = toolPanel("codex", undefined, undefined, Date.parse(AT), {
       reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" } },
     });
     expect(posted(html, ADD)).toEqual([{ tool: "codex", model: "gpt-5.5" }]);
   });
 
-  test("each choice no longer offered has a Remove that posts its name (AC-2)", () => {
+  test("each choice no longer offered has a Remove that posts its name", () => {
     const html = toolPanel("codex", undefined, undefined, Date.parse(AT), {
       reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" }, "gpt-5.5": { tool: "codex" }, "gpt-5.6-luna": { tool: "codex" } },
     });
     expect(posted(html, REMOVE)).toEqual([{ name: "gpt-5.6-luna" }]);
   });
 
-  test("Claude's families are offered with the version each gives today (AC-3)", () => {
+  test("Claude's families are offered with the version each gives today", () => {
     const html = toolPanel("claude", undefined, undefined, Date.parse(AT), { reading: CLAUDE, choices: {} });
     expect(posted(html, ADD).filter((f) => f.model)).toContainEqual({ tool: "claude", model: "opus" });
     expect(text(html)).toContain("opus → Opus 5.5");
     expect(text(html)).toContain("haiku → Haiku 4.5");
   });
 
-  test("a reading that failed says so, and offers nothing to add or remove (AC-3)", () => {
+  test("a reading that failed says so, and offers nothing to add or remove", () => {
     const failed: ToolModels = { tool: "claude", at: AT, offered: [], error: "claude did not finish in time." };
     const html = toolPanel("claude", undefined, undefined, Date.parse(AT), {
       reading: failed, choices: { plan: { model: "opusplan" } },
@@ -159,7 +159,7 @@ describe("the models on an AI's tab", () => {
     expect(posted(html, ADD).filter((f) => f.model)).toEqual([]);
   });
 
-  test("with no reading, Currently supported by Aide names each Claude choice by its version (AC-6)", () => {
+  test("with no reading, Currently supported by Aide names each Claude choice by its version", () => {
     const html = toolPanel("claude", undefined, undefined, Date.parse(AT), {
       choices: { Fable: { model: "fable" }, "claude-opus-4-8": { model: "claude-opus-4-8" } },
       options: [{ name: "Fable", ranAs: "claude-fable-5-1" }, { name: "claude-opus-4-8" }],
@@ -170,7 +170,7 @@ describe("the models on an AI's tab", () => {
     expect(text(html)).toContain("Opus 4.8");
   });
 
-  test("the Claude Models tab has no field to type a model in, with or without a reading (AC-12)", () => {
+  test("the Claude Models tab has no field to type a model in, with or without a reading", () => {
     for (const reading of [undefined, CLAUDE]) {
       const html = toolPanel("claude", undefined, undefined, Date.parse(AT), { reading, choices: {} });
       expect(parse(html).querySelectorAll('input[name="model"]:not([type="hidden"])').length).toBe(0);
@@ -189,7 +189,7 @@ describe("each of an AI's tabs stamps its own reading", () => {
     text(toolPanel("codex", check, usage, Date.parse(AT), { reading: models, choices: {} }, "en", part));
   const stamped = (at: string) => at.replace("T", " ").slice(0, 19) + " UTC";
 
-  test("each shows its own reading's time and neither of the other two (AC-5)", () => {
+  test("each shows its own reading's time and neither of the other two", () => {
     const own = { installation: CHECKED, subscription: USAGE_AT, models: MODELS_AT } as const;
     for (const part of ["models", "subscription", "installation"] as const) {
       const drawn = draw(part);
@@ -200,7 +200,7 @@ describe("each of an AI's tabs stamps its own reading", () => {
     }
   });
 
-  test("the Usage tab draws the usage reading, and the other two do not (AC-7)", () => {
+  test("the Usage tab draws the usage reading, and the other two do not", () => {
     expect(draw("subscription")).toContain("Stand-in window");
     expect(draw("models")).not.toContain("Stand-in window");
     expect(draw("installation")).not.toContain("Stand-in window");

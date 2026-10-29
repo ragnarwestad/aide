@@ -3,7 +3,7 @@
 # it before its checks are ticked.
 #
 # The dashboard already knows how to start a board, keep it in its
-# registry, show its address and stop it again (spec 388) — but what it
+# registry, show its address and stop it again — but what it
 # started was aide's own round script, which only aide has. This is the
 # same contract for every other project: a worktree of the branch, the
 # project's own command in it, and the one line the dashboard reads.

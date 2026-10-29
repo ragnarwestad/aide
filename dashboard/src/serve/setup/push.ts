@@ -1,4 +1,4 @@
-// The push notifications' own wiring (spec 501): built before the queue
+// The push notifications' own wiring: built before the queue
 // store, which takes its `observe` on its change hook, and read from the
 // store lazily so neither has to wait for the other.
 import { createPush, type Push } from "../../push";

@@ -67,16 +67,16 @@ const rows = async (query = ""): Promise<string> => {
 const stepKeys = (html: string): string[] => [...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g)].map((m) => m[1]!);
 
 describe("a running scheduled job's row on the Running tab", () => {
-  test("open, it has a line for each step its log has marked (AC-1)", async () => {
+  test("open, it has a line for each step its log has marked", async () => {
     const html = await rows(`open=${KEY}`);
     expect(stepKeys(html)).toEqual(["Step Aide: preparing", "Step 1 of 2", "Step 2 of 2"]);
   });
 
-  test("shut, it has no step line (AC-1)", async () => {
+  test("shut, it has no step line", async () => {
     expect(stepKeys(await rows())).toEqual([]);
   });
 
-  test("an unfolded step shows its own part of the log, a folded one does not (AC-2)", async () => {
+  test("an unfolded step shows its own part of the log, a folded one does not", async () => {
     const unfolded = await rows(`open=${KEY}&phases=${KEY}.2`);
     expect(unfolded).toContain("wrote the report line");
     expect(unfolded).not.toContain("read the list line");

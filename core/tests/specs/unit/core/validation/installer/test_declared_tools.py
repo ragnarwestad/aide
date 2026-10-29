@@ -141,7 +141,7 @@ class TestInstallersDeclareMarkdownlint:
 @pytest.mark.validation
 class TestMiseDeclaredToolsStayInStepWithUpgrade:
     """A tool declared by the installer that upgrade-ai-tools never
-    upgrades would go stale forever after its first install (REQ-5)."""
+    upgrades would go stale forever after its first install."""
 
     def test_every_mise_declared_tool_is_kept_current(self, workspace_root):
         install_bin_text = (
@@ -169,8 +169,8 @@ class TestMiseDeclaredToolsStayInStepWithUpgrade:
 
 @pytest.mark.validation
 class TestMiseDeclaredToolsCoversTheSixNamedTools:
-    """Spec 334's own measurement: jq, gh, bun, pandoc and md-to-pdf join
-    markdownlint-cli2 (spec 332) as tools aide's installer declares on
+    """Measured: jq, gh, bun, pandoc and md-to-pdf join
+    markdownlint-cli2 as tools aide's installer declares on
     every machine, not tools that happen to already be there by hand."""
 
     SIX_TOOLS = ("markdownlint-cli2", "jq", "gh", "bun", "pandoc", "md-to-pdf")
@@ -200,7 +200,7 @@ class TestMiseDeclaredToolsCoversTheSixNamedTools:
 
 
 # The literal `command -v <bareword>` form every check in the repo uses
-# today (REQ-9's own scope, per spec 334's Risk 4) — a `"$var"` or `$var`
+# today (the scope of the check) — a `"$var"` or `$var`
 # form after `command -v` does not match, by construction: neither `"`
 # nor `$` is in the character class.
 _BAREWORD_COMMAND_V = re.compile(r"command -v ([A-Za-z][A-Za-z0-9_.-]*)\b")
@@ -218,7 +218,7 @@ _DECLARED_TOOL_EXCLUDE = {"mise", "claude", "codex", "copilot", "opencode", "cur
 class TestRequiredToolsAreDeclared:
     """A script or installer that starts checking for a new external tool
     must add it to MISE_DECLARED_TOOLS too, or the machine that lacks it
-    stays silently broken (REQ-9)."""
+    stays silently broken."""
 
     def test_every_command_v_check_is_declared_or_excluded(self, workspace_root):
         installer = workspace_root / "core" / "scripts" / "_install-bin.sh"

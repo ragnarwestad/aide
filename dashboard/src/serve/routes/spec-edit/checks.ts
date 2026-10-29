@@ -43,7 +43,7 @@ export async function checkRoutes(
     const found = ctx.specDir(project!, specFolder!);
     if (!found) return new Response("not found", { status: 404 });
     const dir = await ctx.machinerySpecDir(project!, found);
-    // A press from the Specs list (spec 493) says so on the action URL:
+    // A press from the Specs list says so on the action URL:
     // it has no file-level base sha to send (see `statusBaseSha` below).
     const fromList = url.searchParams.get("fromList") === "1";
     const spec = `${project}/${specFolder}`;
@@ -70,7 +70,7 @@ export async function checkRoutes(
     // not — and an archive job parked on this very tick ("held back:
     // the Acceptance criteria are not all ticked yet") is queued, so
     // refusing on `queued` made the tick and the hold-back wait for
-    // each other (371, 2026-09-03).
+    // each other.
     const activeJob = ctx.queue.list().some(
       (job) => job.project === project && job.specFolder === specFolder && specWriteInFlight(job),
     );
@@ -123,7 +123,7 @@ export async function checkRoutes(
     if (typeof body.checksPhase !== "string") {
       return refuse("no phase was submitted — nothing was saved");
     }
-    // REQ-1/REQ-4/REQ-6: the same "is this branch open" question the
+    // The same "is this branch open" question the
     // read side asks (`resolveOpenBranchTarget`) — but FRESH, never the
     // cached answer. A branch opened moments ago by `create` or
     // `analyze` must be seen by the very next Save press, or the write
@@ -141,8 +141,7 @@ export async function checkRoutes(
     //
     // Read fresh off the branch when one is open — never trusting the
     // page's own copy, since a headless run may have moved the branch
-    // since the page was drawn — and off disk otherwise, exactly as
-    // before REQ-1.
+    // since the page was drawn — and off disk otherwise.
     //
     // Chained one row after another, which is safe because exactly
     // one character moves per tick and the cell keeps its padding:
@@ -219,7 +218,7 @@ export async function checkRoutes(
     // Save and changed their mind about nothing. Not a refusal, and not
     // a commit either.
     if (ticked === asRead) return succeed("no check was changed — nothing was saved", false);
-    // Spec 190: the hold-back note goes with the last check it was
+    // The hold-back note goes with the last check it was
     // waiting on. A declined archive run writes `## Archive held
     // back` naming one open row and where to close it out; ticking
     // that row IS closing it out, so leaving the section behind
@@ -227,8 +226,7 @@ export async function checkRoutes(
     // reason is gone.
     //
     // The ACCEPTANCE rows, not the whole file's: the Phase tables gate
-    // nothing (archive's only gate has been the Acceptance section since
-    // spec 268), so an implement run that left one of its own rows
+    // nothing (archive's only gate is the Acceptance section), so an implement run that left one of its own rows
     // unticked used to keep the note — and the "held back" wording with
     // it — standing on a spec whose person had judged everything that
     // was theirs to judge.
@@ -246,7 +244,7 @@ export async function checkRoutes(
       : typeof body.statusBaseSha === "string" && body.statusBaseSha
         ? body.statusBaseSha
         : null;
-    // spec 355 (REQ-4): the tick lands through the same spawned
+    // The tick lands through the same spawned
     // aide-write-spec every skill's own write already goes through —
     // never a second, TypeScript-side computation of the derived state.
     // Refuses rather than ticking with a state file that would fall out
@@ -267,11 +265,11 @@ export async function checkRoutes(
       return refuse(`${reason} — nothing was saved`);
     }
     const currentState = await lastCommitOf(ctx.gitRun, dir, STATE_SPEC_FILE);
-    // REQ-4: an open branch writes straight onto `refs/heads/aide/<folder>`
+    // An open branch writes straight onto `refs/heads/aide/<folder>`
     // at origin — never through `saveSpecFiles`, which structurally
     // cannot target anything but the shared checkout's own `HEAD`
     // (see 2-analysis.md's "The write side"). No open branch keeps the
-    // exact `saveSpecFiles` call this route has always made (REQ-2).
+    // exact `saveSpecFiles` call this route has always made.
     // Both cases now land `4-status.md` and `4-status.json` together, in
     // the ONE commit the tick makes.
     const result = branchTarget

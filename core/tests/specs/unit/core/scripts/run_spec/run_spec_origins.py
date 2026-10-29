@@ -66,7 +66,7 @@ def run_with_gh(runner, workspace, claude, gh, **kwargs):
 def local_origin(workspace, tmp_path):
     """Bare repos with a plain LOCAL path as `origin` — no github.com in
     sight, unlike the `origin` fixture above. The shape a throwaway,
-    fully local round (spec 367) actually has: nothing to build a
+    fully local round actually has: nothing to build a
     compare-page link from, but a push that still has to be landable."""
     project_bare = tmp_path / "local-origin.git"
     specs_bare = tmp_path / "local-specs-origin.git"
@@ -99,7 +99,7 @@ def fetchable_origin(workspace, tmp_path):
 def fetchable_origin_both_roots(workspace, tmp_path):
     """A bare origin reachable for fetch and push, wired into BOTH the
     project and the specs repo — `fetchable_origin` only wires up the
-    project, which is not enough for a run to end ok:true once REQ-1's
+    project, which is not enough for a run to end ok:true once the
     confirmation asks about every root the step branched."""
     project_bare = tmp_path / "fetchable-origin-project.git"
     specs_bare = tmp_path / "fetchable-origin-specs.git"
@@ -114,8 +114,8 @@ def fetchable_origin_both_roots(workspace, tmp_path):
 
 def _reject_every_push(bare):
     """A bare repo whose `pre-receive` hook refuses everything: the push
-    reaches the network and is SEEN, then refused — the shape REQ-2/
-    REQ-3/REQ-6 need, unlike an origin that is simply unreachable."""
+    reaches the network and is SEEN, then refused — the shape needed,
+    unlike an origin that is simply unreachable."""
     hook = bare / "hooks" / "pre-receive"
     stand_in(hook, "#!/usr/bin/env bash\nexit 1\n")
 
@@ -136,7 +136,7 @@ def rejecting_origin(workspace, tmp_path):
 
 @pytest.fixture
 def specs_origin_rejecting_the_second_push(workspace, tmp_path):
-    """REQ-2: the specs root's FIRST push (the step's own content, pass
+    """The specs root's FIRST push (the step's own content, pass
     1) succeeds; every push after that (the line-only commit, pass 2) is
     refused. Proves pass 2's confirmation is checked independently of
     pass 1's success, using a fixture nothing here already provides."""

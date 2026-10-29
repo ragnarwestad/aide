@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../src/serve/land-branch/test-gate.ts";
 import { renderSentence } from "../../src/i18n/message.ts";
 
-/** What a reader would see: since spec 380 a message is stored as
+/** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {

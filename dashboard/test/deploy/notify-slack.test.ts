@@ -1,4 +1,4 @@
-// The Slack wrapper (spec 81, slice 81c). It is the only piece that
+// The Slack wrapper. It is the only piece that
 // knows what a webhook is, so it is worth proving on its own: one line
 // of JSON in, one readable line out, the secret read from a file, and
 // exit 0 whatever happens — a failed notification must never read as a

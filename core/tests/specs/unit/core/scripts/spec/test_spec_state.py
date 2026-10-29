@@ -1,5 +1,5 @@
 """Tests for `write_spec_state`/`read_spec_state`
-(core/scripts/lib/spec-state.sh), spec 355's shared derivation function:
+(core/scripts/lib/spec-state.sh), the shared derivation function:
 the one place a spec's completed phases, archived/reopened stamps,
 acceptance-criteria ticks and per-phase task-row counts are derived from
 4-status.md's prose and written to 4-status.json beside it.
@@ -243,7 +243,7 @@ def test_write_spec_state_returns_nonzero_when_status_file_is_missing(tmp_path, 
 #
 # `status_progress_for` (status-progress.sh) and `parseStatusChecks`
 # (dashboard/src/project/parse-status.ts) are kept in step by this
-# fixture (spec 246/285). spec-state.sh's own row/mark detection is a
+# fixture. spec-state.sh's own row/mark detection is a
 # SEPARATE piece of awk, not a call into status_progress_for — it needs
 # per-heading breakdowns and row-level task text neither of the existing
 # two give — so this proves the two independent implementations still
@@ -262,17 +262,17 @@ def test_phase_counts_summed_agree_with_the_shared_row_counting_fixture(tmp_path
         assert (done, total) == (case["done"], case["total"]), case["name"]
 
 
-# --- spec 511: archived/closed follow the order rule -----------------------
+# --- Archived/closed follow the order rule -----------------------
 
 _ROUND = "- **Round boundary:** 2026-09-19 (history before `abc1234` does not count)\n"
 
 
-def test_archived_is_null_when_a_round_boundary_follows_the_stamp_AC_2(tmp_path):
+def test_archived_is_null_when_a_round_boundary_follows_the_stamp(tmp_path):
     content = "# S\n\n## Tracking info\n\n**Archived:** 2026-09-01\n\n" + _ROUND
     assert write_state(tmp_path, content)["archived"] is None
 
 
-def test_archived_is_read_when_a_later_stamp_follows_the_boundary_AC_2(tmp_path):
+def test_archived_is_read_when_a_later_stamp_follows_the_boundary(tmp_path):
     content = (
         "# S\n\n## Tracking info\n\n**Archived:** 2026-09-01\n\n" + _ROUND
         + "\n**Archived:** 2026-09-20\n"
@@ -280,12 +280,12 @@ def test_archived_is_read_when_a_later_stamp_follows_the_boundary_AC_2(tmp_path)
     assert write_state(tmp_path, content)["archived"] == {"date": "2026-09-20"}
 
 
-def test_archived_is_read_when_no_boundary_follows_AC_2(tmp_path):
+def test_archived_is_read_when_no_boundary_follows(tmp_path):
     content = "# S\n\n## Tracking info\n\n**Archived:** 2026-09-01\n"
     assert write_state(tmp_path, content)["archived"] == {"date": "2026-09-01"}
 
 
-def test_closed_follows_the_same_order_rule_AC_2(tmp_path):
+def test_closed_follows_the_same_order_rule(tmp_path):
     closed = "**Closed:** 2026-09-01 — not now\n"
     content = "# S\n\n## Tracking info\n\n" + closed + "\n" + _ROUND
     assert write_state(tmp_path, content)["closed"] is None
@@ -293,10 +293,10 @@ def test_closed_follows_the_same_order_rule_AC_2(tmp_path):
     assert write_state(tmp_path, later)["closed"] == {"date": "2026-09-20", "reason": "still no"}
 
 
-# --- Not verified (spec 509) ------------------------------------------------
+# --- Not verified ------------------------------------------------
 
 
-def test_a_not_verified_acceptance_row_is_done_and_flagged_AC_2(tmp_path):
+def test_a_not_verified_acceptance_row_is_done_and_flagged(tmp_path):
     state = write_state(
         tmp_path,
         "# Spec - Status\n\n## Acceptance criteria\n\n"
@@ -313,10 +313,10 @@ def test_a_not_verified_acceptance_row_is_done_and_flagged_AC_2(tmp_path):
     assert state["phaseCounts"]["Acceptance criteria"] == {"done": 2, "total": 3}
 
 
-# --- Failed (spec 510) ------------------------------------------------------
+# --- Failed ------------------------------------------------------
 
 
-def test_a_failed_acceptance_row_is_open_and_flagged_AC_4(tmp_path):
+def test_a_failed_acceptance_row_is_open_and_flagged(tmp_path):
     state = write_state(
         tmp_path,
         "# Spec - Status\n\n## Acceptance criteria\n\n"

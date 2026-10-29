@@ -18,8 +18,8 @@ import { resolveStepModel } from "../../../src/serve/serve.ts";
 import { stepTool } from "../../../src/serve/serve-helpers/runner-argv.ts";
 
 const DEFAULTS: QueueDefaults = {
-  // Per step since spec 152: an implement is not an analyze, and one
-  // number for both stopped 149 mid-sentence with its tests green.
+  // Per step: an implement is not an analyze, and one number for both
+  // stopped an implement mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -45,7 +45,7 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 
-// Spec 123: the model is chosen ON THE PHASE LINE, so one Run press can
+// The model is chosen ON THE PHASE LINE, so one Run press can
 // carry a DIFFERENT model for each phase it ticks. The whole-job string
 // above is kept working unchanged; this is the shape the per-phase
 // dropdowns post. Two rules apply:
@@ -175,14 +175,14 @@ describe("per-step model choice", () => {
     expect(r.job.modelChoice).toBeUndefined();
   });
 });
-// --- spec 225: the model a phase still ahead will run on ----------------------
+// --- The model a phase still ahead will run on ----------------------
 
-// Spec 160 let a reader add or drop a step on a running job. The AI and
+// A reader can add or drop a step on a running job. The AI and
 // model selects beside those boxes stayed locked, and this is the store
 // half of unlocking them: one method, guarded by the same `tailEdits()`
 // the box already asks, so the two controls cannot disagree about which
 // phases are still open.
-describe("editing a running job's model for a step still ahead (spec 225)", () => {
+describe("editing a running job's model for a step still ahead", () => {
   const CHOICES: QueueDefaults = {
     ...DEFAULTS,
     modelChoices: { sonnet: {}, fable: {} },
@@ -198,7 +198,7 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
     return { store, mirror, id: made.job.id, model: () => store.get(made.job.id)!.model };
   };
 
-  test("a step still ahead takes the new model, and the runner would read it (criterion 4)", () => {
+  test("a step still ahead takes the new model, and the runner would read it", () => {
     const job = running(["analyze", "implement"]);
     const answer = job.store.editTailModel(job.id, "implement", "fable");
     expect(answer.ok).toBe(true);
@@ -212,21 +212,21 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
   // The other half of `tailEdits()`: a phase this job does not have at
   // all. Writing it is inert until the step is added through the box's
   // own route, and read by the same `resolveStepModel` when it is.
-  test("a differently-cased name is stored under the listed spelling (spec 494)", () => {
+  test("a differently-cased name is stored under the listed spelling", () => {
     const defaults = { ...DEFAULTS, modelChoices: { Sonnet: {}, Fable: {} } };
     const job = running(["analyze", "implement"], 0, defaults);
     expect(job.store.editTailModel(job.id, "implement", "fable").ok).toBe(true);
     expect(job.model().implement).toBe("Fable");
   });
 
-  test("a phase the job does not have takes one too (criterion 4)", () => {
+  test("a phase the job does not have takes one too", () => {
     const job = running(["analyze"]);
     expect(job.store.editTailModel(job.id, "archive", "fable").ok).toBe(true);
     expect(job.model().archive).toBe("fable");
     expect(job.store.get(job.id)!.steps).toEqual(["analyze"]);
   });
 
-  test("the running step and everything behind it are closed (criterion 3)", () => {
+  test("the running step and everything behind it are closed", () => {
     const job = running(["analyze", "implement"], 1);
     for (const step of ["analyze", "implement"]) {
       const answer = job.store.editTailModel(job.id, step, "fable");
@@ -236,7 +236,7 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
     expect(job.model().implement).toBe("opus");
   });
 
-  test("a model the server does not offer is refused, in the words job creation uses (criterion 7)", () => {
+  test("a model the server does not offer is refused, in the words job creation uses", () => {
     const job = running(["analyze", "implement"]);
     const answer = job.store.editTailModel(job.id, "implement", "haiku");
     expect(answer.ok).toBe(false);
@@ -249,7 +249,7 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
     expect(job.model().implement).toBe("opus");
   });
 
-  test("a server with no choices configured refuses every name (criterion 7)", () => {
+  test("a server with no choices configured refuses every name", () => {
     const job = running(["analyze", "implement"], 0, DEFAULTS);
     const answer = job.store.editTailModel(job.id, "implement", "fable");
     expect(answer.ok).toBe(false);
@@ -272,7 +272,7 @@ describe("editing a running job's model for a step still ahead (spec 225)", () =
     }
   });
 
-  test("a job that is not running is closed altogether (criterion 8)", () => {
+  test("a job that is not running is closed altogether", () => {
     for (const state of ["queued", "done", "failed", "cancelled", "stopped", "interrupted"] as const) {
       const job = running(["analyze", "implement"]);
       job.store.update(job.id, { state });

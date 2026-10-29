@@ -16,18 +16,18 @@ const ended = (step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
   row({ steps: [step], stepIndex: 0, state: "done", ...extra });
 
 describe("phaseExplanations", () => {
-  test("a description changed since the analysis is said on the analysis phase and no other (AC-2)", () => {
+  test("a description changed since the analysis is said on the analysis phase and no other", () => {
     const g = group({ analyzeStale: true });
     expect(phaseExplanations(g, phase("analyze"), "en")).toEqual([t("en", "list.descriptionChangedSince")]);
     for (const step of ["create", "implement", "archive"]) expect(phaseExplanations(g, phase(step), "en")).toEqual([]);
   });
 
-  test("the explanation is gone once the analysis is up to date, and follows the language (AC-2)", () => {
+  test("the explanation is gone once the analysis is up to date, and follows the language", () => {
     expect(phaseExplanations(group(), phase("analyze"), "en")).toEqual([]);
     expect(phaseExplanations(group({ analyzeStale: true }), phase("analyze"), "nb")).toEqual([t("nb", "list.descriptionChangedSince")]);
   });
 
-  test("a pull request the latest attempt could not open is said, and a newer attempt that opened one clears it (AC-4)", () => {
+  test("a pull request the latest attempt could not open is said, and a newer attempt that opened one clears it", () => {
     const archived = group({ done: ["create", "analyze", "implement", "archive"] });
     const failed = ended("archive", noPullRequest("archive"));
     expect(phaseExplanations(archived, phase("archive", { attempts: [failed] }), "en")).toEqual([prErrorSentence("en")]);
@@ -35,7 +35,7 @@ describe("phaseExplanations", () => {
     expect(phaseExplanations(archived, phase("archive", { attempts: [opened, failed] }), "en")).toEqual([]);
   });
 
-  test("the phase's own qualifier is said together with the other explanations, each once (AC-4)", () => {
+  test("the phase's own qualifier is said together with the other explanations, each once", () => {
     const stopped = phase("analyze", { history: { stopped: "provider-limit" } });
     const said = phaseExplanations(group({ analyzeStale: true }), stopped, "en");
     expect(said).toHaveLength(2);
@@ -44,7 +44,7 @@ describe("phaseExplanations", () => {
     expect(new Set(said).size).toBe(said.length);
   });
 
-  test("a phase with nothing to add has no explanations (AC-4)", () => {
+  test("a phase with nothing to add has no explanations", () => {
     expect(phaseExplanations(group({ done: ["create", "analyze"] }), phase("analyze", { attempts: [ended("analyze")] }), "en")).toEqual([]);
   });
 });

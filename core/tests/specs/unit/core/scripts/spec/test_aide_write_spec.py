@@ -1,7 +1,7 @@
 """Tests for core/scripts/aide-write-spec — the one legitimate way
 /aide-analyze, /aide-implement and /aide-archive land a spec file's
-content on disk (spec 282, closing the gap spec 248 left open for
-/aide-create's own file creation).
+content on disk, as aide-create-spec does for
+/aide-create's own file creation.
 
 No AI is involved anywhere in this file: the point of the script is to
 make every spec-file write a Bash-only path, so a permission rule can be
@@ -175,7 +175,7 @@ def test_result_file_mirrors_stdout(script, specs_root, tmp_path):
     assert json.loads(result_file.read_text().strip()) == out
 
 
-# --- spec 355: landing 4-status.md derives 4-status.json -------------------
+# --- Landing 4-status.md derives 4-status.json -------------------
 
 
 def test_landing_4_status_md_writes_4_status_json_beside_it(script, specs_root):

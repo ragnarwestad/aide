@@ -2,7 +2,7 @@ import type { Language } from "../i18n";
 import { stepLabel } from "./step-label.ts";
 
 /** "analyze" → "analyzing"/"analyserer" — a per-step, per-language
- *  table (spec 350, REQ-6), replacing the English-only suffix rule this
+ *  table, replacing the English-only suffix rule this
  *  used to be outright: a rule built on `stepLabel(step) + "ing"` has no
  *  Norwegian equivalent (`2-analysis.md`'s "Why gerund() cannot simply
  *  be handed a translated stepLabel"). Keyed by the step ID, not by
@@ -53,7 +53,7 @@ export function gerund(lang: Language, step: string): string {
 }
 
 /** The rule itself: the index of the step a landing belongs to, from the
- *  three fields that name it. Exported (spec 399) so a caller with a raw
+ *  three fields that name it. Exported so a caller with a raw
  *  `Job` (`queue/store.ts`) rather than a `QueueRowView` can apply the
  *  same rule `landingStep` (`render/ui/job-state/resting.ts`) uses,
  *  without a type it does not have. */

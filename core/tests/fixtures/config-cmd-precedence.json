@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Spec 549: where AIDE_INSTALL_CMD/installCmd is read from, as the table",
+    "Where AIDE_INSTALL_CMD/installCmd is read from, as the table",
     "the dashboard's `resolveInstallCmd` is checked against.",
     "",
     "`.aide/config` is the only source read now: a manifest `installCmd:` is",

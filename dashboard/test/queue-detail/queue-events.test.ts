@@ -1,4 +1,4 @@
-// Spec 189: the page stopped asking. `GET /api/queue/events` is held
+// The page stopped asking. `GET /api/queue/events` is held
 // open, says nothing at all while nothing is happening, and writes one
 // `changed` event the moment the server's own picture of a job moves.
 // The browser answers that by fetching the rows it already knows how to
@@ -65,21 +65,21 @@ describe("GET /api/queue/events", () => {
 
   // The whole point of the spec: an open page that is looking at
   // nothing in particular makes no noise and redraws not at all.
-  test("says nothing at all while nothing changes (criterion 1)", async () => {
+  test("says nothing at all while nothing changes", async () => {
     const { base } = harness.start();
     await settled();
     const s = await connect(base);
     await s.quiet(400);
   });
 
-  test("a `changed` event follows an enqueue (criterion 2)", async () => {
+  test("a `changed` event follows an enqueue", async () => {
     const { base } = harness.start();
     const s = await connect(base);
     await enqueue(base);
     expect(await s.next()).toContain("event: changed");
   });
 
-  test("a `changed` event follows a cancel (criterion 2)", async () => {
+  test("a `changed` event follows a cancel", async () => {
     const { base } = harness.start();
     const s = await connect(base);
     const id = await enqueue(base);
@@ -89,12 +89,12 @@ describe("GET /api/queue/events", () => {
     expect(await s.next()).toContain("event: changed");
   });
 
-  // The second change source (spec 80's emitter). Cost, subagent count
+  // The second change source (the run emitter). Cost, subagent count
   // and live state reach a row through a store the queue knows nothing
   // about — before this, the browser's own five-second poll kept them
   // fresh by accident, and a push driven by the queue alone would have
   // let them sit still for the whole of a long step.
-  test("a `changed` event follows POST /api/aide-run (criterion 3)", async () => {
+  test("a `changed` event follows POST /api/aide-run", async () => {
     const { base } = harness.start();
     const s = await connect(base);
     const reported = await fetch(`${base}/api/aide-run`, {
@@ -134,7 +134,7 @@ describe("GET /api/queue/events", () => {
 });
 
 // The number on the app's icon travels with the event a queue move sends.
-describe("a `changed` event after a queue move carries how many specs wait (AC-4)", () => {
+describe("a `changed` event after a queue move carries how many specs wait", () => {
   const failedJob = {
     id: "f1", project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"], stepIndex: 0, state: "failed",
     timeoutSec: { implement: 60 }, permissionMode: { implement: "acceptEdits" }, model: { implement: "sonnet" },
@@ -147,14 +147,14 @@ describe("a `changed` event after a queue move carries how many specs wait (AC-4
       body: JSON.stringify({ ...JOB, specFolder }),
     });
 
-  test("another spec's job is queued while one spec has failed: the event says 1 waits (AC-4)", async () => {
+  test("another spec's job is queued while one spec has failed: the event says 1 waits", async () => {
     const { base } = harness.start({ alsoSpecs: ["82-another-spec"], queueMirror: JSON.stringify([failedJob]) });
     const s = await connect(base);
     expect((await enqueueFor(base, "82-another-spec")).status).toBe(200);
     expect(await s.next()).toContain('data: {"waiting":1}');
   });
 
-  test("a new job for the failed spec itself leaves nothing waiting: the event says 0 (AC-4)", async () => {
+  test("a new job for the failed spec itself leaves nothing waiting: the event says 0", async () => {
     const { base } = harness.start({ queueMirror: JSON.stringify([failedJob]) });
     const s = await connect(base);
     expect((await enqueueFor(base, "81-queue-and-runner")).status).toBe(200);
@@ -174,7 +174,7 @@ async function enqueueOther(base: string): Promise<string> {
   return ((await res.json()) as { job: { id: string } }).job.id;
 }
 
-// --- spec 204: a spec is a folder, and a folder changes no job --------------
+// --- A spec is a folder, and a folder changes no job --------------
 //
 // Four specs added to a project on 2026-08-23 stayed invisible until
 // somebody reloaded the page by hand. The queue's own writes are told
@@ -182,12 +182,12 @@ async function enqueueOther(base: string): Promise<string> {
 // headless run's own commit writes a folder and touches no job at all,
 // so nothing was told. Each allowed project's specs root is watched for
 // exactly that.
-describe("a spec created outside the dashboard reaches an open page (spec 204)", () => {
+describe("a spec created outside the dashboard reaches an open page", () => {
   // The OS is left out: when macOS delivers an event is its own business,
   // and under load it came too late for any bound a test could hold. The
   // server's own callback is captured and called with what the OS would
   // have named.
-  test("a folder written after the watch opened broadcasts `changed`, and the rows then hold it (criterion 4)", async () => {
+  test("a folder written after the watch opened broadcasts `changed`, and the rows then hold it", async () => {
     const heard: ((event: string, filename: string | null) => void)[] = [];
     const specsWatch = ((_root: string, _opts: unknown, cb: (event: string, filename: string | null) => void) => {
       heard.push(cb);
@@ -215,7 +215,7 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
   // A watcher nobody closes is a handle held for the life of the
   // process — and `cleanup()` removes the very directories these point
   // at, in the same breath.
-  test("stop() closes every watcher it opened (criterion 6)", () => {
+  test("stop() closes every watcher it opened", () => {
     const { server } = harness.start();
     expect(server.specWatchCount()).toBe(1);
     server.stop();
@@ -234,7 +234,7 @@ async function until(check: () => boolean, budgetMs = 2000): Promise<boolean> {
   return check();
 }
 
-// Spec 275, criterion 2: `refreshSpecCaches` is the only OTHER writer of
+// `refreshSpecCaches` is the only OTHER writer of
 // the "is this archived spec's branch still on origin" cache besides a
 // landing's own fresh recheck (`land-branch/merge.ts`), and until now it
 // found things out without telling the open tab reading it — a page
@@ -261,7 +261,7 @@ async function until(check: () => boolean, budgetMs = 2000): Promise<boolean> {
 // a live SSE connection and the row an open tab redraws with is the
 // corrected one — the wiring the other suite cannot see because it never
 // opens a socket.
-describe("a background discovery of an archived spec's branch reaches an open tab (spec 275, criterion 2)", () => {
+describe("a background discovery of an archived spec's branch reaches an open tab", () => {
   test("the schedule's first check pushes its finding to a connected tab", async () => {
     // A single, one-shot gate (never re-armed): everything that awaits
     // it — the initial concurrent batch AND any call chained off one of
@@ -283,7 +283,7 @@ describe("a background discovery of an archived spec's branch reaches an open ta
 
     // Before the tick resolves: nothing has been asked yet, from this
     // row's own point of view — an unwarmed archived spec reads as
-    // ordinary "archived", not as a problem (spec 208's own contract:
+    // ordinary "archived", not as a problem (the contract:
     // fail closed, never claim a mark it cannot back up).
     const before = await fetch(`${base}/specs?rows=1&state=archived`);
     expect(await before.text()).not.toContain("its branch is still on origin — re-run archive");

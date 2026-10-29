@@ -30,7 +30,7 @@ export interface Reply {
   /** Hold the request open until this settles — for what happens
    *  WHILE a press is in flight. */
   hold?: Promise<void>;
-  /** What a row-refresh answers with. Named per reply because spec 129
+  /** What a row-refresh answers with. Named per reply because the test
    *  is about WHICH of two answers reaches `#jobrows`, so the two have
    *  to be told apart once they are both in the air. */
   text?: string;
@@ -87,7 +87,7 @@ export function harness(
     formClass === "rowrun" ? ROW_FORM : undefined,
   );
   // The row's phase boxes — the space this spec's spinner takes over
-  // while the press is out. A COLLAPSED row (spec 103) has none: it
+  // while the press is out. A COLLAPSED row has none: it
   // renders Approve or Merge alone, with no run form and no boxes.
   const boxes = "<label class=\"phase\">analyze</label>";
   // `offsetWidth` is the one thing a hand-built object cannot honestly
@@ -96,7 +96,7 @@ export function harness(
   // it names, not how many pixels a browser would have said.
   const phases = { innerHTML: boxes, isConnected: true, offsetWidth: 168, style: { minWidth: "" } };
   const otherPhases = { innerHTML: boxes, isConnected: true, offsetWidth: 168, style: { minWidth: "" } };
-  /** Since spec 124 the boxes are on the phase LINES and the buttons
+  /** The boxes are on the phase LINES and the buttons
    *  on the header row, so a button's own `<tr>` has none to lend —
    *  and the code stopped asking. Every selector it does ask for is
    *  recorded, so a lookup creeping back is a failed test rather than
@@ -114,13 +114,13 @@ export function harness(
   const tokenInput = { value: "s3cret" };
   type Listener = (e: unknown) => void | Promise<void>;
   const on: Record<string, Listener> = {};
-  // Spec 151: the OTHER controls on the same row. A press locks the
+  // The OTHER controls on the same row. A press locks the
   // whole row, so a fake with one button on it could not tell a
   // row-wide lock from the single-button one it replaced.
   //
-  // They sat in a `<td class="stackcell">` until spec 157 moved the
-  // row's one control into the State cell of the head row and deleted
-  // that cell. The scope is `tr.spechead` now, which is the same
+  // They once sat in a `<td class="stackcell">`; the
+  // row's one control is in the State cell of the head row now and
+  // that cell is gone. The scope is `tr.spechead` now, which is the same
   // element open or shut — a collapsed row had no stack cell at all,
   // and this fake had to model that as "no scope".
   const runButton = formClass === "rowrun" ? button : makeButton("Run", "Starting…", "primary", ROW_FORM);
@@ -157,7 +157,7 @@ export function harness(
     //
     // And a DISABLED control posts nothing — the browser's own rule,
     // and the reason the row is locked only after the form has been
-    // serialised (spec 151). A fake that ignored `disabled` could not
+    // serialised. A fake that ignored `disabled` could not
     // tell the two orders apart.
     get fields(): [string, string][] {
       const live = phases.innerHTML.includes("phase") && !stepBoxes.some((b) => b.disabled);
@@ -174,7 +174,7 @@ export function harness(
         : sel.includes("spechead")
           ? // A form that is not on a spec's row at all — the New-spec
             // page, the Projects panel. `collapsed` no longer names a
-            // row without a scope: since spec 157 a shut row draws its
+            // row without a scope: a shut row draws its
             // control in the same `<tr>` an open one does.
             (o.offRow ? null : spechead)
           : sel.includes(`.${formClass}`)
@@ -186,12 +186,12 @@ export function harness(
   const { createButton, slot, resets, projectSelect, createForm } = buildCreateForm(chips, tokenInput, on);
 
   // One phase with history and three still ahead — the mixed row
-  // "set all" is scoped against (spec 169).
+  // "set all" is scoped against.
   const modelSelects = [
     modelSelect(ROW_FORM, "create", "sonnet"),
     modelSelect(ROW_FORM, "analyze", "fable", true),
     modelSelect(ROW_FORM, "implement", "codex-fast"),
-    // Spec 225: the phase the running job has not reached — the one
+    // The phase the running job has not reached — the one
     // whose selects stay live, exactly where `tailBox` is.
     modelSelect(ROW_FORM, "archive", "sonnet", false, true),
   ];
@@ -211,10 +211,10 @@ export function harness(
     stepCheckbox(ROW_FORM, "implement", false),
     stepCheckbox(ROW_FORM, "archive", false),
   ];
-  // Spec 493: two specs' unfolded lists, one criterion text in common.
+  // Two specs' unfolded lists, one criterion text in common.
   const TICK_FORM = "rowchecks-aide/493-a";
   const TICK_ROW = "| AC-1: it folds | ⬜ | |";
-  // Spec 509: the first criterion also has its Not verified box, in the same `li`.
+  // The first criterion also has its Not verified box, in the same `li`.
   const firstLi = {
     querySelector: (sel: string): unknown =>
       sel.includes('name="unverified"') ? unverifiedBoxes[0] : sel.includes('name="failed"') ? failedBoxes[0] : tickBoxes[0],
@@ -225,7 +225,7 @@ export function harness(
     tickCheckbox("rowchecks-aide/493-b", TICK_ROW, false),
   ];
   const unverifiedBoxes = [unverifiedCheckbox(TICK_FORM, TICK_ROW, false, firstLi)];
-  // Spec 510: an archived criterion's third box.
+  // An archived criterion's third box.
   const failedBoxes = [failedCheckbox(TICK_FORM, TICK_ROW, false, firstLi)];
   const tailBoxEl = tailBox(ROW_FORM);
   const { removeButton, removeSlot, removeDialog, addButton, addSlot, addForm, removeForm } =
@@ -249,7 +249,7 @@ export function harness(
     for (const b of failedBoxes) b.redraw();
     tailBoxEl.redraw();
   };
-  // Spec 204: `#jobrows` is a STRING here and a tree of nodes in the
+  // `#jobrows` is a STRING here and a tree of nodes in the
   // browser, and the difference is the whole of what this spec has to
   // prove — a row nobody's redraw touched is the same object before and
   // after, which is why the click a reader made on it is delivered. A
@@ -262,11 +262,11 @@ export function harness(
   // where it found it), so every assertion in this file that reads
   // `h.rows.innerHTML` keeps seeing exactly what it saw before.
   const table = fakeTbody(redrawControls);
-  // Spec 208: the container itself carries the "something was clicked
+  // The container itself carries the "something was clicked
   // and the answer is not here yet" look, so the fake grows the one
   // thing a class can be read off.
   const rowsClass = { className: "" };
-  // Spec 226: the list scrolls in `.tablewrap`, and how far down it is
+  // The list scrolls in `.tablewrap`, and how far down it is
   // scrolled has to survive the five-second refresh. The wrapper is a
   // NEW element after a wholesale replace — the browser threw the old
   // subtree away — so the fake makes a new object with `scrollTop` back
@@ -305,7 +305,7 @@ export function harness(
   };
   const requests: { url: string; init: Record<string, unknown> }[] = [];
   // `pathname` because the page's own reloads go back to the page they
-  // are on — the Projects panel is served at `/projects` since spec 115,
+  // are on — the Projects panel is served at `/projects`,
   // and a hardcoded `/` would throw the reader onto the spec list.
   const location = { search, href: "http://dash.test/", pathname: o.pathname ?? "/" };
   // `replaceState` moves the address bar WITHOUT loading a document, so
@@ -320,7 +320,7 @@ export function harness(
     },
   };
 
-  /** The running-phase marks the page's own clock rewrites (spec 199).
+  /** The running-phase marks the page's own clock rewrites.
    *  Re-queried on every tick by the code under test, so a test can add
    *  or remove one between ticks and see the difference — which is what
    *  proves the clock survives `#jobrows` being swapped out under it. */
@@ -338,7 +338,7 @@ export function harness(
   const followed = followFakes(o.follow);
   const document = {
     createElement: followed.createElement,
-    // Spec 204: a row's own anchor id resolves too. `rowAnchorId()` is
+    // A row's own anchor id resolves too. `rowAnchorId()` is
     // already on every head row for the sake of `href="#..."`, and the
     // per-group diff reaches a group through it — so a fake that
     // answered only `"jobrows"` could not run the code under test at
@@ -352,7 +352,7 @@ export function harness(
         ? followed.find()
         : sel.includes("newspecform")
         ? createForm
-        : // Spec 160: a tail box is on a phase LINE, and the row it
+        : // A tail box is on a phase LINE, and the row it
           // belongs to is reached through the form it names — the same
           // id every other control outside that form carries.
           sel.startsWith("form[id=")
@@ -366,7 +366,7 @@ export function harness(
       resolveDocumentQuerySelectorAll(sel, {
         elapsed, addForm, removeForm, aiSelects, modelSelects, otherRowSelect, runButton, stepBoxes, tailBoxEl,
       }),
-    // Recorded since spec 189: `visibilitychange` is what opens and
+    // Recorded: `visibilitychange` is what opens and
     // closes the page's connection now, so a fake that swallowed it
     // could not tell a tab going quiet from one that never connected.
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`doc:${type}`] = fn),
@@ -391,9 +391,9 @@ export function harness(
   const FakeFormData = makeFakeFormData();
   const { FakeEventSource, made: sourcesMade, live } = makeFakeEventSource();
 
-  /** Every timer the page asks for, with the work it would do. Spec 189
-   *  took the five-second POLL away and nothing may put it back; spec
-   *  199 adds one that touches nothing but the text of the marks it
+  /** Every timer the page asks for, with the work it would do. There
+   *  is no five-second POLL and nothing may put it back; the one timer
+   *  there is touches nothing but the text of the marks it
    *  owns, so what is recorded is both the cadence and the callback —
    *  a test can then run a tick by hand and say what it did. */
   const intervals: number[] = [];
@@ -456,13 +456,13 @@ export function harness(
   return {
     /** The words in the list's own refusal line. */
     listRefused,
-    /** The row node wearing that anchor id, right now (spec 204). The
+    /** The row node wearing that anchor id, right now. The
      *  same object across a redraw is what proves the redraw left it
      *  alone; a different one proves it was replaced. */
     rowFor: (id: string) => table.byId(id),
     /** Every row's anchor id in the order they stand in. */
     rowIds: () => table.ids(),
-    /** The list's scroll box as it stands right now (spec 226) — a new
+    /** The list's scroll box as it stands right now — a new
      *  object after every wholesale replace, exactly as the browser's
      *  own element is. */
     wrap: () => wrap,
@@ -485,19 +485,19 @@ export function harness(
     },
     modelSelects, otherRowSelect, aiSelects, stepBoxes, tailBox: tailBoxEl,
     /** A tail box ticked or unticked by hand — the tick that posts on
-     *  its own, without a Run press behind it (spec 160). */
+     *  its own, without a Run press behind it. */
     changeTail: (checked: boolean) => {
       tailBoxEl.checked = checked;
       return on["change"]?.({ target: tailBoxEl });
     },
     runButton, cancelButton,
-    /** An AI picked on ONE phase line (spec 179) — the action that
+    /** An AI picked on ONE phase line — the action that
      *  fills that phase's model in, and no other phase's. */
     changeAi: (index: number, tool: string) => {
       const select = aiSelects[index]!;
       select.value = tool;
       // Returned rather than dropped: on a LIVE line the pick posts
-      // (spec 225), and a test has to be able to wait for it.
+      // and a test has to be able to wait for it.
       return on["change"]?.({ target: select });
     },
     changeCreateAi: (index: number, tool: string) => {
@@ -519,15 +519,15 @@ export function harness(
       box.checked = checked;
       on["change"]?.({ target: box });
     },
-    /** An acceptance criterion's box ticked or unticked by hand (spec 493). */
+    /** An acceptance criterion's box ticked or unticked by hand. */
     tickBoxes, unverifiedBoxes, failedBoxes, TICK_FORM,
-    /** The first criterion's Failed box checked or cleared by hand (spec 510). */
+    /** The first criterion's Failed box checked or cleared by hand. */
     changeFailed: (index: number, checked: boolean) => {
       const box = failedBoxes[index]!;
       box.checked = checked;
       on["change"]?.({ target: box });
     },
-    /** The first criterion's Not verified box checked or cleared by hand (spec 509). */
+    /** The first criterion's Not verified box checked or cleared by hand. */
     changeUnverified: (index: number, checked: boolean) => {
       const box = unverifiedBoxes[index]!;
       box.checked = checked;

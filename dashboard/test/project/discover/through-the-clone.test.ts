@@ -1,4 +1,4 @@
-// Spec 512: a project added with no manifest in its repository is still a
+// A project added with no manifest in its repository is still a
 // project. The dashboard's clone carries the manifest a run reads, and
 // discovery and the project page read it from there when the project's
 // own directory holds none.
@@ -29,7 +29,7 @@ function world() {
 }
 
 describe("discovery reads the manifest from the dashboard's clone", () => {
-  test("a project whose own directory has no manifest is listed with the clone's (AC-4)", () => {
+  test("a project whose own directory has no manifest is listed with the clone's", () => {
     const w = world();
     expect(discoverProjects(w.projects).map((p) => p.name)).toEqual([]);
     const found = discoverProjects(w.projects, undefined, w.fallback);
@@ -37,7 +37,7 @@ describe("discovery reads the manifest from the dashboard's clone", () => {
     expect(found[0]!.manifestPath).toBe(join(w.clone, ".aide", "project.yaml"));
   });
 
-  test("the settings page shows the preview command from the clone (AC-4)", () => {
+  test("the settings page shows the preview command from the clone", () => {
     const w = world();
     const own = join(w.projects, "skjer");
     const row = projectSettings(own, null, w.clone).rows.find((r) => r.key === "previewCmd");

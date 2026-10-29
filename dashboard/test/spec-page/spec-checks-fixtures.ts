@@ -8,7 +8,7 @@ import { SPEC, TICK, DESCRIPTION, FILE_SHA, savable, post } from "./spec-save-fi
 export { answer, type ActionAnswer } from "./spec-save-fixtures.ts";
 import type { QueueHarness } from "../helpers/queue-server.ts";
 
-// spec 355 (REQ-4): the tick route now spawns a real `aide-write-spec`
+// The tick route now spawns a real `aide-write-spec`
 // to derive 4-status.json — pointed at this repo's own copy rather than
 // PATH, since a test environment has no reason to have the global
 // install on it. Real, not a stub: the point of routing the tick
@@ -20,7 +20,7 @@ process.env.AIDE_WRITE_SPEC_BIN = join(import.meta.dir, "..", "..", "..", "core"
 /** The one section a person ticks, and so the only one the Checks tab
  *  draws as boxes: the Phase tables below are the implement RUN's own
  *  record and gate nothing (archive's only gate has been the Acceptance
- *  section since spec 268). */
+ *  section). */
 export const PHASE = "Acceptance criteria";
 export const EARLIER_PHASE = "Phase 3: GREEN - Implement";
 export const LATER_PHASE = "Phase 5: SHIP - After the merge";
@@ -30,7 +30,7 @@ export const DONE_ROW = "| Run the full test suite | ✅ | 1742 pass |";
 export const EARLIER_DONE_ROW = "| Write the code | ✅ | |";
 export const LATER_ROW = "| Watch the first real run | ⬜ | |";
 export const ticked = (row: string) => row.replace("| ⬜ |", "| ✅ |");
-/** Spec 509: a check that waits for something after the deploy. */
+/** A check that waits for something after the deploy. */
 export const NV_ROW = "| AC-4: works after the deploy | Not verified | Not tested: needs production |";
 export const marked = (row: string) => row.replace(/\| (⬜|✅) \|/, "| Not verified |");
 export const HEADER = ["| Task | Status | Notes |", "|------|--------|-------|"];
@@ -87,12 +87,12 @@ export const STATUS_WITH_OPEN_ACCEPTANCE = [
   phaseSection(ACCEPTANCE_PHASE, [ACCEPTANCE_OPEN_ROW]),
 ].join("\n");
 
-/** Spec 190: the same three phases, with every open mark spelled out
+/** The same three phases, with every open mark spelled out
  *  the way a step actually wrote one — `Waiting`, not `⬜`. Nothing
  *  else differs. */
 export const WORDED = STATUS.replace(/\| ⬜ \|/g, "| Waiting |");
 
-/** Spec 266: a LOW-complexity spec's `4-status.md` uses `## Checklist`
+/** A LOW-complexity spec's `4-status.md` uses `## Checklist`
  *  instead of `## Phase N: ...` — must offer the same box on Overview
  *  and accept the same real tick. */
 export const CHECKLIST_PHASE = "Checklist";
@@ -189,7 +189,7 @@ export const messageOf = (calls: string[][]): string => {
   return commit[commit.indexOf("-m") + 1]!;
 };
 
-// --- spec 291: an open `aide/<folder>` branch, for the Checks section's -----
+// --- An open `aide/<folder>` branch, for the Checks section's -----
 // --- branch-aware read and write --------------------------------------------
 
 /** Where one of a spec's own files sits, relative to the toplevel this
@@ -201,7 +201,7 @@ export const messageOf = (calls: string[][]): string => {
 export const relFilePath = (file: string, folder = SPEC) => `aide/specs/${folder}/${file}`;
 
 /** `4-status.md`'s own path — the one file this fixture wrote for
- *  before spec 310 generalized Save to all four. Kept as its own name
+ *  before Save covered all four. Kept as its own name
  *  since most callers here are still about the tick route's one file. */
 
 const PAD = (sha: string) => sha.padEnd(40, "0");
@@ -229,15 +229,15 @@ export const BRANCH_FILE_SHA = PAD("branchfile");
  *  merge-lock KEY everywhere except this feature's own new code). */
 export function branchAwareGitRunner(
   opts: {
-    /** `false` models REQ-2: no open branch, the disk read/write is untouched. */
+    /** `false` models no open branch: the disk read/write is untouched. */
     open?: boolean;
     /** Which spec file this branch-aware read/write is about. Defaults
      *  to `4-status.md`, this fixture's original and still most common
-     *  use; spec 310 generalized the write side to any of the four
+     *  use; the write side covers any of the four
      *  files, and a save-route test for one of the others passes its
      *  own here. */
     file?: string;
-    /** The branch's own file content (REQ-1's whole point). */
+    /** The branch's own file content (the whole point of a branch-aware read). */
     branchText?: string;
     /** The last commit that touched the file ON THE BRANCH — what a
      *  branch-aware page's `baseSha` names, and what a tick's
@@ -248,7 +248,7 @@ export function branchAwareGitRunner(
      *  commit on the branch is also the one that touched the file. */
     branchTipSha?: string;
     folder?: string;
-    /** REQ-4b: the push is rejected — a headless run raced this write. */
+    /** The push is rejected — a headless run raced this write. */
     pushFails?: boolean;
     extra?: Record<string, { code: number; stdout?: string }>;
   } = {},
@@ -277,7 +277,7 @@ export function branchAwareGitRunner(
     if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
     if (line.startsWith("hash-object -w")) return { code: 0, stdout: `${PAD("newblob")}\n` };
     if (line === `read-tree ${PAD("tiptree")}`) return { code: 0, stdout: "" };
-    // `--add` since spec 355: the state file is a NEW path on the branch
+    // `--add` is needed: the state file is a NEW path on the branch
     // the first time, and git refuses --cacheinfo for a new path without it.
     if (line.startsWith("update-index")) return { code: 0, stdout: "" };
     if (line === "write-tree") return { code: 0, stdout: `${PAD("newtree")}\n` };

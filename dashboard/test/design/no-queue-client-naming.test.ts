@@ -1,4 +1,4 @@
-// Spec 449: the Specs page's browser code moved from src/queue-client
+// The Specs page's browser code moved from src/queue-client
 // to src/specs-client so the name matches specs-list rather than the
 // queue concept. This guard makes that permanent — a rename that half
 // completes (a stale import, a glob that quietly matches zero files)
@@ -35,7 +35,7 @@ function filesUnder(dir: string, extensions: string[]): string[] {
   });
 }
 
-describe("the Specs page's browser code is named specs-client, not queue-client (spec 449)", () => {
+describe("the Specs page's browser code is named specs-client, not queue-client", () => {
   test("no file outside the queue concept still says queue-client or queueClient", () => {
     const candidates = [
       ...filesUnder(join(ROOT, "src"), [".ts", ".md"]),

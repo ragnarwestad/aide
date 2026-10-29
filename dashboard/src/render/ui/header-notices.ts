@@ -1,6 +1,6 @@
 // The lines under the header every page shares: the install warning
-// (spec 334, REQ-5) and a pressed Deploy whose restart waits for
-// landings in flight (spec 385). Both read process-lifetime state directly
+// and a pressed Deploy whose restart waits for
+// landings in flight. Both read process-lifetime state directly
 // rather than being threaded through `pageShell()`'s call sites.
 
 import { readFileSync } from "node:fs";
@@ -27,9 +27,9 @@ export function defaultInstallLog(home: string, platform: string): string {
 
 const DEFAULT_INSTALL_LOG = () => defaultInstallLog(process.env.HOME ?? "", process.platform);
 
-// A tool the installer could not declare (spec 334) is otherwise
+// A tool the installer could not declare is otherwise
 // visible only in a log file nobody has a reason to open — read here so
-// it reaches every ordinary dashboard visit instead (REQ-5). Only the
+// it reaches every ordinary dashboard visit instead. Only the
 // LAST run's block matters: an old warning a later run already cleared
 // must not keep showing.
 function lastInstallWarnings(lang: Language): string[] {

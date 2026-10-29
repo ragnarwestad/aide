@@ -1,4 +1,4 @@
-// The one long message a row has to say (spec 143).
+// The one long message a row has to say.
 
 import { stepLabel, type MessageVariant } from "../components";
 import { stepButton } from "../../../format/step-label.ts";
@@ -16,7 +16,7 @@ import type { QueueRowView } from "./types.ts";
  *  so nobody has anything to act on. Every other held-back reason,
  *  named here or not, keeps the waiting kind's warning triangle: a
  *  message added to this family later and left off this list defaults
- *  to "waiting", not silently to "info" (spec 389). */
+ *  to "waiting", not silently to "info". */
 export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.landingPause",
   "runner.archiveRunning",
@@ -24,7 +24,7 @@ export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
 ]);
 
 /** Whether a queued job's own hold resolves on its own, read off the
- *  key alone, never the rendered text (spec 485, AC-2). Exported so the
+ *  key alone, never the rendered text. Exported so the
  *  row's own state word (`specStateChip`, resting.ts) colours a
  *  held-back queue exactly as this file's notice line already does —
  *  one classification, asked from two places, rather than the same
@@ -39,15 +39,15 @@ export function heldBackResolvesOnItsOwn(r: Pick<QueueRowView, "errorReason" | "
 /** A sentence a row has to show, and how loudly. The row draws it in a
  *  panel of its own (`specNoticeRow`, specs-list.ts) rather than in a
  *  table cell: both producers write free text out of a file or a
- *  runner's refusal — 130 characters on spec 141 — and every cell on
+ *  runner's refusal — 130 characters in one case — and every cell on
  *  this row is sized for a word. */
 export interface RowNotice {
   variant: MessageVariant;
   text: string;
   /** The class the panel's message is marked with, for the one
-   *  producer that has always carried one: a refusal (spec 151). */
+   *  producer that has always carried one: a refusal. */
   hook?: string;
-  /** Raw git/tool output behind `text` (spec 352, REQ-5) — hover-only,
+  /** Raw git/tool output behind `text` — hover-only,
    *  set only when `text` is the ONE sentence in the panel: joining two
    *  or more parts leaves no single sentence the detail could belong
    *  to, so it is dropped rather than misattributed. */
@@ -58,7 +58,7 @@ export interface RowNotice {
    *  lives INSIDE the text rather than as one attribute on the whole
    *  row, so it does not have `title`'s "only when parts.length===1"
    *  problem: each mark keeps its own link regardless of how many
-   *  others are joined beside it with " · " (REQ-2, spec 403). */
+   *  others are joined beside it with " · ". */
   parts?: NoticePart[];
 }
 
@@ -128,25 +128,25 @@ export function sharedFilesSentence(
  *  the page script draws it in a row of its own under the spec
  *  (`specs-client/row-refusal/`).
  *
- *  The disagreement (spec 195) ranks lowest because it
+ *  The disagreement ranks lowest because it
  *  is the least specific: an error says why the row is not moving, and a held-back
  *  note names a decision — a disagreement is a standing condition that
  *  was true before any of them and will still be true after. It reaches
  *  this function already worded with its phase's name (`analyze: …`),
  *  because it used to be drawn beneath that phase's own badge and a
  *  sentence moved out of the line it belonged to must say which line
- *  that was. `phaseWordCell` drew it in a `<div>` of its own until spec
- *  195, which made a phase line with something to say taller than the
- *  ones beside it — the same symptom, and the same cause, spec 176
- *  fixed for the stale mark and the tries count.
+ *  that was. A `<div>` of its own in `phaseWordCell` would make a phase
+ *  line with something to say taller than the ones beside it — the same
+ *  symptom, and the same cause, as for the stale mark and the tries
+ *  count.
  *
  *  `archiveHeldBack` and the disagreement are the one PAIR that can
  *  both be true of the same phase: archive is held back and its own
  *  last re-run failed. First-match-wins would drop one of two true
  *  things silently, so that pair is joined into one message instead.
  *
- *  Requirement 3 of 1-description.md — the panel cleared when a new
- *  action starts on the row — is already answered by each of them, in
+ *  The panel is cleared when a new
+ *  action starts on the row, which is already answered by each of them, in
  *  its own way, and neither needs a rule invented here:
  *
  *  `error` belongs to the job and is current by construction. The
@@ -166,7 +166,7 @@ export function sharedFilesSentence(
  *  attempt — a spec archived by hand, or one whose archive job has
  *  aged out of the queue, still has its file saying why.
  *
- *  The fifth, `readyToArchive` (spec 467), ranks lowest of all: it is
+ *  The fifth, `readyToArchive`, ranks lowest of all: it is
  *  reachable only once every case above has already declined to apply,
  *  mutually exclusive with `archiveHeldBack` by construction (the
  *  caller only ever sets it once the held-back reason has cleared) —
@@ -179,19 +179,18 @@ export function specNotice(
   /** A phase's own qualifier, worded with that phase's name by the
    *  caller — this file knows nothing about a spec's phase list. */
   disagreement?: string,
-  /** The row's own marks, ranked highest-first (REQ-2/REQ-4,
-   *  `errorMarkNotices`/`archivedRowNotices`, row-marks.ts) — a pull
-   *  request open for the branch is one of them now (REQ-1/REQ-2, spec
-   *  403, reversing spec 339's REQ-1, which kept it out of here as a
-   *  State-column badge instead). Folded in at the same priority
+  /** The row's own marks, ranked highest-first
+   *  (`errorMarkNotices`/`archivedRowNotices`, row-marks.ts) — a pull
+   *  request open for the branch is one of them, not a
+   *  State-column badge. Folded in at the same priority
    *  `lead.error` already holds, and for the same reason: both say why
    *  the row is not moving, so neither waits for "nothing in flight"
-   *  (spec 327's own row already shows `landingError` while a later step
+   *  (the row already shows `landingError` while a later step
    *  runs). */
   marks: (NoticePart & { variant: MessageVariant })[] = [],
   lang: Language = "en",
   /** Nothing else applies, no job is in flight on this spec, and archive
-   *  is the one phase left (spec 467) — see this function's own header
+   *  is the one phase left — see this function's own header
    *  comment for its rank. */
   readyToArchive?: boolean,
 ): RowNotice | undefined {
@@ -205,7 +204,7 @@ export function specNotice(
   // Acceptance criteria are not all ticked yet") is
   // waiting, not broken — the same amber "archive held back" takes
   // below, never the red a refusal or a failed step gets. Read off
-  // `errorReason` (spec 372), which the scheduler sets alongside the
+  // `errorReason`, which the scheduler sets alongside the
   // sentence — never guessed from the text, which left every OTHER
   // waiting-shaped message still picking "waiting" or "failed" for itself.
   if (lead?.error) {
@@ -238,7 +237,7 @@ export function specNotice(
       // Three of the six held-back reasons resolve on their own —
       // nothing for the reader to act on — so they read as info, not
       // the waiting kind's warning triangle. Read off the message's own
-      // KEY, never the rendered text (REQ-3): `lead.error` is always a
+      // KEY, never the rendered text: `lead.error` is always a
       // single BoardMessage while a job is held back (`Runner.hold()`).
       // A held-back key this set does not name falls through to
       // "waiting" — the safer default.

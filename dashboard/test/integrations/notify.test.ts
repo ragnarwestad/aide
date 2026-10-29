@@ -1,4 +1,4 @@
-// Criterion 7 (spec 81, slice 81c): the notifier. A job that stops at
+// The notifier. A job that stops at
 // 02:00 — or fails there — must be visible without reading a log.
 //
 // The contract is claude-usage's, copied deliberately so one wrapper

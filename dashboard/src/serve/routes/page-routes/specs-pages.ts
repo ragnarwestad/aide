@@ -67,7 +67,7 @@ export async function specsPages(
       script: await specsClientScript(),
       modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
-      // "Try again" on a failed create's message (spec 506): what was typed.
+      // "Try again" on a failed create's message: what was typed.
       prefill: prefillFor(ctx, url.searchParams.get("retry")),
       tab: url.searchParams.get("tab") ?? undefined,
       lang: langResult.lang,

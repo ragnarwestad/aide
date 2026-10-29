@@ -52,7 +52,7 @@ def _criteria_log(err):
     return [m.group(1) for m in re.finditer(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s (criteria check: .+)$", err, re.M)]
 
 
-def test_a_named_fault_at_stop_ends_analyze_stopped_AC_4(runner, workspace, fake_claude):
+def test_a_named_fault_at_stop_ends_analyze_stopped(runner, workspace, fake_claude):
     out, _ = _analyze(
         runner, workspace, fake_claude, "stop",
         "**Criteria check:** stop — not in EARS: AC-2, AC-4; no scenario for when the condition does not hold: AC-5",
@@ -72,7 +72,7 @@ def test_a_named_fault_at_stop_ends_analyze_stopped_AC_4(runner, workspace, fake
         assert "analyze" not in json.loads(phase_file_text(workspace, state_path))["completedPhases"]
 
 
-def test_no_acceptance_criteria_at_stop_ends_analyze_stopped_AC_4(runner, workspace, fake_claude):
+def test_no_acceptance_criteria_at_stop_ends_analyze_stopped(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, "stop", "**Criteria check:** stop — no acceptance criteria")
     assert out["terminalReason"] == "acceptance-criteria", out
     assert out["criteriaFaults"] == {
@@ -86,12 +86,12 @@ EXAMPLE_LINES = [
 ]
 
 
-def test_the_skill_shows_an_example_line_for_the_contradiction_and_cannot_be_built_kinds_AC_4():
+def test_the_skill_shows_an_example_line_for_the_contradiction_and_cannot_be_built_kinds():
     assert any("contradiction: " in line and "cannot be built: " in line for line in EXAMPLE_LINES), EXAMPLE_LINES
 
 
 @pytest.mark.parametrize("example", EXAMPLE_LINES)
-def test_every_example_line_the_skill_shows_stops_on_each_id_AC_4(runner, workspace, fake_claude, example):
+def test_every_example_line_the_skill_shows_stops_on_each_id(runner, workspace, fake_claude, example):
     ids = re.findall(r"AC-\d+", example)
     out, _ = _analyze(runner, workspace, fake_claude, "stop", example)
     assert out["terminalReason"] == "acceptance-criteria", out
@@ -101,7 +101,7 @@ def test_every_example_line_the_skill_shows_stops_on_each_id_AC_4(runner, worksp
     assert sorted(named) == sorted(ids), (example, faults)
 
 
-def test_a_contradiction_at_stop_is_sorted_by_pair_AC_1_AC_4(runner, workspace, fake_claude):
+def test_a_contradiction_at_stop_is_sorted_by_pair(runner, workspace, fake_claude):
     out, _ = _analyze(
         runner, workspace, fake_claude, "stop", "**Criteria check:** stop — contradiction: AC-1/AC-3, AC-2/AC-5",
     )
@@ -111,14 +111,14 @@ def test_a_contradiction_at_stop_is_sorted_by_pair_AC_1_AC_4(runner, workspace, 
         assert ac in out["error"], out["error"]
 
 
-def test_a_criterion_that_cannot_be_built_at_stop_is_sorted_AC_2_AC_4(runner, workspace, fake_claude):
+def test_a_criterion_that_cannot_be_built_at_stop_is_sorted(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, "stop", "**Criteria check:** stop — cannot be built: AC-6")
     assert out["terminalReason"] == "acceptance-criteria", out
     assert out["criteriaFaults"]["cannotBuild"] == ["AC-6"], out
     assert "AC-6" in out["error"], out["error"]
 
 
-def test_every_kind_on_one_line_is_sorted_into_its_own_AC_4(runner, workspace, fake_claude):
+def test_every_kind_on_one_line_is_sorted_into_its_own(runner, workspace, fake_claude):
     out, _ = _analyze(
         runner, workspace, fake_claude, "stop",
         "**Criteria check:** stop — not in EARS: AC-2; contradiction: AC-1/AC-3; cannot be built: AC-6",
@@ -128,7 +128,7 @@ def test_every_kind_on_one_line_is_sorted_into_its_own_AC_4(runner, workspace, f
     }, out
 
 
-def test_new_kinds_at_warn_complete_the_analysis_AC_3(runner, workspace, fake_claude):
+def test_new_kinds_at_warn_complete_the_analysis(runner, workspace, fake_claude):
     out, _ = _analyze(
         runner, workspace, fake_claude, "warn", "**Criteria check:** warn — contradiction: AC-1/AC-3; cannot be built: AC-6",
     )
@@ -136,14 +136,14 @@ def test_new_kinds_at_warn_complete_the_analysis_AC_3(runner, workspace, fake_cl
     assert out["terminalReason"] == "completed", out
 
 
-def test_new_kinds_at_off_complete_AC_5(runner, workspace, fake_claude):
+def test_new_kinds_at_off_complete(runner, workspace, fake_claude):
     out, _ = _analyze(
         runner, workspace, fake_claude, "off", "**Criteria check:** stop — contradiction: AC-1/AC-3; cannot be built: AC-6",
     )
     assert out["terminalReason"] == "completed", out
 
 
-def test_a_fault_worded_outside_the_grammar_still_stops_AC_4(runner, workspace, fake_claude):
+def test_a_fault_worded_outside_the_grammar_still_stops(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, "stop", "**Criteria check:** stop — AC-1 is vague")
     assert out["terminalReason"] == "acceptance-criteria", out
     assert "AC-1 is vague" in out["error"], out["error"]
@@ -152,20 +152,20 @@ def test_a_fault_worded_outside_the_grammar_still_stops_AC_4(runner, workspace, 
     }, out
 
 
-def test_none_found_at_stop_completes_and_says_what_was_read_AC_4(runner, workspace, fake_claude):
+def test_none_found_at_stop_completes_and_says_what_was_read(runner, workspace, fake_claude):
     out, err = _analyze(runner, workspace, fake_claude, "stop", "**Criteria check:** stop — none found")
     assert out["terminalReason"] == "completed", out
     assert "criteriaFaults" not in out, out
     assert _criteria_log(err) and "none found" in _criteria_log(err)[0], err
 
 
-def test_a_plan_review_with_no_criteria_line_at_stop_completes_and_says_so_AC_4(runner, workspace, fake_claude):
+def test_a_plan_review_with_no_criteria_line_at_stop_completes_and_says_so(runner, workspace, fake_claude):
     out, err = _analyze(runner, workspace, fake_claude, "stop", None)
     assert out["terminalReason"] == "completed", out
     assert _criteria_log(err), err
 
 
-def test_a_scope_violation_is_decided_before_the_criteria_AC_4(runner, workspace, fake_claude):
+def test_a_scope_violation_is_decided_before_the_criteria(runner, workspace, fake_claude):
     out, _ = _analyze(
         runner, workspace, fake_claude, "stop", "**Criteria check:** stop — not in EARS: AC-1",
         extra='mkdir -p "$specs/999-made-by-the-run" && echo "# 999" > "$specs/999-made-by-the-run/1-description.md"\n',
@@ -173,12 +173,12 @@ def test_a_scope_violation_is_decided_before_the_criteria_AC_4(runner, workspace
     assert out["terminalReason"] == "scope-violation", out
 
 
-def test_a_fault_at_off_completes_AC_4(runner, workspace, fake_claude):
+def test_a_fault_at_off_completes(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, "off", "**Criteria check:** stop — not in EARS: AC-1")
     assert out["terminalReason"] == "completed", out
 
 
-def test_faults_at_warn_complete_the_analysis_AC_3(runner, workspace, fake_claude):
+def test_faults_at_warn_complete_the_analysis(runner, workspace, fake_claude):
     out, _ = _analyze(
         runner, workspace, fake_claude, "warn", "**Criteria check:** warn — not in EARS: AC-2; no acceptance criteria",
     )
@@ -186,12 +186,12 @@ def test_faults_at_warn_complete_the_analysis_AC_3(runner, workspace, fake_claud
     assert out["terminalReason"] == "completed", out
 
 
-def test_faults_with_no_level_recorded_complete_the_analysis_AC_5(runner, workspace, fake_claude):
+def test_faults_with_no_level_recorded_complete_the_analysis(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, None, "**Criteria check:** warn — not in EARS: AC-2")
     assert out["terminalReason"] == "completed", out
 
 
-def test_a_missing_scenario_at_stop_ends_analyze_stopped_AC_6(runner, workspace, fake_claude):
+def test_a_missing_scenario_at_stop_ends_analyze_stopped(runner, workspace, fake_claude):
     out, _ = _analyze(
         runner, workspace, fake_claude, "stop",
         "**Criteria check:** stop — no scenario for when the condition does not hold: AC-3",

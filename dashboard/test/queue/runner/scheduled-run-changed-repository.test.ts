@@ -1,5 +1,5 @@
 // A scheduled job's own commits are landed the way create/archive's are
-// (spec 558): `stepDoneHandler` calls `landScheduleRun` once the run
+// `stepDoneHandler` calls `landScheduleRun` once the run
 // ended `completed` and pushed a branch, and does nothing when it did
 // not — the same `if (outcome.ok)` wrapper every other step's own
 // landing dispatch already sits inside.
@@ -41,7 +41,7 @@ const handler = () =>
   } as unknown as Parameters<typeof stepDoneHandler>[0]);
 
 describe("a scheduled job's own commits are landed", () => {
-  test("a completed run that pushed to the specs root is landed (AC-1)", () => {
+  test("a completed run that pushed to the specs root is landed", () => {
     landed = [];
     const outcome = { ok: true, terminalReason: "completed", branchUrls: [{ root: "/repos/aide-specs", url: "" }] };
     handler()(job(), "schedule", outcome);
@@ -49,21 +49,21 @@ describe("a scheduled job's own commits are landed", () => {
     expect(landed[0]!.outcome).toBe(outcome);
   });
 
-  test("a completed run that pushed to the project repository is landed (AC-2)", () => {
+  test("a completed run that pushed to the project repository is landed", () => {
     landed = [];
     const outcome = { ok: true, terminalReason: "completed", branchUrls: [{ root: "/repos/aide-code", url: "" }] };
     handler()(job(), "schedule", outcome);
     expect(landed.length).toBe(1);
   });
 
-  test("a completed run that pushed nothing is not landed — report only, as today (AC-5)", () => {
+  test("a completed run that pushed nothing is not landed — report only, as today", () => {
     landed = [];
     const outcome = { ok: true, terminalReason: "completed", branchUrls: [] };
     expect(handler()(job(), "schedule", outcome)).toBeUndefined();
     expect(landed.length).toBe(0);
   });
 
-  test("a completed run with no branchUrls field at all is not landed (AC-5)", () => {
+  test("a completed run with no branchUrls field at all is not landed", () => {
     landed = [];
     expect(handler()(job(), "schedule", { ok: true, terminalReason: "completed" })).toBeUndefined();
     expect(landed.length).toBe(0);

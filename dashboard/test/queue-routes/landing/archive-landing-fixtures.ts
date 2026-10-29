@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** The message a job carries, as text. Since spec 380 a job stores
+/** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it.
  *  These tests assert on what a reader would see, so they compose it
  *  the same way, in English. */
@@ -43,10 +43,10 @@ export function gitFor({
   conflicting?: string[];
   needsRealMerge?: string[];
   gone?: string[];
-  /** spec 319: roots whose `push -q origin --delete <branch>` fails —
+  /** Roots whose `push -q origin --delete <branch>` fails —
    *  the merge itself still succeeds, only the tidy-up does not. */
   deleteFails?: string[];
-  /** spec 319: roots the post-loop `ls-remote --heads ... refs/heads/
+  /** Roots the post-loop `ls-remote --heads ... refs/heads/
    *  aide/*` check should still report `branch` open on — the fixture
    *  a delete-fails root needs so `rootsStillHolding` finds it again,
    *  the way real origin would after a rejected delete. */
@@ -117,13 +117,13 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// Spec 136: an archive run's whole diff is two markdown changes in the
+// An archive run's whole diff is two markdown changes in the
 // specs repo — the date stamped into 4-status.md and the folder moved
 // into `archive/` — and, like every other step, it leaves them on a
 // branch. The list reads the main checkout, so the spec stayed in the
 // active list and the row asked to be merged: the step that ENDS a spec
 // ended by handing back a task (133, archived twice for exactly this).
-// So archive lands its own work, the way `create` has since spec 93 —
+// So archive lands its own work, the way `create` does —
 // the same helper, the same per-repo report, the same visible refusal
 // when a merge genuinely cannot be made.
 

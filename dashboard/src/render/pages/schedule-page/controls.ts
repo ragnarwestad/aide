@@ -48,8 +48,8 @@ export function runNowForm(project: string, name: string): string {
 // place a reader goes to CHANGE an entry — reaching it meant opening
 // the thing you had decided to be rid of.
 //
-// The control is a plain button, script-only (spec 528: no confirm page
-// behind it any more). Its click opens the board's one confirmation
+// The control is a plain button, script-only (no confirm page
+// behind it). Its click opens the board's one confirmation
 // dialog beside it — Escape and Cancel close it, and nothing is deleted
 // by a stray click on a table row. The page script posts its OK and
 // loads the page again, or goes to `o.done` when the page it is on is

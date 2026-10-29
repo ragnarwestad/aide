@@ -8,8 +8,8 @@ import {
 } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
-  // Per step since spec 152: an implement is not an analyze, and one
-  // number for both stopped 149 mid-sentence with its tests green.
+  // Per step: an implement is not an analyze, and one number for both
+  // stopped an implement mid-sentence with its tests green.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
@@ -24,7 +24,7 @@ const resolve = (project: string) =>
       ? { specFolders: ["01-first"] }
       : null;
 
-// --- spec 93: a spec that does not exist yet ---------------------------------
+// --- A spec that does not exist yet ---------------------------------
 
 // Every other request names a spec folder the server has already
 // discovered on disk. A create request cannot: the folder is what the
@@ -45,15 +45,15 @@ describe("parseCreateRequest", () => {
     if (!over.ok) expect(over.error).toContain("5000");
   });
 
-  // Spec 513: the bounds are named in the refusal, so a reader with script
+  // The bounds are named in the refusal, so a reader with script
   // off learns what to shorten it to.
-  test("a title of 121 characters is refused, naming 120 (AC-5)", () => {
+  test("a title of 121 characters is refused, naming 120", () => {
     const r = parseCreateRequest({ ...CREATE, title: "t".repeat(121) }, { allow, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("120");
   });
 
-  test("a description of 5,001 characters is refused, naming 5000 (AC-5)", () => {
+  test("a description of 5,001 characters is refused, naming 5000", () => {
     const r = parseCreateRequest({ ...CREATE, description: "d".repeat(5001) }, { allow, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("5000");
@@ -89,7 +89,7 @@ describe("parseCreateRequest", () => {
     expect(r.ok).toBe(false);
   });
 
-  test("a request that names no project is refused, in words that say one is required (AC-4)", () => {
+  test("a request that names no project is refused, in words that say one is required", () => {
     const { project: _named, ...noKey } = CREATE;
     for (const body of [noKey, { ...CREATE, project: null }, { ...CREATE, project: "" }]) {
       const r = parseCreateRequest(body, { allow, defaults: DEFAULTS });
@@ -117,9 +117,9 @@ describe("parseCreateRequest", () => {
     expect(r.ok && r.job.timeoutSec).toEqual(DEFAULTS.timeoutSec);
   });
 });
-// --- spec 110: what a new spec builds on --------------------------------------
+// --- What a new spec builds on --------------------------------------
 
-// A `Depends on:` line in 1-description.md (spec 92) has had a reader
+// A `Depends on:` line in 1-description.md has had a reader
 // since the day it existed and no writer but a person at a shell. The
 // create form names it now, so the value arrives as a request field —
 // and a name a request supplies is checked against server-known truth,
@@ -189,7 +189,7 @@ describe("parseCreateRequest — dependsOn", () => {
     expect(r.ok).toBe(false);
   });
 });
-// --- spec 228: the model a create job runs on --------------------------------
+// --- The model a create job runs on --------------------------------
 
 // Every step but `create` could already be pointed at a model from its
 // own phase line. `create` never could — it makes the spec the phase
@@ -206,7 +206,6 @@ describe("parseCreateRequest — model", () => {
     modelChoices: { sonnet: {}, fable: {} },
   };
 
-  // Criterion 4.
   test("a configured model is honoured, and the job carries it for the one step it runs", () => {
     const r = parseCreateRequest({ ...CREATE, model: { create: "fable" } }, { allow, defaults: WITH_CHOICES });
     expect(r.ok).toBe(true);
@@ -218,7 +217,7 @@ describe("parseCreateRequest — model", () => {
     expect(Object.keys(r.job.model!)).toEqual(["create"]);
   });
 
-  // Criterion 5: the same wording `parseJobRequest` refuses with.
+  // The same wording `parseJobRequest` refuses with.
   test("a name the config does not offer is refused, with the shared wording", () => {
     const r = parseCreateRequest(
       { ...CREATE, model: { create: "nonexistent-model" } },
@@ -232,7 +231,7 @@ describe("parseCreateRequest — model", () => {
     });
   });
 
-  // Criterion 7: nothing configured at all is a different sentence from
+  // Nothing configured at all is a different sentence from
   // a name that is merely not on the list.
   test("a server offering no model at all says so, rather than naming the pick", () => {
     const r = parseCreateRequest({ ...CREATE, model: { create: "fable" } }, { allow, defaults: DEFAULTS });
@@ -244,7 +243,7 @@ describe("parseCreateRequest — model", () => {
     });
   });
 
-  // Criterion 6: an untouched form and a form with no Model field at
+  // An untouched form and a form with no Model field at
   // all both land here, and both mean "the configuration decides".
   test("omitted, empty, or not posted at all: the config's own default for the step", () => {
     for (const body of [
@@ -272,7 +271,7 @@ describe("parseCreateRequest — model", () => {
 
   // A create job runs one step. A name posted for any other is the
   // browser sending the whole set of phase selects, and is not refused
-  // — but it is not dropped either (spec 465): a real phase's pick is
+  // — but it is not dropped either: a real phase's pick is
   // banked as pending, for the row to show once the phase's own job
   // exists.
   test("a name for a step this job does not run is banked as pending, not dropped", () => {
@@ -285,7 +284,7 @@ describe("parseCreateRequest — model", () => {
     expect(r.ok && r.pendingStepModels).toEqual({ implement: "fable" });
   });
 });
-// --- spec 342: running the whole workflow from the start ---------------------
+// --- Running the whole workflow from the start ---------------------
 
 // The New-spec page's phase table lets a reader tick analyze, implement
 // and archive up front — the same ticks the Specs list's own row posts
@@ -293,7 +292,7 @@ describe("parseCreateRequest — model", () => {
 // the hard-coded `["create"]` to `["create", ...ticked extras]`, and the
 // model lookup widens from the single `create` key to every step the
 // job actually runs.
-describe("parseCreateRequest — steps (spec 342)", () => {
+describe("parseCreateRequest — steps", () => {
   const allow = (project: string) => project === "aide";
   const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
   const WITH_CHOICES: QueueDefaults = {
@@ -301,7 +300,7 @@ describe("parseCreateRequest — steps (spec 342)", () => {
     modelChoices: { sonnet: {}, fable: {} },
   };
 
-  // REQ-3, REQ-8: an untouched form posts no `steps` field at all, and
+  // An untouched form posts no `steps` field at all, and
   // the job it produces is identical to today's.
   test("no steps field at all: create alone, exactly as before this existed", () => {
     const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
@@ -309,7 +308,6 @@ describe("parseCreateRequest — steps (spec 342)", () => {
     expect(r.ok && r.job.steps).toEqual(["create"]);
   });
 
-  // REQ-4, criterion 4.
   test("ticked extra phases are appended after create", () => {
     const r = parseCreateRequest(
       { ...CREATE, steps: ["analyze", "implement"] },
@@ -319,7 +317,7 @@ describe("parseCreateRequest — steps (spec 342)", () => {
     expect(r.ok && r.job.steps).toEqual(["create", "analyze", "implement"]);
   });
 
-  // REQ-4, criterion 4: a name per ticked step, plus the config's own
+  // A name per ticked step, plus the config's own
   // default for `create` when the form's own model field for it was
   // left untouched.
   test("a per-step model map is honoured for every ticked step", () => {
@@ -338,7 +336,7 @@ describe("parseCreateRequest — steps (spec 342)", () => {
   // A name posted for a step this job does not run is not refused —
   // `parseJobRequest`'s own rule, since a phase table always posts
   // every select it drew, whichever boxes are ticked — but it is banked
-  // as pending rather than dropped (spec 465).
+  // as pending rather than dropped.
   test("a model named for an untouched phase is banked as pending, not dropped", () => {
     const r = parseCreateRequest(
       { ...CREATE, steps: ["analyze"], model: { create: "sonnet", analyze: "fable", archive: "fable" } },
@@ -371,7 +369,7 @@ describe("parseCreateRequest — steps (spec 342)", () => {
   });
 });
 
-// --- spec 386: a run may say acceptance ticking is not required ------------
+// --- A run may say acceptance ticking is not required ------------
 
 // The form asks the POSITIVE question — "acceptance ticking required",
 // ticked by default — so what it posts is `acceptanceRequired`. The job
@@ -407,7 +405,7 @@ describe("parseCreateRequest — acceptanceRequired", () => {
   );
 });
 
-// --- spec 433: a run may say create should skip the AI session entirely ----
+// --- A run may say create should skip the AI session entirely ----
 
 // The form asks the POSITIVE question — "let AI formulate acceptance
 // criteria", ticked by default — so what it posts is
@@ -450,18 +448,18 @@ describe("parseCreateRequest — criteriaChecks", () => {
   const allow = (project: string) => project === "aide";
   const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
 
-  test.each([["off"], ["warn"], ["stop"]])("%p is carried on the job (AC-4)", (level) => {
+  test.each([["off"], ["warn"], ["stop"]])("%p is carried on the job", (level) => {
     const r = parseCreateRequest({ ...CREATE, criteriaChecks: level }, { allow, defaults: DEFAULTS });
     expect(r.ok && r.job.createCriteriaChecks).toBe(level as "off" | "warn" | "stop");
   });
 
-  test("absent leaves the job with no level (AC-4)", () => {
+  test("absent leaves the job with no level", () => {
     const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
     expect(r.ok).toBe(true);
     expect(r.ok && "createCriteriaChecks" in r.job).toBe(false);
   });
 
-  test("any other value is refused, and no job is made (AC-4)", () => {
+  test("any other value is refused, and no job is made", () => {
     const r = parseCreateRequest({ ...CREATE, criteriaChecks: "strict" }, { allow, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("strict");
@@ -474,18 +472,18 @@ describe("parseCreateRequest — chooseApproach", () => {
   const allow = (project: string) => project === "aide";
   const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
 
-  test.each([["1"], [true]])("ticked (%p) is carried on the job as yes (AC-10)", (value) => {
+  test.each([["1"], [true]])("ticked (%p) is carried on the job as yes", (value) => {
     const r = parseCreateRequest({ ...CREATE, chooseApproach: value }, { allow, defaults: DEFAULTS });
     expect(r.ok && r.job.createChooseApproach).toBe(true);
   });
 
-  test("absent is carried as no, so the spec records that it was not ticked (AC-10)", () => {
+  test("absent is carried as no, so the spec records that it was not ticked", () => {
     const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
     expect(r.ok && r.job.createChooseApproach).toBe(false);
   });
 });
 
-// --- spec 513: a close reason is held to the description's bound ---------------
+// --- A close reason is held to the description's bound ---------------
 
 describe("a close request's reason", () => {
   const close = (closeReason: string) =>
@@ -494,13 +492,13 @@ describe("a close request's reason", () => {
       { resolve, defaults: DEFAULTS },
     );
 
-  test("of 5,001 characters is refused, naming 5000 (AC-6)", () => {
+  test("of 5,001 characters is refused, naming 5000", () => {
     const r = close("r".repeat(5001));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain("5000");
   });
 
-  test("of 4,990 characters with 20 line breaks posted as CRLF is accepted (AC-6)", () => {
+  test("of 4,990 characters with 20 line breaks posted as CRLF is accepted", () => {
     // A form posts a textarea's line break as CRLF; the field counted it as one.
     const reason = ("r".repeat(4970) + "\n".repeat(20)).replace(/\n/g, "\r\n");
     expect(reason.length).toBe(5010);

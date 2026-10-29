@@ -1,5 +1,5 @@
 // The two routes a device talks to when its owner turns notifications on
-// or off (spec 501). Both are POSTs in the queue surface, so the request
+// or off. Both are POSTs in the queue surface, so the request
 // guard has already refused a request from another site.
 import { json, readBounded } from "../serve-helpers";
 import type { RoutesContext } from "./";

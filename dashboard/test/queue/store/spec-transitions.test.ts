@@ -1,6 +1,6 @@
-// Spec 356: dashboard/src/queue/spec-transitions.ts — the read-only use
+// Dashboard/src/queue/spec-transitions.ts — the read-only use
 // of core/scripts/lib/transitions.json that decides whether a request
-// may move a spec between phases (REQ-9's enqueue-time check).
+// may move a spec between phases (the enqueue-time check).
 
 import { describe, expect, test } from "bun:test";
 import { isLegalMove, phaseFromState } from "../../../src/queue/spec-transitions.ts";
@@ -40,7 +40,7 @@ describe("isLegalMove", () => {
     }
   });
 
-  // REQ-9: the spec-342 bug — analyze/create requested on a spec already
+  // The earlier bug — analyze/create requested on a spec already
   // past that phase must be refused, naming the way back.
   test("analyze may run again once a spec has implemented, and takes it back to analyzed", () => {
     expect(isLegalMove("implemented", "analyze", "342-x")).toEqual({ ok: true, next: "analyzed" });
@@ -73,7 +73,7 @@ describe("isLegalMove", () => {
     expect(move.ok).toBe(false);
   });
 
-  // spec 406, REQ-1/REQ-13: close is legal from every pre-archive phase,
+  // Close is legal from every pre-archive phase,
   // unlike archive — it carries no not-implemented-yet gate.
   test("close is legal from created, analyzed and implemented", () => {
     for (const phase of ["created", "analyzed", "implemented"] as const) {

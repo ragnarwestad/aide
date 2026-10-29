@@ -47,11 +47,11 @@ async function revealOnSpecs(reducedMotion: "reduce" | "no-preference"): Promise
 }
 
 describe("pages of the board change with a view transition", () => {
-  test("from the Running tab to Specs the new page is revealed with a transition (AC-1)", async () => {
+  test("from the Running tab to Specs the new page is revealed with a transition", async () => {
     expect(await revealOnSpecs("no-preference")).toBe("transition");
   });
 
-  test("with reduced motion asked for, the new page is revealed with none (AC-2)", async () => {
+  test("with reduced motion asked for, the new page is revealed with none", async () => {
     expect(await revealOnSpecs("reduce")).toBe("none");
   });
 });

@@ -1,6 +1,6 @@
 // The message encryption is pinned by the RFC's own example (RFC 8291,
 // section 5 and appendix A), not by the code agreeing with itself
-// (criterion 16). `encrypt()` takes the ephemeral key and the salt as
+// `encrypt()` takes the ephemeral key and the salt as
 // arguments only so this vector can be reproduced.
 import { describe, expect, test } from "bun:test";
 import { encrypt } from "../../src/push/encrypt.ts";
@@ -24,7 +24,7 @@ async function ephemeral(privateB64: string, publicB64: string) {
   return { publicRaw: pub, privateKey };
 }
 
-describe("encrypt() against RFC 8291 (criterion 16)", () => {
+describe("encrypt() against RFC 8291", () => {
   test("the RFC's example message comes out byte for byte", async () => {
     const body = await encrypt(
       new TextEncoder().encode(VECTOR.plaintext),

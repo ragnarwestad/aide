@@ -74,7 +74,7 @@ export function setupQueueContext(state: ServerState, inputs: QueueContextInputs
     pdfToolAvailable: inputs.pdfToolAvailable,
     testServers: inputs.testServers,
     push: inputs.push,
-    // Spec 424: never a bare `process.exit()` in the route itself — a
+    // Never a bare `process.exit()` in the route itself — a
     // test posting to `/api/self-stop` must not end the `bun test`
     // runner it is running inside.
     selfStopExit: inputs.opts.selfStopExit ?? (() => process.exit(0)),

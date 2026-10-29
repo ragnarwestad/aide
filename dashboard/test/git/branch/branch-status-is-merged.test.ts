@@ -1,6 +1,6 @@
 // Split out of branch-status.test.ts by theme.
 //
-// Spec 04: whether a job's branch has landed on the project's default
+// Whether a job's branch has landed on the project's default
 // branch. Every git call is injected here, so the suite spawns no
 // subprocess and asks its questions about the LOGIC: which refs are
 // consulted, what an unresolvable answer degrades to, and how often git
@@ -112,7 +112,7 @@ describe("BranchStatusChecker.isMerged", () => {
     expect(git.calls.length).toBeGreaterThan(first);
   });
 
-  // Spec 213: the dependency gate is not a page. Its one answer decides
+  // The dependency gate is not a page. Its one answer decides
   // whether a run starts, and a "merged" taken up to 30 seconds ago
   // released two jobs against a dependency that had not landed yet —
   // both were then refused by `aide-run-spec`, which asks origin itself
@@ -162,7 +162,7 @@ describe("BranchStatusChecker.isMerged", () => {
     expect(await checker.isMerged("/repo", "aide/open")).toBe(false);
   });
 
-  // Spec 89: one boolean per JOB was the bug. The cache key already
+  // One boolean per JOB was the bug. The cache key already
   // carried the directory, so the same branch name in two repos must
   // never share an answer — that is exactly how the page gave a
   // confident wrong "merged" for a specs repo it never asked.
@@ -179,7 +179,7 @@ describe("BranchStatusChecker.isMerged", () => {
   });
 });
 
-// Spec 89: the merge code needs the same default branch the check
+// The merge code needs the same default branch the check
 // already resolves, and a merge it just performed must be visible
 // without waiting out the TTL of the answer it invalidates.
 describe("BranchStatusChecker.defaultBranch", () => {
@@ -239,12 +239,12 @@ describe("BranchStatusChecker.invalidate", () => {
   });
 });
 
-// Spec 99: the merge button now deletes the branch on origin, which is
+// The merge button now deletes the branch on origin, which is
 // exactly the workflow the old "Known limitation" comment warned about.
 // A branch git can PROVE is gone from origin has nothing left to merge,
 // so the ancestry check it can no longer answer is not asked at all.
 describe("BranchStatusChecker.isMerged: origin has forgotten the branch", () => {
-  test("a branch confirmed absent from origin counts as merged (criterion 1)", async () => {
+  test("a branch confirmed absent from origin counts as merged", async () => {
     const git = fakeGit({
       ...SYMREF_MASTER,
       "ls-remote": { code: 2 },
@@ -257,7 +257,7 @@ describe("BranchStatusChecker.isMerged: origin has forgotten the branch", () => 
     expect(git.calls.some((c) => c.args[0] === "merge-base")).toBe(false);
   });
 
-  test("origin is asked directly, never through a local remote-tracking ref (criterion 1)", async () => {
+  test("origin is asked directly, never through a local remote-tracking ref", async () => {
     const git = fakeGit({ ...SYMREF_MASTER, "ls-remote": { code: 2 } });
     const checker = new BranchStatusChecker({ run: git.run });
     await checker.isMerged("/repo", "aide/99-x");
@@ -268,7 +268,7 @@ describe("BranchStatusChecker.isMerged: origin has forgotten the branch", () => 
     expect(asked.dir).toBe("/repo");
   });
 
-  test("a branch still on origin is answered the old way (criterion 2)", async () => {
+  test("a branch still on origin is answered the old way", async () => {
     const git = fakeGit({ ...SYMREF_MASTER, "ls-remote": { code: 0 }, "merge-base": { code: 1 } });
     const checker = new BranchStatusChecker({ run: git.run });
     expect(await checker.isMerged("/repo", "aide/99-x")).toBe(false);
@@ -278,7 +278,7 @@ describe("BranchStatusChecker.isMerged: origin has forgotten the branch", () => 
   // 128 is what an unreachable host exits with. Treating it as absence
   // would make the badge and the button vanish from open work during a
   // network blip — the one direction this check may never guess in.
-  test("ls-remote failing for an unrelated reason still falls back (criterion 2)", async () => {
+  test("ls-remote failing for an unrelated reason still falls back", async () => {
     const git = fakeGit({ ...SYMREF_MASTER, "ls-remote": { code: 128 }, "merge-base": { code: 0 } });
     const checker = new BranchStatusChecker({ run: git.run });
     expect(await checker.isMerged("/repo", "aide/99-x")).toBe(true);
@@ -289,7 +289,7 @@ describe("BranchStatusChecker.isMerged: origin has forgotten the branch", () => 
 // The specs list never asks git while drawing: it peeks the answer the
 // background sweep or a landing left, the same way it peeks the open set.
 describe("BranchStatusChecker.peekMerged", () => {
-  test("is null before any ask, then the last answer isMerged took (AC-1)", async () => {
+  test("is null before any ask, then the last answer isMerged took", async () => {
     let ancestor = 1;
     const run: GitRunner = async (_dir, args) => {
       if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/master\n" };
@@ -310,7 +310,7 @@ describe("BranchStatusChecker.peekMerged", () => {
     expect(git.calls).toEqual([]);
   });
 
-  test("rememberMerged records true without asking git, and invalidate drops it (AC-1)", () => {
+  test("rememberMerged records true without asking git, and invalidate drops it", () => {
     const git = fakeGit({});
     const checker = new BranchStatusChecker({ run: git.run, now: () => 1000 });
     checker.rememberMerged("/repo", "aide/570-x");

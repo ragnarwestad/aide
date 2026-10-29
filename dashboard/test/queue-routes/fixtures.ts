@@ -26,15 +26,15 @@ export function setupQueueRoutesHarness(prefix = "aide-queue-routes-", defaultSt
 export const specHead = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
 
-/** The row's message panel (spec 143): the full-width row under the
+/** The row's message panel: the full-width row under the
  *  head, where every long message a row has to say is written — and
- *  since spec 151 that includes the queue's refusal of a press, which
+ *  that includes the queue's refusal of a press, which
  *  used to be squeezed into the name cell above. */
 export const specPanel = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
 
 /** Everything an OPEN row draws: its header line and the phase lines
- *  under it. Since spec 124 the row's controls are split across the
+ *  under it. The row's controls are split across the
  *  two — the row's one action on the caption line, each phase's
  *  checkbox on the phase's own line — so a test about "what the row
  *  offers" reads the whole group. */
@@ -46,22 +46,21 @@ export const specControls = (html: string, folder: string): string =>
     ),
   )?.[0] ?? "";
 
-/** Whether a phase's own line says it is done. Since spec 124 the
+/** Whether a phase's own line says it is done. The
  *  State column's badge is the one place that is said — the checkbox
- *  beside it carries no second mark, which is the duplication the spec
- *  set out to remove. */
+ *  beside it carries no second mark, so it is never said twice. */
 export const phaseDone = (group: string, step: string): boolean =>
   (
     group.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? ""
   ).includes('class="badge b-done"');
 
-/** Since spec 103 a row is COLLAPSED unless the view names it, and the
+/** A row is COLLAPSED unless the view names it, and the
  *  run control comes with opening it. A test about that control asks
  *  for the row open — the same query string the fold link builds. */
 export const openQuery = (...keys: string[]): string => `open=${encodeURIComponent(keys.join(","))}`;
 export const OPEN_81 = openQuery("aide/81-queue-and-runner");
 
-/** The Running tab, asked again until `ok` holds (spec 208).
+/** The Running tab, asked again until `ok` holds.
  *
  *  A render reads memory now — the git answers behind a row arrive on
  *  the cache schedule's own tick, not inside the request. Every fixture
@@ -73,7 +72,7 @@ export const OPEN_81 = openQuery("aide/81-queue-and-runner");
  *  Bounded, and it falls through with the last answer it got: a genuine
  *  regression then reads as the assertion it broke rather than as a
  *  timeout with nothing to look at. The same idiom `projects-route.test.ts`
- *  has used for the drift poll since spec 203. */
+ *  uses for the drift poll. */
 /** Poll the Running tab until `ok` holds, and THROW when it never does.
  *
  *  It asks the Running tab, since that is the page whose open row draws the
@@ -111,7 +110,7 @@ export const listUntil = async (
 
 /** Git has dated the spec's folder — which it can only do once the
  *  fixture's own `ran()` has made the repo, and once the cache schedule
- *  has come round since (spec 208). `–` is the cell before either. */
+ *  has come round since. `–` is the cell before either. */
 export const dated = (html: string): boolean =>
   !specControls(html, "81-queue-and-runner").includes('data-col="started">–');
 

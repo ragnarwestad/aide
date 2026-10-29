@@ -60,7 +60,7 @@ const REFS: Record<string, SpecRef> = {
 };
 
 describe("openOverlappingSpecs", () => {
-  test("keeps only the specs that are still open: archived, closed and missing ones are left out (AC-3)", () => {
+  test("keeps only the specs that are still open: archived, closed and missing ones are left out", () => {
     const open = openOverlappingSpecs(specWith(RECORD), (folder) => REFS[folder]);
     expect(open).toEqual([{ folder: "82-other", label: "82 The other thing", files: ["src/a.ts", "src/b.ts"] }]);
   });
@@ -70,12 +70,12 @@ describe("openOverlappingSpecs", () => {
     expect(open?.[0]?.label).toBe("82-other");
   });
 
-  test("every spec archived answers an empty list, not undefined (AC-4)", () => {
+  test("every spec archived answers an empty list, not undefined", () => {
     const open = openOverlappingSpecs(specWith(RECORD), () => undefined);
     expect(open).toEqual([]);
   });
 
-  test("no folder, no file and no subsection answer undefined (AC-2)", () => {
+  test("no folder, no file and no subsection answer undefined", () => {
     expect(openOverlappingSpecs(undefined, () => undefined)).toBeUndefined();
     expect(openOverlappingSpecs(specWith(undefined), () => undefined)).toBeUndefined();
     expect(openOverlappingSpecs(specWith("# Analysis\n\n## Round 1\n\n### Files to change\n\n- `a.ts`\n"), () => undefined)).toBeUndefined();
@@ -83,7 +83,7 @@ describe("openOverlappingSpecs", () => {
 });
 
 describe("overlappingSpecsIn", () => {
-  test("reads the newest round alone, each path less ./ and a line number (AC-2)", () => {
+  test("reads the newest round alone, each path less ./ and a line number", () => {
     const text = [
       "## Round 1",
       "",
@@ -101,7 +101,7 @@ describe("overlappingSpecsIn", () => {
     expect(overlappingSpecsIn(text)).toEqual([{ spec: "82-other", files: ["a.ts", "b.ts"] }]);
   });
 
-  test("is what `aide-spec-overlap` answers as `warned` for the same file (AC-2)", () => {
+  test("is what `aide-spec-overlap` answers as `warned` for the same file", () => {
     const text = [
       "# Analysis",
       "",

@@ -83,24 +83,24 @@ const dependsOnOf = (root: string, checker: BranchFileStepsChecker | undefined) 
   targets(lookupCtx(root, checker)).find((t) => t.specFolder === FOLDER)?.dependsOn;
 
 describe("the row's own Depends on line", () => {
-  test("is the branch's when the branch has an answer, though the checkout names none (AC-3)", async () => {
+  test("is the branch's when the branch has an answer, though the checkout names none", async () => {
     const { root, specDir } = projectsRoot([]);
     expect(dependsOnOf(root, await warmedChecker(specDir, [NEW_DEPENDENCY]))).toEqual([NEW_DEPENDENCY]);
   });
 
-  test("is empty when the branch has dropped the line the checkout still names (AC-3)", async () => {
+  test("is empty when the branch has dropped the line the checkout still names", async () => {
     const { root, specDir } = projectsRoot([OLD_DEPENDENCY]);
     expect(dependsOnOf(root, await warmedChecker(specDir, []))).toEqual([]);
   });
 
-  test("is the checkout's when there is no branch answer (AC-3)", () => {
+  test("is the checkout's when there is no branch answer", () => {
     const { root } = projectsRoot([OLD_DEPENDENCY]);
     expect(dependsOnOf(root, undefined)).toEqual([OLD_DEPENDENCY]);
   });
 
   // The Running tab's picker ticks by folder, and a hand-written line is
   // often a bare number.
-  test("names a bare number by the folder it resolves to, and keeps an entry nothing matches as written (AC-1)", () => {
+  test("names a bare number by the folder it resolves to, and keeps an entry nothing matches as written", () => {
     const { root } = projectsRoot(["99", "77"]);
     expect(dependsOnOf(root, undefined)).toEqual([NEW_DEPENDENCY, "77"]);
   });
@@ -123,13 +123,13 @@ describe("the queue's dependency hold", () => {
     } as unknown as Parameters<typeof blockedDependencies>[0];
   }
 
-  test("waits for the dependency the branch names, though the checkout names none (AC-3)", async () => {
+  test("waits for the dependency the branch names, though the checkout names none", async () => {
     const { root, specs, specDir } = projectsRoot([]);
     const checker = await warmedChecker(specDir, [NEW_DEPENDENCY]);
     expect((await blockedDependencies(holdCtx(root, specs, specDir, checker))).get("job-1")).toBe(NEW_DEPENDENCY);
   });
 
-  test("still waits for the dependency the checkout names, though the branch has dropped the line (AC-3)", async () => {
+  test("still waits for the dependency the checkout names, though the branch has dropped the line", async () => {
     const { root, specs, specDir } = projectsRoot([OLD_DEPENDENCY]);
     const checker = await warmedChecker(specDir, []);
     expect((await blockedDependencies(holdCtx(root, specs, specDir, checker))).get("job-1")).toBe(OLD_DEPENDENCY);

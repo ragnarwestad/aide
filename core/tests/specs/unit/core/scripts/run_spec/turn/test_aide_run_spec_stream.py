@@ -113,7 +113,7 @@ RESULT_NOT_LOGGED_IN = {
     "result": "Not logged in \u00b7 Please run /login",
 }
 
-def test_a_refusal_ends_model_refused_and_the_commit_says_so_AC_2_AC_3(runner, workspace, fake_claude):
+def test_a_refusal_ends_model_refused_and_the_commit_says_so(runner, workspace, fake_claude):
     """A refused step is a step that stopped: the reason is the model's own,
     read off the result's `stop_reason`, and it reaches the commit subject,
     the only record that outlives the queue."""
@@ -135,7 +135,7 @@ def test_a_refusal_ends_model_refused_and_the_commit_says_so_AC_2_AC_3(runner, w
     subject_line = git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner")
     assert subject_line.endswith("(stopped: model-refused)"), subject_line
 
-def test_a_login_failure_stays_a_cli_error_AC_4(runner, workspace, fake_claude):
+def test_a_login_failure_stays_a_cli_error(runner, workspace, fake_claude):
     """The refusal is told from the login problem by `stop_reason`; a
     result that carries none keeps today's reason, so the board still
     sends the reader to Settings."""
@@ -323,7 +323,7 @@ def test_a_run_no_limit_stopped_carries_no_provider_limit(runner, workspace, fak
     assert "providerLimit" not in out
 
 
-def test_a_claude_overloaded_result_is_a_model_at_capacity_stop_AC_2(runner, workspace, fake_claude):
+def test_a_claude_overloaded_result_is_a_model_at_capacity_stop(runner, workspace, fake_claude):
     """The API answered 529 on every try: the provider has no room for the
     model, which is not the CLI failing. What the step cost is still
     reported."""
@@ -336,13 +336,13 @@ def test_a_claude_overloaded_result_is_a_model_at_capacity_stop_AC_2(runner, wor
     assert out["costUsd"] == pytest.approx(RESULT_OVERLOADED["total_cost_usd"])
 
 
-def test_a_claude_result_that_only_says_overloaded_is_the_same_stop_AC_2(runner, workspace, fake_claude):
+def test_a_claude_result_that_only_says_overloaded_is_the_same_stop(runner, workspace, fake_claude):
     claude = fake_claude(stream_body(RESULT_OVERLOADED_TEXT, exit_code=1))
     rc, out, _ = run(runner, workspace, claude)
     assert out["terminalReason"] == "model-at-capacity", out
 
 
-def test_a_claude_limit_event_wins_over_an_overloaded_result_AC_5(runner, workspace, fake_claude):
+def test_a_claude_limit_event_wins_over_an_overloaded_result(runner, workspace, fake_claude):
     limit = {"type": "rate_limit_event",
              "rate_limit_info": {"status": "rejected", "rateLimitType": "five_hour", "resetsAt": 1789639800,
                                  "isUsingOverage": False}}
@@ -351,7 +351,7 @@ def test_a_claude_limit_event_wins_over_an_overloaded_result_AC_5(runner, worksp
     assert out["terminalReason"] == "provider-limit"
 
 
-def test_a_claude_server_error_after_529_retries_is_a_cli_error_AC_6(runner, workspace, fake_claude):
+def test_a_claude_server_error_after_529_retries_is_a_cli_error(runner, workspace, fake_claude):
     """Claude Code retried a 529 and got past it: the step ended on a
     different error, and the retries are not what it ended on."""
     result = {**RESULT_OVERLOADED, "api_error_status": 500, "result": "API Error: 500 internal server error"}

@@ -36,7 +36,7 @@ describe("a landing forgets the branch it deleted", () => {
     expect(await land()).toEqual({ forgotten: [{ root: ROOT, branch: BRANCH }], remembered: [] });
   });
 
-  // Spec 319: the merge succeeded and only the delete failed, so the
+  // The merge succeeded and only the delete failed, so the
   // branch IS still on origin. It was forgotten before the checkout
   // moved, so it is taken back — the one case the archived row's own
   // sentence exists for must still read as open.
@@ -70,7 +70,7 @@ describe("a landing whose delete failed records the branch as merged", () => {
     return merged;
   }
 
-  test("under every root the open set is keyed by, a specs root below its repository included (AC-1)", async () => {
+  test("under every root the open set is keyed by, a specs root below its repository included", async () => {
     const specsRoot = `${ROOT}/specs/aide`;
     expect(await landAs("archive", refusedDelete, { machinerySpecsRoot: () => specsRoot })).toEqual([
       { root: ROOT, branch: BRANCH },
@@ -78,7 +78,7 @@ describe("a landing whose delete failed records the branch as merged", () => {
     ]);
   });
 
-  test("the recorded answer is what the row peeks under the specs root's own path (AC-1)", () => {
+  test("the recorded answer is what the row peeks under the specs root's own path", () => {
     const checker = new BranchStatusChecker({ run: fakeGit({}).run });
     const specsRoot = "/repos/aide-specs/aide";
     rememberMergedUnderRoots(
@@ -91,11 +91,11 @@ describe("a landing whose delete failed records the branch as merged", () => {
     expect(checker.peekMerged("/repos/aide-code", BRANCH)).toBeNull();
   });
 
-  test("a delete that succeeded records nothing (AC-1)", async () => {
+  test("a delete that succeeded records nothing", async () => {
     expect(await landAs("archive", {})).toEqual([]);
   });
 
-  test("a close's discarded code branch was never merged, and records nothing (AC-4)", async () => {
+  test("a close's discarded code branch was never merged, and records nothing", async () => {
     // The code root is the one a close discards: `deleteBranchOnly`, no merge.
     const separateSpecs = { machineryProjectDir: () => ROOT, machinerySpecsRoot: () => "/repos/aide-specs" };
     expect(await landAs("close", refusedDelete, separateSpecs)).toEqual([]);

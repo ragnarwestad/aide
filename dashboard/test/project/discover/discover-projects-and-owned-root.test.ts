@@ -9,7 +9,7 @@ import { useDiscoverRoot } from "./discover-fixtures.ts";
 
 const fx = useDiscoverRoot();
 
-// Spec 115: the walk from a projects root to what a page shows —
+// The walk from a projects root to what a page shows —
 // discovery, then each project's manifest, then each spec's status —
 // used to be inline in `main.ts`, where only the generator could reach
 // it. The served `/projects` page needs the identical data from the
@@ -74,9 +74,9 @@ describe("discoverProjects", () => {
   });
 });
 
-// Spec 218: WHICH spec folders exist is the dashboard's own checkout's
+// WHICH spec folders exist is the dashboard's own checkout's
 // answer, not the person's. A run resolves `--spec` against the clone
-// the dashboard owns (spec 205), so a folder committed in the person's
+// the dashboard owns, so a folder committed in the person's
 // checkout and never pushed was listed on a page and refused by every
 // step offered on its row.
 //
@@ -84,7 +84,7 @@ describe("discoverProjects", () => {
 // write path's translation and the `fs.watch` that redraws a page still
 // read it, and only which directory the FOLDERS are enumerated from
 // moves.
-describe("listing specs from a root the caller owns (spec 218)", () => {
+describe("listing specs from a root the caller owns", () => {
   let ownedRoot: string;
   let owned: string;
   const forProjB = (project: string): string | undefined => (project === "proj-b" ? owned : undefined);

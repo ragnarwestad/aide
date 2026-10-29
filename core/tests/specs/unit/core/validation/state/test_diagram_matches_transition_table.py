@@ -1,4 +1,4 @@
-"""Spec 356 (REQ-7): the mermaid diagram in dashboard/docs/spec-transitions.md
+"""The mermaid diagram in dashboard/docs/spec-transitions.md
 and core/scripts/lib/transitions.json describe the same moves. A test
 fails if either names an edge the other does not have, so the diagram
 can no longer drift from the table the way the description says it

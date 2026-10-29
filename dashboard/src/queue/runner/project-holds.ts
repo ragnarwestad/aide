@@ -15,7 +15,7 @@ const stepOf = (r: Job) => r.steps[r.stepIndex];
  *  in flight, or undefined when nothing holds it.
  *
  *  A schedule job never starts while anything else for its project is running
- *  or landing (spec 558, AC-6) — the same shape as the archive hold in
+ *  or landing — the same shape as the archive hold in
  *  `tick()`, but wider (any step, not only archive) and one-directional: only
  *  the schedule job itself ever waits for this, nothing holds a spec's own
  *  step or landing back for a queued schedule job. */

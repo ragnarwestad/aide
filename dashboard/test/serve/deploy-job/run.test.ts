@@ -112,7 +112,7 @@ const sentenceKey = (s: Setup): unknown => (s.result()?.sentence as { key?: stri
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 describe("a deploy with nothing to restart", () => {
-  test("marks its five steps, records the commit it fetched and ends done when the service runs it (AC-3)", async () => {
+  test("marks its five steps, records the commit it fetched and ends done when the service runs it", async () => {
     const s = setup();
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(s.result()).toMatchObject({ ok: true, terminalReason: "completed", tool: "none", costMeasured: false });
@@ -125,7 +125,7 @@ describe("a deploy with nothing to restart", () => {
     expect(s.calls.restartWhenSettled).toBe(0);
   });
 
-  test("ends failed when the service runs an older commit than the checkout, and says so at the top (AC-6)", async () => {
+  test("ends failed when the service runs an older commit than the checkout, and says so at the top", async () => {
     const s = setup({ readServing: () => ({ sha: OLDER, repoRoot: ROOT }) });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(s.result()).toMatchObject({ ok: false, terminalReason: "deploy-failed" });
@@ -133,7 +133,7 @@ describe("a deploy with nothing to restart", () => {
     expect(s.faults.at(-1)).toMatchObject({ key: "landing.deployNoRestart" });
   });
 
-  test("ends done when the served commit is not known yet (AC-6)", async () => {
+  test("ends done when the served commit is not known yet", async () => {
     const s = setup({ readServing: () => ({ sha: null, repoRoot: null }) });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(s.result()).toMatchObject({ ok: true });
@@ -178,8 +178,8 @@ describe("a deploy that fails stops where it failed", () => {
   });
 });
 
-describe("a deploy waits for a landing before its fetch (AC-4)", () => {
-  test("it fetches nothing while a landing holds the checkout, the job carries the hold, and both go when it clears (AC-4)", async () => {
+describe("a deploy waits for a landing before its fetch", () => {
+  test("it fetches nothing while a landing holds the checkout, the job carries the hold, and both go when it clears", async () => {
     const s = setup();
     let release = (): void => {};
     const held = s.lock.run(ROOT, () => new Promise<void>((r) => (release = r)));
@@ -200,7 +200,7 @@ describe("a deploy waits for a landing before its fetch (AC-4)", () => {
   });
 });
 
-describe("a deploy whose service can be restarted (AC-4)", () => {
+describe("a deploy whose service can be restarted", () => {
   /** A restart that waits for a landing for three polls, then clears and fires. */
   function restarting() {
     const snap: { during?: ReturnType<typeof store.get>; after?: ReturnType<typeof store.get> } = {};
@@ -222,7 +222,7 @@ describe("a deploy whose service can be restarted (AC-4)", () => {
     return { s, snap, fired: () => fired };
   }
 
-  test("goes through the restart that waits, with the hold on the job written once while it waits, and gone after (AC-4)", async () => {
+  test("goes through the restart that waits, with the hold on the job written once while it waits, and gone after", async () => {
     const { s, snap, fired } = restarting();
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     expect(fired()).toBe(1);
@@ -234,7 +234,7 @@ describe("a deploy whose service can be restarted (AC-4)", () => {
     expect(s.writes()).toBe(2);
   });
 
-  test("records the restart in the job before the process goes, marks the wait started, and writes no result itself (AC-5)", async () => {
+  test("records the restart in the job before the process goes, marks the wait started, and writes no result itself", async () => {
     const { s } = restarting();
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
     const after = store.get(s.id);
@@ -249,7 +249,7 @@ describe("a deploy whose service can be restarted (AC-4)", () => {
     expect(s.result()).toBeUndefined();
   });
 
-  test("a process still alive when the wait for the new one ends fails the job with the no-answer sentence (AC-6)", async () => {
+  test("a process still alive when the wait for the new one ends fails the job with the no-answer sentence", async () => {
     const s = setup({
       restartRegistered: async () => true,
       restartWhenSettled: async (h) => {
@@ -265,7 +265,7 @@ describe("a deploy whose service can be restarted (AC-4)", () => {
     expect(sentenceKey(s)).toBe("landing.deployNoAnswer");
   });
 
-  test("the wait ends quietly for a job that is no longer running (AC-6)", async () => {
+  test("the wait ends quietly for a job that is no longer running", async () => {
     const s = setup({
       restartRegistered: async () => true,
       restartWhenSettled: async (h) => {

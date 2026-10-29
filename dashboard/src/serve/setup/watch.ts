@@ -17,7 +17,7 @@ import type { ServerState } from "../state.ts";
 
 export interface WatchSetup {
   watchers: Set<ReadableStreamDefaultController<Uint8Array>>;
-  /** Spec 500: the subscribers that named phases, with their keys. */
+  /** The subscribers that named phases, with their keys. */
   phaseWatchers: Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>;
   /** The growth check for the runner's two-second tick, over the jobs. */
   streamGrowth: (jobs: () => Job[]) => { tick: () => void };
@@ -33,7 +33,7 @@ export function setupWatch(
   allowed: Set<string>,
   state: ServerState,
 ): WatchSetup {
-  // --- spec 189: the pages that are watching --------------------------------
+  // --- The pages that are watching --------------------------------
   //
   // One held-open response per open tab. The event is a SIGNAL and
   // describes no row: the browser already knows how to fetch a fresh
@@ -44,7 +44,7 @@ export function setupWatch(
   const encoder = new TextEncoder();
   const watchers = new Set<ReadableStreamDefaultController<Uint8Array>>();
   const phaseWatchers = new Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>();
-  // --- spec 204: a spec is a folder, and a folder changes no job -----------
+  // --- A spec is a folder, and a folder changes no job -----------
   //
   // A spec created any other way — a `git pull`, a hand-run
   // `/aide-create`, a headless run's commit landing — writes a
@@ -84,7 +84,7 @@ export function setupWatch(
   // watch on the projects root would fire on every `.git` internal,
   // `node_modules` entry and build artefact in every checked-out
   // project — the ground moving under the reader constantly, which is
-  // the cost spec 189 already removed once.
+  // a cost to avoid.
   //
   // A change made before the watch opened is dropped (`isEcho`).
   if (opts.projectRoot) {

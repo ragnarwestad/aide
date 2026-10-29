@@ -34,7 +34,7 @@ function invalid(win: Window, el: Element): void {
 }
 
 describe("switching the New spec page's tabs in place", () => {
-  test("a click on Options shows its panel, marks it current and loads no page (AC-1)", () => {
+  test("a click on Options shows its panel, marks it current and loads no page", () => {
     const { doc, win } = page("spec");
     const click = new win.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
     tabLink(doc, 1).dispatchEvent(click as unknown as Event);
@@ -44,7 +44,7 @@ describe("switching the New spec page's tabs in place", () => {
     expect(current(doc)).toBe(1);
   });
 
-  test("an empty Title found while Options is shown brings the Spec tab forward (AC-5)", () => {
+  test("an empty Title found while Options is shown brings the Spec tab forward", () => {
     const { doc, win } = page("options");
     invalid(win, doc.querySelector('input[name="title"]')!);
     expect(panel(doc, "spec").hidden).toBe(false);
@@ -52,7 +52,7 @@ describe("switching the New spec page's tabs in place", () => {
     expect(current(doc)).toBe(0);
   });
 
-  test("an empty field in the panel already shown changes nothing (AC-5)", () => {
+  test("an empty field in the panel already shown changes nothing", () => {
     const { doc, win } = page("options");
     invalid(win, doc.querySelector("#new-spec-criteria-checks")!);
     expect(panel(doc, "options").hidden).toBe(false);

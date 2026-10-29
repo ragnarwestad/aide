@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # run-spec/turn/review.sh — a second pair of eyes on what implement changed,
-# before the runner's own test run decides the step (spec 551), and the
+# before the runner's own test run decides the step, and the
 # log line that says what an analyze's own plan review found.
 #
 # Sourced by aide-run-spec between run-spec/record/status-line.sh (which can

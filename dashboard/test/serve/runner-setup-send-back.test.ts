@@ -68,7 +68,7 @@ const enqueue = (steps: string[]): Job => {
 const others = (job: Job) => store.list().filter((j) => j.id !== job.id);
 
 describe("an implement sent back to a full analysis", () => {
-  test("is stopped, its specs branch is landed, and Analyze then Implement is queued on its models (AC-2)", async () => {
+  test("is stopped, its specs branch is landed, and Analyze then Implement is queued on its models", async () => {
     const job = await endImplement({ terminalReason: "sent-back", error: WHY, branchUrls: SPECS_ONLY });
     expect(store.get(job.id)?.state).toBe("stopped");
     expect(store.get(job.id)?.stopReason).toBe("sent-back");
@@ -80,20 +80,20 @@ describe("an implement sent back to a full analysis", () => {
     expect(round?.model?.archive).toBeUndefined();
   });
 
-  test("that also pushed the code repository lands nothing and still queues the round (AC-2)", async () => {
+  test("that also pushed the code repository lands nothing and still queues the round", async () => {
     const job = await endImplement({ terminalReason: "sent-back", error: WHY, branchUrls: WITH_CODE() });
     expect(landed).toEqual([]);
     expect(others(job).map((j) => j.steps)).toEqual([["analyze", "implement"]]);
   });
 
   for (const terminalReason of ["no-progress", "timeout", "tests-red", "short-analysis-over-limit"]) {
-    test(`an implement that ends on ${terminalReason} queues nothing (AC-2)`, async () => {
+    test(`an implement that ends on ${terminalReason} queues nothing`, async () => {
       const job = await endImplement({ terminalReason, error: "x", branchUrls: SPECS_ONLY });
       expect(others(job)).toEqual([]);
     });
   }
 
-  test("a sent-back step of another kind than implement queues nothing (AC-2)", async () => {
+  test("a sent-back step of another kind than implement queues nothing", async () => {
     const job = enqueue(["analyze"]);
     const runner = makeRunner({ store, onStepDone: hook(), readResult: () => ({ ...okResult(0.1), ok: false, terminalReason: "sent-back" }) });
     runner.tick();
@@ -104,7 +104,7 @@ describe("an implement sent back to a full analysis", () => {
 });
 
 describe("an implement the runner refused to send back, its analysis being full", () => {
-  test("fails, lands nothing and queues nothing (AC-4)", async () => {
+  test("fails, lands nothing and queues nothing", async () => {
     const job = await endImplement({ terminalReason: "sent-back-refused", error: "refused", branchUrls: SPECS_ONLY });
     expect(store.get(job.id)?.state).toBe("failed");
     expect(landed).toEqual([]);

@@ -63,7 +63,7 @@ def _recorded(workspace):
     return [l for l in _description(workspace).splitlines() if l.startswith(LABEL)]
 
 
-def test_a_sentence_on_a_short_analysis_ends_the_step_sent_back_AC_1(runner, workspace, fake_claude):
+def test_a_sentence_on_a_short_analysis_ends_the_step_sent_back(runner, workspace, fake_claude):
     _spec(workspace)
     out = _implement(runner, workspace, _claude(fake_claude))
     assert out["ok"] is False, out
@@ -73,27 +73,27 @@ def test_a_sentence_on_a_short_analysis_ends_the_step_sent_back_AC_1(runner, wor
     assert subject.endswith("(stopped: sent-back)"), subject
 
 
-def test_a_sentence_ends_the_step_sent_back_whatever_else_the_session_wrote_AC_1(runner, workspace, fake_claude):
+def test_a_sentence_ends_the_step_sent_back_whatever_else_the_session_wrote(runner, workspace, fake_claude):
     _spec(workspace, analysis="- **Analysis:** short — no plan")
     out = _implement(runner, workspace, _claude(fake_claude, code=True))
     assert out["terminalReason"] == "sent-back", out
 
 
-def test_no_sentence_leaves_the_step_as_it_was_AC_1(runner, workspace, fake_claude):
+def test_no_sentence_leaves_the_step_as_it_was(runner, workspace, fake_claude):
     _spec(workspace)
     out = _implement(runner, workspace, _claude(fake_claude, sentence=None))
     assert out["terminalReason"] == "no-progress", out
     assert _recorded(workspace) == []
 
 
-def test_a_sentence_that_is_empty_once_cleaned_is_no_sentence_AC_1(runner, workspace, fake_claude):
+def test_a_sentence_that_is_empty_once_cleaned_is_no_sentence(runner, workspace, fake_claude):
     _spec(workspace)
     out = _implement(runner, workspace, _claude(fake_claude, sentence="  \n\n  "))
     assert out["terminalReason"] == "no-progress", out
     assert _recorded(workspace) == []
 
 
-def test_every_implement_prompt_names_the_sentence_file_and_the_limits_AC_1(runner, workspace, fake_claude, tmp_path):
+def test_every_implement_prompt_names_the_sentence_file_and_the_limits(runner, workspace, fake_claude, tmp_path):
     _spec(workspace, analysis="- **Analysis:** full")
     seen = tmp_path / "implement-prompt.txt"
     _implement(runner, workspace, _claude(fake_claude, sentence=None, seen=seen))
@@ -102,7 +102,7 @@ def test_every_implement_prompt_names_the_sentence_file_and_the_limits_AC_1(runn
     assert "more than 3 source files to change (tests and documentation are not counted)" in line and "LOW" in line, line
 
 
-def test_an_analyze_prompt_does_not_name_a_sentence_file_AC_1(runner, workspace, fake_claude, tmp_path):
+def test_an_analyze_prompt_does_not_name_a_sentence_file(runner, workspace, fake_claude, tmp_path):
     status_with_phase(workspace, "create", ["| a | ⬜ | |"])
     seen = tmp_path / "analyze-prompt.txt"
     claude = fake_claude(f'cat > {seen}\necho \'{json.dumps(RESULT_OK)}\'\n')
@@ -111,7 +111,7 @@ def test_an_analyze_prompt_does_not_name_a_sentence_file_AC_1(runner, workspace,
     assert "sent-back" not in seen.read_text()
 
 
-def test_the_sentence_is_kept_in_the_description_on_one_line_without_backticks_AC_1(runner, workspace, fake_claude):
+def test_the_sentence_is_kept_in_the_description_on_one_line_without_backticks(runner, workspace, fake_claude):
     _spec(workspace, tracking=(CREATED, "- **Let me choose the approach:** no"))
     out = _implement(runner, workspace, _claude(fake_claude, sentence="it needs `three` more\nfiles \\n and a\nnew format"))
     assert out["terminalReason"] == "sent-back", out
@@ -120,20 +120,20 @@ def test_the_sentence_is_kept_in_the_description_on_one_line_without_backticks_A
     assert lines.index(_recorded(workspace)[0]) == lines.index("- **Let me choose the approach:** no") + 1
 
 
-def test_the_sentence_is_cut_to_a_length_a_row_can_show_AC_1(runner, workspace, fake_claude):
+def test_the_sentence_is_cut_to_a_length_a_row_can_show(runner, workspace, fake_claude):
     _spec(workspace)
     _implement(runner, workspace, _claude(fake_claude, sentence="x" * 500))
     [line] = _recorded(workspace)
     assert line == f"{LABEL} " + "x" * 300
 
 
-def test_an_earlier_line_is_replaced_not_added_to_AC_1(runner, workspace, fake_claude):
+def test_an_earlier_line_is_replaced_not_added_to(runner, workspace, fake_claude):
     _spec(workspace, tracking=(CREATED, f"{LABEL} an earlier sentence"))
     _implement(runner, workspace, _claude(fake_claude))
     assert _recorded(workspace) == [f"{LABEL} {SENTENCE}"]
 
 
-def test_a_sentence_on_a_full_analysis_is_refused_and_the_description_is_left_alone_AC_4(runner, workspace, fake_claude):
+def test_a_sentence_on_a_full_analysis_is_refused_and_the_description_is_left_alone(runner, workspace, fake_claude):
     _spec(workspace, analysis="- **Analysis:** full")
     before = _description(workspace, "main")
     out = _implement(runner, workspace, _claude(fake_claude))
@@ -145,13 +145,13 @@ def test_a_sentence_on_a_full_analysis_is_refused_and_the_description_is_left_al
     assert subject.endswith("(stopped: sent-back-refused)"), subject
 
 
-def test_a_sentence_with_no_analysis_line_is_refused_AC_4(runner, workspace, fake_claude):
+def test_a_sentence_with_no_analysis_line_is_refused(runner, workspace, fake_claude):
     _spec(workspace, analysis=None)
     out = _implement(runner, workspace, _claude(fake_claude))
     assert out["terminalReason"] == "sent-back-refused", out
 
 
-def test_a_description_that_cannot_hold_the_line_is_refused_AC_4(runner, workspace, fake_claude):
+def test_a_description_that_cannot_hold_the_line_is_refused(runner, workspace, fake_claude):
     _spec(workspace, tracking=())
     before = _description(workspace, "main")
     out = _implement(runner, workspace, _claude(fake_claude))

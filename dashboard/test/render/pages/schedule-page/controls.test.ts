@@ -13,7 +13,7 @@ function cells(): HTMLElement {
 }
 
 describe("scheduleControlCells()", () => {
-  test("draws the Enabled box, Run now and Delete, and no link to an edit page (AC-1)", () => {
+  test("draws the Enabled box, Run now and Delete, and no link to an edit page", () => {
     const body = cells();
     const base = "/api/queue/schedule/aide/nightly";
     expect(body.querySelector("input.scheduleenabled")?.getAttribute("data-post-to")).toBe(`${base}/enabled`);

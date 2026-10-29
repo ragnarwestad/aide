@@ -4,7 +4,7 @@
 // board serving a branch runs that branch's TypeScript, and the bash
 // written together with it lives in the same checkout; the copy under
 // ~/.local/bin is main's, and a flag the branch added is "unknown" to it
-// — which is how eleven parallel creates on spec 453's board failed with
+// — which is how eleven parallel creates on a test board failed with
 // "unknown argument: --assign-number" (2026-09-14).
 import { describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";

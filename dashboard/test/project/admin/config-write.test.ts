@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 
-// --- spec 138: whether a run can actually start there -------------------------
+// --- Whether a run can actually start there -------------------------
 //
 // Adding a project answered "added" and nothing else. Skjer was added on
 // 2026-08-20 and looked added: it was on the allowlist, its checkout was
@@ -34,19 +34,19 @@ afterEach(() => {
 // feature branch whose upstream was gone, no specs root had been named,
 // and no worktree links were configured, so the project's own test command
 // would have failed for a reason that had nothing to do with the change.
-// (Its untracked `.aide/` was a fourth refusal then; spec 144 removed
-// that one from the runner, and this preflight with it.)
+// (Its untracked `.aide/` was a fourth refusal then; the runner no longer
+// refuses on it, and neither does this preflight.)
 //
 // None of that was visible until Run was pressed. So the answer now says
 // both things: registration completed, AND whether `aide-run-spec` would
 // start. The rules mirrored here are the runner's own, read-only: nothing
 // below switches a branch, commits a file or creates a directory.
 
-// Criterion 9: both fields land in the same personal file, and neither
+// Both fields land in the same personal file, and neither
 // may take the other — or a hand-written key, or a comment — with it.
-describe("writing .aide/config (spec 138)", () => {
-  // Spec 184 moved the links out of this file and into the committed
-  // manifest — so what this asserts now is that the value still comes
+describe("writing .aide/config", () => {
+  // The links live outside this file, in the committed
+  // manifest — so what this asserts is that the value still comes
   // back in the shape the runner reads, from wherever it is kept.
   test("worktree links are written in the format the runner reads them in", async () => {
     const projectsRoot = root();

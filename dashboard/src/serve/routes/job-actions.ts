@@ -12,7 +12,7 @@ import { isDeployJob } from "../../queue/queue.ts";
 import { bodyToObject, json, logRefusal, readBounded } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
-// A spec analyzed before spec 355 landed carries no 4-status.json yet —
+// A spec analyzed before the state file existed carries no 4-status.json yet —
 // the same gap schedules.ts's own `proseSteps` falls back for
 // (`blockedForMissingAnalyze`'s doc comment). Reading that absence as
 // "nothing has run" would refuse this spec's own, perfectly legal next
@@ -48,7 +48,7 @@ export async function handleJobActionRoutes(
       return json({ error: "malformed body" }, 400);
     }
     const askedFor = raw as Record<string, unknown> | null;
-    // REQ-9 (spec 356): a backward move — `analyze` or `create`
+    // A backward move — `analyze` or `create`
     // requested on a spec that has already reached a later phase — is
     // refused before the job ever reaches the queue, naming `reset` (or
     // `reopen`, for an archived spec) as the way back. This is the one
@@ -78,7 +78,7 @@ export async function handleJobActionRoutes(
         const archived = ctx.specRef(askedFor.project, askedFor.specFolder)?.archived
           ? { date: "" }
           : null;
-        // spec 406: the same ref, the same reasoning — closed is a fact
+        // The same ref, the same reasoning — closed is a fact
         // about this request's own project/specFolder, read off the one
         // resolved answer rather than a second, independent check.
         const closed = ctx.specRef(askedFor.project, askedFor.specFolder)?.closed
@@ -128,7 +128,7 @@ export async function handleJobActionRoutes(
     }
 
     const result = ctx.queue.enqueue(raw);
-    // Spec 439: the row's own Run form is the one HTTP route a reader's
+    // The row's own Run form is the one HTTP route a reader's
     // phase-checkbox tick actually reaches after create, so it is the
     // ordinary-run counterpart to `enqueueCreate()`'s own seeding
     // (`store.ts`) — only on a SUCCESSFUL enqueue, and only here: `reset`

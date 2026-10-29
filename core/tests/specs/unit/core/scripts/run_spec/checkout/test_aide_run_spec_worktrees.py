@@ -54,7 +54,7 @@ def test_the_worktree_specs_path_points_at_the_specs_worktree(runner, workspace,
     # What the step wrote there is committed on the branch in the specs
     # REPO — the worktree is a view of it, not a copy. Across the whole
     # branch, not just its last commit: the step's own content and the
-    # `Workflow steps completed` line land in separate commits (spec 343).
+    # `Workflow steps completed` line land in separate commits.
     assert "2-analysis.md" in git(workspace["specs"], "log", "--name-only", "--pretty=", f"main..{BRANCH}")
     assert "2-analysis.md" not in git(workspace["specs"], "ls-tree", "-r", "--name-only", "main")
 

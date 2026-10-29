@@ -1,4 +1,4 @@
-// The plist renderer (spec 03). The committed plist carried one
+// The plist renderer. The committed plist carried one
 // operator's home directory into git; the renderer takes every path as
 // an argument instead. What is worth proving is exactly that: nothing
 // it emits comes from anywhere but its own options.

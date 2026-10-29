@@ -77,7 +77,7 @@ export function blocksOf(event: Record<string, unknown>): StreamBlock[] {
 export interface SummarizeOptions {
   /** How many entries to keep, counted from the END of the stream. */
   max?: number;
-  /** Which CLI wrote this transcript (spec 125). Omit it and the schema
+  /** Which CLI wrote this transcript. Omit it and the schema
    *  is recognised from the stream itself — `/live` tails a file whose
    *  job may predate the field entirely, and an unrecognised schema
    *  renders as an empty activity list, which reads as "it is doing
@@ -85,7 +85,7 @@ export interface SummarizeOptions {
   //
   // `fake-claude` writes Claude Code's own event shape, so it is read
   // with the same parser and named here only so a caller can pass the
-  // job's tool through without narrowing it first. `none` (spec 433) is
+  // job's tool through without narrowing it first. `none` is
   // a no-AI create's own value — it never actually reaches this parser,
   // since a step that ran no AI writes no transcript to summarize, but
   // the caller's own `tool` reads off the same widened field and has to

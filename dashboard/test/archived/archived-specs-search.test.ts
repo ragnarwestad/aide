@@ -8,15 +8,15 @@ import {
 
 afterEach(() => harness.cleanup());
 
-// --- criterion 6: the search reaches both kinds of row ---------------------
+// --- The search reaches both kinds of row ---------------------
 
 describe("the search field", () => {
-  // Spec 261: `skjer` is the one project besides `aide` in this harness
+  // `skjer` is the one project besides `aide` in this harness
   // (`OTHER` and `LIVE_OTHER` are its two specs), and neither spec's
   // folder, title nor description mentions that project's name — so a
   // match here can only come from the project itself joining the
   // haystack.
-  test("matches a spec by its project name alone (spec 261)", async () => {
+  test("matches a spec by its project name alone", async () => {
     // The live spec first: git cannot date either, and an undated
     // ARCHIVED spec sorts as the oldest (2026-09-09), the undated live
     // one as the newest.
@@ -26,18 +26,18 @@ describe("the search field", () => {
     ]);
   });
 
-  test("matches the project name with a trailing colon (spec 261)", async () => {
+  test("matches the project name with a trailing colon", async () => {
     expect(order(await specsList(start().base, `${ALL_VIEW}&q=skjer:`))).toEqual([
       LIVE_OTHER,
       OTHER,
     ]);
   });
 
-  test("matches the project name joined to a folder prefix (spec 261)", async () => {
+  test("matches the project name joined to a folder prefix", async () => {
     expect(order(await specsList(start().base, `${ALL_VIEW}&q=skjer:05-`))).toEqual([OTHER]);
   });
 
-  test("finds an archived spec under the All chip (criterion 6)", async () => {
+  test("finds an archived spec under the All chip", async () => {
     expect(order(await specsList(start().base, `${ALL_VIEW}&q=QUEUE+REMEMBERS`))).toEqual([SAME_DAY]);
   });
 
@@ -73,7 +73,7 @@ describe("the search field", () => {
   });
 });
 
-// --- spec 226, criteria 4 and 5: one press back to the unfiltered view -----
+// --- One press back to the unfiltered view -----------------------
 
 describe("the search field's clear control", () => {
   /** The form's own markup, so a `×` anywhere else on the page cannot
@@ -84,7 +84,7 @@ describe("the search field's clear control", () => {
     return html.slice(at, html.indexOf("</form>", at));
   };
 
-  test("is a link back to the same view with the term dropped (criterion 4)", async () => {
+  test("is a link back to the same view with the term dropped", async () => {
     const form = searchForm(await specsList(start().base, `${ARCHIVED_VIEW}&q=remembers`));
     expect(form).toContain('class="searchclear"');
     // A link, not script: the same "state lives in the URL" shape the
@@ -93,7 +93,7 @@ describe("the search field's clear control", () => {
     expect(form).toMatch(/<a class="searchclear"[^>]*href="\/specs\?state=archived"/);
   });
 
-  test("keeps every other filter the reader had chosen (criterion 4)", async () => {
+  test("keeps every other filter the reader had chosen", async () => {
     const form = searchForm(
       await specsList(start().base, `${ALL_VIEW}&sort=spec&dir=asc&q=remembers`),
     );

@@ -21,11 +21,11 @@ afterEach(() => {
   cleanupOwnDirs();
 });
 
-// --- spec 149: every step lands the work it produced -------------------------
+// --- Every step lands the work it produced -------------------------
 //
 // Split out of stopped-and-every-step.test.ts by theme: the basic
-// per-step landing rules. The origin re-check (spec 193) and the
-// pull-request mode (spec 220) are their own sibling files.
+// per-step landing rules. The origin re-check and the
+// pull-request mode are their own sibling files.
 //
 // Every step that touched only a repo it is safe to merge lands ITSELF,
 // the moment it finishes — with no press and no browser attached. The
@@ -49,7 +49,7 @@ const serverWithHarness = (
   extra: Parameters<typeof serverWith>[4] = {},
 ) => serverWith(harness, dir, paths, git, extra);
 
-// Criteria 1 and 2. The argument that made `create` and `archive` land
+// The argument that made `create` and `archive` land
 // themselves holds word for word here: analyze writes markdown in the
 // specs repo and nothing else, so there is no diff for a person to
 // weigh and nothing that reaches the serving host.
@@ -73,7 +73,7 @@ test.each(["analyze"])(
   },
 );
 
-// Criterion 3. The one step that deliberately does not land. The code
+// The one step that deliberately does not land. The code
 // stays on `aide/<spec>`, which is where a person tests it — by
 // leaving `archive` unticked. The worktree is gone when the run ends,
 // so the branch on origin is what remains.
@@ -138,7 +138,7 @@ describe("a landing that installs and asks for a restart", () => {
     expect(logged.some((l) => l.includes("restart it with Deploy"))).toBe(true);
   });
 
-  // Criterion 5. A code merge that cannot be made stops the step: nothing
+  // A code merge that cannot be made stops the step: nothing
   // is left half-merged, the reason names the repo, and the spec stays in
   // the active list. `errorReason` is what makes the way out survive —
   // there is no browser attached to an automatic landing, so the one-shot
@@ -146,7 +146,7 @@ describe("a landing that installs and asks for a restart", () => {
   // A retry that merely refused again used to overwrite the first
   // refusal ("main moved on origin under this landing twice") with its
   // own ("cannot fast-forward main") — the words that said what
-  // happened were gone (364, 2026-09-03).
+  // happened were gone.
   test("pickRefusal keeps the first refusal's words unless a retry reached a verdict", () => {
     const first = { root: "/r", ok: false, error: "main moved on origin under this landing twice", detail: "rejected" };
     const again = { root: "/r", ok: false, error: "cannot fast-forward main" };

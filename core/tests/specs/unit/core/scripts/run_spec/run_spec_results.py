@@ -46,7 +46,7 @@ FLAT_USAGE = {
 }
 
 
-# --- spec 125: the same fixture pattern, for the second tool ------------------
+# --- The same fixture pattern, for the second tool ------------------
 #
 # Codex's non-interactive mode (`codex exec --json`) writes JSONL to
 # stdout the way `claude -p --output-format stream-json` does, but the

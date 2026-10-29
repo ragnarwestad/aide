@@ -64,7 +64,7 @@ const notice = () => page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
 const radio = (letter: string) => notice().locator(`input[name="approach"][value="${letter}"]`);
 
 describe("the approach warning", () => {
-  test("Cancel puts the recommended approach back (AC-3)", async () => {
+  test("Cancel puts the recommended approach back", async () => {
     await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/)");
     expect(await radio("A").isChecked()).toBe(true);
     const cancel = notice().locator("button", { hasText: "Cancel" });
@@ -77,7 +77,7 @@ describe("the approach warning", () => {
     expect(await cancel.isDisabled()).toBe(true);
   });
 
-  test("an approach's link opens the Solution tab with its lead in view (AC-3)", async () => {
+  test("an approach's link opens the Solution tab with its lead in view", async () => {
     await withBrowser(page.goto(`${base}/specs?live=0`), "page.goto(/)");
     await notice().locator('a[href*="#approach-b"]').click();
     await page.waitForURL(/tab=solution#approach-b$/);

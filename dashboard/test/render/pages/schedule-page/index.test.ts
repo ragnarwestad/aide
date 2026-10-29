@@ -10,8 +10,8 @@ beforeEach(() => clearCheckoutFaults());
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 
-describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () => {
-  test("?q= narrows to rows whose project:name or prompt path matches, case-insensitively (criterion 4)", () => {
+describe("Schedule page", () => {
+  test("?q= narrows to rows whose project:name or prompt path matches, case-insensitively", () => {
     const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       rows: [
         {
@@ -31,7 +31,7 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
     expect(html).not.toContain("weekly-check");
   });
 
-  test("the default view (no ?sort=) orders rows by project:name ascending (criterion 7)", () => {
+  test("the default view (no ?sort=) orders rows by project:name ascending", () => {
     const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       rows: [
         {
@@ -70,7 +70,7 @@ describe("the /schedule list's sortable headings", () => {
     },
   ];
 
-  test("link to each column, the sorted one turned round, and mark the sorted one (AC-5)", () => {
+  test("link to each column, the sorted one turned round, and mark the sorted one", () => {
     expect(headings(renderSchedulePage(NAV, "2026-08-30T00:00:00Z", { rows }))).toEqual([
       ["Name", "/schedule?sort=name&dir=desc", "ascending"],
       ["Next run", "/schedule?sort=next", null],
@@ -108,7 +108,7 @@ describe("the entry's Report tab", () => {
     timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-09-01T03:00:00Z", startedAt: "2026-09-01T03:00:00Z",
   } as unknown as Job;
 
-  test("draws the runs list after the report panel it was handed (AC-2)", () => {
+  test("draws the runs list after the report panel it was handed", () => {
     const html = renderScheduleDetailPage(NAV, "2026-09-30T00:00:00Z", {
       project: "aide",
       entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },

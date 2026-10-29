@@ -11,14 +11,14 @@ const { harness, start } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 
 afterEach(() => harness.cleanup());
 
-// --- spec 160: a later phase can be added while the job runs ------------------
+// --- A later phase can be added while the job runs ------------------
 
 // Not a second job for the same spec — the clash check refuses that,
 // and rightly. This is an edit to the job that exists, so it has a
 // route of its own, and every decision it makes is against the job as
 // it stands at that instant rather than against whatever the page
 // believed when the box was ticked.
-describe("POST /api/queue/:id/steps (spec 160)", () => {
+describe("POST /api/queue/:id/steps", () => {
   const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
 
   /** One job in the mirror, RUNNING the step at `stepIndex`, served by
@@ -68,7 +68,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     return listed.jobs.find((j) => j.id === id)!.steps;
   };
 
-  test("a later step is added, in workflow order (criterion 1)", async () => {
+  test("a later step is added, in workflow order", async () => {
     const { base, id } = await running(["analyze"]);
     const res = await edit(base, id, "archive", true);
     expect(res.status).toBe(200);
@@ -79,7 +79,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     expect(await stepsOf(base, id)).toEqual(["analyze", "implement", "archive"]);
   });
 
-  test("a not-yet-started step is removed (criterion 2)", async () => {
+  test("a not-yet-started step is removed", async () => {
     const { base, id } = await running(["analyze", "implement", "archive"]);
     expect((await edit(base, id, "implement", false)).status).toBe(200);
     expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
@@ -95,7 +95,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     expect(await stepsOf(base, id)).toEqual(["analyze"]);
   });
 
-  test("the running step is refused, by name (criterion 3)", async () => {
+  test("the running step is refused, by name", async () => {
     const { base, id } = await running(["analyze", "implement", "archive"], 2);
     const res = await edit(base, id, "archive", false);
     expect(res.status).toBe(400);
@@ -111,7 +111,7 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     ).toBe(405);
   });
 
-  // Criterion 5. The gate is not the route's question: a gated step
+  // The gate is not the route's question: a gated step
   // added to a tail is accepted the same way one named at job creation
   // is, and is held back only once it becomes the job's current step —
   // which is what `runner.test.ts` pins from the other side.
@@ -126,14 +126,14 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
   });
 
 });
-// --- spec 225: a phase still ahead takes a model too --------------------------
+// --- A phase still ahead takes a model too --------------------------
 
 // The sibling of the route above, and named after the one thing it
 // does. A box tick and a select change are two different events at two
 // different moments; folding them into one body would make `/steps`
 // branch on which fields it was handed, and `checked`'s absence would
 // have to mean something other than `false`.
-describe("POST /api/queue/:id/model (spec 225)", () => {
+describe("POST /api/queue/:id/model", () => {
   const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
   const DEFAULTS = {
     timeoutSec: { default: 1200 },
@@ -187,7 +187,7 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
     return listed.jobs.find((j) => j.id === id)!.model;
   };
 
-  test("a step still ahead takes the model (criterion 4)", async () => {
+  test("a step still ahead takes the model", async () => {
     const { base, id } = await running(["analyze", "implement"]);
     const res = await pick(base, id, "implement", "fable");
     expect(res.status).toBe(200);
@@ -215,14 +215,14 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
     expect(existsSync(pendingPath)).toBe(false);
   });
 
-  test("the form encoding the page posts is understood too (criterion 4)", async () => {
+  test("the form encoding the page posts is understood too", async () => {
     const { base, id } = await running(["analyze", "implement"]);
     const res = await pick(base, id, "", "", new URLSearchParams({ step: "implement", model: "fable" }));
     expect(res.status).toBe(200);
     expect((await modelOf(base, id)).implement).toBe("fable");
   });
 
-  test("the running step is refused, by name (criterion 3)", async () => {
+  test("the running step is refused, by name", async () => {
     const { base, id } = await running(["analyze", "implement"], 1);
     const res = await pick(base, id, "implement", "fable");
     expect(res.status).toBe(400);
@@ -238,12 +238,12 @@ describe("POST /api/queue/:id/model (spec 225)", () => {
 
 });
 
-// --- spec 308: a model picked for a phase survives leaving the page ----------
+// --- A model picked for a phase survives leaving the page ----------
 
 // A phase that has NOT started has no job to attach a pick to — this is
 // the spec-scoped sibling of `POST /api/queue/:id/model` above, recording
 // a pick before any run exists for it to ride along on.
-describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
+describe("POST /api/queue/specs/:project/:folder/model", () => {
   const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
   const DEFAULTS = {
     timeoutSec: { default: 1200 },
@@ -261,7 +261,7 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
       body: body ?? JSON.stringify({ step, model }),
     });
 
-  test("REQ-1: records a pick for a phase that has no job yet", async () => {
+  test("records a pick for a phase that has no job yet", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const res = await pick(base, "aide", "81-queue-and-runner", "analyze", "fable");
     expect(res.status).toBe(200);
@@ -277,7 +277,7 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
     expect(res.status).toBe(200);
   });
 
-  test("REQ-2: the pick is reflected back on the very next render", async () => {
+  test("the pick is reflected back on the very next render", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     await pick(base, "aide", "81-queue-and-runner", "analyze", "fable");
     const html = await (
@@ -307,7 +307,7 @@ describe("POST /api/queue/specs/:project/:folder/model (spec 308)", () => {
   });
 });
 
-// --- spec 364: a step runs at a chosen effort level -------------------------
+// --- A step runs at a chosen effort level -------------------------
 
 // The spec-scoped sibling of the model pending-pick route above, mirrored
 // on the same terms: a pick made before any job exists, persisted the

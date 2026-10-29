@@ -30,15 +30,15 @@ function checkoutFor(name: string): { projectsRoot: string; dir: string } {
 }
 
 
-// Spec 205: the checks answer for the checkout a RUN will use.
+// The checks answer for the checkout a RUN will use.
 //
 // Until now that was the person's own checkout, so the readiness check
 // asked whether THAT could be put on its default branch. A run is cut
 // from a clone the dashboard owns instead, so the same question is
 // asked of that clone — and the person's branch, which decides nothing
-// any more, is not asked about at all. Spec 144 did exactly this to the
-// clean-tree check when it stopped mattering.
-describe("readiness answers for the checkout a run uses (spec 205)", () => {
+// any more, is not asked about at all. The clean-tree check went the
+// same way when it stopped mattering.
+describe("readiness answers for the checkout a run uses", () => {
   const READY: Record<string, { code: number; stdout?: string }> = {
     "symbolic-ref --short refs/remotes/origin/HEAD": { code: 0, stdout: "origin/main\n" },
     "show-ref --verify --quiet refs/heads/main": { code: 0 },
@@ -156,7 +156,7 @@ describe("readiness answers for the checkout a run uses (spec 205)", () => {
   });
 });
 
-// --- spec 220: merge the code, or open a pull request ------------------------
+// --- Merge the code, or open a pull request ------------------------
 //
 // Whether a project's archived code goes straight onto its default
 // branch or waits for a review is a TEAM policy, so it is read from the
@@ -164,7 +164,7 @@ describe("readiness answers for the checkout a run uses (spec 205)", () => {
 // `.aide/config` fallback because they had a spelling to migrate from;
 // this has none, and giving it one would let a gitignored file on one
 // machine quietly overrule what the repo says.
-describe("where a project's code-landing choice is read from (spec 220)", () => {
+describe("where a project's code-landing choice is read from", () => {
   const CASES: {
     cases: { name: string; manifest: string | null; config: string | null; landing: "merge" | "pr" }[];
   } = JSON.parse(
@@ -201,7 +201,7 @@ describe("where a project's code-landing choice is read from (spec 220)", () => 
   });
 });
 
-describe("saving the code-landing choice (spec 220)", () => {
+describe("saving the code-landing choice", () => {
   /** The manifest is where it goes — never `.aide/config`, which is
    *  gitignored: a policy nobody can read out of a fresh clone is not a
    *  policy the project has. */

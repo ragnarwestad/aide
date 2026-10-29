@@ -4,7 +4,7 @@
 // Split out of spec-dates.test.ts 2026-09-04; the tests are unchanged
 // and keep their names.
 
-// Spec 97: a spec's 1-description.md can move on after `analyze` has
+// A spec's 1-description.md can move on after `analyze` has
 // run, and the row went on reading `analyze ✓` — the only person who
 // knew a re-run was due was the one who made the edit.
 //
@@ -29,7 +29,7 @@ import { fakeGit } from "../../helpers/fake-git.ts";
 const DIR = "/specs/aide/96-merge-button-says-what-it-merges";
 const FOLDER = "96-merge-button-says-what-it-merges";
 
-// --- spec 150: the same question, of all four files --------------------------
+// --- The same question, of all four files --------------------------
 //
 // The spec page stamps each of the four files with the commit that last
 // touched it, so a reader can tell which version is on the screen. That
@@ -103,7 +103,7 @@ describe("SpecCreatedAtChecker", () => {
   });
 });
 
-// Spec 208: every question a page render asks gets a read that spawns
+// Every question a page render asks gets a read that spawns
 // nothing. The async methods above are unchanged — a background warmer
 // is what keeps calling them — and these are what the render calls
 // instead.
@@ -154,7 +154,7 @@ describe("SpecCreatedAtChecker.peekCreatedAt", () => {
   });
 });
 
-// --- spec 317: the archived-row counterpart, rename-aware and long-cached --
+// --- The archived-row counterpart, rename-aware and long-cached --
 describe("SpecCreatedAtChecker.createdAtForArchived", () => {
   const ARCHIVE_DIR = "/specs/aide/archive/96-merge-button-says-what-it-merges";
   const dated = () =>
@@ -257,7 +257,7 @@ describe("SpecCreatedAtChecker.peekCreatedAtForArchived", () => {
   });
 });
 
-// Spec 208: the one question in this codebase that was added without
+// The one question in this codebase that was added without
 // the cache every sibling has. The spec page ran `git log` for all four
 // of its files on every single view.
 describe("SpecFileCommitChecker", () => {

@@ -29,7 +29,7 @@ export const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
   ...extra,
 });
 
-// Spec 103: a row is collapsed unless the view names it, and the
+// A row is collapsed unless the view names it, and the
 // controls this file is about come with opening it — so every render
 // here opens the one spec it draws.
 export const rows = (list: QueueRowView[], opts: Partial<SpecsPageOptions> = {}) =>

@@ -72,7 +72,7 @@ def _on_branch(workspace, name):
     return phase_file_text(workspace, f"{workspace['folder']}/{name}")
 
 
-def test_a_spec_sharing_a_file_ends_the_analysis_stopped_AC_2(runner, workspace, fake_claude):
+def test_a_spec_sharing_a_file_ends_the_analysis_stopped(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts", "theirs.ts"])
     out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts", "mine.ts"])
     assert out["ok"] is False, out
@@ -82,7 +82,7 @@ def test_a_spec_sharing_a_file_ends_the_analysis_stopped_AC_2(runner, workspace,
     assert subject.endswith("(stopped: shared-files)"), subject
 
 
-def test_the_stopped_analysis_keeps_its_work_and_records_the_spec_AC_2(runner, workspace, fake_claude):
+def test_the_stopped_analysis_keeps_its_work_and_records_the_spec(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts"])
     _analyze(runner, workspace, fake_claude, ["shared.ts", "mine.ts"])
     analysis = _on_branch(workspace, "2-analysis.md")
@@ -95,14 +95,14 @@ def test_the_stopped_analysis_keeps_its_work_and_records_the_spec_AC_2(runner, w
         assert "analyze" not in json.loads(phase_file_text(workspace, state_path))["completedPhases"]
 
 
-def test_a_record_the_session_wrote_itself_still_stops_the_step_AC_2(runner, workspace, fake_claude):
+def test_a_record_the_session_wrote_itself_still_stops_the_step(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts"])
     out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts"], written_record={OTHER: ["shared.ts"]})
     assert out["terminalReason"] == "shared-files", out
     assert out["sharedFiles"] == [{"spec": OTHER, "files": ["shared.ts"]}], out
 
 
-def test_the_result_lists_each_spec_with_its_files_AC_3(runner, workspace, fake_claude):
+def test_the_result_lists_each_spec_with_its_files(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["x.ts", "y.ts", "other.ts"])
     _open_spec(workspace, THIRD, ["z.ts"])
     out, _ = _analyze(runner, workspace, fake_claude, ["z.ts", "y.ts", "x.ts"])
@@ -114,7 +114,7 @@ def test_the_result_lists_each_spec_with_its_files_AC_3(runner, workspace, fake_
         assert name in out["error"], out["error"]
 
 
-def test_a_spec_the_record_already_named_before_the_turn_lets_the_step_complete_AC_4(runner, workspace, fake_claude):
+def test_a_spec_the_record_already_named_before_the_turn_lets_the_step_complete(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts"])
     out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts"], earlier_record={OTHER: ["shared.ts"]})
     assert out["ok"] is True, out
@@ -122,7 +122,7 @@ def test_a_spec_the_record_already_named_before_the_turn_lets_the_step_complete_
     assert "sharedFiles" not in out, out
 
 
-def test_a_new_spec_still_stops_the_step_naming_it_alone_AC_4(runner, workspace, fake_claude):
+def test_a_new_spec_still_stops_the_step_naming_it_alone(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts"])
     _open_spec(workspace, THIRD, ["fresh.ts"])
     out, _ = _analyze(
@@ -133,7 +133,7 @@ def test_a_new_spec_still_stops_the_step_naming_it_alone_AC_4(runner, workspace,
     assert OTHER not in out["error"], out["error"]
 
 
-def test_a_stopped_analysis_leaves_the_description_as_it_was_AC_6(runner, workspace, fake_claude):
+def test_a_stopped_analysis_leaves_the_description_as_it_was(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts"])
     description = workspace["specs"] / workspace["folder"] / "1-description.md"
     description.write_text(
@@ -146,7 +146,7 @@ def test_a_stopped_analysis_leaves_the_description_as_it_was_AC_6(runner, worksp
     assert _on_branch(workspace, "1-description.md").encode() == before.rstrip(b"\n")
 
 
-def test_no_shared_file_completes_the_step_and_says_so_AC_7(runner, workspace, fake_claude):
+def test_no_shared_file_completes_the_step_and_says_so(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["theirs.ts"])
     out, err = _analyze(runner, workspace, fake_claude, ["mine.ts"])
     assert out["ok"] is True, out

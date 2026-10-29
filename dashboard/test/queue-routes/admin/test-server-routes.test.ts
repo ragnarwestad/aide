@@ -1,4 +1,4 @@
-// Spec 441: the Deploy tab's "Testserver med testspecene" button — the
+// The Deploy tab's "Testserver med testspecene" button — the
 // two new routes behind it (start/restart, stop) and the GET poll branch
 // the started tab waits on, following the shape `board-controls.test.ts`
 // already established for the spec-scoped board start/stop pair.
@@ -33,7 +33,7 @@ const mainEntry = (overrides: Partial<TestServer> = {}): TestServer => ({
   ...overrides,
 });
 
-describe("POST /api/queue/projects/<name>/test-server (AC-3, AC-5, AC-6)", () => {
+describe("POST /api/queue/projects/<name>/test-server", () => {
   test("refuses for a project this dashboard does not know", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/projects/nosuch/test-server`, { method: "POST", headers: AUTH });
@@ -78,7 +78,7 @@ describe("POST /api/queue/projects/<name>/test-server (AC-3, AC-5, AC-6)", () =>
     expect(spawnCalls[0]!.cmd).toContain("main");
   });
 
-  // AC-6: pressing the button again stops whatever is tracked and starts
+  // Pressing the button again stops whatever is tracked and starts
   // fresh, rather than leaving the first board running beside a second.
   test("a second press restarts rather than starting a second board", async () => {
     const git = onMain();
@@ -127,7 +127,7 @@ describe("POST /api/queue/projects/<name>/test-server (AC-3, AC-5, AC-6)", () =>
   });
 });
 
-describe("POST /api/queue/projects/<name>/test-server/stop (AC-7)", () => {
+describe("POST /api/queue/projects/<name>/test-server/stop", () => {
   test("refuses for a project this dashboard does not know", async () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue/projects/nosuch/test-server/stop`, { method: "POST", headers: AUTH });
@@ -140,7 +140,7 @@ describe("POST /api/queue/projects/<name>/test-server/stop (AC-7)", () => {
     expect(res.status).toBe(405);
   });
 
-  // AC-7: no spec ref is involved at all — the case the spec-scoped
+  // No spec ref is involved at all — the case the spec-scoped
   // route (board-controls.ts) cannot handle.
   test("stops a tracked main-board with no spec ref, answering JSON to a form post", async () => {
     const { base, server } = start();
@@ -168,7 +168,7 @@ describe("POST /api/queue/projects/<name>/test-server/stop (AC-7)", () => {
   });
 });
 
-describe("GET /projects/<name>?startTestServer=1 (AC-5)", () => {
+describe("GET /projects/<name>?startTestServer=1", () => {
   test("nobody posted: redirects back to the Deploy tab without starting anything", async () => {
     const spawnCalls: unknown[] = [];
     const { base } = start({

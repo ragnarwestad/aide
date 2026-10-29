@@ -1,4 +1,4 @@
-// Spec 515: through the real server and the real compressResponse, the
+// Through the real server and the real compressResponse, the
 // spec page's head (with the loading element) reaches the client while the
 // page's git calls are still held, and the rest follows when they are let
 // go. Read with node:http, not fetch, so the wire chunks are seen as sent.
@@ -68,7 +68,7 @@ const text = (chunks: Buffer[], gzip: boolean) => {
 };
 
 describe("the spec page is sent in two halves", () => {
-  test("the head and the loading element arrive while the view is held, and the page has not ended (AC-1)", async () => {
+  test("the head and the loading element arrive while the view is held, and the page has not ended", async () => {
     const git = gatedGit();
     const { base } = start({ gitRun: git.run });
     git.arm();
@@ -92,7 +92,7 @@ describe("the spec page is sent in two halves", () => {
     expect(whole).toContain("</html>");
   });
 
-  test("gzipped, the early bytes decode to the head and the loading element, and all of it after the release (AC-4)", async () => {
+  test("gzipped, the early bytes decode to the head and the loading element, and all of it after the release", async () => {
     const git = gatedGit();
     const { base } = start({ gitRun: git.run });
     git.arm();
@@ -113,7 +113,7 @@ describe("the spec page is sent in two halves", () => {
     expect(text(wire.chunks, true)).toContain("</html>");
   });
 
-  test("a folder that is not a spec is a 404 with no loading element (AC-1)", async () => {
+  test("a folder that is not a spec is a 404 with no loading element", async () => {
     const { base } = start();
     const res = await fetch(`${base}/specs/aide/999-no-such-spec`);
     expect(res.status).toBe(404);

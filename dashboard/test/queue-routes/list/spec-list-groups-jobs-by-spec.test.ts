@@ -13,7 +13,7 @@ const { harness } = setupQueueRoutesHarness();
 
 afterEach(() => harness.cleanup());
 
-// Spec 86: the list is one line per SPEC, so filtering and sorting are
+// The list is one line per SPEC, so filtering and sorting are
 // questions about specs — "which spec has something running?" — not
 // about the individual jobs a spec happens to have been split into.
 describe("filtering and sorting work on specs, not jobs", () => {
@@ -46,7 +46,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
 
 
 
-  test("a spec with one job in flight is active, one with only finished jobs is not (criterion 8)", () => {
+  test("a spec with one job in flight is active, one with only finished jobs is not", () => {
     const html = page(
       [
         job("a1", "aa-spec", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
@@ -63,8 +63,8 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(html).not.toContain("bb-spec");
     // Its finished job comes along with it — the spec is one line, and
     // that line carries every phase it has had, filter or no filter.
-    // A phase line names no job and carries no link of its own (spec
-    // 451): the finished analyze and the running implement each read
+    // A phase line names no job and carries no link of its own:
+    // the finished analyze and the running implement each read
     // as plain text, not as a link to a job page.
     expect(html.match(/<tr class="spechead/g)).toHaveLength(1);
     expect(html).not.toContain('href="/specs/aide/aa-spec?tab=solution"');
@@ -73,7 +73,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(html).not.toContain('href="/specs/a2"');
   });
 
-  test("the filter tabs count specs, not jobs (criterion 9)", () => {
+  test("the filter tabs count specs, not jobs", () => {
     const html = page([
       job("a1", "aa-spec", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
       job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
@@ -84,7 +84,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(html).toMatch(/>Waiting \(1\)</);
   });
 
-  test("sorting by cost uses the spec's total, not one job's (criterion 10)", () => {
+  test("sorting by cost uses the spec's total, not one job's", () => {
     const html = page(
       [
         job("a1", "aa-spec", { spentUsd: 2.5 }),
@@ -98,15 +98,14 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(html).toContain("$5.00");
   });
 
-  // Spec 226 inverted this. It used to pin a 25-row cap and the "N
-  // older specs not shown" line that counted what the cap had dropped.
+  // There is no row cap and no "N older specs not shown" line.
   // Hiding rows is wrong in every view: the reader cannot find what is
   // not on the page, and the browser's own find is the search the
   // archived and combined views are read with. The cap was a
   // performance guess, and the answer to a payload that turns out to
   // matter is server-side — render only what changed, or cache the
   // fragment — never a cap again.
-  test("every spec a filter matches is on the page (criterion 1)", () => {
+  test("every spec a filter matches is on the page", () => {
     const rows = Array.from({ length: 26 }, (_, i) => [
       job(`x${i}`, `s${String(i).padStart(2, "0")}-spec`, {
         startedAt: `2026-08-16T${String(i % 24).padStart(2, "0")}:00:00Z`,
@@ -133,13 +132,12 @@ describe("filtering and sorting work on specs, not jobs", () => {
   const specOrder = (html: string) =>
     [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]);
 
-  // Spec 199 put the group's place on its spec's CREATION date, so its
-  // own newest run could not move it. Spec 281 moves it again, onto the
-  // spec's summed duration — still one figure per SPEC, not per job:
+  // The group's place follows its spec's summed duration, so its own
+  // newest run cannot move it — one figure per SPEC, not per job:
   // `aa-spec`'s TWO jobs (analyze then implement, 8 minutes together)
   // outrank `bb-spec`'s single, more RECENT one (5 minutes), whatever
   // either spec's jobs' own timestamps say.
-  test("sorting by started uses the spec's summed duration, not its jobs' recency (criterion 13)", () => {
+  test("sorting by started uses the spec's summed duration, not its jobs' recency", () => {
     const html = page([
       job("a1", "aa-spec", {
         state: "done",
@@ -161,7 +159,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(specOrder(html)).toEqual(["aa-spec", "bb-spec"]);
   });
 
-  test("sorting by state uses the spec's representative state (criterion 13)", () => {
+  test("sorting by state uses the spec's representative state", () => {
     const html = page(
       [
         job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T08:00:00Z" }),

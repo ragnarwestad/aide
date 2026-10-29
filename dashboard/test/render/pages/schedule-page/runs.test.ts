@@ -41,21 +41,21 @@ const headings = (doc: Document): [string, URL, string | null][] =>
 const query = (u: URL): Record<string, string> => Object.fromEntries(u.searchParams);
 
 describe("the runs list", () => {
-  test("has the columns Started, State and Duration (AC-4)", () => {
+  test("has the columns Started, State and Duration", () => {
     expect(headings(draw()).map(([word]) => word)).toEqual(["Started", "State", "Duration"]);
   });
 
-  test("its words follow the reader's language (AC-4)", () => {
+  test("its words follow the reader's language", () => {
     expect(headings(draw({ lang: "nb" })).map(([word]) => word)).toEqual(["Startet", "Tilstand", "Varighet"]);
   });
 
-  test("marks the run being shown, and no other (AC-3)", () => {
+  test("marks the run being shown, and no other", () => {
     expect(marked(draw({ shown: "r1" }))).toEqual(["r1"]);
     expect(marked(draw({ shown: "r2" }))).toEqual(["r2"]);
     expect(marked(draw())).toEqual([]);
   });
 
-  test("in its default order, every row and its Started link go to the run's own address (AC-3)", () => {
+  test("in its default order, every row and its Started link go to the run's own address", () => {
     for (const tr of rows(draw())) {
       const id = runOf(tr.getAttribute("data-row-href"))!;
       expect(tr.getAttribute("data-row-href")).toBe(scheduleRunPath("aide", "nightly-report", id));
@@ -63,13 +63,13 @@ describe("the runs list", () => {
     }
   });
 
-  test("by default runs newest start first, with Started marked descending (AC-5)", () => {
+  test("by default runs newest start first, with Started marked descending", () => {
     const doc = draw({ runs: [R1, R3, R2] });
     expect(order(doc)).toEqual(["r3", "r2", "r1"]);
     expect(headings(doc).map(([, , sort]) => sort)).toEqual(["descending", null, null]);
   });
 
-  test("a heading links to its column in its first direction, the sorted one turned round (AC-5)", () => {
+  test("a heading links to its column in its first direction, the sorted one turned round", () => {
     expect(headings(draw()).map(([, u]) => query(u))).toEqual([
       { sort: "started", dir: "asc" },
       { sort: "state" },
@@ -85,7 +85,7 @@ describe("the runs list", () => {
     expect(headings(byState).every(([, u]) => u.hash === "#runs")).toBe(true);
   });
 
-  test("an unknown sort is Started newest first, an unknown direction the column's first (AC-5)", () => {
+  test("an unknown sort is Started newest first, an unknown direction the column's first", () => {
     const unknown = draw({ sort: "bogus", dir: "sideways" });
     expect(order(unknown)).toEqual(["r3", "r2", "r1"]);
     expect(headings(unknown)[0]![2]).toBe("descending");
@@ -93,13 +93,13 @@ describe("the runs list", () => {
     expect(headings(stateBogusDir)[1]![2]).toBe("ascending");
   });
 
-  test("by duration, the longest first and a running run last; turned round with asc (AC-5)", () => {
+  test("by duration, the longest first and a running run last; turned round with asc", () => {
     expect(order(draw({ sort: "duration" }))).toEqual(["r1", "r2", "r3"]);
     expect(headings(draw({ sort: "duration" }))[2]![2]).toBe("descending");
     expect(order(draw({ sort: "duration", dir: "asc" }))).toEqual(["r3", "r2", "r1"]);
   });
 
-  test("a run link keeps the sort, and a heading keeps the run being shown (AC-5)", () => {
+  test("a run link keeps the sort, and a heading keeps the run being shown", () => {
     const doc = draw({ shown: "r1", sort: "state" });
     for (const [, u] of headings(doc)) expect(u.searchParams.get("run")).toBe("r1");
     for (const tr of rows(doc)) {
@@ -109,7 +109,7 @@ describe("the runs list", () => {
     for (const [, u] of headings(draw({ sort: "state" }))) expect(u.searchParams.has("run")).toBe(false);
   });
 
-  test("an entry that has never run draws nothing (AC-6)", () => {
+  test("an entry that has never run draws nothing", () => {
     expect(renderScheduleRuns({ lang: "en", project: "aide", name: "nightly-report", runs: [] })).toBe("");
   });
 });

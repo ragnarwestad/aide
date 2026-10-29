@@ -18,7 +18,7 @@ export function json(body: unknown, status = 200): Response {
 // is a size guard that will one day disagree with itself.
 export async function readBounded(
   req: Request,
-  // Spec 162: one route passes its own. `MAX_BODY` is right for what it
+  // One route passes its own. `MAX_BODY` is right for what it
   // guards — small JSON job requests and short action posts — and
   // raising it globally to fit a description would widen every one of
   // them.
@@ -59,7 +59,7 @@ export function cookieValue(header: string | null, name: string): string | null 
  *  Nothing here is trusted: the renderer falls back to its own defaults
  *  for a column name it does not know.
  *
- *  Named after the bound PORT (spec 363): a cookie is scoped by domain
+ *  Named after the bound PORT: a cookie is scoped by domain
  *  and path only, never by port, so two boards on `127.0.0.1` at
  *  different ports already share one jar — a plain, unqualified name
  *  would let whichever board answered last overwrite the other's
@@ -97,7 +97,7 @@ export function sortChoice(
  *  does not know.
  *
  *  Named after the bound port, for the same reason `sortCookieName`
- *  above is (spec 363). */
+ *  above is. */
 export const stateCookieName = (port: number): string => `aide_state_${port}`;
 
 export function stateChoice(url: URL, req: Request, port: number): { state?: string; setCookie?: string } {
@@ -162,9 +162,9 @@ export function jobsViewChoice(url: URL, req: Request, port: number): { view: Jo
 }
 
 /** Which language the reader has chosen, remembered the same way the
- *  sort column and the state filter are (spec 350). One difference from
- *  both: this always resolves to a concrete `Language` (REQ-5's English
- *  default), never `{}` — every render call needs SOME language to draw
+ *  sort column and the state filter are. One difference from
+ *  both: this always resolves to a concrete `Language` (English
+ *  by default), never `{}` — every render call needs SOME language to draw
  *  in, where the other two let their caller's own default apply. */
 export const LANG_COOKIE = "aide_lang";
 
@@ -205,7 +205,7 @@ export function bodyToObject(text: string, contentType: string | null): unknown 
     }
     if (typeof out.steps === "string") out.steps = [out.steps];
     if (typeof out.dependsOn === "string") out.dependsOn = [out.dependsOn];
-    // The model is picked on the PHASE line since spec 123, so a form
+    // The model is picked on the PHASE line, so a form
     // posts one field per phase — `model.<step>`. A urlencoded body
     // cannot carry a nested object, and this is the one seam every form
     // on the page passes through (`postForm` in specs-client.ts always

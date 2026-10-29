@@ -1,12 +1,11 @@
-// The scheduler (spec 81, slice 81b): a configurable number of jobs at
+// The scheduler: a configurable number of jobs at
 // once, every step bounded before it starts, and a restart reconciled
 // rather than guessed at.
 //
-// It ran one job at a time until spec 91, for one reason: every run
-// switched the real working tree of every repo it touched, so two at
-// once would have produced wrong commits rather than faster runs. Once
-// `aide-run-spec` gives each run its own `git worktree`, the slot count
-// is just a number — and the number lives in the queue config, for the
+// Several jobs run at once. `aide-run-spec` gives each run its own
+// `git worktree`, so two at once cannot switch the real working tree of
+// a repo under each other and produce wrong commits. That makes the slot
+// count just a number — and the number lives in the queue config, for the
 // reason `queue.ts` gives about every other number there.
 //
 // Two shapes here are deliberate:
@@ -70,7 +69,7 @@ export class Runner {
 
   // --- the day's total ------------------------------------------------------
 
-  /** The day's total in the unit a subscription meters (spec 118) —
+  /** The day's total in the unit a subscription meters —
    *  it is a figure the page shows, nothing here gates on it. */
   spentTokensToday(): number {
     this.rollDay();
@@ -105,8 +104,8 @@ export class Runner {
   /** Fill every free slot, oldest queued job first.
    *
    *  `blocked` maps a job id to the folder of the dependency it is
-   *  waiting for (spec 122). The Runner takes the answer rather than
-   *  working it out: whether a dependency is archived (spec 351) is a
+   *  waiting for. The Runner takes the answer rather than
+   *  working it out: whether a dependency is archived is a
    *  live git question, and `serve.ts` — which owns the git runner and
    *  knows which steps a dependency holds back — computes it fresh
    *  immediately before every call. Asking here would make `tick()`
@@ -114,7 +113,7 @@ export class Runner {
    *  nothing to do with dependencies.
    *
    *  `held` is `blocked`'s sibling: job id → the fixed sentence it is
-   *  held with — not analyzed yet (spec 344), or an implement chained
+   *  held with — not analyzed yet, or an implement chained
    *  after the analyze whose approaches wait for a choice
    *  (`fixedSentenceHolds`). `acceptanceOpen` names the queued archives
    *  `aide-archive-spec` would only refuse (`archiveWithOpenAcceptance`). */
@@ -135,7 +134,7 @@ export class Runner {
     // suite on the result — and that is the directory a starting run
     // reads before it cuts its own worktree, so every job for the
     // project had to be held for the five and a half minutes it took
-    // (spec 402 narrowed that from the whole board to the repo; it could
+    // (held per repo, not for the whole board; it could
     // not narrow it further, because every job for a project touches
     // both of its repos).
     //
@@ -150,7 +149,7 @@ export class Runner {
     for (const job of this.o.store.list()) {
       if (job.state === "queued" && !job.landing && acceptanceOpen?.has(job.id)) endUntickedArchive(this.o.store, job, this.o.now());
     }
-    // Quick steps first, oldest first within each group (REQ-1); list() is newest-first.
+    // Quick steps first, oldest first within each group; list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
       if (job.state !== "queued") continue;
       // Every slot is busy. The row says so by its queue position, not
@@ -208,7 +207,7 @@ export class Runner {
         continue;
       }
       // Cheaper and more fundamental than the dependency question below —
-      // checked first, and it needs no network call (spec 344).
+      // checked first, and it needs no network call.
       if (held?.has(job.id)) {
         hold(job, held.get(job.id)!);
         continue;
@@ -242,8 +241,8 @@ export class Runner {
     this.heldThisPass.add(job.id);
     // Every caller reaches this with a job that IS queued right now,
     // so the reason it holds for is always the current one — whatever
-    // `errorReason` an earlier, unrelated attempt left behind (spec
-    // 393: a refused landing's own record lives in `landingError`,
+    // `errorReason` an earlier, unrelated attempt left behind (a refused
+    // landing's own record lives in `landingError`,
     // which this never touches, not in `error`/`errorReason`).
     const current = job.error;
     const same = !!current && typeof current === "object" && !Array.isArray(current) &&
@@ -296,7 +295,7 @@ export class Runner {
       streamFile,
       startedAt: job.startedAt ?? this.o.now(),
       // Fresh every call, unlike `startedAt` above — this step's own start,
-      // not the job's (spec 384).
+      // not the job's.
       stepStartedAt: this.o.now(),
       error: undefined, errorReason: undefined,
     });
@@ -376,7 +375,7 @@ export class Runner {
     if (tokens) this.addSpentTokensToday(tokens.total);
     const modelId = modelIdOf(outcome.modelId);
     // BEFORE `results` is built: whether this step's own `at` is written
-    // now or deferred until its landing settles (spec 395) is known
+    // now or deferred until its landing settles is known
     // while the entry is constructed. BEFORE the state transitions
     // below too, and folded into every one of them: a hook that took
     // ownership of a landing must have its flag set in the same call
@@ -400,7 +399,7 @@ export class Runner {
         // Read as defensively as everything else here, and narrowed to
         // the names the page knows how to route on: whatever else a
         // result file says, it is not a tool this dashboard can render
-        // for. "none" is spec 433's deterministic create path — the one
+        // for. "none" is the deterministic create path — the one
         // other value `aide-run-spec` actually writes, alongside
         // "codex" — and must not be silently collapsed into "claude".
         // Checked against the one list rather than a copy of it.
@@ -413,17 +412,16 @@ export class Runner {
         // step whose result carried no session was still run under one.
         sessionId: outcome.sessionId ?? job.sessionId,
         streamFile: job.streamFile,
-        // Every repo root this step's own commit(s) span (spec 452) —
-        // `aide-run-spec` has emitted this since spec 81; nothing here
-        // read it until now.
+        // Every repo root this step's own commit(s) span —
+        // `aide-run-spec` emits this for every step.
         repos: stepRepoRanges(outcome.repos),
         prError: outcome.prError,
-        // A step whose work lands (spec 395, REQ-3): the clock this
+        // A step whose work lands: the clock this
         // stamp ends is the step's OWN work, and that work is not over
         // until the merge is. Written immediately only when there is
         // no landing to wait for.
         at: landingWork ? undefined : this.o.now(),
-        // This step's own start (spec 384) — moves off `Job.stepStartedAt`
+        // This step's own start — moves off `Job.stepStartedAt`
         // and onto the result it produced.
         startedAt: job.stepStartedAt,
       },
@@ -462,13 +460,13 @@ export class Runner {
       landing,
       spentUsd: job.spentUsd + cost,
       // Undefined until something measures one: a job of steps that all
-      // predate spec 118 shows a dash, not a zero.
+      // predate token measurement shows a dash, not a zero.
       spentTokens:
         tokens || job.spentTokens !== undefined
           ? (job.spentTokens ?? 0) + (tokens?.total ?? 0)
           : undefined,
       branchUrl: outcome.branchUrl ?? job.branchUrl,
-      // Kept across steps the same way `branchUrl` is (spec 220): the
+      // Kept across steps the same way `branchUrl` is: the
       // request belongs to the CODE branch, which `implement` pushes and
       // `archive` never touches, so the step that ends the job is not
       // the step that opened it.
@@ -482,7 +480,7 @@ export class Runner {
       // The step is over: nothing is live under this id any more, and a
       // page that kept showing it would say the job is still working.
       sessionId: undefined,
-      // Its value just moved onto the result above (spec 384); left set,
+      // Its value just moved onto the result above; left set,
       // a job merely `queued` for its NEXT step would read as still
       // ticking from the step that already finished.
       stepStartedAt: undefined,
@@ -530,7 +528,7 @@ export class Runner {
       return;
     }
     // A step used to be able to PARK the job here, waiting for a person
-    // to press Approve. Spec 149 removed the stop: every step lands the
+    // to press Approve. There is no such stop: every step lands the
     // work it produced, so there is nothing between two steps for anyone
     // to weigh, and the next step is simply queued.
     this.o.store.transition(job.id, "step-succeeded", { ...base, stepIndex: nextIndex });

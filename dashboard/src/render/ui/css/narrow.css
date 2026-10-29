@@ -1,4 +1,4 @@
-/* --- narrow: one screen, one place (spec 155) ------------------------- */
+/* --- narrow: one screen, one place ------------------------- */
 /* The narrowest screen this block is drawn for is 360px (2026-09-07).
    Every fixed width below is chosen against what is left of it inside
    the page's own padding — 328px — and the widest line, a phase line,
@@ -12,9 +12,9 @@
    and quietly stop applying. The block is long enough to be split over
    three files — this one, narrow-spec-head.css and narrow-rows.css, each
    reopening the same 40rem query in that order. Two narrower `@media`
-   blocks, at the end of narrow-rows.css, are the one exception (spec 488, next paragraph) — they
+   blocks, at the end of narrow-rows.css, are the one exception (next paragraph) — they
    still follow the same convention, one level deeper. */
-/* Spec 488: the compact AI/model button grows between 400px (25rem) and
+/* The compact AI/model button grows between 400px (25rem) and
    600px (37.5rem), and from 600px to this block's own 640px the AI and
    model are the two ordinary selects again, side by side, exactly as
    above 640px — the two `@media` blocks at the end of narrow-rows.css narrow
@@ -52,9 +52,8 @@
      1px border a side), so the caption's "Select" cell and the state
      after it sit exactly where a phase line's do; the 2.5rem it had
      was air.
-     --aimodel-w narrows to 3rem (48px) with spec 480 (was 8.75rem-10px,
-     130px): the compact button shows a bare model name now, not
-     "Tool/model", so it needs less room, and the room it gives back is
+     --aimodel-w is 3rem (48px), not 8.75rem-10px (130px): the compact
+     button shows a bare model name, not "Tool/model", so it needs less room, and the room it gives back is
      what lets Time show on the same line. Found with a headless-browser
      walk (Implementation plan Step 4), not computed on paper — the tight
      case is a BUSY phase's "Running" badge (wider than a plain word like
@@ -63,7 +62,7 @@
      still ellipsis-clips at this width (`.aimodelnow`'s own rule,
      below) — a name longer than "sonnet" trims visually, which is the
      trade Time asked for. */
-  /* --state-w (spec 480, Round 2): the state column's own fixed width,
+  /* --state-w: the state column's own fixed width,
      matching --phase-w on the same footing — both sit on a `<td>` that
      is a direct flex child of `tr.subrow` (phase-rows.ts:329). Without
      it, Time's left edge (already fixed, Round 1's own --aimodel-w
@@ -80,14 +79,14 @@
      ellipsis rather than wrapping Time onto a second line. English phase
      names are short ("Implement", 60px), so an English page gives the
      name column back the room the Norwegian name needs. */
-  /* --aimodel-w here is the 600-640px band's own value (spec 488): the
+  /* --aimodel-w here is the 600-640px band's own value: the
      two selects' combined footprint at their desktop width (8rem each,
      list.css's own select[name^="model."]/[data-cap="ai"] caps) plus the
      row's own gap between them (`--sp-2`) — measured with a headless
      browser at 620px, the same way every other width below is. Below
      600px the two `@media` blocks at the end of narrow-rows.css override it
      down again, each narrower one winning by coming later. */
-  /* --time-w and --state-w (spec 496): Time is one fixed column on every
+  /* --time-w and --state-w: Time is one fixed column on every
      line of an open row, the caption line's total included, and the state
      column is whatever a Time column leaves the row, between 2.5rem and
      the 5.25rem it had before. 4px of slack keeps a rounding pixel from
@@ -117,16 +116,16 @@
      figure is needed for neither. Scoped to tr.subrow, not every row:
      the spec's own header line keeps its date/cost, folded onto line 2
      with the badge and the button instead (design handoff,
-     mobile-spec-row). Time no longer folds away beside it (spec 480,
-     AC-5): the room the compact model button gives back goes to it, on
+     mobile-spec-row). Time does not fold away beside it:
+     the room the compact model button gives back goes to it, on
      the same line as the phase's state, instead. */
   table.list tr.subrow [data-col="cost"] { display: none; }
   /* `display: block`, or list.css's own 46.5rem breakpoint
      (`table.speclist td[data-col="started"] { display: none; }`) wins —
-     this selector is more specific (spec 480), but neither of the other
+     this selector is more specific, but neither of the other
      two declarations here touches `display`, and a property no rule
      here sets is a property that rule still decides. */
-  /* A fixed, left-aligned box (spec 496): the desktop rule centres Time
+  /* A fixed, left-aligned box: the desktop rule centres Time
      (list.css), and a centred text in a fixed box moves its left edge
      whenever it changes. */
   table.list tr.subrow [data-col="started"] { display: block; white-space: nowrap; flex: 0 0 var(--time-w);

@@ -1,6 +1,6 @@
 """Tests for core/scripts/aide-backfill-spec-state — the one-time,
 re-runnable pass that gives every already-archived spec a 4-status.json
-(spec 355, REQ-5, REQ-9). No AI is involved: it is a deterministic,
+No AI is involved: it is a deterministic,
 prose-parsing pass over archive/, run once (and safely re-run) rather
 than kept alive as a second, ongoing prose-reading path.
 """

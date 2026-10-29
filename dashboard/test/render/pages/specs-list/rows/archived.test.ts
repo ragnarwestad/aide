@@ -15,7 +15,7 @@ import { archivedRowNotices } from "../../../../../src/render/pages/specs-list/r
 import { t } from "../../../../../src/i18n";
 import { row } from "../../fixtures.ts";
 
-// The row's own message panel (spec 143), where REQ-2's errors move to.
+// The row's own message panel, where the row's errors move to.
 const noticeCellHtml = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`))?.[0] ?? "";
 
@@ -88,7 +88,7 @@ describe("an archived spec's non-create job is not a row either", () => {
 
   // The other half of the same fixture: without the archive fact, the
   // row is still there AND still says the files disagree — read, since
-  // spec 418, as "nothing reached the files" (no target here carries a
+  // as "nothing reached the files" (no target here carries a
   // `historyDone` commit signal for "analyze"). That is what the
   // assertions above are pinned against — remove the archive entry and
   // both of them fire.
@@ -99,7 +99,7 @@ describe("an archived spec's non-create job is not a row either", () => {
   });
 });
 
-// Spec 193, criteria 5 and 6: the one exception to "archived beats
+// The one exception to "archived beats
 // every other reason to keep a group visible".
 //
 // Being archived answers "did this spec finish" with certainty only
@@ -108,7 +108,7 @@ describe("an archived spec's non-create job is not a row either", () => {
 // certainty was misplaced — and the filter is the branch, not the job's
 // `errorReason`: 146 carried no reason at all, and a stale reason on an
 // old job would resurrect a row for a spec that is genuinely finished.
-describe("an archived spec whose branch is still on origin (spec 193)", () => {
+describe("an archived spec whose branch is still on origin", () => {
   const failedArchive = (folder: string): QueueRowView => ({
     id: "z1",
     project: "aide",
@@ -123,11 +123,11 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
     createdAt: "2026-08-22T10:00:00Z",
   });
 
-  // Spec 221 moved WHERE that answer is drawn without changing what it
+  // WHERE that answer is drawn does not change what it
   // answers. The row used to be this failed job's own, kept alive by an
   // exception inside `groupBySpec` — which meant an archived spec's row
   // carried a Run, model selects and tick boxes the server would have
-  // refused. Every archived spec has a reader row now, and spec 193's
+  // refused. Every archived spec has a reader row now, and the not-landed
   // fact rides on it as a mark.
   const listed = (notLanded: boolean) =>
     renderSpecsRows(
@@ -170,13 +170,13 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
   });
 });
 
-// Spec 221: an archived spec is a row on the spec list, and the list
+// An archived spec is a row on the spec list, and the list
 // grew a chip axis and a search field to hold it. The route-level half
 // is `archived-specs.test.ts`; this is the renderer on its own, where a
 // fixture can say things a real archive on disk cannot — an archived
 // spec and a live one whose folder numbers interleave, a search term
 // that matches only one of them.
-describe("spec 221: archived specs on the spec list", () => {
+describe("archived specs on the spec list", () => {
   const archivedSpec = (
     folder: string,
     over: Partial<ArchivedSpecView> = {},
@@ -185,18 +185,18 @@ describe("spec 221: archived specs on the spec list", () => {
     folder,
     title: `Title of ${folder}`,
     description: `What ${folder} was about.`,
-    // Spec 317: a real default so tests that do not care about Created
+    // A real default so tests that do not care about Created
     // are not surprised by the archive-date tests' own "date unknown"/
     // "checking" text turning up in a second, unrelated cell.
     createdAt: "2026-08-01T09:00:00Z",
-    // What the spec's own 4-status.md claims it has had (spec 224) —
+    // What the spec's own 4-status.md claims it has had —
     // the whole workflow, which is what an archived spec normally says.
     done: ["create", "analyze", "implement", "archive"],
-    // Compile-time default only (spec 244) — no fixture here records a
+    // Compile-time default only — no fixture here records a
     // model; the route-level suite (`archived-specs.test.ts`) covers the
     // parse-through-render path.
     models: {},
-    // Compile-time default only (spec 247), same terms as `models` above.
+    // Compile-time default only, same terms as `models` above.
     phaseOutcomes: {},
     ...over,
   });
@@ -226,7 +226,7 @@ describe("spec 221: archived specs on the spec list", () => {
   });
 
   test("the Active chip is what cuts an archived row now", () => {
-    // The server gates the data too (criterion 10), but the renderer
+    // The server gates the data too, but the renderer
     // must not depend on that: a row that reached it must still be cut
     // by the filter, or the two halves of one rule could disagree.
     const html = rows({
@@ -246,8 +246,8 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(folders(html)).toEqual(["50-archived"]);
   });
 
-  // Pinned to the "spec" sort explicitly (spec 317 changed which sort
-  // is the default) — the property under test is that live and
+  // Pinned to the "spec" sort explicitly (so a change of the default sort
+  // does not matter) — the property under test is that live and
   // archived rows interleave by ONE shared key, not which key that
   // happens to be by default.
   test("All interleaves the two kinds by one sort key", () => {
@@ -298,14 +298,14 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(form![0]).toContain("data-progress");
   };
 
-  test("an open archived row's Reopen names a dialog over the list (AC-4)", () => {
+  test("an open archived row's Reopen names a dialog over the list", () => {
     const open = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: openFilter });
     const id = open.match(/<button\b[^>]*\sdata-ask="([^"]+)"[^>]*>Reopen<\/button>/)?.[1];
     expect(id).toBeDefined();
     expectListParts(dialogById(open, id!));
   });
 
-  test("a Failed criterion's Reopen in the unfolded checks names a dialog outside the panel's form (AC-4)", () => {
+  test("a Failed criterion's Reopen in the unfolded checks names a dialog outside the panel's form", () => {
     const failed = { phase: "Acceptance criteria", task: "AC-1", line: "| AC-1 | ❌ Failed | |", note: "", done: false, failed: true };
     const waiting = { phase: "Acceptance criteria", task: "AC-2", line: "| AC-2 | Not verified | |", note: "", done: true, notVerified: true };
     const html = rows({
@@ -378,7 +378,7 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(open).not.toContain('name="steps" value="archive"');
   });
 
-  // Spec 335, REQ-2/REQ-4: `archive.prOpen` had no coverage anywhere —
+  // `archive.prOpen` had no coverage anywhere —
   // and no State-column mark at all, since `g.state` reads `notLanded`
   // alone (spec-views.ts) and `prOpen` is mutually exclusive with it.
   // The State column now shows a `pull request` badge for this fact,
@@ -395,7 +395,7 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(html).not.toContain("not landed");
   });
 
-  // Spec 403, REQ-4: `gh` could not open one — the archived counterpart
+  // `gh` could not open one — the archived counterpart
   // to a live row's `prError`, unlinked, said in the notice line the
   // same way `pullRequestMark`'s hover title used to say it.
   test("says a pull request could not be opened when the branch is open with no URL", () => {
@@ -418,7 +418,7 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(seen("60-live")).toEqual(["60-live"]);
     expect(seen("gone")).toEqual(["50-archived"]);
     // Whitespace is not a term: it must not empty the list. Order is
-    // the list's own default (spec 317): Created, newest first — the
+    // the list's own default: Created, newest first — the
     // archived fixture's own `createdAt` default is a real date, the
     // live target's is not, and a spec git has not dated sorts as the
     // newest, so the live row sorts first.
@@ -476,14 +476,14 @@ describe("a cancelled create is not a row on a project with only archived specs"
   });
 });
 
-// Spec 483: a locked row (archived or closed) reads truth from its own
+// A locked row (archived or closed) reads truth from its own
 // files, never from a job the queue happens to still remember
 // (`readerGroup`'s own comment, group-builders.ts) — except the notice
 // panel's `phaseDisagreement`, which read a locked row's queue-remembered
-// `attempts` (spec 410, added for the duration/cost cells) the same way
+// `attempts` (added for the duration/cost cells) the same way
 // it reads a live row's, and so warned about a re-run that happened
 // before the spec was locked and is no longer actionable.
-describe("spec 483: an archived spec's row does not warn about an earlier cancelled re-run", () => {
+describe("an archived spec's row does not warn about an earlier cancelled re-run", () => {
   const BUILT = ["create", "analyze", "implement", "archive"];
 
   // The queue's own memory of a re-run attempted after the spec was
@@ -510,7 +510,7 @@ describe("spec 483: an archived spec's row does not warn about an earlier cancel
     ...over,
   });
 
-  test("AC-1: an archived row shows no last-re-run qualifier", () => {
+  test("an archived row shows no last-re-run qualifier", () => {
     const html = renderSpecsRows(
       [cancelledRerun],
       { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec()], filter: { state: "archived" } },
@@ -519,7 +519,7 @@ describe("spec 483: an archived spec's row does not warn about an earlier cancel
     expect(noticeCellHtml(html, "480-locked")).not.toContain("last re-run");
   });
 
-  test("AC-2: a closed row shows the same absence", () => {
+  test("a closed row shows the same absence", () => {
     const html = renderSpecsRows(
       [cancelledRerun],
       { runnerAvailable: true, targets: [], archivedSpecs: [archivedSpec({ closed: true })], filter: { state: "all" } },
@@ -528,7 +528,7 @@ describe("spec 483: an archived spec's row does not warn about an earlier cancel
     expect(noticeCellHtml(html, "480-locked")).not.toContain("last re-run");
   });
 
-  test("AC-3: the identical shape on an active row still shows the qualifier", () => {
+  test("the identical shape on an active row still shows the qualifier", () => {
     const html = renderSpecsRows(
       [cancelledRerun],
       { runnerAvailable: true, targets: [{ project: "aide", specFolder: "480-locked", done: BUILT }] },
@@ -540,7 +540,7 @@ describe("spec 483: an archived spec's row does not warn about an earlier cancel
 
 // A spec whose branch merged but could not be deleted on origin has
 // landed: it is archived, and only a cleanup is left. A spec whose open
-// branch never merged still reads "not landed", as spec 193 made it.
+// branch never merged still reads "not landed".
 describe("an archived spec whose merged branch is still on origin", () => {
   const NOW = Date.parse("2026-09-29T12:00:00Z");
   const spec = (over: Partial<ArchivedSpecView>): ArchivedSpecView => ({
@@ -555,7 +555,7 @@ describe("an archived spec whose merged branch is still on origin", () => {
     renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state } }, NOW);
   const DELETE_ACTION = 'action="/api/queue/specs/aide/570-x/delete-branch"';
 
-  test("is archived, and the Active and Failed chips cut it (AC-1)", () => {
+  test("is archived, and the Active and Failed chips cut it", () => {
     const left = spec({ branchLeftBehind: true });
     expect(groupBySpec([], [], undefined, [left], NOW)[0]?.state).toBe(ARCHIVED_STATE);
     expect(listed(left, "not-archived")).not.toContain('data-folder="570-x"');
@@ -563,14 +563,14 @@ describe("an archived spec whose merged branch is still on origin", () => {
     expect(listed(left, "archived")).toContain('data-folder="570-x"');
   });
 
-  test("its note says the branch is still on origin, on a line of its own, and offers Delete branch (AC-2)", () => {
+  test("its note says the branch is still on origin, on a line of its own, and offers Delete branch", () => {
     expect(archivedRowNotices(spec({ branchLeftBehind: true }), NOW, "en")).toEqual([
       { variant: "waiting", text: t("en", "list.branchStillOnOrigin"), own: true, kind: "branch-left-behind" },
     ]);
     expect(noticeCellHtml(listed(spec({ branchLeftBehind: true }), "archived"), "570-x")).toContain(DELETE_ACTION);
   });
 
-  test("a branch that never merged keeps the re-run-archive note, and no Delete branch (AC-4)", () => {
+  test("a branch that never merged keeps the re-run-archive note, and no Delete branch", () => {
     const open = spec({ notLanded: true, notLandedCheckedAt: NOW });
     expect(groupBySpec([], [], undefined, [open], NOW)[0]?.state).toBe(ARCHIVED_OPEN_STATE);
     const html = listed(open, "not-archived");
@@ -578,7 +578,7 @@ describe("an archived spec whose merged branch is still on origin", () => {
     expect(html).not.toContain(DELETE_ACTION);
   });
 
-  test("a closed row whose delete failed keeps its by-hand sentence, and no Delete branch (AC-4)", () => {
+  test("a closed row whose delete failed keeps its by-hand sentence, and no Delete branch", () => {
     const closed = spec({
       closed: true,
       notLanded: true,
@@ -603,7 +603,7 @@ describe("an archived spec whose analysis was short", () => {
   const noticed = (s: ArchivedSpecView): string =>
     noticeCellHtml(renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state: "archived" } }, NOW), "650-x");
 
-  test("the row carries the short-analysis line, and a full or unmarked one does not (AC-7)", () => {
+  test("the row carries the short-analysis line, and a full or unmarked one does not", () => {
     expect(noticed(spec("short"))).toContain("Short analysis: no plan and no plan review");
     expect(noticed(spec("full"))).not.toContain("Short analysis");
     expect(noticed(spec(undefined))).not.toContain("Short analysis");
@@ -624,12 +624,12 @@ describe("an archived spec that was sent back to a full analysis", () => {
   const noticed = (s: ArchivedSpecView): string =>
     noticeCellHtml(renderSpecsRows([], { runnerAvailable: true, targets: [], archivedSpecs: [s], filter: { state: "archived" } }, NOW), "651-x");
 
-  test("the row carries the sent-back line with the sentence, and an unmarked one does not (AC-5)", () => {
+  test("the row carries the sent-back line with the sentence, and an unmarked one does not", () => {
     expect(noticed(spec("it needs nine files"))).toContain("Sent back to a full analysis: it needs nine files");
     expect(noticed(spec(undefined))).not.toContain("Sent back to a full analysis");
   });
 
-  test("the sentence is HTML-escaped, since the session wrote it (AC-5)", () => {
+  test("the sentence is HTML-escaped, since the session wrote it", () => {
     const html = noticed(spec("<script>alert(1)</script> & more"));
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; more");

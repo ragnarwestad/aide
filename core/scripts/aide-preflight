@@ -111,7 +111,7 @@ preflight_optional_deps() {
 }
 
 # Whether this machine's ~/.local/bin copy of aide's scripts is behind
-# the repo it was installed from (spec 334, REQ-7). Silent when
+# the repo it was installed from. Silent when
 # install_common_bin has never stamped one — an old install, or a
 # machine that has not installed aide at all — so this never claims
 # drift it cannot actually measure.

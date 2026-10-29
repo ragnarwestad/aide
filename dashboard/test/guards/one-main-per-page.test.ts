@@ -2,7 +2,7 @@
 // which carries the frame's padding. A page that opens one of its own
 // inside it takes that padding twice: the Test servers table then sat
 // 32 px inside the line every other page's content keeps, which is what
-// spec 519's AC-1 measured and nothing else caught. The Settings and
+// a browser test measured and nothing else caught. The Settings and
 // Schedule pages had the same second `<main>` with nothing measuring
 // them at all — hence this, which reads the source rather than a page.
 import { describe, expect, test } from "bun:test";

@@ -24,7 +24,7 @@ export const archivingAgain = (g: SpecGroup): boolean => offersArchiveAgain(g) &
 
 // THE phase a spec is still waiting on — one fact, read by both halves
 // of the State column, so the badge and the button beside it cannot
-// name different phases (spec 191). They used to work it out apart:
+// name different phases. They used to work it out apart:
 // this rule lived in `preTicked` below for the button's sake, and
 // `specHeadRow` asked `g.done` raw for the badge's. A spec whose
 // history listed every step therefore got "done — nothing waiting on
@@ -35,14 +35,13 @@ export const archivingAgain = (g: SpecGroup): boolean => offersArchiveAgain(g) &
 // the active root, so whatever the git history says about an archive
 // step having RUN, it did not finish the one thing archiving is.
 //
-// The history is the record of steps that ran (spec 154), and an
+// The history is the record of steps that ran, and an
 // archive that ran and declined to move the folder leaves a commit
-// behind exactly like one that moved it. Counted as done it left spec
-// 159 with every phase ticked, no next phase to suggest and no button
+// behind exactly like one that moved it. Counted as done it left a spec
+// with every phase ticked, no next phase to suggest and no button
 // at all — beside a badge reading "archive held back", which was the
-// one thing on that row needing a press. The first fix read the
-// held-back note and dropped that phase; too narrow, and spec 161
-// showed why hours later — with the note cleared the row went to
+// one thing on that row needing a press. Reading the
+// held-back note and dropping that phase is too narrow — with the note cleared the row went to
 // "done — nothing waiting on you" while the spec sat unarchived in
 // the list. The note is a REASON archiving did not happen, not the
 // only evidence that it did not (2026-08-21).
@@ -61,12 +60,12 @@ export function nextPhase(done: readonly string[]): string | undefined {
 }
 
 // What a press would run, if the reader had never touched a box: EVERY
-// phase the spec has not had (spec 200). A press takes the spec as far
+// phase the spec has not had. A press takes the spec as far
 // as it can go, and unticking a box is how a reader says to stop
 // somewhere. It depends on how far the spec has got, and on nothing
 // about which phase is asking.
 //
-// `done` is what the spec's own git history PROVES (spec 154): the
+// `done` is what the spec's own git history PROVES: the
 // runner commits every step it finishes, and only such a commit puts a
 // step here — a `4-status.md` line naming a step is a claim the row
 // reports a disagreement about, never a source. A step run at
@@ -77,8 +76,8 @@ export function nextPhase(done: readonly string[]): string | undefined {
 // `archive` is deleted from that set for the same reason `nextPhase`
 // deletes it: a spec on this list is by definition not archived,
 // however its history reads. That is also what keeps the result from
-// ever being empty, so the row always has a button — the bug spec
-// 159/161 each patched with a fallback of its own, structurally gone
+// ever being empty, so the row always has a button — a bug two earlier
+// fixes each patched with a fallback of its own, structurally gone
 // rather than guarded against a third time. Two branches went with
 // those fallbacks: whether the spec has ever had a job at all
 // (`g.lead`) made no difference to the answer once every remaining
@@ -86,34 +85,30 @@ export function nextPhase(done: readonly string[]): string | undefined {
 //
 // The first member of this set is `nextPhase(g.done)` — both walk
 // `RUN_STEPS` in order with the same archive rule — which is what
-// keeps the button and the badge naming the same phase (spec 191).
+// keeps the button and the badge naming the same phase.
 //
-// Renamed from `preTicked()` (spec 439): this is no longer the only
+// Renamed from `preTicked()`: this is no longer the only
 // answer to "what is ticked" — it is `chosenSteps()`'s own fallback now,
 // for a spec that has never had a create or a Run recorded under that
-// fix. It used to live inside the strip of chips the controls line drew
-// (`stepBoxes`, retired with that line in spec 124). The boxes are on
-// the phase lines now and each asks this the same question, so the
-// rule is read once per row and consulted per phase.
+// fix. The boxes are on the phase lines and each asks this the same
+// question, so the rule is read once per row and consulted per phase.
 function defaultTicked(g: SpecGroup): Set<string> {
   const remaining = new Set(g.done);
   remaining.delete("archive");
   return new Set(RUN_STEPS.filter((s) => !remaining.has(s)));
 }
 
-// What the row's boxes are ticked FROM (spec 439): a phase choice
+// What the row's boxes are ticked FROM: a phase choice
 // recorded at create time, or at the reader's own later Run —
 // `opts.pendingSteps`, keyed `project/specFolder` the same way
 // `pendingModels` already is — when one is on record,
 // and `defaultTicked()` above only as the fallback for a spec that has
 // never had either kind of submission recorded under this fix.
 //
-// Before spec 439 there was only `preTicked()`, a pure function of git
-// history with no way for a reader's own choice to survive past the job
-// that made it: the create-time ticks a fresh spec was given, or the
-// ticks left on a row after a later Run, were both gone the moment the
-// page next redrew (1-description.md's own bug report). This is what
-// closes that gap.
+// Git history alone gives a reader's own choice no way to survive past
+// the job that made it: the create-time ticks a fresh spec was given, or
+// the ticks left on a row after a later Run, would be gone the moment
+// the page next redrew. This is what closes that gap.
 export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, string[]> }): Set<string> {
   const recorded = opts.pendingSteps?.[groupKey(g.project, g.specFolder)];
   const chosen = recorded ? new Set(recorded) : defaultTicked(g);
@@ -134,7 +129,7 @@ export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, 
 }
 
 // What the row's one button SAYS, and whether a press on it would do
-// anything (spec 439 added the second half). Two things follow from
+// anything. Two things follow from
 // naming it after the CHOSEN phases rather than after the state's own
 // suggestion:
 //
@@ -148,13 +143,12 @@ export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, 
 // so the button's own word is the only thing that says what it would
 // do.
 //
-// Before spec 439 this was `actionLabel()`, returning a label or
-// `undefined` with no room for a third state — "named, but not ticked".
-// Because `defaultTicked()`'s own archive-floor rule never came back
-// empty, "nothing ticked" was unreachable for an ordinary row and the
-// button read "Archive", always active, the moment analyze and
-// implement were both done — whatever the reader had actually ticked
-// (AC-5's own bug). `active` is what lets the button stay named without
+// A label or `undefined` alone would leave no room for a third state —
+// "named, but not ticked". Because `defaultTicked()`'s own archive-floor
+// rule never comes back empty, "nothing ticked" would be unreachable for
+// an ordinary row and the button would read "Archive", always active,
+// the moment analyze and implement were both done — whatever the reader
+// had actually ticked. `active` is what lets the button stay named without
 // claiming a press would do something it would not.
 export function actionState(
   g: SpecGroup,
@@ -169,8 +163,8 @@ export function actionState(
   // phase that later finishes is simply never looked at again).
   const remaining = RUN_STEPS.slice(RUN_STEPS.indexOf(next));
   const firstTicked = remaining.find((s) => chosen.has(s));
-  // AC-4: a later ticked phase is named ahead of an earlier unticked
-  // one. AC-3: with nothing ticked at all, `next` itself is named,
+  // A later ticked phase is named ahead of an earlier unticked
+  // one. With nothing ticked at all, `next` itself is named,
   // disabled — a press that cannot do anything is still named for what
   // it would take to make it do something, rather than hidden.
   const shown = firstTicked ?? next;
@@ -191,7 +185,7 @@ export const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project,
 
 export { specNumber } from "../../../project/spec-folder.ts";
 
-// --- spec 471: another round on a spec held back on its checks -------------
+// --- Another round on a spec held back on its checks -------------
 /** The archive step's own refusal, as the RUNNER leaves it: the
  *  mechanical precheck turns the step away before any model is spawned,
  *  and the job it belongs to finishes `done` with no error of its own.
@@ -218,7 +212,7 @@ export function heldBackOnChecks(g: SpecGroup): boolean {
 
 /** The question `chosenSteps` asks: is
  *  another round offered on this row — held back on its checks, or
- *  reopened with the files kept (spec 511) and at implemented, where
+ *  reopened with the files kept and at implemented, where
  *  nothing is open by construction. */
 export function roundOffered(g: SpecGroup): boolean {
   return heldBackOnChecks(g) || (g.reopenedRound === true && g.done.includes("implement"));

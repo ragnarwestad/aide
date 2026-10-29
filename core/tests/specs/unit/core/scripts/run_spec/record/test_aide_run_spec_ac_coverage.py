@@ -25,7 +25,7 @@ def _spec_with_criteria(workspace):
 
 
 def _project_with_another_specs_test(workspace):
-    """main already holds a test naming AC-2 — another spec's."""
+    """main already holds a test naming `AC-2` — another spec's."""
     project = workspace["project"]
     (project / "test").mkdir(exist_ok=True)
     (project / "test" / "old.test.ts").write_text('test("an older spec\'s check (AC-2)", () => {});\n')
@@ -62,9 +62,9 @@ def test_a_completed_implement_records_the_tests_that_name_each_requirement(
         "the total keeps its place (AC-1)",
         "the total shows on a phone (AC-1)",
     ]
-    # Only lines the branch added: main's own AC-2 test is another
-    # spec's, and a comment is not a test — in a test file either: 501's
-    # row read "Tests: // The control on the Notifications tab (AC-1, AC-6)".
+    # Only lines the branch added: main's own `AC-2` test is another
+    # spec's, and a comment is not a test — in a test file either: a
+    # row once read "Tests: // The control on the Notifications tab".
     assert acs["AC-2"] == []
     assert [t["file"] for t in acs["AC-3"]] == ["tests/test_fit.py"]
 
@@ -78,7 +78,7 @@ def test_a_spec_without_criteria_gets_no_record(runner, workspace, fake_claude):
 
 
 def test_the_record_is_written_when_the_step_committed_its_own_tests(runner, workspace, fake_claude):
-    """498 (2026-09-19): the session committed its tests itself, so the
+    """The session committed its tests itself, so the
     only files git did not know were the worktree's links — a link to a
     directory, not a file. The reading ended on that, and under the
     runner's pipefail the record was thrown away instead of written."""
@@ -110,7 +110,7 @@ def _refs(line, file="test/e2e/tabs.test.ts"):
 
 
 def test_a_test_each_is_named_by_its_title_not_by_its_first_case():
-    # 595's row listed "Options" — the first of the cases — as a test.
+    # A row once listed "Options" — the first of the cases — as a test.
     line = 'test.each(["Options", "Spec"] as const)("from %s, it sends both tabs (AC-5, AC-6)", async (from) => {'
     assert _refs(line) == [
         ["AC-5", "test/e2e/tabs.test.ts", "from …, it sends both tabs (AC-5, AC-6)"],
@@ -125,12 +125,12 @@ def test_a_plain_test_keeps_its_title():
 
 
 def test_a_describe_is_a_group_not_a_test():
-    # 623's AC-5 listed each group's title beside the tests inside it.
+    # A row once listed each group's title beside the tests inside it.
     assert _refs('describe("a spec in flight has a row (AC-5)", () => {') == []
 
 
 def test_a_template_title_shows_its_placeholders_as_an_ellipsis():
-    # 623's row read "${what}" and "a newer ${state} one".
+    # A row once read "${what}" and "a newer ${state} one".
     assert _refs("    test(`a newer ${state} one (AC-5)`, () => {") == [
         ["AC-5", "test/e2e/tabs.test.ts", "a newer … one (AC-5)"],
     ]
@@ -139,13 +139,13 @@ def test_a_template_title_shows_its_placeholders_as_an_ellipsis():
     ]
 
 
-def test_a_test_named_with_a_prefix_is_listed_under_its_criterion_AC_4():
+def test_a_test_named_with_a_prefix_is_listed_under_its_criterion():
     assert _refs('test("the total keeps counting (F81 AC-2)", () => {});') == [
         ["AC-2", "test/e2e/tabs.test.ts", "the total keeps counting (F81 AC-2)"],
     ]
 
 
-def test_a_test_naming_two_prefixed_criteria_is_listed_under_both_AC_4():
+def test_a_test_naming_two_prefixed_criteria_is_listed_under_both():
     assert _refs('test("it fits a phone (F652 AC-2, F652 AC-3)", () => {});') == [
         ["AC-2", "test/e2e/tabs.test.ts", "it fits a phone (F652 AC-2, F652 AC-3)"],
         ["AC-3", "test/e2e/tabs.test.ts", "it fits a phone (F652 AC-2, F652 AC-3)"],

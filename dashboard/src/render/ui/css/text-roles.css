@@ -7,7 +7,7 @@
 .desc { margin-top: 0; }
 .summary { color: var(--muted); }
 .counts { color: var(--muted); margin-left: var(--sp-2); font-size: var(--fs-s); }
-/* A whole spec file, shown as written (spec 150). Markdown is
+/* A whole spec file, shown as written. Markdown is
    deliberately not rendered, so this carries what a reader needs to
    read one anyway: the file's own line breaks, a measure that does not
    run to the window's edge, and a scrollbar for the one thing wrapping

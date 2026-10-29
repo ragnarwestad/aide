@@ -79,7 +79,7 @@ async function clickTab(name: string, part: string): Promise<Layout> {
   return measure(page);
 }
 
-test("the panel and its tabs hold still across the three tabs (AC-1, AC-2, AC-4)", async () => {
+test("the panel and its tabs hold still across the three tabs", async () => {
   await page.setViewportSize({ width: 1280, height: 800 });
   const models = await open("models");
   const usage = await clickTab("Usage", "subscription");
@@ -92,7 +92,7 @@ test("the panel and its tabs hold still across the three tabs (AC-1, AC-2, AC-4)
   }
 });
 
-test("Installation's output fits its box or scrolls, and the page stays inside the window (AC-3)", async () => {
+test("Installation's output fits its box or scrolls, and the page stays inside the window", async () => {
   await page.setViewportSize({ width: 1280, height: 800 });
   const models = await open("models");
   const installation = await open("installation");
@@ -102,7 +102,7 @@ test("Installation's output fits its box or scrolls, and the page stays inside t
   expect(installation.pageWidth).toBeLessThanOrEqual(installation.windowWidth);
 });
 
-test("on a phone the panel stays inside the window on Installation (AC-3)", async () => {
+test("on a phone the panel stays inside the window on Installation", async () => {
   await page.setViewportSize({ width: 375, height: 800 });
   const installation = await open("installation");
   expect(installation.panel.right).toBeLessThanOrEqual(installation.windowWidth);

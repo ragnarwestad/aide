@@ -27,7 +27,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     createTitle: job.createTitle,
     steps: job.steps,
     stepIndex: job.stepIndex,
-    // Spec 160: which of them the row may still be given or relieved
+    // Which of them the row may still be given or relieved
     // of. Asked of the queue's own module, so the box and the route
     // that takes its tick cannot disagree about where the tail
     // starts.
@@ -44,7 +44,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     spentUsd: job.spentUsd,
     // The stored split is five numbers; the page shows one. Flattened
     // here, at the boundary, so no render file has to know what a
-    // result file looks like (spec 118).
+    // result file looks like.
     spentTokens: job.spentTokens,
     // One number, for the step this row speaks for: `stateLabel` puts
     // it into words ("stopped — 45 min") and has no step to resolve
@@ -54,7 +54,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,
     stepStartedAt: job.stepStartedAt,
-    // Spec 220: stored on the job — only the run that called `gh` knows
+    // Stored on the job — only the run that called `gh` knows
     // the URL, and there is nothing on this machine to work it out from.
     prUrl: job.prUrl,
     pushError: job.pushError,
@@ -62,11 +62,11 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     error: job.error,
     errorDetail: job.errorDetail,
     // Why the landing was refused, when it was refused for something
-    // the row can act on. Stored on the job (spec 149), because a
+    // the row can act on. Stored on the job, because a
     // landing has no browser to redirect the reason to.
     errorReason: job.errorReason,
     landingError: job.landingError,
-    // Which third of an implement is running (spec 210). Only for
+    // Which third of an implement is running. Only for
     // `implement`, which is the one step that reports its phases, and
     // only off the job's LIVE `sessionId` — the queue clears that the
     // moment a step ends, so a finished job cannot pick up a leftover
@@ -78,14 +78,14 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     results: job.results.map((r) => ({
       step: r.step, ok: r.ok, tool: r.tool, costUsd: r.costUsd, tokens: r.tokens?.total, modelId: r.modelId, terminalReason: r.terminalReason,
       providerLimit: r.providerLimit,
-      // When the step ENDED (spec 199) — what a phase's own duration
+      // When the step ENDED — what a phase's own duration
       // is sliced out of, together with its own recorded start below.
       at: r.at,
-      // This step's own recorded start (spec 384), when there is one.
+      // This step's own recorded start, when there is one.
       startedAt: r.startedAt,
       // Carried, not dropped: the totals the list and the overview tab
       // build out of these results have no other way to know a figure
-      // they are summing was over-charged (spec 152).
+      // they are summing was over-charged.
       costMeasured: r.costMeasured,
       // Why `gh` opened no pull request: the step's own answer, said in
       // that phase's log.
@@ -94,12 +94,12 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
   };
 }
 
-/** REQ-4/REQ-6: the same `queuePriorityOrder()` `Runner.tick()` calls,
+/** The same `queuePriorityOrder()` `Runner.tick()` calls,
  *  applied to every currently `queued` job that is actually waiting for
  *  a slot, oldest-first as `list()` gives every other reader of the
  *  store. A job the runner is holding back for another reason
  *  (`errorReason === "held-back"`, set by `Runner.hold()`) is excluded
- *  from both the count and its own place (spec 396) — it is not
+ *  from both the count and its own place — it is not
  *  competing for a slot at all. */
 function queuePosition(queue: QueueStore, job: Job): { n: number; total: number } | undefined {
   // Not competing for a slot: it stays where it is even if the queue

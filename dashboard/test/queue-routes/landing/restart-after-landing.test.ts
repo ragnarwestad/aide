@@ -15,7 +15,7 @@ import {
 import { installAfterMerge, landingJobNames, restartAfterLanding, type LandContext, type RestartHook } from "../../../src/serve/land-branch";
 import type { RepoMergeResult } from "../../../src/git/branch-merge.ts";
 
-/** The message a landing carries, as text: since spec 380 it is
+/** The message a landing carries, as text: it is
  *  stored as WHICH message and what fills its blanks, and the
  *  reader composes it. */
 import { renderSentence } from "../../../src/i18n/message.ts";
@@ -39,19 +39,19 @@ afterEach(() => {
 });
 
 
-// Spec 254: `Runner.complete()` writes `state: "done"` and `landing: true`
+// `Runner.complete()` writes `state: "done"` and `landing: true`
 // in the same update — the merge into the default branch has not
 // happened yet. This holds that merge open the way
 // `cache-warmer.test.ts`'s `recordingGit({ hold })` holds `ls-remote`,
 // long enough to observe the job mid-landing.
 
-// Spec 287: `install-after-merge.sh` used to fire `launchctl kickstart -k`
+// `install-after-merge.sh` used to fire `launchctl kickstart -k`
 // unconditionally the instant it finished, killing whatever OTHER landing
 // (any repo root, including the one about to be restarted into) was still
 // mid-`git push`. The restart now lives here, gated on `mergeLock` — the
 // one shared signal for "a merge is in flight anywhere" — before it is
 // allowed to fire.
-describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
+describe("the restart waits for landings elsewhere to clear", () => {
   function restartSpy(registered = true) {
     let fired = 0;
     const hook: RestartHook = {
@@ -75,7 +75,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     }
   }
 
-  test("does not fire while a DIFFERENT root is still busy (criterion 1)", async () => {
+  test("does not fire while a DIFFERENT root is still busy", async () => {
     const lock = createRootLock();
     let release = (): void => {};
     const gate = new Promise<void>((r) => (release = r));
@@ -91,7 +91,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(1);
   });
 
-  test("fires exactly once, with no further delay, once the held root clears (criterion 2)", async () => {
+  test("fires exactly once, with no further delay, once the held root clears", async () => {
     const lock = createRootLock();
     const held = lock.run("/repos/other-project", () => new Promise((r) => setTimeout(r, 20)));
     const { hook, count } = restartSpy();
@@ -101,11 +101,11 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(1);
   });
 
-  test("does not fire while the SAME root it is about to restart into is busy (criterion 7)", async () => {
+  test("does not fire while the SAME root it is about to restart into is busy", async () => {
     const lock = createRootLock();
     let release = (): void => {};
     const gate = new Promise<void>((r) => (release = r));
-    // The exact shape 2-analysis.md's REQ-4 finding 1 describes: the
+    // The exact shape: the
     // server's own checkout being rewritten by a concurrent merge at
     // restart time.
     const held = lock.run("/repos/aide-code", () => gate);
@@ -188,7 +188,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(logged.some((l) => l.includes("never-do"))).toBe(true);
   });
 
-  test("past the deadline it restarts anyway, logging the busy root first (criterion 5)", async () => {
+  test("past the deadline it restarts anyway, logging the busy root first", async () => {
     const lock = createRootLock();
     const held = lock.run("/repos/never-clears", () => new Promise(() => {}));
     const { hook, count } = restartSpy();
@@ -232,7 +232,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     void held;
   });
 
-  test("stays silent about a busy root when nothing was busy, but still announces the restart (criterion 6)", async () => {
+  test("stays silent about a busy root when nothing was busy, but still announces the restart", async () => {
     const lock = createRootLock();
     const { hook, count } = restartSpy();
     const logged: string[] = [];
@@ -246,7 +246,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
       console.error = realError;
     }
     expect(count()).toBe(1);
-    // The busy-root warning (criterion 5) is what criterion 6 is about
+    // The busy-root warning is what this test is about
     // — the ordinary restart still logs, since the success path used to
     // be silent everywhere, and that made a restart that quietly
     // stopped firing indistinguishable from one that never had to.
@@ -262,12 +262,12 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     void held;
   });
 
-  // Criterion 4 (REQ-2): a failed install must skip the restart entirely,
+  // A failed install must skip the restart entirely,
   // matching `set -e`'s old behavior of never reaching the restart block
   // on an earlier failure. It says so by ANSWERING "no restart" — the
   // firing itself belongs to the caller now, so that the loop landing
   // several repos is not killed between two of them.
-  test("installAfterMerge answers no-restart when the install itself fails (criterion 4)", async () => {
+  test("installAfterMerge answers no-restart when the install itself fails", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-287-install-fail-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
@@ -290,9 +290,9 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(count()).toBe(0);
   });
 
-  // Spec 318 (REQ-1): the post-merge note names the setting in plain
+  // The post-merge note names the setting in plain
   // words, not the raw env-var key.
-  test("installAfterMerge names the setting in plain words when none is configured (REQ-1)", async () => {
+  test("installAfterMerge names the setting in plain words when none is configured", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-318-install-unset-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
@@ -315,7 +315,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
 
   // The install gets two minutes. The kill timer's delay is captured and
   // fired at once, so the test does not wait for it.
-  test("installAfterMerge stops a hung install at 120 seconds and names that limit (AC-1, AC-2)", async () => {
+  test("installAfterMerge stops a hung install at 120 seconds and names that limit", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-663-install-timeout-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
@@ -352,10 +352,9 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(sentence(result.installError)).toContain("120 seconds");
   });
 
-  // The companion to criterion 4, rewritten around the ownership move:
-  // a successful install ASKS for the restart and never fires one. It
-  // used to fire here, from inside `landBranch`'s per-repo loop, which
-  // killed the process before archive's specs root was merged.
+  // A successful install ASKS for the restart and never fires one: a
+  // restart fired from inside `landBranch`'s per-repo loop would kill
+  // the process before archive's specs root was merged.
   test("installAfterMerge asks for a restart on success, and fires none itself", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-287-install-ok-"));
     ownDirs.push(dir);
@@ -380,9 +379,9 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
   });
 });
 
-// Spec 385: `landingJobNames` is the check both the restart's wait and
+// `landingJobNames` is the check both the restart's wait and
 // the deploy route make, so the two never disagree about what it waits for.
-describe("landingJobNames (spec 385)", () => {
+describe("landingJobNames", () => {
   test("names the jobs whose landing has not settled, by their spec, excluding the one named", () => {
     const queue = {
       list: () => [
@@ -407,7 +406,7 @@ describe("landingJobNames (spec 385)", () => {
   });
 });
 
-describe("onJobsWaitChange (spec 385)", () => {
+describe("onJobsWaitChange", () => {
   function restartSpy(registered = true) {
     let fired = 0;
     const hook: RestartHook = {
@@ -481,7 +480,7 @@ describe("restartAfterLanding for a deploy job: no deadline and a call before th
     return { hook, order };
   }
 
-  test("with no deadline it does not fire while a landing stays in flight, and fires exactly once when it clears (AC-4)", async () => {
+  test("with no deadline it does not fire while a landing stays in flight, and fires exactly once when it clears", async () => {
     const jobs: { id: string; state: string; landing?: boolean }[] = [{ id: "archiving", state: "done", landing: true }];
     const { hook, order } = restartSpy();
     const waiting = restartAfterLanding({
@@ -499,7 +498,7 @@ describe("restartAfterLanding for a deploy job: no deadline and a call before th
     expect(order).toEqual(["fire"]);
   });
 
-  test("beforeFire is called once, right before the restart fires (AC-4)", async () => {
+  test("beforeFire is called once, right before the restart fires", async () => {
     const { hook, order } = restartSpy();
     const fired = await restartAfterLanding({
       mergeLock: createRootLock(),
@@ -511,7 +510,7 @@ describe("restartAfterLanding for a deploy job: no deadline and a call before th
     expect(order).toEqual(["before", "fire"]);
   });
 
-  test("it answers false, and calls nothing, when nothing is registered to restart (AC-4)", async () => {
+  test("it answers false, and calls nothing, when nothing is registered to restart", async () => {
     let called = 0;
     const fired = await restartAfterLanding({
       mergeLock: createRootLock(),

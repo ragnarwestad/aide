@@ -48,7 +48,7 @@ async function paste(w: Window, f: Field, text: string, kept: string, sel: [numb
 }
 
 describe("the count", () => {
-  test("is drawn at load, prefilled text included, and follows typing (AC-1)", () => {
+  test("is drawn at load, prefilled text included, and follows typing", () => {
     const h = load("", { title: "x".repeat(40) });
     expect(count(h.title).textContent).toBe("40 of 120 characters");
     expect(count(h.description).textContent).toBe("0 of 5000 characters");
@@ -56,13 +56,13 @@ describe("the count", () => {
     expect(count(h.title).textContent).toBe("5 of 120 characters");
   });
 
-  test("a field bounded by data-maxlength gets that bound applied (AC-6)", () => {
+  test("a field bounded by data-maxlength gets that bound applied", () => {
     const h = load();
     expect(h.reason.maxLength).toBe(5000);
     expect(count(h.reason).textContent).toBe("0 of 5000 characters");
   });
 
-  test("a value the script writes itself reaches the count, with no input event (AC-1, AC-6)", () => {
+  test("a value the script writes itself reaches the count, with no input event", () => {
     win = new Window();
     win.document.write(
       `<form class="addprojectform">` +
@@ -82,7 +82,7 @@ describe("the count", () => {
 });
 
 describe("the discarded-text line", () => {
-  test("after a paste the field cut, says how many did not fit (AC-2)", async () => {
+  test("after a paste the field cut, says how many did not fit", async () => {
     const h = load("", { description: "x".repeat(4950) });
     await paste(h.win, h.description, "y".repeat(100), "y".repeat(50));
     expect(note(h.description).textContent).toContain("50 characters did not fit");
@@ -91,7 +91,7 @@ describe("the discarded-text line", () => {
     expect(note(h.description).getAttribute("role")).toBe("status");
   });
 
-  test("a paste over a selection counts what the selection made room for (AC-2)", async () => {
+  test("a paste over a selection counts what the selection made room for", async () => {
     const h = load("", { title: "x".repeat(100) });
     await paste(h.win, h.title, "y".repeat(60), "y".repeat(50), [10, 40]);
     expect(note(h.title).textContent).toContain("10 characters did not fit");
@@ -100,21 +100,21 @@ describe("the discarded-text line", () => {
     expect(note(h.title).textContent).toBe("");
   });
 
-  test("a pair of units that could not be cut in half still leaves the field one under and is reported (AC-2)", async () => {
+  test("a pair of units that could not be cut in half still leaves the field one under and is reported", async () => {
     const h = load("", { title: "x".repeat(118) });
     await paste(h.win, h.title, "a😀b", "a");
     expect(h.title.value.length).toBe(119);
     expect(note(h.title).textContent).toContain("3 characters did not fit");
   });
 
-  test("a pasted text with CRLF line breaks is measured as LF (AC-2)", async () => {
+  test("a pasted text with CRLF line breaks is measured as LF", async () => {
     const h = load("", { description: "x".repeat(4990) });
     // "a\r\nb\r\nc" is 7 units, 5 once folded; the field takes all 5 and ends at 4995.
     await paste(h.win, h.description, "a\r\nb\r\nc", "a\nb\nc");
     expect(note(h.description).textContent).toBe("");
   });
 
-  test("a drop from outside is reported; a drop of text dragged within the same field is not (AC-2)", async () => {
+  test("a drop from outside is reported; a drop of text dragged within the same field is not", async () => {
     const h = load("", { description: "x".repeat(5000) });
     fire(h.win, h.description, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
     await tick();
@@ -128,7 +128,7 @@ describe("the discarded-text line", () => {
     expect(note(h.description).textContent).toBe("");
   });
 
-  test("a cancelled drag does not hide a later drop from outside (AC-2)", async () => {
+  test("a cancelled drag does not hide a later drop from outside", async () => {
     const h = load("", { description: "x".repeat(5000) });
     fire(h.win, h.description, "dragstart");
     fire(h.win, h.description, "dragend");
@@ -137,7 +137,7 @@ describe("the discarded-text line", () => {
     expect(note(h.description).textContent).toContain("30 characters did not fit");
   });
 
-  test("goes when one character is deleted, but stays through an edit that keeps the length (AC-3)", async () => {
+  test("goes when one character is deleted, but stays through an edit that keeps the length", async () => {
     const h = load("", { description: "x".repeat(4950) });
     await paste(h.win, h.description, "y".repeat(100), "y".repeat(50));
     expect(note(h.description).textContent).not.toBe("");
@@ -147,7 +147,7 @@ describe("the discarded-text line", () => {
     expect(note(h.description).textContent).toBe("");
   });
 
-  test("goes when a later paste is not cut (AC-3)", async () => {
+  test("goes when a later paste is not cut", async () => {
     const h = load("", { description: "x".repeat(4950) });
     await paste(h.win, h.description, "y".repeat(100), "y".repeat(50));
     expect(note(h.description).textContent).not.toBe("");
@@ -156,17 +156,17 @@ describe("the discarded-text line", () => {
     expect(note(h.description).textContent).toBe("");
   });
 
-  test("the Close reason reports an overflowing paste the way the Description does (AC-6)", async () => {
+  test("the Close reason reports an overflowing paste the way the Description does", async () => {
     const h = load();
     await paste(h.win, h.reason, "y".repeat(5100), "y".repeat(5000));
     expect(note(h.reason).textContent).toContain("100 characters did not fit");
   });
 });
 
-describe("drawLimits (spec 522)", () => {
+describe("drawLimits", () => {
   const FIELD = '<textarea class="failnote" name="failnote-0" maxlength="500"></textarea>';
 
-  test("called twice on one root leaves one count and one note per field (AC-4)", () => {
+  test("called twice on one root leaves one count and one note per field", () => {
     const { doc } = load();
     drawLimits(doc);
     drawLimits(doc);
@@ -178,7 +178,7 @@ describe("drawLimits (spec 522)", () => {
     }
   });
 
-  test("a field added after bindLimits is counted once by drawLimits(container) (AC-4)", () => {
+  test("a field added after bindLimits is counted once by drawLimits(container)", () => {
     const { doc } = load('<div id="late"></div>');
     const box = doc.getElementById("late")!;
     box.innerHTML = FIELD;

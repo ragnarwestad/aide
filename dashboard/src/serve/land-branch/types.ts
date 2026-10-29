@@ -35,7 +35,7 @@ export interface LandContext {
   workflowHistory: WorkflowHistoryChecker;
   specCreatedAt: SpecCreatedAtChecker;
   freshness: DescriptionFreshnessChecker;
-  /** Spec 298: the file half of the disagreement comparison, read from
+  /** The file half of the disagreement comparison, read from
    *  a spec's own open branch instead of the default-branch checkout's
    *  stale copy — what `withFreshness` prefers over `t.fileSteps` when
    *  it has a real answer. */
@@ -45,11 +45,11 @@ export interface LandContext {
   queueInstallTimeoutMs: number | undefined;
   /** What restarts the dashboard server once a code-root install has
    *  succeeded, and how long that restart may wait for other landings
-   *  to clear first (spec 287). */
+   *  to clear first. */
   restart: RestartHook;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
-  /** Told whenever the jobs-wait's own answer changes (spec 385) — wired
+  /** Told whenever the jobs-wait's own answer changes — wired
    *  to the Deploy tab's server-held state. */
   onJobsWaitChange?: (jobs: string[]) => void;
   /** Told whether a restart is waiting to fire (`restartAfterLanding`). */
@@ -62,7 +62,7 @@ export interface LandContext {
   /** Runs the project's suite on the merged result before the push;
    *  a code root's landing only. Absent means no gate (tests). */
   landingGate?: (root: string, job: Job, branch: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string; retriedAfter?: string }>;
-  /** Landing's own finalize step for a `create` job (spec 453): renames
+  /** Landing's own finalize step for a `create` job: renames
    *  the folder off its literal provisional key to its real `NN-slug`
    *  inside the merge worktree, under the specs repo's own merge lock.
    *  `repoRoot`/`specsRootAbs` are both absolute paths in the ORIGINAL
@@ -75,7 +75,7 @@ export interface LandContext {
     specsRootAbs: string,
     provisionalFolder: string,
   ) => Promise<{ ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }>;
-  /** The board registry (spec 388, REQ-7): `landArchivedSpec` stops
+  /** The board registry: `landArchivedSpec` stops
    *  whatever is tracked for a spec once its archive actually lands. */
   testServers: TestServersContext;
 }
@@ -102,14 +102,14 @@ export interface Landing {
    *  `landArchivedSpec` for why that one has to look further. */
   repos?: BranchRef[];
   /** Which step's landing this is. Only the merge event reads it
-   *  (spec 158), and it is taken from the call site rather than
+   *  and it is taken from the call site rather than
    *  derived: `landStepBranch` already HAS the step as a parameter,
    *  and a second value worked out from the outcome would be a second
    *  thing that could be wrong. */
   step: WorkflowStep;
   /** What to do once the merge has actually landed — after the job
-   *  has been updated and the scan invalidated, and only then (spec
-   *  207). `archive`'s alone today: it writes what the spec cost in
+   *  has been updated and the scan invalidated, and only then.
+   *  `archive`'s alone today: it writes what the spec cost in
    *  time into `4-status.md`, and a spec whose branch did not land is
    *  not archived, so there would be nothing to record.
    *

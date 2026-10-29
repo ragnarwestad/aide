@@ -7,8 +7,8 @@
 # The prefix is the manifest's `acPrefix:` with `{spec}` replaced by the
 # spec's number as its folder writes it (`652`, `02`), read in
 # --project-dir's `.aide/project.yaml` or, when that is a worktree without
-# one, in the main checkout it belongs to. `acPrefix: F{spec}` on spec 02
-# gives `F02`, and a test for its AC-2 is named `(F02 AC-2)`.
+# one, in the main checkout it belongs to. `acPrefix: F{spec}` on spec number 02
+# gives `F02`, and a test for its `AC-n` is named `(F02 AC-n)`.
 #
 # The prefix is empty when the manifest sets no `acPrefix`, when there is
 # no manifest, and when the value holds `{spec}` but the folder has no

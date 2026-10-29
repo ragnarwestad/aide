@@ -31,7 +31,7 @@ function list(html: string): HTMLElement {
 const folds = (rows: HTMLElement) => [...rows.querySelectorAll("details")] as HTMLDetailsElement[];
 
 describe("the open files under a criterion", () => {
-  test("an opened file is open again after the list's markup is replaced, and the other stays shut (AC-2)", () => {
+  test("an opened file is open again after the list's markup is replaced, and the other stays shut", () => {
     const rows = list(acTestsLine(ROW, "en", SCOPE));
     folds(rows)[0]!.open = true;
     const open = openTestFiles(rows);
@@ -41,7 +41,7 @@ describe("the open files under a criterion", () => {
     expect(folds(rows).map((d) => d.open)).toEqual([true, false]);
   });
 
-  test("a key whose file is no longer drawn opens nothing (AC-2)", () => {
+  test("a key whose file is no longer drawn opens nothing", () => {
     const rows = list(acTestsLine(ROW, "en", SCOPE));
     folds(rows)[1]!.open = true;
     const open = openTestFiles(rows);

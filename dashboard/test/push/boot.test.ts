@@ -1,4 +1,4 @@
-// A restart is not news (AC-5, criterion 12): a job that finished before
+// A restart is not news: a job that finished before
 // the server went down sends nothing when it comes back up, and the one
 // job the last server left `running` sends exactly one push when the
 // runner reconciles it. The whole path is the real one: `createServer`
@@ -61,7 +61,7 @@ async function boot(jobs: object[]) {
   return { ...sent, device };
 }
 
-describe("a restart sends one push for the job it cut off, and none for the finished ones (criterion 12)", () => {
+describe("a restart sends one push for the job it cut off, and none for the finished ones", () => {
   test("finished jobs stay quiet; a job left running with no process is interrupted and announced once", async () => {
     const sent = await boot([
       job("f1", "failed"), job("s1", "stopped", { stopReason: "timeout" }), job("d1", "done"),
@@ -78,7 +78,7 @@ describe("a restart sends one push for the job it cut off, and none for the fini
   });
 });
 
-describe("a push carries how many specs wait, counted from the real queue (AC-5)", () => {
+describe("a push carries how many specs wait, counted from the real queue", () => {
   test("a spec already failed plus the one the push is about makes 2", async () => {
     const sent = await boot([
       job("f1", "failed"),

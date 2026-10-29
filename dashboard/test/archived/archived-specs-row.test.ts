@@ -9,10 +9,10 @@ import {
 
 afterEach(() => harness.cleanup());
 
-// --- criterion 3: it is a READER row ---------------------------------------
+// --- It is a READER row ---------------------------------------
 
 describe("an archived spec's row", () => {
-  test("draws no model select, no tick box and no Run (criterion 3)", async () => {
+  test("draws no model select, no tick box and no Run", async () => {
     const html = await specsList(start({ queueDefaults: TWO_TOOLS }).base, ARCHIVED_VIEW);
     const row = rowFor(html, STAMPED);
     expect(row).not.toContain("<select");
@@ -23,7 +23,7 @@ describe("an archived spec's row", () => {
     expect(row).not.toContain("Starting…");
   });
 
-  // Criterion 7. `stateAction`'s ordinary branches name the phase a
+  // `stateAction`'s ordinary branches name the phase a
   // press would run; a locked row's one action is Reopen, open or shut.
   test("offers no Analyze, Implement or Archive button — Reopen and nothing else", async () => {
     const shut = blockFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
@@ -35,7 +35,7 @@ describe("an archived spec's row", () => {
     expect(open).toContain(">Reopen</button>");
   });
 
-  // Spec 224. `nextPhase` deletes `archive` from the done-set before it
+  // `nextPhase` deletes `archive` from the done-set before it
   // looks for what is missing — deliberately, for a row that is still on
   // this list — so a FINISHED spec routed through it resolves to
   // "archive" and its badge would read "ready". Ready for the step it
@@ -50,7 +50,7 @@ describe("an archived spec's row", () => {
   // The dates run opposite to the folder numbers (150 oldest, 92 newest,
   // 60 between), so a sort that fell back to folder order, or to the
   // archive stamp, would come out differently.
-  test("archived rows sort by the date git gives their spec, both ways (AC-3)", async () => {
+  test("archived rows sort by the date git gives their spec, both ways", async () => {
     const dates: Record<string, string> = {
       [STAMPED]: "2026-06-01T09:00:00+02:00",
       [SAME_DAY]: "2026-07-01T09:00:00+02:00",

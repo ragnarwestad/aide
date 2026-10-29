@@ -1,8 +1,8 @@
-// The queue store itself (spec 81, slice 81a): one record per job, in
+// The queue store itself: one record per job, in
 // the shape aide-run-store.ts established — a written-down schema with
 // unknown fields ignored, an LRU cap, a mirror written-then-renamed and
-// reloaded on boot. No scheduler here: 81a stores and shows jobs, 81b
-// runs them.
+// reloaded on boot. No scheduler here: it stores and shows jobs, the
+// runner runs them.
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -49,14 +49,14 @@ export class QueueStore {
   private readonly modelIdsPath?: string;
   private readonly pendingStepsPath?: string;
   readonly defaults: QueueDefaults;
-  /** A model picked for a phase before any job exists (spec 308), keyed
+  /** A model picked for a phase before any job exists, keyed
    *  by `project/specFolder` and then by step — the same shape
    *  `defaultModels` carries one level shallower. Public and readonly
    *  like `defaults`: the render side reads it straight off, and only
    *  `setPendingModel()` is allowed to write it. */
   readonly pendingModels: Record<string, Record<string, string>> = {};
   /** The phase choice a reader made — at create time, or at a later Run
-   *  — recorded so it outlives the one job that made it (spec 439): the
+   *  — recorded so it outlives the one job that made it: the
    *  same `project/specFolder` key as `pendingModels`,
    *  one level shallower (a list of steps, not a per-step value). Only
    *  `setPendingSteps()` is allowed to write it; the render layer reads
@@ -107,7 +107,7 @@ export class QueueStore {
     return this.insert(parsed);
   }
 
-  /** A spec that does not exist yet (spec 93). Validated against the raw
+  /** A spec that does not exist yet. Validated against the raw
    *  allowlist rather than the discovered set — the folder is what the
    *  job is FOR — and stored through the same tail as every other job. */
   enqueueCreate(raw: unknown): ParseResult {
@@ -118,7 +118,7 @@ export class QueueStore {
     });
     if (!parsed.ok) return parsed;
     const result = this.insert(parsed);
-    // Spec 439: the New-spec form's own phase table is the first place a
+    // The New-spec form's own phase table is the first place a
     // reader's choice is made, and it has to survive past this one job
     // — `create` itself is always in `steps` and is never a phase a box
     // could tick, so it is stripped before the choice is recorded. Only
@@ -129,7 +129,7 @@ export class QueueStore {
     // announce it a second time for one request.
     if (result.ok) {
       this.recordPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
-      // Spec 465: the sibling seed, for a model picked on the New page
+      // The sibling seed, for a model picked on the New page
       // for a phase this job does not run — `writePendingModel`, not
       // `setPendingModel`, for the same one-announcement-per-request
       // reason as `recordPendingSteps` above.
@@ -140,8 +140,8 @@ export class QueueStore {
     return result;
   }
 
-  /** A job for the same spec whose last step is still landing (spec
-   *  254): `state` already reads "done" the instant a landing starts
+  /** A job for the same spec whose last step is still landing:
+   *  `state` already reads "done" the instant a landing starts
    *  (`Runner.complete()` writes both in the same update), so
    *  `UNFINISHED`/`clashing()` — built on `state` alone — never see it.
    *  Unlike `clashing()` this fires regardless of step overlap: a
@@ -173,7 +173,7 @@ export class QueueStore {
     const landing = this.landingJob(parsed.job);
     if (landing) {
       // The step actually merging, in the same word the row's own badge
-      // shows for it (spec 399, REQ-3) — `landing.steps[landing.stepIndex]`
+      // shows for it — `landing.steps[landing.stepIndex]`
       // taken raw names the WRONG step once `landing` has already advanced
       // to "queued" on its next one while the previous step's branch is
       // still merging (`gerund.ts`'s `landingStepIndex`, the same rule
@@ -223,7 +223,7 @@ export class QueueStore {
    *  cannot say it better. It is not the right source for "which steps
    *  has this spec had": that is what the spec's own files say, and
    *  a `stepsCompletedFor` that answered it from job history was
-   *  removed by spec 108 for saying otherwise. */
+   *  removed for saying otherwise. */
   branchesFor(project: string, specFolder: string): BranchRef[] {
     // Oldest first, so a later job's URL for the same root overwrites an
     // earlier one — `startedAt ?? createdAt` is the same recency signal
@@ -237,7 +237,7 @@ export class QueueStore {
     return out;
   }
 
-  /** What a `pr`-mode run made of this spec's code branch (spec 220):
+  /** What a `pr`-mode run made of this spec's code branch:
    *  the pull request it opened, or why `gh` opened none — off the most
    *  recent job that reported either.
    *
@@ -261,7 +261,7 @@ export class QueueStore {
   }
 
   /** The newest reason a landing for this spec could not delete its own
-   *  branch on origin, if any job remembers one (spec 319). Same shape as
+   *  branch on origin, if any job remembers one. Same shape as
    *  `pullRequestFor`: newest job first, across every job the queue still
    *  holds for `project/specFolder` — a spec whose job the LRU cap has
    *  evicted simply has none, which is a blank, not a claim. */
@@ -295,7 +295,7 @@ export class QueueStore {
     return dropped;
   }
 
-  /** Add or remove a step a RUNNING job has not reached yet (spec 160).
+  /** Add or remove a step a RUNNING job has not reached yet.
    *
    *  Read, checked and written in ONE synchronous call, with nothing
    *  awaited in between — the same property `insert()` and `update()`
@@ -349,8 +349,8 @@ export class QueueStore {
   }
 
   /** Change the model a RUNNING job will use for a step it has not
-   *  reached yet (spec 225) — the AI and model selects beside the
-   *  boxes spec 160 unlocked.
+   *  reached yet — the AI and model selects beside the
+   *  boxes a running job leaves editable.
    *
    *  Guarded by the SAME `tailEdits()` the box's own route asks, so a
    *  select drawn live and the store that takes its pick can never
@@ -395,7 +395,7 @@ export class QueueStore {
     return { ok: true, job: next };
   }
 
-  /** Record a model picked for a phase that has no job yet (spec 308) —
+  /** Record a model picked for a phase that has no job yet —
    *  the pre-job sibling of `editTailModel()` above, and checked the
    *  same way: the step against `WORKFLOW_STEPS`, the model against the
    *  configured allowlist. There is no `job.state` to gate on, since
@@ -403,7 +403,7 @@ export class QueueStore {
    *  the model are real. */
   /** The write `setPendingModel()` and `enqueueCreate()`'s own seeding
    *  share, without either one's own `changed()` call — the same split
-   *  `recordPendingSteps()` is to `setPendingSteps()` (spec 439):
+   *  `recordPendingSteps()` is to `setPendingSteps()`:
    *  `enqueueCreate()` folds this into the ONE insert-and-seed operation
    *  a create request is, and `insert()` has already announced that. */
   private writePendingModel(project: string, specFolder: string, step: string, model: string): void {
@@ -424,9 +424,9 @@ export class QueueStore {
   }
 
   /** Carries a create job's pending picks from its provisional key to
-   *  the real folder landing assigns it (spec 465) — the `pendingModels`
+   *  the real folder landing assigns it — the `pendingModels`
    *  sibling of the `specFolder` rename `update()` already makes on the
-   *  job itself (spec 453). A no-op when nothing is recorded under the
+   *  job itself. A no-op when nothing is recorded under the
    *  provisional key, which is the common case: most picks are for a
    *  phase the create job DOES run and never touch this table. */
   renamePendingModel(project: string, fromFolder: string, toFolder: string): void {
@@ -442,7 +442,7 @@ export class QueueStore {
   /** The write `setPendingSteps()` and `enqueueCreate()`'s own hook
    *  share, without either one's own `changed()` call: `enqueueCreate()`
    *  folds this into the ONE insert-and-seed operation a create request
-   *  is, and `insert()` has already announced that (spec 189's own
+   *  is, and `insert()` has already announced that (the
    *  one-fire-per-write rule, pinned by
    *  `test/queue/store/store-core-fields.test.ts` — a second, unwanted
    *  fire here is what a naive `this.setPendingSteps(...)` call inside
@@ -463,8 +463,8 @@ export class QueueStore {
     this.persistPendingStepsTable();
   }
 
-  /** Record which phases a reader chose, before or between jobs (spec
-   *  439) — the sibling of `setPendingModel()`/`setPendingEffort()`
+  /** Record which phases a reader chose, before or between jobs —
+   *  the sibling of `setPendingModel()`/`setPendingEffort()`
    *  above, filtered against `PHASE_STEPS` rather than `WORKFLOW_STEPS`:
    *  `reopen`/`close` and every other internal-only step are real
    *  members of `WORKFLOW_STEPS` but never a phase a row's own checkbox
@@ -473,7 +473,7 @@ export class QueueStore {
    *  dropped rather than reported, the same direction `parsePendingSteps`
    *  already fails in — and the whole list REPLACES what was recorded
    *  before, including down to empty: "nothing ticked" is itself the
-   *  choice AC-5 needs to tell apart from "no choice on record at all". */
+   *  choice the form needs to tell apart from "no choice on record at all". */
   setPendingSteps(project: string, specFolder: string, steps: readonly string[]): PendingStepsResult {
     this.recordPendingSteps(project, specFolder, steps);
     this.changed();
@@ -490,11 +490,11 @@ export class QueueStore {
     return next;
   }
 
-  /** The one way a job's state changes (spec 354, REQ-2). Looks up
+  /** The one way a job's state changes. Looks up
    *  `TRANSITIONS[current][event]`; a hit applies `patch` and the new
    *  state in the same write `update()` already makes atomically, a
    *  miss leaves the job untouched and reports what was refused
-   *  (REQ-3). `patch` must not itself set `state` — the event is the
+   *  `patch` must not itself set `state` — the event is the
    *  only thing allowed to move it. */
   transition(id: string, event: TransitionEvent, patch: Partial<Job> = {}): TransitionResult {
     const job = this.jobs.get(id);

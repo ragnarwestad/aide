@@ -29,7 +29,7 @@ def _as_dashboard_checkout(workspace, project):
     return {**workspace, "project": home / "code"}
 
 
-def test_a_step_s_session_is_named_for_its_project_spec_and_step_AC_1(runner, workspace, fake_claude):
+def test_a_step_s_session_is_named_for_its_project_spec_and_step(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")  # never called in a dry run
     names = {}
     for step in ("analyze", "implement"):
@@ -39,7 +39,7 @@ def test_a_step_s_session_is_named_for_its_project_spec_and_step_AC_1(runner, wo
     assert names == {"analyze": "proj 81 analyze", "implement": "proj 81 implement"}
 
 
-def test_a_dashboard_checkout_s_session_is_named_for_its_project_not_for_code_AC_1(
+def test_a_dashboard_checkout_s_session_is_named_for_its_project_not_for_code(
     runner, workspace, fake_claude
 ):
     ws = _as_dashboard_checkout(workspace, "north-star")
@@ -48,7 +48,7 @@ def test_a_dashboard_checkout_s_session_is_named_for_its_project_not_for_code_AC
     assert _name(out["argv"]) == "north-star 81 analyze"
 
 
-def test_an_implement_that_continues_a_session_passes_no_name_AC_1(runner, workspace, fake_claude):
+def test_an_implement_that_continues_a_session_passes_no_name(runner, workspace, fake_claude):
     """It starts no session, so the session keeps the name it has."""
     rc, out, _ = run(
         runner, workspace, fake_claude("exit 1"), command="implement", resume_session=SESSION, dry_run=True
@@ -59,13 +59,13 @@ def test_an_implement_that_continues_a_session_passes_no_name_AC_1(runner, works
     assert "--name" not in argv
 
 
-def test_a_create_s_session_is_named_for_its_project_and_new_create_AC_3(runner, workspace, fake_claude):
+def test_a_create_s_session_is_named_for_its_project_and_new_create(runner, workspace, fake_claude):
     rc, out, _ = create(runner, workspace, fake_claude("exit 1"), spec=CREATE_KEY, dry_run=True)
     assert rc == 0, out
     assert _name(out["argv"]) == "proj new create"
 
 
-def test_a_scheduled_job_s_session_is_named_for_its_project_and_entry_AC_3(runner, workspace, fake_claude):
+def test_a_scheduled_job_s_session_is_named_for_its_project_and_entry(runner, workspace, fake_claude):
     (workspace["project"] / "docs").mkdir()
     (workspace["project"] / "docs" / "nightly-report.md").write_text("Summarize last night's traffic.\n")
     git(workspace["project"], "add", "docs/nightly-report.md")
@@ -75,7 +75,7 @@ def test_a_scheduled_job_s_session_is_named_for_its_project_and_entry_AC_3(runne
     assert _name(out["argv"]) == "proj schedule nightly-report"
 
 
-def test_the_schedule_prefix_the_name_strips_is_the_one_the_dashboard_adds_AC_3(workspace_root):
+def test_the_schedule_prefix_the_name_strips_is_the_one_the_dashboard_adds(workspace_root):
     """The runner reads the entry's name out of the dashboard's tracking key,
     so the two must use the same prefix."""
     invocation = (workspace_root / "core/scripts/lib/run-spec/setup/invocation.sh").read_text()
@@ -88,7 +88,7 @@ def test_the_schedule_prefix_the_name_strips_is_the_one_the_dashboard_adds_AC_3(
 
 
 @pytest.mark.parametrize("tool", ["codex", "opencode"])
-def test_a_codex_or_opencode_session_gets_no_name_AC_4(
+def test_a_codex_or_opencode_session_gets_no_name(
     runner, workspace, fake_codex, fake_opencode, tool
 ):
     stand_in = {"codex": fake_codex("exit 1"), "opencode": fake_opencode("exit 1")}[tool]

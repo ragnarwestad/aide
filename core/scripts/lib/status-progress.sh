@@ -2,7 +2,7 @@
 # Shared "how many rows under a matching heading are done" rule — the
 # bash mirror of dashboard/src/project/parse-status.ts's
 # tableCells/isDoneMark/PHASE_HEADING_RE, kept in sync via
-# core/tests/fixtures/status-row-counting.json (spec 246, widened spec 285).
+# core/tests/fixtures/status-row-counting.json.
 # Sourced by both aide-run-spec (unfiltered: every Phase/Fase/Checklist/
 # Acceptance section) and aide-archive-spec (filtered to "Acceptance"
 # only, for its narrow archive gate) so neither hand-rolls a second copy.
@@ -72,7 +72,7 @@ status_progress_for() {   # sets $progress_done, $progress_total
 }
 
 # Sibling of status_progress_for above, same row detection, different
-# predicate (spec 288): a row counts here when its Status cell is
+# predicate: a row counts here when its Status cell is
 # anything OTHER than not-started — done, in-progress, blocked, waiting,
 # or their word forms all count, since none of them is a status
 # `/aide-analyze` is ever allowed to leave a row in (that is

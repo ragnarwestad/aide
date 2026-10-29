@@ -97,7 +97,7 @@ describe("a changed specs path in the dashboard's own checkout", () => {
   });
 
   test("a value that changed is said with both sides of it", async () => {
-    // The two-checkout layout (spec 205): the person edits their own
+    // The two-checkout layout: the person edits their own
     // clone, the board works in its own, and the board's copy of the
     // config is rewritten to name ITS specs clone rather than theirs.
     // What the board's own copy held before this ensure — a value from

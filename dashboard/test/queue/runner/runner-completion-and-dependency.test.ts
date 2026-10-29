@@ -11,7 +11,7 @@ import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
 import { specStateChip, wordPhase } from "../../../src/render/ui/job-state";
 
-/** What a reader would see: since spec 380 a message is stored as
+/** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
@@ -25,7 +25,7 @@ const resolve = (project: string) =>
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
-describe("spec 93: the completion hook and the landing window", () => {
+describe("the completion hook and the landing window", () => {
   const outcome = (extra: Record<string, unknown> = {}) => ({ ...okResult(0.1), ...extra });
 
   test("onStepDone fires exactly once per finished step, with the outcome", () => {
@@ -46,7 +46,7 @@ describe("spec 93: the completion hook and the landing window", () => {
     ]);
   });
 
-  // Spec 433: a no-AI create's result carries tool: "none" (aide-run-spec's
+  // A no-AI create's result carries tool: "none" (aide-run-spec's
   // own JSON), which must survive into StepResult rather than being
   // silently narrowed to "claude" — the gap plan review found in the
   // two-way ternary this replaced.
@@ -123,11 +123,11 @@ describe("spec 93: the completion hook and the landing window", () => {
   });
 
   // A step whose OWN work lands is not over when its process exits — the
-  // merge that follows is still that step's own work (spec 395, REQ-3).
+  // merge that follows is still that step's own work.
   // `results[].at` must stay absent for as long as the landing is in
   // flight, so a phase's own duration keeps counting instead of
   // freezing on a timestamp stamped before the merge even started.
-  test("a landing step's results[].at is absent until the landing settles, then set (spec 395)", async () => {
+  test("a landing step's results[].at is absent until the landing settles, then set", async () => {
     let finish!: () => void;
     const work = new Promise<void>((resolve) => {
       finish = resolve;
@@ -176,9 +176,9 @@ describe("spec 93: the completion hook and the landing window", () => {
   // The bash cross-check's `no-progress` verdict arrives as an English
   // sentence of the script's own; the job shows the board's message for
   // that step instead, so a Norwegian row is not the one place on the
-  // board that speaks English (427, 2026-09-09). The script's sentence
+  // board that speaks English. The script's sentence
   // says nothing the message does not, so it is not kept as a detail
-  // either: a "(?)" that only repeats the row is noise (491, 2026-09-18).
+  // either: a "(?)" that only repeats the row is noise.
   test("an archive that made no progress is stored as the board's own message, with no detail repeating it", () => {
     const bash =
       "the step reported success but left no real progress — the spec folder was never moved to archive/. Press Run again for this step.";
@@ -288,7 +288,7 @@ describe("spec 93: the completion hook and the landing window", () => {
     expect(store.get(job.id)?.landing).toBeFalsy();
   });
 
-  // spec 343: `terminalReason:"unpushed"` (a step whose own work, or its
+  // `terminalReason:"unpushed"` (a step whose own work, or its
   // Workflow-steps-completed bookkeeping, never reached origin) is a
   // free-text terminalReason exactly like `cli-error` above — no dashboard
   // source file needs to know the string "unpushed" for it to show up as
@@ -321,7 +321,7 @@ describe("spec 93: the completion hook and the landing window", () => {
   });
 });
 
-// --- spec 122: a dependency parks a job, it does not fail it -----------------
+// --- A dependency parks a job, it does not fail it -----------------
 //
 // A queued implement whose dependency was still unmerged used to start,
 // be refused by `aide-run-spec`, and land in `failed` — a state nothing
@@ -336,8 +336,8 @@ describe("spec 93: the completion hook and the landing window", () => {
 // arrives as a plain map — the Runner trusts it verbatim and knows
 // nothing about steps or branches.
 
-describe("parked on a dependency (spec 122)", () => {
-  test("a job named in the blocked map is not spawned and stays queued with a reason (AC-3)", async () => {
+describe("parked on a dependency", () => {
+  test("a job named in the blocked map is not spawned and stays queued with a reason", async () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]));
@@ -352,7 +352,7 @@ describe("parked on a dependency (spec 122)", () => {
     expect(specStateChip(row, "en")).toContain("Held back");
   });
 
-  test("the same job starts once the map no longer names it (AC-1, AC-2)", async () => {
+  test("the same job starts once the map no longer names it", async () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]));
@@ -415,7 +415,7 @@ describe("parked on a dependency (spec 122)", () => {
     expect(store.get(job.id)?.error).toBeUndefined();
   });
 
-  // spec 398 (REQ-3): a job reaching `implement` by CHAINING through its
+  // A job reaching `implement` by CHAINING through its
   // own finished `analyze` is parked with the same sentence a job queued
   // FRESH as `["implement"]` alone gets — `tick()` reads the map by job
   // id alone, never by how a job's current step became current.
@@ -437,12 +437,12 @@ describe("parked on a dependency (spec 122)", () => {
   });
 });
 
-// --- spec 344: implement refuses to start before analyze has run -----------
+// --- Implement refuses to start before analyze has run -----------
 //
 // The same shape as the dependency park above, one question earlier: the
 // held job's id with the fixed sentence it is held with.
 
-describe("parked on its own missing analyze step (spec 344)", () => {
+describe("parked on its own missing analyze step", () => {
   test("a job held as not analyzed is not spawned and stays queued with a reason", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
@@ -482,14 +482,14 @@ describe("parked on its own missing analyze step (spec 344)", () => {
   });
 });
 
-// --- spec 160: a step added while the job runs ---------------------------------
+// --- A step added while the job runs ---------------------------------
 
 // Nothing in the runner had to change for this: `startOne` reads
 // `job.steps[job.stepIndex]` at the moment it starts a step, and
 // `tick()` calls it again every two seconds. These tests pin that,
 // so a future rewrite that caches the step list is a failed test
 // rather than a feature that quietly stops working.
-describe("a step appended to a running job's tail (spec 160)", () => {
+describe("a step appended to a running job's tail", () => {
   test("is started once the step now running has finished", () => {
     const job = enqueue({ steps: ["analyze"] });
     const runner = makeRunner({ readResult: () => okResult(1) });
@@ -557,7 +557,7 @@ describe("an archive whose acceptance criteria are not all ticked", () => {
   });
 });
 
-// --- spec 384: a stamp per STEP, not one per job -----------------------------
+// --- A stamp per STEP, not one per job -----------------------------
 //
 // A job's own `startedAt` is set once and reused for every step behind
 // it; that is exactly the bug this spec fixes. `StepResult.startedAt`
@@ -565,8 +565,8 @@ describe("an archive whose acceptance criteria are not all ticked", () => {
 // its own, whatever the previous step's own end was and however long a
 // hold-back sat between the two.
 
-describe("spec 384: the queue records when each STEP started", () => {
-  test("a finished step's recorded start is its own spawn instant, not the previous step's end (REQ-1)", () => {
+describe("the queue records when each STEP started", () => {
+  test("a finished step's recorded start is its own spawn instant, not the previous step's end", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
     const runner = makeRunner({ readResult: () => okResult(1) });
 
@@ -591,7 +591,7 @@ describe("spec 384: the queue records when each STEP started", () => {
     expect(results[1]?.startedAt).not.toBe(results[0]?.at);
   });
 
-  test("a real hold-back window between two tick() calls does not leak into the eventually-recorded start (REQ-4)", () => {
+  test("a real hold-back window between two tick() calls does not leak into the eventually-recorded start", () => {
     const job = enqueue({ steps: ["analyze", "implement"] });
     const runner = makeRunner({ readResult: () => okResult(1) });
 

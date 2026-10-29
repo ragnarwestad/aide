@@ -39,7 +39,7 @@ export function specDetailPath(project: string, specFolder: string, view: ListVi
  *  read, then the lead job's own Logs.
  *
  *  A tuple of this page's own, fed to `job-page.ts`'s `pickTab` and
- *  `tabBar` — which take the list as an argument since spec 212 exactly
+ *  `tabBar` — which take the list as an argument exactly
  *  so there is still ONE tab-bar renderer for a page with seven tabs
  *  and a page with three. */
 export const SPEC_TABS = [
@@ -51,10 +51,10 @@ export const SPEC_TABS = [
 ] as const;
 export type SpecTab = (typeof SPEC_TABS)[number];
 
-/** The one place a raw `?tab=` value becomes a real tab (spec 303).
+/** The one place a raw `?tab=` value becomes a real tab.
  *  `spec-page.ts`'s render side and `spec-edit.ts`'s script-loading
  *  decision used to each resolve their own default from the raw query
- *  string, and only one of them was updated when spec 294 changed it
+ *  string, and only one of them was updated when the default changed
  *  from "overview" to "description" — a bare URL rendered the
  *  Description panel while silently loading no editor script for it.
  *  `development.md` already names three other instances of this same
@@ -84,17 +84,17 @@ export const SPEC_NOTICE_LINE = "spec-notice";
  *  `data-note`, read by `specs-client/reload-form/`). */
 export const SPEC_LINES: Record<string, string> = { line: SPEC_REFUSED_LINE, note: SPEC_NOTICE_LINE };
 
-/** The one file of the four a person owns (spec 162). `2-analysis.md`
+/** The one file of the four a person owns. `2-analysis.md`
  *  and `3-solution.md` are the analyze step's output —
  *  a hand edit there is overwritten the next time it runs — and
- *  `4-status.md` has been the runner's since spec 154. Named here
+ *  `4-status.md` is the runner's. Named here
  *  because the page decides which tab is a textarea and the server
  *  decides which file the route writes, and those two must be the same
  *  file. */
 export const EDITABLE_SPEC_FILE = "1-description.md";
 
 /** The file whose Status marks a person may now flip, one row at a
- *  time (spec 182). Named beside `EDITABLE_SPEC_FILE` and for the same
+ *  time. Named beside `EDITABLE_SPEC_FILE` and for the same
  *  reason: this page decides which rows carry a box and the server
  *  decides which file the tick route writes, and those two must be the
  *  same file. It is NOT editable in the `EDITABLE_SPEC_FILE` sense —
@@ -111,9 +111,9 @@ export const TAB_FILES: Partial<Record<SpecTab, string>> = {
   status: STATUS_SPEC_FILE,
 };
 
-/** The inverse of `TAB_FILES` (spec 310): which tab a POSTed `file` name
+/** The inverse of `TAB_FILES`: which tab a POSTed `file` name
  *  belongs to. Built once here rather than at each call site — the save
- *  route's allowlist (REQ-2) and its redirect target are the same
+ *  route's allowlist and its redirect target are the same
  *  lookup, since a file outside this map is a file with no tab to send
  *  a refusal back to. */
 export const FILE_TABS: Partial<Record<string, SpecTab>> = Object.fromEntries(
@@ -121,7 +121,7 @@ export const FILE_TABS: Partial<Record<string, SpecTab>> = Object.fromEntries(
 );
 
 /** A job for this spec is queued or running (moved from panels.ts,
- *  spec 315 — the route layer needs the same fact the render layer
+ *  the route layer needs the same fact the render layer
  *  already computed). Note: `overview.ts`'s checklist code has its own,
  *  independent copy of this same check (`view.lead?.state === "queued"
  *  || "running"`, spec-page/overview.ts:109) — untouched here, since
@@ -133,12 +133,12 @@ export function activeJob(view: SpecPageView): boolean {
 
 export type DocumentTabScript = "editor" | "viewer";
 
-/** REQ-1/REQ-4 (spec 315, extended by spec 333): which bundle, if any,
+/** Which bundle, if any,
  *  this tab's panel needs. The one place both `panels.ts` (what to
  *  draw) and `spec-edit.ts` (which bundle to fetch, if any) ask the
  *  same question — mirroring `documentPanel`'s own branching exactly,
- *  so the two can never again disagree the way spec 303 had to fix
- *  once for the default tab: a locked tab with real text needs the
+ *  so the two can never disagree the way they once did
+ *  over the default tab: a locked tab with real text needs the
  *  reader, never the editor, and never nothing. */
 export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTabScript | undefined {
   const file = TAB_FILES[tab];
@@ -152,10 +152,10 @@ export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTab
   return hasText ? "editor" : undefined;
 }
 
-/** What each tab's own "(?)" says (spec 311, REQ-3). One string per tab,
+/** What each tab's own "(?)" says. One string per tab,
  *  built once by `renderSpecDetail()` and passed as the optional `mark`
  *  parameter into whichever of `documentPanel()`/`descriptionPanel()`/
- *  `statusPanel()`/`stepResults()` draws that tab's panel (spec 360) — each
+ *  `statusPanel()`/`stepResults()` draws that tab's panel — each
  *  appends it inside its own first line rather than drawing it as a
  *  preceding sibling. `stepResults()` is shared with the job page, which
  *  passes no mark and keeps its own output unchanged. */

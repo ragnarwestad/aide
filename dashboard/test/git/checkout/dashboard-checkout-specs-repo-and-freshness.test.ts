@@ -1,12 +1,12 @@
 // Split out of dashboard-checkout.test.ts by theme.
 //
-// Spec 205: the dashboard works in checkouts of its own — see
+// The dashboard works in checkouts of its own — see
 // dashboard-checkout-clone-and-reuse.test.ts for the full background.
 //
 // This file covers the separate specs repository (when a project's specs
 // live somewhere other than the code, and when they don't), the
 // gitignored paths a run needs linked in, the checks that leave the
-// person's own checkout untouched, and (spec 216's forerunner concern)
+// person's own checkout untouched, and
 // that the dashboard's checkout keeps up with what was pushed to origin.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -76,7 +76,7 @@ describe("ensureDashboardCheckout", () => {
     expect(existsSync(dashboardSpecsRepo(base, "aide"))).toBe(false);
   });
 
-  // Criterion 7. The specs root is a checkout too, and it is written by
+  // The specs root is a checkout too, and it is written by
   // every run — so it gets the identical treatment, for the identical
   // reason. Note the specs ROOT is a subdirectory of the specs REPO
   // here, which is how this repo itself is laid out: one specs
@@ -103,7 +103,7 @@ describe("ensureDashboardCheckout", () => {
     expect(configValue(result.checkout!.code, "AIDE_SPECS_PATH")).not.toBe(personSpecsRoot);
   });
 
-  // Criterion 9: the one setting the dashboard actually writes has to
+  // The one setting the dashboard actually writes has to
   // reach the checkout the runner reads, not only the person's.
   test("a changed AIDE_SPECS_PATH reaches the dashboard's own config on the next call", async () => {
     const where = tmp("aide-checkout-");

@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.validation
 class TestConfigIsNotTracked:
-    """REQ-1, REQ-6: `.aide/config` is untracked in aide's own repo, and a
+    """`.aide/config` is untracked in aide's own repo, and a
     test fails if that ever regresses."""
 
     def test_aide_config_is_not_tracked(self, workspace_root):

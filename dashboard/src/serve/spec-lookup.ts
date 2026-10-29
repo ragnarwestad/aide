@@ -60,7 +60,7 @@ export interface SpecLookupContext {
   resolvedCheckouts: Map<string, DashboardCheckout>;
   ensureCheckout: (project: string) => Promise<DashboardCheckout | undefined>;
   /** The branch copy of `4-status.md`/`.json`, as the schedule last read
-   *  it (spec 298's checker). Attached after the schedules exist, so
+   *  it (the branch-steps checker). Attached after the schedules exist, so
    *  optional; absent, every read below is off disk. */
   readBranchFileSteps?: () => BranchFileStepsChecker | undefined;
   /** What GitHub last said about each archived spec's pull request,
@@ -68,8 +68,8 @@ export interface SpecLookupContext {
   pullRequests?: Map<string, PullRequestAnswer>;
 }
 
-/** Where every spec's four files are, ARCHIVED ONES INCLUDED (spec
- *  150). `targets` deliberately drops an archived spec — a ghost row
+/** Where every spec's four files are, ARCHIVED ONES INCLUDED.
+ *  `targets` deliberately drops an archived spec — a ghost row
  *  outliving the spec is what that costs — but the archive job that
  *  moved it still has a page, and that page's whole content is the
  *  stamp in the folder it moved to.
@@ -83,7 +83,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
   if (cached && now - cached.at < 5000) return cached.targets;
   const found: SpecTarget[] = [];
   const gone: string[] = [];
-  // And WHAT each of them is, from the same walk (spec 163). `targets`
+  // And WHAT each of them is, from the same walk. `targets`
   // is live-only by design, so the page of an ARCHIVED spec looked its
   // title up in a list that could not hold it and rendered no
   // description line at all — silently, because the H1 comes from the
@@ -102,13 +102,13 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
         // Remembered by key: a create job keeps its group visible
         // while its spec has not landed, and "archived" is the one
         // proof that it HAS — without it the ghost row outlives the
-        // spec (seen with 111/112 on 2026-08-19).
+        // spec (seen in practice).
         if (s.archived) {
           gone.push(`${p.name}/${s.folder}`);
           continue;
         }
         // What a reader needs to CHOOSE a spec: what it is called and
-        // how far it has got. spec 355 (REQ-3): the state-bearing
+        // how far it has got. The state-bearing
         // fields (phase, fileSteps, reopenedAfter, the acceptance-
         // criteria half of heldBack) come from the state file, through
         // the one reader — never from a fresh parse of the prose. The
@@ -123,8 +123,8 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
         }
         const state = readSpecState(s.dir);
         // The dependency-gated reason first (still checked, though
-        // largely retired by spec 268), then the far more common one
-        // today: archive's own acceptance-criteria gate (spec 285)
+        // largely retired), then the far more common one
+        // today: archive's own acceptance-criteria gate
         // refusing until a person ticks those rows — a healthy wait,
         // not a failure, and one a bare "ready" row otherwise gives no
         // reason for. `ACCEPTANCE_CRITERIA_UNTICKED_NOTE` is the one
@@ -137,7 +137,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
         // is open lands there, and the Checks tab reads it from there;
         // the disk copy stays unticked until archive lands. Reading disk
         // alone said "archive held back" over a spec whose every row was
-        // ticked (364, 2026-09-03).
+        // ticked.
         const branchAnswer = ctx.readBranchFileSteps?.()?.peekFileSteps(s.dir, s.folder).steps;
         const acceptanceOpen = acceptanceStillOpen(branchAnswer?.acceptanceOpen, state?.acceptanceCriteria);
         const acceptanceRows = branchAnswer?.acceptance ?? state?.acceptanceCriteria ?? [];
@@ -171,7 +171,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           dir: s.dir,
           title: s.title ?? undefined,
           description: s.description ?? undefined,
-          // What its own 1-description.md says it builds on (spec 92),
+          // What its own 1-description.md says it builds on,
           // shown on its row in the same words the run's dependency
           // refusal uses.
           // The branch's line first, as the rows above: a save of it is
@@ -184,44 +184,43 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
           // save is written there.
           createChoices: branchAnswer?.createChoices ?? s.createChoices,
           phase: (state ? currentPhase(state) : null) ?? undefined,
-          // The FILES, and nothing else (spec 108). It used to be
+          // The FILES, and nothing else. It used to be
           // unioned with the queue's own record of what it ran, so
           // either one being true was enough — which is how an
           // archive job that finished without moving anything counted
           // as an archived spec, and how a phase could read "done" on
           // a row whose files said otherwise. What a job reported is
           // still shown, as a qualifier — in the row's own panel since
-          // spec 195, not on the phase's line.
+          // not on the phase's line.
           //
           // One line of that file, and no inference from any other
-          // (spec 139): each step writes its own name into
+          // each step writes its own name into
           // `4-status.md` once it has succeeded. The three heuristics
           // this replaces — the size of 2-analysis.md, a heading in
           // 3-solution.md, and 4-status.md's own progress percentage,
           // which used to be read on this line — each answered a
           // question next to the one being asked, and the first of
-          // them marked spec 138 analysed before any analyze had run.
-          // The percentage left the row entirely in spec 167.
+          // them marked a spec analysed before any analyze had run.
           //
-          // Since spec 154 the line is no longer the ANSWER, only a
+          // The line is no longer the ANSWER, only a
           // claim: a model has to reach its last instruction to write
           // it and a copied folder brings a sibling's version along.
           // `withFreshness` fills `done` in from the runner's own
           // commits, and this is what it compares them against.
           // The prose's own steps line, AND the state file's own claim
           // when this spec has one — kept apart rather than collapsed
-          // into one array (spec 362), so `resolveWorkflowState` can
+          // into one array, so `resolveWorkflowState` can
           // stop comparing the state file against git once one exists:
           // a git-history comparison of a state-file spec compares two
           // records that can legitimately disagree for reasons that
-          // mean nothing (spec 349).
+          // mean nothing.
           fileSteps: { proseSteps: parseStatus(statusText).workflowSteps, stateSteps: state?.completedPhases, readAt: now },
           // Where this spec's history starts, when it has been
-          // reopened (spec 198). Off the same state file as `fileSteps`
+          // reopened. Off the same state file as `fileSteps`
           // and `heldBack`'s acceptance half.
           reopenedAfter: state?.reopened?.boundaryCommit,
           archiveHeldBack: heldBack ? { reason: heldBack } : undefined,
-          // spec 355 (REQ-10): a spec whose files exist but has no
+          // A spec whose files exist but has no
           // state file yet — not touched by a writer script since this
           // feature shipped, or an archived spec the backfill has not
           // reached. Never for a brand-new spec with no 4-status.md at
@@ -236,7 +235,7 @@ export function targets(ctx: SpecLookupContext): SpecTarget[] {
 }
 
 /** The two repositories a spec's work can be open in — landing checks
- *  both; the dependency gate (spec 351) asks only the LAST one, the
+ *  both; the dependency gate asks only the LAST one, the
  *  specs root, since "archived" is a fact about one folder in one
  *  repository. */
 export function specRoots(ctx: Pick<SpecLookupContext, "machineryProjectDir" | "machinerySpecsRoot">, project: string): string[] {
@@ -294,7 +293,7 @@ export function peekUnlanded(ctx: SpecLookupContext): { unlanded: string[]; prOp
   const reviewing: string[] = [];
   for (const [project, folders] of byProject) {
     const open = new Set<string>();
-    // Kept apart from the union above (spec 220): which ROOT holds a
+    // Kept apart from the union above: which ROOT holds a
     // branch is what tells "waiting on a review" from "the landing did
     // not finish", and folding the roots together loses it.
     const elsewhere = new Set<string>();
@@ -379,7 +378,7 @@ export function specDir(ctx: SpecLookupContext, project: string, specFolder: str
 }
 
 /** What that spec IS — its title, and whether it has been archived
- *  (spec 163). Through the same 5-second scan `specDir` goes through,
+ *  Through the same 5-second scan `specDir` goes through,
  *  and unlike `targets()` it answers for an archived spec too. */
 export function specRef(ctx: SpecLookupContext, project: string, specFolder: string): SpecRef | undefined {
   ctx.targets();
@@ -387,7 +386,7 @@ export function specRef(ctx: SpecLookupContext, project: string, specFolder: str
 }
 
 /** The checkout a spec folder sits in — the lock key for everything
- *  that touches the specs repository (spec 162).
+ *  that touches the specs repository.
  *
  *  `createRootLock`'s own docstring says what it is for: "per repo
  *  ROOT, not global: two requests that touch no directory in common
@@ -409,7 +408,7 @@ export async function specsRoot(ctx: SpecLookupContext, dir: string): Promise<st
 }
 
 /** The dashboard's own copy of the spec folder the display found
- *  (spec 205). Save COMMITS and PUSHES, and Update merges — all three
+ *  Save COMMITS and PUSHES, and Update merges — all three
  *  are writes, and the checkout a person edits stopped taking writes
  *  from the dashboard.
  *
@@ -435,10 +434,10 @@ export async function machinerySpecDir(ctx: SpecLookupContext, project: string, 
   return translated ?? dir;
 }
 
-/** The same translation, without ever awaiting a clone (spec 208).
+/** The same translation, without ever awaiting a clone.
  *
  *  `ensureCheckout` is started at boot for every allowed project, but
- *  a clone of this very repo measured 4.3 s (spec 205's own analysis)
+ *  a clone of this very repo measured 4.3 s (measured on this host)
  *  — so a spec page opened during the first minutes of a restart
  *  joined that promise and held the reader for its whole duration,
  *  showing the OLD page unchanged while it did. That is the literal
@@ -447,13 +446,13 @@ export async function machinerySpecDir(ctx: SpecLookupContext, project: string, 
  *
  *  So "not made yet" now behaves exactly as "cannot be made" already
  *  did: fall back to the person's own folder, which is what every
- *  project used before spec 205 existed and what a project the
+ *  project used before checkouts were made and what a project the
  *  dashboard cannot clone still uses. The clone goes on in the
  *  background and the next view reads through it.
  *
  *  READ paths only, and only the ones with no form on them.
  *  `machinerySpecDir` is untouched and its other callers still await:
- *  the spec page's own Description TAB (spec 212, where `/edit` used
+ *  the spec page's own Description TAB (where `/edit` used
  *  to be) has to read through the SAME checkout Save will later write
  *  through, or Save's compare-stamp check refuses as "changed since
  *  you opened it" the first time anyone edits a spec shortly after a

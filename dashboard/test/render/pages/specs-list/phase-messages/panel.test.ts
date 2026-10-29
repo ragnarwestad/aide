@@ -6,7 +6,7 @@ import { esc } from "../../../../../src/render/ui/html.ts";
 import { NO_PULL_REQUEST, prErrorSentence } from "../../../../../src/render/pages/specs-list/row-shared.ts";
 import { noPullRequest, row } from "../../fixtures.ts";
 
-// --- spec 500: what an unfolded phase draws ------------------------------
+// --- What an unfolded phase draws ------------------------------
 
 const FOLDER = "500-phase-messages";
 const KEY = `aide/${FOLDER}`;
@@ -29,7 +29,7 @@ const render = (list: QueueRowView[], phaseMessages: SpecsPageOptions["phaseMess
   );
 
 describe("the message row", () => {
-  test("the lookup gets the attempts' ids newest first and the step (AC-2)", () => {
+  test("the lookup gets the attempts' ids newest first and the step", () => {
     const seen: [string[], string][] = [];
     const older = finished("job-old", "analyze", "2026-09-19T09:00:00Z");
     const newer = finished("job-new", "analyze", "2026-09-19T10:00:00Z");
@@ -63,7 +63,7 @@ describe("the steps above the Log", () => {
       Date.parse("2026-09-19T12:00:00Z"),
     );
 
-  test("each marked step is listed before the Log, with its tokens, and a running one counts from its start (AC-2, AC-3)", () => {
+  test("each marked step is listed before the Log, with its tokens, and a running one counts from its start", () => {
     const html = draw();
     expect(html).toContain("Read the list");
     expect(html).toContain("Write the report");
@@ -72,12 +72,12 @@ describe("the steps above the Log", () => {
     expect(html).toContain('data-elapsed="2026-09-19T11:59:30.000Z"');
   });
 
-  test("a step unfolds to its own part of the Log by its key in the address, and shut it does not (AC-2)", () => {
+  test("a step unfolds to its own part of the Log by its key in the address, and shut it does not", () => {
     expect(draw([`${KEY}:analyze.0`])).toContain("READ-LINE");
     expect(draw()).not.toContain("READ-LINE");
   });
 
-  test("only open phase-step logs carry their shared indent marker (AC-1, AC-2, AC-3)", () => {
+  test("only open phase-step logs carry their shared indent marker", () => {
     const html = draw([`${KEY}:analyze.0`, `${KEY}:implement`, `${KEY}:implement.0`]);
     const logs = html.match(/<tr class="phasemsgs"[^>]*>/g) ?? [];
     const stepLogs = logs.filter((tag) => tag.includes('data-msgs="Step 1 of 2"'));
@@ -90,7 +90,7 @@ describe("the steps above the Log", () => {
     expect(html).toContain('data-elapsed="2026-09-19T11:59:30.000Z"');
   });
 
-  test("every step line under an unfolded phase is marked as standing under a phase, whichever the phase (AC-1, AC-2)", () => {
+  test("every step line under an unfolded phase is marked as standing under a phase, whichever the phase", () => {
     const html = renderSpecsRows(
       [finished("job-a", "analyze", "2026-09-19T10:00:00Z"), finished("job-i", "implement", "2026-09-19T10:30:00Z")],
       {
@@ -119,7 +119,7 @@ describe("a phase's explanations are in its log, not its State/Action cell", () 
     html.match(new RegExp(`<tr class="phasemsgs" data-msgs="${step}">.*?</tr>`))?.[0] ?? "";
   const kept = () => ({ logs: [{ by: "ai" as const, lines: ["THE-LOG-LINE"] }], steps: [], running: false });
 
-  test("the log carries the explanations escaped, beside its transcript, and the State/Action cell carries none (AC-1, AC-4)", () => {
+  test("the log carries the explanations escaped, beside its transcript, and the State/Action cell carries none", () => {
     const html = render([finished("job", "analyze", "2026-09-19T10:00:00Z")], kept, "analyze", stale);
     const explained = log(html, "analyze");
     expect(explained).toContain(t("en", "list.descriptionChangedSince"));
@@ -132,20 +132,20 @@ describe("a phase's explanations are in its log, not its State/Action cell", () 
     expect(state.toLowerCase()).not.toContain("description changed since");
   });
 
-  test("a pull request that could not be opened is said in the phase's log, not beside its badge (AC-1, AC-4)", () => {
+  test("a pull request that could not be opened is said in the phase's log, not beside its badge", () => {
     const html = render([finished("job", "archive", "2026-09-19T10:00:00Z")].map((r) => ({ ...r, ...noPullRequest("archive") })), kept, "archive");
     expect(log(html, "archive")).toContain(esc(prErrorSentence("en")));
     expect(stateCell(html, "archive")).not.toContain(NO_PULL_REQUEST("en"));
   });
 
-  test("a phase that has not run but has an explanation can be opened to it, with no transcript kept (AC-2, AC-4)", () => {
+  test("a phase that has not run but has an explanation can be opened to it, with no transcript kept", () => {
     const shut = renderSpecsRows([], { runnerAvailable: true, targets: stale, filter: { open: KEY } }, Date.parse("2026-09-19T12:00:00Z"));
     expect(phaseLine(shut, "analyze")).toContain('class="fold');
     const opened = render([], () => undefined, "analyze", stale);
     expect(log(opened, "analyze")).toContain(t("en", "list.descriptionChangedSince"));
   });
 
-  test("a phase that has not run and has nothing to explain cannot be opened (AC-4)", () => {
+  test("a phase that has not run and has nothing to explain cannot be opened", () => {
     const html = renderSpecsRows([], { runnerAvailable: true, targets: [{ project: "aide", specFolder: FOLDER }], filter: { open: KEY } }, Date.parse("2026-09-19T12:00:00Z"));
     expect(phaseLine(html, "analyze")).not.toContain('class="fold');
   });

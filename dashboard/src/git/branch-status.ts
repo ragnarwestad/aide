@@ -1,4 +1,4 @@
-// Spec 04: has a job's branch actually landed? The queue knows where a
+// Has a job's branch actually landed? The queue knows where a
 // step pushed its work (`job.branchUrl`) but never whether that work is
 // still sitting there. The answer changes AFTER the job stops running,
 // so it cannot be recorded at step end — it has to be asked, live, of
@@ -35,7 +35,7 @@ export type GitRunner = (
    *  than by building a second runner, so an injected fake still sees
    *  every call the code makes. */
   timeoutMs?: number,
-  /** Per-call environment additions (spec 291). `GIT_INDEX_FILE`
+  /** Per-call environment additions. `GIT_INDEX_FILE`
    *  scoping — the plumbing `branch-file.ts` uses to build a commit
    *  without ever touching the shared checkout's real index — has no
    *  CLI-flag equivalent; it is env-var only. Optional and trailing, so
@@ -45,7 +45,7 @@ export type GitRunner = (
 ) => Promise<{ code: number; stdout: string; stderr?: string }>;
 
 const DEFAULT_TIMEOUT_MS = 4000;
-/** How long one answer stands. Exported since spec 203: the background
+/** How long one answer stands. Exported because the background
  *  drift poll runs on this same window, and a second constant for the
  *  same interval would one day be a different number. */
 export const DEFAULT_TTL_MS = 30_000;
@@ -65,7 +65,7 @@ export function lsRemoteBranch(branch: string): string[] {
   return ["ls-remote", "--exit-code", "--heads", "origin", `refs/heads/${branch}`];
 }
 
-/** The same question about EVERY spec branch at once (spec 193), which
+/** The same question about EVERY spec branch at once, which
  *  is what both of `openSpecBranches`'s readers actually want: the
  *  landing checks one branch but the two pages check every archived
  *  spec, and one call per spec would be a page load per spec.
@@ -135,16 +135,16 @@ export class BranchStatusChecker {
   private readonly ttlMs: number;
   private readonly now: () => number;
   private readonly cache = new Map<string, { at: number; merged: boolean }>();
-  /** Spec 142's answer, in its own map. `cache` holds a boolean and this
+  /** The drift answer, in its own map. `cache` holds a boolean and this
    *  one a number-or-null: widening the existing field's type would let
    *  either question be answered with the other's answer. */
   private readonly driftCache = new Map<string, { at: number; behind: number | null }>();
-  /** Spec 193's answer, in a map of its own for the same reason
+  /** The archived answer, in a map of its own for the same reason
    *  `driftCache` has one: a set-or-null is not a boolean, and one
    *  field holding both would let either question be answered with the
    *  other's answer. */
   private readonly openCache = new Map<string, { at: number; open: Set<string> | null }>();
-  /** Spec 298: a cache miss used to mean "spawn ls-remote", full stop —
+  /** A cache miss used to mean "spawn ls-remote", full stop —
    *  fine while every caller asked about a distinct root, one at a time.
    *  `warmSpec` now asks about every LIVE spec's root inside one
    *  `Promise.all`, and several specs sharing a root is the ordinary
@@ -168,7 +168,7 @@ export class BranchStatusChecker {
    *  removing it.
    *
    *  `fresh` bypasses the cache AND replaces the entry, the same escape
-   *  hatch `openSpecBranches` carries. The dependency gate (spec 213)
+   *  hatch `openSpecBranches` carries. The dependency gate
    *  needs it: it asks immediately before deciding whether to release a
    *  queued job, and an answer up to 30 seconds old released two jobs
    *  against a dependency that had not landed yet — the script's own
@@ -196,7 +196,7 @@ export class BranchStatusChecker {
         //
         // A branch that is not there has nothing left to merge, whether
         // it landed and was cleaned up (which is what the merge button
-        // does since spec 99) or was removed by hand. Only `--exit-code`'s
+        // does) or was removed by hand. Only `--exit-code`'s
         // own "no matching refs" answer counts as absence: any other
         // nonzero code is a transport or auth failure, and treating one
         // of those as absence would take the badge and the button off
@@ -230,7 +230,7 @@ export class BranchStatusChecker {
 
   /** True unless origin can PROVE `dependencyFolder` is not (yet) under
    *  archive/ in `specsRoot`'s current default branch — the archived
-   *  question REQ-1 (spec 351) asks, replacing the branch-merge answer
+   *  question asked here, replacing the branch-merge answer
    *  `isMerged` gave this same gate before. Fetches into the ordinary
    *  `refs/remotes/origin/<base>`, the same idiom `isMerged` already uses
    *  a few lines up, then reads the tree with the SPECS ROOT as `cwd` so
@@ -241,7 +241,7 @@ export class BranchStatusChecker {
    *  not archived"; the caller decides what that means for a waiting
    *  job, and the reason is logged since nothing else would say it. Not
    *  cached — this gate always asks fresh, archived dependency or not
-   *  (REQ-2). */
+   */
   async archivedOnOrigin(specsRoot: string, dependencyFolder: string): Promise<boolean | null> {
     const unknown = (why: string): null => {
       console.error(`queue: cannot tell whether ${dependencyFolder} is archived in ${specsRoot} — ${why}`);
@@ -262,7 +262,7 @@ export class BranchStatusChecker {
   }
 
   /** How many commits `origin/<default>` has that this checkout does
-   *  not. Spec 142: a merge made anywhere but the dashboard's own
+   *  not. A merge made anywhere but the dashboard's own
    *  button runs no `AIDE_INSTALL_CMD`, so the serving host goes on
    *  serving the old code and nothing says so — this is what says so.
    *
@@ -280,7 +280,7 @@ export class BranchStatusChecker {
    *  very thing nobody asked for.
    *
    *  `fresh` bypasses the cache AND replaces the entry, the same escape
-   *  hatch `isMerged`'s own `fresh` gives (spec 258): the Deploy route
+   *  hatch `isMerged`'s own `fresh` gives: the Deploy route
    *  needs to re-check the count right after it changes the checkout,
    *  not wait out the TTL.
    *
@@ -318,7 +318,7 @@ export class BranchStatusChecker {
   }
 
   /** The LAST answer this checker holds for `projectDir`, without asking
-   *  git at all — a map read, nothing else (spec 203). This is what a
+   *  git at all — a map read, nothing else. This is what a
    *  page render calls: the render reads memory and disk, and the
    *  filling is `commitsBehindOrigin`'s job on a schedule of its own.
    *
@@ -334,7 +334,7 @@ export class BranchStatusChecker {
 
   /** Every `aide/*` branch origin still has in this root — the question
    *  "is anything of this spec still open" asked once per ROOT rather
-   *  than once per branch (spec 193).
+   *  than once per branch.
    *
    *  `null` means the question could not be ANSWERED: a transport
    *  failure, a timeout, no git. Every caller treats it as "do not
@@ -393,9 +393,9 @@ export class BranchStatusChecker {
   }
 
   /** The LAST answer this checker holds for `root`, without asking git
-   *  at all (spec 208) — the same read `peekDrift` gives the drift
-   *  count, for the question spec 193 added a day after spec 203
-   *  shipped the pattern, and added without it.
+   *  at all — the same read `peekDrift` gives the drift
+   *  count, for the archived question, added after the drift
+   *  one shipped the pattern, and added without it.
    *
    *  This is what a page render calls. `openSpecBranches` is a network
    *  `ls-remote`, one round trip to origin per root, and it sat inside

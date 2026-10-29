@@ -2,11 +2,10 @@
 // analyze, implement, archive. The order is carried by the colour, so
 // the mark reads as a direction and not just as four shapes.
 //
-// It went to three when spec 181 folded `review-plan` into `analyze`,
-// counting the phases a spec is TAKEN through. Four is right on the
-// count the workflow actually has, `create` included, and it is the
-// mark the design carries (asked for 2026-08-23, "jeg vil ha fire
-// streker").
+// Four, not three: three would count only the phases a spec is TAKEN
+// through. Four is right on the count the workflow actually has,
+// `create` included, and it is the mark the design carries ("jeg vil ha
+// fire streker").
 //
 // Everything here is a STRING, for the same reason css.ts is a string:
 // the generated site is published as plain files by rsync, and a page

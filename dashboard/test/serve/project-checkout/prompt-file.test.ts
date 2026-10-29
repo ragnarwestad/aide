@@ -20,7 +20,7 @@ const ctx = () =>
   ({ scheduleStore: createScheduleStore(file), queueProjectRoot: dir, checkoutBase: dir }) as unknown as ProjectCheckoutContext;
 const job = (specFolder: string) => ({ project: "aide", specFolder }) as unknown as Job;
 
-test("a job in the config gives its prompt path, read fresh (AC-2)", () => {
+test("a job in the config gives its prompt path, read fresh", () => {
   writeFileSync(file, JSON.stringify({ schedules: { aide: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/a.md" }] } }));
   const c = ctx();
   expect(promptFileFor(c, job("schedule-nightly"), "schedule")).toBe("docs/a.md");
@@ -28,7 +28,7 @@ test("a job in the config gives its prompt path, read fresh (AC-2)", () => {
   expect(promptFileFor(c, job("schedule-nightly"), "schedule")).toBe("docs/b.md");
 });
 
-test("a name only a manifest lists, an unknown name and a step other than schedule give nothing (AC-2)", () => {
+test("a name only a manifest lists, an unknown name and a step other than schedule give nothing", () => {
   writeFileSync(file, JSON.stringify({ schedules: { aide: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/a.md" }] } }));
   const c = ctx();
   expect(promptFileFor(c, job("schedule-from-manifest"), "schedule")).toBeUndefined();
@@ -36,7 +36,7 @@ test("a name only a manifest lists, an unknown name and a step other than schedu
   expect(promptFileFor(c, job("81-some-spec"), "schedule")).toBeUndefined();
 });
 
-test("a job of another project's config is not found (AC-2)", () => {
+test("a job of another project's config is not found", () => {
   writeFileSync(file, JSON.stringify({ schedules: { paceup: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/a.md" }] } }));
   expect(promptFileFor(ctx(), job("schedule-nightly"), "schedule")).toBeUndefined();
 });

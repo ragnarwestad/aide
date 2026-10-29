@@ -68,13 +68,13 @@ base_ref_for() {   # sets $base_ref
 # build on each other's work. But the default branch has moved on since,
 # and a branch left over from the morning made the step read the
 # morning's code. Measured 2026-08-16, while review-plan was still a
-# separate step (spec 181 folded it into analyze): it reviewed a file
+# separate step (since folded into analyze): it reviewed a file
 # whose bug had been fixed hours earlier.
 #
 # One step is the exception, and it is the exception on purpose: an
 # `archive` run is the step that LANDS the branch, so a conflict with the
 # default branch is its own problem to solve and not a phase of its own
-# (spec 171 folded the standalone `resolve` step into it). It is handed
+# (there is no standalone `resolve` step). It is handed
 # the worktree exactly as git left it — MERGE_HEAD set, the markers in
 # the files — and /aide-archive decides, resolving and running the
 # project's tests before it does anything else. The condition is the
@@ -85,7 +85,7 @@ base_ref_for() {   # sets $base_ref
 # A resolve done anywhere else — another machine, or by hand and pushed
 # — leaves this ref at the old tip, and the reuse above then runs the
 # step against the code the conflict was already resolved away from.
-# Measured on spec 150 (2026-08-21): two Runs refused for a conflict
+# Measured on 2026-08-21: two Runs refused for a conflict
 # that had been fixed and pushed an hour earlier, because the serving
 # host's own ref had never moved. The refusal even recommended the thing
 # that produces this ("merge it by hand").
@@ -105,8 +105,8 @@ sync_branch_with_origin() {
   # A local branch origin no longer has is a leftover of a run whose
   # branch landed and was deleted (or never pushed): cut this run from
   # the base instead of from that stale copy. Its status file said
-  # "create, analyze" about specs whose implement had long landed
-  # (351, 356 on 2026-09-03), and every archive was refused on it.
+  # "create, analyze" about specs whose implement had long landed,
+  # and every archive was refused on it.
   # Only a branch that once tracked origin: a branch nobody ever pushed
   # is simply local work, and stays.
   if [ -n "$(git -C "$root" config --get "branch.$br.remote" 2>/dev/null)" ] \
@@ -163,7 +163,7 @@ only_clean_merges_of_base() {
 }
 
 # True when $sha is already what origin's $branch points at — the only
-# case amending it would rewrite public history (REQ-1, spec 328).
+# case amending it would rewrite public history.
 # Best-effort, like sync_branch_with_origin: an origin nobody can reach
 # answers "no", which sends this root down the existing plain-commit
 # path rather than blocking the run on a network call. A plain
@@ -217,10 +217,10 @@ tip_has_nothing_of_its_own() {
 
 # True when every root the step actually put content on has a LOCAL tip
 # that is exactly what origin's copy of $branch points at right now —
-# REQ-1/REQ-2 (spec 343), checked as the LAST git operation against each
+# checked as the LAST git operation against each
 # root before the run's outcome is decided, so nothing after it can amend
 # the picture it read. Sets $unpushed_roots (comma-separated) for the
-# caller to name in the failure it reports (REQ-3). push_mode "none"
+# caller to name in the failure it reports. push_mode "none"
 # never intends to publish anything, so it is not asked this question at
 # all — a local/manual run is unaffected, same as every other best-effort
 # check in this script leaves an unreachable origin exactly as found.
@@ -247,9 +247,9 @@ roots_confirmed_on_origin() {
 
 # True when $br's local tip is already contained in origin's $base — the
 # mark of work that landed and was never cleaned up in this checkout
-# (spec 197). The landing deletes the branch on origin; this copy was
+# The landing deletes the branch on origin; this copy was
 # left behind, and the reuse block below picks a branch up by name alone.
-# Spec 181 was reopened onto exactly such a leftover and refused to
+# A spec was reopened onto exactly such a leftover and refused to
 # start, carrying a conflict with a main that had moved on.
 #
 # The question is "is the work in origin's default branch", never "is the
@@ -311,7 +311,7 @@ update_branch_to_base() {
   [ "$root" != "$project_root" ] || base_merged_count=$((base_merged_count + 1))
   if ! git -C "$wt" merge -q --no-edit "$ref" >/dev/null 2>&1; then
     if [ "$command_name" = "archive" ]; then
-      # spec 280: a conflict confined to THIS spec's own 4-status.md is
+      # A conflict confined to THIS spec's own 4-status.md is
       # not two intents to merge — main's copy is a direct correction
       # (the dashboard's tick-to-fix, or a person editing the file by
       # hand) and the branch's copy is simply stale. Main always wins.

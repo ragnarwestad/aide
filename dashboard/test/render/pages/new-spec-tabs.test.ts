@@ -28,7 +28,7 @@ describe("which tab the New spec page opens", () => {
     ["spec", "spec"],
     [undefined, "spec"],
     ["nonsense", "spec"],
-  ] as const)("tab %p opens %s, and the other panel is hidden (AC-1)", (tab, open) => {
+  ] as const)("tab %p opens %s, and the other panel is hidden", (tab, open) => {
     const doc = page({ tab });
     const shut = open === "spec" ? "options" : "spec";
     expect(panel(doc, open)?.hasAttribute("hidden")).toBe(false);
@@ -37,7 +37,7 @@ describe("which tab the New spec page opens", () => {
 });
 
 describe("what the New spec form posts", () => {
-  test("an untouched Options tab posts the same names and values as before (AC-4)", () => {
+  test("an untouched Options tab posts the same names and values as before", () => {
     const doc = page({ modelChoices: [{ name: "sonnet" }, { name: "fable" }] });
     expect(panel(doc, "options")?.hasAttribute("hidden")).toBe(true);
     const form = doc.getElementById("new-spec-form") as HTMLFormElement;
@@ -66,7 +66,7 @@ describe("what the New spec form posts", () => {
 });
 
 describe("the tab words", () => {
-  test("a Norwegian page names its tabs from the Norwegian catalogue (AC-7)", () => {
+  test("a Norwegian page names its tabs from the Norwegian catalogue", () => {
     const doc = page({ lang: "nb" });
     const words = [...doc.querySelectorAll("nav[data-new-spec-tabs] a.tab")].map((a) => a.textContent);
     expect(words).toStrictEqual([t("nb", "newSpec.tabSpec"), t("nb", "newSpec.tabOptions")]);

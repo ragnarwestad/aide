@@ -1,7 +1,7 @@
 // The Notifications tab's switch, driven in a real DOM (happy-dom) with
 // fake permission, push manager and server: which position, word and
 // pressability each answer gives, and the order a press moves things in
-// (AC-2, AC-3, AC-4, AC-5, AC-6). `bindPushPanel` takes those objects as
+// `bindPushPanel` takes those objects as
 // its second argument, so no browser is involved.
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 
@@ -95,7 +95,7 @@ beforeEach(() => {
 });
 
 describe("what the switch shows for each answer about the device", () => {
-  test("on: checked, On, pressable (AC-1, AC-2)", async () => {
+  test("on: checked, On, pressable", async () => {
     const m = mount(fake({ permission: "granted", subscribed: true }));
     await flush();
     expect(m.checked()).toBe("true");
@@ -103,7 +103,7 @@ describe("what the switch shows for each answer about the device", () => {
     expect(m.sw.disabled).toBe(false);
   });
 
-  test("off: unchecked, Off, pressable (AC-1, AC-2)", async () => {
+  test("off: unchecked, Off, pressable", async () => {
     const m = mount(fake({ permission: "default" }));
     await flush();
     expect(m.checked()).toBe("false");
@@ -111,7 +111,7 @@ describe("what the switch shows for each answer about the device", () => {
     expect(m.sw.disabled).toBe(false);
   });
 
-  test("blocked: off and unpressable, and the sentence says the site is blocked (AC-5)", async () => {
+  test("blocked: off and unpressable, and the sentence says the site is blocked", async () => {
     const m = mount(fake({ permission: "denied" }));
     await flush();
     expect(m.checked()).toBe("false");
@@ -120,7 +120,7 @@ describe("what the switch shows for each answer about the device", () => {
     expect(m.status.textContent).toStartWith("Notifications are blocked for this site");
   });
 
-  test("no push support: off, unpressable and still drawn, and the sentence says the app is needed (AC-5)", async () => {
+  test("no push support: off, unpressable and still drawn, and the sentence says the app is needed", async () => {
     const m = mount(fake({ supported: false }));
     await flush();
     expect(m.checked()).toBe("false");
@@ -131,7 +131,7 @@ describe("what the switch shows for each answer about the device", () => {
 });
 
 describe("a press moves the switch only once the answer is in", () => {
-  test("turning on: the prompt comes before the subscription and the post; the switch waits, locked, then moves (AC-3, AC-4)", async () => {
+  test("turning on: the prompt comes before the subscription and the post; the switch waits, locked, then moves", async () => {
     const f = fake({ permission: "default" });
     const m = mount(f);
     await flush();
@@ -146,7 +146,7 @@ describe("a press moves the switch only once the answer is in", () => {
     expect(m.sw.disabled).toBe(false);
   });
 
-  test("turning off: the server is told, and the switch stays on and locked until it answers (AC-3, AC-4)", async () => {
+  test("turning off: the server is told, and the switch stays on and locked until it answers", async () => {
     const f = fake({ permission: "granted", subscribed: true });
     const m = mount(f);
     await flush();
@@ -160,7 +160,7 @@ describe("a press moves the switch only once the answer is in", () => {
     expect(m.sw.disabled).toBe(false);
   });
 
-  test("a denied prompt ends off and unpressable, with the blocked sentence (AC-4)", async () => {
+  test("a denied prompt ends off and unpressable, with the blocked sentence", async () => {
     const f = fake({ permission: "default", prompt: "denied" });
     const m = mount(f);
     await flush();
@@ -171,7 +171,7 @@ describe("a press moves the switch only once the answer is in", () => {
     expect(m.status.textContent).toStartWith("Notifications are blocked for this site");
   });
 
-  test("a server that refuses the subscription leaves it off and pressable, with the try-again sentence (AC-4)", async () => {
+  test("a server that refuses the subscription leaves it off and pressable, with the try-again sentence", async () => {
     const f = fake({ permission: "default" });
     const m = mount(f);
     await flush();
@@ -184,7 +184,7 @@ describe("a press moves the switch only once the answer is in", () => {
   });
 });
 
-describe("the switch is a component of its own (AC-6)", () => {
+describe("the switch is a component of its own", () => {
   test("setSwitch moves a switch drawn anywhere: position, word and pressability", () => {
     document.body.innerHTML = switchControl({ label: "Anything", onWord: "Yes", offWord: "No" });
     const el = document.querySelector("button")!;

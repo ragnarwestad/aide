@@ -5,7 +5,7 @@ import {
 } from "./fixtures.ts";
 import { makeFakeFormData } from "./fixtures-runtime.ts";
 
-// --- spec 112: the Projects panel --------------------------------------------
+// --- The Projects panel --------------------------------------------
 
 describe("Remove", () => {
   // The button was off until the project's name had been typed back
@@ -31,11 +31,11 @@ describe("Remove", () => {
     // The panel is markup the server owns, and what changed is which
     // projects are in it — so the page is asked again, with the
     // reader's own query string. THIS page: no route name is written
-    // down on either side of the move (spec 115).
+    // down on either side of the move.
     expect(h.location.href).toBe("/projects?state=running&sort=cost");
   });
 
-  test("the dialog stands while the removal is out, and stays standing as the page goes (AC-1, AC-4)", async () => {
+  test("the dialog stands while the removal is out, and stays standing as the page goes", async () => {
     let standingWhileOut = false;
     const h = harness(
       (url) => {
@@ -52,7 +52,7 @@ describe("Remove", () => {
     expect(h.removeDialog.hasAttribute("data-standing")).toBe(true);
   });
 
-  test("a refusal releases the dialog with its words in the dialog's own line (AC-3)", async () => {
+  test("a refusal releases the dialog with its words in the dialog's own line", async () => {
     const h = harness(() => ({
       ok: false,
       body: { ok: false, results: [{ step: "allowlist", error: "not on the allowlist" }] },
@@ -63,7 +63,7 @@ describe("Remove", () => {
     expect(h.removeDialog.open).toBe(true);
   });
 
-  test("a refusal is written in the dialog's own line, the dialog stays open and the page stays put (AC-3)", async () => {
+  test("a refusal is written in the dialog's own line, the dialog stays open and the page stays put", async () => {
     const h = harness(() => ({
       ok: false,
       body: { ok: false, results: [{ step: "allowlist", error: "not on the allowlist" }] },
@@ -77,7 +77,7 @@ describe("Remove", () => {
   });
 });
 
-// --- spec 115: the same code on a page with no spec list ---------------------
+// --- The same code on a page with no spec list ---------------------
 //
 // The Add form shares the New-spec form's look (`pageform`), never its
 // class: on `/projects` there is no New-spec form at all, and a form
@@ -134,7 +134,7 @@ describe("on /projects, where there is no New-spec form", () => {
 
 });
 
-// --- spec 486: the project settings form's own Save ---------------------------
+// --- The project settings form's own Save ---------------------------
 //
 // The Save form shares the look (`pageform`), exactly the way the Add
 // form does, and on `/projects/<name>?edit=config` there is no New-spec
@@ -143,7 +143,7 @@ describe("on /projects, where there is no New-spec form", () => {
 // own handler, bound to `form.projectsettingsform`: a successful save
 // reloads the reader's own project path, dropping `?edit=config`; a refusal
 // writes into the form's own `.refused` slot and leaves the page put.
-describe("the project settings form's own Save (spec 486)", () => {
+describe("the project settings form's own Save", () => {
   /** Only the settings form on the page — there is no New-spec form and
    *  no Add/Remove form on `/projects/<name>` — so the binding count this
    *  proves is unambiguous: exactly one `submit` listener, and (via the

@@ -7,7 +7,7 @@ afterEach(() => {
   harness.cleanup();
 });
 
-describe("spec 252: the job page's own Back link, read off the Referer header", () => {
+describe("the job page's own Back link, read off the Referer header", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   const jobId = async (base: string): Promise<string> => {

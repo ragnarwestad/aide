@@ -16,14 +16,14 @@ const marker = (html: string): Element | null => {
 const job = (extra: Parameters<typeof row>[0] = {}) =>
   row({ project: "aide", specFolder: "605-follow", steps: ["create", "analyze", "implement"], stepIndex: 2, ...extra });
 
-describe("followMarker: whether a page follows (AC-1)", () => {
-  test("a job that has ended in any way draws no marker (AC-1)", () => {
+describe("followMarker: whether a page follows", () => {
+  test("a job that has ended in any way draws no marker", () => {
     for (const state of ["done", "failed", "stopped", "interrupted", "cancelled"] as const) {
       expect(followMarker(job({ state }), { tab: "steps" }), state).toBe("");
     }
   });
 
-  test("a queued job, a running job and a landing job draw one that names the tab (AC-1)", () => {
+  test("a queued job, a running job and a landing job draw one that names the tab", () => {
     const flying = [job({ state: "queued" }), job({ state: "running" }), job({ state: "done", landing: true })];
     for (const j of flying) {
       expect(marker(followMarker(j, { tab: "overview" }))?.getAttribute("data-tab"), j.state).toBe("overview");
@@ -31,11 +31,11 @@ describe("followMarker: whether a page follows (AC-1)", () => {
   });
 });
 
-describe("followMarker: what it names (AC-2)", () => {
+describe("followMarker: what it names", () => {
   const phases = (html: string): string | null => marker(html)?.getAttribute("data-phases") ?? null;
   const KEYS = "aide/605-follow:create,aide/605-follow:analyze,aide/605-follow:implement";
 
-  test("with the running row open it names every step's phase and the running index (AC-2)", () => {
+  test("with the running row open it names every step's phase and the running index", () => {
     for (const step of [undefined, "live", "2"]) {
       const html = followMarker(job(), { tab: "steps", step, runningIndex: 2 });
       expect(phases(html), String(step)).toBe(KEYS);
@@ -43,7 +43,7 @@ describe("followMarker: what it names (AC-2)", () => {
     }
   });
 
-  test("on Overview, or with a row shut or a finished row open, it names no phases but the running index (AC-2)", () => {
+  test("on Overview, or with a row shut or a finished row open, it names no phases but the running index", () => {
     const drawn = [
       followMarker(job(), { tab: "overview", runningIndex: 2 }),
       followMarker(job(), { tab: "steps", step: "none", runningIndex: 2 }),
@@ -55,7 +55,7 @@ describe("followMarker: what it names (AC-2)", () => {
     }
   });
 
-  test("a queued job has no running index and so no phases to hear (AC-2)", () => {
+  test("a queued job has no running index and so no phases to hear", () => {
     const html = followMarker(job({ state: "queued" }), { tab: "steps" });
     expect(marker(html)?.hasAttribute("data-running")).toBe(false);
     expect(marker(html)?.hasAttribute("data-phases")).toBe(false);

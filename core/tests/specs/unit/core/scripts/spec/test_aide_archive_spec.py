@@ -1,5 +1,5 @@
 """Tests for core/scripts/aide-archive-spec — the mechanical steps of
-/aide-archive (spec 251): folder resolution, the conflict check, the
+/aide-archive: folder resolution, the conflict check, the
 status-table read, and the stamp-and-move.
 
 No AI is involved anywhere in this file: the whole point of the script
@@ -161,7 +161,7 @@ def test_refuses_when_there_is_no_specs_root_at_all(script, project):
     assert out["terminalReason"] == "refused"
 
 
-# --- already-archived (criterion 6, criterion 7) -------------------------
+# --- already-archived -------------------------
 
 
 def test_already_archived_by_full_folder_name(script, project, specs):
@@ -183,7 +183,7 @@ def test_already_archived_resolves_by_number_too(script, project, specs):
     assert out["specFolder"] == "archive/77-recovered"
 
 
-# --- conflict-open (criterion 5) -----------------------------------------
+# --- conflict-open -----------------------------------------
 
 
 def test_conflict_open_in_the_project_dir(script, project, specs):
@@ -245,7 +245,7 @@ def test_ordinary_progression_removes_a_stale_held_back_section(script, project,
     assert "Archive held back" not in text, text
 
 
-# --- an open row no longer blocks archive (spec 268) ----------------------
+# --- an open row no longer blocks archive ----------------------
 #
 # Every one of the tests this comment replaces pinned the tick-based
 # `held-back` refusal — an in-progress row, a genuinely blocking row over
@@ -254,10 +254,10 @@ def test_ordinary_progression_removes_a_stale_held_back_section(script, project,
 # and `## Checklist` headings), and the stale-section replace/no-
 # duplicate behavior around it. Archive no longer reads the checklist to
 # decide anything, so none of that machinery exists to pin any more —
-# see AC3/AC4 below for what replaced it.
+# see the tests below for what replaced it.
 
 
-# --- archived (criterion 4) -----------------------------------------------
+# --- archived -----------------------------------------------
 
 
 def test_every_row_done_archives_the_spec(script, project, specs):
@@ -279,7 +279,7 @@ def test_every_row_done_archives_the_spec(script, project, specs):
     assert "**Archived:**" in text, text
 
 
-# --- the status-table read, through a ## Checklist heading (spec 262) ----
+# --- the status-table read, through a ## Checklist heading ----
 
 
 def test_checklist_every_row_done_archives_the_spec(script, project, specs):
@@ -302,11 +302,11 @@ def test_checklist_all_unstarted_with_no_implement_is_ordinary_progression(scrip
     assert out["terminalReason"] == "not-implemented-yet", out
 
 
-# --- AC3: archive proceeds once implement has run, whatever the ticks say -
+# --- Archive proceeds once implement has run, whatever the ticks say -
 
 
 def test_implement_present_with_every_row_unstarted_archives_the_spec(script, project, specs):
-    """The exact scenario the description names for spec 265: implement
+    """The exact scenario: implement
     landed and is on the record, but every task row still reads
     unstarted. Archive is no longer waiting on the checklist to say the
     work is done — only on whether implement ran."""
@@ -334,8 +334,8 @@ def test_implement_present_with_an_open_in_progress_row_archives_the_spec(script
 
 
 def test_checklist_implement_present_with_an_unstarted_row_archives_the_spec(script, project, specs):
-    """AC3 through the `## Checklist` heading a LOW-complexity spec uses
-    instead of `## Phase*` (spec 266's second example)."""
+    """The same through the `## Checklist` heading a LOW-complexity spec uses
+    instead of `## Phase*`."""
     configure(project, specs)
     body = status_md("create, analyze, implement", checklist(["| a | ⬜ | |"]))
     add_spec(specs, "81-x", body)
@@ -360,4 +360,4 @@ def test_archiving_removes_a_stale_held_back_section(script, project, specs):
     assert "Archive held back" not in text, text
 
 
-# --- AC4: archive still refuses a spec that was never implemented ---------
+# --- Archive still refuses a spec that was never implemented ---------

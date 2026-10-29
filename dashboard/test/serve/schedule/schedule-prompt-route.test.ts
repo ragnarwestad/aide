@@ -47,7 +47,7 @@ function writeInTree(dir: string, file: string, text: string): void {
 }
 
 describe("GET /schedule/<project>/<name>/prompt", () => {
-  test("shows the default branch's text, not the working tree's, and asks for the viewer (AC-2)", async () => {
+  test("shows the default branch's text, not the working tree's, and asks for the viewer", async () => {
     const { base, dir } = start();
     projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED, "docs/other.md": OTHER });
     writeInTree(dir, PROMPT, "# Nightly\n\nUncommitted, only in the working tree.\n");
@@ -61,7 +61,7 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     expect(html).toContain("/spec-viewer.js");
   });
 
-  test("names the file and the job, and links back to the job's Settings tab (AC-3)", async () => {
+  test("names the file and the job, and links back to the job's Settings tab", async () => {
     const { base, dir } = start();
     projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED });
     const doc = parse(await (await fetch(`${base}/schedule/aide/nightly-report/prompt`)).text());
@@ -72,7 +72,7 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     expect(back).toContain("/schedule/aide/nightly-report?tab=settings");
   });
 
-  test("a file that never reached the default branch gives one sentence naming it, and no viewer (AC-4)", async () => {
+  test("a file that never reached the default branch gives one sentence naming it, and no viewer", async () => {
     const { base, dir } = start();
     projectWithOrigin(dir, "aide", { "docs/other.md": OTHER });
     writeInTree(dir, PROMPT, COMMITTED);
@@ -87,7 +87,7 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     expect(html).not.toContain("The committed text");
   });
 
-  test("a directory that is not a git repository gives the same sentence (AC-4)", async () => {
+  test("a directory that is not a git repository gives the same sentence", async () => {
     const { base } = start();
     const res = await fetch(`${base}/schedule/aide/nightly-report/prompt`);
     expect(res.status).toBe(200);
@@ -96,7 +96,7 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     expect(doc.querySelector("#spec-editor-host")).toBeNull();
   });
 
-  test("refuses every address that is not an existing job's prompt page, and any method but GET (AC-5)", async () => {
+  test("refuses every address that is not an existing job's prompt page, and any method but GET", async () => {
     const { base, dir } = start();
     projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED, "docs/other.md": OTHER });
     for (const path of [

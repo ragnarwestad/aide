@@ -24,7 +24,7 @@ afterAll(async () => {
 
 const EDIT = " Edited in the browser.";
 
-test("Save on the Description tab is posted by the page script, writes the edited text and stays on the spec's page (AC-4)", async () => {
+test("Save on the Description tab is posted by the page script, writes the edited text and stays on the spec's page", async () => {
   const { base, dir } = start(savable("/host"));
   const page = await browser.newPage();
   await page.goto(`${base}${DESCRIPTION_TAB}&live=0`);
@@ -46,7 +46,7 @@ test("Save on the Description tab is posted by the page script, writes the edite
   await page.close();
 });
 
-test("a refused Save shows why on the page and keeps the typed text in the editor (AC-6)", async () => {
+test("a refused Save shows why on the page and keeps the typed text in the editor", async () => {
   const { base, dir } = start(savable("/host"));
   const page = await browser.newPage();
   await page.goto(`${base}${DESCRIPTION_TAB}&live=0`);

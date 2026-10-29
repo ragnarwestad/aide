@@ -24,7 +24,7 @@ export function parseStoredJob(raw: unknown): Job | null {
     return null;
   }
   if (typeof r.state !== "string" || !(JOB_STATES as readonly string[]).includes(r.state)) return null;
-  // Spec 149: a record written before the stop between steps was removed
+  // A record written before the stop between steps was removed
   // still carries `gateAfter`. Left behind HERE rather than overwritten
   // below, because the spread is what would otherwise carry it straight
   // back out into the next mirror. A record whose STATE is the retired
@@ -75,7 +75,7 @@ function settleRestoredLanding(results: StepResult[], r: Record<string, unknown>
  *  It used to be a `--queue-projects` argument baked into the launchd
  *  plist, so adding a project cost a plist re-render, an scp and a
  *  `launchctl bootout`/`bootstrap` — which is why adding one was four
- *  hand steps rather than a button (spec 112). Reading it from the
+ *  hand steps rather than a button. Reading it from the
  *  config file the server ALREADY reads makes the change survive a
  *  restart without any of that; the CLI flag stays as the seed for a
  *  first install, where no config file exists yet.
@@ -92,7 +92,7 @@ export function parseQueueProjects(raw: unknown): string[] | null {
 }
 
 /** The `headerAuth` block, as it is written in `queue-config.json`
- *  (spec 363): a request header a proxy in front of this server sets to
+ *  a request header a proxy in front of this server sets to
  *  the signed-in user's name, and the identifiers the server accepts in
  *  it. `null` for anything malformed — the same fail-closed direction
  *  `parseQueueProjects` above already follows — since trusting a header
@@ -153,7 +153,7 @@ export function persistQueueProjects(file: string, projects: string[]): string |
 }
 
 /** A model picked for a phase before any job exists to attach it to
- *  (spec 308), as it is written in `pending-models.json`: `{ "<project>/
+ *  as it is written in `pending-models.json`: `{ "<project>/
  *  <specFolder>": { "<step>": "<model>" } }`. `null` for anything
  *  malformed, the same fail-closed rule `parseQueueProjects` follows —
  *  an entry that does not parse is dropped rather than trusted, and a
@@ -205,7 +205,7 @@ export function persistPendingModels(file: string, table: Record<string, unknown
 }
 
 
-/** A phase choice recorded before or between jobs (spec 439) — the
+/** A phase choice recorded before or between jobs — the
  *  sibling of `parsePendingModels` above, one level
  *  shallower: a list of steps rather than a per-step value, as it is
  *  written in `pending-steps.json`: `{ "<project>/<specFolder>":
@@ -290,7 +290,7 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return base;
   const r = raw as Record<string, unknown>;
   // The numeric sibling of `table` below: `timeoutSec` is per step since
-  // spec 152, and a file still carrying the old flat number is dropped
+  // and a file still carrying the old flat number is dropped
   // in favour of the built-in defaults rather than crashing — the same
   // direction every other malformed key here fails in.
   const numTable = (v: unknown, fallback: Record<string, number>) => {

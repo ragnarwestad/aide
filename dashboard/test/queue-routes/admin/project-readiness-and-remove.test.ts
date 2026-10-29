@@ -27,13 +27,13 @@ interface StepBody {
   };
 }
 
-// --- spec 138: the Add says whether a run can start ---------------------------
+// --- The Add says whether a run can start ---------------------------
 //
 // Adding a project answered "added" and left the operator to press Run to
 // find out the rest. Registration and readiness are two answers now, and
 // both reach the caller: `ok` says the registration completed, `readiness`
 // says whether `aide-run-spec` would start.
-describe("POST /api/queue/projects reports readiness (spec 138)", () => {
+describe("POST /api/queue/projects reports readiness", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   /** A git that answers for a checkout which is its own root, clean, on
@@ -65,7 +65,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
       return { code: 1, stdout: "" };
     };
 
-  // Criterion 10: additive. A caller that reads `ok`, `project` and
+  // Additive. A caller that reads `ok`, `project` and
   // `results` sees exactly what it saw before.
   test("a successful add carries readiness beside the steps it always carried", async () => {
     const { base } = start({ gitRun: readyGit() });
@@ -83,7 +83,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
     expect(body.readiness!.note).toContain("ready to run");
   });
 
-  // Criterion 10, the other half: the two answers are independent. This
+  // The other half: the two answers are independent. This
   // is Skjer — added, allowlisted, and unable to run.
   test("registration succeeds while the run is blocked, and the answer says both", async () => {
     // No specs root, and none named on the form — one of the four
@@ -111,9 +111,9 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
     expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="skjer"');
   });
 
-  // Criterion 7, at the route: the field is new, and an unusable value is
+  // At the route: the field is new, and an unusable value is
   // a refusal of the add rather than a readiness note.
-  // Spec 184 moved this key: it is true of the project on any machine,
+  // This key lives in the settings file: it is true of the project on any machine,
   // and `.aide/config` is dropped by a global ignore rule, so a clone
   // arrived on the next machine with the answer gone.
   test("worktree links are written to the dashboard's settings file, not the project", async () => {
@@ -158,11 +158,10 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   });
 });
 
-describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
+describe("POST /api/queue/projects/<name>/remove", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 
-  // Criterion 7.
-  test("the name typed back removes it from the allowlist, touches no file and drops its row from the list (AC-2)",async () => {
+  test("the name typed back removes it from the allowlist, touches no file and drops its row from the list",async () => {
     const { base, dir } = start();
     const res = await fetch(`${base}/api/queue/projects/aide/remove`, {
       method: "POST",
@@ -176,13 +175,12 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     // The checkout and its specs are exactly where they were.
     expect(existsSync(join(dir, "root", "aide", ".aide", "project.yaml"))).toBe(true);
     expect(existsSync(join(dir, "root", "aide", "specs", "81-queue-and-runner"))).toBe(true);
-    // And the list drawn again no longer shows it (AC-2).
+    // And the list drawn again no longer shows it.
     const html = await (await fetch(`${base}/projects`)).text();
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
     expect(html).not.toContain('href="/projects/aide"');
   });
 
-  // Criterion 8.
   // The name had to be typed back until 2026-09-08 — the Remove page
   // asks the question in a sentence now, and the press is the answer.
   // A name that is not on the allowlist is still refused, which is what
@@ -202,7 +200,7 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(html).toContain('action="/api/queue/projects/aide/remove"');
   });
 
-  test("the list shows the allowlisted project alone, and its counts are that project's (AC-1, AC-3)", async () => {
+  test("the list shows the allowlisted project alone, and its counts are that project's", async () => {
     const { base } = start({}, ["other"]);
     const list = await (await fetch(`${base}/projects`)).text();
     expect(list).toContain('href="/projects/aide"');
@@ -214,7 +212,7 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(config).not.toContain("/remove");
   });
 
-  // Criterion 4, for the second route.
+  // For the second route.
   test("it answers POST only", async () => {
     const { base } = start();
     expect((await fetch(`${base}/api/queue/projects/aide/remove`, { headers: AUTH })).status).toBe(405);

@@ -8,10 +8,9 @@ tests. A conftest, so the fixtures reach every part without an import;
 the plain helpers sit here too, and a part asks for them by name.
 """
 
-"""Tests for core/scripts/aide-run-spec — the one-shot headless runner
-(spec 81, slice 81b).
+"""Tests for core/scripts/aide-run-spec — the one-shot headless runner.
 
-Criteria 1-4. No test here calls the real Claude CLI: a fake binary on
+No test here calls the real Claude CLI: a fake binary on
 AIDE_CLAUDE_BIN records its argv and prints a canned result, so the
 default suite stays free (pytest.ini deselects the paid markers for the
 same reason).
@@ -72,9 +71,9 @@ def workspace(tmp_path):
     """A project repo plus a SEPARATE specs repo, the way a real aide
     project is laid out (AIDE_SPECS_PATH in .aide/config).
 
-    Since spec 91 the project also carries a gitignored dependency
-    directory and a worktreeLinks: line naming it, in the manifest (spec
-    549: the only file worktree links are read from): a worktree checks
+    The project also carries a gitignored dependency
+    directory and a worktreeLinks: line naming it, in the manifest (the
+    only file worktree links are read from): a worktree checks
     out TRACKED files only, so anything a test run needs — `.venv` here,
     `deps/` in the fixture — has to be linked in or it is simply absent.
     """
@@ -83,7 +82,7 @@ def workspace(tmp_path):
     (specs / "81-queue-and-runner").mkdir()
     (specs / "81-queue-and-runner" / "1-description.md").write_text("# Queue - Description\n")
     # `analyze` on the line: the default fixture is `implement`'s normal
-    # starting point (spec 344's own gate refuses `implement` before
+    # starting point (the gate refuses `implement` before
     # `analyze` has run), the same way it already was `implement`'s
     # normal PRECONDITION before this line existed.
     (specs / "81-queue-and-runner" / "4-status.md").write_text(
@@ -94,7 +93,7 @@ def workspace(tmp_path):
     subprocess.run(["git", "-C", str(specs), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(specs), "commit", "-qm", "add spec"], check=True)
     # .aide/config is gitignored here, scoped to the FIXTURE itself
-    # (spec 345: no project's .aide/config is tracked, aide's own
+    # (no project's .aide/config is tracked, aide's own
     # included) rather than relying on the machine's own global ignore,
     # so the fixture stays hermetic.
     (project / ".gitignore").write_text("/deps/\n.aide/config\n.aide/project.yaml\n")
@@ -119,7 +118,7 @@ def workspace(tmp_path):
 # The fake `claude` writes RELATIVE to its own working directory, and
 # resolves the specs root the way a skill does: out of the .aide/config
 # it finds there. Writing by absolute path into the main checkouts —
-# which is what these tests did before spec 91 — writes to the wrong tree
+# which is what these tests used to do — writes to the wrong tree
 # the moment the step runs in a worktree, and the run would then commit
 # nothing while reporting success.
 READ_SPECS = 'specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | head -1)"\n'
@@ -128,7 +127,7 @@ READ_SPECS = 'specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | hea
 # The limit covers the runner's own setup too — the worktree, the branch
 # — and beside four other suites that setup alone took longer than the
 # 8 s these tests used to give, so the fake model never started and the
-# branch was never made (491's and 486's runs, 2026-09-18).
+# branch was never made (seen in two runs).
 STOP_DEADLINE_SEC = "15"
 
 
@@ -281,11 +280,11 @@ def run(runner, ws, claude=None, codex=None, opencode=None, return_stderr=False,
     """Invoke the runner; return (returncode, parsed json line, stdout).
 
     `codex=` is the sibling of `claude=` and exists for the same reason
-    (spec 125): the helper has no generic `env=` kwarg, so a Codex test
+    the helper has no generic `env=` kwarg, so a Codex test
     would otherwise have no way to point the runner at its fake binary.
 
     `return_stderr=True` appends `proc.stderr` and makes it a 4-tuple.
-    An OPT-IN rather than a fourth element for everybody (spec 184):
+    An OPT-IN rather than a fourth element for everybody:
     this helper is called well over a hundred times in this file, almost
     all of them unpacking exactly three values, and widening the return
     shape would break every one of them to serve the handful of tests

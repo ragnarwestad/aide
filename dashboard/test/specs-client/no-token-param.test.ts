@@ -6,7 +6,7 @@ import { harness, OK_ACTION } from "./fixtures.ts";
 
 const carriesToken = (url: string) => new URL(url, "http://x").searchParams.has("token");
 
-describe("no token parameter is appended to a press (AC-5)", () => {
+describe("no token parameter is appended to a press", () => {
   test("press: a row button posts to the form's address as it is", async () => {
     const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION } : { ok: true }));
     await h.submit();

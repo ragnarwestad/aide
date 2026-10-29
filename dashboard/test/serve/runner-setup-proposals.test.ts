@@ -57,19 +57,19 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("stepDoneHandler and a scheduled run's proposals", () => {
-  test("a schedule step that ended ok queues a Create job per proposal and returns no landing (AC-2)", () => {
+  test("a schedule step that ended ok queues a Create job per proposal and returns no landing", () => {
     expect(handler()(job(), "schedule", { ok: true, terminalReason: "completed" })).toBeUndefined();
     expect(creates().map((j) => j.createTitle)).toEqual(["First"]);
   });
 
-  test("a schedule step that did not end ok queues nothing (AC-4)", () => {
+  test("a schedule step that did not end ok queues nothing", () => {
     handler()(job(), "schedule", { ok: false, terminalReason: "cli-error" });
     handler()(job(), "schedule", { ok: false, terminalReason: "scope-violation" });
     handler()(job(), "schedule", { ok: false, terminalReason: "timeout" });
     expect(creates()).toEqual([]);
   });
 
-  test("an ok step of any other kind reads no proposals (AC-2)", () => {
+  test("an ok step of any other kind reads no proposals", () => {
     for (const step of ["analyze", "implement", "explore"] as const) {
       handler()(job({ steps: [step] }), step, { ok: true, terminalReason: "completed" });
     }

@@ -28,7 +28,7 @@ def _stamped(err):
     return [m.group(1) for m in re.finditer(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s (.+)$", err, re.M)]
 
 
-def test_the_turn_line_says_where_the_transcript_stood_and_the_commit_comes_after_it_AC_3(
+def test_the_turn_line_says_where_the_transcript_stood_and_the_commit_comes_after_it(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -110,7 +110,7 @@ def lines_of(err):
     return [line for _, line in model_marks(err)]
 
 
-def test_a_mark_is_dated_while_the_model_writes_it_not_after_the_turn_AC_1(runner, workspace, fake_claude):
+def test_a_mark_is_dated_while_the_model_writes_it_not_after_the_turn(runner, workspace, fake_claude):
     claude = fake_claude(body(claude_said(START), 2, claude_said(DONE), tail=CLAUDE_RESULT))
     _, out, _, err = run(runner, workspace, claude, return_stderr=True)
     assert out["ok"] is True, out
@@ -119,32 +119,32 @@ def test_a_mark_is_dated_while_the_model_writes_it_not_after_the_turn_AC_1(runne
     assert marks[1][0] - marks[0][0] >= 1, f"both marks were dated at the end of the turn: {marks}"
 
 
-def test_every_case_of_the_shared_table_is_recorded_as_it_lists_AC_1(runner, workspace, fake_claude):
+def test_every_case_of_the_shared_table_is_recorded_as_it_lists(runner, workspace, fake_claude):
     claude = fake_claude(body(*[claude_said(c["text"]) for c in MARK_CASES], tail=CLAUDE_RESULT))
     _, _, _, err = run(runner, workspace, claude, return_stderr=True)
     assert lines_of(err) == [line for c in MARK_CASES for line in c["recorded"]]
 
 
-def test_only_the_model_s_own_text_holds_marks_AC_1(runner, workspace, fake_claude):
+def test_only_the_model_s_own_text_holds_marks(runner, workspace, fake_claude):
     tool_result = json.dumps({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t", "content": START}]}})
     claude = fake_claude(body(tool_result, claude_said(START, parent="toolu_1"), claude_said(DONE), tail=CLAUDE_RESULT))
     _, _, _, err = run(runner, workspace, claude, return_stderr=True)
     assert lines_of(err) == [DONE]
 
 
-def test_a_last_line_with_no_newline_is_recorded_once_AC_1(runner, workspace, fake_claude):
+def test_a_last_line_with_no_newline_is_recorded_once(runner, workspace, fake_claude):
     claude = fake_claude(body(json.dumps(RESULT_OK), ("raw", claude_said(DONE))))
     _, _, _, err = run(runner, workspace, claude, return_stderr=True)
     assert lines_of(err) == [DONE]
 
 
-def test_a_line_past_one_mebibyte_does_not_stop_the_marks_after_it_AC_1(runner, workspace, fake_claude):
+def test_a_line_past_one_mebibyte_does_not_stop_the_marks_after_it(runner, workspace, fake_claude):
     claude = fake_claude(body(claude_said(START), ("big", 1300000), claude_said(DONE), tail=CLAUDE_RESULT))
     _, _, _, err = run(runner, workspace, claude, return_stderr=True)
     assert lines_of(err) == [START, DONE]
 
 
-def test_a_step_still_ends_at_its_time_limit_while_marks_keep_arriving_AC_1(runner, workspace, fake_claude):
+def test_a_step_still_ends_at_its_time_limit_while_marks_keep_arriving(runner, workspace, fake_claude):
     claude = fake_claude(
         "cat > /dev/null\n"
         f"while true; do printf '%s\\n' {shlex.quote(claude_said(START))}; sleep 0.2; done"
@@ -154,7 +154,7 @@ def test_a_step_still_ends_at_its_time_limit_while_marks_keep_arriving_AC_1(runn
     assert lines_of(err), "no mark was recorded while the model wrote them"
 
 
-def test_a_second_turn_of_a_step_records_its_own_marks_and_not_the_first_turn_s_AC_1(
+def test_a_second_turn_of_a_step_records_its_own_marks_and_not_the_first_turn_s(
     runner, workspace, fake_claude
 ):
     with_status(workspace, ["create", "analyze"])
@@ -164,7 +164,7 @@ def test_a_second_turn_of_a_step_records_its_own_marks_and_not_the_first_turn_s_
     assert lines_of(err) == [START, DONE, START, DONE]
 
 
-def test_the_three_tools_record_the_same_two_marks_AC_5(runner, workspace, fake_claude, fake_codex, fake_opencode):
+def test_the_three_tools_record_the_same_two_marks(runner, workspace, fake_claude, fake_codex, fake_opencode):
     claude = fake_claude(body(claude_said(START), claude_said(DONE), tail=CLAUDE_RESULT))
     _, _, _, err = run(runner, workspace, claude, return_stderr=True)
     assert lines_of(err) == [START, DONE], "claude"

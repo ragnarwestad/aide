@@ -1,5 +1,5 @@
 // The server's identity to the push services (RFC 8292): a key pair that
-// is made once and kept, and a signed token per request (criterion 16).
+// is made once and kept, and a signed token per request.
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";

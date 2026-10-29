@@ -2,7 +2,7 @@
 // the last archive run's commit says — and it was drawn on every render
 // after that, whatever the Checks tab said since. With every criterion
 // ticked and archive not pressed again, the row went on telling the
-// reader to go and tick (paceup 02, 2026-09-18). The stop is only as
+// reader to go and tick. The stop is only as
 // true as the criteria still open NOW; the commit names why the last
 // run stopped, never whether that still holds.
 

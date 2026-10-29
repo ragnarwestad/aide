@@ -9,11 +9,11 @@ const AT = "2026-10-02T19:00:00.000Z";
 const NOW = Date.parse("2026-10-02T19:05:00.000Z");
 
 describe("usageView", () => {
-  test("no reading yet is unread, since opening a page reads nothing (AC-6)", () => {
+  test("no reading yet is unread, since opening a page reads nothing", () => {
     expect(usageView(undefined, NOW).kind).toBe("unread");
   });
 
-  test("each window is a row with its share used, its reset, and the reading's time (AC-1)", () => {
+  test("each window is a row with its share used, its reset, and the reading's time", () => {
     const usage: ToolUsage = {
       tool: "codex",
       at: AT,
@@ -33,7 +33,7 @@ describe("usageView", () => {
     expect(view.rows[0]!.label).not.toBe(view.rows[1]!.label);
   });
 
-  test("a label the tool wrote itself is kept, and so are its reset words (AC-1)", () => {
+  test("a label the tool wrote itself is kept, and so are its reset words", () => {
     const view = usageView({
       tool: "claude",
       at: AT,
@@ -43,21 +43,21 @@ describe("usageView", () => {
     expect(view.rows).toEqual([{ label: "Current session", usedPercent: 24, resets: "Oct 2 at 11:20pm (Europe/Oslo)" }]);
   });
 
-  test("text with no windows is shown as the tool gave it (AC-4)", () => {
+  test("text with no windows is shown as the tool gave it", () => {
     const view = usageView({ tool: "claude", at: AT, windows: [], text: "Not logged in · Please run /login" }, NOW);
     expect(view).toEqual({ kind: "text", at: AT, text: "Not logged in · Please run /login" });
   });
 
-  test("an AI that reports no windows has none (AC-5)", () => {
+  test("an AI that reports no windows has none", () => {
     expect(usageView({ tool: "opencode", at: AT, windows: [] }, NOW).kind).toBe("none");
     expect(usageView({ tool: "codex", at: AT, windows: [] }, NOW).kind).toBe("none");
   });
 
-  test("an AI whose usage is not read is not said to have none (AC-5)", () => {
+  test("an AI whose usage is not read is not said to have none", () => {
     expect(usageView({ tool: "copilot", at: AT, windows: [], noSource: true }, NOW).kind).toBe("noSource");
   });
 
-  test("a reading that failed keeps its reason and is never none (AC-5)", () => {
+  test("a reading that failed keeps its reason and is never none", () => {
     const view = usageView({ tool: "codex", at: AT, windows: [], error: "codex app-server did not answer in time." }, NOW);
     expect(view).toEqual({ kind: "failed", at: AT, reason: "codex app-server did not answer in time." });
   });

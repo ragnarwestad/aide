@@ -1,7 +1,7 @@
 // A landing carries every root the spec's older jobs ever named
 // (`branchesFor`), and a root recorded before the dashboard's files moved
-// is not on disk any more. That record failed the whole landing of 453
-// and 454 (2026-09-14) after their work was in order. With another root
+// is not on disk any more. That record failed the whole landing of two
+// specs after their work was in order. With another root
 // still to land, the gone one is skipped and said so; a landing whose ONLY
 // root is gone still fails, since nothing at all would land.
 

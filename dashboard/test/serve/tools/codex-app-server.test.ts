@@ -52,14 +52,14 @@ const isGone = (pid: number): boolean => {
 };
 
 describe("the app-server exchange", () => {
-  test("answers with the line carrying the request's id, and ends the server (AC-3)", async () => {
+  test("answers with the line carrying the request's id, and ends the server", async () => {
     const pidFile = join(dir, "answer.pid");
     const reply = await appServerExchange([STAND_IN, pidFile, "answer"], MESSAGES, 2, 10_000);
     expect(reply).toEqual({ answer: { id: 2, result: { ok: true } } });
     expect(isGone(Number(readFileSync(pidFile, "utf8").trim()))).toBe(true);
   });
 
-  test("a server that never answers times out, and is ended (AC-3)", async () => {
+  test("a server that never answers times out, and is ended", async () => {
     const pidFile = join(dir, "silent.pid");
     const reply = await appServerExchange([STAND_IN, pidFile, "silent"], MESSAGES, 2, 300);
     expect(reply).toEqual({ timedOut: true });

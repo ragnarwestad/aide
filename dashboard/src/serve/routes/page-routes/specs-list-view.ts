@@ -26,14 +26,14 @@ export async function specsListParts(
   url: URL,
   openKey?: string,
 ): Promise<SpecsListParts> {
-  // The reader's own choice of language (spec 350), from the address
+  // The reader's own choice of language, from the address
   // or from the cookie it was last written into — the same shape as
   // the sort/state pair below, with one difference: this always
   // resolves to a concrete language, never `{}`.
   const langResult = languageChoice(url, req);
   const base = specRowOptions(ctx, url, langResult.lang);
   const archivedKeys = base.archived ?? [];
-  // spec 406, REQ-7: the closed subset of the same cheap key list, off
+  // The closed subset of the same cheap key list, off
   // `ctx.specRef` — the same per-key lookup job-actions.ts already
   // uses, never a second walk.
   const closedKeys = archivedKeys.filter((k) => {
@@ -48,11 +48,11 @@ export async function specsListParts(
     return (ref?.notVerified ?? 0) + (ref?.failed ?? 0) > 0;
   });
   // The reader's own choice of state, from the address or from the
-  // cookie it was last written into (spec 338, mirroring the sort
+  // cookie it was last written into (mirroring the sort
   // column's own `chosenSort` below).
   const stateResult = stateChoice(url, req, ctx.serverPort());
   const chosenState = stateResult.state;
-  // Every archived spec is a row on this list since spec 221 — but
+  // Every archived spec is a row on this list — but
   // only for a reader whose chip asks for one. The builder decides
   // that itself, off the same `filterShowsArchived` the filter's entries are
   // defined by, and the scale question is why: aide alone archives
@@ -74,7 +74,7 @@ export async function specsListParts(
     closed: closedKeys,
     notVerified: notVerifiedKeys,
     currentUrl: langResult.currentUrl,
-    // Spec 506: the creates that ended without a spec and were not
+    // The creates that ended without a spec and were not
     // dismissed — a message each, above the filter bar.
     failedCreates: ctx.push.failedCreates.list(),
     archivedSpecs,
@@ -102,7 +102,7 @@ export async function specsListParts(
       project: url.searchParams.get("project") ?? undefined,
       sort: chosenSort.sort,
       dir: chosenSort.dir,
-      // The search term (spec 221), a query-string citizen like the
+      // The search term, a query-string citizen like the
       // rest of the view — so it survives a reload, can be pasted to
       // someone else, and rides along on the SSE-driven row swap,
       // which sends `location.search` back verbatim.

@@ -1,6 +1,6 @@
 // Split out of branch-merge.test.ts by theme.
 //
-// Spec 89: the dashboard's first WRITE path — merges a spec branch into
+// The dashboard's first WRITE path — merges a spec branch into
 // a repo's default branch and pushes the result. Every git call is
 // injected, so the suite spawns no subprocess.
 
@@ -9,7 +9,7 @@ import { mergeBranchIntoDefault } from "../../../src/git/branch-merge.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
-/** What a reader would see: since spec 380 a message is stored as
+/** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
  *  the page is drawn. */
 function sentence(s: unknown): string {
@@ -28,7 +28,7 @@ const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
 const ran = (calls: GitCall[], prefix: string): boolean =>
   argv(calls).some((a) => a.startsWith(prefix));
 
-// --- spec 96: index.lock is not a conflict -----------------------------------
+// --- Index.lock is not a conflict -----------------------------------
 
 // Three times on 2026-08-18 the button refused with "cannot fast-forward
 // main — merge it by hand" because a starting run was pulling the same
@@ -60,7 +60,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
     return { run, calls, catchUps: () => pulls };
   }
 
-  test("it is retried, and the checkout catches up once the lock clears (criterion 15)", async () => {
+  test("it is retried, and the checkout catches up once the lock clears", async () => {
     const git = catchUpFailing(1, LOCK);
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result).toEqual({ root: ROOT, ok: true });
@@ -132,7 +132,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
 
   // Anything that is not a lock is not retried: one attempt, and the
   // landing goes on regardless — it has already pushed.
-  test("a catch-up failing for any other reason is tried once (criterion 16)", async () => {
+  test("a catch-up failing for any other reason is tried once", async () => {
     const git = catchUpFailing(1, "fatal: Not possible to fast-forward, aborting.");
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
@@ -140,7 +140,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
   });
 });
 
-// --- spec 99: a merged branch is gone, and a gone branch is not a conflict ---
+// --- A merged branch is gone, and a gone branch is not a conflict ---
 
 /** What every call before the merge itself answers when the checkout is
  *  clean and up to date — the table the two cleanup blocks below both
@@ -153,13 +153,13 @@ const OK_TABLE = {
   fetch: { code: 0 },
 };
 
-// Spec 92's dependency guard asks origin directly whether a branch is
+// The dependency guard asks origin directly whether a branch is
 // still there, so a merged branch left on origin reads as "not merged
 // yet" and refused a dependent spec three times on 2026-08-18. Deleting
 // it is what removes that false signal — and the deletion is a cleanup
 // step, never a reason to call a landed merge a failure.
 describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", () => {
-  test("a fast-forward merge deletes the branch and stays ok (criterion 3)", async () => {
+  test("a fast-forward merge deletes the branch and stays ok", async () => {
     const git = fakeGit({ ...OK_TABLE, "merge -q --ff-only": { code: 0 }, push: { code: 0 } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result).toEqual({ root: ROOT, ok: true });
@@ -171,7 +171,7 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
     );
   });
 
-  test("a real merge deletes the branch too (criterion 3)", async () => {
+  test("a real merge deletes the branch too", async () => {
     const git = fakeGit({
       ...OK_TABLE,
       "merge -q --ff-only origin/": { code: 0 },
@@ -184,7 +184,7 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
     expect(argv(git.calls)).toContain(`push -q origin --delete ${BRANCH}`);
   });
 
-  test("a deletion that fails is reported and never unmerges the merge (criterion 4)", async () => {
+  test("a deletion that fails is reported and never unmerges the merge", async () => {
     // The push of the base succeeds; only the deletion is refused.
     const run = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
@@ -199,7 +199,7 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
     expect(result.ok).toBe(true);
     expect(result.error).toBeUndefined();
     expect(sentence(result.branchDeleteError)).toContain(BRANCH);
-    // git's own stderr (spec 352, REQ-5) rides in `detail`, never in the
+    // git's own stderr rides in `detail`, never in the
     // sentence itself.
     expect(sentence(result.branchDeleteError)).not.toContain("refusing to delete");
     expect(result.detail).toContain("refusing to delete");
@@ -219,16 +219,16 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
   });
 });
 
-// --- spec 197: the checkout's own copy goes at the same moment --------------
+// --- The checkout's own copy goes at the same moment --------------
 //
 // The branch a run makes outlives the worktree that made it: a worktree
 // is thrown away when the run ends, the ref it created is not. Nothing
 // ever removed one, and 260 had piled up by 2026-08-23 — and one of them
-// was still there to be picked up when spec 181 was reopened, carrying a
+// was still there to be picked up when a spec was reopened, carrying a
 // conflict with a main that had moved on. So the landing deletes both
 // copies, or neither.
-describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)", () => {
-  test("a fast-forward merge deletes the local branch as well as origin's (criterion 1)", async () => {
+describe("mergeBranchIntoDefault: the branch is deleted locally too", () => {
+  test("a fast-forward merge deletes the local branch as well as origin's", async () => {
     const git = fakeGit({
       ...OK_TABLE,
       "merge -q --ff-only origin/": { code: 0 },
@@ -247,7 +247,7 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)",
     );
   });
 
-  test("a real merge deletes the local branch too (criterion 2)", async () => {
+  test("a real merge deletes the local branch too", async () => {
     const git = fakeGit({
       ...OK_TABLE,
       "merge -q --ff-only origin/": { code: 0 },
@@ -261,7 +261,7 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)",
     expect(argv(git.calls)).toContain(`branch -d ${BRANCH}`);
   });
 
-  test("an origin delete that fails never touches the local branch (criterion 3)", async () => {
+  test("an origin delete that fails never touches the local branch", async () => {
     const git = fakeGit({
       ...OK_TABLE,
       "merge -q --ff-only origin/": { code: 0 },
@@ -278,7 +278,7 @@ describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)",
     expect(ran(git.calls, "branch -d")).toBe(false);
   });
 
-  test("a local branch that cannot be deleted never turns a landed merge into a failure (criterion 4)", async () => {
+  test("a local branch that cannot be deleted never turns a landed merge into a failure", async () => {
     const git = fakeGit({
       ...OK_TABLE,
       "merge -q --ff-only origin/": { code: 0 },

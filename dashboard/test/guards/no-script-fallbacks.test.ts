@@ -22,7 +22,7 @@ const hits = (dirs: string[], re: RegExp): string[] =>
 const MESSAGES = "error|errorSpec|notice|noticeOk|deployError";
 
 describe("no message rides the address", () => {
-  test("no address is built carrying a message (AC-1)", () => {
+  test("no address is built carrying a message", () => {
     const literal = new RegExp(`[?&"'\`](?:${MESSAGES})=`);
     const set = new RegExp(`\\.set\\(\\s*["'](?:${MESSAGES})["']`);
     expect(hits(["src/serve", "src/specs-client"], literal)).toEqual([]);
@@ -33,7 +33,7 @@ describe("no message rides the address", () => {
   // scan for the names is a scan of every read: a read by a key held in a
   // variable, a walk over every parameter or a second parse of the query
   // would slip past it, and is refused on its own.
-  test("no page reads a message from its address (AC-2)", () => {
+  test("no page reads a message from its address", () => {
     const named = new RegExp(`\\.get\\(\\s*["'\`](?:${MESSAGES})["'\`]\\s*\\)`);
     expect(hits(["src/serve", "src/render"], named)).toEqual([]);
     expect(hits(["src/render"], new RegExp(`[?&"'\`](?:${MESSAGES})=`))).toEqual([]);
@@ -44,13 +44,13 @@ describe("no message rides the address", () => {
 });
 
 describe("no page reloads itself by a meta refresh", () => {
-  test("no source writes http-equiv=\"refresh\" (AC-5)", () => {
+  test("no source writes http-equiv=\"refresh\"", () => {
     expect(hits(["src"], /http-equiv=\\?["']?refresh/i)).toEqual([]);
   });
 });
 
 describe("a form's submit is the page script's alone", () => {
-  test("no head script the shell inlines listens for submit, but the unsaved-changes guard (AC-4)", () => {
+  test("no head script the shell inlines listens for submit, but the unsaved-changes guard", () => {
     const shell = join(ROOT, "src", "render", "ui", "shell.ts");
     const inlined = [...readFileSync(shell, "utf8").matchAll(/transpile\("([^"]+)"\)/g)].map((m) =>
       join(dirname(shell), m[1]!),

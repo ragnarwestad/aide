@@ -1,12 +1,12 @@
 // Save and Cancel enable together the instant a field inside the form
 // changes, and disable together again once Cancel restores the form to
-// what it held when the page was opened (spec 391).
+// what it held when the page was opened.
 //
 // Rendered-enabled-then-disabled-by-script, the same order
 // `bindTypedConfirm` (`specs-client/forms.ts`) already uses for the
 // opposite case: a button the server rendered `disabled` could never be
 // enabled again without a script, and Save has to keep working with
-// scripting off (REQ-7). Cancel renders `disabled` from the start —
+// scripting off. Cancel renders `disabled` from the start —
 // nothing asks it to work without this script.
 //
 // Keyed on `form.specform` — the only class the Checks tab's tick form
@@ -28,7 +28,7 @@
 (() => {
   // Every form on the page that carries the pair, not just the one:
   // the spec page has the Checks/document form AND the tracking form
-  // above the tabs, and they save different things (spec 394).
+  // above the tabs, and they save different things.
   const bindAll = (): void => {
     for (const prefix of ["specform", "settingsform"]) bind(prefix);
   };

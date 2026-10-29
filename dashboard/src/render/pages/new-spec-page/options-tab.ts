@@ -45,7 +45,7 @@ export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardV
 // One row per phase — create, analyze, implement, archive — each with a
 // tick, an AI choice and a model choice, drawn by the same
 // `aiPicker`/`modelPicker`/`phaseCaptionCells` the Specs list's own spec
-// row uses (spec 342): the control this page needs already exists as
+// row uses: the control this page needs already exists as
 // parts, and the task is reusing them, not writing a second version for
 // a spec that does not exist yet.
 //
@@ -59,7 +59,7 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
     modelChoices: opts.modelChoices,
     defaultModels: opts.defaultModels,
     // No `pendingModels`: a spec that does not exist yet has no
-    // `specFolder` to key a pending pick on (REQ-6) — the `pending`
+    // `specFolder` to key a pending pick on — the `pending`
     // tier of `resolveChosenModel` then falls through to `configured`
     // every time, the same answer `create`'s own picker already gave.
   };
@@ -137,13 +137,11 @@ export function optionsGroup(v: OptionsGroupValues): string {
   );
 }
 
-// Spec 394 (REQ-2): the acceptance switch, drawn separately from the
+// The acceptance switch, drawn separately from the
 // phase table's own rows — neither is about one phase, both are about
-// the spec as a whole. Spec 386's original placement (a row inside
-// `newSpecPhaseTable`) split this pair across the phase table. Spec 426
-// then gave the switch its own line, above "Depends on" — spec 394's
-// REQ-3 had put it beside that field instead, in one row, which pushed
-// the chip up against "Depends on"'s own "(?)" popover. It now sits on
+// the spec as a whole. A row inside `newSpecPhaseTable` would split this
+// pair across the phase table, and beside "Depends on" in one row the
+// chip was pushed up against that field's own "(?)" popover. It sits on
 // the acceptance criteria row under the project picker (`newSpecForm`,
 // below), and its popover opens with the board's default rule.
 //
@@ -184,7 +182,7 @@ function acceptanceField(v: OptionsGroupValues): string {
   );
 }
 
-// Spec 433 (AC-4/AC-5): whether create spends an AI session at all.
+// Whether create spends an AI session at all.
 // Checked by default, like acceptanceField above and for the same
 // reason — unticking it is a deliberate action, never a default a reader
 // stumbles into. Ticked, create runs exactly as it always has: the only

@@ -3,7 +3,7 @@
 #
 # A completed `implement` writes `ac-coverage.json` into the spec's
 # folder: for every AC-n id in `1-description.md`, the tests whose names
-# carry it. Only the lines the branch ADDED to test files count — `AC-1`
+# carry it. Only the lines the branch ADDED to test files count — `AC-n`
 # is in the tests of many specs, and a file this step only touched still
 # holds theirs. The dashboard shows the names on the row the user ticks,
 # and an id with none as a requirement no test names.
@@ -30,7 +30,7 @@ ac_coverage_added_lines() {   # $1: worktree  $2: base ref
   # A worktree's links (`node_modules`, `.venv`) are untracked links to
   # directories, not files: skipped, and never the loop's last word —
   # under the runner's pipefail a failing test here threw the whole
-  # record away (498, 2026-09-19).
+  # record away.
   git -C "$wt" ls-files --others --exclude-standard 2>/dev/null \
     | while IFS= read -r f; do
         if [ -f "$wt/$f" ] && [ ! -L "$wt/$f" ]; then
@@ -43,7 +43,7 @@ ac_coverage_added_lines() {   # $1: worktree  $2: base ref
 # A line that starts a test: `test(`, `it(` and their `.each`/`.skip`
 # forms, a Python `def test_…`, a Go `func Test…`. A `describe(` is a
 # group of tests, not one, and a comment or any other line naming an AC
-# is not a test, even in a test file — 501's row read "Tests: // The
+# is not a test, even in a test file — a row once read "Tests: // The
 # control on the Notifications tab".
 ac_coverage_is_test_line() {   # $1: the line
   printf '%s\n' "$1" | grep -qE '^[[:space:]]*((test|it)(\.[A-Za-z]+)*[[:space:]]*\(|(async[[:space:]]+)?def[[:space:]]+test|func[[:space:]]+Test)'

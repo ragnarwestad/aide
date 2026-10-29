@@ -1,4 +1,4 @@
-// Criterion 4 (spec 80): the Bun server accepts runs and serves them as
+// The Bun server accepts runs and serves them as
 // JSON through the generator's layout; pages carry a Live entry.
 // Path-traversal refusal is `serveStatic`'s own guard, covered where it
 // is actually still called — `/schedule-output/`
@@ -35,7 +35,7 @@ const lanAddress = (): string | undefined =>
     .find((i) => i && i.family === "IPv4" && !i.internal)?.address;
 
 describe("the address the server listens on", () => {
-  test("with no bindHost it listens on 127.0.0.1 only (AC-1)", async () => {
+  test("with no bindHost it listens on 127.0.0.1 only", async () => {
     expect(server.hostname).toBe("127.0.0.1");
     const viaName = await fetch(`http://localhost:${server.port}/projects.html`, { redirect: "manual" });
     expect(viaName.status).toBe(302);
@@ -43,7 +43,7 @@ describe("the address the server listens on", () => {
     if (lan) await expect(fetch(`http://${lan}:${server.port}/projects.html`, { redirect: "manual" })).rejects.toThrow();
   });
 
-  test("a bindHost given is used as given (AC-2)", async () => {
+  test("a bindHost given is used as given", async () => {
     const wide = createServer({ port: 0, mirrorPath: join(dir, "wide-runs.json"), bindHost: "0.0.0.0" });
     try {
       expect(wide.hostname).toBe("0.0.0.0");
@@ -58,10 +58,10 @@ describe("the address the server listens on", () => {
   });
 });
 
-// --- spec 530: /projects.html is a redirect, answered by the server, ---
-// with no site directory involved at all (AC-5) ---------------------------
+// --- /projects.html is a redirect, answered by the server, ---
+// with no site directory involved at all ---------------------------
 describe("GET /projects.html", () => {
-  test("redirects to /projects, keeping the query string (AC-1)", async () => {
+  test("redirects to /projects, keeping the query string", async () => {
     const res = await fetch(`${base}/projects.html?foo=bar`, { redirect: "manual" });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/projects?foo=bar");
@@ -94,7 +94,7 @@ describe("POST /api/aide-run", () => {
   });
 });
 
-describe("TDD phases in /api/aide-runs (criterion 10, spec 81)", () => {
+describe("TDD phases in /api/aide-runs", () => {
   test("a phase reported from inside an implement run is stored and shown", async () => {
     const res = await fetch(`${base}/api/aide-run`, {
       method: "POST",
@@ -111,17 +111,17 @@ describe("TDD phases in /api/aide-runs (criterion 10, spec 81)", () => {
   });
 });
 
-// --- spec 115: /projects is a served page ------------------------------------
+// --- /projects is a served page ------------------------------------
 //
 // The panel that adds and removes projects needs a token behind it, and
 // a generated file has no server to check one against. So the overview
 // became a route: same listing, same rows, plus the two controls — and
 // the same guard `/` has, for the same reason.
-describe("GET /projects (spec 115)", () => {
+describe("GET /projects", () => {
   const harness = queueHarness("aide-projects-route-");
   afterEach(() => harness.cleanup());
 
-  test("the Add page is served, and Remove project has no page of its own (AC-3)", async () => {
+  test("the Add page is served, and Remove project has no page of its own", async () => {
     const { base } = harness.start();
     const add = await fetch(`${base}/projects/new`);
     expect(add.status).toBe(200);
@@ -132,7 +132,7 @@ describe("GET /projects (spec 115)", () => {
   // With no --root there is no project set to list, and an empty listing
   // would read as "no projects" rather than "this server was not told
   // where they are" — so the page itself says so, in a notice, instead
-  // of bouncing to a file that no longer exists (spec 530).
+  // of bouncing to a file that no longer exists.
   test("without --root it renders the ordinary page with a notice", async () => {
     const { base } = harness.start({ extra: { projectRoot: undefined } });
     const res = await fetch(`${base}/projects`, { redirect: "manual" });
@@ -141,7 +141,7 @@ describe("GET /projects (spec 115)", () => {
     expect(html).toContain("no project root");
   });
 
-  // And its own Add page redirects to /projects too (spec 530), not to
+  // And its own Add page redirects to /projects too, not to
   // the removed file: nothing to add a project TO, but the page that
   // explains why still exists.
   test("without --root, /projects/new redirects to /projects", async () => {
@@ -152,15 +152,15 @@ describe("GET /projects (spec 115)", () => {
   });
 });
 
-// --- spec 122: which folder a `Depends on:` entry means ----------------------
+// --- Which folder a `Depends on:` entry means ----------------------
 //
 // The scheduling gate needs the same answer `aide-run-spec`'s own
 // `resolve_dependency_folder` gives, in TypeScript: exact folder first,
 // then an `<id>-` prefix, live specs before archived ones. A second
 // reader of one rule, so it gets its own tests — the cases below mirror
 // the bash suite's one for one.
-describe("parseArgs (spec 412)", () => {
-  // Spec 424: which spec this process is a test board for.
+describe("parseArgs", () => {
+  // Which spec this process is a test board for.
   test("--test-board sets testBoardSpec", () => {
     expect(parseArgs(["--test-board", "424-headeren-sier-hvilket-board"]).testBoardSpec).toBe(
       "424-headeren-sier-hvilket-board",
@@ -172,7 +172,7 @@ describe("parseArgs (spec 412)", () => {
   });
 });
 
-describe("resolveDependencyFolder (spec 122)", () => {
+describe("resolveDependencyFolder", () => {
   const spec = (folder: string, archived = false) => ({
     folder,
     dir: `/specs/${folder}`,

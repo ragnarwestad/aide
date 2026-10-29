@@ -9,7 +9,7 @@ import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import type { QueueRowView } from "./types.ts";
 
 // Every state is a single catalogue key — added here rather than left
-// as `r.state` (spec 482), which was the raw English enum value in
+// as `r.state`, which was the raw English enum value in
 // every language.
 const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, TranslationKey> = {
   queued: "state.queued",
@@ -29,7 +29,7 @@ export function stateWord(r: QueueRowView, lang: Language = "en"): string {
   return r.state === "stopped" ? t(lang, "state.stopped") : t(lang, STATE_LABEL_KEYS[r.state]);
 }
 
-/** How long, in words (spec 199). "45s", "4m12s", "1h04m" — the unit
+/** How long, in words. "45s", "4m12s", "1h04m" — the unit
  *  above the one being read is always there, so two figures beside each
  *  other compare without anyone counting digits.
  *
@@ -46,8 +46,8 @@ export function stateWord(r: QueueRowView, lang: Language = "en"): string {
  *  change the other, or a phase changes its wording the first time the
  *  clock ticks over the figure the server drew. */
 export function durationLabel(ms: number): string {
-  // A genuinely positive span never rounds down to "0s" (spec 410,
-  // REQ-5) — that reads as "nothing recorded", indistinguishable from a
+  // A genuinely positive span never rounds down to "0s" —
+  // that reads as "nothing recorded", indistinguishable from a
   // phase the queue never measured at all.
   const secs = ms > 0 ? Math.max(1, Math.round(ms / 1000)) : 0;
   if (secs < 60) return `${secs}s`;
@@ -90,7 +90,7 @@ export function stateChip(r: QueueRowView, lang: Language = "en"): string {
   // beside it is for.
   const b = badge(BADGE_VARIANT[r.state], capitalizeFirst(stateWord(r, lang)));
   // Why it stopped is the popover's, not the badge's — and a stop with
-  // no sentence of its own gets no popover at all (spec 454).
+  // no sentence of its own gets no popover at all.
   const detail = r.state === "stopped" ? renderSentence(lang, r.error) : undefined;
   return detail ? b + helpPopover("why this stopped", esc(detail)) : b;
 }

@@ -1,10 +1,10 @@
-// The board registry (spec 388): a test board's own store and the
+// The board registry: a test board's own store and the
 // context every board lifecycle function (start, recover, sweep) reads.
 // Split out of serve.ts (split serve.ts by theme, restructuring
 // createServer into staged setup functions to get it under 500 lines).
 //
 // Built before `land`, which needs `testServersCtx` to stop a spec's board
-// once its archive actually lands (REQ-7) — the same ordering
+// once its archive actually lands — the same ordering
 // `createServer` already followed inline.
 
 import { existsSync, mkdtempSync } from "node:fs";
@@ -23,7 +23,7 @@ export interface TestServersSetupInputs {
   testServersPath?: string;
   machineryProjectDir: (project: string) => string;
   gitRun: GitRunner;
-  /** A capability check, never a hardcoded project name (REQ-1): the
+  /** A capability check, never a hardcoded project name: the
    *  round only ever makes sense for a project whose own checkout
    *  carries dashboard code, which in practice is `aide` alone,
    *  self-hosting. Overridable, like `testServersSpawn`: no test should
@@ -45,7 +45,7 @@ export interface TestServersSetupInputs {
    *  real `tailscale` binary. */
   testServersPortExposed?: (port: number) => Promise<boolean | undefined>;
   /** The served board's own port, reserved before probing for a free
-   *  one (REQ-10) — read off `state.server` once it exists, this
+   *  one — read off `state.server` once it exists, this
    *  fallback until then. */
   port: number;
 }
@@ -125,7 +125,7 @@ export function setupTestServers(state: ServerState, inputs: TestServersSetupInp
       }),
     now: () => new Date().toISOString(),
     makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-")),
-    // REQ-10: the served board's own port, plus every OTHER tracked
+    // The served board's own port, plus every OTHER tracked
     // board's port — a `failed` entry no longer holds anything.
     reservedPorts: () => [
       state.server?.port ?? inputs.port,

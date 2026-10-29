@@ -1,14 +1,13 @@
-// Every message the board can show from the four producers REQ-1 names
-// (spec 380): the runner's hold-backs and caps, the landing's refusals,
+// Every message the board can show from the four producers:
+// the runner's hold-backs and caps, the landing's refusals,
 // the landing's own test run, and the refusals a tab answers a press
 // with. One entry per key, English and Norwegian together, so this file
-// alone is the list REQ-5 asks for.
+// alone is the list of every message.
 //
 // `en` is copied byte-for-byte from the producer's own current string —
 // this spec moves WHERE the words live, never what they say in
 // English. `nb` is written fresh, in ordinary Norwegian: `push`/`origin`
 // keep their current spelling as loanwords, and `merge`/`spec` join them
-// (spec 399).
 
 export interface MessageEntry {
   en: string;
@@ -219,7 +218,7 @@ export const MESSAGES = {
     resolve: "Press {button} again; the step ends only on a green run.",
   },
   // A schedule job never starts while anything else for its project is
-  // running or merging (spec 558, AC-6) — the same shape as
+  // running or merging — the same shape as
   // `runner.archiveRunning` above, but one-directional: only the
   // schedule job itself ever waits for this.
   "runner.scheduleWaitsOnProject": {
@@ -567,7 +566,7 @@ export const MESSAGES = {
   // Which step's landing this was, in front of what went wrong. The
   // badge beside the row names the step the job is on NOW, which is not
   // the same thing: a landing failure from an earlier step stands on the
-  // row while a later step runs (spec 327).
+  // row while a later step runs.
   "landing.stepFailed": {
     en: "{step} merge failed: {message}",
     nb: "merge av {step} feilet: {message}",
@@ -595,8 +594,8 @@ export const MESSAGES = {
     resolve: "delete it by hand",
   },
   // The same, with git's own reason in parentheses. `mergeBranchIntoDefault`
-  // keeps its stderr in `detail` and out of the sentence (spec 352,
-  // REQ-5); `landBranch` — which is what writes the JOB's own record —
+  // keeps its stderr in `detail` and out of the sentence;
+  // `landBranch` — which is what writes the JOB's own record —
   // puts the two together, so the record still says why the delete was
   // refused.
   "landing.branchDeleteFailedWhy": {

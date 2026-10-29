@@ -3,7 +3,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { specHead, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 
-/** The message a job carries, as text. Since spec 380 a job stores
+/** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it.
  *  These tests assert on what a reader would see, so they compose it
  *  the same way, in English. */
@@ -23,11 +23,11 @@ afterEach(() => {
   cleanupOwnDirs();
 });
 
-// --- spec 149: every step lands the work it produced -------------------------
+// --- Every step lands the work it produced -------------------------
 //
 // Split out of stopped-and-every-step.test.ts by theme: the basic
-// per-step landing rules. The origin re-check (spec 193) and the
-// pull-request mode (spec 220) are their own sibling files.
+// per-step landing rules. The origin re-check and the
+// pull-request mode are their own sibling files.
 //
 // Every step that touched only a repo it is safe to merge lands ITSELF,
 // the moment it finishes — with no press and no browser attached. The
@@ -44,7 +44,7 @@ afterEach(() => {
 // outcome (the code branch moved during implement, not during archive)
 // and the one that has to install afterwards, exactly as the Merge
 // button did.
-describe("every step lands its own work (spec 149)", () => {
+describe("every step lands its own work", () => {
   const serverWithHarness = (
     dir: string,
     paths: { root: string },
@@ -52,7 +52,7 @@ describe("every step lands its own work (spec 149)", () => {
     extra: Parameters<typeof serverWith>[4] = {},
   ) => serverWith(harness, dir, paths, git, extra);
 
-  // Criteria 1 and 2. The argument that made `create` and `archive` land
+  // The argument that made `create` and `archive` land
   // themselves holds word for word here: analyze writes markdown in the
   // specs repo and nothing else, so there is no diff for a person to
   // weigh and nothing that reaches the serving host.
@@ -76,7 +76,7 @@ describe("every step lands its own work (spec 149)", () => {
     },
   );
 
-  // Criterion 3. The one step that deliberately does not land. The code
+  // The one step that deliberately does not land. The code
   // stays on `aide/<spec>`, which is where a person tests it — by
   // leaving `archive` unticked. The worktree is gone when the run ends,
   // so the branch on origin is what remains.
@@ -99,7 +99,7 @@ describe("every step lands its own work (spec 149)", () => {
     expect(existsSync(marker)).toBe(false);
   });
 
-  // Criterion 4. The one landing that sends CODE to a default branch —
+  // The one landing that sends CODE to a default branch —
   // and the reason it cannot read its own outcome alone. The code branch
   // moved during IMPLEMENT; archive's own run may touch the project
   // checkout without moving its HEAD at all, so the project root need
@@ -137,8 +137,8 @@ describe("every step lands its own work (spec 149)", () => {
     expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
     // Merged is not deployed: for a tool that lives in `~/.local/bin`,
     // the default branch moving changes nothing on the machine until the
-    // install runs. That is spec 92's bug, and the Merge button ran the
-    // install for exactly this reason.
+    // install runs. So the landing runs the
+    // install itself.
     for (let i = 0; i < 40 && !existsSync(marker); i++) await Bun.sleep(25);
     expect(existsSync(marker)).toBe(true);
   });
@@ -192,7 +192,7 @@ describe("every step lands its own work (spec 149)", () => {
     // Plan first, code last: the specs merge lands the folder move, and
     // only then does the code merge conflict. So the spec IS archived on
     // disk by the time the row is asked for — which is the whole reason
-    // the row needed spec 193 to survive at all.
+    // the row needed the open-branch exception to survive at all.
     const git = gitFor({ conflicting: [paths.project], openOn: [paths.project] });
     const { base } = serverWithHarness(dir, paths, git);
     const marker = installs(paths.project);
@@ -216,7 +216,7 @@ describe("every step lands its own work (spec 149)", () => {
     expect(sentence(failed.error)).toContain("conflict");
     expect(failed.errorReason).toBe("conflict");
     expect(failed.landing).toBeFalsy();
-    // REQ-2 (spec 327): the message names the failing step.
+    // The message names the failing step.
     expect(sentence(failed.landingError).startsWith("archive merge failed:")).toBe(true);
     // Nothing half-merged, and nothing deployed from a merge that never
     // happened.
@@ -227,12 +227,12 @@ describe("every step lands its own work (spec 149)", () => {
     expect(specHead(html, SPEC)).not.toBe("");
   }, 20000);
 
-  // REQ-1, REQ-3, REQ-7 (spec 327). `analyze`'s landing fails to merge
+  // `analyze`'s landing fails to merge
   // the specs repo; `close` runs next and its OWN landing succeeds
   // (a different repo). A later step's success must not erase the
   // earlier failure — clearing it belongs to whatever actually
   // resolves it, not to an unrelated step's own landing.
-  test("an earlier step's landing failure survives a later step's successful landing (spec 327)", async () => {
+  test("an earlier step's landing failure survives a later step's successful landing", async () => {
     const dir = own("aide-327-survive-");
     const paths = repos(dir);
     const git = gitFor({ conflicting: [paths.specs] });
@@ -270,14 +270,12 @@ describe("every step lands its own work (spec 149)", () => {
     expect(sentence(done.landingError)).toContain("analyze merge failed");
   }, 20000);
 
-  // Criterion 6. A middle-of-the-workflow step lands what its OWN run
+  // A middle-of-the-workflow step lands what its OWN run
   // reports and nothing else; reading `branchesFor` history instead
   // would let a step that touched only the specs repo drag an
   // unarchived implement's code onto the default branch as a side
-  // effect. (`resolve` was the step this was written for, until spec
-  // 171 retired it, and `review-plan` was the other, until spec 181
-  // folded it into analyze; the rule it proves belongs to
-  // `landStepBranch`, which still lands `analyze`.)
+  // effect. (The rule it proves belongs to
+  // `landStepBranch`, which lands `analyze`.)
   // Where the specs live inside the code repo (this fixture), analyze
   // lands the spec's own folder from that repo and nothing else of the
   // branch: code reaches main through archive alone, so nothing is
@@ -300,8 +298,8 @@ describe("every step lands its own work (spec 149)", () => {
     expect(existsSync(marker)).toBe(false);
   });
 
-  // The other half of criterion 6, and the whole of the risk this spec
-  // accepted knowingly: a step that touched only the specs repo must
+  // The other half, and the whole of the risk accepted
+  // knowingly: a step that touched only the specs repo must
   // not reach back into the queue's history and land the code an
   // earlier implement left open.
   test("analyze does not land an unarchived implement's code branch", async () => {
@@ -325,12 +323,12 @@ describe("every step lands its own work (spec 149)", () => {
     expect(merges(git.calls, paths.project)).toEqual([]);
   });
 
-  // Criterion 7, as spec 171 leaves it. The reason is still stored on
+  // The reason is stored on
   // the job and still read from there on any later request — a landing
   // has no browser to redirect a query string to. What is gone is the
   // control it used to draw: `archive` resolves a conflict itself now,
   // so a conflict that reaches the page is one no press would settle.
-  test("a stored conflict draws no control on a fresh request (spec 171)", async () => {
+  test("a stored conflict draws no control on a fresh request", async () => {
     const dir = own("aide-171-conflict-offer-");
     const paths = repos(dir);
     const git = gitFor({ conflicting: [paths.specs] });
@@ -353,7 +351,7 @@ describe("every step lands its own work (spec 149)", () => {
     expect(specControls(html, SPEC)).not.toBe("");
   });
 
-  // Criterion 8. Both routes are gone, not merely unreachable from the
+  // Both routes are gone, not merely unreachable from the
   // page: the actions they offered are what this whole spec removes.
   test.each(["merge", "approve"])("POST /api/queue/<id>/%s is not a route any more", async (verb) => {
     const dir = own(`aide-149-route-${verb}-`);

@@ -1,11 +1,11 @@
-// Spec 302, REQ-2: `specPageView`'s Checks section reads `rows`, `phase`
+// `specPageView`'s Checks section reads `rows`, `phase`
 // and `acceptancePhase` from ONE `parseStatus(checksText)` call, so all
 // three answer for the SAME content — branch-aware when the spec has its
-// own open `aide/<folder>` branch, disk otherwise (spec 298) — whatever
+// own open `aide/<folder>` branch, disk otherwise — whatever
 // tab the request happens to be for.
 //
-// A regression test for behavior that already works (spec 298's own
-// branch-aware read), not a new one: this suite is GREEN before REQ-2's
+// A regression test for behavior that already works (the
+// branch-aware read), not a new one: this suite is GREEN before the
 // refactor lands and stays GREEN after, proving the refactor did not
 // silently change which content the tickable rows come from, or break
 // the Description tab's own async work now that `target` is built
@@ -32,7 +32,7 @@ const statusWithOpenRow = (task: string): string =>
 
 /** Real git for everything except the branch-read calls
  *  `resolveOpenBranchTarget`/`readStatusFromBranch` make — reproduced
- *  from `committed-history-freshness.test.ts`'s "spec 298" suite, whose
+ *  from `committed-history-freshness.test.ts`'s branch-reading suite, whose
  *  own `branchReadingGitRun` is local to that file's `describe` block
  *  and not exported. */
 const branchReadingGitRun = (opts: { open: boolean; branchText?: string }): GitRunner => {
@@ -77,7 +77,7 @@ describe("specPageView's Checks tab: rows and phase agree, from one parse", () =
       gitRun: branchReadingGitRun({ open: true, branchText: statusWithOpenRow("write branch-only test") }),
     });
     // The disk copy is behind: this row sits only on the branch until
-    // archive lands it (spec 298).
+    // archive lands it.
     writeFileSync(join(specDir(dir), "4-status.md"), statusWithOpenRow("write disk-only test"));
     const html = await (await fetch(`${base}${PATH}?tab=status`)).text();
     expect(isTickable(html, "write branch-only test")).toBe(true);
@@ -93,7 +93,7 @@ describe("specPageView's Checks tab: rows and phase agree, from one parse", () =
     expect(isTickable(html, "write disk-only test")).toBe(true);
   });
 
-  // Regression guard for REQ-2's own reordering: `target` is now built
+  // Regression guard for the reordering: `target` is now built
   // BEFORE `formDir`/`descriptionCommit`/`descriptionText`, all of which
   // the Description tab alone computes. A request for that tab must
   // still succeed, and a later request for the Checks tab on the same

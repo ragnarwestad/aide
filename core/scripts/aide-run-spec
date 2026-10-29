@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # aide-run-spec — run ONE aide workflow step for ONE spec headless, with
-# guards and caps (spec 81 in aide-specs).
+# guards and caps.
 #
 # The guards are the product. An unguarded `claude -p` is one line and
 # needs no script; what needs writing down is everything this refuses to
@@ -12,25 +12,25 @@
 #    changedFiles}], error}
 #
 # A `create` step adds one field: `specFolder`, the spec the run turned
-# out to make (spec 93). Present only when exactly one new folder
+# out to make. Present only when exactly one new folder
 # appeared under the specs root — absent means the run would have had to
 # guess which, and it did not.
 #
 # A refusal adds `errorReason` when the reason is one a machine acts on
-# (spec 153): `"conflict"` says the branch would not merge with the
+# `"conflict"` says the branch would not merge with the
 # default branch, and the dashboard row shows that as the failure's own
-# text. Since spec 171 it is not a control: `archive` resolves the
+# text. It is not a control: `archive` resolves the
 # conflict itself, so a conflict that reaches a reader is one no machine
 # could settle. Same rule as `specFolder` — the key is ABSENT, never null
 # or empty, for every refusal with nothing to say.
 #
 # An `archive` step adds `note` when the spec it was pointed at turned
-# out to be finished already (spec 211): the folder is under `archive/`
+# out to be finished already: the folder is under `archive/`
 # and its branch is gone from every root's origin, so there is nothing to
 # archive. Success with nothing to do, not a refusal — same rule as
 # `specFolder`, the key is ABSENT for every other outcome.
 #
-# A measured run adds `tokens` (spec 118): {input, output, cacheRead,
+# A measured run adds `tokens`: {input, output, cacheRead,
 # cacheCreation, total}, read off claude's own usage block. Same rule as
 # `specFolder` — absent, never zeroed, when there was nothing to
 # measure. Unlike the cost, it is never assumed: a killed run reports a
@@ -87,7 +87,7 @@
 # dashboard/docs/the-runner.md, "The run log".
 #
 # Every run works in a `git worktree` of its own, one per repo it touches
-# (spec 91). The real checkouts are only ever put back ON their default
+# The real checkouts are only ever put back ON their default
 # branch and read; nothing switches them to a spec branch. That is what
 # lets two runs go at once against the same repositories — and it is also
 # why the dashboard's spec list stops describing whatever branch a
@@ -169,10 +169,10 @@ rm -f "$0"
 [ -f "$SCRIPT_DIR/lib/tracking-info.sh" ] && source "$SCRIPT_DIR/lib/tracking-info.sh"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/lib/status-progress.sh" ] && source "$SCRIPT_DIR/lib/status-progress.sh"
-# spec 355: the spec's state file, derived from the prose this script
+# The spec's state file, derived from the prose this script
 # rewrites below. Guarded like status-progress.sh above.
 [ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
-# spec 356: the one table and function pair that decide and record a
+# The one table and function pair that decide and record a
 # spec's phase moves — pure phase order only. The dependency gate below
 # (DEPENDENCY_GATED_STEPS) stays a standalone check, same as archive's
 # acceptance-criteria/test-record gates in aide-archive-spec: it runs for

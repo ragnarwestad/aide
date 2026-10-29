@@ -1,4 +1,4 @@
-// Spec 372, REQ-1/REQ-3: the held-back branch in specNotice() reads the
+// The held-back branch in specNotice() reads the
 // job's own errorReason field, never a text-prefix guess on lead.error
 // — the f3cd5b7 patch this spec replaces taught the panel to recognise
 // ONE producer's "held back:" prefix, which left every other waiting-
@@ -44,7 +44,7 @@ describe("specNotice's held-back branch reads errorReason, not a text prefix", (
   });
 });
 
-// Spec 389: three of the six held-back reasons resolve on their own —
+// Three of the six held-back reasons resolve on their own —
 // nothing for the reader to act on — and take the info kind instead of
 // the waiting kind's warning triangle. The other three still wait on a
 // person and keep the triangle.
@@ -60,11 +60,11 @@ describe("specNotice's held-back branch tells self-resolving reasons from ones a
   });
 });
 
-// Spec 467: once every Acceptance row is ticked, the held-back sentence
+// Once every Acceptance row is ticked, the held-back sentence
 // goes away and nothing told the reader the next move was theirs —
 // pressing Archive. `readyToArchive` is the lowest-priority case, checked
 // last, so every existing producer here still outranks it.
-describe("specNotice's readyToArchive case (spec 467)", () => {
+describe("specNotice's readyToArchive case", () => {
   test("readyToArchive alone renders the ready-to-archive sentence", () => {
     const notice = specNotice(undefined, undefined, undefined, [], "en", true);
     expect(notice).toEqual({ variant: "waiting", text: "All checks ticked — press Archive to merge it" });
@@ -80,7 +80,7 @@ describe("specNotice's readyToArchive case (spec 467)", () => {
 // An analyze stopped on its acceptance criteria waits on the person who
 // puts the description right: amber, with the faults the runner named.
 describe("specNotice for an analyze stopped on its acceptance criteria", () => {
-  test("renders the job's sentence as a waiting message (AC-5)", () => {
+  test("renders the job's sentence as a waiting message", () => {
     const notice = specNotice(
       lead({
         steps: ["analyze"],
@@ -102,7 +102,7 @@ describe("specNotice for an analyze stopped on its acceptance criteria", () => {
 // who adds those specs to Depends on, or presses Analyze again: amber, with
 // the sentence the runner worded.
 describe("specNotice for an analyze stopped on files another open spec changes", () => {
-  test("renders the job's sentence as a waiting message (AC-3)", () => {
+  test("renders the job's sentence as a waiting message", () => {
     const sentence = "Analyze stopped: other open specs change the same files — 603-b: x.ts, y.ts; 604-c: z.ts.";
     const notice = specNotice(
       lead({ steps: ["analyze"], state: "stopped", stopReason: "shared-files", error: sentence }),
@@ -116,7 +116,7 @@ describe("specNotice for an analyze stopped on files another open spec changes",
 // A model the provider had no room for waits on the person who presses the
 // step again or picks another model: amber, like the badge.
 describe("specNotice for a step stopped because the model is at capacity", () => {
-  test("renders the job's sentence as a waiting message, not failed (AC-3)", () => {
+  test("renders the job's sentence as a waiting message, not failed", () => {
     const sentence = "Analyze stopped: sonnet is at capacity right now — press Analyze again, or choose another model for this step";
     const notice = specNotice(
       lead({ steps: ["analyze"], state: "stopped", stopReason: "model-at-capacity", error: sentence }),

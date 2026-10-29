@@ -1,4 +1,4 @@
-// The two POST routes a device talks to (AC-1, AC-6), through a real
+// The two POST routes a device talks to, through a real
 // server: what they accept, what they refuse, and that the request
 // guard in front of every queue route covers them too.
 import { afterEach, describe, expect, test } from "bun:test";

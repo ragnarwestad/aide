@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { capitalizeFirst, errorSentence } from "../../src/format/error-sentence.ts";
 
-// spec 352, Step 0: the shared builder every render-facing sentence is
+// The shared builder every render-facing sentence is
 // migrated to call. Its whole job is refusing to compose a sentence
 // with no resolution attached.
 
@@ -34,7 +34,7 @@ describe("errorSentence", () => {
   });
 });
 
-// spec 442: the finished sentence's own first letter, capitalized once
+// The finished sentence's own first letter, capitalized once
 // at render time — never the message catalog's, which stays lowercase
 // because its entries are reused both standalone and mid-sentence.
 describe("capitalizeFirst", () => {

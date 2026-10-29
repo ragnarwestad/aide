@@ -3,10 +3,10 @@
 // archived-specs-reopen-and-landing.test.ts, archived-specs-search.test.ts
 // and archived-specs-misc.test.ts (split out of archived-specs.test.ts).
 //
-// Spec 221: an archived spec is a row on the Specs list.
+// An archived spec is a row on the Specs list.
 //
 // This file was `archive-page.test.ts` — the suite for `/archive`, the
-// page specs 163 and 170 built. That page is gone: everything it could
+// page that used to list them. That page is gone: everything it could
 // do is done from `/` now, so its coverage moved here rather than being
 // dropped. The date fallbacks, the search's three fields, the whole
 // description behind a two-line clamp and the "not landed" mark are the
@@ -46,21 +46,21 @@ export const UNDATED = "31-a-folder-copied-in";
  *  the two projects have to interleave for it to come out on top. */
 export const OTHER = "05-the-other-project";
 
-/** `steps` is spec 224's addition: an archived row's phase lines say
+/** `steps` is what an archived row's phase lines say
  *  what this line claims, and nothing else — the git-verified answer a
  *  live row shows is never warmed for an archived spec
  *  (`refreshSpecCaches`), so the file's own claim is the only source
  *  such a row can afford. Absent writes no line at all, which is the
  *  empty-done case.
  *
- *  `models` is spec 244's addition: `aide-run-spec` has written one
- *  `- **Model (<step>):**` line per completed step since spec 217, and
+ *  `models`: `aide-run-spec` writes one
+ *  `- **Model (<step>):**` line per completed step, and
  *  this is where a fixture can say a step recorded one. Absent from the
  *  map writes no line for that step, exactly as `steps` absent writes
  *  none for `done`.
  *
- *  Spec 273 dropped the `ms` parameter this used to take: the archive
- *  no longer writes a `Time spent (ms):` bullet at all, so a fixture
+ *  There is no `ms` parameter: the archive
+ *  writes no `Time spent (ms):` bullet at all, so a fixture
  *  wanting a duration on the row gives `analysis: outcome({ timeSpent:
  *  ... })` instead — the per-phase file `readerGroup()` actually sums. */
 export const stamp = (date: string, steps?: string[], models?: Record<string, string>) =>
@@ -76,16 +76,16 @@ export const stamp = (date: string, steps?: string[], models?: Record<string, st
  *  other half of the same assertion. */
 export const STAMPED_STEPS = ["create", "analyze"];
 export const STAMPED_NOT_RUN = ["implement", "archive"];
-/** What STAMPED's `4-status.md` records analyze ran on (spec 244) — the
+/** What STAMPED's `4-status.md` records analyze ran on — the
  *  one step this fixture gives a `Model (<step>):` line, so the other
- *  three lines have the configured default to show instead (spec 265).
+ *  three lines have the configured default to show instead.
  *  Bare "sonnet" so the recorded value lands on a real, configured
  *  choice — `phaseSubRows` splits the "<tool> " prefix off before either
  *  picker ever sees the rest. */
 export const STAMPED_MODEL = "claude sonnet";
 export const noStamp = "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n";
 
-/** One phase's own outcome record (spec 245's write format — spec 247's
+/** One phase's own outcome record (its write format and its
  *  read side): a Tracking-info block inside that phase's OWN file, never
  *  `4-status.md`. Only the lines a fixture actually wants, mirroring how
  *  `stamp()` above only writes what it is given. */
@@ -97,8 +97,8 @@ export const outcome = (opts: { model?: string; timeSpent?: string; cost?: strin
   (opts.cost ? `- **Cost:** ${opts.cost}\n` : "") +
   (opts.tokens ? `- **Tokens:** ${opts.tokens}\n` : "");
 
-/** What STAMPED's `2-analysis.md` records the analyze phase spent (spec
- *  247) — `durationLabel`'s own formatting of this is what the phase
+/** What STAMPED's `2-analysis.md` records the analyze phase spent
+ *  — `durationLabel`'s own formatting of this is what the phase
  *  subrow's Time cell has to show. */
 /** What the phase file records — the writer's own `NNmNNs` shape. */
 export const STAMPED_TIME_SPENT = "5m32s";
@@ -125,11 +125,11 @@ export const ARCHIVED = {
     // One `Model (<step>):` line, on the same terms: analyze has one, the
     // other three do not, so the locked-model tests have a line each way.
     status: stamp("2026-08-13", STAMPED_STEPS, { analyze: STAMPED_MODEL }),
-    // Spec 247: analyze's own phase-outcome record — Time spent and Cost,
+    // Analyze's own phase-outcome record — Time spent and Cost,
     // deliberately no `Model` line here so the OLD-format one above stays
-    // the only source for the locked-model tests below (criterion 6 stays
+    // the only source for the locked-model tests below (they stay
     // a regression check, not a merge). `implement`'s `3-solution.md` is
-    // left unwritten, which is what gives criterion 2 (a phase that never
+    // left unwritten, which gives the blank case (a phase that never
     // recorded one) something to be blank beside.
     analysis: outcome({ timeSpent: STAMPED_TIME_SPENT, cost: STAMPED_COST }),
   },
@@ -216,7 +216,7 @@ export const rowFor = (html: string, folder: string): string => {
 /** One spec's row AND everything drawn under it: its notice panel and,
  *  on an open row, its phase lines. `rowFor` above stops at the head
  *  row's own `</tr>`; this one runs to the next spec's head row, which
- *  is what the phase-line assertions need (spec 224). */
+ *  is what the phase-line assertions need. */
 export const blockFor = (html: string, folder: string): string => {
   // On the head row's own `data-folder`, not on a link anywhere in it:
   // an OPEN row puts its key in every other row's fold href, so a search
@@ -259,13 +259,13 @@ export const TWO_TOOLS = {
 /** `TWO_TOOLS`, with one more choice named — for a fixture whose recorded
  *  model has to land as a KNOWN choice rather than the synthetic,
  *  no-longer-configured one `modelOptions` draws for anything else
- *  (spec 265). */
+ */
 export const modelChoicesWith = (extra: Record<string, { }>) => ({
   ...TWO_TOOLS,
   modelChoices: { ...TWO_TOOLS.modelChoices, ...extra },
 });
 
-/** Spec 208 moved WHEN origin is asked: the render reads whatever a
+/** Origin is asked on a schedule, not on render: the render reads whatever a
  *  background schedule last found, so the page is polled until the
  *  first tick has landed rather than assumed to have made the call
  *  itself. The same bounded loop `projects-route.test.ts` uses. */

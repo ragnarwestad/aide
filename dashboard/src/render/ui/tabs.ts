@@ -3,7 +3,7 @@
 // of job-page.ts, which is where it used to live because the job page
 // was the first to need it — `spec-page.ts`, `schedule-page.ts` and
 // `projects-page/project-page.ts` all call the same functions rather than
-// carrying copies (spec 150). `development.md` names the
+// carrying copies. `development.md` names the
 // two-copies-of-one-shape problem three times over as this repo's own
 // recurring cost; a second tab bar would have been the fourth.
 
@@ -12,7 +12,7 @@ import { esc } from "./html.ts";
 
 /** A tab name off the query string, or the fallback. The list of tabs
  *  and the fallback are both arguments: a job has three tabs and the
- *  spec page has seven since spec 212, so the set is the caller's to
+ *  spec page has seven, so the set is the caller's to
  *  know, and the spec page is about the SPEC, so it opens on the spec
  *  whatever job is running. */
 export function pickTab<T extends string>(
@@ -67,12 +67,11 @@ export function tabBar<T extends string>(
   /** How much is behind a tab, for the tabs that have a figure at all.
    *  Partial rather than one entry per tab: Description, Analysis,
    *  Solution and Status count nothing, and a tab with no entry renders
-   *  its label with no `(N)` suffix — exactly as Activity already did
-   *  for a job that had captured nothing, before spec 240 folded it into
-   *  this same tab. */
+   *  its label with no `(N)` suffix — exactly as Activity does
+   *  for a job that has captured nothing. */
   counts: Partial<Record<T, number>>,
   /** Extra markup at the row's right end — a spec's own Reopen/Close/
-   *  Update (spec 300), right-aligned by the shared ".row" class.
+   *  Update, right-aligned by the shared ".row" class.
    *  Absent for every caller but the spec page. */
   trailing = "",
   o: {
@@ -113,7 +112,7 @@ export function tabBar<T extends string>(
         const to = href(t);
         const here = t === current ? ` aria-current="page"` : "";
         const text = `${esc(label)}${n === undefined ? "" : ` (${n})`}`;
-        // data-goto (spec 312): a real page load — nav-busy.ts marks it waiting.
+        // data-goto: a real page load — nav-busy.ts marks it waiting.
         return to === undefined
           ? `<span class="tab"${here}>${text}</span>`
           : `<a class="tab" data-nav data-goto href="${esc(to)}"${here}>${text}</a>`;
@@ -126,11 +125,11 @@ export function tabBar<T extends string>(
 
 /** The frame a tabbed page sits in: the way back, then the banner, the
  *  tabs, and whatever the open tab holds. Shared with `spec-page.ts`
- *  (spec 150) so the last three literals the two pages had in common
+ *  so the last three literals the two pages had in common
  *  are written once — the panels themselves already are.
  *
  *  `backHref` is resolved by the server, from the request's own
- *  `Referer` (spec 252) — this layer only draws it. A tab is a load of
+ *  `Referer` — this layer only draws it. A tab is a load of
  *  the page from itself, so the page script keeps the Back the page was
  *  opened with (`specs-client/back-link/`). */
 export function tabbedBody(

@@ -24,21 +24,21 @@ describe("one button, one button link, one message line", () => {
     expect(client.length).toBeGreaterThan(15);
   });
 
-  // AC-1 and AC-2 as well: the button component builds its class list
+  // The button component builds its class list
   // rather than writing the attribute, so no file is excepted, and a
   // hand-written `<button>` or `<a>` with the class is caught here too.
-  test("no element anywhere is given the btn class by hand, so none is made to look like a button (AC-1, AC-2, AC-4)", () => {
+  test("no element anywhere is given the btn class by hand, so none is made to look like a button", () => {
     // `btn` anywhere in a class attribute's value, in either quote, not
     // only first; `btn-…` or `…-btn` is another class.
     expect(matching(all, /class=\\?(["'])[^"'>]*(?<![\w-])btn(?![\w-])/)).toEqual([]);
   });
 
-  test("no client script gives an element the btn class (AC-4)", () => {
+  test("no client script gives an element the btn class", () => {
     expect(matching(client, /classList\.(add|toggle)\([^)]*["'`]btn["'`]/)).toEqual([]);
     expect(matching(client, /className\s*=\s*["'`]([^"'`]*\s)?btn(?![\w-])/)).toEqual([]);
   });
 
-  test("no file but the message component writes a message line (AC-3)", () => {
+  test("no file but the message component writes a message line", () => {
     expect(matching(all, /rowmsg|class=\\?"refused/, MESSAGE)).toEqual([]);
   });
 });

@@ -1,5 +1,5 @@
 // The loading element the spec page is sent with before its body is ready
-// (spec 515), and the one rule that hides it. The stylesheet is
+// and the one rule that hides it. The stylesheet is
 // css/loading.css. No script is involved: the rule is plain CSS delivered
 // after the page's last visible content.
 

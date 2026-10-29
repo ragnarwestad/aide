@@ -24,13 +24,13 @@ export interface FakeEventSourceInstance {
   addEventListener(type: string, fn: (e: unknown) => void): void;
   close(): void;
   emit(type: string, data?: string): void;
-  /** What the browser does on a non-200 answer (spec 368): the source is
+  /** What the browser does on a non-200 answer: the source is
    *  a "fail the connection" case per the WHATWG spec, never coming back
    *  on its own — `readyState` goes to CLOSED and `error` fires once. */
   fail(): void;
 }
 
-/** The connection the page keeps open (spec 189), and the constructor
+/** The connection the page keeps open, and the constructor
  *  `harness()` injects in its place. Every instance ever constructed is
  *  kept on `made`, closed ones included: what a test about the hidden
  *  tab has to be able to say is that the old one was CLOSED and no new
@@ -79,7 +79,7 @@ export interface FakeTimeout {
   cancelled: boolean;
 }
 
-/** `setTimeout`/`clearTimeout` for the reconnect backoff (spec 368): a
+/** `setTimeout`/`clearTimeout` for the reconnect backoff: a
  *  growing wait has to be advanced deterministically by a test, not
  *  waited out for real, the same reason the harness already fakes
  *  `setInterval` rather than using the real one. */

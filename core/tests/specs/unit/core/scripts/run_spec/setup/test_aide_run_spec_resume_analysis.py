@@ -84,7 +84,7 @@ def test_a_refused_session_starts_the_implement_afresh(runner, workspace, fake_c
     assert out["terminalReason"] != "model-refused", out
 
 
-def test_an_overloaded_resumed_session_stops_at_capacity_without_a_fresh_turn_AC_2(runner, workspace, fake_claude):
+def test_an_overloaded_resumed_session_stops_at_capacity_without_a_fresh_turn(runner, workspace, fake_claude):
     """The provider has no room for the model: running the implement again on
     the same model would be the step retrying itself, so it stops after the
     one turn."""

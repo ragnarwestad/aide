@@ -1,9 +1,9 @@
-// The Close control (spec 406): the other operation that ends a work
+// The Close control: the other operation that ends a work
 // round, beside Reset — one of the three families
 // `handleSpecEditRoutes` asks in turn. Split out on its own rather than
 // folded into run-controls.ts, so that file stays the size its own
 // header comment already notes a 2026-09-04 split at. Has no fallback
-// page behind it (spec 527): the dialog's page script reads the answer.
+// page behind it: the dialog's page script reads the answer.
 import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers";
 
 import { landingInProject } from "../../../queue/queue.ts";
@@ -27,14 +27,14 @@ export async function closeControlRoutes(
       return json({ error: "malformed body" }, 400);
     }
     const refuseClose = (error: string): Response => json({ error }, 400);
-    // REQ-3: a reason is the one thing this form requires — trimmed, so
+    // A reason is the one thing this form requires — trimmed, so
     // whitespace alone reads exactly as empty does.
     const reason = typeof body.reason === "string" ? body.reason.trim() : "";
     if (!reason) return refuseClose("type a reason to close this spec");
     const ref = ctx.specRef(project!, specFolder!);
     if (!ref) return new Response("not found", { status: 404 });
     if (ref.archived) return refuseClose(`${specFolder} is archived — Close is only for active specs`);
-    // REQ-11: the same job-in-flight check Reset's own POST makes.
+    // The same job-in-flight check Reset's own POST makes.
     if (landingInProject(ctx.queue.list(), project!)) return refuseClose("a landing is in progress");
     if (ctx.queue.list().some((job) =>
       job.project === project && job.specFolder === specFolder &&

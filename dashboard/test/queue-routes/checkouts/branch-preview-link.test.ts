@@ -58,12 +58,12 @@ describe("the specs list links to the branch's preview address", () => {
     return { html, asked };
   }
 
-  test("a cloudflare-pages project whose branch has been built has the link (AC-1)", async () => {
+  test("a cloudflare-pages project whose branch has been built has the link", async () => {
     const { html } = await listFor("cloudflare-pages");
     expect(specPanel(html, FOLDER)).toContain(`href="${ADDRESS}"`);
   });
 
-  test("a project set to none has no link and GitHub is never asked (AC-4)", async () => {
+  test("a project set to none has no link and GitHub is never asked", async () => {
     const { html, asked } = await listFor("none");
     await new Promise((r) => setTimeout(r, 200));
     expect(specPanel(html, FOLDER)).not.toContain(ADDRESS);

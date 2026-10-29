@@ -1,6 +1,5 @@
-// Split out of spec-save.test.ts by theme; moved off SAVE onto TRACKING
-// by spec 394 (REQ-1): the depends-on picker no longer rides on the
-// Description tab's own form — it is drawn in the banner, above the tab
+// Split out of spec-save.test.ts by theme. The depends-on picker does
+// not ride on the Description tab's own form — it is drawn in the banner, above the tab
 // row, on every tab, and posts to the banner's own route.
 //
 // The `Depends on:` line was writable only at creation. It IS a line in
@@ -52,7 +51,7 @@ describe("the Depends on field", () => {
 
   const track = (base: string, body: Record<string, string>) => post(base, body, TRACKING);
 
-  // --- what the open row's picker opens with (spec 635) ----------------------
+  // --- what the open row's picker opens with ----------------------
 
   /** The `<input>` tags the page posts as `dependsOn`, by folder. */
   const chips = (html: string) =>
@@ -67,21 +66,21 @@ describe("the Depends on field", () => {
     return html.match(new RegExp(`data-folder="${SPEC}"[\\s\\S]*?</tr>`))?.[0] ?? "";
   };
 
-  // Spec 174. The line is written by hand as often as by this page, and
+  // The line is written by hand as often as by this page, and
   // `resolve_dependency_folder` has always taken a bare number — so the
   // box that gets ticked is the one the RUNNER would resolve the line
   // to, not the one whose folder happens to match the text.
-  test("the Running tab's open row ticks the spec a bare number resolves to (AC-1)", async () => {
+  test("the Running tab's open row ticks the spec a bare number resolves to", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS("99")));
     expect(ticked(await openRowOf(base), OTHER)).toBe(true);
   });
 
-  test("the spec's own page draws no Depends on field (AC-5)", async () => {
+  test("the spec's own page draws no Depends on field", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
     expect(await (await fetch(`${base}${PAGE}`)).text()).not.toContain('name="dependsOn"');
   });
 
-  // --- criteria 3, 4, 7: what a save writes ---------------------------------
+  // --- what a save writes ---------------------------------------------------
 
   test("a spec in the project is written into Tracking info, in one commit", async () => {
     const commits: string[] = [];
@@ -113,7 +112,7 @@ describe("the Depends on field", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS("99")));
   });
 
-  // Spec 174: what the checkbox set actually POSTs — the field repeated
+  // What the checkbox set actually POSTs — the field repeated
   // once per ticked box, where the old text input sent one comma-joined
   // string. The route already took both shapes; this is the regression
   // check that says so out loud.
@@ -152,7 +151,7 @@ describe("the Depends on field", () => {
   // posts nothing for a box left unticked: the form carries one empty
   // entry, so a picker cleared of every box still posts, and the route
   // reads it as no dependencies.
-  test("the empty entry beside the boxes clears the last dependency, and the row's line follows (AC-3)", async () => {
+  test("the empty entry beside the boxes clears the last dependency, and the row's line follows", async () => {
     const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
     expect(await rowOf(base)).toContain("Depends on: 99");
     const { status } = await answer(await track(base, { dependsOn: "", baseSha: FILE_SHA }));
@@ -161,7 +160,7 @@ describe("the Depends on field", () => {
     expect(await rowOf(base)).not.toContain("Depends on:");
   });
 
-  test("a changed Depends on is named on the row's own line right after the save, though the rows were answered before (AC-3)", async () => {
+  test("a changed Depends on is named on the row's own line right after the save, though the rows were answered before", async () => {
     const { base, dir } = startTracked(savable("/host"));
     expect(await rowOf(base)).not.toContain("Depends on:");
     const body = new URLSearchParams([["baseSha", FILE_SHA], ["dependsOn", ""], ["dependsOn", OTHER]]);
@@ -175,7 +174,7 @@ describe("the Depends on field", () => {
     expect(await rowOf(base)).toContain("Depends on: 99");
   });
 
-  test("a dependency since archived is kept when posted with the rest, and dropped when left out (AC-4)", async () => {
+  test("a dependency since archived is kept when posted with the rest, and dropped when left out", async () => {
     const both = `${DEPENDS(ARCHIVED)}, \`${OTHER}\``;
     const start = () => startTracked(savable("/host"), TRACKED(both));
     const kept = start();
@@ -193,7 +192,7 @@ describe("the Depends on field", () => {
 
   // The Description tab shows the description without the line and posts
   // what it is given, so its save would remove the line the picker wrote.
-  test("saving the Description tab keeps the spec's Depends on line (AC-3)", async () => {
+  test("saving the Description tab keeps the spec's Depends on line", async () => {
     const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
     const text = TRACKED().replace("As it was.", "As it is now.");
     const { status } = await answer(await post(base, { text, baseSha: FILE_SHA }, SAVE));
@@ -201,7 +200,7 @@ describe("the Depends on field", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)).replace("As it was.", "As it is now."));
   });
 
-  test("a Description save of a spec with no dependency gains no line, and one that has lost its Created line is refused (AC-3)", async () => {
+  test("a Description save of a spec with no dependency gains no line, and one that has lost its Created line is refused", async () => {
     const plain = startTracked(savable("/host"));
     await post(plain.base, { text: TRACKED().replace("As it was.", "Changed."), baseSha: FILE_SHA }, SAVE);
     expect(readFileSync(descriptionPath(plain.dir), "utf-8")).toBe(TRACKED().replace("As it was.", "Changed."));
@@ -213,7 +212,7 @@ describe("the Depends on field", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
   });
 
-  // --- criteria 5, 6: what a save refuses -----------------------------------
+  // --- what a save refuses --------------------------------------------------
 
   test("a spec nobody has is refused by name, and nothing is written", async () => {
     const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
@@ -223,7 +222,7 @@ describe("the Depends on field", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
   });
 
-  test("a refused save names the spec, so the Running tab writes the refusal under its row (AC-3)", async () => {
+  test("a refused save names the spec, so the Running tab writes the refusal under its row", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
     const { body } = await answer(await track(base, { dependsOn: "77-no-such-spec", baseSha: FILE_SHA }));
     expect(body.spec).toBe(`aide/${SPEC}`);
@@ -295,7 +294,7 @@ describe("the Depends on field", () => {
       return jobs.filter((j) => j.specFolder === SPEC && j.id !== "stopped-1");
     };
 
-    test("naming a spec the stop named queues one Analyze with the stopped job's remaining steps, on its models and effort (AC-5)", async () => {
+    test("naming a spec the stop named queues one Analyze with the stopped job's remaining steps, on its models and effort", async () => {
       const { base } = startStopped(STOPPED());
       const { status, body } = await answer(await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }));
       expect(status).toBe(200);
@@ -307,33 +306,33 @@ describe("the Depends on field", () => {
       expect(queued[0]!.effort).toMatchObject({ analyze: "high", implement: "medium" });
     });
 
-    test("naming a spec the stop named among others still queues one Analyze (AC-5)", async () => {
+    test("naming a spec the stop named among others still queues one Analyze", async () => {
       const { base } = startStopped(STOPPED());
       await track(base, { dependsOn: `88-a-third-spec, ${OTHER}`, baseSha: FILE_SHA });
       expect(await jobsOfSpec(base)).toHaveLength(1);
     });
 
-    test("naming only a spec the stop did not name queues nothing (AC-5)", async () => {
+    test("naming only a spec the stop did not name queues nothing", async () => {
       const { base } = startStopped(STOPPED());
       const { body } = await answer(await track(base, { dependsOn: "88-a-third-spec", baseSha: FILE_SHA }));
       expect(body.ok).toBe(true);
       expect(await jobsOfSpec(base)).toHaveLength(0);
     });
 
-    test("emptying Depends on queues nothing (AC-5)", async () => {
+    test("emptying Depends on queues nothing", async () => {
       const { base } = startStopped(STOPPED());
       await track(base, { dependsOn: "", baseSha: FILE_SHA });
       expect(await jobsOfSpec(base)).toHaveLength(0);
     });
 
-    test("a lead job that stopped for another reason queues nothing (AC-5)", async () => {
+    test("a lead job that stopped for another reason queues nothing", async () => {
       const { base } = startStopped(STOPPED("acceptance-criteria"));
       const { body } = await answer(await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }));
       expect(body.ok).toBe(true);
       expect(await jobsOfSpec(base)).toHaveLength(0);
     });
 
-    test("with no job for the spec at all, a save queues nothing (AC-5)", async () => {
+    test("with no job for the spec at all, a save queues nothing", async () => {
       const { base } = harness.start({
         description: TRACKED(), alsoSpecs: [OTHER], extra: { gitRun: savable("/host") },
       });

@@ -1,4 +1,4 @@
-// The board-wide overview (spec 425, REQ-3/REQ-4): every test server
+// The board-wide overview: every test server
 // tracked ANYWHERE on this machine, in one place — a spec's own page
 // only ever showed the one it belongs to, and there was nowhere at all
 // to see the three-port pool as a whole. Modeled on `settings-page.ts`,
@@ -32,20 +32,19 @@ export interface TestServerRow {
 export interface TestServersPageOptions {
   backHref?: string;
   lang?: Language;
-  /** Spec 435. The request's own address, threaded to `pageShell` so its
+  /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
   /** `specsClientScript()` — what turns Stop into an XHR that removes
-   *  its own row instead of reloading the page (spec 529). Optional so
+   *  its own row instead of reloading the page. Optional so
    *  a caller that wants the no-script fallback alone can leave it out. */
   script?: string;
 }
 
-// REQ-4's own text is unconditional ("Hver testserver... skal ha en
-// Stop-knapp") — a stuck "starting" entry holds a port exactly as a
+// Every test server has a Stop button, unconditionally — a stuck "starting" entry holds a port exactly as a
 // "running" one does, and a "failed" entry otherwise has no way to be
 // cleared from this page at all, so every row gets the same form
-// regardless of status (Plan review, Scope guardian must-fix).
+// regardless of status.
 // The link shows the address's host and port, never its scheme, path or
 // token; a string that does not parse is shown as it is.
 const addressText = (url: string): string => {
@@ -69,7 +68,7 @@ const row = (r: TestServerRow): string => {
   return (
     `<tr>` +
     `<td data-col="ts-project">${esc(r.project)}</td>` +
-    // AC-7: a board tracked under a non-spec key (`MAIN_TEST_SERVER_KEY`) has no
+    // A board tracked under a non-spec key (`MAIN_TEST_SERVER_KEY`) has no
     // spec page to link to.
     `<td data-col="ts-spec">${isSpecFolder(r.specFolder) ? `<a href="${esc(r.specHref)}">${esc(r.specFolder)}</a>` : esc(r.specFolder)}</td>` +
     `<td data-col="ts-branch">${esc(r.branch)}</td>` +

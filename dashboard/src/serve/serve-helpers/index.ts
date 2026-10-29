@@ -5,7 +5,7 @@
 // commit-message sentences), static.ts (the site, the PWA assets,
 // the bundled specs-client script), runner-argv.ts (a job's argv),
 // parse-args.ts (the CLI and dependency-folder resolution) and
-// compression.ts (the server-wide gzip wrapper, spec 315) — kept as a
+// compression.ts (the server-wide gzip wrapper) — kept as a
 // barrel at this path because every route file imports from it.
 
 export {

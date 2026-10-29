@@ -1,4 +1,4 @@
-// Spec 112: what adding a project to this dashboard actually IS, as
+// What adding a project to this dashboard actually IS, as
 // filesystem work — split by theme into project-admin/types.ts (the
 // shapes every operation reports through), manifest-io.ts (naming a
 // project, writing the manifest and .aide/config), readiness.ts

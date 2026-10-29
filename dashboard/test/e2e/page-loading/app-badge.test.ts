@@ -29,7 +29,7 @@ afterAll(async () => {
 });
 
 describe("a page sets the app's icon count when it loads", () => {
-  test("one failed spec in a served project makes setAppBadge(1) on the Running tab (AC-3)", async () => {
+  test("one failed spec in a served project makes setAppBadge(1) on the Running tab", async () => {
     const page = await browser.newPage();
     try {
       await page.addInitScript(() => {

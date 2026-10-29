@@ -49,9 +49,8 @@ export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}, path = "/spec
 }
 
 // What the page used to say in a separate paragraph under the search
-// field: what the search reads. Spec 289 moved it behind the "?" beside
-// the field instead, in place of the "how runs work" text that stood
-// here before — the one thing a reader cannot see about a filter is
+// field: what the search reads. It sits behind the "?" beside
+// the field instead — the one thing a reader cannot see about a filter is
 // what it looked in. It is inside `#jobrows`, so it shuts again on the
 // five-second refresh, and fine for that: nothing here is being typed
 // into.
@@ -64,19 +63,19 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   const current = stateFilter(f.state).key;
   // Counts are of what the OTHER filter already allows, so the numbers
   // add up to the table you are looking at rather than to some list
-  // nobody asked for. The search is one of those filters since spec 221
+  // nobody asked for. The search is one of those filters
   // — an entry counting rows a term has cut would be counting a table
   // nobody can see. They count SPECS, because that is what the table
   // holds one line per.
   const counted = groups.filter((g) => matchesSearch(g, f));
-  // The archived rows are built only where the filter shows them (spec
-  // 221), so on the default view there are almost none to count — and
+  // The archived rows are built only where the filter shows them,
+  // so on the default view there are almost none to count — and
   // "Archived (0)" beside an archive of a hundred and fifty is the one
   // thing a count must not say. The KEYS are cheap and always sent, and
   // there is exactly one reader row per key, so the keys no row was
   // built for are the rest of the count. "Almost" because the default
   // view does build a row for an archived spec whose branch is still
-  // open (spec 193), which is why this subtracts what is on the page
+  // open, which is why this subtracts what is on the page
   // rather than testing whether anything is.
   //
   // Dropped while a search term is active: which archived specs a term
@@ -85,7 +84,7 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
   const built = new Set(
     groups.filter(isArchivedRow).map((g) => groupKey(g.project, g.specFolder)),
   );
-  // spec 406, REQ-7: split in two rather than one `uncounted` total —
+  // Split in two rather than one `uncounted` total —
   // an unbuilt CLOSED key must count toward "All" but never toward
   // "Archived", the same split its own entry already keeps once a row
   // IS built (`matchesStateFilter` on `CLOSED_STATE`). `opts.closed` is
@@ -124,15 +123,14 @@ export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOp
 }
 
 // One dropdown, six links, the same single-value `queueHref` merge the
-// chips used before it (spec 289) — a real `<input type="checkbox">`
+// chips used before it — a real `<input type="checkbox">`
 // would tell assistive tech "pick any number", which this control has
 // never allowed, so the mark is round and the panel carries
-// `role="radiogroup"`/`role="radio"` (spec 323): a radio glyph is what
+// `role="radiogroup"`/`role="radio"`: a radio glyph is what
 // "pick one of these" looks and announces like, matching what picking
 // one here has always done — replace the other five, exactly as a chip
-// click always has (`2-analysis.md`'s REQ-3).
-// Labelled "State", not "Phases" (the working title REQ-7 asked to be
-// reconsidered): this page already calls this exact concept "State" —
+// click always has.
+// Labelled "State", not "Phases": this page already calls this exact concept "State" —
 // the table's own column heading — and "Phase" already means the
 // create/analyze/implement/archive workflow step two columns over.
 function stateDropdown(
@@ -143,7 +141,7 @@ function stateDropdown(
   lang: Language,
 ): string {
   // Computed once, so the trigger and the panel option for the SAME
-  // choice can never show two different counts (REQ-2) — the trigger
+  // choice can never show two different counts — the trigger
   // below reads `chosen.count` off this same array rather than summing
   // its own copy.
   const rows = STATE_FILTERS.map((s) => {
@@ -151,7 +149,7 @@ function stateDropdown(
     const count =
       counted.filter((g) => matchesStateFilter(s, g)).length +
       (s.where ? uncounted.notVerified : matchesState(s, ARCHIVED_STATE) ? uncounted.archived : 0) +
-      // spec 406, REQ-7: an unbuilt closed key never reaches "Archived"
+      // An unbuilt closed key never reaches "Archived"
       // (CLOSED_STATE is not in that entry's `states`), only "All".
       (!s.where && matchesState(s, CLOSED_STATE) ? uncounted.closed : 0);
     return { s, on, count };
@@ -163,7 +161,7 @@ function stateDropdown(
       label: stateFilterLabel(s.key, lang),
       count,
       on,
-      // Always explicit (REQ-4, spec 338): picking All has to be able to
+      // Always explicit: picking All has to be able to
       // override a REMEMBERED non-default filter, and a blank `state`
       // collapses to the same bare `/` a plain navigation with no choice
       // at all produces — the one thing that would tell the two apart.
@@ -183,12 +181,12 @@ export interface MenuOption {
 
 /** The dropdown the State control is, for any control that picks one of a few
  *  options. The trigger shows the chosen option's own label and count, and
- *  nothing else (REQ-1): the room the old "State:" prefix took is what
- *  lets a longer choice like "Running-analyzing (2)" fit. Spec 454: the
+ *  nothing else: the room the old "State:" prefix took is what
+ *  lets a longer choice like "Running-analyzing (2)" fit. The
  *  visible content beside it IS that choice, not the word "States" — so
  *  `aria-label` alone carries the name for assistive tech, without a
  *  `title` repeating it as a tooltip nobody asked to read twice. The panel
- *  carries `role="radiogroup"`/`role="radio"` (spec 323): a radio glyph is what
+ *  carries `role="radiogroup"`/`role="radio"`: a radio glyph is what
  *  "pick one of these" looks and announces like. `filter` names the control
  *  for the page script and the tests. */
 export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[] }): string {
@@ -209,7 +207,7 @@ export function menuDropdown(o: { filter: string; ariaLabel: string; options: Me
   );
 }
 
-/** The search field (spec 221). It came off `/archive`, which had the
+/** The search field. It came off `/archive`, which had the
  *  only search on this dashboard, and it reads the same three fields
  *  there as here.
  *
@@ -219,7 +217,7 @@ export function menuDropdown(o: { filter: string; ariaLabel: string; options: Me
  *  so everything else in the view travels as hidden fields — without
  *  them, searching would silently throw away the filter and the column the
  *  reader had just chosen. `state` is one of those fields, unchanged by
- *  spec 289: it still travels as a hidden field like every other filter
+ *  it still travels as a hidden field like every other filter
  *  key, so a plain "Search" press with no JavaScript preserves whichever
  *  state filter is active instead of silently resetting to the
  *  default. */
@@ -246,7 +244,7 @@ export function searchForm(
     // the same word twice made the field taller than the button it
     // stands next to (2026-08-23).
     //
-    // The clear control (spec 226) sits inside the field, so getting
+    // The clear control sits inside the field, so getting
     // back to the whole list is one press rather than select-all and
     // delete. A LINK, like the fold and the sort: `q` is dropped and
     // every other filter travels on, so it works with script off,
@@ -276,7 +274,7 @@ const COLUMNS = ["fold", "spec", "phase", "state", "started", "cost"];
 const columnGroup = (): string => `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
 
 /** The five headings the list's table carries. Cost's heading holds both units; the reader's choice
- *  shows one (spec 118). */
+ *  shows one. */
 const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: string; labelHtml?: (lang: Language) => string }[] = [
   { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
   { key: "spec", label: "list.colSpec", attrs: ' data-col="spec"' },
@@ -308,8 +306,8 @@ export function sortHead(
   const { sort, dir } = o.now;
   // `labelHtml` for the one column whose heading is a consumption label
   // and not a noun: "Cost" is the wrong word above a column of token
-  // counts, so it carries the same two spans its cells do (spec 118).
-  // `attrs` is the fold hook (spec 155): the two columns a phone drops
+  // counts, so it carries the same two spans its cells do.
+  // `attrs` is the fold hook: the two columns a phone drops
   // are named on the cell rather than counted by position, because the
   // column ORDER has already changed once (see below) and an
   // `nth-child` rule would have broken silently when it did.
@@ -336,16 +334,14 @@ export function sortHead(
     // moment the list became one line per spec. It holds the whole
     // workflow as pips on a header line, and how many attempts a phase
     // took on the lines beneath.
-    // There were FIVE headings until 2026-08-23, the last one blank:
-    // it headed a cell that held a shut row's one action until spec
-    // 157 moved that beside the state, and every row had drawn an
-    // empty `<td>` under it since. Dropping it from the header and
+    // There is no blank heading for a shut row's one action: it sits
+    // beside the state, so a column for it would be an empty `<td>`
+    // under every row. Leaving it out of the header and
     // from both row types together is what keeps the columns lined up
     // — a row short of a cell the header still declares is what shifts
-    // them. (Spec 124 put that column first, for a button COLUMN that
-    // pushed the whole table sideways — 2026-08-19.)
-    // "Spec" spans TWO columns since spec 165, which gave the row's AI
-    // select a column of its own between the phase name and the model.
+    // them.
+    // "Spec" spans TWO columns, because the row's AI select has a
+    // column of its own between the phase name and the model.
     // Spanning rather than a blank heading beside it: this row has
     // nothing to put in that column, and a column of its own here
     // would take its width from the spec NAME — leaving the phase
@@ -396,13 +392,11 @@ export function sortableHead(f: SpecsFilter, lang: Language = "en", specsList = 
 // every other way in is a form on a spec's own row, and a spec that has
 // never been written has no row to put one on.
 //
-// A link, not a form and not a disclosure (spec 121): the form has a
+// A link, not a form and not a disclosure: the form has a
 // page of its own at `NEW_SPEC_ROUTE`, with a Create and a Cancel on
 // it. It sits at the right-hand end of the search field's own row,
-// beside the "?" (spec 261; it used to sit at the end of the filter
-// chips' row instead) — inside `#jobrows`, since spec 221 moved the
-// filter bar in there — and keeps the primary-button look spec 113 gave
-// it. It stood in a band of its own above the table before that.
+// beside the "?" — inside `#jobrows`, where the filter bar is — and
+// keeps the primary-button look.
 // Not offered at all when no project on this machine may have a spec
 // made in it, exactly as the panel was not.
 //

@@ -6,7 +6,7 @@
 
 // Split out of parse-status.test.ts by theme.
 //
-// Criteria 2-3: every observed progress-line variant parses (fixtures
+// Every observed progress-line variant parses (fixtures
 // are copies of REAL status files from aide-specs and paceup); a file
 // without a recognizable line yields unknown progress; the phase is
 // the first phase section with unchecked tasks.
@@ -18,15 +18,15 @@ import { archiveHeldBackReason, parseStatus } from "../../../src/project/parse-s
 // Until now the dashboard GUESSED which workflow steps a spec had had,
 // from the size of 2-analysis.md, a heading in 3-solution.md and the
 // percentage in 4-status.md. All three are proxies for the question,
-// and the first of them broke on 2026-08-20: spec 138's untouched
+// and the first of them broke on 2026-08-20: an untouched
 // analysis template is 693 bytes, so it read as analysed before any
 // analyze had run. The steps now SAY so, on one line of 4-status.md,
 // and this parses it.
-describe("spec 139: workflow steps completed", () => {
+describe("workflow steps completed", () => {
   const withField = (value: string) =>
     ["# 139 - Status", "", "## Tracking info", "", `- **Workflow steps completed:** ${value}`, ""].join("\n");
 
-  test("the canonical line comes back as its list (criterion 1)", () => {
+  test("the canonical line comes back as its list", () => {
     expect(parseStatus(withField("create, analyze, implement")).workflowSteps).toEqual([
       "create",
       "analyze",
@@ -34,31 +34,31 @@ describe("spec 139: workflow steps completed", () => {
     ]);
   });
 
-  test("a freshly created spec has had exactly create (criterion 1)", () => {
+  test("a freshly created spec has had exactly create", () => {
     expect(parseStatus(withField("create")).workflowSteps).toEqual(["create"]);
   });
 
-  test("no such field means nothing is known to have completed (criterion 4)", () => {
+  test("no such field means nothing is known to have completed", () => {
     expect(parseStatus("# 139 - Status\n\nProse only.\n").workflowSteps).toEqual([]);
   });
 
-  test("an empty field is no completed step, not a blank one (criterion 4)", () => {
+  test("an empty field is no completed step, not a blank one", () => {
     expect(parseStatus(withField("")).workflowSteps).toEqual([]);
     expect(parseStatus(withField("none")).workflowSteps).toEqual([]);
   });
 
-  test("unknown values are ignored (criterion 4)", () => {
+  test("unknown values are ignored", () => {
     expect(parseStatus(withField("create, resolve, merge, analyze")).workflowSteps).toEqual([
       "create",
       "analyze",
     ]);
   });
 
-  // `review-plan` was a step until spec 181 folded the review into
+  // `review-plan` was a step before the review was folded into
   // analyze. An archived spec's line still names it, and an unknown
   // value is dropped rather than shown as a step the workflow no
   // longer has.
-  test("a spec archived before spec 181 keeps the four steps that remain", () => {
+  test("a spec archived before the review was folded in keeps the four steps that remain", () => {
     expect(parseStatus(withField("create, analyze, review-plan, implement, archive")).workflowSteps).toEqual([
       "create",
       "analyze",
@@ -67,7 +67,7 @@ describe("spec 139: workflow steps completed", () => {
     ]);
   });
 
-  test("duplicates collapse and the order is the workflow's, not the line's (criterion 4)", () => {
+  test("duplicates collapse and the order is the workflow's, not the line's", () => {
     expect(parseStatus(withField("implement, create, analyze, create")).workflowSteps).toEqual([
       "create",
       "analyze",
@@ -75,7 +75,7 @@ describe("spec 139: workflow steps completed", () => {
     ]);
   });
 
-  test("backticks, case and stray spacing do not change the answer (criterion 4)", () => {
+  test("backticks, case and stray spacing do not change the answer", () => {
     expect(parseStatus(withField("`Create`,  ANALYZE ,implement")).workflowSteps).toEqual([
       "create",
       "analyze",
@@ -92,9 +92,9 @@ describe("spec 139: workflow steps completed", () => {
     ]);
   });
 
-  // Criterion 9: the field is an ADDITION to 4-status.md. Everything the
+  // The field is an ADDITION to 4-status.md. Everything the
   // parser already answered out of that file must answer the same.
-  test("progress, phase and the held-back reason are untouched by the new field (criterion 9)", () => {
+  test("progress, phase and the held-back reason are untouched by the new field", () => {
     const content = [
       "# 139 - Status",
       "",
@@ -131,16 +131,16 @@ describe("spec 139: workflow steps completed", () => {
   });
 });
 
-// --- spec 244: what each phase actually ran on -------------------------------
+// --- What each phase actually ran on -------------------------------
 
 // `aide-run-spec` has written one `- **Model (<step>):** <tool> [<model>]`
-// line per completed workflow step since spec 217, beside the `Workflow
+// line per completed workflow step, beside the `Workflow
 // steps completed` line above — and until now nothing read it back.
-describe("spec 244: step models", () => {
+describe("step models", () => {
   const withLine = (line: string) =>
     ["# 244 - Status", "", "## Tracking info", "", line, ""].join("\n");
 
-  test("a recorded line comes back keyed by step (criterion 1)", () => {
+  test("a recorded line comes back keyed by step", () => {
     expect(parseStatus(withLine("- **Model (analyze):** claude claude-sonnet-5")).stepModels).toEqual({
       analyze: "claude claude-sonnet-5",
     });
@@ -152,15 +152,15 @@ describe("spec 244: step models", () => {
     });
   });
 
-  test("no such line at all means nothing is known (criterion 2)", () => {
+  test("no such line at all means nothing is known", () => {
     expect(parseStatus("# 244 - Status\n\nProse only.\n").stepModels).toEqual({});
   });
 
-  test("an unknown or retired step name is dropped (criterion 3)", () => {
+  test("an unknown or retired step name is dropped", () => {
     expect(parseStatus(withLine("- **Model (review-plan):** claude")).stepModels).toEqual({});
   });
 
-  test("nothing after the colon is dropped, not kept as an empty string (criterion 3)", () => {
+  test("nothing after the colon is dropped, not kept as an empty string", () => {
     expect(parseStatus(withLine("- **Model (analyze):**")).stepModels).toEqual({});
   });
 

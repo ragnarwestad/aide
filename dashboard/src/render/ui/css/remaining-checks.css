@@ -1,4 +1,4 @@
-/* --- a spec's remaining checks (spec 182) ---------------------------- */
+/* --- a spec's remaining checks ---------------------------- */
 
 /* The list sits in the spec page's banner, above the tab bar. Its job
    is that an OPEN row cannot be mistaken for a settled one at a glance:
@@ -40,7 +40,7 @@
 .check .checktests.untested { color: var(--warn); }
 /* One box-sized slot, whichever of the two things is in it: the mark a
    row on the spec page shows, and the real checkbox the Edit form draws
-   for a row that is still open (spec 188). Fixed width so every row
+   for a row that is still open. Fixed width so every row
    lines up whether it is a mark or a control. */
 .checkbox { display: inline-flex; align-items: center; justify-content: center;
   width: 18px; min-width: 18px; height: 18px; padding: 0; flex: none;
@@ -75,7 +75,7 @@ label.checkbox input { margin: 0; cursor: pointer; }
 .checkcolumns .checkother { grid-column: 3; grid-row: 1; }
 
 
-/* The acceptance criteria unfolded on a spec's row (spec 493): the spec
+/* The acceptance criteria unfolded on a spec's row: the spec
    page's own checklist, in the notice line. The text takes what room the
    box leaves and wraps inside it; nothing here states a width. */
 .rowchecks { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2);
@@ -98,11 +98,11 @@ label.checkbox input { margin: 0; cursor: pointer; }
   min-width: 0; margin: 0; padding: var(--sp-1) 0 var(--sp-1) var(--sp-4); }
 .approachlist { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; }
 
-/* A phase's latest messages, unfolded under its line (spec 500). A
+/* A phase's latest messages, unfolded under its line. A
    model's sentence is of any length: the list may shrink below its
    content and long words break. Nothing here states a width. */
 .phasemsgs td { padding-top: var(--sp-1); padding-right: var(--sp-4); padding-bottom: var(--sp-3); }
-/* The log's own left edge is the phase name's (spec 550): the same
+/* The log's own left edge is the phase name's: the same
    --fold-w list.css's .phasecell reserves, so the two move together at
    every width that variable is redefined for. A bare `.phasemsgs td`
    rule loses its own padding-left to `table.list td` (list.css), which

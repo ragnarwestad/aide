@@ -7,9 +7,8 @@
 @view-transition { navigation: auto; }
 @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
 
-/* The full-viewport-height floor used to sit on the .layout wrapper
-   the sidebar shared with main (spec 119 removed it). It belongs on
-   the body now, or a short page stops painting the background where
+/* The full-viewport-height floor sits on the body, not on a wrapper
+   shared with a sidebar, or a short page stops painting the background where
    its content ends. */
 body { font: var(--fs-m)/var(--lh) var(--sans); margin: 0; min-height: 100vh;
   background: var(--bg); color: var(--text); }
@@ -22,7 +21,7 @@ a:hover { color: var(--link-strong); text-decoration: underline; }
 /* One ring for everything focusable, declared here rather than on each
    component: the page had no focus style anywhere, so every control
    focused in the browser's default blue — the one hue the palette does
-   not contain, and which spec 102 took out of the stylesheet on
+   not contain, and which is kept out of the stylesheet on
    purpose. :focus-visible and not :focus, or a mouse press leaves a
    ring behind it. */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -34,8 +33,8 @@ header { display: flex; align-items: center; justify-content: space-between;
 header .brand { margin: 0; padding: 0; }
 /* The two tabs: a real tab bar — the row sits ON the hairline, and the
    current tab is marked by an underline in the accent colour, PaceUp's
-   tab bar being the reference (2026-08-19). Centred deliberately (spec
-   325): once the bar is exactly as wide as header and main (above),
+   tab bar being the reference (2026-08-19). Centred deliberately:
+   once the bar is exactly as wide as header and main (above),
    nothing else would keep the two or three tabs from sitting flush
    against its left edge instead. */
 body > nav.tabbar { display: flex; justify-content: center; gap: var(--sp-4);
@@ -51,8 +50,8 @@ header > nav.tabbar { display: none; }
    not the body-child one above. */
 nav.tabbar.subtabs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4);
   border-bottom: 1px solid var(--line); }
-/* The spec page's own actions group, at the row's right end (spec
-   300): margin-left auto is the same push .specsearch already uses
+/* The spec page's own actions group, at the row's right end:
+   margin-left auto is the same push .specsearch already uses
    elsewhere on this site. Wraps to its own line, still right-aligned on
    it, once the row no longer fits both groups side by side. */
 nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap; }
@@ -83,7 +82,7 @@ nav.tabbar.subtabs .tab { min-width: 0; }
 main { padding: var(--sp-5) var(--sp-6); }
 /* The frame is CENTRED: header, tabs and page share one width and sit
    in the middle of the window instead of flush against its left edge. */
-/* Explicit sizing, not `width: auto` (spec 325): on the Specs page body
+/* Explicit sizing, not `width: auto`: on the Specs page body
    is a flex COLUMN (`body:has(#jobrows)` below), and a flex item whose
    cross-axis margins are both auto is never stretched to the container's
    width — it shrinks to its own content instead, which is what let the
@@ -104,11 +103,11 @@ header, body > nav.tabbar, main { max-width: calc(72rem + 2 * var(--sp-6));
 body > p.rowmsg { max-width: 72rem; width: calc(100% - 2 * var(--sp-6));
   box-sizing: border-box; margin-inline: auto; }
 
-/* The Specs list and the Jobs tab (spec 320), scoped by :has(#jobrows) — the
+/* The Specs list and the Jobs tab, scoped by :has(#jobrows) — the
    id only those two pages write. Their own box (.tablewrap, list.css) is the
    only thing meant to scroll; everywhere else keeps the ordinary
    min-height: 100vh above, which lets a page grow past the viewport and
-   the browser scroll it normally (REQ-5). overflow: hidden lives on body
+   the browser scroll it normally. overflow: hidden lives on body
    alone, not on main too — an ancestor's overflow: hidden clips
    everything inside it regardless of what an element between the two
    says, and main staying at its default overflow: visible is what keeps

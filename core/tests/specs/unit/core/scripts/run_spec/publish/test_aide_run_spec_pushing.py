@@ -50,7 +50,7 @@ def test_push_branch_puts_the_spec_work_on_the_branch_too(runner, workspace, fak
     """The whole point of `branch` is that unattended work lands
     somewhere a human looks at it before it reaches main. Pushing the
     specs repo's HEAD while only the project was branched sent every
-    analysis straight to main — measured 2026-08-16 on spec 84."""
+    analysis straight to main — measured 2026-08-16."""
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, push="branch")
     assert rc == 0, out
@@ -226,9 +226,9 @@ def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, 
     ), "the push still happened"
 
 def test_a_push_that_cannot_reach_its_remote_is_recorded_not_fatal(runner, workspace, fake_claude):
-    """No origin at all: spec 328's own words for this used to be "the
+    """No origin at all: the old wording for this was "the
     work is committed locally, and the run says so instead of failing" —
-    REQ-3 overturns exactly that for the step's own bookkeeping. The work
+    that no longer holds for the step's own bookkeeping. The work
     still lands in a local commit (nothing here undoes that), but the
     step must never be counted as having reached anywhere it did not."""
     claude = writing_claude(fake_claude, workspace)
@@ -239,7 +239,7 @@ def test_a_push_that_cannot_reach_its_remote_is_recorded_not_fatal(runner, works
     assert out["pushError"], "a push that did not happen must not be silent"
     branch = "aide/81-queue-and-runner"
     line = workflow_steps_line(workspace["specs"], branch, workspace["folder"])
-    # Unchanged from the workspace fixture's own starting line (REQ-3) —
+    # Unchanged from the workspace fixture's own starting line —
     # `implement` never lands, `analyze` stays exactly as it was.
     assert line == "- **Workflow steps completed:** analyze", line
 
@@ -287,20 +287,20 @@ def test_a_checkout_whose_main_lags_origin_gets_no_branch(runner, workspace, fak
 def test_an_unpushed_step_never_lands_on_the_workflow_steps_line(
     runner, workspace, fake_claude
 ):
-    """REQ-1/REQ-3/REQ-6: origin is reachable and refuses every push —
+    """Origin is reachable and refuses every push —
     the step's own tool turn reports success, but nothing it produced
     ever reaches origin in either root, so neither root's own content is
     confirmed and the step must never be counted as having run.
-    `command="implement"` (with `analyze` already on the line, spec 344's
+    `command="implement"` (with `analyze` already on the line, its
     own precondition) so a step that legitimately touches BOTH roots
-    proves REQ-1's "every repository it branched", not just one."""
+    proves "every repository it branched", not just one."""
     with_status(workspace, claims=["analyze"])
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement", push="branch")
     assert rc == 0, out
     assert out["ok"] is False
     assert out["terminalReason"] == "unpushed"
-    # REQ-3: the repository (or repositories) that did not confirm are
+    # The repository (or repositories) that did not confirm are
     # named, not just "a push failed" generically.
     assert str(workspace["project"]) in out["error"], out["error"]
     assert str(workspace["specs"]) in out["error"], out["error"]
@@ -311,7 +311,7 @@ def test_an_unpushed_step_never_lands_on_the_workflow_steps_line(
 def test_a_re_run_after_unpushed_reaches_origin_and_lands_on_the_line(
     runner, workspace, fake_claude, rejecting_origin
 ):
-    """REQ-4: the PROJECT root already carries real content on this
+    """The PROJECT root already carries real content on this
     spec's branch before either run even starts — the shape of a root a
     PRIOR run committed to and never managed to push, stranded there with
     nothing for THIS run's own session to add (an `analyze` step never
@@ -357,7 +357,7 @@ def test_a_re_run_after_unpushed_reaches_origin_and_lands_on_the_line(
 def test_the_second_pass_alone_can_fail_unpushed(
     runner, workspace, fake_claude, specs_origin_rejecting_the_second_push
 ):
-    """REQ-2: pass 1 (the step's own analysis) reaches origin; pass 2 (the
+    """Pass 1 (the step's own analysis) reaches origin; pass 2 (the
     line's own small commit, made only because pass 1 was confirmed)
     does not — proving the line's own push is confirmed independently,
     never assumed to have succeeded because the content before it did."""
@@ -375,7 +375,7 @@ def test_the_second_pass_alone_can_fail_unpushed(
     assert origin_line == "- **Workflow steps completed:** create", origin_line
 
 def test_a_repo_the_step_committed_itself_is_still_pushed(runner, workspace, fake_claude, origin):
-    """Spec 92's archive step committed its own two commits, the run's
+    """An archive step committed its own two commits, the run's
     commit loop found a clean tree, counted the repo as unchanged and
     pushed nothing — the branch existed on the serving host only. HEAD
     moved, so the branch belongs on origin, whoever made the commit."""
@@ -404,7 +404,7 @@ def test_a_repo_the_step_committed_itself_gets_its_compare_link(
 def test_a_step_that_commits_part_of_its_own_work_gets_one_commit_not_two(
     runner, workspace, fake_claude
 ):
-    """Spec 146: the step committed one file under its own message and
+    """The step committed one file under its own message and
     left another on disk, so the run's loop opened a SECOND commit under
     the generic subject and the change arrived split down a line no
     reader can use. The leftover belongs in the commit the step already

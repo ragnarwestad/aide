@@ -38,7 +38,7 @@ const CONTROLS: [string, string][] = [
   ["Acceptance criteria checks", ".field:has(> .fieldhead #new-spec-criteria-checks)"],
 ];
 
-test.each(CONTROLS)("the (?) of %s opens an explanation (AC-3)", async (_label, fieldSelector) => {
+test.each(CONTROLS)("the (?) of %s opens an explanation", async (_label, fieldSelector) => {
   await openOptions();
   const help = page.locator(`#new-spec-form ${fieldSelector} > .fieldhead details.intro`);
   expect(await help.count()).toBe(1);
@@ -47,7 +47,7 @@ test.each(CONTROLS)("the (?) of %s opens an explanation (AC-3)", async (_label, 
   expect((await help.locator("p").innerText()).trim()).not.toBe("");
 });
 
-test("Let me choose the approach is not ticked when the form opens, and its (?) explains it (AC-1)", async () => {
+test("Let me choose the approach is not ticked when the form opens, and its (?) explains it", async () => {
   await openOptions();
   const box = page.locator('#new-spec-form [name="chooseApproach"]');
   expect(await box.isChecked()).toBe(false);

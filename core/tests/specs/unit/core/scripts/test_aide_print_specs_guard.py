@@ -1,4 +1,4 @@
-"""Tests for core/scripts/aide-print-specs-guard (spec 282, REQ-4).
+"""Tests for core/scripts/aide-print-specs-guard.
 
 Prints a ready-to-paste Write/Edit deny-rule snippet for a project's own
 specs root — never writes anywhere itself, mirroring install.sh's own

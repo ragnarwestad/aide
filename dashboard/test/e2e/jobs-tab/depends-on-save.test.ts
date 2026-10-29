@@ -38,7 +38,7 @@ async function openRow(): Promise<{ page: Page; dir: string; loads: { n: number 
   return { page, dir, loads };
 }
 
-test("Save writes the Depends on line with no page load, and the redrawn row holds the tick (AC-3)", async () => {
+test("Save writes the Depends on line with no page load, and the redrawn row holds the tick", async () => {
   const { page, dir, loads } = await openRow();
   await page.locator(`${FORM} input[name="dependsOn"][value="${OTHER}"]`).check();
   await page.locator(`#depends-aide-${SPEC}-save`).click();
@@ -52,7 +52,7 @@ test("Save writes the Depends on line with no page load, and the redrawn row hol
   await page.close();
 });
 
-test("Cancel unticks what was ticked and is disabled again (AC-3)", async () => {
+test("Cancel unticks what was ticked and is disabled again", async () => {
   const { page } = await openRow();
   const box = page.locator(`${FORM} input[name="dependsOn"][value="${OTHER}"]`);
   const cancel = page.locator(`#depends-aide-${SPEC}-cancel`);

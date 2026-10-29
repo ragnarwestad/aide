@@ -1,4 +1,4 @@
-// Close on the spec page asks its question in a dialog (spec 525), and the
+// Close on the spec page asks its question in a dialog, and the
 // close page stays what it was for a browser with script off.
 //
 // Not run by the session on its own: `make test` runs it, and by hand:
@@ -35,8 +35,8 @@ async function open(post: { status: number; json: unknown }): Promise<Page> {
 
 const ACCEPTED = { status: 200, json: { ok: true, job: { id: "j1", project: "aide", specFolder: LIVE, steps: ["close"], stepIndex: 0 } } };
 
-describe("Close asks in a dialog (AC-7)", () => {
-  test("Close opens a modal with the Reason field, OK and Cancel, and the address stays (AC-2)", async () => {
+describe("Close asks in a dialog", () => {
+  test("Close opens a modal with the Reason field, OK and Cancel, and the address stays", async () => {
     const page = await open(ACCEPTED);
     await page.getByRole("button", { name: "Close" }).click();
     await dialog(page).waitFor({ state: "visible" });
@@ -47,7 +47,7 @@ describe("Close asks in a dialog (AC-7)", () => {
     expect(new URL(page.url()).pathname).toBe(SPEC);
   });
 
-  test("an empty press posts nothing, and the count and the paste note are drawn inside the dialog (AC-3)", async () => {
+  test("an empty press posts nothing, and the count and the paste note are drawn inside the dialog", async () => {
     const page = await open(ACCEPTED);
     let posts = 0;
     page.on("request", (r) => r.method() === "POST" && (posts += 1));
@@ -59,7 +59,7 @@ describe("Close asks in a dialog (AC-7)", () => {
     expect(await dialog(page).textContent()).toContain("5000 of 5000 characters");
   });
 
-  test("a refusal is written in the box, which stays open with the reason in it, and Escape closes it (AC-5)", async () => {
+  test("a refusal is written in the box, which stays open with the reason in it, and Escape closes it", async () => {
     const page = await open({ status: 400, json: { error: "Give a reason that is not blank." } });
     await page.getByRole("button", { name: "Close" }).click();
     await dialog(page).locator("textarea").fill("   ");
@@ -83,7 +83,7 @@ describe("Close asks in a dialog (AC-7)", () => {
     expect(new URL(page.url()).searchParams.get("open")).toBe(`aide/${LIVE}:close`);
   });
 
-  test("Cancel closes the box on every press (AC-1)", async () => {
+  test("Cancel closes the box on every press", async () => {
     const page = await open(ACCEPTED);
     for (let i = 0; i < 2; i++) {
       await page.getByRole("button", { name: "Close" }).click();

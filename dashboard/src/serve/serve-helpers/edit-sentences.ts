@@ -3,14 +3,14 @@
 
 import { STATUS_SPEC_FILE } from "../../render";
 
-/** Why an archived spec refuses to be edited (spec 163). One sentence,
+/** Why an archived spec refuses to be edited. One sentence,
  *  in one place: the GET that would have rendered the form and the POST
  *  that would have written the file both say it, and the page a reader
  *  lands on is the spec's own. */
 export const ARCHIVED_REFUSAL = "this spec is archived — it is a record, and cannot be edited";
 
-/** What a Save's commit RECORDS. Two routes since spec 212 — the
- *  document tabs' own Save (any of the four files, spec 310) and the
+/** What a Save's commit RECORDS. Two routes — the
+ *  document tabs' own Save (any of the four files) and the
  *  checks' — and each writes one file, so each has one sentence. There
  *  was a third, for the one commit that could carry both; two files can
  *  no longer arrive in one request, so it has nothing left to describe.

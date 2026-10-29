@@ -1,4 +1,4 @@
-// Spec 500: the lookup behind a phase's unfolded messages — which attempt
+// The lookup behind a phase's unfolded messages — which attempt
 // it reads, what it returns, and the key it links to on the Logs tab.
 
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -49,7 +49,7 @@ const queueOf = (jobs: Job[]) =>
 const lines = (got: { logs: { lines: string[] }[] } | undefined) => got?.logs.flatMap((part) => part.lines) ?? [];
 
 describe("phaseMessagesFor", () => {
-  // Spec 500 kept the model's own messages alone. A session that works
+  // The model's own messages alone are not enough. A session that works
   // through commands writes a sentence every few minutes, so the row read
   // as frozen while the step was busy: what it DID belongs here too.
   test("Claude: what the run said and what it did, oldest first", () => {
@@ -67,7 +67,7 @@ describe("phaseMessagesFor", () => {
     expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual(["Write /x/2-analysis.md"]);
   });
 
-  test("a newer job only queued for the step does not hide the older one that ran it; two finished jobs give the newer (AC-2)", () => {
+  test("a newer job only queued for the step does not hide the older one that ran it; two finished jobs give the newer", () => {
     const older = job("old", { createdAt: "2026-09-19T09:00:00Z", results: [finishedStep("analyze", [said("from old")])] });
     const newer = job("new", { createdAt: "2026-09-19T10:00:00Z", results: [finishedStep("analyze", [said("from new")])] });
     const queued = job("queued", { createdAt: "2026-09-19T11:00:00Z", state: "queued" });
@@ -76,17 +76,17 @@ describe("phaseMessagesFor", () => {
     expect(lines(phaseMessagesFor(q, ["queued", "new", "old"], "analyze"))).toEqual(["from new"]);
   });
 
-  test("nothing to read gives undefined (AC-5)", () => {
+  test("nothing to read gives undefined", () => {
     expect(phaseMessagesFor(queueOf([]), ["gone"], "analyze")).toBeUndefined();
     expect(phaseMessagesFor(queueOf([job("q", { state: "queued" })]), ["q"], "analyze")).toBeUndefined();
   });
 
-  test("a message with markup is returned escaped once (AC-2)", () => {
+  test("a message with markup is returned escaped once", () => {
     const j = job("a", { results: [finishedStep("analyze", [said('<b>x</b> & "y"')])] });
     expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual(["&lt;b&gt;x&lt;/b&gt; &amp; &quot;y&quot;"]);
   });
 
-  test("a finished phase ends with its final message, replacing a last entry that is the same (AC-4)", () => {
+  test("a finished phase ends with its final message, replacing a last entry that is the same", () => {
     const j = job("a", { results: [finishedStep("analyze", [said("first"), said("Analysis complete: 12 files affected"), result("Analysis complete: 12 files affected")])] });
     expect(lines(phaseMessagesFor(queueOf([j]), ["a"], "analyze"))).toEqual(["first", "Analysis complete: 12 files affected"]);
   });
@@ -128,7 +128,7 @@ describe("phaseMessagesFor", () => {
     ]);
   });
 
-  test("a running phase reads the job's live transcript, with no final-message rule (AC-4)", () => {
+  test("a running phase reads the job's live transcript, with no final-message rule", () => {
     const live = stream([said("working"), result("would be final")]);
     const j = job("r", { state: "running", steps: ["analyze"], stepIndex: 0, streamFile: live });
     const got = phaseMessagesFor(queueOf([j]), ["r"], "analyze");
@@ -159,7 +159,7 @@ describe("phaseMessagesFor: the steps the log has marked", () => {
   ];
   const EVENTS = [call("m1", "--- Step 1 of 2: Read — started", 100), call("m2", "--- Step 1 of 2: Read — done", 20), call("m3", "--- Step 2 of 2: Write — started", 7)];
 
-  test("a finished attempt lists them in the order marked, Aide's own among them, each with its seconds and tokens (AC-2, AC-3)", () => {
+  test("a finished attempt lists them in the order marked, Aide's own among them, each with its seconds and tokens", () => {
     const runLog: [number, string][] = [...RUN_LOG, [30, "--- Step 2 of 2: Write — done"], [31, "--- Step Aide: tests and commit — started"], [40, "--- Step Aide: tests and commit — done"]];
     const streamFile = logged([...EVENTS, call("m4", "--- Step 2 of 2: Write — done", 3)], runLog);
     const j = job("a", { results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool: "claude", streamFile } as never] });
@@ -173,7 +173,7 @@ describe("phaseMessagesFor: the steps the log has marked", () => {
     expect(got?.steps.find((s) => s.label === "Read")?.logs?.flatMap((p) => p.lines).join("\n")).toContain("Read — started");
   });
 
-  test("a running attempt counts its open step from its start (AC-2)", () => {
+  test("a running attempt counts its open step from its start", () => {
     const streamFile = logged(EVENTS, RUN_LOG);
     const j = job("r", { state: "running", steps: ["analyze"], stepIndex: 0, streamFile, stepStartedAt: "2026-09-19T10:00:00Z" });
     const write = phaseMessagesFor(queueOf([j]), ["r"], "analyze")?.steps.find((s) => s.label === "Write");
@@ -181,7 +181,7 @@ describe("phaseMessagesFor: the steps the log has marked", () => {
     expect(write?.seconds).toBeUndefined();
   });
 
-  test("an attempt that marked no step lists none, and the Log is as before (AC-2)", () => {
+  test("an attempt that marked no step lists none, and the Log is as before", () => {
     const j = job("a", { results: [finishedStep("analyze", [said("plain words")])] });
     const got = phaseMessagesFor(queueOf([j]), ["a"], "analyze");
     expect(got?.steps).toEqual([]);
@@ -189,7 +189,7 @@ describe("phaseMessagesFor: the steps the log has marked", () => {
   });
 });
 
-describe("the key it returns is the Logs tab's own (AC-5)", () => {
+describe("the key it returns is the Logs tab's own", () => {
   const ctxFor = (jobs: Job[]): SpecViewsContext =>
     ({
       projectRoot: "/repos/aide",
@@ -245,7 +245,7 @@ describe("the key it returns is the Logs tab's own (AC-5)", () => {
   });
 });
 
-describe("a Codex phase's row reads the session files (AC-2)", () => {
+describe("a Codex phase's row reads the session files", () => {
   const codexStream = () => stream([started(T), codexSaid("m1"), codexRan("c1"), codexSaid("m2")]);
   const withHome = <R>(run: () => R): R => {
     const home = mkdtempSync(join(tmpdir(), "phase-codex-"));

@@ -28,8 +28,8 @@ export {
 } from "./model-resolve.ts";
 
 // The picker a phase line carries, and the caption above the list that
-// says what the two things on that line are. One `<select>` per phase
-// since spec 123: the model is a choice about the PHASE, and a single
+// says what the two things on that line are. One `<select>` per phase,
+// because the model is a choice about the PHASE, and a single
 // dropdown for the row could only ever set one model for every phase a
 // press ticked.
 //
@@ -39,7 +39,7 @@ export {
 // defaults instead.
 //
 // The figure each model is granted is in the option's own visible
-// label (spec 454) — an `<option>` cannot host a "(?)", the one
+// label — an `<option>` cannot host a "(?)", the one
 // exception to this dashboard's own rule that an explanation is never
 // a hover-only `title`.
 export function modelPicker(
@@ -50,7 +50,7 @@ export function modelPicker(
   live: boolean,
   used?: string,
   recordedModel?: string,
-  /** Replaces `runFormId(g)` on the `form="..."` attribute (spec 342).
+  /** Replaces `runFormId(g)` on the `form="..."` attribute.
    *  The New spec page has no real `project`/`specFolder` to derive one
    *  from — the project is a live dropdown pick and the folder does not
    *  exist until `/aide-create` names it — so it draws one small,
@@ -66,7 +66,7 @@ export function modelPicker(
 ): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
-  // Spec 265: an archived row draws the SAME select, disabled, instead
+  // An archived row draws the SAME select, disabled, instead
   // of a second, hand-rolled rendering (`lockedModel`, removed). Its
   // value is the phase's own record when it has one, and — same as a
   // live phase that has not run yet — the configured default when it
@@ -74,13 +74,13 @@ export function modelPicker(
   // has ever recorded a model, and a blank cell there read as a bug
   // rather than as "nothing recorded yet".
   const archived = lockedAsArchived(g, step);
-  // Spec 225: the same rule the box beside it has followed since spec
-  // 160. A phase the running job has not reached is a phase whose
+  // The same rule the box beside it follows.
+  // A phase the running job has not reached is a phase whose
   // model can still be chosen, so the row-level lock is narrowed by
   // the server's own per-phase answer rather than applied wholesale.
   const locked = archived || (busy && !live) || alreadyRun;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
-  // Spec 308: never read for an archived row, whose select is a record
+  // Never read for an archived row, whose select is a record
   // of what happened, not a choice about what is to come.
   const pending = archived ? undefined : pendingPick(g, opts, step, live);
   const chosen = archived
@@ -96,13 +96,13 @@ export function modelPicker(
     // nothing: the run form it names has no press while the job runs.
     (live ? ` data-post-to="/api/queue/${esc(g.lead!.id)}/model"` : "") +
     // Whether this select is showing HISTORY or a suggestion, said to
-    // the browser (spec 169). It scoped the removed "set all" control
+    // the browser. It scoped the removed "set all" control
     // to the phases still ahead; it stays because the server saying
     // which phases have run — derived from the same `used` the
     // pre-filled value is — is better than the browser re-deriving it.
     (used !== undefined ? ` data-ran="1"` : "") +
     // Why it is locked, when it is, is said once for the whole phase
-    // line now (spec 454, `aiModel()`'s own shared "(?)") — not repeated
+    // line (`aiModel()`'s own shared "(?)") — not repeated
     // on this select's own `title`.
     (locked ? " disabled" : "") +
     `>` +
@@ -125,7 +125,7 @@ export function pickerModels<M extends { name: string; ranAs?: string }>(
   return models.map((m) => (m.name === chosen ? { ...m, ranAs: ranModelId } : m));
 }
 
-/** A locked phase's own record of what it spent in TIME (spec 247), on
+/** A locked phase's own record of what it spent in TIME, on
  *  the same terms as its model: blank, not a dash, when the phase's own
  *  file names no `Time spent:` line — the same rule `archiveDateCell`'s
  *  duration mark already keeps. */
@@ -139,16 +139,13 @@ export function lockedDuration(ms: number | undefined): string {
   return `<span class="muted small">${esc(label)}</span>`;
 }
 
-/** Every configured model, grouped by the CLI it starts (spec 169).
+/** Every configured model, grouped by the CLI it starts.
  *
  *  The grouping is what carries the tool while the list is open, and
  *  the model's own name — `queue-config.json`'s own key — while it is
- *  closed. The `(codex)` suffix went in spec 167 and is not coming
- *  back.
+ *  closed. There is no `(codex)` suffix.
  *
- *  `data-tool` is (spec 179). It went in spec 169 with the row-wide AI
- *  filter that was the only thing reading it, and it is read for the
- *  opposite reason now: the AI select beside this one has to say which
+ *  `data-tool` is read to say which tool a model belongs to: the AI select beside this one has to say which
  *  tool the model this select is on belongs to, and after a hand-picked
  *  model survives the five-second swap this attribute is the only place
  *  that fact lives in the browser. It is read to DISPLAY a tool, never
@@ -185,10 +182,9 @@ export function modelOptions(
           .map(
             (m) =>
               `<option value="${esc(m.name)}" data-tool="${esc(tool)}"` +
-              // Spec 457: the option's own label is the model's name
-              // alone — the per-step dollar figure it used to carry
-              // (spec 454) read as a price, and spec 473 dropped it
-              // from the config entirely.
+              // The option's own label is the model's name
+              // alone — a per-step dollar figure would read as a price,
+              // so the config does not carry one.
               // What the alias gives today, when it has run: `Opus 5.5`.
               `${m.name === chosen ? " selected" : ""}>${esc(aliasLabel(m.name, m.ranAs, m.named))}</option>`,
           )
@@ -197,7 +193,7 @@ export function modelOptions(
       );
     })
     .join("");
-  // Spec 265: an archived phase's own record wins unconditionally
+  // An archived phase's own record wins unconditionally
   // (`resolveRecordedModel`), including a model retired or renamed since
   // the run — which no group above lists any more. Rather than let that
   // name silently vanish from the select, one bare option carries it,
@@ -212,20 +208,17 @@ export function modelOptions(
 // offers — the AI, the model, the phase's box — together in the cell
 // beside it.
 //
-// They were flex children of ONE cell until spec 165, pinned to fixed
-// widths by hand so every select started at the same x, and spec 165
-// made each a real table column to stop the hand-pinning. A column
-// reserves a width of its own and carries its own cell padding, though,
-// so three of them in a row put two lots of padding and two reserved
-// widths between the name and the box — far enough apart that the three
-// read as three separate things. Spec 192 puts the AI and the model
-// back in one cell for that reason, and the pinned widths do NOT come
-// back with them: the one width the cell reserves is stated on the
-// model select itself, by name.
+// They are not flex children pinned to fixed widths by hand, and not
+// three real table columns either. A column reserves a width of its own
+// and carries its own cell padding, so three of them in a row would put
+// two lots of padding and two reserved widths between the name and the
+// box — far enough apart that the three read as three separate things.
+// The AI and the model share one cell for that reason, and no pinned
+// widths come with them: the one width the cell reserves is stated on
+// the model select itself, by name.
 //
 // The column the merge vacates is the head row's own Progress column.
-// A phase line has nothing to put there — it is empty on these lines
-// again, exactly as it was before spec 165 moved the model into it.
+// A phase line has nothing to put there — it is empty on these lines.
 //
 // The caption's cells, WITHOUT the row tag: `phaseSubRows` opens each
 // sub-row itself, so the caption can lead whichever row comes first.
@@ -233,8 +226,8 @@ export function modelOptions(
 // The three captions sit in the merged cell together, in the order the
 // controls under them are drawn. "AI" is drawn only when there are two
 // tools to tell apart, exactly as the picker itself is: a word over
-// nothing is worse than no word. "Model" is the single word again — it
-// said "AI - Model" from spec 169, when one select held both.
+// nothing is worse than no word. "Model" is the single word, since no
+// one select holds both.
 //
 // The no-JS floor for the AI picker is written HERE, once for the
 // group, rather than five times beside five selects: it is a style
@@ -243,7 +236,7 @@ export function modelOptions(
 // would be worse than the removed AI filter's inert degradation ever
 // was — and the caption goes with it, since a column headed "AI" with
 // nothing under it reads as broken rather than as absent.
-// `includeListColumns` (spec 415): the Specs list's own 6-column table
+// `includeListColumns`: the Specs list's own 6-column table
 // needs these 4 blank cells to keep every row's cell count matching its
 // <colgroup> (row-shared.ts's LIST_COLUMNS). The New spec page's table
 // has no Progress/Created/Started/Cost concept at all — a spec that
@@ -260,7 +253,7 @@ export function phaseCaptionCells(
    *  it sits at the end of the same line, under the State column it used
    *  to stand in on the row above. */
   action = "",
-  // A genuinely new parameter, not `opts.lang` (spec 482): `PickerOptions`
+  // A genuinely new parameter, not `opts.lang`: `PickerOptions`
   // is narrower than `SpecsPageOptions` and carries no `lang` of its own
   // — both call sites already resolve one for other purposes.
   lang: Language = "en",
@@ -279,9 +272,9 @@ export function phaseCaptionCells(
     `<td class="phasecell"${includeListColumns ? ` colspan="2"` : ""}><span class="muted small">${t(lang, "list.captionPhase")}</span></td>` +
     // Each caption over the control it heads, not three words bunched
     // at the left of the cell: `data-cap` pairs a caption with its
-    // control, and the stylesheet gives the two the same width. Spec
-    // 192 put the three controls in one cell and left the captions
-    // sitting where the text ended (2026-08-22).
+    // control, and the stylesheet gives the two the same width.
+    // With the three controls in one cell, the captions would be left
+    // sitting where the text ended.
     `<td class="modelcell"><span class="row">` +
     // The caption follows `aiPicker`: drawn whenever any tool is
     // configured, so the heading and the control under it can never
@@ -312,17 +305,15 @@ function pendingPick(
   return (live ? g.lead?.stepModels?.[step] : undefined) ?? opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
 }
 
-// The AI a phase will run on, beside the model it will run (spec 179).
+// The AI a phase will run on, beside the model it will run.
 // One per phase line, in the column between the phase's name and its
-// model — where spec 169's set-all control stood, and spec 127's
-// row-wide AI select before that.
+// model — not a row-wide AI select or a set-all control.
 //
-// Both of those were one control for the whole row, and that is what
-// was wrong with them. Spec 127's hid the other tool's models from the
-// five phase selects, which is exactly what stopped anyone discovering
-// that a row can run analyze on one CLI and implement on another.
-// Spec 169's set every phase at once, which is a bulk action and not a
-// statement about any line. A phase is where the choice actually lives:
+// One control for the whole row would be wrong. A row-wide AI select
+// that hid the other tool's models from the five phase selects would
+// stop anyone discovering that a row can run analyze on one CLI and
+// implement on another, and a set-all control is a bulk action and not
+// a statement about any line. A phase is where the choice actually lives:
 // the runner reads `job.model[step]` per step and derives `--tool` from
 // it, so every line gets its own picker and every line is set the same
 // way as every other.
@@ -360,7 +351,7 @@ export function aiPicker(
   live: boolean,
   used?: string,
   recordedModel?: string,
-  /** Same override, same reason, as `modelPicker`'s own (spec 342). */
+  /** Same override, same reason, as `modelPicker`'s own. */
   formIdOverride?: string,
   /** Same flag, same reason, as `modelPicker`'s own. */
   alreadyRun = false,
@@ -379,18 +370,18 @@ export function aiPicker(
   // One entry is a statement rather than a choice, which is what the
   // column is for.
   if (tools.length === 0) return "";
-  // Spec 265: drawn, disabled, on an archived row too — same reasoning
+  // Drawn, disabled, on an archived row too — same reasoning
   // as `modelPicker`'s own archived branch, since this select says which
   // AI the model BESIDE it belongs to, and that model is drawn now
   // whether or not the row is locked.
   const archived = lockedAsArchived(g, step);
-  // Spec 225, and the same `live` the model select beside it takes.
+  // And the same `live` the model select beside it takes.
   // This one carries no `data-post-to`: it posts nothing itself, and a
   // pick made on it reaches the server through the model select it
   // writes into.
   const locked = archived || (busy && !live) || alreadyRun;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
-  // Spec 308: the same pending pick `modelPicker` reads, so the two
+  // The same pending pick `modelPicker` reads, so the two
   // controls cannot disagree about it either.
   const pending = archived ? undefined : pendingPick(g, opts, step, live);
   // The same answer `modelPicker` pre-fills its select with, from the
@@ -403,7 +394,7 @@ export function aiPicker(
   return (
     `<select data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
     // Why it is locked, when it is, is said once for the whole phase
-    // line now (spec 454) — not repeated on this select's own `title`.
+    // line now — not repeated on this select's own `title`.
     (locked ? " disabled" : "") +
     `>` +
     tools

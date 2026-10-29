@@ -72,7 +72,7 @@ const submit = () => {
 };
 
 describe("submitReloadForm", () => {
-  test("posts for JSON and loads the page again on success (AC-6)", async () => {
+  test("posts for JSON and loads the page again on success", async () => {
     const requests = stubPost(200, { ok: true, note: "saved 1-description.md", changed: true });
     const f = fakeForm({ dataset: { line: "spec-refused", note: "spec-notice" } });
     const event = submit();
@@ -82,7 +82,7 @@ describe("submitReloadForm", () => {
     expect(f.reloads).toHaveLength(1);
   });
 
-  test("a refusal is written in the line the form names and the page stays (AC-6)", async () => {
+  test("a refusal is written in the line the form names and the page stays", async () => {
     stubPost(409, { error: "another job for this spec is still running — nothing was saved" });
     const f = fakeForm({ dataset: { line: "spec-refused", note: "spec-notice" } });
     await submitReloadForm(f.form, submit(), f.io);
@@ -90,7 +90,7 @@ describe("submitReloadForm", () => {
     expect(f.reloads).toHaveLength(0);
   });
 
-  test("a form that names no line takes its refusal in its own (AC-6)", async () => {
+  test("a form that names no line takes its refusal in its own", async () => {
     stubPost(400, { error: "unknown tool" });
     const f = fakeForm();
     await submitReloadForm(f.form, submit(), f.io);
@@ -98,7 +98,7 @@ describe("submitReloadForm", () => {
     expect(f.reloads).toHaveLength(0);
   });
 
-  test("a success that changed nothing leaves its note and empties the refusal line (AC-6)", async () => {
+  test("a success that changed nothing leaves its note and empties the refusal line", async () => {
     stubPost(200, { ok: true, note: "the specs checkout was already up to date", changed: false });
     const f = fakeForm({ dataset: { line: "spec-refused", note: "spec-notice" } });
     f.named["spec-refused"]!.textContent = "An earlier refusal";
@@ -108,14 +108,14 @@ describe("submitReloadForm", () => {
     expect(f.reloads).toHaveLength(0);
   });
 
-  test("a success that changed nothing loads the page again when the form names no note line (AC-6)", async () => {
+  test("a success that changed nothing loads the page again when the form names no note line", async () => {
     stubPost(200, { ok: true, changed: false });
     const f = fakeForm();
     await submitReloadForm(f.form, submit(), f.io);
     expect(f.reloads).toHaveLength(1);
   });
 
-  test("a refusal closes the open dialog around the form before it is written (AC-6)", async () => {
+  test("a refusal closes the open dialog around the form before it is written", async () => {
     stubPost(400, { error: "no such entry" });
     const f = fakeForm({ dataset: { line: "spec-refused" }, inDialog: true });
     await submitReloadForm(f.form, submit(), f.io);
@@ -123,7 +123,7 @@ describe("submitReloadForm", () => {
     expect(f.named["spec-refused"]!.textContent).toBe("No such entry");
   });
 
-  test("a form naming where to go goes there on success instead of loading the page again (AC-4)", async () => {
+  test("a form naming where to go goes there on success instead of loading the page again", async () => {
     stubPost(200, { ok: true });
     const f = fakeForm({ dataset: { done: "/projects/aide?tab=schedule" } });
     await submitReloadForm(f.form, submit(), f.io);
@@ -131,7 +131,7 @@ describe("submitReloadForm", () => {
     expect(f.reloads).toHaveLength(0);
   });
 
-  test("a form naming where to go stays put on a refusal, with the reason in its line (AC-4)", async () => {
+  test("a form naming where to go stays put on a refusal, with the reason in its line", async () => {
     stubPost(400, { error: "no such entry" });
     const f = fakeForm({ dataset: { done: "/projects/aide?tab=schedule", line: "spec-refused" } });
     await submitReloadForm(f.form, submit(), f.io);
@@ -140,7 +140,7 @@ describe("submitReloadForm", () => {
     expect(f.reloads).toHaveLength(0);
   });
 
-  test("a submit another listener already took is left alone (AC-6)", async () => {
+  test("a submit another listener already took is left alone", async () => {
     const requests = stubPost(200, { ok: true });
     const f = fakeForm();
     const event = submit();

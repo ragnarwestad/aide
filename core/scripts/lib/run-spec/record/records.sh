@@ -4,7 +4,7 @@
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
 # of the run, are exactly what they were.
-# --- the record of what has run (spec 154) -----------------------------------
+# --- the record of what has run -----------------------------------
 # The dashboard reads this spec's own commits to decide which steps it
 # has had. Everything that is not the dashboard — a person opening the
 # raw markdown, aide-generate-pdf, the /projects page — reads
@@ -54,8 +54,8 @@
 # workflow-steps.json), and deliberately not the ten steps this script
 # will run: `explore` is a thing you can queue, not a place
 # a spec gets to. `WORKFLOW_ARC_RETIRED` is a step name retired FROM the
-# arc, kept recognized here when READING old commits (spec 181,
-# description requirement 2: "every archived spec whose history contains
+# arc, kept recognized here when READING old commits ("every archived
+# spec whose history contains
 # a review-plan run still displays that history") — `completed_steps_for`
 # below has to keep recognizing it or an archived spec's history silently
 # loses a step it actually had.
@@ -76,7 +76,7 @@ status_file_for() {   # sets $status_file
   return 0
 }
 
-# Where THIS step's own artifact is (spec 245) — the same two-candidate
+# Where THIS step's own artifact is — the same two-candidate
 # (active folder, then archive/) resolution `status_file_for` above
 # already does, generalized to the file each phase owns rather than
 # 4-status.md alone.
@@ -115,7 +115,7 @@ date_field_for() {
 # separated list. This run's own outcome is known directly and is
 # recorded first, so it wins over anything the log says about the same
 # step — its commit does not exist yet.
-# Where a reopened spec's history STARTS (spec 198). An archived spec
+# Where a reopened spec's history STARTS. An archived spec
 # that has to be done again keeps every commit from the earlier round —
 # they happened, and the archive is a record — so what changes is not the
 # repository but what counts. The mark is one line of the spec's own
@@ -245,9 +245,9 @@ $(git -C "$dir" log --all --date-order ${boundary_args[@]+"${boundary_args[@]}"}
     --grep="Run /aide-" --grep=" for $folder" --all-match 2>/dev/null)
 EOF
   # A step the line already names stays named, whatever the scan found
-  # (spec 214). The scan sees a step only through the commit-subject
+  # The scan sees a step only through the commit-subject
   # grammar, and a step that committed its own work under a descriptive
-  # subject is invisible to it — Woodstack 22's `implement` committed as
+  # subject is invisible to it — an earlier `implement` committed as
   # "Record the implementation of ...", and the next step's recompute
   # wrote `analyze, archive` over `analyze, implement`, which is the only
   # record there is that implement ran. So the line is a THIRD source
@@ -265,11 +265,11 @@ EOF
   # splitting: bash 3.2 has no `mapfile`, and BSD `sed` will not put a
   # newline in a replacement.
   #
-  # spec 288: read the line as it stood BEFORE this step's own session
+  # Read the line as it stood BEFORE this step's own session
   # ran ($4, the specs worktree's pre-session ref), not the file's
   # current content — otherwise a session that writes a LATER step's
   # name into its own assembled text grants itself permanent credit for
-  # that step, since this function never subtracts (spec 214, by design,
+  # that step, since this function never subtracts (by design,
   # for a different case: a step that committed its own work under a
   # descriptive subject, invisible to the scan above). The fallback to
   # today's post-session read covers the one case with no "before" to

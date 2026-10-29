@@ -6,13 +6,13 @@ import { t, type Language } from "../../../i18n";
 import { CLOSED_STATE, type Phase, type SpecGroup } from "./data-model";
 
 /** The mark a row carries — live or archived — when its code is on a
- *  branch waiting on a pull request (spec 220, spec 335): the same word
+ *  branch waiting on a pull request: the same word
  *  either way, since it is the same fact from a reader's chair — code is
  *  on a branch, and a request describes it. */
 export const PULL_REQUEST = (lang: Language): string => t(lang, "list.pullRequest");
 
 /** The mark a LIVE row carries when its archive step is held back
- *  specifically for unticked acceptance criteria (spec 411) — the same
+ *  specifically for unticked acceptance criteria — the same
  *  fact `resting.ts` already reads to draw the "ready" badge for this
  *  exact state, given the same sentence-plus-link shape `PULL_REQUEST`
  *  already has. */
@@ -23,7 +23,7 @@ export const TEST_SERVER = (lang: Language): string => t(lang, "list.testServer"
 export const BRANCH_PREVIEW = (lang: Language): string => t(lang, "list.branchPreview");
 
 /** The mark a LIVE row carries when a landing failed and no later step
- *  of the same job has resolved it (spec 327) — independent of
+ *  of the same job has resolved it — independent of
  *  `state`, which a later step's own start already overwrites. */
 export const LANDING_FAILED = (lang: Language): string => t(lang, "list.landingFailed");
 
@@ -33,19 +33,19 @@ export const LANDING_FAILED = (lang: Language): string => t(lang, "list.landingF
 export const TESTS_RED = (lang: Language): string => t(lang, "list.testsRed");
 
 /** The mark a LIVE row carries when a step's push never reached origin
- *  (spec 328). */
+ */
 export const NOT_PUSHED = (lang: Language): string => t(lang, "list.notPushed");
 
 /** The mark a LIVE row carries when no pull request could be opened for
- *  its branch (spec 220). The more urgent half of the same answer
+ *  its branch. The more urgent half of the same answer
  *  `PULL_REQUEST` gives — a branch left open with nothing describing it,
  *  which no amount of waiting resolves. */
 export const NO_PULL_REQUEST = (lang: Language): string => t(lang, "list.noPullRequest");
 
 /** The sentence said when no pull request could be opened for a branch
- *  (spec 220, spec 335, spec 352). Fixed prose — one of the four cases
+ *  Fixed prose — one of the four cases
  *  is raw `gh pr create` stderr, and the other three are custom text
- *  this stands in for uniformly. Names the checkout (REQ-3, spec 352),
+ *  this stands in for uniformly. Names the checkout,
  *  the same location the push-failure sentence names. Said twice, by the
  *  row's panel and by the phase's log, from here so the two cannot
  *  drift. */

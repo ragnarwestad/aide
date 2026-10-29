@@ -11,14 +11,14 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ARCHIVE_RESULT, BRANCH, SPECS_REPO, gitFor, merges, runStep, sentence, serverWithRunner, settle, start } from "./archive-landing-fixtures.ts";
 
-describe("code lands before specs for archive (spec 280)", () => {
+describe("code lands before specs for archive", () => {
   const CODE_REPO = "/repos/aide";
   const TWO_REPOS = [
     { root: SPECS_REPO, url: "https://example.test/aide-specs" },
     { root: CODE_REPO, url: "https://example.test/aide" },
   ];
 
-  test("AC8: a failing code root stops the loop before the specs root is attempted", async () => {
+  test("a failing code root stops the loop before the specs root is attempted", async () => {
     const git = gitFor({ conflicting: [CODE_REPO] });
     const { base, results } = serverWithRunner(start, "aide-archive-results-", git, {
       queueProjectRoot: "/repos",
@@ -84,7 +84,7 @@ describe("code lands before specs for archive (spec 280)", () => {
     expect(failed.errorReason).toBe("conflict");
   });
 
-  test("AC9: a successful code root is followed by the specs root, unaffected", async () => {
+  test("a successful code root is followed by the specs root, unaffected", async () => {
     const git = gitFor();
     const { base, results } = serverWithRunner(start, "aide-archive-results-", git, {
       queueProjectRoot: "/repos",
@@ -107,7 +107,7 @@ describe("code lands before specs for archive (spec 280)", () => {
     expect(landed.branchUrls).toEqual([]);
   });
 });
-describe("a branch left behind after a successful merge (spec 319)", () => {
+describe("a branch left behind after a successful merge", () => {
   test("settles as done, with no error, and carries the reason on the job", async () => {
     let specsRoot = "";
     const inner = gitFor();
@@ -196,7 +196,7 @@ describe("a red suite on an archive landing is one sentence", () => {
     let specsRoot = "";
     let codeRoot = "";
     // The code root needs a real merge that changes the tree, or the
-    // gate never runs (spec 402): filled once the roots are known.
+    // gate never runs: filled once the roots are known.
     const needsRealMerge: string[] = [];
     const inner = gitFor({ needsRealMerge });
     const git = {
@@ -245,7 +245,7 @@ describe("a red suite on an archive landing is one sentence", () => {
   });
 });
 
-describe("one landing error names one path for one checkout (spec 330)", () => {
+describe("one landing error names one path for one checkout", () => {
   test("the post-loop sentence names the same resolved root the merge loop already failed for", async () => {
     const resolvedRoot = "/repos/aide-specs-real-root";
     let specsRoot = "";

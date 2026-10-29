@@ -10,21 +10,21 @@ const FOLDER = "150-one-page-shows-the-whole-spec";
 const dialogById = (html: string, id: string): string =>
   html.match(new RegExp(`<dialog[^>]*id="${id}"[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
 
-// --- spec 198: reopening a spec is one action -------------------------------
+// --- Reopening a spec is one action -------------------------------
 //
 // An archived spec whose work has to be done again was reopened by hand
 // in a terminal — move the folder, overwrite three files, hunt down the
 // branch in two repositories and two places each. Done twice, missed
 // something both times. The control belongs where the spec is.
 //
-// Everything ELSE about an archived spec stays as spec 163 left it: no
+// Everything ELSE about an archived spec stays as it was: no
 // textarea on the Description tab, the same read-only note, and checks
 // that are shown but cannot be ticked.
-describe("spec 198: the Reopen control", () => {
+describe("the Reopen control", () => {
   const archived = (extra: Partial<SpecPageView> = {}, tab?: string) =>
     page(view({ archived: true, ...extra }), tab);
 
-  test("the action row's Reopen names a progress dialog whose OK posts the reopen, and the box belongs to that post (AC-1, AC-2)", () => {
+  test("the action row's Reopen names a progress dialog whose OK posts the reopen, and the box belongs to that post", () => {
     const html = archived();
     const id = html.match(/data-ask="([^"]+)"[^>]*>Reopen</)?.[1] ?? "";
     const dialog = dialogById(html, id);
@@ -38,7 +38,7 @@ describe("spec 198: the Reopen control", () => {
     expect(dialog).toMatch(new RegExp(`<input type="checkbox" name="resetFiles" value="1" form="${form![1]}">`));
   });
 
-  test("a Failed criterion's Reopen opens the action row's dialog (AC-1)", () => {
+  test("a Failed criterion's Reopen opens the action row's dialog", () => {
     const failed = {
       phase: "Acceptance criteria",
       task: "AC-1: the page works",

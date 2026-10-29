@@ -1,19 +1,19 @@
 // Split out of spec-save.test.ts by theme.
 //
-// --- spec 188, split in two by spec 212: ticking a check --------------------
+// --- Split in two: ticking a check --------------------------------
 //
 // A spec's page had two ways of changing it — the description behind
 // Edit and Save, a check behind a box that wrote and committed on its
-// own press — and a reader had to learn both. Spec 188 answered that by
-// putting the checks on the Edit form, under one Save.
+// own press — and a reader had to learn both. Putting the checks on
+// the Edit form, under one Save, was one answer.
 //
-// Spec 212 splits them again, and this time they are not two ways of
+// They are split again, and this time they are not two ways of
 // changing one thing: the description's textarea is the Description
 // tab, the checks are boxes on Overview, and each has a Save that
 // commits its own single file. A person no longer has to open the
 // description editor in order to tick a box.
 //
-// The guards spec 182 built are unchanged and are re-proven here on the
+// The guards are unchanged and are proven here on the
 // tick route: a tick lands on the row it was drawn from, and a
 // `4-status.md` a step has written to since the page was drawn refuses
 // the tick instead of flipping the wrong line. What is NEW is what a
@@ -39,7 +39,7 @@ afterEach(() => harness.cleanup());
 const startWithChecks = (gitRun: GitRunner, status = STATUS) => start(harness, gitRun, status);
 
 describe("the checks on the Overview tab", () => {
-  // --- criterion 1: which checks Overview offers as boxes -------------------
+  // --- Which checks Overview offers as boxes -------------------
 
   describe("GET the Overview tab", () => {
     const overview = (base: string) => fetch(`${base}${PAGE}?tab=status`).then(pageText);
@@ -49,7 +49,7 @@ describe("the checks on the Overview tab", () => {
 
     // The Phase tables are the implement RUN's own record, not a
     // person's to tick: nothing anywhere gates on them (archive's only
-    // gate is the Acceptance section, and has been since spec 268), so
+    // gate is the Acceptance section), so
     // drawing them as boxes with a Save invited work that changed
     // nothing and made the page look like it was holding the spec back.
     // They stay in the file, and the Status tab is where they are read.
@@ -74,7 +74,7 @@ describe("the checks on the Overview tab", () => {
       expect(html.match(/name="tick"/g)!).toHaveLength(3);
     });
 
-    // Spec 190, criterion 1. With every open mark written in words the
+    // With every open mark written in words the
     // page used to render with NO boxes at all: phase detection found
     // no `⬜` anywhere, called the whole file done, and the row filter
     // then matched nothing.
@@ -86,8 +86,8 @@ describe("the checks on the Overview tab", () => {
       expect(html.match(/name="tick"/g)!).toHaveLength(3);
     });
 
-    // Spec 266 gave a LOW-complexity spec's `## Checklist` the same box a
-    // `## Phase` row got. It loses it for the same reason they all did:
+    // A LOW-complexity spec's `## Checklist` gets no more box than a
+    // `## Phase` row does, for the same reason:
     // it is the run's own record, and archive never asks about it.
     test("a ## Checklist row is not a box either — it is the run's own record", async () => {
       const html = await overview(startWithChecks(savable("/host"), CHECKLIST_STATUS).base);
@@ -97,7 +97,7 @@ describe("the checks on the Overview tab", () => {
     });
   });
 
-  // --- criteria 6, 7: two routes, two commits, one file each ----------------
+  // --- two routes, two commits, one file each -------------------------------
 
   test("a tick commits 4-status.md alone, and never the description", async () => {
     const git = recording();
@@ -112,7 +112,7 @@ describe("the checks on the Overview tab", () => {
     expect(git.calls.find((c) => c[0] === "add")!.join(" ")).not.toContain("1-description.md");
   });
 
-  // Spec 266: the real end-to-end route, not just the parser — a
+  // The real end-to-end route, not just the parser — a
   // `## Checklist` row's tick must flip it to done on disk exactly as a
   // `## Phase` row's already does.
   test("a ## Checklist row's tick flips it to done on disk through the real /tick route", async () => {
@@ -127,7 +127,7 @@ describe("the checks on the Overview tab", () => {
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
   });
 
-  // Spec 299's follow-up, the real end-to-end route: ticking an
+  // The real end-to-end route: ticking an
   // Acceptance criteria row must work even while implement's own TDD
   // phase still has open rows of its own.
   test("an Acceptance criteria row ticks through the real /tick route while its TDD phase is still open", async () => {
@@ -145,7 +145,7 @@ describe("the checks on the Overview tab", () => {
 
   // A queued job writes nothing yet — and an archive job parked on this
   // very tick is queued, so refusing on `queued` made the tick and the
-  // hold-back wait for each other (371, 2026-09-03). Running, or a
+  // hold-back wait for each other. Running, or a
   // landing in flight, still refuses: `specWriteInFlight`.
   test("a queued matching job does not block a direct tick", async () => {
     const git = recording();
@@ -271,7 +271,7 @@ describe("the checks on the Overview tab", () => {
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
   });
 
-  // --- spec 190: the hold-back note a met check leaves behind ---------------
+  // --- The hold-back note a met check leaves behind ---------------
 
   test("ticking a word-written row flips it to ✅ and commits like any other", async () => {
     const { base, dir } = startWithChecks(savable("/host"), WORDED);
@@ -308,7 +308,7 @@ describe("the checks on the Overview tab", () => {
 
   // The clearing belongs to the tick route: a save that only edits the
   // description must not go rewriting a section it never touched — and
-  // since spec 212 it could not reach the file if it wanted to.
+  // it cannot reach the file if it wanted to.
   test("a description edit alone leaves the hold-back section where it is", async () => {
     const status = heldBack([DONE_ROW, OPEN_ROW]);
     const { base, dir } = startWithChecks(savable("/host"), status);
@@ -317,13 +317,13 @@ describe("the checks on the Overview tab", () => {
   });
 });
 
-// --- spec 509: the second box, and a spec whose only open rows are Not verified ---
+// --- The second box, and a spec whose only open rows are Not verified ---
 
-describe("the Not verified box on the Status tab (spec 509)", () => {
+describe("the Not verified box on the Status tab", () => {
   const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then(pageText);
   const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
 
-  test("a spec whose only non-done rows are Not verified still gets its base sha, and a post built from the page is accepted (AC-1)", async () => {
+  test("a spec whose only non-done rows are Not verified still gets its base sha, and a post built from the page is accepted", async () => {
     const { base, dir } = startWithChecks(savable("/host"), NV_STATUS);
     const html = await statusTab(base);
     expect(html).toContain(`name="statusBaseSha" value="${FILE_SHA}"`);
@@ -337,14 +337,14 @@ describe("the Not verified box on the Status tab (spec 509)", () => {
   });
 });
 
-// --- spec 510: the Failed choice on an archived spec, and a Failed row --------
+// --- The Failed choice on an archived spec, and a Failed row --------
 
-describe("the Failed choice on the Status tab (spec 510)", () => {
+describe("the Failed choice on the Status tab", () => {
   const statusTab = (base: string, path = PAGE) => fetch(`${base}${path}?tab=status`).then(pageText);
   const block = (html: string): string => html.match(/<section class="checks">[\s\S]*?<\/section>/)?.[0] ?? "";
   const FAILED_ROW = "| AC-6: failed earlier | ❌ Failed | Failed: it did not hold |";
 
-  test("a Failed row is not counted as open, and the page still offers the form (AC-5)", async () => {
+  test("a Failed row is not counted as open, and the page still offers the form", async () => {
     const live = STATUS.replace(SECOND_OPEN_ROW, FAILED_ROW);
     const html = await statusTab(startWithChecks(savable("/host"), live).base);
     expect(block(html)).toContain("still open");

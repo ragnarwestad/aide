@@ -1,4 +1,4 @@
-// Landing's own finalize step for a `create` job (spec 453): the folder
+// Landing's own finalize step for a `create` job: the folder
 // exists only under its literal provisional key (`new-<8 hex>`) until
 // this runs, inside the merge worktree, under the specs repo's own
 // merge lock — the one place two landings for the same repo are
@@ -8,8 +8,7 @@
 // Calls `aide-create-spec --assign-number`, never re-derives the number
 // or the slug here: the two shared shell functions
 // (`aide_next_spec_number`, `aide_slug_from_title` in
-// `_aide-spec-lib.sh`) stay the one place either rule is computed
-// (spec 82's invariant).
+// `_aide-spec-lib.sh`) stay the one place either rule is computed.
 
 import { join, relative } from "node:path";
 import type { Sentence } from "../../i18n/message.ts";

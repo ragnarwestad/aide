@@ -3,7 +3,7 @@
 // runner-session-and-page.test.ts and runner-completion-and-dependency.test.ts
 // (split out of runner.test.ts by theme).
 //
-// Criteria 6 and 8 (spec 81, slice 81b): the scheduler. One job at a
+// The scheduler. One job at a
 // time; a cap is checked BEFORE a step starts, because a cap that only
 // stops you afterwards is a report, not a cap; and a job left `running`
 // by a restart is reconciled from the pid and the result file rather
@@ -25,11 +25,11 @@ export const DEFAULTS: QueueDefaults = {
   model: { implement: "opus", default: "sonnet" },
 };
 
-// Two spec folders, not one: since spec 91 the scheduler may run several
+// Two spec folders, not one: the scheduler may run several
 // jobs at once, and a store that cannot resolve a second spec refuses the
 // enqueue long before tick() is reached.
 //
-// A second project name, resolving to the same two folders (spec 402):
+// A second project name, resolving to the same two folders:
 // the repo-scoped hold-back tests need two DIFFERENT project strings to
 // enqueue jobs under, whatever repo `makeRunner()`'s own overrides then
 // point each one at.
@@ -44,7 +44,7 @@ export let spawns: { jobId: string; step: string; resultFile: string; sessionId:
 export let events: NotifyEvent[];
 export let now: number;
 
-/** Move the injected clock (spec 384) — an imported `let` binding cannot
+/** Move the injected clock — an imported `let` binding cannot
  *  be assigned from outside this module, so a test that advances time
  *  between two `tick()`/`poll()` calls goes through this instead. */
 export function setNow(ms: number): void {
@@ -59,8 +59,8 @@ export function makeRunner(opts: {
   maxConcurrent?: number;
   onStepDone?: RunnerOptions["onStepDone"];
   /** Overrides the default `(p) => join(dir, p)` — needed for a test
-   *  that maps two different project strings onto the SAME path (spec
-   *  402's REQ-6), which the default, injective mapping cannot produce. */
+   *  that maps two different project strings onto the SAME path,
+   *  which the default, injective mapping cannot produce. */
   projectDir?: (project: string) => string;
   specsRoot?: RunnerOptions["specsRoot"];
   /** Another store than the harness's own — a board read back from the
@@ -70,8 +70,8 @@ export function makeRunner(opts: {
   return new Runner({
     store: opts.store ?? store,
     onStepDone: opts.onStepDone,
-    // 1 unless a test says otherwise, so every case written before spec
-    // 91 still describes the behaviour it was written for.
+    // 1 unless a test says otherwise, so every case written earlier still
+    // describes the behaviour it was written for.
     maxConcurrent: opts.maxConcurrent,
     projectDir: opts.projectDir ?? ((p) => join(dir, p)),
     specsRoot: opts.specsRoot,

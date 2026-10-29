@@ -1,12 +1,12 @@
-// Every document tab's WYSIWYG editor (spec 292, extended by spec 303
-// to Analysis/Solution/Status): mounts Toast UI Editor over the mount
+// Every document tab's WYSIWYG editor (Description, Analysis,
+// Solution, Status): mounts Toast UI Editor over the mount
 // point `descriptionPanel()`/`documentPanel()` render, keeps the real
 // `<textarea name="text">` in sync so the Description tab's save route
 // needs no change, and gets out of the way — with JS off, or if this
 // bundle fails to build, the raw textarea is what the reader sees (and
 // saves).
 //
-// Only ever reaches an editable tab (spec 333: `documentTabScript`,
+// Only ever reaches an editable tab (`documentTabScript`,
 // `tabs.ts`) — a locked tab's `<pre>` sibling is spec-viewer-client.ts's
 // own mount to make, built on the vendor's dedicated read-only Viewer
 // class instead of this file's full `Editor`, so a page that cannot be
@@ -15,13 +15,13 @@
 // The editor's own stylesheets are pulled in as raw TEXT (`with { type:
 // "text" }`), not as a CSS import: `Bun.build({ format: "iife" })`
 // splits a plain CSS import into a SEPARATE output asset, and this
-// bundle is served from its own route (`GET /spec-editor.js`, spec
-// 315) but still as ONE file — a second output asset is still a second
+// bundle is served from its own route (`GET /spec-editor.js`)
+// but still as ONE file — a second output asset is still a second
 // thing to serve, cache and keep in step with the first. Importing the
 // file as text instead folds its content into this same bundle, so one
 // script, appended once at mount time, is still the whole story.
 import editorCss from "@toast-ui/editor/dist/toastui-editor.css" with { type: "text" };
-// REQ-5: the light stylesheet carries no `.toastui-editor-dark` rule at
+// The light stylesheet carries no `.toastui-editor-dark` rule at
 // all (checked directly) — the dark theme is a SEPARATE file, imported
 // and injected alongside the light one, or toggling the class below
 // would style nothing.
@@ -31,7 +31,7 @@ import { unescapeMarkdown } from "./unescape-markdown.ts";
 import type { ToMdConvertorMap } from "@toast-ui/editor";
 import { scrollToApproach } from "./scroll-to-approach.ts";
 
-// REQ-4: the library exposes no constructor option for the mode
+// The library exposes no constructor option for the mode
 // switch's position, and its own CSS assumes it sits last (rounded at
 // the bottom only). The editor runs in `height: "auto"` mode (below),
 // where the switch's parent is a normal block-flow container; the flex
@@ -100,14 +100,13 @@ if (host && raw) {
   host.dataset.mounted = "true";
   // A link from the Specs list to one approach of the plan.
   requestAnimationFrame(() => scrollToApproach(host, location.hash));
-  // REQ-1/REQ-3: the library gives a toolbar button a "click" with no
+  // The library gives a toolbar button a "click" with no
   // "mousedown" of its own in front of it whenever the toolbar redraws
   // and steals focus mid-interaction (2-analysis.md, Codebase analysis)
   // — a click on a toolbar button counts only when the mouse went down
   // on that SAME button. `detail === 0` exempts a keyboard-activated
   // click (Tab, then Enter/Space), which has no mousedown of its own
   // either but is a real activation, not the library's phantom one
-  // (REQ-6).
   const toolbar = host.querySelector(".toastui-editor-toolbar");
   const toolbarButton = (target: EventTarget | null): HTMLElement | null =>
     target instanceof HTMLElement ? target.closest("button") : null;
@@ -158,7 +157,7 @@ if (host && raw) {
   // separate DOM tree this instance owns, with no other way in.
   raw.addEventListener("spec-cancel", () => instance.setMarkdown(raw.value));
 
-  // REQ-5: the library's own `theme` option is construction-time
+  // The library's own `theme` option is construction-time
   // only (2-analysis.md) — this dashboard's theme changes live, with no
   // reload (`theme-script.ts`), so the dark class is managed by hand
   // from mount time instead of passed to the constructor. The class

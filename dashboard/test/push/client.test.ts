@@ -1,4 +1,4 @@
-// The control on the Notifications tab (AC-1, AC-6), run against fakes
+// The control on the Notifications tab, run against fakes
 // of what a browser gives it: the notification permission, the push
 // manager and `fetch`. What has to hold is the ORDER — ask before
 // subscribing, clear the old subscription first, post only after a
@@ -60,8 +60,8 @@ function device(o: Setup = {}) {
   return { deps, log, posts, control: pushControl(deps), current: () => current };
 }
 
-describe("Turn on (criteria 1, 2, 4)", () => {
-  test("asks first, clears an old subscription, subscribes with the server's key, then posts (criterion 1)", async () => {
+describe("Turn on", () => {
+  test("asks first, clears an old subscription, subscribes with the server's key, then posts", async () => {
     const d = device({ existing: true });
     const view = await d.control.turnOn();
     expect(d.log).toEqual(["ask", "unsubscribe https://push.test/old", "subscribe true 65", "post /api/push/subscribe"]);
@@ -69,7 +69,7 @@ describe("Turn on (criteria 1, 2, 4)", () => {
     expect(view.state).toBe("on");
   });
 
-  test("a device that blocked notifications makes no subscription and posts nothing (criterion 2)", async () => {
+  test("a device that blocked notifications makes no subscription and posts nothing", async () => {
     const d = device({ permission: "denied" });
     const view = await d.control.turnOn();
     expect(d.log).toEqual([]);
@@ -77,14 +77,14 @@ describe("Turn on (criteria 1, 2, 4)", () => {
     expect(view.message).toContain("settings");
   });
 
-  test("a person who answers no to the question is not subscribed either (criterion 2)", async () => {
+  test("a person who answers no to the question is not subscribed either", async () => {
     const d = device({ answer: "denied" });
     const view = await d.control.turnOn();
     expect(d.log).toEqual(["ask"]);
     expect(view.state).toBe("blocked");
   });
 
-  test("a server that refuses removes the subscription just made and stays off (criterion 4)", async () => {
+  test("a server that refuses removes the subscription just made and stays off", async () => {
     const d = device({ serverOk: false });
     const view = await d.control.turnOn();
     expect(d.log.at(-1)).toBe("unsubscribe https://push.test/new");
@@ -93,7 +93,7 @@ describe("Turn on (criteria 1, 2, 4)", () => {
     expect(view.message).toContain("could not be turned on");
   });
 
-  test("a subscribe that throws leaves the control off and says so (criterion 4)", async () => {
+  test("a subscribe that throws leaves the control off and says so", async () => {
     const d = device();
     d.deps.registration = async () => {
       throw new Error("no worker");
@@ -104,8 +104,8 @@ describe("Turn on (criteria 1, 2, 4)", () => {
   });
 });
 
-describe("Turn off and the state on load (criteria 3, 5)", () => {
-  test("unsubscribes the device, posts its endpoint, and reads Off (criterion 3)", async () => {
+describe("Turn off and the state on load", () => {
+  test("unsubscribes the device, posts its endpoint, and reads Off", async () => {
     const d = device({ permission: "granted", existing: true });
     const view = await d.control.turnOff();
     expect(d.posts).toEqual([{ path: "/api/push/unsubscribe", body: { endpoint: "https://push.test/old" } }]);
@@ -113,7 +113,7 @@ describe("Turn off and the state on load (criteria 3, 5)", () => {
     expect(view.state).toBe("off");
   });
 
-  test("a browser with no push support offers no toggle and says the installed app is needed (criterion 3)", async () => {
+  test("a browser with no push support offers no toggle and says the installed app is needed", async () => {
     const d = device({ supported: false });
     const view = await d.control.load();
     expect(view.state).toBe("unsupported");
@@ -127,7 +127,7 @@ describe("Turn off and the state on load (criteria 3, 5)", () => {
     expect(d.posts).toEqual([]);
   });
 
-  test("a device whose permission was withdrawn is unsubscribed on load and reads Blocked (criterion 5)", async () => {
+  test("a device whose permission was withdrawn is unsubscribed on load and reads Blocked", async () => {
     const d = device({ permission: "denied", existing: true });
     const view = await d.control.load();
     expect(d.posts).toEqual([{ path: "/api/push/unsubscribe", body: { endpoint: "https://push.test/old" } }]);

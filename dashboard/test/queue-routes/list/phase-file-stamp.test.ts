@@ -17,7 +17,7 @@ import {
   type SpecTarget,
 } from "../../../src/render";
 
-// --- spec 199: time becomes something worth reading -------------------------
+// --- Time becomes something worth reading -------------------------
 //
 // A phase says how long it TOOK. Nothing stores a per-step duration —
 // a job has one `startedAt` however many steps it ran — so a step's
@@ -26,18 +26,18 @@ import {
 // wrong by reaching for the job's whole span instead is the one
 // mistake this block exists to catch.
 
-// --- spec 284: a phase's own file stamp fills the gap no queue job can ----
+// --- A phase's own file stamp fills the gap no queue job can ----
 //
 // An interactively-created spec's `create` phase never goes through the
 // queue, so the live pipeline above (built entirely from job records)
 // has nothing for it — but `core/scripts/aide-create-spec --stamp-outcome`
-// (spec 274) already wrote the duration into 1-description.md's own
-// Tracking info, and `specPhaseOutcome` (spec 247) already knows how to
+// already wrote the duration into 1-description.md's own
+// Tracking info, and `specPhaseOutcome` already knows how to
 // read it; it was simply never wired into this page's live row. This
 // block proves the fallback fires exactly where — and only where — no
 // queue-job record exists for a phase, on both the per-phase line and
 // the header's own total.
-describe("a phase's own file stamp fills the gap no queue job can (spec 284)", () => {
+describe("a phase's own file stamp fills the gap no queue job can", () => {
   const NOW = "2026-08-16T12:00:00Z";
   let dir: string;
 
@@ -89,7 +89,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
       .match(/<tr class="specstate"[^>]*data-folder="aa-spec">.*?<\/tr>/)?.[0]
       ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
 
-  test("REQ-1-AC1: create's stamped Time spent fills the phase line when no queue job ever ran it", () => {
+  test("create's stamped Time spent fills the phase line when no queue job ever ran it", () => {
     stampCreate("3m00s");
     const html = page(
       [
@@ -103,7 +103,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
     expect(phaseCell(html, "create", "started")).toContain("3m 00s");
   });
 
-  test("REQ-2-AC1: the header total includes the fallback create duration alongside a job-measured phase", () => {
+  test("the header total includes the fallback create duration alongside a job-measured phase", () => {
     stampCreate("3m00s");
     const html = page(
       [
@@ -118,18 +118,18 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
     expect(headCell(html)).toContain("8m 00s");
   });
 
-  test("REQ-2-AC2: a spec with zero queue jobs at all still totals its stamped create duration", () => {
+  test("a spec with zero queue jobs at all still totals its stamped create duration", () => {
     stampCreate("3m00s");
     expect(computeSpecTotalDurationMs([], Date.parse(NOW), dir)?.ms).toBe(3 * 60 * 1000);
   });
 
-  test("REQ-2-AC2: the same spec's header row, drawn with no jobs at all, shows the fallback total too", () => {
+  test("the same spec's header row, drawn with no jobs at all, shows the fallback total too", () => {
     stampCreate("3m00s");
     const html = page([], [target({ done: ["create"] })]);
     expect(headCell(html)).toContain("3m 00s");
   });
 
-  test("REQ-3-AC1: the create phase's Cost cell shows the unknown mark, never blank and never $0.00", () => {
+  test("the create phase's Cost cell shows the unknown mark, never blank and never $0.00", () => {
     stampCreate("3m00s");
     const html = page(
       [
@@ -144,7 +144,7 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
     expect(phaseCell(html, "create", "cost")).not.toContain("$0.00");
   });
 
-  test("REQ-3-AC2: a phase that has genuinely never run reads a dash, distinct from create's stamped figure", () => {
+  test("a phase that has genuinely never run reads a dash, distinct from create's stamped figure", () => {
     stampCreate("3m00s");
     const html = page(
       [
@@ -161,11 +161,11 @@ describe("a phase's own file stamp fills the gap no queue job can (spec 284)", (
     expect(phaseCell(html, "archive", "cost")).toBe("");
   });
 
-  // Spec 410, REQ-4: REQ-4's own wording names an ARCHIVED row's
+  // The mark is for an ARCHIVED row's
   // fallback specifically — a live row's own rare version of the same
   // fallback (a phase no queue job ever ran, `create` above all) stays
   // unmarked, exactly as it reads today.
-  test("REQ-4: a live row's own file-stamp fallback carries no session-only mark", () => {
+  test("a live row's own file-stamp fallback carries no session-only mark", () => {
     stampCreate("3m00s");
     const html = page(
       [

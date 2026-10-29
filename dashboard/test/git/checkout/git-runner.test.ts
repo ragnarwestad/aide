@@ -55,7 +55,7 @@ describe("one call can ask for longer than the default", () => {
   });
 });
 
-// Spec 291: `GIT_INDEX_FILE` scoping has no CLI-flag equivalent — the
+// `GIT_INDEX_FILE` scoping has no CLI-flag equivalent — the
 // plumbing in `branch-file.ts` needs it to build a commit without ever
 // touching the shared checkout's real index, so `GitRunner` grew one
 // optional per-call `env` parameter. Proven with `GIT_AUTHOR_NAME`

@@ -60,7 +60,7 @@ function held<T>() {
 }
 
 describe("the check made when the Deploy tab is opened", () => {
-  test("it posts once at load, to the address the section carries (AC-1)", async () => {
+  test("it posts once at load, to the address the section carries", async () => {
     const { doc, section } = load(LEVEL);
     const { io, asked } = fakeIo();
     let handedTo = null as HTMLElement | null;
@@ -86,12 +86,12 @@ describe("the check made when the Deploy tab is opened", () => {
     expect(made).toBe(0);
   });
 
-  test("a document with no such section is left alone, as the page-script tests' stand-in is (AC-1)", () => {
+  test("a document with no such section is left alone, as the page-script tests' stand-in is", () => {
     const doc = { querySelector: () => null } as unknown as Document;
     expect(() => startOriginCheck(doc, () => fakeIo().io)).not.toThrow();
   });
 
-  test("when the check answers, the sentence comes from the fresh page, in place (AC-2)", async () => {
+  test("when the check answers, the sentence comes from the fresh page, in place", async () => {
     const { doc, section, text } = load(LEVEL);
     expect(text()).toContain("This checkout matches origin");
     const before = section();
@@ -101,7 +101,7 @@ describe("the check made when the Deploy tab is opened", () => {
     expect(text()).toContain("1 commit behind origin");
   });
 
-  test("while the check has not answered, the section is as it was drawn and the page is not read again (AC-3)", async () => {
+  test("while the check has not answered, the section is as it was drawn and the page is not read again", async () => {
     const { doc, section, text } = load(LEVEL);
     const before = section();
     const html = before!.outerHTML;
@@ -115,7 +115,7 @@ describe("the check made when the Deploy tab is opened", () => {
     expect(asked.page).toBe(0);
   });
 
-  test("a press before the check answers leaves the section as it is (AC-2)", async () => {
+  test("a press before the check answers leaves the section as it is", async () => {
     const { window, doc, section } = load(LEVEL);
     const gate = held<boolean>();
     const { io } = fakeIo({ check: () => gate.promise });
@@ -127,7 +127,7 @@ describe("the check made when the Deploy tab is opened", () => {
     expect(section()).toBe(before);
   });
 
-  test("an open dialog when the check answers leaves the section as it is (AC-2)", async () => {
+  test("an open dialog when the check answers leaves the section as it is", async () => {
     const { window, doc, section } = load(LEVEL);
     const gate = held<boolean>();
     const { io } = fakeIo({ check: () => gate.promise });
@@ -142,7 +142,7 @@ describe("the check made when the Deploy tab is opened", () => {
   });
 });
 
-describe("a check that did not answer changes nothing (AC-4)", () => {
+describe("a check that did not answer changes nothing", () => {
   const unchanged = async (io: OriginCheckIo): Promise<void> => {
     const { doc, section } = load(LEVEL);
     const before = section();

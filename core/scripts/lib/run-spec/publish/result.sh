@@ -7,7 +7,7 @@
 # one JSON line in $line that aide-run-spec writes to the result file and
 # prints.
 
-# --- REQ-1/REQ-2/REQ-3: only a step that would land on the line at all ------
+# --- Only a step that would land on the line at all ------
 # is asked whether origin confirmed it — no-progress/scope-violation/
 # cli-error/timeout/provider-limit runs were never going to be added
 # to the line regardless of push outcome (completed_steps_for's own guard,
@@ -19,7 +19,7 @@ if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
    && ! roots_confirmed_on_origin; then
   # The line is never touched — nothing was written to it yet, so it
   # reads exactly as it did before this run, both locally and on origin
-  # (REQ-3). A re-run is a normal ok:false result, not a refusal (REQ-4):
+  # A re-run is a normal ok:false result, not a refusal:
   # the step is retried like any other failed step, and
   # commit_and_push_roots's own widened gate retries whatever this run
   # left stuck, whether or not the re-run's own session changes anything.
@@ -32,10 +32,10 @@ elif [ -n "$status_file" ]; then
   # Nothing derived leaves the file alone: an empty line says less than
   # the one already there.
   #
-  # spec 356: write_phase_stamp (core/scripts/lib/spec-transitions.sh) is
+  # Write_phase_stamp (core/scripts/lib/spec-transitions.sh) is
   # the one place this line is formatted and written — historical
-  # `- **Model (<step>):**` lines an old archive still carries (spec 217,
-  # superseded by spec 245's per-file record below) are left exactly
+  # `- **Model (<step>):**` lines an old archive still carries (superseded
+  # by the per-file record below) are left exactly
   # where they sit, same as before: the function touches only the line
   # it owns.
   if declare -f write_phase_stamp >/dev/null 2>&1; then
@@ -64,7 +64,7 @@ elif [ -n "$status_file" ]; then
   if [ "$progress_total" -gt 0 ]; then
     progress_pct=$(( (progress_done * 100 + progress_total / 2) / progress_total ))
     # Format-agnostic on purpose (real specs disagree on bold/position
-    # for this line, spec 246) — only the digits are touched, everything
+    # for this line) — only the digits are touched, everything
     # else on the line survives.
     awk -v pct="$progress_pct" -v done="$progress_done" -v total="$progress_total" '
       BEGIN { written = 0 }
@@ -82,23 +82,23 @@ elif [ -n "$status_file" ]; then
     fi
   fi
 
-  # --- the spec's state file (spec 355) --------------------------------
+  # --- the spec's state file --------------------------------
   # 4-status.md is the prose; 4-status.json is what the gates and the
   # dashboard read. Derived here from the prose just rewritten, by the
   # same library aide-write-spec and aide-archive-spec use — so a run
   # that lands `analyze` on the line also lands it in the file the
-  # implement gate reads. Spec 355 changed the tests to expect this and
-  # never gave the runner the code: every analyze after it left the file
-  # stale, and the dashboard held the next implement back as "not
+  # implement gate reads. Without this write, every analyze would leave
+  # every analyze would leave the file
+  # stale, and the dashboard would hold the next implement back as "not
   # analyzed yet". Only for a step that completed: a stopped run changes
   # no phase, and a first-ever state file on its branch would keep an
   # otherwise empty branch alive that the sweep below is meant to
   # delete. The state file keeps its own list of completed phases rather
-  # than re-deriving it from prose (spec 355), so the list this run just
+  # than re-deriving it from prose, so the list this run just
   # wrote to the prose line is handed over — a file that already existed
   # before the run would otherwise go on naming only the phases it had.
-  # Placed here, after completed_steps_for has actually run (spec 343
-  # moved that call into this same branch), rather than at this block's
+  # Placed here, after completed_steps_for has actually run (that call
+  # lives in this same branch), rather than at this block's
   # original, earlier position — $completed_steps does not exist yet at
   # that point any more, and this write has to ride PASS 2's commit
   # anyway, same as the prose line it derives from.
@@ -106,7 +106,7 @@ elif [ -n "$status_file" ]; then
     write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 || true
   fi
 
-  # --- PASS 2: the line has to clear the same bar (REQ-2) -------------
+  # --- PASS 2: the line has to clear the same bar -------------
   commit_and_push_roots
   if [ "$terminal_reason" = "completed" ] && ! roots_confirmed_on_origin; then
     ok="false"
@@ -191,8 +191,8 @@ if [ "$push_mode" = "pr" ]; then
   fi
 fi
 
-# ABSENT, not zero, when there is no dollar figure at all (spec 125).
-# `tokens` has followed this rule since spec 118; `costUsd` did not,
+# ABSENT, not zero, when there is no dollar figure at all.
+# `tokens` follows this rule; `costUsd` is easy to get wrong,
 # because every claude path DOES produce a number — including the
 # deliberate over-charge a killed run is billed. Codex has nothing to
 # over-charge FROM, and a 0 in this field would be summed into the
@@ -241,7 +241,7 @@ line="$(jq -cn \
    # to what this names, and "the field is not there" is the only shape
    # that cannot be mistaken for a folder called nothing.
    + (if $specFolder == "" then {} else {specFolder:$specFolder} end)
-   # The same rule again, for the same reason (spec 118): a token count
+   # The same rule again, for the same reason: a token count
    # is measured or it is not there. A zero would read as "this step
    # used nothing", which is a claim, and the page shows a dash for a
    # field that is absent.
@@ -256,7 +256,7 @@ line="$(jq -cn \
    # cannot be added up as if it were a real zero.
    + (if $costUsd == null then {} else {costUsd:$costUsd} end)
    # And once more for which of the two files the worktree links were
-   # read from (spec 184): absent means none were configured at all,
+   # read from: absent means none were configured at all,
    # which is not the same claim as either file naming an empty list.
    + (if $worktreeLinksSource == "" then {} else {worktreeLinksSource:$worktreeLinksSource} end)
    # And for the usage limit a provider reported: present only on a step

@@ -26,7 +26,7 @@ const tickedBoxes = (html: string): string[] =>
   [...html.matchAll(/<input [^>]*name="dependsOn"[^>]*value="([^"]+)"[^>]*>/g)].filter((m) => m[0].includes(" checked")).map((m) => m[1]!);
 
 describe("what the picker offers", () => {
-  test("is the project's active specs, not the spec itself, another project's or an archived one (AC-2)", () => {
+  test("is the project's active specs, not the spec itself, another project's or an archived one", () => {
     const targets = [spec(FOLDER), ...SIBLINGS, { project: "other", specFolder: "77-elsewhere" }];
     const opts = optionsFor(targets, ["aide/80-archived"]);
     expect(dependsOnOffer(groupOf(targets, opts), opts).options.map((t) => t.specFolder).sort()).toEqual([
@@ -35,13 +35,13 @@ describe("what the picker offers", () => {
     ]);
   });
 
-  test("ticks what the spec depends on now (AC-1)", () => {
+  test("ticks what the spec depends on now", () => {
     const targets = [spec(FOLDER, { dependsOn: ["99-a-second-spec"] }), ...SIBLINGS];
     const opts = optionsFor(targets);
     expect(dependsOnOffer(groupOf(targets, opts), opts).ticked).toEqual(["99-a-second-spec"]);
   });
 
-  test("keeps a dependency since archived or closed, and leaves out an entry nothing matches (AC-4)", () => {
+  test("keeps a dependency since archived or closed, and leaves out an entry nothing matches", () => {
     const targets = [spec(FOLDER, { dependsOn: ["80-archived", "140-a-closed-one", "99-a-second-spec", "55"] }), ...SIBLINGS];
     // A closed spec is among the archived keys, as the Running tab's options carry it.
     const opts = optionsFor(targets, ["aide/80-archived", "aide/140-a-closed-one"]);
@@ -52,7 +52,7 @@ describe("what the picker offers", () => {
 });
 
 describe("the line the open row draws", () => {
-  test("is a form posting to the spec's tracking route, with the ticks and the archived dependency in it (AC-1, AC-4)", () => {
+  test("is a form posting to the spec's tracking route, with the ticks and the archived dependency in it", () => {
     const targets = [spec(FOLDER, { dependsOn: ["80-archived", "99-a-second-spec"] }), ...SIBLINGS];
     const opts = optionsFor(targets, ["aide/80-archived"]);
     const g = groupOf(targets, opts);
@@ -64,14 +64,14 @@ describe("the line the open row draws", () => {
     expect(html).toContain(`id="${dependsOnFormId(g)}-cancel"`);
   });
 
-  test("two specs' forms have ids of their own (AC-3)", () => {
+  test("two specs' forms have ids of their own", () => {
     const targets = [spec(FOLDER), spec("82-other-spec")];
     const opts = optionsFor(targets);
     const [a, b] = groupBySpec([], targets, opts.archived, undefined, NOW);
     expect(dependsOnFormId(a!)).not.toBe(dependsOnFormId(b!));
   });
 
-  test("is nothing for a spec that is archived or closed (AC-1)", () => {
+  test("is nothing for a spec that is archived or closed", () => {
     const targets = SIBLINGS;
     const opts = optionsFor(targets, [`aide/${FOLDER}`]);
     const record: ArchivedSpecView = { project: "aide", folder: FOLDER, done: ["create", "analyze", "implement", "archive"], models: {}, phaseOutcomes: {} };
@@ -79,7 +79,7 @@ describe("the line the open row draws", () => {
     expect(dependsOnLine({ ...g, dependsOn: ["99-a-second-spec"] }, opts)).toBe("");
   });
 
-  test("is nothing for a create whose folder does not exist yet (AC-1)", () => {
+  test("is nothing for a create whose folder does not exist yet", () => {
     const create = row({ id: "c1", specFolder: "create-1", state: "running", steps: ["create"], stepIndex: 0 });
     const opts = optionsFor(SIBLINGS);
     const g = groupBySpec([create], SIBLINGS, opts.archived, undefined, NOW).find((x) => x.specFolder === "create-1")!;
@@ -87,7 +87,7 @@ describe("the line the open row draws", () => {
     expect(dependsOnLine(g, opts)).toBe("");
   });
 
-  test("says it depends on nothing, with nothing to pick, for a spec alone in its project (AC-1)", () => {
+  test("says it depends on nothing, with nothing to pick, for a spec alone in its project", () => {
     const targets = [spec(FOLDER)];
     const opts = optionsFor(targets);
     const html = dependsOnLine(groupOf(targets, opts), opts);
@@ -96,7 +96,7 @@ describe("the line the open row draws", () => {
     expect(html).toContain('name="settingsEditable"');
   });
 
-  test("shows the ticks with every box disabled and no Save or Cancel while the lead job is queued or running (AC-1)", () => {
+  test("shows the ticks with every box disabled and no Save or Cancel while the lead job is queued or running", () => {
     const targets = [spec(FOLDER, { dependsOn: ["99-a-second-spec"] }), ...SIBLINGS];
     const opts = optionsFor(targets);
     for (const state of ["queued", "running"] as const) {

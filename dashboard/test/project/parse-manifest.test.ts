@@ -14,7 +14,7 @@ const RETIRED_TOP_LEVEL = [
 ];
 
 describe("parseManifest ignores the keys nothing reads", () => {
-  test("a manifest with every retired key reads the kept ones and drops the rest (AC-1)", () => {
+  test("a manifest with every retired key reads the kept ones and drops the rest", () => {
     const result = parseManifest([
       "name: x",
       "generated: 2026-01-01",
@@ -46,7 +46,7 @@ describe("parseManifest ignores the keys nothing reads", () => {
     for (const key of RETIRED_TOP_LEVEL) expect(result.data).not.toHaveProperty(key);
   });
 
-  test("the real manifests still read, without the keys they carry (AC-1)", () => {
+  test("the real manifests still read, without the keys they carry", () => {
     for (const [file, name] of [["paceup.yaml", "paceup"], ["atlasaurus.yaml", "atlasaurus"]]) {
       const result = parseManifest(fixture(file));
       if (!result.ok) throw new Error(result.error);
@@ -73,7 +73,7 @@ describe("parseManifest ignores the keys nothing reads", () => {
 // three-word setting, so a word it does not know reads as absent — the
 // same as not setting it, which means a branch cannot be tried.
 describe("deployment.previewFrom", () => {
-  test("each of the three words is kept (AC-4)", () => {
+  test("each of the three words is kept", () => {
     for (const word of ["cloudflare-pages", "command", "none"] as const) {
       const result = parseManifest(`name: x\ndeployment:\n  previewFrom: ${word}\n`);
       if (!result.ok) throw new Error(result.error);
@@ -81,7 +81,7 @@ describe("deployment.previewFrom", () => {
     }
   });
 
-  test("an unknown word, an absent key and the old URL template read as no previewFrom (AC-4)", () => {
+  test("an unknown word, an absent key and the old URL template read as no previewFrom", () => {
     const unknown = parseManifest("name: x\ndeployment:\n  previewFrom: vercel\n");
     const oldTemplate = parseManifest('name: x\ndeployment:\n  preview: "https://{branch}.x.pages.dev"\n');
     for (const result of [unknown, oldTemplate]) {
@@ -96,11 +96,11 @@ describe("deployment.previewFrom", () => {
   });
 });
 
-// Spec 220: whether a project's archived code merges straight into its
+// Whether a project's archived code merges straight into its
 // default branch or waits on a pull request. A team policy about review,
 // so it lives in the COMMITTED manifest and nowhere else — and it fails
 // toward today's behaviour, the way every other field here does.
-describe("codeLanding (spec 220)", () => {
+describe("codeLanding", () => {
   test("both recognized values parse", () => {
     for (const value of ["merge", "pr"] as const) {
       const result = parseManifest(`name: x\ncodeLanding: ${value}\n`);
@@ -127,11 +127,11 @@ describe("codeLanding (spec 220)", () => {
   });
 });
 
-// Spec 259: a project's own recurring jobs. Committed, like codeLanding
+// A project's own recurring jobs. Committed, like codeLanding
 // — no .aide/config fallback — and each entry is validated on its own,
 // so one malformed entry never takes a whole project's schedule with it.
 describe("schedule", () => {
-  test("a manifest's schedule: list is not read — jobs live in the queue config (AC-2)", () => {
+  test("a manifest's schedule: list is not read — jobs live in the queue config", () => {
     const result = parseManifest(
       "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
     );
@@ -142,7 +142,7 @@ describe("schedule", () => {
 });
 
 describe("criteriaChecks", () => {
-  test("a manifest's criteriaChecks key is not read (AC-8)", () => {
+  test("a manifest's criteriaChecks key is not read", () => {
     const result = parseManifest("name: x\ncriteriaChecks: stop\n");
     if (!result.ok) throw new Error(result.error);
     expect(result.data).not.toHaveProperty("criteriaChecks");

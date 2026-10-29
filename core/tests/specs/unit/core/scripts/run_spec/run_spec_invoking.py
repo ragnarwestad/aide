@@ -14,8 +14,8 @@ from ..conftest import git, run
 def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     """A working stand-in for `aide-run-spec`, in its own directory: the
     script itself, plus the files it reads relative to its own location
-    (`_aide-spec-lib.sh`, and — since spec 349 — `lib/workflow-steps.json`,
-    and since spec 364 `lib/effort-levels.json` too, without which every
+    (`_aide-spec-lib.sh`, `lib/workflow-steps.json`,
+    and `lib/effort-levels.json` too, without which every
     command refuses)."""
     copy = tmp_path / name
     copy.write_bytes(pathlib.Path(runner).read_bytes())
@@ -27,13 +27,13 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     (tmp_path / "lib" / "workflow-steps.json").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "workflow-steps.json").read_bytes()
     )
-    # effort-levels.json too (spec 364): read the same way, without which
+    # effort-levels.json too: read the same way, without which
     # every command refuses just as it would with workflow-steps.json missing.
     (tmp_path / "lib" / "effort-levels.json").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "effort-levels.json").read_bytes()
     )
     # status-progress.sh too: sourced by the runner whenever a
-    # 4-status.md exists — which, since spec 344's fixture, is every run.
+    # 4-status.md exists — which, given the fixture, is every run.
     (tmp_path / "lib" / "status-progress.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "status-progress.sh").read_bytes()
     )

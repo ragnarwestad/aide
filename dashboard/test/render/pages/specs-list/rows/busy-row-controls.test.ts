@@ -8,13 +8,13 @@ import {
 import { ICON_LOCK } from "../../../../../src/render/ui/components";
 import { row, openKeys } from "../../fixtures.ts";
 
-// --- spec 105: while a spec is busy, its row offers Cancel and nothing else ---
+// --- While a spec is busy, its row offers Cancel and nothing else ---
 //
 // Split out of row-status-and-controls.test.ts by theme.
 //
-// The row's controls used to be governed step by step: spec 101
-// disabled the boxes the in-flight job named, and everything else on
-// the row stayed live. Seen on 2026-08-19 on spec 103 — `implement`
+// The row's controls used to be governed step by step: only
+// the boxes the in-flight job named were disabled, and everything else on
+// the row stayed live. Seen in practice — `implement`
 // running, its spinner up, and the other three phase boxes still
 // tickable, "more" still setting a model for a job that could not be
 // started, and a second Run one press away. The queue refuses that
@@ -25,9 +25,9 @@ import { row, openKeys } from "../../fixtures.ts";
 // queued, running, or parked at a gate — the row offers exactly what
 // that state allows. Every test here is about an OPENED row, because
 // a collapsed one has no phase box, no model and no Run to lock in the
-// first place (its narrower promise is in the spec 103 block, in
+// first place (its narrower promise is in
 // collapsed-row.test.ts).
-describe("spec 105: a busy row offers only what its state allows", () => {
+describe("a busy row offers only what its state allows", () => {
   const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
@@ -47,9 +47,9 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       Date.parse("2026-08-19T12:00:00Z"),
     );
 
-  /** The line an open row reveals under its header: since spec 109 the
+  /** The line an open row reveals under its header: the
    *  phase boxes, Run and Cancel are here, never in the header's cell —
-   *  and since spec 117 the model and "also touches" too. */
+   *  and the model and "also touches" too. */
   const controlsLine = (html: string, folder: string) =>
     html.match(
       new RegExp(
@@ -66,21 +66,21 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     row({ id: "j1", specFolder: folder, steps: ["implement"], stepIndex: 0, state });
 
   /** The same open row's controls line — where every lockable control
-   *  on it lives (spec 109). */
+   *  on it lives. */
   const openControls = (r: QueueRowView, folder = "105-busy") =>
     controlsLine(rows([r], [target(folder)]), folder);
 
-  // --- criterion 1: running or queued, Cancel and only Cancel ---------------
+  // --- Running or queued, Cancel and only Cancel ---------------
 
   /** A posting form on the open row, by the verb it posts to. */
   const control = (cell: string, verb: string) =>
     cell.match(new RegExp(`<form [^>]*action="/api/queue/j1/${verb}"[\\s\\S]*?</form>`))?.[0] ?? "";
 
   for (const state of ["queued", "running"] as const) {
-    test(`a ${state} spec's opened row offers Cancel, and nothing else it can press (criterion 1)`, () => {
-      // Since spec 124 the buttons never come and go — a row's stack is
+    test(`a ${state} spec's opened row offers Cancel, and nothing else it can press`, () => {
+      // The buttons never come and go — a row's stack is
       // the same buttons throughout, and its STATE says which of them
-      // will take a click. Since spec 149 Cancel is the only one in it
+      // will take a click. Cancel is the only one in it
       // at all: Approve went with the stop between steps, Merge with
       // the hand merge.
       const cell = openControls(spec(state));
@@ -94,25 +94,25 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     });
   }
 
-  // --- criterion 2: every phase box locks, with the reason on it -------------
+  // --- Every phase box locks, with the reason on it -------------
 
   for (const state of ["queued", "running"] as const) {
-    test(`a ${state} spec locks every phase box, not the ones its job named (criterion 2)`, () => {
+    test(`a ${state} spec locks every phase box, not the ones its job named`, () => {
       const line = openControls(spec(state));
       const verb = state === "running" ? "running" : "queued";
       for (const step of ["analyze", "implement", "archive"]) {
         expect(box(line, step)).toContain("disabled");
-        // Spec 454: the reason is not the box's own `title`.
+        // The reason is not the box's own `title`.
         expect(box(line, step)).not.toContain(`title="Implement is ${verb}"`);
       }
     });
   }
 
-  test("a queued job spins nothing — its own step still reads as ticked (criterion 2)", () => {
+  test("a queued job spins nothing — its own step still reads as ticked", () => {
     const line = openControls(spec("queued"));
     // The job named `implement` and nothing else. Queued is not yet
     // running, so no box spins — but the tick that was made before Run
-    // was pressed is still what the row says (spec 145).
+    // was pressed is still what the row says.
     expect(box(line, "implement")).toContain('class="phase checked"');
     for (const step of ["analyze", "archive"]) {
       expect(box(line, step)).toContain('class="phase default"');
@@ -123,19 +123,19 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     }
   });
 
-  /** Spec 145's own case, and spec 142's measurement: all three steps
+  /** The case: all three steps
    *  ticked and started as one job, with two of them not reached yet.
    *  The two said nothing about belonging to the running job — they
    *  were drawn exactly like a step the job never named. */
 
-  // --- criterion 3: Run, the model and the "more" fields lock too ------------
+  // --- Run, the model and the "more" fields lock too ------------
 
   // Run used to stand here greyed out, with the reason in its title —
-  // the shape spec 124 needed so a column of buttons could not change
-  // width from row to row. Spec 157 draws ONE control per row, and
+  // the shape needed so a column of buttons could not change
+  // width from row to row. Now ONE control is drawn per row, and
   // while a job is in flight that control is Cancel: an inert Run
   // beside a live Cancel is exactly the second control this removes.
-  test("no Run is drawn at all while the spec is busy (criterion 3)", () => {
+  test("no Run is drawn at all while the spec is busy", () => {
     const line = openControls(spec("running"));
     expect(runBtn(line)).toBe("");
     expect(line).not.toMatch(/<button[^>]*form="rowrun/);
@@ -146,19 +146,19 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     expect(line).toContain(">Cancel</button>");
   });
 
-  test("the model select locks (criterion 3)", () => {
+  test("the model select locks", () => {
     const html = rows([spec("running")], [target("105-busy")]);
-    // The model select is on the phase lines since spec 123; the rule
+    // The model select is on the phase lines; the rule
     // it obeys is this one, unchanged.
     expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain("disabled");
   });
 
-  // --- criterion 4: a gate offers Approve and Cancel, and locks the rest -----
+  // --- A gate offers Approve and Cancel, and locks the rest -----
 
-  // --- criterion 5: a settled spec is the ordinary row it always was ---------
+  // --- A settled spec is the ordinary row it always was ---------
 
   for (const state of ["done", "failed", "stopped", "cancelled", "interrupted"] as const) {
-    test(`a ${state} spec's row is fully interactive again (criterion 5)`, () => {
+    test(`a ${state} spec's row is fully interactive again`, () => {
       const html = rows([spec(state)], [target("105-busy")]);
       const line = controlsLine(html, "105-busy");
       for (const step of ["analyze", "implement", "archive"]) {
@@ -169,7 +169,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     });
   }
 
-  test("a spec with no job at all is untouched by the rule (criterion 5)", () => {
+  test("a spec with no job at all is untouched by the rule", () => {
     const html = rows([], [target("105-never-run")]);
     const line = controlsLine(html, "105-never-run");
     for (const step of ["analyze", "implement", "archive"]) {

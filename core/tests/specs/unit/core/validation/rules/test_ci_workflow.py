@@ -98,7 +98,7 @@ class TestCiWorkflow:
             f"The refusal never says how to install it: {result.stderr!r}"
 
     def test_check_bash_help_works_without_shellcheck_installed(self, workspace_root):
-        """AC-2: --help must sit above the shellcheck-installed probe, so
+        """--help must sit above the shellcheck-installed probe, so
         it never depends on shellcheck being on PATH at all."""
         import os
         import subprocess
@@ -112,7 +112,7 @@ class TestCiWorkflow:
         assert "usage" in result.stdout.lower(), result.stdout
 
     def test_bun_version_matches_lockfile(self, workspace_root):
-        """Criterion 5: the workflow's bun pin follows dashboard/bun.lock.
+        """The workflow's bun pin follows dashboard/bun.lock.
 
         Bun publishes @types/bun in lockstep with each bun release, so the
         version the lockfile resolved is the bun version.
@@ -130,7 +130,7 @@ class TestCiWorkflow:
             f"resolves {resolved.group(1)}"
 
     def test_pytest_job_has_no_marker_override(self, workspace_root):
-        """Criterion 7: pytest.ini's own deselection is the only one in force.
+        """Pytest.ini's own deselection is the only one in force.
 
         e2e and evaluation call AI APIs and cost money. Scoped to the
         invocation line: the venv-creation step, python -m venv .venv, also

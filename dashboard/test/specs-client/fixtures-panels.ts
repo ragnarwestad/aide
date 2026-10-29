@@ -8,7 +8,7 @@ import { chip, classes } from "./fixtures-controls.ts";
 type Listener = (e: unknown) => void | Promise<void>;
 type Chip = ReturnType<typeof chip>;
 
-/** The New-spec form: it IS `/new` since spec 121 — no `#jobrows`
+/** The New-spec form: it IS `/new` — no `#jobrows`
  *  beside it and no disclosure around it — so it is bound directly
  *  rather than by delegation, a second code path tested as one. */
 export function buildCreateForm(chips: Chip[], tokenInput: { value: string }, on: Record<string, Listener>) {
@@ -26,7 +26,7 @@ export function buildCreateForm(chips: Chip[], tokenInput: { value: string }, on
   createButton.classList = classes(createButton);
   const slot = { textContent: "" };
   const resets: number[] = [];
-  // Spec 110's Depends-on chips: one wrapper per active spec, each
+  // The Depends-on chips: one wrapper per active spec, each
   // naming its own project, plus the Project select they are scoped to.
   // `reset()` reverts the select the way the browser's own does —
   // silently, without firing `change`, which is the whole reason the
@@ -58,7 +58,7 @@ export function buildCreateForm(chips: Chip[], tokenInput: { value: string }, on
   return { createButton, slot, resets, projectSelect, createForm };
 }
 
-/** Spec 112's Projects panel: one Remove form, and (spec 138) one
+/** The Projects panel: one Remove form, and one
  *  Add form, the one whose SUCCESS has something to say — the
  *  readiness answer the server worked out for the project that was
  *  just added. */

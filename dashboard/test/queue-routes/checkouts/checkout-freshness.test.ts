@@ -20,13 +20,13 @@ afterEach(() => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-// Spec 205: the dashboard works in checkouts of its own.
+// The dashboard works in checkouts of its own.
 //
 // Split out of checkout-and-render-safety.test.ts by theme: this file
-// carries the checkout-freshness test (spec 216). The write-direction
-// tests and the checkout-listing (spec 218) tests are their own sibling
+// carries the checkout-freshness test. The write-direction
+// tests and the checkout-listing tests are their own sibling
 // files, sharing `git` and `realProject` via ./checkout-safety-fixtures.ts.
-describe("the dashboard works in checkouts of its own (spec 205)", () => {
+describe("the dashboard works in checkouts of its own", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   /** Poll until `check` says yes, or give up. Nothing here can be
@@ -40,18 +40,18 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
     return check();
   }
 
-  // Spec 216: a run starts from a checkout that is current.
+  // A run starts from a checkout that is current.
   //
   // `ensureCheckout` handed a caller the bring-up-to-date already in
   // flight for that project, and a fetch that began before a push
-  // answers with the picture from before it. Spec 215 was pushed,
-  // queued, and refused as `unknown spec` (2026-08-23).
+  // answers with the picture from before it. A spec was pushed,
+  // queued, and refused as `unknown spec`.
   //
   // This is about the WIRING, not the primitive: `get` and `fresh` are
   // two methods on one object, so `tickRunner` calling the wrong one
   // type-checks and every `CheckoutEnsurer` unit test goes on passing.
   // What is asserted is what the spawned STEP actually saw on disk.
-  test("a step is not started from a checkout older than the job (spec 216)", async () => {
+  test("a step is not started from a checkout older than the job", async () => {
     const { projectsRoot, person, site, owned } = realProject();
     const ownedCode = join(owned, "aide", "code");
 

@@ -44,7 +44,7 @@ function listWith(inside: string, open?: string): Window {
 const rowsOf = (win: Window): string => win.document.getElementById("jobrows")!.innerHTML;
 
 describe("swapRows under an open dialog", () => {
-  test("an open ask holds the redraw, and the rows stay as they are (AC-3)", async () => {
+  test("an open ask holds the redraw, and the rows stay as they are", async () => {
     const win = listWith(REOPEN, "reopenask-aide/50");
     await swapRows();
     const after = rowsOf(win);
@@ -53,7 +53,7 @@ describe("swapRows under an open dialog", () => {
     expect(after).not.toContain("fresh");
   });
 
-  test("a closed ask, or Cancel's plain confirm open, lets the redraw go ahead (AC-3)", async () => {
+  test("a closed ask, or Cancel's plain confirm open, lets the redraw go ahead", async () => {
     for (const [inside, open] of [
       [REOPEN, undefined],
       [CANCEL, "cancelask-j1"],

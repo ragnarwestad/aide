@@ -63,7 +63,7 @@ const jobs = async (base: string): Promise<{ id: string; state: string; steps: s
 const solutionOf = (dir: string): string => readFileSync(specFilePath(dir, "3-solution.md"), "utf-8");
 
 describe("saving the recommended approach", () => {
-  test("records it as the chosen approach under Approaches and leaves the held job to carry on (AC-5)", async () => {
+  test("records it as the chosen approach under Approaches and leaves the held job to carry on", async () => {
     const { base, dir } = startWith({ jobs: [heldJob()] });
     const res = await save(base, "A");
     expect(res.status).toBe(200);
@@ -75,7 +75,7 @@ describe("saving the recommended approach", () => {
 });
 
 describe("saving another approach", () => {
-  test("cancels the held job, records the choice, and queues analyze with the held job's later steps and models (AC-6)", async () => {
+  test("cancels the held job, records the choice, and queues analyze with the held job's later steps and models", async () => {
     const { base, dir } = startWith({ jobs: [heldJob()] });
     const res = await save(base, "B");
     expect(res.status).toBe(200);
@@ -88,7 +88,7 @@ describe("saving another approach", () => {
     expect(fresh?.model).toMatchObject({ analyze: "sonnet", implement: "fable", archive: "sonnet" });
   });
 
-  test("with no held job, queues analyze alone (AC-6)", async () => {
+  test("with no held job, queues analyze alone", async () => {
     const { base, dir } = startWith();
     expect((await save(base, "B")).status).toBe(200);
     expect(solutionOf(dir)).toContain("**Chosen approach:** Approach B");
@@ -97,7 +97,7 @@ describe("saving another approach", () => {
 });
 
 describe("a save that is refused writes, cancels and queues nothing", () => {
-  test("a letter that is not a real alternative (AC-5, AC-6)", async () => {
+  test("a letter that is not a real alternative", async () => {
     const { base, dir } = startWith({ jobs: [heldJob()] });
     const res = await save(base, "C");
     expect(res.status).toBe(409);
@@ -105,7 +105,7 @@ describe("a save that is refused writes, cancels and queues nothing", () => {
     expect((await jobs(base)).map((j) => [j.id, j.state])).toEqual([["held", "queued"]]);
   });
 
-  test("no choice is pending any more (AC-7)", async () => {
+  test("no choice is pending any more", async () => {
     const chosen = SOLUTION.replace("## Approaches\n\n", "## Approaches\n\n**Chosen approach:** Approach A\n\n");
     const { base, dir } = startWith({ solution: chosen });
     expect((await save(base, "B")).status).toBe(409);
@@ -113,14 +113,14 @@ describe("a save that is refused writes, cancels and queues nothing", () => {
     expect(await jobs(base)).toEqual([]);
   });
 
-  test("a spec that did not ask to choose (AC-9)", async () => {
+  test("a spec that did not ask to choose", async () => {
     const { base, dir } = startWith({ optedIn: false });
     expect((await save(base, "B")).status).toBe(409);
     expect(solutionOf(dir)).toBe(SOLUTION);
     expect(await jobs(base)).toEqual([]);
   });
 
-  test("a step of the spec is running (AC-5, AC-6)", async () => {
+  test("a step of the spec is running", async () => {
     const { base, dir } = startWith({ jobs: [heldJob({ id: "run", state: "running", stepIndex: 0, error: undefined, errorReason: undefined })] });
     expect((await save(base, "B")).status).toBe(409);
     expect(solutionOf(dir)).toBe(SOLUTION);

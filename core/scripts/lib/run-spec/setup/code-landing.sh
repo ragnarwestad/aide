@@ -8,7 +8,7 @@
 # the repo, and no reader could hold it.
 # --- how this project lands its code ----------------------------------------
 # `codeLanding: pr` in the committed manifest says the project's code is
-# reviewed before it reaches the default branch (spec 220). It forces
+# reviewed before it reaches the default branch. It forces
 # `--push pr`, because the two halves have to travel together: the
 # dashboard stops merging the code root for such a project, and a branch
 # left open with no pull request describing it is worse than either
@@ -98,7 +98,7 @@ else
   done
 fi
 
-# The way out of an unlanded spec (spec 202). An `archive` step whose
+# The way out of an unlanded spec. An `archive` step whose
 # landing never finished leaves the folder under `archive/` — its own
 # Step 5 moved it — with the branch still on origin, and the dashboard
 # offers Archive again for exactly that row. Resolved here, that row is
@@ -110,7 +110,6 @@ fi
 # branch still being on origin: a spec that DID land has nothing left to
 # archive, and is reported as such by `already_landed` below — before any
 # money is spent, and told apart from a name that does not exist at all
-# (spec 211).
 #
 # The fourth "try the active folder, then try archive/" in this codebase
 # (aide_resolve_spec, resolve_dependency_folder, status_file_for), and
@@ -137,7 +136,7 @@ if [ -z "$spec_folder" ] && [ "$command_name" = "archive" ] && [ -d "$specs_root
       fi
     done
     # Every root answered, and none of them has the branch: the spec is
-    # finished, not missing (spec 211). Left to fall through, this got
+    # finished, not missing. Left to fall through, this got
     # the same "unknown spec" refusal below that a typo gets — the folder
     # is right there under archive/ and the runner called it unknown.
     # Told apart here, and only here: a candidate found nowhere never
@@ -149,7 +148,7 @@ if [ -z "$spec_folder" ] && [ "$command_name" = "archive" ] && [ -d "$specs_root
 fi
 
 # One step looks in the archive, and it is the step that exists to take a
-# spec back out of it (spec 198). An archived spec is otherwise not
+# spec back out of it. An archived spec is otherwise not
 # runnable at all — "unknown spec" is the right answer for every other
 # command — so this is a named exemption, the way `create` is the named
 # exemption from "the folder must already exist", and never a general
@@ -169,18 +168,18 @@ if [ -z "$spec_folder" ] && [ "$command_name" = "reopen" ] && [ -d "$specs_root/
 fi
 # A `create` step is the one that MAKES the folder, so it is the one
 # step for which "no such folder" is the normal case rather than a
-# refusal (spec 93; spec 87 named this and left it alone). What it gets
+# refusal. What it gets
 # instead is a caller-supplied tracking key — the branch and the worktree
 # are named after it, and nothing else is. It is NOT a folder name, and
 # nothing here may turn it into one: a headless run creates its folder
 # under exactly this key, literally, and the real number and slug are
 # assigned later, at landing, under the specs repo's own merge lock
-# (spec 453) — the one place two concurrent creates cannot both miss.
+# the one place two concurrent creates cannot both miss.
 # Both that landing-time step and an interactive session's own Steps 2-3
 # reach the SAME two shared functions in _aide-spec-lib.sh
 # (aide_next_spec_number, aide_slug_from_title) for the number and the
 # slug, never a second, independent count — which is what keeps this
-# from repeating spec 82's mistake of one rule written down twice.
+# from repeating the mistake of one rule written down twice.
 if [ -z "$spec_folder" ] && [ "$command_name" = "create" ]; then
   [[ "$spec_arg" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --spec: $spec_arg"
   # Refused here, before a worktree exists, like every other required
@@ -189,7 +188,7 @@ if [ -z "$spec_folder" ] && [ "$command_name" = "create" ]; then
   [ -n "$description" ] || refuse "missing --description (required for create)"
 elif [ -z "$spec_folder" ] && [ "$command_name" = "schedule" ]; then
   # A second, unrelated exemption from "the folder must already exist"
-  # (spec 259) — not a copy of `create`'s, which is a different shape
+  # not a copy of `create`'s, which is a different shape
   # entirely: a schedule entry never becomes a spec folder, so its
   # tracking key names only a branch and a worktree, for as long as the
   # entry exists.
@@ -205,7 +204,7 @@ spec_label="${spec_folder:-$spec_arg}"
 
 # `reopen` exists to bring a spec back OUT of archive/ — a spec the
 # resolver above found active is not its target, only a stale board row
-# or a run started by hand against the wrong spec (spec 270: this is
+# or a run started by hand against the wrong spec (this is
 # what let a running round's files get reset and its branch deleted on
 # 2026-08-27). Checked here, before anything below touches a worktree or
 # a branch — in particular before the branch-deletion block a few
@@ -217,7 +216,7 @@ fi
 
 # A run reaches its project and its specs root, and nothing else.
 # --extra-project-dir named a third repo to watch, branch, commit and
-# push alongside them (spec 83, after spec 81's implement wrote into a
+# push alongside them (an implement once wrote into a
 # repository nobody had told the run about). The dashboard's tick box
 # for it went unused by every one of the 200 jobs the queue held, so
 # box, field and flag are gone together. A spec that has to change two

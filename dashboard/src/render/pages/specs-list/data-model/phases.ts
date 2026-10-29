@@ -77,16 +77,15 @@ export function activityMs(r: QueueRowView): number {
   return Date.parse(r.startedAt ?? r.createdAt) || 0;
 }
 
-/** How long ONE step of a job took, or has taken so far (spec 199, spec
- *  384).
+/** How long ONE step of a job took, or has taken so far.
  *
  *  A job carries a single `startedAt` however many steps it ran, so
  *  `finishedAt - startedAt` is the whole job's span and belongs to no
  *  one step of it — reaching for that is the one mistake this function
  *  exists to prevent. What a step's own span is built from instead:
- *  its own recorded start (`results[i].startedAt`, spec 384) and its own
- *  end (`results[i].at`) when both exist; failing that, the boundary
- *  before this fix already used — the step before it ending, or the
+ *  its own recorded start (`results[i].startedAt`) and its own
+ *  end (`results[i].at`) when both exist; failing that, the older
+ *  boundary — the step before it ending, or the
  *  job's own start for the first one — for a result written before the
  *  runner recorded a per-step start.
  *
@@ -105,11 +104,11 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
     (i > 0 ? results[i - 1]!.at : undefined) ?? r.startedAt;
   const index = results.findIndex((x) => x.step === step);
   if (index !== -1) {
-    // This step's OWN recorded start (spec 384), when there is one — the
+    // This step's OWN recorded start, when there is one — the
     // previous step's end is a fallback for a result written before the
-    // runner recorded one (REQ-3), never the first choice any more.
+    // runner recorded one, never the first choice any more.
     const start = results[index]!.startedAt ?? boundary(index);
-    // Still landing (spec 395, REQ-3): the step's own process ended,
+    // Still landing: the step's own process ended,
     // but its work has not reached the default branch yet, so the
     // clock counts on from this step's own start rather than freezing
     // on an `at` `Runner.complete()` has not written yet.
@@ -127,7 +126,7 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
   // is by being the one in flight.
   if (currentStep(r) !== step || !inFlight(r)) return null;
   // A step only has a start once the runner has actually spawned it
-  // (`stepStartedAt`, spec 384). A job merely QUEUED for this step — held
+  // (`stepStartedAt`). A job merely QUEUED for this step — held
   // back for a landing, a dependency, an open acceptance
   // row, or a full concurrency slot — has not started it yet and owes it
   // no duration at all, however long the previous step's own end sits in
@@ -145,8 +144,7 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
   return Number.isNaN(ms) ? null : { ms, live: true, since: start };
 }
 
-/** The spec's own total: its phases' durations added together (spec
- *  199, spec 281, spec 340).
+/** The spec's own total: its phases' durations added together.
  *
  *  A sum, never a span. A spec that sat three days between analyze and
  *  implement did not take three days — the calendar is not the work,
@@ -187,8 +185,8 @@ function totalDuration(phases: Phase[], now: number): SpecTotal | undefined {
     }
     if (!any && p.timeSpentMs !== undefined) {
       // No queue job measured this phase at all — its own stamped file
-      // is the only other place its duration could be (spec 274/247's
-      // fallback, wired in by `specPhases` below, spec 284).
+      // is the only other place its duration could be (the fallback
+      // wired in by `specPhases` below).
       settled += p.timeSpentMs;
       measured = true;
     }
@@ -201,7 +199,7 @@ function totalDuration(phases: Phase[], now: number): SpecTotal | undefined {
 }
 
 /** The same sum, for a caller that has already built the phase lines
- *  (spec 284) — `jobGroup`/`emptyGroup` call `phasesFor` for the row's
+ *  `jobGroup`/`emptyGroup` call `phasesFor` for the row's
  *  own lines anyway, and calling `computeSpecTotalDurationMs` there too
  *  would rebuild `specPhases` — and re-read every not-yet-attempted
  *  phase's file — a second time for the same answer. */
@@ -210,7 +208,7 @@ export function totalDurationOf(phases: Phase[], now: number): SpecTotal | undef
 }
 
 /** The spec's own total, for a caller that has the jobs but not a
- *  rendered group (spec 207).
+ *  rendered group.
  *
  *  Lifted out of `jobGroup` so the archive-time write into
  *  `4-status.md` and the figure this page draws are ONE function. The
@@ -232,7 +230,7 @@ export function computeSpecTotalDurationMs(
 }
 
 /** Which of a spec's own remembered queue jobs speak for each phase
- *  (spec 410) — the same per-step split `specPhases` builds its
+ *  the same per-step split `specPhases` builds its
  *  `attempts` from, on its own so a caller that already has a phase's
  *  cost/model/tokens from elsewhere (an archived spec's own file
  *  record) can route its DURATION through the identical
@@ -261,8 +259,8 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
     const attempts = recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null);
     // No queue job ever ran this phase: the only other place its
     // duration/cost could be is the file the interactive counterpart
-    // stamped itself into (spec 274's --stamp-outcome, spec 247's
-    // reader) — the same fallback the archived path already leans on
+    // stamped itself into (written by --stamp-outcome, read by the
+    // archived path's reader) — the same fallback the archived path already leans on
     // (readerGroup, group-builders.ts). A phase a job DID attempt keeps
     // its job-derived answer only, never merged with the file's.
     const fileOutcome = dir ? specPhaseOutcome(dir, step) : undefined;
@@ -278,7 +276,7 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
       costUnmeasured: outcome?.costUnmeasured,
       tokens: outcome?.tokens,
       modelId: outcome?.modelId,
-      // Read regardless of `attempts.length` (spec 341) — the one field
+      // Read regardless of `attempts.length` — the one field
       // here that has to be merged with the queue's own count rather
       // than only fall back to it.
       attemptCount: fileOutcome?.attempts,
@@ -300,15 +298,14 @@ const heldBackFor = (step: string, t: SpecTarget | undefined): { heldBack?: { re
   return { heldBack: t.archiveHeldBack };
 };
 
-/** The git-side answer for one phase (spec 154), for the same reason
+/** The git-side answer for one phase, for the same reason
  *  `heldBackFor` exists: both constructors build their phases, and a
  *  phase reading another phase's stop reason is the one way this join
  *  can go wrong.
  *
  *  The disagreement is asked per step, not per spec: one line of one
  *  file covers all four, but the row has a line per phase and the same
- *  sentence down all four of them is the duplication spec 143 already
- *  took off this page once. */
+ *  sentence down all four of them is duplication this page avoids. */
 const historyFor = (
   step: string,
   t: SpecTarget | undefined,
@@ -333,7 +330,7 @@ function endedSinceRead(step: string, t: SpecTarget | undefined, latest: QueueRo
 }
 
 /** The three-line join `jobGroup` and `emptyGroup` each composed inline
- *  (spec 239): `specPhases` for the lines themselves, then archive's own
+ *  `specPhases` for the lines themselves, then archive's own
  *  held-back reason and each phase's git history layered on top. Shared
  *  now because a third caller — the spec page's own Overview tab —
  *  needs the identical join, and writing it a third time is the exact

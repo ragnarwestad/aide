@@ -59,11 +59,11 @@ export function parseArgs(argv: string[]): ServerOptions {
     // "Executable not found in $PATH".
     else if (a === "--pdf-bin" && v) opts.pdfGeneratorBin = argv[++i];
     else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
-    // Where the dashboard keeps the clones it works in (spec 205).
+    // Where the dashboard keeps the clones it works in.
     // `~/.aide/dashboard/checkouts` unless a host wants them elsewhere.
     else if (a === "--dashboard-checkouts" && v) opts.dashboardCheckoutRoot = argv[++i];
     else if (a === "--queue-config" && v) queueConfigFile = argv[++i];
-    // Spec 424: which spec/branch this process is a TEST board for —
+    // Which spec/branch this process is a TEST board for —
     // absent means an ordinary (prod) server.
     else if (a === "--test-board" && v) opts.testBoardSpec = argv[++i];
     else throw new Error(`unknown argument: ${a}`);
@@ -84,7 +84,7 @@ export function parseArgs(argv: string[]): ServerOptions {
   if (queueConfigFile) {
     // Kept whether or not the file is readable: the Add/Remove routes
     // write the allowlist back here, and a first install has no such
-    // file yet (spec 112).
+    // file yet.
     opts.queueConfigFile = queueConfigFile;
     // A missing or broken config leaves the built-in defaults in place.
     try {
@@ -100,12 +100,12 @@ export function parseArgs(argv: string[]): ServerOptions {
       opts.queueConcurrency = parseQueueConcurrency(raw.concurrency);
       // The allowlist WINS over `--queue-projects` when the file has
       // one: the flag is the seed for a first install, and the file is
-      // what every Add and Remove since has written (spec 112). A
+      // what every Add and Remove since has written. A
       // malformed field is ignored entirely, leaving the flag — the
       // same direction every other key here fails in.
       const projects = parseQueueProjects(raw.projects);
       if (projects) opts.queueProjects = projects;
-      // Off unless the file names one (spec 363) — a malformed block is
+      // Off unless the file names one — a malformed block is
       // ignored, the same direction every sibling key here fails in.
       // Whether the bind address makes it safe to HONOR is not this
       // parser's question; that is `createServer`'s own refusal.

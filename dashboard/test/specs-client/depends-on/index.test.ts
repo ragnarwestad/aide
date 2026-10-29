@@ -71,7 +71,7 @@ function tick(rows: HTMLElement, folder: string, dependency: string, on = true):
 }
 
 describe("the Depends on picker's ticks", () => {
-  test("a tick outlives a redraw, sits in the picked block, and keeps Cancel offered (AC-3)", () => {
+  test("a tick outlives a redraw, sits in the picked block, and keeps Cancel offered", () => {
     const { rows, redraw } = list();
     tick(rows, A, THIRD);
     expect(cancel(rows, A).disabled).toBe(false);
@@ -81,7 +81,7 @@ describe("the Depends on picker's ticks", () => {
     expect(cancel(rows, A).disabled).toBe(false);
   });
 
-  test("Cancel puts the drawn ticks back, is disabled again, and the next redraw does not bring the tick back (AC-3)", () => {
+  test("Cancel puts the drawn ticks back, is disabled again, and the next redraw does not bring the tick back", () => {
     const { rows, redraw } = list();
     tick(rows, A, THIRD);
     redraw();
@@ -94,7 +94,7 @@ describe("the Depends on picker's ticks", () => {
     expect(cancel(rows, A).disabled).toBe(true);
   });
 
-  test("two rows' pickers keep apart: a tick, a redraw and a Cancel in one leave the other alone (AC-3)", () => {
+  test("two rows' pickers keep apart: a tick, a redraw and a Cancel in one leave the other alone", () => {
     const { rows, redraw } = list();
     tick(rows, A, THIRD);
     tick(rows, B, THIRD);
@@ -158,7 +158,7 @@ describe("a redraw that locks the card", () => {
   const idle = rowsFor([]);
   const running = rowsFor([jobRow({ id: "j-run", specFolder: A, state: "running", steps: ["analyze"], stepIndex: 0 })]);
 
-  test("shows the saved tick while the job runs, and brings the untick back when it ends (AC-6)", () => {
+  test("shows the saved tick while the job runs, and brings the untick back when it ends", () => {
     const { rows, redraw } = list();
     redraw(idle);
     tick(rows, A, B, false);

@@ -1,4 +1,4 @@
-// Spec 478: the native beforeunload prompt is drawn by the browser/OS,
+// The native beforeunload prompt is drawn by the browser/OS,
 // centered on the SCREEN — reproducible only in a real browser, never
 // by a unit test running transpiled source against a fake document.
 // This opens a real page, dirties a tracked form, clicks an in-app link
@@ -45,7 +45,7 @@ function exitLink() {
   return page.locator('a.brand[href="/"]:visible').first();
 }
 
-describe("the leave-app dialog replaces the native prompt for an in-app link (spec 478)", () => {
+describe("the leave-app dialog replaces the native prompt for an in-app link", () => {
   // Fails in one line when the page stops carrying the link these cases
   // click, rather than through a 20-second click timeout three cases
   // deep: the selector went stale once already, and a test whose exit

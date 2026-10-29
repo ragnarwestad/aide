@@ -17,13 +17,11 @@ export { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingS
  *  the SPEC's answer, worked out by the caller from the spec's own
  *  files.
  *
- *  `mergeReady` was the third of them until spec 149. It said "ready to
- *  merge the code" for a branch a person was expected to press Merge
- *  for, and there is no such press any more: every step lands the work
- *  it produced, and the one branch left standing open is `implement`'s,
- *  which `archive` lands. `readyPhase` already says "ready for archive"
- *  on exactly that row, so the badge kept the answer and lost the
- *  duplicate. */
+ *  There is no "ready to merge the code" state, since no person presses
+ *  Merge: every step lands the work it produced, and the one branch left
+ *  standing open is `implement`'s, which `archive` lands. `readyPhase`
+ *  already says "ready for archive" on exactly that row, so the badge
+ *  needs no duplicate. */
 export interface RestingState {
   archiveHeldBack?: string;
   readyPhase?: string;
@@ -35,27 +33,25 @@ export interface RestingState {
  *  phase LINES keep the plain "running": their line already names the
  *  phase, and doubling it would say "analyze analyzing".
  *
- *  Spec 132 made that one rule instead of one case: the first line is
+ *  That is one rule, not one case: the first line is
  *  the verb for what is happening, or the resting state and what is
- *  next. `queued` said neither — one bare word, with the step it was
- *  waiting to run known all along — and `done` said the resting state
- *  without the half that matters, while the sentence disambiguating it
- *  sat one line lower. The order of the resting cases came from the
+ *  next. A bare `queued` would say neither, with the step it is
+ *  waiting to run known all along, and a bare `done` would say the
+ *  resting state without the half that matters. The order of the resting cases came from the
  *  sentence this badge replaced: a branch to merge outranks a phase to
  *  run, and a held-back archive outranks both. */
 /** What a row says when nothing is running on it: the resting state,
  *  and what comes next.
  *
  *  The WORD only. The reason is a sentence out of `4-status.md` — 130
- *  characters on spec 141 — and a badge is `nowrap`, so it ran off the
- *  right edge of the table. It is said in full in the row's own panel
- *  instead (`specNotice`), once (spec 143).
+ *  characters in one case — and a badge is `nowrap`, so it would run off
+ *  the right edge of the table. It is said in full in the row's own panel
+ *  instead (`specNotice`), once.
  *
- *  Its own function since spec 176, because a spec with no job in the
- *  queue's memory needs the same sentence and had a hardcoded "not
- *  started" instead. That row's `readyPhase` was already computed and
- *  sitting unused, and the Run button beside the badge was already
- *  named from it — so the two could disagree on the very same row
+ *  Its own function, because a spec with no job in the
+ *  queue's memory needs the same sentence, and a hardcoded "not
+ *  started" would let the badge and the Run button beside it, named from
+ *  `readyPhase`, disagree on the very same row
  *  ("not started · Implement"). Sharing this makes them agree by
  *  construction. */
 // One word each since 2026-08-24 ("ready", "done"): the phase the spec
@@ -117,10 +113,10 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
   if (r.landing) return badge("running", gerund(lang, landingStep(r)));
   if (r.state === "queued") {
     const step = currentStep(r);
-    // Held back (spec 396): not competing for a slot, so no number
+    // Held back: not competing for a slot, so no number
     // claims it is next in line for one — the row's own panel
     // (specNotice) already says the actual reason underneath.
-    // Its own word, not "stopped" (spec 485): a hold is a routine wait,
+    // Its own word, not "stopped": a hold is a routine wait,
     // never a stop, and its colour follows the same classification the
     // notice line already uses — neutral when the hold clears on its
     // own, amber when it waits on a person — so the two never disagree.
@@ -138,11 +134,11 @@ export function specStateChip(r: QueueRowView, lang: Language, resting: RestingS
   // update — `runner.ts`). A row that fell through to `restingChip`
   // here would offer "ready" for a spec whose files do not exist yet.
   if (r.state === "done") return restingChip(lang, resting);
-  // Bare word only (REQ-1, spec 339) — `stateLabel()`'s "stopped —
+  // Bare word only — `stateLabel()`'s "stopped —
   // <reason>" suffix is the notice line's to say now (`lead.error`,
   // verified always populated for every stopReason). `stateChip` still
   // carries the full text, for the job DETAIL page's own big badge
-  // (`job-page.ts`, out of REQ-7's scope).
+  // (`job-page.ts`, which this does not change).
   return badge(BADGE_VARIANT[r.state], capitalizeFirst(r.state));
 }
 

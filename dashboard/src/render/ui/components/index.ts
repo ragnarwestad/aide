@@ -56,7 +56,7 @@ export { badge, type BadgeVariant } from "./badge.ts";
 export { phaseChip } from "./phase-chip.ts";
 
 /** A group of them. One class, so the row does not need a spacing rule
- *  of its own — `cls` adds a second, for the one caller (spec 404's
+ *  of its own — `cls` adds a second, for the one caller (the
  *  "picked" block) that needs a variant of the same wrapper. */
 export const phases = (chips: string, cls?: string): string =>
   `<span class="${["phases", cls].filter(Boolean).join(" ")}">${chips}</span>`;
@@ -128,10 +128,10 @@ export function switchControl(o: {
 // --- help popover ----------------------------------------------------------------
 
 /** A "(?)" disclosure that answers one question about the control or panel
- *  beside it — the search field's own "What the search reads" (spec 261),
- *  and, since spec 311, each spec tab's own explanation of what it shows.
+ *  beside it — the search field's own "What the search reads",
+ *  and each spec tab's own explanation of what it shows.
  *  `<details>`/`<summary>`, so it opens and closes with no script and is
- *  identical markup with JavaScript off (REQ-7); `menu-script.ts` already
+ *  identical markup with JavaScript off; `menu-script.ts` already
  *  queries every `details.intro` document-wide to close it like any other
  *  disclosure, which is why this reuses that class rather than a new one.
  *  `body` is trusted, developer-authored HTML, the same convention every
@@ -147,7 +147,7 @@ export function helpPopover(what: string, body: string): string {
 // --- back link -------------------------------------------------------------------
 
 /** The one back-navigation control every subpage carries, top-left,
- *  labelled "← Back" (spec 252) — replacing the three different
+ *  labelled "← Back" — replacing the three different
  *  treatments this dashboard drew for it (a bare `<a>` inside `.intro`,
  *  a `.btn` anchor with no wrapper, a `.btn` "Cancel" beside the primary
  *  action) with one. `.intro` is reused rather than invented: it is
@@ -158,7 +158,7 @@ export function helpPopover(what: string, body: string): string {
  *  2026-08-27, which made a real navigation link indistinguishable from
  *  the buttons beside it that submit a form.
  *
- *  A given `title` (spec 296) draws the page's own `<h1>` beside the
+ *  A given `title` draws the page's own `<h1>` beside the
  *  link instead of below it, in a `.backhead` flex row — replacing
  *  `pageShell()`'s separate `<div class="pagehead">` or a page's own
  *  hand-written `<h1>` after `backLink()`, either of which left the
@@ -185,7 +185,7 @@ export function backLink(
 }
 
 /** Where "← Back" actually goes, from the standard `Referer` request
- *  header (spec 252) — never from a query parameter a reader could put
+ *  header — never from a query parameter a reader could put
  *  in a shared link, which is why `serve.ts` is the only caller. A
  *  string ultimately sourced from the client, reflected into a link the
  *  reader's own browser will follow, is a standard open-redirect
@@ -234,7 +234,7 @@ export function resolveBackHref(
 // state in two colours — amber for held back/stopped, red for failed.
 export type PipKind = "past" | "now" | "todo" | "waiting" | "refused";
 
-/** `third` (spec 210): how many of a running implement's three parts
+/** `third`: how many of a running implement's three parts
  *  are behind it — 1 or 2, never 0 (zero thirds complete is what an
  *  unmarked pip already says) and never 3 (a step that finished is
  *  `past`). The pip's own box does not change: the mark drives a fill

@@ -9,11 +9,11 @@ afterEach(() => {
   harness.cleanup();
 });
 
-// Spec 208: a render reads memory and disk, and nothing else — but for
+// A render reads memory and disk, and nothing else — but for
 // a spec's own file stamps, which its page waits for (below).
 //
-// This has been introduced three times — spec 178 wrote the rule and
-// was never merged, spec 203 fixed `/projects`, and spec 193 put a
+// This has been introduced three times — one change wrote the rule and
+// was never merged, the next fixed `/projects`, and a third put a
 // network `ls-remote` back on `/` the next day. So it is asserted here
 // rather than left to care: the request path spawns NO git, warm or
 // cold, and a cold page says what it does not know instead of holding
@@ -22,10 +22,10 @@ afterEach(() => {
 // Split out of checkout-and-render-safety.test.ts by theme: this
 // describe was already self-contained, so it moves whole into its own
 // file.
-describe("no render path runs git or a network command (spec 208)", () => {
+describe("no render path runs git or a network command", () => {
   /** Everything the render could conceivably ask git, recorded. The
    *  checkout the dashboard makes for itself is a background job of its
-   *  own (spec 205) and is started at boot, not by a request — so the
+   *  own and is started at boot, not by a request — so the
    *  count is taken across a request rather than over the process. */
   function recording() {
     const calls: { dir: string; args: string[] }[] = [];
@@ -55,7 +55,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     return check();
   }
 
-  // Criterion 5: the schedule is off, so nothing has ever been warmed —
+  // The schedule is off, so nothing has ever been warmed —
   // and the pages still answer, with no git spawned by the request.
   test("cold, GET / and GET /?rows=1 spawn nothing and say what they do not know", async () => {
     const git = recording();
@@ -67,14 +67,13 @@ describe("no render path runs git or a network command (spec 208)", () => {
     const html = await (await get(base, "/specs")).text();
     expect(git.calls.length).toBe(before);
     // Not a false "nothing has run": the row says the answer is not in
-    // yet. This is the shape spec 178's own plan review flagged.
+    // yet. This is the shape a plan review flagged.
     expect(html).toContain("Checking…");
     const rows = await (await get(base, "/specs?rows=1")).text();
     expect(git.calls.length).toBe(before);
     expect(rows).toContain("Checking…");
   });
 
-  // Criterion 6.
   test("warm, GET / spawns nothing of its own and shows the warmed answers", async () => {
     const git = recording();
     // One tick and then nothing for a hundred seconds: the schedule
@@ -91,8 +90,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     expect(html).not.toContain("Checking…");
   });
 
-  // Criterion 8. It asked `/archive` until spec 221 retired that page;
-  // the rows are on the Specs list now, behind the chip that shows
+  // The rows are on the Specs list now, behind the chip that shows
   // them, and the rule they have to keep is the same one — peek, never
   // take, on the request path.
   test("cold, an archived row renders without blocking on git", async () => {
@@ -111,7 +109,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     expect(html).toContain("77-old-thing");
   });
 
-  // Criterion 9: the dashboard's own clone (spec 205) is started at
+  // The dashboard's own clone is started at
   // boot and takes seconds. A spec page opened before it lands falls
   // back to the person's own checkout instead of waiting for it.
   test("a spec page does not wait for the dashboard's own clone", async () => {
@@ -158,7 +156,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   const buttonLabel = (html: string): string =>
     html.match(/<button[^>]*class="btn primary"[^>]*>([^<]*)<\/button>/)?.[1] ?? "";
 
-  // Spec 241, criterion 6: a regression guard for the branch above — a
+  // A regression guard for the branch above — a
   // LIVE spec must keep reading `done` from `target?.done` (the
   // git-verified `workflowHistory`), never from the file's own claim.
   // Not expected to be RED on its own: the live branch of the new `done:`
@@ -166,7 +164,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
   // ANY spec's Overview tab through a real route and inspected its pips —
   // so a broken conditional (e.g. an inverted `ref?.archived` check) would
   // otherwise pass unnoticed.
-  test("a live spec's row still reads its phases from its own git-verified history (criterion 6)", async () => {
+  test("a live spec's row still reads its phases from its own git-verified history", async () => {
     const { base, dir } = harness.start({
       extra: { driftPollMs: 0, specCachePollMs: 40 },
       status: statusSaying(["create", "analyze", "implement", "archive"]),

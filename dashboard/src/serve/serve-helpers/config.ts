@@ -8,7 +8,7 @@ import workflowStepsData from "../../../../core/scripts/lib/workflow-steps.json"
 
 export const MAX_BODY = 4096;
 
-/** What the save route accepts instead (spec 162). A description is not
+/** What the save route accepts instead. A description is not
  *  an action post: this spec's own `1-description.md` was 4182 raw
  *  bytes before a single character of form-urlencoding overhead, so
  *  `MAX_BODY` would have refused the very file the editor was written
@@ -30,13 +30,13 @@ export const MAX_CREATE_BODY = (TITLE_MAX + DESCRIPTION_MAX) * 9 + MAX_BODY;
 export const INSTALL_TIMEOUT_MS = 120_000;
 
 export const QUEUE_DEFAULTS: QueueDefaults = {
-  // Per step since spec 152. 1200 is unchanged for everything else;
-  // `implement` gets 5400 because 149's was killed at the 45-minute
+  // Per step. 1200 is unchanged for everything else;
+  // `implement` gets 5400 because an implement was killed at the 45-minute
   // mark with RED and GREEN done and its tests green, mid-way through
   // writing documentation on a twenty-file change. A correction from
   // two data points, not a measurement — it lives in `queue-config.json`
   // on the serving host and should be revisited once more have run.
-  // `analyze` gets 2400 for the same reason (spec 181): the reviewer
+  // `analyze` gets 2400 for the same reason: the reviewer
   // routine that used to be its own `review-plan` step now runs inside
   // `analyze`, so one run does what used to be two, and the default
   // budget for one step is no longer enough for both.
@@ -88,7 +88,7 @@ export function createRootLock() {
       return chains.size;
     },
     /** Which roots have a merge in flight right now — named, not just
-     *  counted, so a restart that has to proceed anyway (spec 287) can
+     *  counted, so a restart that has to proceed anyway can
      *  say specifically what it may have interrupted. */
     roots(): string[] {
       return [...chains.keys()];
@@ -101,7 +101,7 @@ export function createRootLock() {
  *  The bootstrap's own retries take about ten seconds of it. */
 export const DEPLOY_RESTART_WAIT_MS = 3 * 60_000;
 
-/** How often `restartAfterLanding()` (spec 287) re-checks `mergeLock`
+/** How often `restartAfterLanding()` re-checks `mergeLock`
  *  while it waits for every in-flight merge to clear before restarting
  *  the dashboard server. */
 export const RESTART_POLL_MS = 250;
@@ -164,7 +164,7 @@ export function processSettings(
  *  `archive`. Only `create` runs regardless; a plan made before the
  *  dependency lands is a plan for code that is about to change.
  *
- *  Read from `core/scripts/lib/workflow-steps.json` (spec 349) — the
+ *  Read from `core/scripts/lib/workflow-steps.json` — the
  *  same file `core/scripts/aide-run-spec` reads with jq, so the two
  *  sides can no longer drift apart. */
 export const DEPENDENCY_GATED_STEPS: readonly string[] = workflowStepsData.dependencyGatedSteps;

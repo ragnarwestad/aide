@@ -1,5 +1,5 @@
-// The page a reader waits on while a test server starts (spec 411,
-// REQ-4). A board is a full round: minutes, not seconds. The link that
+// The page a reader waits on while a test server starts. A board is
+// a full round: minutes, not seconds. The link that
 // starts one used to send the reader back to the spec page to find the
 // address for themselves — this holds the tab they opened and carries
 // them to the board the moment it has one.
@@ -79,7 +79,7 @@ export function waitingForTestServerPage(_project: string, specFolder: string): 
   );
 }
 
-/** REQ-4 (spec 424): what the self-stop route hands back once it has
+/** What the self-stop route hands back once it has
  *  scheduled its own exit. A third state beside waiting/failed, in the
  *  same frame — no refresh (nothing is coming back to poll for) and no
  *  navigation of its own, the same as `testServerFailedPage`. */

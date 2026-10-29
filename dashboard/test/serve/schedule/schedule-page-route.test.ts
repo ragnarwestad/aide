@@ -1,10 +1,10 @@
-// GET /schedule (spec 272, extended spec 276, reworked spec 278): the
+// GET /schedule: the
 // page listing every allowed project's scheduled jobs together,
 // plus the entry detail page and the New-job page. This is the
 // HTTP-level route test — `render/pages/schedule-page.test.ts` covers
 // `renderSchedulePage()` alone, but only THIS test proves the route
 // actually wires the token guard and `ctx.allowed`/the schedule
-// store together (acceptance criterion 12).
+// store together.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -60,8 +60,8 @@ const DEFAULTS = {
 };
 const TRAFFIC: Entry = { name: "traffic-analysis", cron: "0 0 * * *", prompt: "docs/traffic.md" };
 
-describe("GET /schedule (spec 272)", () => {
-  test("every allowed project's entries appear together, in one table (criterion 1)", async () => {
+describe("GET /schedule", () => {
+  test("every allowed project's entries appear together, in one table", async () => {
     const { base } = start({
       extra: { queueProjects: ["aide", "other"] },
       alsoProjects: ["other"],
@@ -75,7 +75,7 @@ describe("GET /schedule (spec 272)", () => {
     expect(html).toContain("traffic-analysis");
   });
 
-  test("?q= narrows rows to a term matching project:name or the prompt path (criterion 4)", async () => {
+  test("?q= narrows rows to a term matching project:name or the prompt path", async () => {
     const { base } = start({
       extra: { queueProjects: ["aide", "other"] },
       alsoProjects: ["other"],
@@ -88,7 +88,7 @@ describe("GET /schedule (spec 272)", () => {
     expect(html).not.toContain("traffic-analysis");
   });
 
-  test("?sort=next orders soonest-first by default, and ?dir=desc reverses it (criterion 8)", async () => {
+  test("?sort=next orders soonest-first by default, and ?dir=desc reverses it", async () => {
     const { base } = start();
     // Two entries whose next fire time is genuinely different, so the
     // sort key is unambiguous regardless of when the test happens to run.
@@ -104,7 +104,7 @@ describe("GET /schedule (spec 272)", () => {
     expect(desc.indexOf("aide:later")).toBeLessThan(desc.indexOf("aide:soon"));
   });
 
-  test("?sort=last orders most-recent-run first by default, with a never-run entry sorting last (criterion 9)", async () => {
+  test("?sort=last orders most-recent-run first by default, with a never-run entry sorting last", async () => {
     const { base } = start();
     writeSchedule("aide", [
       { name: "has-run", cron: "0 3 * * *", prompt: "docs/nightly.md" },
@@ -121,11 +121,11 @@ describe("GET /schedule (spec 272)", () => {
 
 });
 
-describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
+describe("GET /schedule/<project>/<name>", () => {
   // Editing an entry has to offer the same choice creating it did, and
   // show what the entry is actually on — otherwise a Save silently
   // moves a job onto whatever the form happened to draw.
-  test("Edit on the Settings tab shows the entry's own model, pre-selected (AC-5)", async () => {
+  test("Edit on the Settings tab shows the entry's own model, pre-selected", async () => {
     const { base } = start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule("aide", [{ ...NIGHTLY, model: "codex-fast" }]);
     const res = await fetch(`${base}/schedule/aide/nightly-report?tab=settings&edit=1`);
@@ -146,7 +146,7 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(tab.indexOf(">z-last<")).toBeLessThan(tab.indexOf(">a-first<"));
   });
 
-  test("a row on the project's Schedule tab opens the entry's page on Report (AC-2)", async () => {
+  test("a row on the project's Schedule tab opens the entry's page on Report", async () => {
     const { base } = start();
     writeSchedule("aide", [NIGHTLY]);
     const tab = await (await fetch(`${base}/projects/aide?tab=schedule`)).text();
@@ -158,7 +158,7 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(doc.querySelector("section#report") !== null).toBe(true);
   });
 
-  test("Settings' Delete goes to the project's Schedule tab, and an entry with no model shows the schedule step's default (AC-4)", async () => {
+  test("Settings' Delete goes to the project's Schedule tab, and an entry with no model shows the schedule step's default", async () => {
     const { base } = start({ extra: { queueDefaults: { ...DEFAULTS, model: { default: "sonnet", schedule: "codex-fast" } } } });
     writeSchedule("aide", [NIGHTLY]);
     const doc = parse(await (await fetch(`${base}/schedule/aide/nightly-report?tab=settings`)).text());
@@ -168,7 +168,7 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(model?.children[1]!.textContent).toBe("codex-fast");
   });
 
-  test("a save from Settings that renames the entry lands on its Settings tab with the saved values (AC-5)", async () => {
+  test("a save from Settings that renames the entry lands on its Settings tab with the saved values", async () => {
     const { base, dir } = start();
     mkdirSync(join(dir, "root", "aide", "docs"), { recursive: true });
     writeFileSync(join(dir, "root", "aide", "docs", "nightly.md"), "# nightly\n");
@@ -196,7 +196,7 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
 
 });
 
-describe("GET /schedule with an unlisted model (spec 494)", () => {
+describe("GET /schedule with an unlisted model", () => {
   const withModel = (model: string): Entry[] => [{ ...NIGHTLY, model }];
   test("an entry naming a model the queue does not offer is flagged on the list and on its project's Schedule tab", async () => {
     const { base } = start({ extra: { queueDefaults: DEFAULTS } });
@@ -209,7 +209,7 @@ describe("GET /schedule with an unlisted model (spec 494)", () => {
     expect(tab).toContain("is not one the queue offers");
   });
 
-  test("the flag on the list and on the Schedule tab links to the entry's Settings tab (AC-6)", async () => {
+  test("the flag on the list and on the Schedule tab links to the entry's Settings tab", async () => {
     const { base } = start({ extra: { queueDefaults: DEFAULTS } });
     writeSchedule("aide", withModel("retired"));
     for (const path of ["/schedule", "/projects/aide?tab=schedule"]) {
@@ -228,10 +228,10 @@ describe("GET /schedule with an unlisted model (spec 494)", () => {
   });
 });
 
-// Spec 495: the entry's page shows a run's report. Real files under a
+// The entry's page shows a run's report. Real files under a
 // fixture output root, jobs seeded through the queue's own mirror file so
 // each has the id and state the test names.
-describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () => {
+describe("GET /schedule/<project>/<entry> shows a run's report", () => {
   const KEY = "schedule-nightly-report";
   const tmp: string[] = [];
   afterEach(() => {
@@ -283,7 +283,7 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(html).toContain("2026-09-02T03:00:00Z");
   });
 
-  test("an entry that has never run says so once, shows no list, and ?run= is ignored (AC-6)", async () => {
+  test("an entry that has never run says so once, shows no list, and ?run= is ignored", async () => {
     const { base } = setup([]);
     const html = await get(base, `${PAGE}?run=anything`);
     expect(html.split("This entry has not run yet.").length - 1).toBe(1);
@@ -317,7 +317,7 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(runsList(html)).toMatchObject({ ids: ["r3", "r2", "r1"], marked: [] });
   });
 
-  test("?run= marks that run in the list (AC-3)", async () => {
+  test("?run= marks that run in the list", async () => {
     const { base } = setup([
       { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" },
       { id: "r2", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>b</p>" },
@@ -325,13 +325,13 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(runsList(await get(base, `${PAGE}?run=r1`)).marked).toEqual(["r1"]);
   });
 
-  test("?sort= and ?dir= reach the list (AC-5)", async () => {
+  test("?sort= and ?dir= reach the list", async () => {
     const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" }]);
     const { headings } = runsList(await get(base, `${PAGE}?sort=duration&dir=asc`));
     expect(headings.map((th) => th.getAttribute("aria-sort"))).toEqual([null, null, "ascending"]);
   });
 
-  test("a heading keeps a ?run= that names one of the entry's runs, and no other (AC-5)", async () => {
+  test("a heading keeps a ?run= that names one of the entry's runs, and no other", async () => {
     const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" }]);
     const runOf = (th: Element) =>
       new URL(th.querySelector("a")!.getAttribute("href")!, "http://board").searchParams.get("run");
@@ -339,7 +339,7 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(runsList(await get(base, `${PAGE}?run=nope&sort=state`)).headings.map(runOf)).toEqual([null, null, null]);
   });
 
-  test("an old link to the History tab opens the Report tab, with the runs (AC-7)", async () => {
+  test("an old link to the History tab opens the Report tab, with the runs", async () => {
     const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>REPORT-R1</p>" }]);
     const res = await fetch(`${base}${PAGE}?tab=history`);
     expect(res.status).toBe(200);
@@ -361,7 +361,7 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(html).not.toContain("THIRD-TEXT");
   });
 
-  test("a run with a record lists its proposals under the report, and only that run does (AC-3)", async () => {
+  test("a run with a record lists its proposals under the report, and only that run does", async () => {
     const { base, outputRoot } = setup([
       { id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>a</p>" },
       { id: "r2", state: "done", at: "2026-09-02T03:00:00Z", report: "<p>b</p>" },
@@ -381,7 +381,7 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
     expect(await get(base, `${PAGE}?run=r2`)).not.toContain('id="proposals"');
   });
 
-  test("the address a source block gives is the one the runs list uses, and the page answers it (AC-3)", async () => {
+  test("the address a source block gives is the one the runs list uses, and the page answers it", async () => {
     const { base } = setup([{ id: "r1", state: "done", at: "2026-09-01T03:00:00Z", report: "<p>REPORT-R1</p>" }]);
     const path = scheduleRunPath("aide", "nightly-report", "r1");
     expect(await get(base, PAGE)).toContain(`href="${path}"`);
@@ -421,7 +421,7 @@ describe("GET /schedule/<project>/<entry> shows a run's report (spec 495)", () =
 });
 
 describe("where the pages read the jobs from", () => {
-  test("an entry only a project's manifest lists is on neither /schedule nor its own page (AC-2)", async () => {
+  test("an entry only a project's manifest lists is on neither /schedule nor its own page", async () => {
     const { base, dir } = start();
     writeFileSync(
       join(dir, "root", "aide", ".aide", "project.yaml"),
@@ -434,7 +434,7 @@ describe("where the pages read the jobs from", () => {
     expect((await fetch(`${base}/schedule/aide/from-manifest`)).status).toBe(404);
   });
 
-  test("jobs recorded under a name stay attached when the entry is added under the same project, and not under another (AC-4)", async () => {
+  test("jobs recorded under a name stay attached when the entry is added under the same project, and not under another", async () => {
     const scratch = mkdtempSync(join(tmpdir(), "aide-schedule-history-"));
     const mirror = join(scratch, "queue.json");
     const job = (project: string, id: string) => ({
@@ -473,7 +473,7 @@ describe("the page that makes an entry", () => {
     expect((await fetch(`${base}/schedule/new`)).status).toBe(404);
   });
 
-  test("the separate edit page is gone: its address is 404 (AC-6)", async () => {
+  test("the separate edit page is gone: its address is 404", async () => {
     const { base } = start();
     writeSchedule("aide", [NIGHTLY]);
     expect((await fetch(`${base}/schedule/aide/nightly-report/edit`)).status).toBe(404);

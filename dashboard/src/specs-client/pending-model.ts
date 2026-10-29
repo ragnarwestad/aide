@@ -1,5 +1,5 @@
 // A model or AI picked for a phase that has not run yet, posted to the
-// server the instant it is made (spec 308) — the non-live sibling of
+// server the instant it is made — the non-live sibling of
 // `postTailModel()`. Without this the pick lived only in the `chosen`
 // map, which is a new, empty object on every page load: leave the page
 // and come back, and the picker was back on the default with nothing

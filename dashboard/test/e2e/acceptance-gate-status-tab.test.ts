@@ -1,4 +1,4 @@
-// The acceptance gate's human half (spec 382): every existing test of
+// The acceptance gate's human half: every existing test of
 // "held back until every Acceptance row is ticked" asserts on rendered
 // HTML in isolation — never on a page a person could click. This file
 // opens a real browser, reads the row's own message off the specs list,
@@ -75,8 +75,8 @@ beforeAll(async () => {
   // reaches that by its own poll, not by the write above. A fixed sleep
   // here raced that poll and lost under load — the row was left on its
   // honest interim message ("disagree about whether") and
-  // REQ-4 went red on a board that was working correctly. Waiting for the
-  // message itself removes the guess without weakening what REQ-4 proves:
+  // this test went red on a board that was working correctly. Waiting for the
+  // message itself removes the guess without weakening what the test proves:
   // a board that never shows it still fails, on the bound below.
   await waitUntil(
     async () => {
@@ -92,7 +92,7 @@ afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 describe("the acceptance gate, on a page a person could click", () => {
 
-  test("REQ-5: ticking the row clears the message and archive becomes possible", async () => {
+  test("ticking the row clears the message and archive becomes possible", async () => {
     await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), "page.goto(status)");
     await page.locator(`input[name="tick"][value="${ACCEPTANCE_ROW}"]`).check();
     await Promise.all([
@@ -115,7 +115,7 @@ describe("the acceptance gate, on a page a person could click", () => {
     const noticeText = noticeCount > 0 ? await notice.textContent() : "";
     expect(noticeText).not.toContain("tick them under › on the Specs list, or on the Status tab");
 
-    // "archive becomes possible" (REQ-5): press the row's real
+    // "archive becomes possible": press the row's real
     // Run/Archive control and confirm the resulting queued job is NOT
     // held for the acceptance reason any more.
     await page.getByRole("button", { name: /archive/i }).click();

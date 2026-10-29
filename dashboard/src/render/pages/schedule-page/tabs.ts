@@ -1,4 +1,4 @@
-// The schedule entry's own paths and tabs (spec 276) — the same
+// The schedule entry's own paths and tabs — the same
 // path/tab-list shape `spec-page/tabs.ts` already has for a spec.
 
 export const schedulePagePath = (project: string, name: string): string =>

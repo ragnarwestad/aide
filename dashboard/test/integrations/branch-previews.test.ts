@@ -32,11 +32,11 @@ const run = (o: Partial<CheckRun> & { text?: string } = {}): CheckRun => ({
 const answer = (...runs: CheckRun[]): string => JSON.stringify({ total_count: runs.length, check_runs: runs });
 
 describe("readBranchPreview", () => {
-  test("a successful run gives the Branch Preview URL, not the one fixed to a commit (AC-1)", () => {
+  test("a successful run gives the Branch Preview URL, not the one fixed to a commit", () => {
     expect(readBranchPreview(answer(run()))).toEqual({ address: BRANCH_URL });
   });
 
-  test("no Cloudflare Pages run, or a non-https address, is no address (AC-1)", () => {
+  test("no Cloudflare Pages run, or a non-https address, is no address", () => {
     const other = run({ name: "build", app: { slug: "github-actions" } });
     expect(readBranchPreview(answer(other))).toEqual({});
     expect(readBranchPreview(answer())).toEqual({});
@@ -44,23 +44,23 @@ describe("readBranchPreview", () => {
     expect(readBranchPreview(answer(run({ text: "<table></table>" })))).toEqual({});
   });
 
-  test("a run still queued or in progress gives no address (AC-2)", () => {
+  test("a run still queued or in progress gives no address", () => {
     expect(readBranchPreview(answer(run({ status: "queued", conclusion: null })))).toEqual({});
     expect(readBranchPreview(answer(run({ status: "in_progress", conclusion: null })))).toEqual({});
   });
 
-  test("a run that completed without success gives no address (AC-2)", () => {
+  test("a run that completed without success gives no address", () => {
     expect(readBranchPreview(answer(run({ conclusion: "failure" })))).toEqual({});
   });
 
-  test("the newest of two Cloudflare runs is the one that counts (AC-2)", () => {
+  test("the newest of two Cloudflare runs is the one that counts", () => {
     const old = run({ id: 1 });
     const building = run({ id: 2, status: "in_progress", conclusion: null });
     expect(readBranchPreview(answer(old, building))).toEqual({});
     expect(readBranchPreview(answer(building, old))).toEqual({});
   });
 
-  test("output that is not a check-runs object is no answer (AC-2)", () => {
+  test("output that is not a check-runs object is no answer", () => {
     expect(readBranchPreview("oops")).toBeNull();
     expect(readBranchPreview("")).toBeNull();
     expect(readBranchPreview("[]")).toBeNull();
@@ -69,7 +69,7 @@ describe("readBranchPreview", () => {
 });
 
 describe("askBranchPreview", () => {
-  test("asks gh about the branch's check runs in the code root (AC-1)", async () => {
+  test("asks gh about the branch's check runs in the code root", async () => {
     const asked: { dir: string; args: string[] }[] = [];
     const ghRun: GhRunner = async (dir, args) => {
       asked.push({ dir, args });
@@ -80,7 +80,7 @@ describe("askBranchPreview", () => {
     expect(branchPreviewArgs("aide/40-x")).toEqual(["api", "repos/{owner}/{repo}/commits/aide/40-x/check-runs"]);
   });
 
-  test("a gh that exits non-zero is no answer (AC-2)", async () => {
+  test("a gh that exits non-zero is no answer", async () => {
     const ghRun: GhRunner = async () => ({ code: 1, stdout: answer(run()) });
     expect(await askBranchPreview(ghRun, "/code/woodstack", "aide/40-x")).toBeNull();
   });

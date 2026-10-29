@@ -58,7 +58,7 @@ const choicesIn = (file: string): Record<string, ModelChoice> =>
 const errorOf = async (res: Response): Promise<string> => ((await res.json()) as { error: string }).error;
 
 describe("adding a model the AI offers", () => {
-  test("is written to the file and the live choices, keeping the rest (AC-1)", async () => {
+  test("is written to the file and the live choices, keeping the rest", async () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ codex: CODEX_READING }));
     await pressCheck(base, "codex");
@@ -71,7 +71,7 @@ describe("adding a model the AI offers", () => {
     expect(Object.keys(await offeredChoices(base))).toContain("gpt-5.5");
   });
 
-  test("a key another AI's choice holds gets the provider in front (AC-1)", async () => {
+  test("a key another AI's choice holds gets the provider in front", async () => {
     forgetChecks();
     const choices = { ...CHOICES, "gpt-5.5": { tool: "codex" as const } };
     const { base, file } = serve(modelsProbe({ opencode: OPENCODE_READING }), choices);
@@ -83,7 +83,7 @@ describe("adding a model the AI offers", () => {
     expect(Object.keys(await offeredChoices(base))).toContain("gpt-5.5");
   });
 
-  test("a Claude family is added under its capitalised name and shows its version (AC-14)", async () => {
+  test("a Claude family is added under its capitalised name and shows its version", async () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ claude: CLAUDE_READING }));
     await pressCheck(base, "claude");
@@ -93,7 +93,7 @@ describe("adding a model the AI offers", () => {
     expect((await offeredChoices(base)).Haiku).toBe("Haiku 4.5");
   });
 
-  test("a model the last reading did not offer, or no reading at all, is refused (AC-1)", async () => {
+  test("a model the last reading did not offer, or no reading at all, is refused", async () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ codex: CODEX_READING }));
     for (const body of [{ tool: "codex", model: "gpt-5.5" }, { tool: "claude", model: "haiku" }]) {
@@ -106,7 +106,7 @@ describe("adding a model the AI offers", () => {
     expect(readFileSync(file, "utf-8")).toBe(CONFIG);
   });
 
-  test("a model already a choice of that AI is refused (AC-8)", async () => {
+  test("a model already a choice of that AI is refused", async () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ claude: CLAUDE_READING }));
     await pressCheck(base, "claude");
@@ -116,7 +116,7 @@ describe("adding a model the AI offers", () => {
 });
 
 describe("a Claude model typed as its full id", () => {
-  test("is refused like any model the last reading did not offer, asking no CLI (AC-14)", async () => {
+  test("is refused like any model the last reading did not offer, asking no CLI", async () => {
     forgetChecks();
     const { base, file, probe } = serve(modelsProbe({ claude: CLAUDE_READING }));
     await pressCheck(base, "claude");
@@ -131,7 +131,7 @@ describe("a Claude model typed as its full id", () => {
 });
 
 describe("removing a model choice", () => {
-  test("takes it out of the file and the live choices (AC-2)", async () => {
+  test("takes it out of the file and the live choices", async () => {
     const { base, file } = serve();
     const res = await post(base, REMOVE, { name: "gpt-5.6-luna" });
     expect(res.status).toBe(200);
@@ -141,7 +141,7 @@ describe("removing a model choice", () => {
     expect(Object.keys(await offeredChoices(base))).not.toContain("gpt-5.6-luna");
   });
 
-  test("a step's default model is refused, naming each step, and nothing changes (AC-9)", async () => {
+  test("a step's default model is refused, naming each step, and nothing changes", async () => {
     const { base, file } = serve();
     const before = await offeredChoices(base);
     const res = await post(base, REMOVE, { name: "Opus" });
@@ -152,14 +152,14 @@ describe("removing a model choice", () => {
     expect(await offeredChoices(base)).toEqual(before);
   });
 
-  test("the default for every step without its own is named as that (AC-9)", async () => {
+  test("the default for every step without its own is named as that", async () => {
     const { base } = serve(modelsProbe(), CHOICES, { default: "Opus" });
     const res = await post(base, REMOVE, { name: "Opus" });
     expect(res.status).toBe(400);
     expect(await errorOf(res)).toContain("every step without its own");
   });
 
-  test("a name that is no choice is refused (AC-2)", async () => {
+  test("a name that is no choice is refused", async () => {
     const { base, file } = serve();
     expect((await post(base, REMOVE, { name: "gpt-0" })).status).toBe(400);
     expect(readFileSync(file, "utf-8")).toBe(CONFIG);

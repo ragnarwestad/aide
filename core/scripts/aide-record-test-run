@@ -3,14 +3,14 @@
 # writes the ONLY record `aide-archive-spec`'s test-record gate trusts:
 # the command, its real exit code, and the commit it ran against. The
 # caller resolves WHICH command(s) (via aide-resolve-test-cmd, same rule
-# every caller shares — spec 361); this script is the only thing that
+# every caller shares); this script is the only thing that
 # captures whether they passed.
 #
 # `--cmd` is repeatable. Exactly one `--cmd` keeps today's exact record
-# shape (`command`/`exitCode` as scalars) — this is REQ-6's regression
+# shape (`command`/`exitCode` as scalars) — this is the regression
 # lock, byte for byte. Two or more `--cmd` writes an aggregate record
 # instead (`command`/`exitCode` at top level become the aggregate,
-# `commands` names every command that ran with its own exit code — REQ-5).
+# `commands` names every command that ran with its own exit code).
 # Every command runs regardless of an earlier one's failure, so a reader
 # can see the status of all of them, not just the first failure.
 #
@@ -111,7 +111,7 @@ run_cmd() {   # <command>
 }
 
 if [ "${#cmds[@]}" -le 1 ]; then
-  # --- today's exact single-command shape (REQ-6, byte for byte) ---------
+  # --- today's exact single-command shape (byte for byte) ---------
   cmd="${cmds[0]:-}"
   if [ -z "$cmd" ]; then
     exit_code=""
@@ -141,7 +141,7 @@ if [ "${#cmds[@]}" -le 1 ]; then
   exit "${exit_code:-1}"
 fi
 
-# --- two or more --cmd: the aggregate record (REQ-5) -----------------------
+# --- two or more --cmd: the aggregate record -----------------------
 # Every command runs regardless of an earlier one's failure, so a reader
 # can see the status of all of them, not just the first that failed.
 results_json="[]"

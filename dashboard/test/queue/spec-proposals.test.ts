@@ -31,7 +31,7 @@ const check = (entry: unknown, jobs: PendingCreate[] = [], known = KNOWN) =>
   checkProposal(entry, 4000, known, jobs);
 
 describe("parseProposalsFile", () => {
-  test("a list of two entries comes back whole and in file order (AC-1)", () => {
+  test("a list of two entries comes back whole and in file order", () => {
     const text = JSON.stringify([
       { title: "One", description: "First" },
       { title: "Two", description: "Second" },
@@ -44,13 +44,13 @@ describe("parseProposalsFile", () => {
     });
   });
 
-  test("text that is not JSON answers with an error and no entries (AC-1)", () => {
+  test("text that is not JSON answers with an error and no entries", () => {
     const got = parseProposalsFile("[{ nope");
     expect("error" in got && got.error.length > 0).toBe(true);
     expect("entries" in got).toBe(false);
   });
 
-  test("JSON that is not a list answers with an error and no entries (AC-1)", () => {
+  test("JSON that is not a list answers with an error and no entries", () => {
     const got = parseProposalsFile('{"title":"x"}');
     expect("error" in got).toBe(true);
     expect("entries" in got).toBe(false);
@@ -58,7 +58,7 @@ describe("parseProposalsFile", () => {
 });
 
 describe("titleKey", () => {
-  test("trims, collapses whitespace and lowercases (AC-3)", () => {
+  test("trims, collapses whitespace and lowercases", () => {
     expect(titleKey("  Fix   the\tThing \n")).toBe("fix the thing");
   });
 });
@@ -71,7 +71,7 @@ describe("checkProposal", () => {
     });
   });
 
-  test("a title equal to an active, archived or closed spec is skipped as existing, in any case and spacing (AC-3)", () => {
+  test("a title equal to an active, archived or closed spec is skipped as existing, in any case and spacing", () => {
     expect(check({ title: "alpha", description: "d" })).toMatchObject({
       ok: false,
       why: { code: "exists", folder: "01-alpha", kind: "active" },
@@ -86,21 +86,21 @@ describe("checkProposal", () => {
     });
   });
 
-  test("a Create job that is queued, running or done blocks the same title, naming the job (AC-3)", () => {
+  test("a Create job that is queued, running or done blocks the same title, naming the job", () => {
     for (const state of ["queued", "running", "done"]) {
       const got = check({ title: "Wanted", description: "d" }, [{ id: "j1", state, createTitle: "wanted" }]);
       expect(got).toMatchObject({ ok: false, why: { code: "queued", jobId: "j1" } });
     }
   });
 
-  test("a Create job that failed, was cancelled, stopped or was interrupted blocks nothing (AC-3)", () => {
+  test("a Create job that failed, was cancelled, stopped or was interrupted blocks nothing", () => {
     for (const state of ["failed", "cancelled", "stopped", "interrupted"]) {
       const got = check({ title: "Wanted", description: "d" }, [{ id: "j1", state, createTitle: "Wanted" }]);
       expect(got.ok).toBe(true);
     }
   });
 
-  test("an entry that is not an object, or has no title or description, is invalid (AC-3)", () => {
+  test("an entry that is not an object, or has no title or description, is invalid", () => {
     expect(check("nope")).toMatchObject({ ok: false, why: { code: "invalid", what: "not-an-object" } });
     expect(check(null)).toMatchObject({ ok: false, why: { code: "invalid", what: "not-an-object" } });
     expect(check({ description: "d" })).toMatchObject({ ok: false, why: { code: "invalid", what: "title-missing" } });
@@ -111,7 +111,7 @@ describe("checkProposal", () => {
     expect(check({ title: "T" })).toMatchObject({ ok: false, why: { code: "invalid", what: "description-missing" } });
   });
 
-  test("a two-line title and a title over the limit are invalid, with the limit (AC-3)", () => {
+  test("a two-line title and a title over the limit are invalid, with the limit", () => {
     expect(check({ title: "a\nb", description: "d" })).toMatchObject({
       ok: false,
       why: { code: "invalid", what: "title-lines" },
@@ -123,7 +123,7 @@ describe("checkProposal", () => {
     expect(check({ title: "x".repeat(TITLE_MAX), description: "d" }).ok).toBe(true);
   });
 
-  test("a description over the room it is given is invalid, with that room (AC-3)", () => {
+  test("a description over the room it is given is invalid, with that room", () => {
     expect(checkProposal({ title: "T", description: "y".repeat(101) }, 100, [], [])).toMatchObject({
       ok: false,
       why: { code: "invalid", what: "description-long", max: 100 },
@@ -146,7 +146,7 @@ describe("sourceBlock and descriptionRoom", () => {
     reportPath: "/schedule/aide/nyhetssjekk?run=run-1#report",
   });
 
-  test("names the job, the project and the run and links to the report (AC-5)", () => {
+  test("names the job, the project and the run and links to the report", () => {
     expect(block).toContain("### Source");
     expect(block).toContain("`nyhetssjekk`");
     expect(block).toContain("`aide`");
@@ -155,7 +155,7 @@ describe("sourceBlock and descriptionRoom", () => {
     expect(block).toContain("[/schedule/aide/nyhetssjekk?run=run-1#report](/schedule/aide/nyhetssjekk?run=run-1#report)");
   });
 
-  test("the room left for a description is what the block and its blank line do not take (AC-5)", () => {
+  test("the room left for a description is what the block and its blank line do not take", () => {
     expect(descriptionRoom(block)).toBe(DESCRIPTION_MAX - block.length - 2);
   });
 });
@@ -166,7 +166,7 @@ describe("the record", () => {
     for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
   });
 
-  test("is read back as it was written, and is absent before it is written (AC-3)", () => {
+  test("is read back as it was written, and is absent before it is written", () => {
     const root = mkdtempSync(join(tmpdir(), "aide-proposals-"));
     dirs.push(root);
     mkdirSync(scheduleRunOutputDir(root, "aide", "schedule-n", "j1"), { recursive: true });

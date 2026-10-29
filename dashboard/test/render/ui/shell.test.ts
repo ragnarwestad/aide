@@ -1,4 +1,4 @@
-// Spec 334, REQ-5: a machine missing a tool aide's installer could not
+// A machine missing a tool aide's installer could not
 // declare has to be visible on every ordinary dashboard visit, with no
 // command to run and no extra page to open. pageShell() is the ONE
 // function every page already renders through, so the banner lives
@@ -70,12 +70,11 @@ describe("pageShell install warning banner", () => {
   });
 });
 
-// Spec 350, REQ-3/REQ-4/REQ-5.
-describe("pageShell language (spec 350)", () => {
-  // Spec 435: the link now targets the CALLER's own current address
+describe("pageShell language", () => {
+  // The link now targets the CALLER's own current address
   // (`opts.currentUrl`), with only `lang` swapped, so switching
   // language keeps the reader on the page, tab, sort and filter they
-  // were already on — reversing spec 408's "always /?lang=..." choice.
+  // were already on — not an "always /?lang=..." link.
   test("the language control's link targets currentUrl with lang swapped", () => {
     const html = pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-01T00:00:00Z", {
       lang: "nb",
@@ -94,22 +93,22 @@ describe("pageShell language (spec 350)", () => {
   });
 });
 
-describe("the header's tabs (AC-1)", () => {
+describe("the header's tabs", () => {
   const NAV = [
     { label: "Projects", path: "/projects" },
     { label: "Schedule", path: "/schedule" },
   ];
 
-  test("Running comes first, then Specs, Projects and the sections (AC-1)", () => {
+  test("Running comes first, then Specs, Projects and the sections", () => {
     expect(siteTabKeys(NAV, "/").keys).toEqual(["/", "/specs", "/projects", "/schedule"]);
   });
 
-  test("Running is current for / and Specs for /specs (AC-1)", () => {
+  test("Running is current for / and Specs for /specs", () => {
     expect(siteTabKeys(NAV, "/").current).toBe("/");
     expect(siteTabKeys(NAV, "/specs").current).toBe("/specs");
   });
 
-  test("Projects and a section stay current on their own pages (AC-1)", () => {
+  test("Projects and a section stay current on their own pages", () => {
     expect(siteTabKeys(NAV, "/projects").current).toBe("/projects");
     expect(siteTabKeys(NAV, "/schedule").current).toBe("/schedule");
   });

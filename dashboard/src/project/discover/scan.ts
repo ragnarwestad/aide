@@ -16,11 +16,11 @@ export interface SpecRef {
   folder: string;
   dir: string;
   archived: boolean;
-  /** Closed rather than archived (spec 406) — always `false` for a spec
+  /** Closed rather than archived — always `false` for a spec
    *  not under `archive/`, since the `**Closed:**` stamp is only ever
    *  written there. Kept apart from `archived` rather than folded into
    *  it: both live under the same folder physically, but read as two
-   *  different states everywhere a spec's state is shown (REQ-7). */
+   *  different states everywhere a spec's state is shown. */
   closed: boolean;
   /** How many Acceptance rows of an archived, not closed spec are marked
    *  Not verified, from its state file; absent when none. A live
@@ -30,9 +30,9 @@ export interface SpecRef {
   failed?: number;
   title: string | null;
   /** What the spec is ABOUT. The title says `02-job-detail-view`; this
-   *  says why anyone queued it (spec 02). */
+   *  says why anyone queued it. */
   description: string | null;
-  /** Folder names from 1-description.md's `Depends on:` line (spec 92),
+  /** Folder names from 1-description.md's `Depends on:` line,
    *  in the order written. Empty when the spec names none. */
   dependsOn: string[];
   /** The four choices it was created with, off the same file; absent for
@@ -91,10 +91,10 @@ export function specFolders(root: string, archived: boolean): SpecRef[] {
 }
 
 /** Where a caller of its own wants a project's spec folders listed FROM,
- *  when that is not the checkout the scan walked (spec 218).
+ *  when that is not the checkout the scan walked.
  *
  *  The dashboard resolves a run's `--spec` against a clone it owns
- *  (spec 205), and the list has to name what a run can actually resolve
+ *  and the list has to name what a run can actually resolve
  *  — a folder committed in the person's checkout and never pushed got a
  *  row offering steps that every one of them refused. A plain optional
  *  function, and not a `DashboardCheckout` parameter: this module knows
@@ -103,7 +103,7 @@ export function specFolders(root: string, archived: boolean): SpecRef[] {
 export type OwnedSpecsRoot = (project: string) => string | undefined;
 
 /** Where a project's manifest is read from when its own directory holds
- *  none (spec 512): the dashboard's clone carries the manifest a run
+ *  none: the dashboard's clone carries the manifest a run
  *  reads — the team's tracked one, else a copy of the settings the
  *  dashboard keeps — so a project added with no manifest in its
  *  repository is still a project. Same shape as `OwnedSpecsRoot`, for the
@@ -164,7 +164,7 @@ export function discoverProjects(
 
 /** Everything a page shows about a projects root: the manifest scan
  *  above, plus each project's parsed manifest and each spec's parsed
- *  status. The generator and the served `/projects` page (spec 115) both
+ *  status. The generator and the served `/projects` page both
  *  want exactly this, from exactly these files — so it is written once
  *  here rather than twice, the way `serve.ts` already refuses to read
  *  one file for two answers.
@@ -191,7 +191,7 @@ export function buildProjectViews(
 
 /** The gitignored paths of a checkout that could plausibly be worktree
  *  links — read off its own `.gitignore`, which is the one place on the
- *  host that names them (spec 140).
+ *  host that names them.
  *
  *  Nothing can DERIVE which of them a project's test command actually
  *  needs, which is why the Add form asks; this only stops the reader

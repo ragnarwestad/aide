@@ -1,5 +1,5 @@
 // The acceptance criteria, unfolded under the held-back message on a
-// spec's row (spec 493): the › that opens them and the list with its one
+// spec's row: the › that opens them and the list with its one
 // Save. The state is in the URL (`?checks=`), like the row's own fold, so
 // it survives the live redraw and works with script off.
 

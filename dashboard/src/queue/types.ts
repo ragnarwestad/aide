@@ -6,7 +6,7 @@ import type { JobState, StopReason, WorkflowStep } from "./steps.ts";
 import type { CriteriaChecks } from "../project/discover";
 
 /** What one step actually metered, as `aide-run-spec` read it out of
- *  claude's own result event (spec 118). `total` is the sum of the other
+ *  claude's own result event. `total` is the sum of the other
  *  four: cached or not, every one of those tokens was processed, and
  *  that is what a subscription plan bills against.
  *
@@ -73,13 +73,13 @@ export interface StepResult {
   step: WorkflowStep;
   ok: boolean;
   costUsd: number;
-  /** Which CLI ran this step (spec 125). Absent on every result written
+  /** Which CLI ran this step. Absent on every result written
    *  before the second tool existed, which is why the readers all treat
    *  absent as claude rather than as unknown. `fake-claude` is the
    *  scripted stand-in: Claude Code's command line and event format,
    *  answered by a script, so a row that ran it never reads as a real
    *  Claude run. `none` is a `create` step that skipped the AI session
-   *  entirely (spec 433) — the deterministic path, never a step this
+   *  entirely — the deterministic path, never a step this
    *  dashboard actually spawned a CLI for. */
   tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
   /** Absent when the run could not measure it — an old result file, or
@@ -110,20 +110,20 @@ export interface StepResult {
    *  overwritten the job's live pointers. */
   streamFile?: string;
   /** When this step's OWN work finished landing — not when its process
-   *  exited. Absent for a step whose landing has not settled yet (spec
-   *  395): `Runner.complete()` stamps this once the promise `onStepDone`
+   *  exited. Absent for a step whose landing has not settled yet:
+   *  `Runner.complete()` stamps this once the promise `onStepDone`
    *  returned resolves, not when the result file first appears, so a
    *  phase's own duration keeps counting through its merge instead of
    *  freezing at the process's own end. A step with no landing of its
    *  own (`implement`) gets this written immediately, exactly as
    *  before. */
   at?: string;
-  /** When this step STARTED (spec 384) — the instant `Runner.startOne()`
+  /** When this step STARTED — the instant `Runner.startOne()`
    *  actually spawned it, held on `Job.stepStartedAt` until this result is
    *  written. Absent on a result written before this field existed, and
    *  then this step simply falls back to the boundary it always used. */
   startedAt?: string;
-  /** Every repo root this step's own commit(s) span (spec 452). Absent
+  /** Every repo root this step's own commit(s) span. Absent
    *  on a result written before this field existed, or when the result
    *  file's own `repos` did not parse — the Logs tab's summary then
    *  shows no changed-files list, the same "nothing to show" degrade
@@ -152,9 +152,8 @@ export interface BranchRef {
 }
 
 /** One repo root a step's own commit(s) span, from `headBefore` to
- *  `headAfter` (spec 452). `aide-run-spec` has emitted this for every
- *  step since spec 81 (`repos_json`); this is the field's first reader
- *  on this side. `worktree`/`changedFiles` are the bash script's own
+ *  `headAfter`. `aide-run-spec` has emitted this for every
+ *  step (`repos_json`). `worktree`/`changedFiles` are the bash script's own
  *  bookkeeping and are not carried here — the Logs tab's summary needs
  *  only the commit range, to run `git diff --numstat` against later. */
 export interface StepRepoRange {
@@ -185,8 +184,8 @@ export interface Job {
   steps: WorkflowStep[];
   stepIndex: number;
   state: JobState;
-  /** Per step, resolved at creation like `permissionMode`/`model` (spec
-   *  152). A job persisted before that change still holds a bare
+  /** Per step, resolved at creation like `permissionMode`/`model`.
+   *  A job persisted before that change still holds a bare
    *  number; `resolveTimeoutSec` in serve.ts is what reads either. */
   timeoutSec: Record<string, number>;
   permissionMode: Record<string, string>;
@@ -194,22 +193,22 @@ export interface Job {
   /** The model picked for this whole job, when one was picked. Absent
    *  means the per-step configuration decided. */
   modelChoice?: string;
-  /** The effort level picked for each step, when one was picked (spec
-   *  364). Absent, like a job persisted before this existed, means
+  /** The effort level picked for each step, when one was picked.
+   *  Absent, like a job persisted before this existed, means
    *  exactly what a step this table does not name means: no effort
-   *  chosen, run exactly as before (REQ-4). Unlike `model` there is no
+   *  chosen, run exactly as before. Unlike `model` there is no
    *  config-default tier and no whole-job `modelChoice`-style field —
    *  "nothing chosen" has to stay a real, reachable value. */
   effort?: Record<string, string>;
   /** Whether acceptance ticking is not required for a `create` job's own
-   *  invocation (spec 386, narrowed to `create` alone by spec 394): the
+   *  invocation (it applies to `create` alone): the
    *  choice a `create` job makes is recorded onto the new spec's own
    *  `1-description.md` (`specAcceptanceNotRequired`), which is what
    *  `analyze` reads from — fresh, at spawn time — for every job after
    *  the first, including one created before this field existed. Absent
    *  means exactly what unset always means here: no line reaches the
    *  prompt, `analyze` writes the acceptance table as it always has
-   *  (REQ-11). */
+   */
   acceptanceNotRequired?: boolean;
   /** What a `create` job is FOR: the spec it is about to make. Both are
    *  handed to `aide-run-spec` as `--title`/`--description`, and only a
@@ -219,7 +218,7 @@ export interface Job {
   createTitle?: string;
   createDescription?: string;
   /** Whether a `create` job's own invocation should skip the AI session
-   *  entirely (spec 433): the New-spec form's "let AI formulate
+   *  entirely: the New-spec form's "let AI formulate
    *  acceptance criteria" box, inverted the same way `acceptanceNotRequired`
    *  inverts its own checkbox — absent means the box was left ticked, and
    *  every job created before this field existed behaves exactly as it
@@ -238,18 +237,18 @@ export interface Job {
    *  Meaningful only for `create`. */
   createChooseApproach?: boolean;
   /** Specs this one builds on, named by folder — the create form's
-   *  equivalent of the `Depends on:` line spec 92 gave a reader and no
-   *  writer but a person at a shell. Validated against the SAME
+   *  equivalent of the `Depends on:` line, which only a person at a
+   *  shell could write. Validated against the SAME
    *  project's active specs; absent means no line at all. */
   createDependsOn?: string[];
-  /** Why a `close` job is closing the spec (spec 406, REQ-3/REQ-5) —
+  /** Why a `close` job is closing the spec —
    *  handed to `aide-run-spec` as `--reason`, which states it to the
    *  skill the same way `createTitle`/`createDescription` above are.
    *  Only a close job has it; every other job's own reason for existing
    *  is what its spec already says. */
   closeReason?: string;
   /** A `reopen` job that also resets the analysis, the plan and the
-   *  status (spec 511) — handed to `aide-run-spec` as `--reset-files`.
+   *  status — handed to `aide-run-spec` as `--reset-files`.
    *  Absent, a reopen keeps the files. Only a job whose steps are
    *  exactly `["reopen"]` has it. */
   resetFiles?: boolean;
@@ -273,7 +272,7 @@ export interface Job {
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
-  /** The instant the step now in flight was actually spawned (spec 384),
+  /** The instant the step now in flight was actually spawned,
    *  set fresh on every `startOne()` call — unlike `startedAt` above, which
    *  is set once for the whole job and kept. Transient like `sessionId`/
    *  `streamFile`/`pid`/`pgid` beside it: cleared the moment the step ends,
@@ -294,7 +293,7 @@ export interface Job {
   results: StepResult[];
   spentUsd: number;
   /** The same sum over the steps that REPORTED tokens, absent while none
-   *  has. Not zero: a job whose steps all predate spec 118 has no token
+   *  has. Not zero: a job whose steps all predate token measurement has no token
    *  figure, and a zero would say it used none. */
   spentTokens?: number;
   /** Where the work can be read: the compare page for the spec's
@@ -303,22 +302,22 @@ export interface Job {
    *  `branchUrls` for the answer to "which repos". */
   branchUrl?: string;
   /** Every repo this job's steps pushed to, accumulated by root. Absent
-   *  on a job written before spec 89; the page falls back to
+   *  on a job written before this field existed; the page falls back to
    *  `branchUrl` for those, which is the behaviour they already had. */
   branchUrls?: BranchRef[];
   /** The pull request a `pr`-mode run opened for this job's code branch
-   *  (spec 220). Accumulated across steps like `branchUrl`: `implement`
+   *  Accumulated across steps like `branchUrl`: `implement`
    *  pushes the code and opens the request, `archive` ends the job and
    *  never touches the project root, so the two are not the same step.
    *  Absent for every job on a project that merges its code, which is
    *  every job there was before this spec. */
   prUrl?: string;
-  /** Why the branch itself did not reach origin (spec 328). Not an
+  /** Why the branch itself did not reach origin. Not an
    *  `error`: the step succeeded and its work is committed, only the
    *  push failed — its own field for that reason. */
   pushError?: string;
   /** A landing merged this job's branch but could not delete it on
-   *  origin (spec 319): `mergeBranchIntoDefault`'s own `branchDeleteError`,
+   *  origin: `mergeBranchIntoDefault`'s own `branchDeleteError`,
    *  carried forward so a row built long after this job ran can still
    *  say what actually happened, rather than a generic "not landed".
    *  Cleared, like `error`, the moment a later landing for the same spec
@@ -330,19 +329,19 @@ export interface Job {
   stopReason?: StopReason;
   error?: Sentence | Sentence[];
   /** The one machine-readable class of refusal: a merge that failed on a
-   *  real conflict. Stored on the job since spec 149, and stored rather
-   *  than passed because a landing happens with nobody's browser
+   *  real conflict. Stored on the job rather
+   *  than passed, because a landing happens with nobody's browser
    *  attached — the one-shot redirect the Merge button used to carry it
    *  in has no equivalent here. Cleared, like `error`, the moment a
    *  landing succeeds.
    *
-   *  It stopped being a thing the ROW acts on in spec 171. `archive`
+   *  The ROW does not act on it: `archive`
    *  resolves a conflict with the default branch itself, so a conflict
    *  that survives to a reader is one no machine could settle: the row
    *  shows it as the failure's own text, beside the ordinary re-run
    *  control every other failed step already offers.
    *
-   *  `"unlanded"` is spec 193's: the archive step succeeded and a
+   *  `"unlanded"` is the case where the archive step succeeded and a
    *  branch of the spec's own is still on origin. It is the CLASS the
    *  refusal carries beside the sentence a person reads — the sentence
    *  is joined across repos before any page sees it, so nothing may
@@ -350,14 +349,14 @@ export interface Job {
    *  `render/ui/job-state/types.ts`, which does not import this module:
    *  change one and change the other.
    *
-   *  `"held-back"` (spec 372) is a different lifecycle point from the
+   *  `"held-back"` is a different lifecycle point from the
    *  other three: they say why a LANDING was refused, after a step ran;
    *  this says the scheduler has not started the job at all yet —
    *  `state` stays `"queued"`. Set at `Runner.tick()`'s five hold-back
    *  sites, alongside the `error` sentence, so the row's panel reads the
    *  kind off a field rather than sniffing the text for a prefix. */
   errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded";
-  /** The first landing failure this job hit, named by step (spec 327).
+  /** The first landing failure this job hit, named by step.
    *  Set once and left alone by every later step of the SAME job,
    *  success or failure — unlike `error`, which every later step is
    *  free to overwrite the moment it starts (`Runner.startOne()`) or
@@ -370,14 +369,14 @@ export interface Job {
    *  a job that has moved on has already overwritten it, so the one
    *  chance to find out why a landing failed was gone (2026-09-20). */
   landingErrorDetail?: string;
-  /** Raw git/tool output behind `error` (spec 352, REQ-5) — never part
+  /** Raw git/tool output behind `error` — never part
    *  of `error`'s own text, which stays a fixed, resolution-bearing
    *  sentence. Hover-only detail for whoever needs the exact words. */
   errorDetail?: string;
 }
 
 export interface ModelChoice {
-  /** Which CLI runs a step picked on this entry (spec 125). Absent
+  /** Which CLI runs a step picked on this entry. Absent
    *  means claude — every config written before the second tool existed
    *  keeps meaning exactly what it meant. `fake-claude` names the
    *  scripted stand-in, so a project testing the machinery says so on
@@ -393,7 +392,7 @@ export interface ModelChoice {
 export interface QueueDefaults {
   /** Per step, with a `default` fallback — the same shape as
    *  `permissionMode`/`model`, because an implement is not an analyze
-   *  and one number for both stopped spec 149 mid-sentence with its
+   *  and one number for both stopped an implement mid-sentence with its
    *  tests already green. Config-only — see the header. */
   timeoutSec: Record<string, number>;
   /** Per step, with a `default` fallback. Config-only — see the header. */
@@ -413,20 +412,20 @@ export interface QueueDefaults {
  *  not both discovered and allowlisted. */
 export type ProjectResolver = (project: string) => {
   specFolders: string[];
-  /** The project's ARCHIVED spec folders (spec 198), which one step and
+  /** The project's ARCHIVED spec folders, which one step and
    *  no other may be asked for: `reopen`, the step that exists to take
    *  a spec back out of the archive.
    *
    *  Kept apart from `specFolders` rather than merged into it, because
    *  merging would widen every OTHER step to archived specs too — and
-   *  spec 193 already relies on an archived spec being refused unless
+   *  the unlanded case already relies on an archived spec being refused unless
    *  its branch is still open. That exception lives in `specFolders`,
    *  where it belongs; this one is per step. */
   archivedFolders?: string[];
   /** The subset of `archivedFolders` that were CLOSED rather than
-   *  archived (spec 406) — same one-step exception, `reopen` alone, but
+   *  archived — same one-step exception, `reopen` alone, but
    *  a different refusal sentence: "is closed" rather than "is archived"
-   *  (REQ-7). Kept apart from `archivedFolders` rather than merged into
+   *  Kept apart from `archivedFolders` rather than merged into
    *  it for the same reason `archivedFolders` is kept apart from
    *  `specFolders` — the wording a caller reaches for is per list, not
    *  per flag on one shared list. */

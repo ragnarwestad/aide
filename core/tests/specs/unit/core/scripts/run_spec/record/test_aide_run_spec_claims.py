@@ -66,7 +66,7 @@ def test_a_pr_landing_opens_the_pull_request(runner, workspace, fake_claude, fak
     assert out["prUrl"], out
 
 def test_open_rows_recompute_the_header_percentage(runner, workspace, fake_claude):
-    """AC1: a header reading `0% (0 of 4 completed)` next to 4 real rows
+    """A header reading `0% (0 of 4 completed)` next to 4 real rows
     (2 done, 2 open) is rewritten to the real split."""
     write_raw_status(
         workspace,
@@ -87,7 +87,7 @@ def test_open_rows_recompute_the_header_percentage(runner, workspace, fake_claud
     assert bullet(text, "Total progress") == "50% (2 of 4 completed)"
 
 def test_a_header_that_already_matches_is_not_rewritten(runner, workspace, fake_claude):
-    """AC2: a header already agreeing with the real row count produces no
+    """A header already agreeing with the real row count produces no
     change and no commit — the same `cmp -s` guard `Workflow steps
     completed` already uses."""
     rows = "\n".join(f"| task {i} | ✅ | |" for i in range(1, 13))
@@ -105,13 +105,13 @@ def test_a_header_that_already_matches_is_not_rewritten(runner, workspace, fake_
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     roots = {r["root"]: r for r in out["repos"]}
-    # spec 355: see the matching comment on
+    # See the matching comment on
     # test_a_line_that_is_already_right_is_not_rewritten above — the
     # ONE genuinely new file is this fixture's first-ever 4-status.json.
     assert roots[str(workspace["specs"])]["changedFiles"] == 1
 
 def test_both_numerator_and_denominator_are_corrected(runner, workspace, fake_claude):
-    """AC3: spec 245's own real, archived staleness — a header of `73%
+    """A real, archived staleness — a header of `73%
     (11 of 15 completed)` next to 19 real, all-✅ rows becomes `100% (19
     of 19 completed)`. Both numbers were wrong, not the denominator
     alone."""
@@ -132,7 +132,7 @@ def test_both_numerator_and_denominator_are_corrected(runner, workspace, fake_cl
     assert bullet(text, "Total progress") == "100% (19 of 19 completed)"
 
 def test_a_fresh_status_file_with_no_rows_yet_is_left_untouched(runner, workspace, fake_claude):
-    """AC4: a status file straight from the template — Phase tables with
+    """A status file straight from the template — Phase tables with
     no rows yet, header still the literal `X` placeholder `/aide-create`
     writes — has nothing to derive from, so `create` leaves the line
     exactly as found."""
@@ -160,7 +160,7 @@ def test_a_fresh_status_file_with_no_rows_yet_is_left_untouched(runner, workspac
     assert "Total progress: 0% (0 of X completed)" in text
 
 def test_the_bare_unbolded_format_survives_the_rewrite(runner, workspace, fake_claude):
-    """AC5: real specs write `Total progress: X% (Y of Z completed)`
+    """Real specs write `Total progress: X% (Y of Z completed)`
     directly under the title, unbolded, no bullet — not the documented
     bold/bulleted form. Only the digits change; the rest of the line and
     its position survive."""
@@ -184,7 +184,7 @@ def test_the_bare_unbolded_format_survives_the_rewrite(runner, workspace, fake_c
     assert "Estimate: 4-6 hours (AI-assisted)" in text
 
 def test_the_bold_bulleted_format_survives_the_rewrite(runner, workspace, fake_claude):
-    """AC6: the documented bold/bulleted form — `- **Total progress:**`
+    """The documented bold/bulleted form — `- **Total progress:**`
     inside `## Tracking info`, the exact shape `with_status()`'s own
     fixture writes — keeps its markup; only the digits change."""
     write_raw_status(
@@ -206,8 +206,8 @@ def test_the_bold_bulleted_format_survives_the_rewrite(runner, workspace, fake_c
     assert bullet(text, "Total progress") == "50% (2 of 4 completed)"
 
 def test_a_non_checkbox_status_row_counts_as_one_task(runner, workspace, fake_claude):
-    """AC7: a three-column row with a bare status word instead of a
-    checkbox mark (spec 245's own real `Plan review` row) counts the
+    """A three-column row with a bare status word instead of a
+    checkbox mark (a real `Plan review` row) counts the
     same as any ordinary row."""
     write_raw_status(
         workspace,

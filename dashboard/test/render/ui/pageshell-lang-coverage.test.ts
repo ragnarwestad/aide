@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-// Spec 408, REQ-5: every pageShell( call site under render/pages/ must
+// Every pageShell( call site under render/pages/ must
 // itself pass some `lang` — the compiler cannot enforce this (lang stays
 // optional throughout, see 2-analysis.md), so a tenth page that forgets
 // to wire it is caught here instead.
@@ -34,7 +34,7 @@ function pageShellCallArgs(text: string): string[] {
   return args;
 }
 
-describe("every pageShell call passes a real language (spec 408, REQ-5)", () => {
+describe("every pageShell call passes a real language", () => {
   const pagesDir = join(import.meta.dir, "../../../src/render/pages");
   const callsByFile = tsFilesUnder(pagesDir)
     .map((file) => ({ file, calls: pageShellCallArgs(readFileSync(file, "utf-8")) }))

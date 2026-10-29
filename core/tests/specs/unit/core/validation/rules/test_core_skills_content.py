@@ -32,9 +32,9 @@ def test_every_aide_script_a_skill_runs_exists():
 
 
 @pytest.mark.validation
-def test_analyze_plan_and_review_share_the_parts_lines_AC_2_AC_3_AC_4_AC_7():
+def test_analyze_plan_and_review_share_the_parts_lines():
     """The plan step writes the Parts lines the plan review checks
-    (AC-2, AC-3, AC-4)."""
+    ."""
     analyze = CORE_SKILLS_DIR / "aide-analyze"
     skill = (analyze / "references" / "implementation-plan.md").read_text(encoding="utf-8")
     review = (analyze / "references" / "plan-review.md").read_text(encoding="utf-8")
@@ -50,7 +50,7 @@ def ears_patterns(path):
 
 
 @pytest.mark.validation
-def test_the_create_skill_and_the_plan_review_give_the_rules_ears_patterns_AC_1_AC_2():
+def test_the_create_skill_and_the_plan_review_give_the_rules_ears_patterns():
     rule = ears_patterns(REPO_ROOT / "core" / "rules" / "spec-structure.md")
     assert rule, "core/rules/spec-structure.md gives no EARS pattern"
     wrong = []
@@ -66,7 +66,7 @@ def test_the_create_skill_and_the_plan_review_give_the_rules_ears_patterns_AC_1_
 
 
 @pytest.mark.validation
-def test_the_create_skill_hands_the_given_description_to_aide_create_spec_AC_2():
+def test_the_create_skill_hands_the_given_description_to_aide_create_spec():
     """The check that keeps a description's own criteria word for word
     runs only when the skill passes the description as it came in."""
     skill = (CORE_SKILLS_DIR / "aide-create" / "SKILL.md").read_text(encoding="utf-8")
@@ -78,7 +78,7 @@ def test_the_create_skill_hands_the_given_description_to_aide_create_spec_AC_2()
 
 
 @pytest.mark.validation
-def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_of_scope_heading_AC_1_AC_2_AC_3():
+def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_of_scope_heading():
     """`aide_out_of_scope_section` finds a section only under the exact
     heading, so the rule's skeleton, the create skill and the plan review
     must all give that heading."""
@@ -100,7 +100,7 @@ def test_the_rule_the_reader_the_create_skill_and_the_plan_review_share_the_out_
 
 
 @pytest.mark.validation
-def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test_places_heading_AC_5_AC_6_AC_7():
+def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test_places_heading():
     """Implement's RED step finds the plan's places by this heading, so the
     solution template, the plan step, the plan review and implement must
     all give it."""
@@ -116,7 +116,7 @@ def test_the_template_the_plan_step_the_plan_review_and_implement_share_the_test
 
 
 @pytest.mark.validation
-def test_the_short_analysis_gives_the_test_places_and_the_criteria_table_AC_5_AC_8():
+def test_the_short_analysis_gives_the_test_places_and_the_criteria_table():
     """A short analysis has no plan, so the places and the status table are
     what the runner's record of a criterion with no test is built on."""
     text = (CORE_SKILLS_DIR / "aide-analyze" / "references" / "spec-files.md").read_text(encoding="utf-8")
@@ -133,7 +133,7 @@ GRADING_REFERENCE = "core/skills/aide-analyze/references/complexity-and-analysis
 
 
 @pytest.mark.validation
-def test_analyze_grades_the_complexity_after_it_searches_the_code_AC_1():
+def test_analyze_grades_the_complexity_after_it_searches_the_code():
     skill = (CORE_SKILLS_DIR / "aide-analyze" / "SKILL.md").read_text(encoding="utf-8")
     titles = STEP_TITLE.findall(skill)
     assert "Analyze the codebase" in titles, "the analyze skill has no search step"
@@ -142,7 +142,7 @@ def test_analyze_grades_the_complexity_after_it_searches_the_code_AC_1():
 
 
 @pytest.mark.validation
-def test_the_grading_criteria_are_written_in_one_place_AC_5():
+def test_the_grading_criteria_are_written_in_one_place():
     holders = {
         str(path.relative_to(REPO_ROOT))
         for root in ("core", "docs")
@@ -171,7 +171,7 @@ def _analyze_steps():
 
 
 @pytest.mark.validation
-def test_analyze_compares_with_the_other_specs_between_writing_the_analysis_and_the_plan_AC_1():
+def test_analyze_compares_with_the_other_specs_between_writing_the_analysis_and_the_plan():
     steps = _analyze_steps()
     titles = [title for title, _ in steps]
     writes_analysis = next(i for i, title in enumerate(titles) if "2-analysis.md" in title)
@@ -182,7 +182,7 @@ def test_analyze_compares_with_the_other_specs_between_writing_the_analysis_and_
 
 
 @pytest.mark.validation
-def test_analyze_names_the_prompt_line_and_the_bullets_the_runner_reads_AC_4():
+def test_analyze_names_the_prompt_line_and_the_bullets_the_runner_reads():
     """The runner's prompt line offers the short analysis and its check reads
     three Tracking-info bullets; the skill names the same strings."""
     analyze = CORE_SKILLS_DIR / "aide-analyze"
@@ -192,13 +192,13 @@ def test_analyze_names_the_prompt_line_and_the_bullets_the_runner_reads_AC_4():
 
 
 @pytest.mark.validation
-def test_implement_names_the_mark_of_a_short_analysis_it_builds_from_AC_6():
+def test_implement_names_the_mark_of_a_short_analysis_it_builds_from():
     text = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
     assert "- **Analysis:** short" in text
 
 
 @pytest.mark.validation
-def test_the_implement_skill_asks_aide_ac_prefix_for_the_prefix_AC_1_AC_2():
+def test_the_implement_skill_asks_aide_ac_prefix_for_the_prefix():
     """The prefix is worked out by the command, not by the session's own
     reading of the manifest, so the skill has to run it."""
     skill = (CORE_SKILLS_DIR / "aide-implement" / "SKILL.md").read_text(encoding="utf-8")
@@ -207,7 +207,7 @@ def test_the_implement_skill_asks_aide_ac_prefix_for_the_prefix_AC_1_AC_2():
 
 
 @pytest.mark.validation
-def test_analyze_names_every_reference_and_each_exists_AC_6():
+def test_analyze_names_every_reference_and_each_exists():
     analyze = CORE_SKILLS_DIR / "aide-analyze"
     skill = (analyze / "SKILL.md").read_text(encoding="utf-8")
     named = set(re.findall(r"references/[a-z0-9-]+\.md", skill))

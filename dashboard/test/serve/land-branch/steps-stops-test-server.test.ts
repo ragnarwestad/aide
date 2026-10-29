@@ -1,4 +1,4 @@
-// Spec 388, REQ-7: `landArchivedSpec`'s own `onLanded` stops whatever
+// `landArchivedSpec`'s own `onLanded` stops whatever
 // board is tracked for the spec, once the merge has actually landed —
 // never before.
 //
@@ -94,7 +94,7 @@ describe("landArchivedSpec's onLanded", () => {
     expect(store.get("aide", "150-spec")).toBeUndefined();
   });
 
-  // The whole point of REQ-7's "once the merge has actually landed": a
+  // The whole point of "once the merge has actually landed": a
   // refused merge leaves the branch, and the board still has something
   // to serve.
   test("leaves the board alone when the merge never went through", async () => {

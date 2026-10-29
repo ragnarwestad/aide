@@ -1,4 +1,4 @@
-// Spec 495, criteria 14 and 16: a run's own output directory, and the one
+// A run's own output directory, and the one
 // function that says whether a run wrote a report.
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
