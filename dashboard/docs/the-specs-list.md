@@ -675,6 +675,11 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   that is already over. The `.phases` boxes are Run's own form fields — the ticked checkboxes live there — so the swap
   only happens after `new
   FormData(form)` has already read them; writing the spinner in first would silently queue a job with no phases at all.
+- **A press locks its spec until it answers.** Every button, select, text field and visible input on the spec's
+  rows — its head row and every row after it up to the next spec, the open spec included — is disabled from the
+  moment the press is sent, and none on another spec. A change made in the description's editor meanwhile does not
+  offer Save again. When the answer comes each control is put back as it was found, or drawn afresh by the redraw
+  that follows.
 - **The answer lands in place.** `#jobrows` is re-fetched and swapped; the page does not reload, does not scroll to the
   top, and does not wipe a control someone is half-way through setting.
 - **A refusal does not navigate either.** The page script keeps the reason itself and writes it at once in a row of

@@ -157,6 +157,26 @@ if (host && raw) {
   // separate DOM tree this instance owns, with no other way in.
   raw.addEventListener("spec-cancel", () => instance.setMarkdown(raw.value));
 
+  // The page disables the spec's fields while one of its saves is out
+  // (`rowControls`, specs-client/press.ts). The typing surface is a
+  // contenteditable, not a field, so it follows the hidden textarea's
+  // `disabled` by hand: text typed after Save would never be in the save.
+  const surfaces = (): HTMLElement[] =>
+    Array.from(host.querySelectorAll<HTMLElement>("[contenteditable]"));
+  const lockedSurfaces = new Set<HTMLElement>();
+  new MutationObserver(() => {
+    if (raw.disabled) {
+      for (const el of surfaces()) {
+        if (el.getAttribute("contenteditable") !== "true") continue;
+        el.setAttribute("contenteditable", "false");
+        lockedSurfaces.add(el);
+      }
+      return;
+    }
+    for (const el of lockedSurfaces) el.setAttribute("contenteditable", "true");
+    lockedSurfaces.clear();
+  }).observe(raw, { attributeFilter: ["disabled"] });
+
   // The library's own `theme` option is construction-time
   // only (2-analysis.md) — this dashboard's theme changes live, with no
   // reload (`theme-script.ts`), so the dark class is managed by hand
