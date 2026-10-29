@@ -215,6 +215,28 @@ describe("stepMarks", () => {
     });
   });
 
+  test("an end stamped before the step's start gives the step no duration, and no step ends before it started", () => {
+    const at = (sec: number, text: string) => `10:45:00 +${sec}s ${text}`;
+    const logs = [
+      {
+        by: "ai" as const,
+        lines: [
+          at(20, "--- Step 1 of 4: Read — started"),
+          at(5, "--- Step 1 of 4: Read — done"),
+          at(30, "--- Step 3 of 4: Write — started"),
+          // a leftover start of an earlier step, stamped before the step it now ends
+          at(8, "--- Step 2 of 4: Check — started"),
+        ],
+      },
+    ];
+    const marks = stepMarks(logs);
+    expect(marks[0]).toMatchObject({ key: "Step 1 of 4", state: "done", startedSec: 20 });
+    expect(marks[0]!.endedSec).toBeUndefined();
+    expect(marks[1]).toMatchObject({ key: "Step 3 of 4", state: "done", startedSec: 30 });
+    expect(marks[1]!.endedSec).toBeUndefined();
+    for (const m of marks) expect(m.endedSec === undefined || m.endedSec >= m.startedSec!).toBe(true);
+  });
+
   test("a mark worded differently from its heading keeps the step's place as its key, the key the plan gives", () => {
     const [mark] = marksOf(say("--- Step 1 of 4: Move the spec into the archive — started"), "", false);
     expect(mark!.key).toBe("Step 1 of 4");

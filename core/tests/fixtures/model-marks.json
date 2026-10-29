@@ -4,8 +4,7 @@
     "`aide-run-spec` records the lines under `recorded` into the run log while the model runs",
     "(core/scripts/lib/run-spec/turn/model-marks.sh); the board shows the lines under `shown` as marks",
     "(`splitMarks`, dashboard/src/queue/parse-stream/shared.ts). The two differ for the older",
-    "`analyze · Step` form, which the board still reads and the runner never records, and for a",
-    "title past 160 characters, which the board clips and the runner records whole.",
+    "`analyze · Step` form, which the board still reads and the runner never records.",
     "",
     "`text` is one block of the model's text."
   ],
@@ -85,7 +84,7 @@
         "--- Step 2 of 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx — started"
       ],
       "shown": [
-        "--- Step 2 of 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…"
+        "--- Step 2 of 9: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx — started"
       ]
     },
     {

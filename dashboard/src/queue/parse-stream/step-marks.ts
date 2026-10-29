@@ -66,12 +66,13 @@ export function stepMarks(logs: LogPart[], tokens?: Map<string, number>): StepMa
     for (const other of byKey.values()) {
       if (other.key !== key && other.state === "running") {
         other.state = "done";
-        if (at !== undefined && other.startedSec !== undefined) other.endedSec = at;
+        if (at !== undefined && other.startedSec !== undefined && at >= other.startedSec) other.endedSec = at;
       }
     }
     const reason = ending === "stopped" ? why?.trim() : undefined;
     const startedSec = ending === "started" ? at : byKey.get(key)?.startedSec;
-    const endedSec = ending === "started" ? undefined : at;
+    // An end stamped before the start (a mark read out of order) is no duration, not a negative one.
+    const endedSec = ending === "started" || (at !== undefined && startedSec !== undefined && at < startedSec) ? undefined : at;
     // A Map keeps a key where it was first set: the step keeps its place.
     byKey.set(key, {
       key,
