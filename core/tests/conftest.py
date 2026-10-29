@@ -1,6 +1,13 @@
 """Shared pytest fixtures for aide testing."""
 import os as _os
 
+# The same environment wherever the suite is started (same_env.py), before
+# anything below sets a variable of its own.
+from .same_env import mise_tool_dirs as _mise_tool_dirs, same_env as _same_env
+_clean = _same_env(dict(_os.environ), _mise_tool_dirs(dict(_os.environ)))
+_os.environ.clear()
+_os.environ.update(_clean)
+
 
 # The archive gate's own log (AIDE_TEST_GATE_LOG) defaults to the serving
 # host's real ~/Library/Logs file; the gate tests here were writing their

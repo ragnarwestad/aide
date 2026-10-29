@@ -130,5 +130,9 @@ For whoever changes Aide itself.
   landing runs the whole command a second time only for a failure that held twice.
 - Every `bun test` process and every pytest process works in a temp directory of its own, removed when it ends, so
   a test that forgets its directory leaves nothing in the machine's shared one.
+- Both suites start from the same environment wherever they run: in a session, in a step or in the landing. They drop
+  every inherited `AIDE_*`, `CLAUDE*` and `GIT_*` variable, and replace mise's shims on PATH with the directories
+  they point to, so a suite that is green in a session is green on the board too (`core/tests/same_env.py`,
+  `test/helpers/preload/same-env.ts`).
 - `test/round/run` starts a throwaway board from the round's own sample specs. It stays out of `make test`
   (`make test-slow` runs it), and a new round removes earlier rounds' directories that no running board uses.
