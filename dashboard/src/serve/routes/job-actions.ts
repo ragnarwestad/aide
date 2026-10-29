@@ -138,6 +138,8 @@ export async function handleJobActionRoutes(
     // recorded choice with one.
     if (result.ok) {
       ctx.queue.setPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
+      // A person's press: not held by a used-up usage limit.
+      ctx.queue.update(result.job.id, { pressed: true });
     }
     if (!result.ok) {
       // Which spec was asked for, off the SUBMITTED fields — the two

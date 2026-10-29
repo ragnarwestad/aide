@@ -327,6 +327,21 @@ export interface Job {
    *  lines the red run failed on. */
   testsGreenOnRetry?: string;
   stopReason?: StopReason;
+  /** When the board starts this stopped job again, set with a
+   *  `provider-limit` stop: the reset time the tool named
+   *  (`resetKnown`), or an hour after the stop when it named none. A
+   *  `provider-limit` stop without it is never started again by the
+   *  board. Cleared when the job is queued again. */
+  usageLimitWait?: { until: string; resetKnown: boolean };
+  /** Set on a job the board started again with no reset time to go on:
+   *  the one step sent ahead of the others to find out whether the
+   *  limit has reset. `results` is the length of `results` then — the
+   *  probe is over once a result exists at that index — `at` is when
+   *  the board tried again and `since` the stop it came from. */
+  usageLimitProbe?: { results: number; at: string; since: string };
+  /** Queued by a person's press, not by the board itself. A press made
+   *  after a usage-limit stop is not held by it. */
+  pressed?: boolean;
   error?: Sentence | Sentence[];
   /** The one machine-readable class of refusal: a merge that failed on a
    *  real conflict. Stored on the job rather

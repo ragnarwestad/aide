@@ -152,6 +152,43 @@ describe("a step's provider limit", () => {
   });
 });
 
+// A usage-limit stop writes when the step starts again onto the job, once,
+// at the moment it ends: the reset time the tool named, or an hour on.
+describe("a usage-limit stop records when the step starts again", () => {
+  const limited = (resetsAt?: string) => ({
+    ...okResult(1),
+    ok: false,
+    terminalReason: "provider-limit",
+    providerLimit: { tool: "claude", window: "five_hour", ...(resetsAt ? { resetsAt } : {}) },
+  });
+
+  test("a reset time later than the stop is the wait (AC-2)", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => limited("2026-08-16T14:00:00Z") });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.state).toBe("stopped");
+    expect(store.get(job.id)?.usageLimitWait).toEqual({ until: "2026-08-16T14:00:00.000Z", resetKnown: true });
+  });
+
+  test("no reset time is one hour after the stop (AC-2)", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => limited() });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.usageLimitWait).toEqual({ until: "2026-08-16T11:00:00.000Z", resetKnown: false });
+  });
+
+  test("a stop for another reason records no wait (AC-2)", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => ({ ...okResult(1), ok: false, terminalReason: "timeout" }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.state).toBe("stopped");
+    expect(store.get(job.id)?.usageLimitWait).toBeUndefined();
+  });
+});
+
 describe("reconciliation after a restart", () => {
   const runningJob = () => {
     const job = enqueue();

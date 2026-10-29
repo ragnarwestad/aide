@@ -5,7 +5,11 @@
 // read, so nothing here may ask it anything.
 
 import { t, type Language, type TranslationKey } from "../../../i18n";
+import { renderMessage } from "../../../i18n/message.ts";
 import type { ProviderLimit } from "../../../queue/queue.ts";
+import { stepLabel } from "../components";
+import { currentStep } from "./format.ts";
+import type { QueueRowView } from "./types.ts";
 
 const TOOL_NAMES: Record<string, string> = { claude: "Claude", codex: "Codex", opencode: "OpenCode" };
 
@@ -40,6 +44,12 @@ export function when(iso: string, now: number, lang: Language, timeZone?: string
   return `${date}, ${clock}`;
 }
 
+/** The AI a limit belongs to, with its model when it has one. */
+const limitWho = (tool: string, model: string | undefined): string => {
+  const name = TOOL_NAMES[tool] ?? tool;
+  return model ? `${name} (${model})` : name;
+};
+
 export function providerLimitSentence(
   limit: ProviderLimit,
   model: string | undefined,
@@ -47,8 +57,7 @@ export function providerLimitSentence(
   now: number = Date.now(),
   timeZone?: string,
 ): string {
-  const tool = TOOL_NAMES[limit.tool] ?? limit.tool;
-  const who = model ? `${tool} (${model})` : tool;
+  const who = limitWho(limit.tool, model);
   let first = t(lang, "limit.used", { who, limit: windowPhrase(limit.window, lang) });
   if (limit.resetsAt) first += ` — ${t(lang, "limit.resets", { when: when(limit.resetsAt, now, lang, timeZone) })}`;
   const parts = [`${first}.`];
@@ -60,4 +69,41 @@ export function providerLimitSentence(
   else if (limit.credit) parts.push(t(lang, "limit.credit", { reason: limit.credit }));
   if (limit.plan) parts.push(t(lang, "limit.plan", { plan: limit.plan }));
   return parts.join(" ");
+}
+
+const HELD_FOR_USAGE_LIMIT = new Set(["runner.usageLimitHeld", "runner.usageLimitHeldNoReset", "runner.usageLimitHeldProbe"]);
+
+/** The one sentence a used-up usage limit puts on a job, when it has one:
+ *  the stopped job that starts again by itself, or a queued job held
+ *  behind it. The times are stored plain and put in the reader's language
+ *  here; any other job gets nothing. */
+export function usageLimitText(
+  view: Pick<QueueRowView, "state" | "stopReason" | "usageLimitWait" | "results" | "steps" | "stepIndex" | "stepModels" | "model" | "error">,
+  lang: Language,
+  now: number,
+  timeZone?: string,
+): string | undefined {
+  if (view.state === "stopped" && view.stopReason === "provider-limit" && view.usageLimitWait) {
+    const record = [...(view.results ?? [])].reverse().find((r) => r.providerLimit);
+    const step = record?.step ?? currentStep(view);
+    const model = (record?.step && view.stepModels?.[record.step]) || view.model;
+    return renderMessage(lang, {
+      key: view.usageLimitWait.resetKnown ? "runner.usageLimitRestarts" : "runner.usageLimitRestartsNoReset",
+      values: {
+        who: record?.providerLimit ? limitWho(record.providerLimit.tool, model) : (model ?? "AI"),
+        limit: windowPhrase(record?.providerLimit?.window ?? "", lang),
+        step: stepLabel(step, lang),
+        at: when(view.usageLimitWait.until, now, lang, timeZone),
+      },
+    });
+  }
+  const error = view.error;
+  if (view.state === "queued" && error && typeof error === "object" && !Array.isArray(error) && HELD_FOR_USAGE_LIMIT.has(error.key)) {
+    const tool = String(error.values?.tool ?? "");
+    return renderMessage(lang, {
+      key: error.key,
+      values: { tool: TOOL_NAMES[tool] ?? tool, at: when(String(error.values?.at ?? ""), now, lang, timeZone) },
+    });
+  }
+  return undefined;
 }

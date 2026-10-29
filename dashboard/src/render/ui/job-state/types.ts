@@ -56,6 +56,10 @@ export interface QueueRowView {
    *  for its next one. */
   stepStartedAt?: string;
   stopReason?: "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files" | "sent-back";
+  /** When the board starts a job stopped on its AI's usage limit again —
+   *  the render-side mirror of `Job.usageLimitWait`. Absent once it has
+   *  started, or for a stop that has no restart. */
+  usageLimitWait?: { until: string; resetKnown: boolean };
   /** The pull request a `pr`-mode run opened for this job's code branch
    *  Stored on the job rather than derived at render time —
    *  only the run that called `gh` knows the URL, and there is nothing

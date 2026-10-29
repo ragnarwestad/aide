@@ -35,6 +35,7 @@ export async function handleQueueAdminRoutes(
     }
     const result = ctx.queue.enqueueCreate(raw);
     if (!result.ok) return json({ error: result.error }, 400);
+    ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }

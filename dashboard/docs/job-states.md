@@ -42,7 +42,9 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 Only `queued` and `running` own their work (`UNFINISHED` in `src/queue/steps.ts`), and the duplicate guard is
 built on that set alone. A second guard sits beside it: `QueueStore.landingJob()` refuses a NEW job of any step for
 a spec whose own job reads `done` with a landing still in flight, since that spec's working tree is half merged.
-Once the landing settles, the same step may be queued again — as a new job; a finished job is never resumed.
+Once the landing settles, the same step may be queued again — as a new job. A finished job is never resumed, with
+one exception: a step its AI's usage limit stopped is queued again by the board itself, as the same job
+(`limit-reset`, below).
 
 ## The transitions
 
@@ -59,6 +61,7 @@ stateDiagram-v2
     done --> failed: landing did not finish
     done --> stopped: the landing's suite went red
     done --> cancelled: Cancel pressed while it merged
+    stopped --> queued: the AI's usage limit has reset
     queued --> cancelled: Cancel
     running --> cancelled: Cancel
 ```
@@ -118,6 +121,11 @@ queued `create`, `archive` or `close` step — the ones that do no model work �
   code branch was pushed lands nothing, and that code waits for `archive`. A landing that does run leaves the job's
   `error` in place: it is the reason the step stopped, not a fault the landing resolved. A stopped archive lands
   nothing: its folder reaches `archive/` on the default branch only when the archive step completes and lands.
+- A `provider-limit` stop also writes `usageLimitWait` on the job: when the board queues the step again. It is the
+  reset time the tool named when that is later than the stop, and an hour after the stop otherwise
+  (`resetKnown` says which). The board starts no other queued step on that AI until then, and at that time the
+  `limit-reset` transition moves the job from `stopped` back to `queued` with no press. A stop recorded without a
+  wait is never started again by the board.
 - `model-at-capacity` gives `stopped` too: the provider had no room for the model, so unlike a usage limit there is
   no reset to wait for. The runner reads it from the last `error` or `turn.failed` event of a Codex turn that did not
   complete, when its message says "at capacity", and from Claude Code's closing result when that is an error with
@@ -204,10 +212,17 @@ rides with the last of them, and the permanent records of a landing attempt — 
   outcome, a red suite on a landing is work that is not green yet rather than a broken agent, and an analyze stopped
   on its acceptance criteria waits for the description to be put right. An implement sent back to a full analysis is
   stopped too: the board queues Analyze and Implement for the spec by itself.
+- **`usageLimitWait`**, **`usageLimitProbe`** and **`pressed`** (`src/queue/types.ts`) belong to the usage-limit wait
+  above. `usageLimitWait` is `{ until, resetKnown }` on a stopped job and is cleared when the job is queued again;
+  `usageLimitProbe` is `{ results, at, since }` on the one step sent ahead of the others; `pressed` is set on a job
+  a person queued (a step button, Run now, Create, Close) and never on one the board queued by itself. A mirror
+  written without them reads back unchanged.
 - **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when something stands in the way of
   the job: the class of it, for a reader who needs to act without matching on the sentence. `conflict` and `unlanded` are
   resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and
-  `held-back` clears itself on a later tick, with nothing for anyone to press. A landing held for a red suite sets
+  `held-back` clears itself on a later tick, with nothing for anyone to press — including the three sentences of a
+  hold for a used-up usage limit, which carry the AI and the time as plain values and are put in the reader's language
+  where they are drawn. A landing held for a red suite sets
   it beside `stopReason: tests-red` — the same fact, once as the state's reason and once as its class. It is declared in `src/queue/types.ts` and again
   in `src/render/ui/job-state/types.ts`,
   which do not import each other; `test/queue/requests/parsing-schedule-and-errors.test.ts` reads both as text and asserts they agree.
@@ -215,6 +230,25 @@ rides with the last of them, and the permanent records of a landing attempt — 
   is held back, and on a landing held for a red suite. A `timeout` or `provider-limit` stop passes the run's own
   error through, so a result file that recorded none leaves it unset. It is a `Sentence`, or several: a message key and its values, translated where it is drawn, never
   a finished string the queue made up.
+
+**A usage limit's wait** (`src/queue/runner/usage-limit.ts`). The hold is worked out from the queue on every tick,
+so the mirror is its one record and a restart of the board keeps it.
+
+- An AI is held while one of its steps is stopped on `provider-limit` with a `usageLimitWait`, or while the step
+  sent ahead of the others is running. Every `queued` job whose step runs on that AI waits with `held-back`; jobs
+  on other AIs start as before. A job whose own landing is in flight is not held.
+- `restartAfterUsageLimit` runs first in each tick. At the AI's time (the latest `until` among its stopped steps)
+  it moves the stopped steps to `queued` through `limit-reset`, clearing `usageLimitWait`, `stopReason`,
+  `finishedAt` and `error`. A step started again that stops on the limit again gets a new wait and the AI is held
+  again, with no limit on how many times.
+- With no reset time (`resetKnown: false`) only the oldest stopped step is queued again, as the probe; the others
+  wait another hour from then. The probe carries `usageLimitProbe`, and the AI stays held until the probe's step has
+  ended. When it ends without a usage-limit stop, every step that stopped before it is queued again at once; when it
+  stops on the limit, the AI waits for the new stop's time.
+- A person's press queues a new job with `pressed`, which is not held by a stop made before it. A stopped step
+  whose spec has had a job queued since the stop is not started again at its time: its wait is cleared.
+- The step's transcript is `<job id>.<step>.stream.jsonl`; a later attempt of the same step in the same job is
+  `<job id>.<step>.<n>.stream.jsonl`, so the stopped attempt's log stays.
 
 **A deploy across its own restart.** The board's own deploy (`deploy`, the one step the server runs itself) starts like
 any step but takes no slot. Its spawn answers the server's own pid with no process group to signal, and a cancel of a

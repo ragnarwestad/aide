@@ -622,3 +622,43 @@ describe("a deploy takes no slot", () => {
     expect(store.get(a.id)?.state).toBe("running");
   });
 });
+
+// A job in the usage-limit map is held before the slot check, so it says
+// why it waits even while every slot is busy; the other holds keep their
+// place after it.
+describe("a job held for a usage limit", () => {
+  const limitHold = (id: string) =>
+    new Map([[id, { key: "runner.usageLimitHeld" as const, values: { tool: "claude", at: "2026-08-16T14:00:00.000Z" } }]]);
+
+  test("carries its sentence and is not spawned, even while every slot is busy (AC-8)", () => {
+    enqueue({ steps: ["implement"] });
+    const held = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    expect(spawns).toHaveLength(1);
+    runner.tick(undefined, undefined, undefined, limitHold(held.id));
+    expect(store.get(held.id)?.state).toBe("queued");
+    expect(store.get(held.id)?.errorReason).toBe("held-back");
+    expect((store.get(held.id)?.error as { key: string }).key).toBe("runner.usageLimitHeld");
+    expect(spawns).toHaveLength(1);
+  });
+
+  test("a job held for another reason while every slot is busy still reads as queued (AC-8)", () => {
+    enqueue({ steps: ["implement"] });
+    const waiting = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    runner.tick(undefined, new Map([[waiting.id, { key: "runner.notAnalyzed" as const }]]));
+    expect(store.get(waiting.id)?.error).toBeUndefined();
+  });
+
+  test("starts on the first tick that no longer holds it, and the sentence is taken off (AC-3)", () => {
+    const held = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick(undefined, undefined, undefined, limitHold(held.id));
+    expect(spawns).toHaveLength(0);
+    runner.tick();
+    expect(store.get(held.id)?.state).toBe("running");
+    expect(store.get(held.id)?.error).toBeUndefined();
+  });
+});

@@ -47,3 +47,19 @@ describe("every {placeholder} in an English string is present in every other lan
     }
   });
 });
+
+// A used-up usage limit starts again by itself, so no sentence about it
+// may ask the reader to act: each is `exempt`, never `resolve`.
+describe("the sentences about a used-up usage limit ask for no press", () => {
+  const KEYS: (keyof typeof MESSAGES)[] = [
+    "runner.usageLimitHeld", "runner.usageLimitHeldNoReset", "runner.usageLimitHeldProbe",
+    "runner.usageLimitRestarts", "runner.usageLimitRestartsNoReset",
+    "wordPhase.stopProviderLimit", "push.stoppedProviderLimit",
+  ];
+
+  test.each(KEYS)("%s is exempt and carries no resolve", (key) => {
+    const entry = MESSAGES[key] as MessageEntry & { exempt?: string; resolve?: string };
+    expect(entry.exempt, key).toBeTruthy();
+    expect(entry.resolve, key).toBeUndefined();
+  });
+});

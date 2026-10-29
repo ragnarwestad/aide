@@ -16,6 +16,7 @@ import { esc, relTime, usdOrTokens } from "../../ui/html.ts";
 import { withModelId } from "../../ui/components/model-label.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { renderSentence } from "../../../i18n/message.ts";
+import { usageLimitText } from "../../ui/job-state/provider-limit.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { completedThirds, stateChip } from "../../ui/job-state";
@@ -89,7 +90,7 @@ const runningIndexOf = (job: JobDetailView): number | undefined => (job.runningS
  *  land here, beside the state: "Step is in the pips" is why that row
  *  went, so the pips have to be somewhere a reader sees them. Their own
  *  block rather than inside the paragraph — `pips()` is a `<div>`. */
-function jobBanner(job: JobDetailView, lang: Language): string {
+function jobBanner(job: JobDetailView, lang: Language, now: number): string {
   const progress = pips(
     job.steps.map((s, i) => ({
       kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
@@ -101,9 +102,12 @@ function jobBanner(job: JobDetailView, lang: Language): string {
       third: i === job.stepIndex ? completedThirds(job) : undefined,
     })),
   );
+  // A used-up usage limit says what happens next, with the time; any
+  // other job says what it was stored with.
+  const sentence = usageLimitText(job, lang, now) ?? renderSentence(lang, job.error);
   return (
     `<p class="pagehead">${stateChip(job, lang)}` +
-    (job.error ? ` <span class="muted small">${esc(capitalizeFirst(renderSentence(lang, job.error) ?? ""))}</span>` : "") +
+    (sentence ? ` <span class="muted small">${esc(capitalizeFirst(sentence))}</span>` : "") +
     `</p>` +
     progress +
     (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "")
@@ -129,7 +133,7 @@ export function renderJobFollowParts(job: JobDetailView, opts: JobPageOpts = {})
   const tab = jobTab(job, opts.tab);
   return (
     followMarker(job, { tab, step: opts.step, runningIndex: runningIndexOf(job) }) +
-    followPart("head", jobBanner(job, lang)) +
+    followPart("head", jobBanner(job, lang, opts.now ?? Date.now())) +
     (tab === "steps" ? followPart("panel", jobStepsPanel(job, opts, lang)) : "")
   );
 }
@@ -145,7 +149,7 @@ export function renderJobDetailPage(
   const now = opts.now ?? Date.now();
   const lang: Language = opts.lang ?? "en";
   const tab = jobTab(job, opts.tab);
-  const banner = jobBanner(job, lang);
+  const banner = jobBanner(job, lang, now);
 
   // Two facts, and only two. Project and Spec are in the
   // heading, and Step is in the pips beside the state chip. What is left

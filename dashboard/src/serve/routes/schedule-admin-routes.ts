@@ -85,6 +85,7 @@ export async function handleScheduleAdminRoutes(
       logRefusal("run now", `${project}/${name}`, result.error);
       return json({ error: `Run now was refused for ${project}:${name}: ${result.error}` }, 400);
     }
+    ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }

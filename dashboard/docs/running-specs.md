@@ -11,6 +11,7 @@
 - [Global defaults for the AI and model](#global-defaults-for-the-ai-and-model)
 - [Running a job on a schedule](#running-a-job-on-a-schedule)
 - [How many run at once](#how-many-run-at-once)
+- [When an AI's usage limit is used up](#when-an-ais-usage-limit-is-used-up)
 - [Notifications](#notifications)
     - [Push notifications on a phone or laptop](#push-notifications-on-a-phone-or-laptop)
 - [The Running tab](#the-running-tab)
@@ -566,6 +567,33 @@ Two jobs for the same spec are never started at the same time — analyze and im
 nature. Nor are two `archive` steps in the same project: both land into the code root's main, and the second is held
 `queued` with the reason on its row until the first has landed. Beyond that the jobs are genuinely independent: each `aide-run-spec` run works in `git
 worktree` checkouts of its own, so the main checkouts never leave their default branch and no run can see another's.
+
+## When an AI's usage limit is used up
+
+A step that stops because its AI's usage limit is used up (`provider-limit`: Claude Code or Codex) is started again by
+the board itself once the limit has reset. Nobody presses anything.
+
+- **The hold.** From the stop until the reset time the stop recorded, the board starts no queued step on that AI.
+  Those jobs stay `queued` and say so on their row and on their job page. Steps on other AIs start as before, and
+  OpenCode and Copilot, which report no usage limit, behave as always.
+- **Starting again.** At the reset time the stopped step is queued again — the same job, in its place in the queue —
+  and the steps held behind it start as the slots allow. A step that hits the limit again is held and started again
+  the same way, with no limit on how many times.
+- **No reset time.** When the AI did not say when its limit resets, the board waits one hour. Then it starts one
+  step, the oldest stopped one. If that step runs, the rest follow; if it hits the limit again, the board waits again,
+  until the new reset time when the stop gives one and one hour when it does not.
+- **A press starts at once.** Pressing a stopped job's step button (Implement, Analyze and so on) queues the step as
+  today, and it starts at once, past the hold. A held job's row offers Cancel; once it is cancelled the step button
+  starts the step at once. When the stopped job's own time comes it is not started a second time.
+- **A scheduled run** whose AI is held waits like any other step and starts when that AI's steps start again.
+- **A restart of the board.** The hold and the time to start again are stored on the jobs, so a restart keeps them.
+  A stop recorded before the wait existed has no time and is never started by the board.
+
+The stopped job's row and page say which AI's limit is used up, which window (five-hour or weekly) when the AI named
+one, that the step starts again by itself, and the time. With no reset time they say that the AI did not say when its
+limit resets, and the time the board tries again. A held job says that it waits for that AI's usage limit and the
+time it starts; while the step sent ahead is running, it says when the board tried again and that it starts once that
+step has run. [A job's states](job-states.md) has the fields and the transition behind it.
 
 ## Notifications
 

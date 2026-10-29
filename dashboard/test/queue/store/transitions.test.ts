@@ -105,6 +105,17 @@ describe("QueueStore.transition", () => {
   });
 });
 
+// A step a usage limit stopped is started again by the board once the
+// limit has reset. Only from `stopped`.
+describe("a usage-limit stop can be queued again", () => {
+  test("stopped -> limit-reset -> queued, and no other state accepts the event (AC-2)", () => {
+    expect(TRANSITIONS.stopped?.["limit-reset"]).toBe("queued");
+    for (const state of JOB_STATES.filter((s) => s !== "stopped")) {
+      expect(TRANSITIONS[state]?.["limit-reset"]).toBeUndefined();
+    }
+  });
+});
+
 describe("the diagram and the table agree", () => {
   /** `A --> B: label` edges between two NAMED states — `[*]` excluded,
    *  since job creation has no prior state to look up (2-analysis.md,

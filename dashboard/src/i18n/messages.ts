@@ -84,6 +84,49 @@ export const MESSAGES = {
     fr: "retenu : dépend de {dependency}, qui n'est pas encore archivée",
     exempt: "resolves on its own once the dependency is archived — nothing to press",
   },
+  // A used-up usage limit: the step starts again by itself, so none of
+  // these asks for a press. The blanks hold plain values; the render side
+  // puts the AI's name and the time in the reader's language.
+  "runner.usageLimitHeld": {
+    en: "held back: waits for {tool}'s usage limit — it starts at {at}",
+    nb: "holdt tilbake: venter på bruksgrensen til {tool} — den starter kl. {at}",
+    es: "retenido: espera el límite de uso de {tool} — empieza a las {at}",
+    de: "zurückgehalten: wartet auf das Nutzungslimit von {tool} — es startet um {at}",
+    fr: "retenu : attend la limite d'utilisation de {tool} — cela démarre à {at}",
+    exempt: "starts by itself when the limit resets — nothing to press",
+  },
+  "runner.usageLimitHeldNoReset": {
+    en: "held back: waits for {tool}'s usage limit — {tool} did not say when it resets, so the board tries again at {at}",
+    nb: "holdt tilbake: venter på bruksgrensen til {tool} — {tool} sa ikke når den nullstilles, så dashbordet prøver igjen kl. {at}",
+    es: "retenido: espera el límite de uso de {tool} — {tool} no dijo cuándo se restablece, así que el dashboard lo intenta de nuevo a las {at}",
+    de: "zurückgehalten: wartet auf das Nutzungslimit von {tool} — {tool} hat nicht gesagt, wann es zurückgesetzt wird, daher versucht das Dashboard es erneut um {at}",
+    fr: "retenu : attend la limite d'utilisation de {tool} — {tool} n'a pas dit quand elle se réinitialise, donc le dashboard réessaie à {at}",
+    exempt: "the board tries again by itself — nothing to press",
+  },
+  "runner.usageLimitHeldProbe": {
+    en: "held back: waits for {tool}'s usage limit — {tool} did not say when it resets; the board tried again at {at}, and this starts once that step has run",
+    nb: "holdt tilbake: venter på bruksgrensen til {tool} — {tool} sa ikke når den nullstilles; dashbordet prøvde igjen kl. {at}, og dette starter når det steget har kjørt",
+    es: "retenido: espera el límite de uso de {tool} — {tool} no dijo cuándo se restablece; el dashboard lo intentó de nuevo a las {at}, y esto empieza cuando ese paso haya terminado",
+    de: "zurückgehalten: wartet auf das Nutzungslimit von {tool} — {tool} hat nicht gesagt, wann es zurückgesetzt wird; das Dashboard hat es erneut um {at} versucht, und das startet, sobald dieser Schritt gelaufen ist",
+    fr: "retenu : attend la limite d'utilisation de {tool} — {tool} n'a pas dit quand elle se réinitialise ; le dashboard a réessayé à {at}, et cela démarre une fois cette étape exécutée",
+    exempt: "starts by itself once the step that was tried has run — nothing to press",
+  },
+  "runner.usageLimitRestarts": {
+    en: "{who}: {limit} is used up — {step} starts again by itself at {at}.",
+    nb: "{who}: {limit} er brukt opp — {step} starter av seg selv igjen kl. {at}.",
+    es: "{who}: {limit} está agotado — {step} se reinicia solo a las {at}.",
+    de: "{who}: {limit} ist aufgebraucht — {step} startet von selbst neu um {at}.",
+    fr: "{who} : {limit} est épuisé — {step} redémarre de lui-même à {at}.",
+    exempt: "starts again by itself when the limit resets — nothing to press",
+  },
+  "runner.usageLimitRestartsNoReset": {
+    en: "{who}: {limit} is used up, and the AI did not say when it resets — {step} starts again by itself when the board tries again at {at}.",
+    nb: "{who}: {limit} er brukt opp, og AI-en sa ikke når den nullstilles — {step} starter av seg selv igjen når dashbordet prøver på nytt kl. {at}.",
+    es: "{who}: {limit} está agotado, y la IA no dijo cuándo se restablece — {step} se reinicia solo cuando el dashboard lo intente de nuevo a las {at}.",
+    de: "{who}: {limit} ist aufgebraucht, und die KI hat nicht gesagt, wann es zurückgesetzt wird — {step} startet von selbst neu, wenn das Dashboard es erneut versucht um {at}.",
+    fr: "{who} : {limit} est épuisé, et l'IA n'a pas dit quand elle se réinitialise — {step} redémarre de lui-même quand le dashboard réessaie à {at}.",
+    exempt: "the board tries again by itself — nothing to press",
+  },
   "runner.runVanished": {
     en: "the run vanished without leaving a result. — Press {button} again.",
     nb: "kjøringen forsvant uten å etterlate et resultat. — Trykk {button} igjen.",
@@ -652,13 +695,14 @@ export const MESSAGES = {
     resolve: "run archive again",
   },
   "wordPhase.stopProviderLimit": {
-    en: "the AI's usage limit was reached — run it again once the limit resets",
-    nb: "AI-ens bruksgrense ble nådd — kjør på nytt når grensen er nullstilt",
-    es: "se alcanzó el límite de uso de la IA — ejecútalo de nuevo cuando se restablezca el límite",
-    de: "das Nutzungslimit der KI wurde erreicht — führe es erneut aus, sobald das Limit zurückgesetzt ist",
-    fr: "la limite d'utilisation de l'IA a été atteinte — relancez-le une fois la limite réinitialisée",
-    resolve: "run it again once the limit resets",
+    en: "the AI's usage limit was reached — the step starts again by itself once the limit resets",
+    nb: "AI-ens bruksgrense ble nådd — steget starter av seg selv igjen når grensen er nullstilt",
+    es: "se alcanzó el límite de uso de la IA — el paso se reinicia solo cuando se restablezca el límite",
+    de: "das Nutzungslimit der KI wurde erreicht — der Schritt startet von selbst neu, sobald das Limit zurückgesetzt ist",
+    fr: "la limite d'utilisation de l'IA a été atteinte — l'étape redémarre d'elle-même une fois la limite réinitialisée",
+    exempt: "starts again by itself when the limit resets — nothing to press",
   },
+
   "wordPhase.stopModelRefused": {
     en: "the model declined to continue — run it again, or choose another model",
     nb: "modellen ville ikke fortsette — kjør på nytt, eller velg en annen modell",
@@ -1263,13 +1307,14 @@ export const MESSAGES = {
     resolve: "press {button} again",
   },
   "push.stoppedProviderLimit": {
-    en: "{step} stopped on the AI's usage limit — it waits for you to press {button} again once the limit resets.",
-    nb: "{step} stoppet på AI-ens bruksgrense — den venter på at du trykker {button} igjen når grensen er nullstilt.",
-    es: "{step} se detuvo por el límite de uso de la IA — espera a que pulses {button} de nuevo cuando el límite se restablezca.",
-    de: "{step} wurde durch das Nutzungslimit der KI gestoppt — es wartet darauf, dass du nach dem Zurücksetzen des Limits erneut {button} klickst.",
-    fr: "{step} s'est arrêté sur la limite d'usage de l'IA — il attend que vous cliquiez de nouveau sur {button} une fois la limite réinitialisée.",
-    resolve: "press {button} again",
+    en: "{step} stopped on the AI's usage limit — it starts again by itself once the limit resets.",
+    nb: "{step} stoppet på AI-ens bruksgrense — den starter av seg selv igjen når grensen er nullstilt.",
+    es: "{step} se detuvo por el límite de uso de la IA — se reinicia solo cuando el límite se restablezca.",
+    de: "{step} wurde durch das Nutzungslimit der KI gestoppt — es startet von selbst neu, sobald das Limit zurückgesetzt ist.",
+    fr: "{step} s'est arrêté sur la limite d'usage de l'IA — il redémarre de lui-même une fois la limite réinitialisée.",
+    exempt: "starts again by itself when the limit resets — nothing to press",
   },
+
   "push.stoppedModelAtCapacity": {
     en: "{step} stopped: the model was at capacity — it waits for you to press {button} again or choose another model.",
     nb: "{step} stoppet: modellen hadde ikke kapasitet — den venter på at du trykker {button} igjen eller velger en annen modell.",

@@ -244,4 +244,22 @@ describe("each step keeps its own transcript", () => {
     expect(stored.results?.[0]?.streamFile).toContain("analyze");
     expect(stored.results?.[0]?.streamFile).not.toBe(stored.streamFile);
   });
+
+  // A step queued again after a usage-limit stop is a second attempt of
+  // the same step in the same job: it must not overwrite the first
+  // attempt's transcript.
+  test("a later attempt of the same step is handed a file of its own (AC-2)", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({ readResult: () => ({ ...okResult(1), ok: false, terminalReason: "provider-limit" }) });
+    runner.tick();
+    runner.poll();
+    const first = store.get(job.id)!;
+    expect(first.state).toBe("stopped");
+    store.transition(job.id, "limit-reset", { stopReason: undefined, finishedAt: undefined });
+    runner.tick();
+    expect(spawns).toHaveLength(2);
+    expect(spawns[1]!.streamFile).not.toBe(spawns[0]!.streamFile);
+    expect(spawns[1]!.streamFile).toContain("implement");
+    expect(store.get(job.id)?.results[0]?.streamFile).toBe(spawns[0]!.streamFile);
+  });
 });

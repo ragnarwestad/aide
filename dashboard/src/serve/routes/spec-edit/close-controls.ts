@@ -45,6 +45,7 @@ export async function closeControlRoutes(
       logRefusal("close", `${project}/${specFolder}`, result.error);
       return refuseClose(result.error);
     }
+    ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }

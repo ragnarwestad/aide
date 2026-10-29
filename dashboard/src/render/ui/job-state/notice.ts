@@ -8,7 +8,7 @@ import type { MessageKey } from "../../../i18n/messages.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { currentStep, inFlight } from "./format.ts";
-import { providerLimitSentence } from "./provider-limit.ts";
+import { providerLimitSentence, usageLimitText } from "./provider-limit.ts";
 import type { QueueRowView } from "./types.ts";
 
 /** The four held-back reasons that resolve on their own — the queue
@@ -21,6 +21,9 @@ export const HELD_BACK_INFO_KEYS = new Set<MessageKey>([
   "runner.landingPause",
   "runner.archiveRunning",
   "runner.dependencyNotArchived",
+  "runner.usageLimitHeld",
+  "runner.usageLimitHeldNoReset",
+  "runner.usageLimitHeldProbe",
 ]);
 
 /** Whether a queued job's own hold resolves on its own, read off the
@@ -224,7 +227,12 @@ export function specNotice(
       lead.state === "stopped" && lead.stopReason === "provider-limit"
         ? [...(lead.results ?? [])].reverse().find((r) => r.providerLimit)
         : undefined;
-    const text = limited?.providerLimit
+    // A usage-limit stop the board starts again by itself, and a job held
+    // behind one, say so — with the time — in place of the run's own words.
+    const usageText = usageLimitText(lead, lang, Date.now());
+    const text = usageText !== undefined
+      ? lead.errorReason === "held-back" ? `${stepLabel(currentStep(lead), lang)} ${usageText}` : usageText
+      : limited?.providerLimit
       ? providerLimitSentence(
           limited.providerLimit,
           (limited.step && lead.stepModels?.[limited.step]) || lead.model,
@@ -251,7 +259,7 @@ export function specNotice(
       // a model the provider had no room for, on pressing it again or
       // choosing another model.
       const waiting =
-        lead.errorReason === "held-back" || lead.errorReason === "tests-red" ||
+        lead.errorReason === "held-back" || lead.errorReason === "tests-red" || usageText !== undefined ||
         (lead.state === "stopped" &&
           (lead.stopReason === "acceptance-criteria" || lead.stopReason === "shared-files" ||
             lead.stopReason === "model-at-capacity"));

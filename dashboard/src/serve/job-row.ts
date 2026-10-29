@@ -59,6 +59,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     prUrl: job.prUrl,
     pushError: job.pushError,
     stopReason: job.stopReason,
+    usageLimitWait: job.usageLimitWait,
     error: job.error,
     errorDetail: job.errorDetail,
     // Why the landing was refused, when it was refused for something

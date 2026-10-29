@@ -40,6 +40,8 @@ import { stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
 import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-hold.ts";
 import { projectHold } from "./project-holds.ts";
+import { clearStaleHolds, holdJob } from "./holds.ts";
+import { usageLimitWait } from "./usage-limit.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
@@ -116,8 +118,16 @@ export class Runner {
    *  held with — not analyzed yet, or an implement chained
    *  after the analyze whose approaches wait for a choice
    *  (`fixedSentenceHolds`). `acceptanceOpen` names the queued archives
-   *  `aide-archive-spec` would only refuse (`archiveWithOpenAcceptance`). */
-  tick(blocked?: DependencyHolds, held?: Map<string, BoardMessage>, acceptanceOpen?: Set<string>): void {
+   *  `aide-archive-spec` would only refuse (`archiveWithOpenAcceptance`).
+   *  `usageLimitHeld` is the jobs a used-up usage limit holds (`usageLimitHolds`):
+   *  checked before the slot check, so a held job says why it waits even while
+   *  every slot is busy. */
+  tick(
+    blocked?: DependencyHolds,
+    held?: Map<string, BoardMessage>,
+    acceptanceOpen?: Set<string>,
+    usageLimitHeld?: Map<string, BoardMessage>,
+  ): void {
     // Every sentence this pass writes, by job id. What is NOT in it is
     // no longer held for anything, and `clearStaleHolds` takes its
     // sentence off the row: a hold-back reason is only ever the reason
@@ -126,8 +136,8 @@ export class Runner {
     // "another archive is running in this project" long after that
     // archive had landed, and the two whole-queue pauses below wrote
     // nothing at all on their way out (2026-09-04).
-    const heldNow = (this.heldThisPass = new Set<string>());
-    const hold = (job: Job, reason: BoardMessage): void => this.hold(job, reason);
+    const heldNow = new Set<string>();
+    const hold = (job: Job, reason: BoardMessage): void => holdJob(this.o.store, heldNow, job, reason);
 
     // No job waits on a landing any more. A landing used to merge in the
     // SHARED main checkout — `git switch`, then the project's whole
@@ -152,6 +162,10 @@ export class Runner {
     // Quick steps first, oldest first within each group; list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
       if (job.state !== "queued") continue;
+      if (usageLimitHeld?.has(job.id)) {
+        hold(job, usageLimitHeld.get(job.id)!);
+        continue;
+      }
       // Every slot is busy. The row says so by its queue position, not
       // by a sentence — a sentence left from an earlier pass goes with
       // the other stale holds after the loop. A board step (a deploy)
@@ -228,38 +242,7 @@ export class Runner {
       }
       this.startOne(job);
     }
-    this.clearStaleHolds(heldNow);
-  }
-
-  /** Every job this pass held, by id. */
-  private heldThisPass = new Set<string>();
-
-  /** Hold one job with the reason it is held for RIGHT NOW. Written
-   *  only when it changed: an unconditional update would rewrite the
-   *  mirror every two seconds for a job that is doing nothing. */
-  private hold(job: Job, reason: BoardMessage): void {
-    this.heldThisPass.add(job.id);
-    // Every caller reaches this with a job that IS queued right now,
-    // so the reason it holds for is always the current one — whatever
-    // `errorReason` an earlier, unrelated attempt left behind (a refused
-    // landing's own record lives in `landingError`,
-    // which this never touches, not in `error`/`errorReason`).
-    const current = job.error;
-    const same = !!current && typeof current === "object" && !Array.isArray(current) &&
-      current.key === reason.key && JSON.stringify(current.values) === JSON.stringify(reason.values);
-    if (!same) this.o.store.update(job.id, { error: reason, errorReason: "held-back" });
-  }
-
-  /** Take the hold-back sentence off every queued job this pass did not
-   *  hold. The reason is gone; the row must not go on naming it. Only
-   *  `held-back` sentences — a stopped job's own error is its record,
-   *  not a wait. */
-  private clearStaleHolds(held: Set<string>): void {
-    for (const job of this.o.store.list()) {
-      if (job.state !== "queued" || held.has(job.id)) continue;
-      if (job.errorReason !== "held-back") continue;
-      this.o.store.update(job.id, { error: undefined, errorReason: undefined });
-    }
+    clearStaleHolds(this.o.store, heldNow);
   }
 
   /** Start one job's next step. Returns whether a slot was taken. */
@@ -283,7 +266,10 @@ export class Runner {
     // an hour is implement's, and it was always the one gone.
     // A job that ran before this keeps whatever path it recorded, so
     // its own log still opens.
-    const streamFile = `${this.o.resultDir}/${job.id}.${step}.stream.jsonl`;
+    // A step started again after a usage-limit stop is a later attempt of
+    // the same step in this job, and keeps the earlier attempt's log.
+    const attempt = job.results.filter((r) => r.step === step).length + 1;
+    const streamFile = `${this.o.resultDir}/${job.id}.${step}${attempt > 1 ? `.${attempt}` : ""}.stream.jsonl`;
     const sessionId = (this.o.newSessionId ?? (() => crypto.randomUUID()))();
     this.o.clearResult?.(resultFile);
     const { pid, pgid } = this.o.spawn(job, step, resultFile, sessionId, streamFile);
@@ -490,10 +476,12 @@ export class Runner {
     // `stopped` — never `failed`: a common, healthy outcome, and a reader
     // who cannot tell it from a broken agent will ignore both.
     if (isRunStop(outcome.terminalReason)) {
+      const stoppedAt = this.o.now();
       const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
         stopReason: outcome.terminalReason,
-        finishedAt: this.o.now(),
+        ...usageLimitWait(outcome, stoppedAt),
+        finishedAt: stoppedAt,
         error: runStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model)) ?? outcome.error,
       });
       this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);

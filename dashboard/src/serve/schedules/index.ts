@@ -23,7 +23,8 @@ import {
   SPEC_FILES, buildProjectViews, manifestInside, type CodeLanding,
 } from "../../project/discover";
 import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
-import type { QueueStore } from "../../queue/queue.ts";
+import type { Job, QueueStore } from "../../queue/queue.ts";
+import { restartAfterUsageLimit, usageLimitHolds } from "../../queue/runner/usage-limit.ts";
 import type { Runner } from "../../queue/runner";
 import type { CheckableTool, SpecTarget } from "../../render";
 import { STATUS_SPEC_FILE } from "../../render";
@@ -395,6 +396,10 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
 export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   const runner = ctx.readRunner();
   if (!runner) return;
+  // First, so a stopped step whose AI's usage limit has reset is queued
+  // again before the checkout refresh and the tool recheck, and gets both.
+  const toolOf = (job: Job): string => stepTool(job, job.steps[job.stepIndex] ?? "", ctx.queue.defaults);
+  restartAfterUsageLimit(ctx.queue, toolOf, (ctx.now ?? Date.now)());
   // Nothing may be STARTED in a checkout that is not there.
   // Every project with a job waiting, and only those — a clone is
   // made once and the call is a map lookup ever after, so this costs
@@ -413,5 +418,10 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
     const queued = ctx.queue.list().filter((j) => j.state === "queued");
     await ctx.recheckTools(queued.map((j) => stepTool(j, j.steps[j.stepIndex] ?? "", ctx.queue.defaults)));
   }
-  runner.tick(await blockedDependencies(ctx), fixedSentenceHolds(ctx), archiveWithOpenAcceptance(ctx));
+  runner.tick(
+    await blockedDependencies(ctx),
+    fixedSentenceHolds(ctx),
+    archiveWithOpenAcceptance(ctx),
+    usageLimitHolds(ctx.queue.list(), toolOf),
+  );
 }
