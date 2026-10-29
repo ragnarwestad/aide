@@ -66,9 +66,14 @@
     };
     // A field inside the form that names another form — the phase
     // table's AI and model, saved the moment they are picked — changes
-    // nothing this Save would post.
+    // nothing this Save would post. Nor does a disabled one: the page
+    // disables the spec's fields while one of its saves is out, and the
+    // editor's own change re-fired on its hidden field must not offer
+    // that Save a second time.
     const ours = (event: Event): boolean => {
-      const named = (event.target as Element | null)?.getAttribute?.("form");
+      const target = event.target as (Element & { disabled?: boolean }) | null;
+      if (target?.disabled) return false;
+      const named = target?.getAttribute?.("form");
       return !named || named === form.id;
     };
     form.addEventListener("input", (event) => { if (ours(event)) setDirty(true); });

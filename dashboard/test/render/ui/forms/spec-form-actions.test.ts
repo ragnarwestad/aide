@@ -285,6 +285,27 @@ describe("a field inside the form that posts elsewhere", () => {
   });
 });
 
+describe("a disabled field changes nothing", () => {
+  // The page disables a spec's fields while one of its saves is out, and
+  // the description editor re-fires its own change as an `input` on the
+  // hidden textarea. An event dispatched on a disabled field still
+  // bubbles to the form, so the latch has to look at the field itself.
+  test("an input from a disabled textarea leaves Save and Cancel off; from a live one it turns them on (AC-1)", () => {
+    documentForm("old");
+    mount();
+    const raw = document.querySelector(".spec-editor-raw") as HTMLTextAreaElement;
+    raw.disabled = true;
+    save().disabled = true;
+    cancel().disabled = true;
+    raw.dispatchEvent(new Event("input", { bubbles: true }));
+    expect([save().disabled, cancel().disabled]).toEqual([true, true]);
+
+    raw.disabled = false;
+    raw.dispatchEvent(new Event("input", { bubbles: true }));
+    expect([save().disabled, cancel().disabled]).toEqual([false, false]);
+  });
+});
+
 describe("a form drawn after the page loaded", () => {
   // The Specs list draws the open spec's forms into a row after load; the
   // page script says so with an event on the document, under its own name.

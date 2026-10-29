@@ -2,6 +2,7 @@
 // the one press mechanism every button and select on this page shares.
 
 import { clearRefusal } from "./row-refusal";
+import { specRowsOf } from "./row-swap.ts";
 import { press } from "./state.ts";
 
 /** Every form in `#jobrows` this file speaks for. They differ in what
@@ -77,50 +78,22 @@ export const namesForm = (id: string): Element[] =>
 
 export type Control = HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
-/** Every control a press has to lock — which is every control on the
- *  ROW, not the submitted form's own.
+/** What a person can press, tick, pick or type in. Hidden fields are no one's to press. */
+const PRESSABLE = "button, select, textarea, input:not([type=hidden])";
+
+/** Every control a press has to lock: on a spec's rows, every one of them —
+ *  the head row and everything up to the next spec, the open spec
+ *  included, and nothing of another spec; elsewhere, the form's own. Either
+ *  way, with what is written outside the form and names it with `form=`.
  *
- *  Both halves of that are the fix for what was seen on 2026-08-21:
- *  Run was pressed, nothing changed, so it was pressed again, and the
- *  second press was refused because the first had already started the
- *  job.
- *
- *  `form.querySelectorAll("button")` is scoped to DESCENDANTS, and the
- *  Run button is not one: it is written after its form's closing tag
- *  and reaches it by `form="…"`. So for the run form that lookup found
- *  nothing — no spinner, no busy look, and the button never disabled.
- *  And even where it did find the pressed button (Cancel, Resolve),
- *  everything else on the row stayed live for the whole round-trip,
- *  so a second press could land on a different control of the same
- *  row.
- *
- *  The HEAD row is the row's own container — the one `<tr>` every spec
- *  has, open or shut — and the form-attribute lookup reaches what sits
- *  outside it on the phase lines. A control lives in the head row
- *  whether the row is open or shut, which a stack cell never was (a
- *  shut row had none).
- *  The ids carry the spec's own key, so this reaches one row and never
- *  a neighbour. */
+ *  A descendants-only lookup would miss the Run button, which is written
+ *  after its form's closing tag and reaches it by `form="…"`, and would
+ *  leave every other control of the spec live for the whole round-trip,
+ *  so a second press could land on the spec while the first is half-way. */
 export function rowControls(form: HTMLFormElement): Control[] {
-  const head = form.closest("tr.spechead");
-  // A form that is not on a spec's row — the acceptance criteria under a
-  // row's message, the New-spec page, the Projects panel — locks its own
-  // controls and the ones written outside it that name it with `form=`:
-  // a box ticked while its list is being saved is a change the save
-  // never saw.
-  if (!head) {
-    const own = Array.from(form.querySelectorAll("button, select, textarea, input:not([type=hidden])"));
-    return [...new Set([...own, ...namesForm(form.id)])] as Control[];
-  }
-  const runForm = head.querySelector("form.rowrun") as HTMLFormElement | null;
-  // Hidden fields are left out: they are not controls anybody can
-  // press, and the row's whole point is what a person can still do to
-  // it.
-  const inHead = Array.from(head.querySelectorAll("button, select, input:not([type=hidden])"));
-  // The Run button answers both lookups — it is in the head row AND
-  // names the run form — so the two are deduplicated rather than left
-  // to disable it twice.
-  return [...new Set([...inHead, ...namesForm(runForm?.id ?? "")])] as Control[];
+  const scope = specRowsOf(form) ?? [form];
+  const inScope = scope.flatMap((el) => Array.from(el.querySelectorAll(PRESSABLE)));
+  return [...new Set([...inScope, ...namesForm(form.id)])] as Control[];
 }
 
 /** Post a form as JSON-wanting XHR and hand the answer on. The button

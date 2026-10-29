@@ -210,15 +210,32 @@ function splitGroups(html: string, holdsSpec = false): RowSplit | null {
 const isSpecHead = (el: Element): boolean =>
   ` ${el.className} `.indexOf(` ${SPEC_HEAD_CLASS} `) !== -1;
 
+/** A head row and every row after it up to the next spec's. */
+function rowsFrom(head: Element): Element[] {
+  const range: Element[] = [head];
+  for (let el = head.nextElementSibling; el && !isSpecHead(el); el = el.nextElementSibling) range.push(el);
+  return range;
+}
+
 /** A group's rows on the page: its head row and everything under it up
  *  to the next spec. `null` when the anchor is not there, which is the
  *  diff giving up and letting the caller redraw wholesale. */
 function groupRange(key: string): Element[] | null {
   const head = document.getElementById(key);
   if (!head || !isSpecHead(head)) return null;
-  const range: Element[] = [head];
-  for (let el = head.nextElementSibling; el && !isSpecHead(el); el = el.nextElementSibling) range.push(el);
-  return range;
+  return rowsFrom(head);
+}
+
+/** The rows of the spec `el` sits in, reached from inside rather than by
+ *  its anchor: the row it is in, climbed out of any table the open spec
+ *  holds of its own, then back to that spec's head row. `null` for an
+ *  element on no spec's rows. */
+export function specRowsOf(el: Element): Element[] | null {
+  let row = el.closest("tr");
+  for (let up = row?.parentElement?.closest("tr"); up; up = up.parentElement?.closest("tr")) row = up;
+  let head: Element | null = row;
+  while (head && !isSpecHead(head)) head = head.previousElementSibling;
+  return head ? rowsFrom(head) : null;
 }
 
 /** Put a group's fresh markup where its old rows are, then take the old
