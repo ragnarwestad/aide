@@ -378,11 +378,11 @@ describe("stepLog: the stamp on a mark the model wrote", () => {
     expect(aiLines(logs)).toEqual([`10:45:02 +2s ${A}`, "worked", `10:45:07 +7s ${B}`]);
   });
 
-  test("a title past the Log's clip loses its ending there, so its stamped line stays and carries the time", () => {
+  test("a long mark is the model's whole line with its recorded time in front, once, and no line of Aide's holds it", () => {
     const long = `--- Step 2 of 4: ${"x".repeat(200)} — started`;
     const { logs } = read(say(long) + "\n", runLog(stamp(3, long)), { final: false });
-    expect(aideLines(logs)).toContain(`10:45:03 +3s ${long}`);
-    expect(aiLines(logs)[0]).toMatch(/^--- Step 2 of 4: x+…$/);
+    expect(aiLines(logs)).toEqual([`10:45:03 +3s ${long}`]);
+    expect(aideLines(logs).filter((l) => l.includes("xxxx"))).toEqual([]);
     expect(stepMarks(logs)[0]).toMatchObject({ key: "Step 2 of 4", startedSec: 3 });
   });
 

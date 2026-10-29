@@ -377,8 +377,9 @@ seconds) late; a model that writes several marks at once gets the same second fo
 (`item_type` or `type`), or an opencode `text` part. A turn reads from where its own output begins, so the review's and
 a fix turn's marks are each recorded once; a line past 1 MiB is skipped, and a last line with no newline is read when
 the turn ends. The page shows the model's own line with that time in front and drops the recorded copy, so a mark is
-one line of the Log, and a recorded line no line of the model matches (the landing's merge step, a title the Log clips
-past its ending) stays among Aide's. A run from before has no recorded marks, and its model steps show a dash for time.
+one line of the Log, and a recorded line no line of the model matches (the landing's merge step, a line before the byte
+a tailed transcript starts at) stays among Aide's. The Log shows a mark whole, whatever the length of its title. A run
+from before has no recorded marks, and its model steps show a dash for time.
 
 A `schedule` step's prompt is the prompt file's text, then a request to split the work into a few named steps and mark
 each one with the same lines (`schedule_step_note`, `core/scripts/lib/run-spec/setup/invocation.sh`), then the headless

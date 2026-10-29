@@ -12,7 +12,7 @@ import { aiParts, type AiTurn, type BuiltPart, type Owned } from "./ai-turn.ts";
 import { claudeSubagents } from "./claude-subagents.ts";
 import { codexSpawns } from "./codex-subagents.ts";
 import { codexNumbering } from "./numbering.ts";
-import { clip, esc, sniff, type ItemNumbering, type SummarizeOptions } from "./shared.ts";
+import { esc, sniff, type ItemNumbering, type SummarizeOptions } from "./shared.ts";
 import { markOf } from "./step-marks.ts";
 
 export type LogPart = TextPart | SubagentPart;
@@ -143,8 +143,7 @@ interface NotedMark {
  *  model's own line stands in the transcript without one. The model's line takes the stamp, in
  *  order, and the recorded line is dropped from Aide's part, so a mark is one line of the Log
  *  and `stepMarks` reads its time off it. A recorded line no line of the model matches stays
- *  where it was: the landing's merge step, a title the Log clips past its ending, a transcript
- *  read from a later byte. */
+ *  where it was: the landing's merge step, a transcript read from a later byte. */
 function stampModelMarks(parts: LogPart[], noted: NotedMark[]): void {
   if (noted.length === 0) return;
   let next = 0;
@@ -152,7 +151,7 @@ function stampModelMarks(parts: LogPart[], noted: NotedMark[]): void {
     if (part.by !== "ai") continue;
     part.lines = part.lines.map((line) => {
       if (!markOf(line)) return line;
-      const at = noted.findIndex((n, i) => i >= next && esc(clip(n.body)) === line);
+      const at = noted.findIndex((n, i) => i >= next && esc(n.body) === line);
       if (at < 0) return line;
       const [used] = noted.splice(at, 1) as [NotedMark];
       next = at;

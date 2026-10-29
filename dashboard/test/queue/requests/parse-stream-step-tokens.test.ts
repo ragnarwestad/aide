@@ -72,6 +72,40 @@ describe("stepTokens: Claude", () => {
     expect(got.get(KEY(1))).toBe(total(U1));
   });
 
+  test("a later step's skipped mark ends the open step, so the usage after it is not the step's (AC-3)", () => {
+    const got = claude(
+      block("m1", text(start(1)), U1),
+      block("m2", text("--- Step 2 of 4: Step 2 — skipped: nothing to do"), U2),
+      block("m3", text("later"), U3),
+    );
+    expect(got.get(KEY(1))).toBe(total(U1) + total(U2));
+    expect(got.has(KEY(2))).toBe(false);
+  });
+
+  test("one message is counted once when a subagent's events come between its content blocks (AC-4)", () => {
+    const sub = { parent_tool_use_id: "toolu_1" };
+    const got = claude(
+      block("m1", text(start(1)), U1),
+      block("s1", text("subagent"), U2, sub),
+      block("m1", tool, U1),
+      block("s2", text("subagent"), U3, sub),
+      block("m1", tool, U1),
+      block("m2", text(done(1)), AFTER),
+    );
+    expect(got.get(KEY(1))).toBe(total(U1) + total(U2) + total(U3) + total(AFTER));
+  });
+
+  test("a message whose first block comes before the step's start mark still gives the step its usage once (AC-4)", () => {
+    const sub = { parent_tool_use_id: "toolu_1" };
+    const got = claude(
+      block("m1", text("thinking aloud"), U1),
+      block("s1", text("subagent"), U2, sub),
+      block("m1", text(start(1)), U1),
+      block("m2", text(done(1)), U3),
+    );
+    expect(got.get(KEY(1))).toBe(total(U1) + total(U3));
+  });
+
   test("a step with no usage between its marks has no entry, and a transcript with no marks gives none", () => {
     const got = claude(block("m1", text(start(1))), block("m2", text(done(1))), block("m3", text(start(2)), U1), block("m4", text(done(2))));
     expect(got.has(KEY(1))).toBe(false);
@@ -145,4 +179,71 @@ describe("a step's tokens on the step marks", () => {
     expect(mark.startedSec).toBeUndefined();
     expect(mark.tokens).toBeUndefined();
   });
+});
+
+// The three readers over the same transcript: every step's time and tokens must be what its marks give,
+// whatever the length of its title and wherever a subagent's events stand.
+describe("a step's time and tokens over every length of title", () => {
+  const result = (t: string) => line({ type: "result", subtype: "success", result: t });
+  const stamp = (s: number, t: string) => `aide-run-spec 10:45:00 +${s}s ${t}`;
+  const agent = (id: string) => ({ type: "tool_use", id, name: "Agent", input: { description: "look", subagent_type: "general-purpose", prompt: "look" } });
+  const mark = (n: number, length: number, ending: string) => `--- Step ${n} of 4: ${"t".repeat(length)} — ${ending}`;
+  const LENGTHS = [5, 60, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 160, 200, 400];
+
+  /** What the three readers say about a transcript and its run log, one entry per step. */
+  const read = (events: string[], runLog: string[], final: boolean) => {
+    const transcript = events.join("\n") + "\n";
+    const log = runLog.join("\n") + "\n";
+    const { logs } = stepLog({ text: transcript, start: 0 }, log, { tool: "claude", final });
+    return stepMarks(logs, stepTokens(transcript, "claude")).map((m) => ({ key: m.key, state: m.state, startedSec: m.startedSec, endedSec: m.endedSec, tokens: m.tokens }));
+  };
+
+  /** Steps with titles of the given lengths, each three messages with a usage of their own. */
+  const plain = (lengths: number[], final: boolean) => {
+    let n = 0;
+    const events = [block("m0", text("before"), use(1000, 100, 0, 0))];
+    const runLog = [stamp(0, "lock"), stamp(1, "model turn started (transcript at byte 0)")];
+    const want: ReturnType<typeof read> = [];
+    lengths.forEach((length, i) => {
+      const step = i + 1;
+      const [a, b, c] = [use(++n, 1, 0, 0), use(++n, 2, 0, 0), use(++n, 3, 0, 0)];
+      events.push(block(`m${step}a`, text(mark(step, length, "started")), a), block(`m${step}b`, text("work"), b), block(`m${step}c`, text(mark(step, length, "done")), c));
+      runLog.push(stamp(10 * step, mark(step, length, "started")), stamp(10 * step + 5, mark(step, length, "done")));
+      want.push({ key: KEY(step), state: "done", startedSec: 10 * step, endedSec: 10 * step + 5, tokens: total(a) + total(b) + total(c) });
+    });
+    if (final) events.push(result(mark(lengths.length, lengths.at(-1)!, "done")));
+    return { got: read(events, runLog, final), want };
+  };
+
+  for (const final of [false, true]) {
+    test(`titles from 5 to 400 characters, long and short steps mixed, give each step its time and tokens (final ${final}) (AC-1, AC-6)`, () => {
+      for (const length of LENGTHS) {
+        for (const lengths of [[length, 5, length], [5, length, 5]]) {
+          const { got, want } = plain(lengths, final);
+          expect({ lengths, got }).toEqual({ lengths, got: want });
+        }
+      }
+    });
+
+    test(`parallel subagent calls between one message's content blocks leave each step's time and tokens as its marks give them (final ${final}) (AC-4, AC-6)`, () => {
+      for (const length of [5, 200]) {
+        const [u1, ua, ub, u4] = [use(10, 1, 0, 0), use(20, 2, 0, 0), use(30, 3, 0, 0), use(40, 4, 0, 0)];
+        const events = [
+          block("m1", text(mark(1, length, "started")), u1),
+          block("m1", agent("toolu_a"), u1),
+          block("sa", text("first subagent"), ua, { parent_tool_use_id: "toolu_a" }),
+          block("m1", agent("toolu_b"), u1),
+          block("sb", text("second subagent"), ub, { parent_tool_use_id: "toolu_b" }),
+          block("m1", tool, u1),
+          block("m2", text(mark(1, length, "done")), u4),
+        ];
+        if (final) events.push(result(mark(1, length, "done")));
+        const runLog = [stamp(0, "lock"), stamp(1, "model turn started (transcript at byte 0)"), stamp(10, mark(1, length, "started")), stamp(40, mark(1, length, "done"))];
+        expect({ length, got: read(events, runLog, final) }).toEqual({
+          length,
+          got: [{ key: KEY(1), state: "done", startedSec: 10, endedSec: 40, tokens: total(u1) + total(ua) + total(ub) + total(u4) }],
+        });
+      }
+    });
+  }
 });
