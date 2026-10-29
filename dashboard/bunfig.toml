@@ -1,2 +1,2 @@
 [test]
-preload = ["./test/helpers/private-tmpdir.ts"]
+preload = ["./test/helpers/preload/same-env.ts", "./test/helpers/preload/private-tmpdir.ts"]

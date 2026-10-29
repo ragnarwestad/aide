@@ -7,7 +7,7 @@ import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
-const DASHBOARD = join(import.meta.dir, "..", "..");
+const DASHBOARD = join(import.meta.dir, "..", "..", "..");
 
 describe("a test process keeps its temp directories inside its own", () => {
   test("tmpdir() is a directory made for this test process", () => {
