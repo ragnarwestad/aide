@@ -78,6 +78,11 @@ run_model_turn() {
 
 # --- reading what came back --------------------------------------------------
 session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""
+# Where this turn's own bytes begin in the transcript. Every turn of a step
+# appends to the one transcript — the review's and verification's side turns
+# included — so the last closing event or limit event in the file may be an
+# earlier turn's. The reads of how this turn ended start here.
+local turn_from=$(( ${turn_at:-0} + 1 ))
 # The turn's own final text — the one piece of "what came back" nothing
 # reads today. Reset here, unconditionally like the globals above, for
 # `set -u` safety: a caller reading it on a path where no branch below
@@ -123,8 +128,9 @@ if [ "$tool" = "codex" ]; then
   # and "the last line" would report the wrong thing every run. A failed
   # turn is a result too — it says the step ran and did not finish,
   # which is a different answer from "the CLI never said anything".
-  result_json="$(jq -Rc 'fromjson? | select(type == "object" and (.type == "turn.completed" or .type == "turn.failed"))' \
-    "$transcript" 2>/dev/null | tail -n 1)"
+  result_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+    | jq -Rc 'fromjson? | select(type == "object" and (.type == "turn.completed" or .type == "turn.failed"))' \
+      2>/dev/null | tail -n 1)"
   # The thread Codex named for itself, read back the way claude's
   # session id is. It arrives FIRST, in `thread.started`, not in the
   # closing event — so it is picked out of its own event.
@@ -171,8 +177,9 @@ if [ "$tool" = "codex" ]; then
     # The last `error` or `turn.failed` event is how the turn ended; an
     # earlier at-capacity error that a different one followed is not.
     # Selected as a whole event first, then read, like the message above.
-    codex_error_json="$(jq -Rc 'fromjson? | select(type == "object" and (.type == "error" or .type == "turn.failed"))' \
-      "$transcript" 2>/dev/null | tail -n 1)"
+    codex_error_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+      | jq -Rc 'fromjson? | select(type == "object" and (.type == "error" or .type == "turn.failed"))' \
+        2>/dev/null | tail -n 1)"
     codex_error=""
     [ -n "$codex_error_json" ] && codex_error="$(jq -r '(.message // .error.message // .error // empty) | tostring' \
       <<<"$codex_error_json" 2>/dev/null)"
@@ -236,8 +243,8 @@ elif [ "$tool" = "opencode" ]; then
       | . + {total: (.input + .output + .cacheRead + .cacheCreation)}' <<<"$steps_json")"
   fi
 else
-result_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "result")' \
-  "$transcript" 2>/dev/null | tail -n 1)"
+result_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null \
+  | jq -Rc 'fromjson? | select(type == "object" and .type == "result")' 2>/dev/null | tail -n 1)"
 # The model the CLI says it started on: the `init` event, not `modelUsage`,
 # which lists helper models too. The last `init` that names one wins, like
 # the last `result` (a resumed turn writes its own). A stand-in names no
@@ -259,11 +266,11 @@ fi
 # (`overageStatus: rejected`, `overageDisabledReason: out_of_credits`,
 # `isUsingOverage: false`), so the credit in use is what tells the two
 # apart. Absent means false: an older CLI emitted neither field.
-provider_limit_json="$(jq -Rc 'fromjson? | select(
+provider_limit_json="$(tail -c +"$turn_from" "$transcript" 2>/dev/null | jq -Rc 'fromjson? | select(
   type == "object" and .type == "rate_limit_event" and
   .rate_limit_info.status == "rejected" and
   (.rate_limit_info.isUsingOverage // false) == false
-)' "$transcript" 2>/dev/null | tail -n 1)"
+)' 2>/dev/null | tail -n 1)"
 if [ -n "$provider_limit_json" ]; then
   provider_limit_out="$(claude_provider_limit "$provider_limit_json")"
   # The event IS the stop; a shape that could not be read still is one.

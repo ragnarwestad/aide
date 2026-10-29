@@ -305,6 +305,27 @@ describe("scheduleSteps", () => {
     expect(got[2]).toMatchObject({ state: "running", since: "2026-10-03T10:00:20.000Z" });
   });
 
+  test("a step whose title makes its started mark too long for the Log's clip has its seconds as well", () => {
+    // 17 characters of mark before the title and 10 after it: 135 makes the started mark 162 long and the done mark 159.
+    const title = "t".repeat(135);
+    const start1 = `--- Step 1 of 2: ${title} — started`;
+    const done1 = `--- Step 1 of 2: ${title} — done`;
+    const file = stamped(
+      [said(start1), said(done1), said("--- Step 2 of 2: Write the report — started"), said("--- Step 2 of 2: Write the report — done")],
+      [
+        [0, "--- Step Aide: preparing — started"],
+        [2, "--- Step Aide: preparing — done"],
+        [3, "model turn started (transcript at byte 0)"],
+        [4, start1],
+        [19, done1],
+        [20, "--- Step 2 of 2: Write the report — started"],
+        [30, "--- Step 2 of 2: Write the report — done"],
+      ],
+    );
+    const got = scheduleSteps(scheduled({ streamFile: file }), "en");
+    expect(got.map((s) => [s.state, s.seconds])).toEqual([["done", 2], ["done", 15], ["done", 10]]);
+  });
+
   test("a queued job with no log yet has no steps", () => {
     expect(scheduleSteps(scheduled({ state: "queued", streamFile: undefined }), "en")).toEqual([]);
   });

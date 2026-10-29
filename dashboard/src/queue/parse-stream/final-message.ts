@@ -41,7 +41,7 @@ function rawFinalMessage(text: string, opts: SummarizeOptions): string | undefin
  *  prose clipped, each step mark on its own — and so are said again by `raw`
  *  in full. */
 function repeatedTail(lines: string[], raw: string, whole: boolean): number {
-  const clipped = splitMarks(raw).map((p) => esc(prose(p.text, whole && !p.mark)));
+  const clipped = splitMarks(raw).map((p) => esc(p.mark ? p.text : prose(p.text, whole)));
   const n = clipped.length;
   return n > 0 && n <= lines.length && clipped.every((c, i) => lines[lines.length - n + i] === c) ? n : 0;
 }
