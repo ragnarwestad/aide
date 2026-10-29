@@ -28,6 +28,7 @@
   - [22. An analysis and a plan that are easier to read](#22-an-analysis-and-a-plan-that-are-easier-to-read)
   - [23. An agent that tries the criteria in a browser before a person ticks them](#23-an-agent-that-tries-the-criteria-in-a-browser-before-a-person-ticks-them)
   - [24. One spec in sections, each analysed and implemented in turn on one branch](#24-one-spec-in-sections-each-analysed-and-implemented-in-turn-on-one-branch)
+  - [25. A plain way to run agents Aide has no support of its own for](#25-a-plain-way-to-run-agents-aide-has-no-support-of-its-own-for)
 
 ---
 
@@ -43,7 +44,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 25.
+same idea later. The next number is 26.
 
 ## To consider
 
@@ -481,3 +482,31 @@ Then compare the analyses' cost, the judge's score, the original tests and how f
 (idea 15). The second round needs a chain mode in `scripts/replay_specs`, where each spec starts from the result of
 the one before it. Two rounds of five or six specs cost roughly $80–150 and several hours on the serving host, from
 the same usage limit as the board.
+
+### 25. A plain way to run agents Aide has no support of its own for
+
+From looking at [T3 Code](https://github.com/pingdotgg/t3code) (2026-10-29), which adds agents such as Devin, Cline
+and Kimi through the [Agent Client Protocol](https://agentclientprotocol.com/) (ACP): one protocol over stdin and
+stdout between a client and any agent that speaks it. The [list of agents](https://agentclientprotocol.com/overview/agents)
+runs to some fifty, Cursor, Gemini CLI and Kiro among them.
+
+Where the four AIs Aide runs stand:
+
+- **OpenCode** and **Copilot** speak it themselves (`opencode acp`, `copilot --acp`, the latter a preview).
+- **Claude Code** and **Codex** do not. The ACP project keeps adapters for them (`claude-agent-acp`, `codex-acp`),
+  which neither Anthropic nor OpenAI stands behind.
+
+Why it does not replace how Aide runs the four today: the protocol carries none of what the board reads from a step.
+
+- **Tokens:** only how full the context is (`usage_update`'s `used` and `size`), not input, output and cache tokens.
+- **Why a turn stopped:** `end_turn`, `max_tokens`, `max_turn_requests`, `refusal` or `cancelled`. Nothing says a
+  usage limit was reached or when it resets, or that a model is at capacity.
+- **The model:** not chosen when a session starts. Each agent offers its own settings for it.
+- **Permissions:** the agent asks the client before each tool call, so the board would answer every request itself,
+  in place of the sandbox and deny list a Claude step runs under today.
+
+What is left could be a fifth, plain way to run a step, for an agent Aide has no support of its own for, with the
+board showing less for it: no tokens per step, and a stop at a usage limit read as an ordinary failure.
+
+Worth taking up when someone wants to run an agent outside the four, or when the protocol reports tokens and usage
+limits.
