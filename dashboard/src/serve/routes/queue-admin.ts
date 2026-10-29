@@ -10,7 +10,7 @@ import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
-import { isToolPart, SETTINGS_STEPS, TOOL_PARTS } from "../../render";
+import { SETTINGS_STEPS, type ToolCheck, type ToolModels, type ToolUsage } from "../../render";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded } from "../serve-helpers";
 import { CHECKABLE_TOOLS, checkTool, isCheckableTool, recordCheck } from "../tool-check.ts";
 import { readUsage, recordUsage } from "../tool-usage";
@@ -39,14 +39,14 @@ export async function handleQueueAdminRoutes(
     return json({ ok: true, job: result.job });
   }
 
-  // Asking one tool one of three things, as the tab whose Check was
-  // pressed shows it: whether it is usable on this host (Installation),
-  // how much of its subscription is used (Usage), or which models
-  // it offers (Models). A press reads that one and leaves the other two
-  // readings as they were. A GET never runs any of them: each spawns a CLI
-  // and reaches the network, so they happen when a button is pressed and
-  // at no other time. The usage and the models are read here and nowhere
-  // else.
+  // Asking one tool three things at once, as its three tabs show them:
+  // whether it is usable on this host (Installation), how much of its
+  // subscription is used (Usage), and which models it offers (Models). One
+  // press reads all three side by side; a reading that fails is stored as
+  // one that failed and the other two are stored as they came. A GET never
+  // runs any of them: each spawns a CLI and reaches the network, so they
+  // happen when a button is pressed and at no other time. The usage and
+  // the models are read here and nowhere else.
   if (path === "/api/queue/settings/check") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req);
@@ -58,36 +58,30 @@ export async function handleQueueAdminRoutes(
     if (!isCheckableTool(tool)) {
       return json({ error: `unknown tool: the checkable ones are ${CHECKABLE_TOOLS.join(", ")}` }, 400);
     }
-    const part = (raw as Record<string, unknown> | null)?.part;
-    if (!isToolPart(part)) {
-      return json({ error: `unknown tab: a Check reads one of ${TOOL_PARTS.join(", ")} — reload the page and press it again` }, 400);
-    }
     const probe = ctx.opts.toolProbe;
-    if (part === "installation") {
-      // Only this tool's own models: asking OpenCode whether a Claude
-      // model is in its list would report every one of them missing.
-      const configuredModels = Object.values(ctx.queue.defaults.modelChoices ?? {})
-        .filter((choice) => (choice.tool ?? "claude") === tool)
-        .map((choice) => choice.model)
-        .filter((model): model is string => typeof model === "string" && model.length > 0);
-      const check = probe ? await probe.check(tool, { configuredModels }) : await checkTool(tool, { configuredModels });
-      recordCheck(check);
-      return json({ ok: true, check });
-    }
-    if (part === "subscription") {
-      const usage = probe ? await probe.usage(tool) : await readUsage(tool);
-      recordUsage(usage);
-      return json({ ok: true, usage });
-    }
     // Every model value of this tool's choices, its key where it names
     // none: what the models read are set against.
     const configured = Object.entries(ctx.queue.defaults.modelChoices ?? {})
       .filter(([, choice]) => (choice.tool ?? "claude") === tool)
       .map(([name, choice]) => choice.model ?? name);
-    const models = probe ? await probe.models(tool, { configured }) : await readModels(tool, { configured });
-    recordModels(models);
-    recordClaudeVersions(ctx.queue, models, ctx.opts.modelIdsPath);
-    return json({ ok: true, models });
+    const at = new Date().toISOString();
+    const failed = (err: unknown) => (err instanceof Error ? err.message : String(err));
+    const [check, usage, models] = await Promise.allSettled([
+      probe ? probe.check(tool) : checkTool(tool),
+      probe ? probe.usage(tool) : readUsage(tool),
+      probe ? probe.models(tool, { configured }) : readModels(tool, { configured }),
+    ]);
+    const checked: ToolCheck = check.status === "fulfilled" ? check.value
+      : { tool, at, found: false, lines: [], extra: [], error: `The check could not be run: ${failed(check.reason)}` };
+    const used: ToolUsage = usage.status === "fulfilled" ? usage.value
+      : { tool, at, windows: [], error: failed(usage.reason) };
+    const read: ToolModels = models.status === "fulfilled" ? models.value
+      : { tool, at, offered: [], error: failed(models.reason) };
+    recordCheck(checked);
+    recordUsage(used);
+    recordModels(read);
+    recordClaudeVersions(ctx.queue, read, ctx.opts.modelIdsPath);
+    return json({ ok: true, check: checked, usage: used, models: read });
   }
 
   // Matched by string equality, so it and the check route above cannot

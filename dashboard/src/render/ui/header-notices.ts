@@ -14,7 +14,7 @@ import { getDeployFaultNotice } from "./faults/deploy-fault.ts";
 import { getPendingRestartNotice, getPendingRestartStartedAt } from "./pending-restart.ts";
 import { t, type Language } from "../../i18n";
 import { renderSentence } from "../../i18n/message.ts";
-import { toolsWithFaults } from "./tool-checks.ts";
+import { toolsMissingModels, toolsWithFaults } from "./tool-checks.ts";
 import { TOOL_TAB_LABELS } from "../pages/settings-page/tools.ts";
 
 /** Where deploy/install-after-merge.sh writes its log: macOS's own log
@@ -92,6 +92,22 @@ function toolFaultNotices(lang: Language): string {
     .join("");
 }
 
+/** An AI whose configured models its last Models reading no longer offers.
+ *  One line per AI, linking to its Models tab, where Remove is. Worked out
+ *  from the choices as they are now, so a Remove clears it at once. */
+function missingModelsNotices(lang: Language): string {
+  return toolsMissingModels()
+    .map(({ tool, models }) => {
+      const values = { tool: TOOL_TAB_LABELS[tool], models: models.join(", ") };
+      const where = t(lang, "shell.modelsGoneWhere");
+      const MARK = "\u0000";
+      const link = `<a data-goto href="${esc(`/settings?tab=${tool}&aitab=models`)}">${esc(where)}</a>`;
+      const html = esc(t(lang, "shell.modelsGone", { ...values, where: MARK })).replace(MARK, link);
+      return rowMessage("waiting", t(lang, "shell.modelsGone", { ...values, where }), { tag: "p", hook: "tool-fault", html });
+    })
+    .join("");
+}
+
 /** A project whose own checkout the dashboard will not touch (2026-09-21).
  *  One line per project: two broken checkouts are two different things
  *  to look at, and the line carries what git said, because that is the
@@ -118,6 +134,6 @@ export function headerNotices(lang: Language): string {
     .map((warning) => rowMessage("waiting", warning, { tag: "p", hook: "install-warning" }))
     .join("");
   return (
-    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + deployFaultNotice(lang) + restartWaitingNotice(lang)
+    installBanner + checkoutFaultNotices(lang) + toolFaultNotices(lang) + missingModelsNotices(lang) + deployFaultNotice(lang) + restartWaitingNotice(lang)
   );
 }

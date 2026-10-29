@@ -54,6 +54,21 @@ describe("Settings routes", () => {
     expect(html).toContain("Not checked yet.");
   });
 
+  test("opening any of an AI's tabs after a press reads nothing and shows the press's readings (AC-11)", async () => {
+    forgetChecks();
+    const toolProbe = countingProbe();
+    const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
+    expect((await pressCheck(base, "claude")).status).toBe(200);
+    const reads = () => [toolProbe.checks, toolProbe.usageReads, toolProbe.modelReads];
+    expect(reads()).toEqual([1, 1, 1]);
+    for (const aitab of ["models", "subscription", "installation"]) {
+      const html = await (await fetch(`${base}/settings?tab=claude&aitab=${aitab}`)).text();
+      expect(html).toContain("2026-10-02 19:00:00 UTC");
+      expect(reads()).toEqual([1, 1, 1]);
+    }
+    forgetChecks();
+  });
+
   test("the old Phases link still serves the models form", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
     const html = await (await fetch(`${base}/settings?tab=phases`)).text();
@@ -99,8 +114,8 @@ describe("Settings routes", () => {
     return probe;
   };
 
-  const pressCheck = (base: string, tool: string, part?: string) =>
-    fetch(`${base}/api/queue/settings/check`, { method: "POST", headers: AUTH, body: JSON.stringify({ tool, part }) });
+  const pressCheck = (base: string, tool: string) =>
+    fetch(`${base}/api/queue/settings/check`, { method: "POST", headers: AUTH, body: JSON.stringify({ tool }) });
 
   /** Readings stored before the press, each from an earlier moment. */
   const EARLIER = "2026-10-01T08:00:00.000Z";
@@ -113,73 +128,75 @@ describe("Settings routes", () => {
     check: lastChecks().claude?.at, usage: lastUsage().claude?.at, models: lastModels().claude?.at,
   });
 
-  test.each([
-    ["installation", "check", { checks: 1, usageReads: 0, modelReads: 0 }],
-    ["subscription", "usage", { checks: 0, usageReads: 1, modelReads: 0 }],
-    ["models", "models", { checks: 0, usageReads: 0, modelReads: 1 }],
-  ] as const)("a press on the %s tab reads only that, and leaves the other two readings as they were", async (part, kind, reads) => {
+  /** Each half logs when it starts and, a moment later, when it ends. */
+  const waitingProbe = (log: string[], fail: Partial<Record<"check" | "usage" | "models", Error>> = {}) => {
+    const wait = () => new Promise((resolve) => setTimeout(resolve, 20));
+    const half = async <T>(name: "check" | "usage" | "models", value: T): Promise<T> => {
+      log.push(`${name} start`);
+      await wait();
+      log.push(`${name} end`);
+      if (fail[name]) throw fail[name];
+      return value;
+    };
+    return {
+      check: (tool: CheckableTool) => half("check", { tool, at: "2026-10-02T19:00:00.000Z", found: true, lines: [], extra: [] } as ToolCheck),
+      usage: (tool: CheckableTool) => half("usage", { tool, at: "2026-10-02T19:00:00.000Z", windows: [] } as ToolUsage),
+      models: (tool: CheckableTool) => half("models", { tool, at: "2026-10-02T19:00:00.000Z", offered: [] } as ToolModels),
+    };
+  };
+
+  test("one press reads Installation, Usage and Models side by side, and stores what each returned (AC-2)", async () => {
     forgetChecks();
     storeEarlier();
+    const log: string[] = [];
+    const { base } = start({ queueDefaults: DEFAULTS, toolProbe: waitingProbe(log) });
+    const res = await pressCheck(base, "claude");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; check: ToolCheck; usage: ToolUsage; models: ToolModels };
+    expect(log.slice(0, 3).sort()).toEqual(["check start", "models start", "usage start"]);
+    expect(log.slice(3).every((line) => line.endsWith("end"))).toBe(true);
+    expect(lastChecks().claude).toEqual(body.check);
+    expect(lastUsage().claude).toEqual(body.usage);
+    expect(lastModels().claude).toEqual(body.models);
+    expect(stored()).toEqual({ check: body.check.at, usage: body.usage.at, models: body.models.at });
+    forgetChecks();
+  });
+
+  test("a part named in the body is ignored, and a press without one still reads all three (AC-2)", async () => {
+    forgetChecks();
     const toolProbe = countingProbe();
     const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
-    const res = await pressCheck(base, "claude", part);
-    expect(res.status).toBe(200);
-    expect(Object.keys((await res.json()) as object).sort()).toEqual(["ok", kind].sort());
-    expect({ checks: toolProbe.checks, usageReads: toolProbe.usageReads, modelReads: toolProbe.modelReads }).toEqual(reads);
-    const now = "2026-10-02T19:00:00.000Z";
-    expect(stored()).toEqual({
-      check: kind === "check" ? now : EARLIER,
-      usage: kind === "usage" ? now : EARLIER,
-      models: kind === "models" ? now : EARLIER,
+    const res = await fetch(`${base}/api/queue/settings/check`, {
+      method: "POST", headers: AUTH, body: JSON.stringify({ tool: "claude", part: "everything" }),
     });
-    forgetChecks();
-  });
-
-  test("a press naming no tab, or one it does not know, is refused and reads nothing", async () => {
-    forgetChecks();
-    const toolProbe = countingProbe();
-    const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
-    for (const part of [undefined, "everything"]) {
-      const res = await pressCheck(base, "claude", part);
-      expect(res.status).toBe(400);
-      const { error } = (await res.json()) as { error: string };
-      for (const name of ["models", "subscription", "installation"]) expect(error).toContain(name);
-    }
-    expect(toolProbe.checks + toolProbe.usageReads + toolProbe.modelReads).toBe(0);
-  });
-
-  test("an AI's tab opens on Models: the one Check on it reads the models", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
-    const html = await (await fetch(`${base}/settings?tab=claude`)).text();
-    const checks = [...html.matchAll(/<form [^>]*action="\/api\/queue\/settings\/check"[^>]*>([\s\S]*?)<\/form>/g)];
-    expect(checks.length).toBe(1);
-    expect(checks[0]![1]).toContain('name="part" value="models"');
-  });
-
-  test("a press of Check answers with the AI's usage, and stores it", async () => {
-    forgetChecks();
-    const toolProbe = countingProbe();
-    const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
-    const res = await pressCheck(base, "claude", "subscription");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { usage: ToolUsage };
-    expect(body.usage.windows).toEqual([{ name: "Stand-in window", usedPercent: 42 }]);
+    expect([toolProbe.checks, toolProbe.usageReads, toolProbe.modelReads]).toEqual([1, 1, 1]);
+    forgetChecks();
+  });
+
+  test("a reading that throws is stored as one that failed, and the other two are stored as they came (AC-3)", async () => {
+    forgetChecks();
+    const probe = waitingProbe([], { models: new Error("opencode would not start") });
+    const { base } = start({ queueDefaults: DEFAULTS, toolProbe: probe });
+    const res = await pressCheck(base, "claude");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { check: ToolCheck; usage: ToolUsage; models: ToolModels };
+    expect(body.models.error).toContain("opencode would not start");
+    expect(lastModels().claude?.error).toContain("opencode would not start");
+    expect(lastChecks().claude).toEqual(body.check);
+    expect(lastChecks().claude?.error).toBeUndefined();
     expect(lastUsage().claude).toEqual(body.usage);
     forgetChecks();
   });
 
-  test("usage is read by a press of Check, never by opening a page", async () => {
+  test("a check that throws is stored as one that could not run (AC-3)", async () => {
     forgetChecks();
-    const toolProbe = countingProbe();
-    const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
-    await (await fetch(`${base}/settings`)).text();
-    await (await fetch(`${base}/settings?tab=claude`)).text();
-    expect(toolProbe.usageReads).toBe(0);
-    expect((await pressCheck(base, "claude", "subscription")).status).toBe(200);
-    expect(toolProbe.usageReads).toBe(1);
-    const html = await (await fetch(`${base}/settings?tab=claude&aitab=subscription`)).text();
-    expect(html.split("Stand-in window").length - 1).toBe(1);
-    expect(toolProbe.usageReads).toBe(1);
+    const probe = waitingProbe([], { check: new Error("spawn failed") });
+    const { base } = start({ queueDefaults: DEFAULTS, toolProbe: probe });
+    expect((await pressCheck(base, "claude")).status).toBe(200);
+    expect(lastChecks().claude?.error).toContain("spawn failed");
+    expect(lastUsage().claude).toBeDefined();
+    expect(lastModels().claude).toBeDefined();
     forgetChecks();
   });
 

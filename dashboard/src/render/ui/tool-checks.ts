@@ -14,7 +14,8 @@
 
 import type { CheckableTool, ToolCheck } from "../pages/settings-page/tools.ts";
 import type { ToolUsage } from "../pages/settings-page/usage.ts";
-import type { ToolModels } from "../pages/settings-page/models.ts";
+import { modelLists, sameModel, type ToolModels } from "../pages/settings-page/models.ts";
+import type { ModelChoice } from "../../queue/types.ts";
 
 const LAST: Map<CheckableTool, ToolCheck> = new Map();
 
@@ -34,6 +35,14 @@ let configured: (() => CheckableTool[]) | undefined;
 
 export function setConfiguredTools(source: () => CheckableTool[]): void {
   configured = source;
+}
+
+/** The model choices as they are now, read live each time the notice is
+ *  drawn: a Remove on the Models tab changes them with no new Check. */
+let choices: (() => Record<string, ModelChoice> | undefined) | undefined;
+
+export function setModelChoices(source: () => Record<string, ModelChoice> | undefined): void {
+  choices = source;
 }
 
 export function recordCheck(check: ToolCheck): void {
@@ -67,6 +76,7 @@ export function forgetChecks(): void {
   USAGE.clear();
   MODELS.clear();
   configured = undefined;
+  choices = undefined;
 }
 
 /** Which tools this server has found something wrong with, as the header
@@ -88,6 +98,25 @@ export function toolsWithFaults(): { tool: CheckableTool; problems: string[] }[]
       if (entry.ok === false) problems.push(entry.problem ?? entry.question.replace(/\?$/, "").toLowerCase());
     }
     if (problems.length > 0) out.push({ tool: check.tool, problems });
+  }
+  return out;
+}
+
+/** Each AI whose configured models its last Models reading no longer
+ *  offers. A reading that failed, an AI the board cannot ask, and an AI
+ *  with no reading since the board started name nothing. A Claude name
+ *  Claude Code answered for (`opus[1m]`, `opusplan`) is a model it knows. */
+export function toolsMissingModels(): { tool: CheckableTool; models: string[] }[] {
+  const live = choices?.();
+  const out: { tool: CheckableTool; models: string[] }[] = [];
+  for (const reading of MODELS.values()) {
+    if (reading.error || reading.noSource) continue;
+    const named = reading.named ?? [];
+    const gone = modelLists(reading.tool, live, reading).gone
+      .filter((c) => !named.some((m) => sameModel(reading.tool, m.model, c.model)));
+    if (gone.length > 0) {
+      out.push({ tool: reading.tool, models: gone.map((c) => (c.name === c.model ? c.name : `${c.name} (${c.model})`)) });
+    }
   }
   return out;
 }

@@ -22,6 +22,8 @@ export const nb: Record<TranslationKey, string> = {
   "shell.installWarning": "siste installasjon fant et problem: {problem} — hele utskriften står i {path}",
   "shell.toolFault": "{tool}: {problems} — trykk Check på {where}",
   "shell.toolFaultWhere": "Installasjon-fanen i Settings",
+  "shell.modelsGone": "{tool}: {models} tilbys ikke lenger — fjern dem på {where}",
+  "shell.modelsGoneWhere": "Modeller-fanen i Settings",
   "shell.checkoutFault": "{project}: dashbordet kan ikke bruke sin egen utsjekk — {said}",
   "deploy.title": "Deployer…",
   "deploy.stepFetch": "Hent fra origin",
@@ -324,6 +326,8 @@ export const nb: Record<TranslationKey, string> = {
     "OpenCode har ingen modell selv: hver modell hører til en leverandør og heter leverandør/modell. aide installerer bare instruksjonene, til {instructions}, og OpenCode finner aides skills der de allerede ligger, i {skills} og {claudeSkills}.",
   "settings.checkHelpTitle":
     "Hva Check finner ut",
+  "settings.checkHelpAll":
+    "Ett trykk på Check leser alle tre fanene samtidig, og hver fane viser deretter det trykket fant.",
   "settings.part.models": "Modeller",
   "settings.part.subscription": "Forbruk",
   "settings.part.installation": "Installasjon",
@@ -350,7 +354,7 @@ export const nb: Record<TranslationKey, string> = {
   "settings.checkHelp.installation.copilot":
     "Denne sjekken kjører aide-preflight. Den forteller om kommandolinjen er installert og hvilken versjon, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet. Den kan ikke fortelle om Copilot er logget inn: Copilot-kommandolinjen har ingen kommando for det, så kjør copilot login hvis en kjøring blir avvist.",
   "settings.checkHelp.installation.opencode":
-    "Denne sjekken kjører aide-preflight, opencode providers list og opencode models. Den forteller om kommandolinjen er installert og hvilken versjon, om en leverandør er logget inn, hvor hver del av aide havner og om den er der, om de installerte filene fortsatt stemmer med dette repoet, og om hver modell som er satt opp på denne serveren fortsatt står på listen. Her ER leverandøren innloggingen, siden OpenCode når hver modell gjennom en.",
+    "Denne sjekken kjører aide-preflight og opencode providers list. Den forteller om kommandolinjen er installert og hvilken versjon, om en leverandør er logget inn, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet. Her ER leverandøren innloggingen, siden OpenCode når hver modell gjennom en.",
   "settings.models.supported": "Støttes av Aide nå",
   "settings.models.available": "Tilgjengelig",
   "settings.models.gone": "Ikke lenger tilgjengelig",

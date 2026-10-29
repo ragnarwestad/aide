@@ -72,6 +72,6 @@ export async function offeredChoices(base: string): Promise<Record<string, strin
 export const post = (base: string, path: string, body: Record<string, string>) =>
   fetch(`${base}${path}`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
 
-/** A press of the Check on an AI's Models tab, the one that reads its models. */
+/** A press of an AI's one Check, which reads its Installation, Usage and Models. */
 export const pressCheck = (base: string, tool: string) =>
-  post(base, "/api/queue/settings/check", { tool, part: "models" });
+  post(base, "/api/queue/settings/check", { tool });

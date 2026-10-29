@@ -1,12 +1,13 @@
-// What each of an AI's three Checks reads sits behind a "(?)" inside that
-// tab's Check form, hidden until the reader opens it. Only a real browser
-// opens a `<details>` on a press.
+// What an AI's one Check reads sits behind a "(?)" inside its Check form,
+// hidden until the reader opens it. Only a real browser opens a
+// `<details>` on a press.
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { t } from "../../../src/i18n";
-import { TOOL_PARTS, TOOL_TABS } from "../../../src/render";
+import { TOOL_TABS } from "../../../src/render";
+import { checkHelp } from "../../../src/render/pages/settings-page/tools.ts";
 
 browserDeadline();
 
@@ -26,13 +27,13 @@ afterAll(async () => {
   harness.cleanup();
 });
 
-/** Opens one tab inside an AI's tab, checks the explanation is hidden,
- *  opens its Check form's "(?)", and hands back the popover's text. */
-async function openHelp(tool: string, part: string, hidden: string): Promise<string> {
-  const address = `/settings?tab=${tool}&aitab=${part}`;
+/** Opens an AI's tab, checks the explanation is hidden, opens its Check
+ *  form's "(?)", and hands back the popover's text. */
+async function openHelp(tool: string, hidden: string): Promise<string> {
+  const address = `/settings?tab=${tool}`;
   await withBrowser(page.goto(`${base}${address}`), `page.goto(${address})`);
   expect(await page.getByText(hidden, { exact: false }).first().isVisible()).toBe(false);
-  const help = page.locator(`#check-${tool}-${part} details.intro`);
+  const help = page.locator(`#check-${tool} details.intro`);
   expect(await help.count()).toBe(1);
   await help.locator("summary").click();
   expect(await help.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
@@ -40,8 +41,9 @@ async function openHelp(tool: string, part: string, hidden: string): Promise<str
 }
 
 for (const tool of TOOL_TABS) {
-  test.each([...TOOL_PARTS])(`${tool}: what the %s tab's Check reads is behind the (?) in its Check form`, async (part) => {
-    const help = t("en", `settings.checkHelp.${part}.${tool}`);
-    expect(await openHelp(tool, part, help)).toBe(help);
+  test(`${tool}: what its Check reads is behind the (?) in its Check form`, async () => {
+    const lead = t("en", "settings.checkHelpAll");
+    expect(checkHelp("en", tool)).toContain(lead);
+    expect(await openHelp(tool, lead)).toContain(lead);
   });
 }

@@ -141,6 +141,21 @@ describe("removing a model choice", () => {
     expect(Object.keys(await offeredChoices(base))).not.toContain("gpt-5.6-luna");
   });
 
+  test("clears the line about models no longer offered at once, with no new Check", async () => {
+    forgetChecks();
+    const choices = { ...CHOICES, "opencode-gone": { tool: "opencode" as const, model: "opencode/gone" } };
+    const probe = modelsProbe({ opencode: OPENCODE_READING });
+    const { base } = serve(probe, choices);
+    await pressCheck(base, "opencode");
+    const reads = probe.modelReads.length;
+    const modelsLine = async () => (await (await fetch(`${base}/settings?tab=phases`)).text())
+      .includes("/settings?tab=opencode&amp;aitab=models");
+    expect(await modelsLine()).toBe(true);
+    expect((await post(base, REMOVE, { name: "opencode-gone" })).status).toBe(200);
+    expect(await modelsLine()).toBe(false);
+    expect(probe.modelReads.length).toBe(reads);
+  });
+
   test("a step's default model is refused, naming each step, and nothing changes", async () => {
     const { base, file } = serve();
     const before = await offeredChoices(base);

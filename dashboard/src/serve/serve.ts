@@ -1,5 +1,5 @@
 import { resolve, dirname } from "node:path";
-import { checkAllTools, setConfiguredTools, toolRechecker, type CheckableTool } from "./tool-check.ts";
+import { checkAllTools, setConfiguredTools, setModelChoices, toolRechecker, type CheckableTool } from "./tool-check.ts";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
 // The aide-dashboard server: serves every page of the board and its
@@ -141,13 +141,8 @@ export function createServer(opts: ServerOptions) {
   // children of its own.
   const notifier = new Notifier({ command: opts.queueNotifyCommand });
 
-  // The models configured for one tool, and the tools any model is
-  // configured for — read live, since Settings can change them.
-  const modelsFor = (tool: CheckableTool): string[] =>
-    Object.values(queue.defaults.modelChoices ?? {})
-      .filter((choice) => (choice.tool ?? "claude") === tool)
-      .map((choice) => choice.model)
-      .filter((model): model is string => typeof model === "string" && model.length > 0);
+  // The tools any model is configured for — read live, since Settings can
+  // change them.
   const configuredTools = (): CheckableTool[] => [
     ...new Set(Object.values(queue.defaults.modelChoices ?? {}).map((choice) => (choice.tool ?? "claude") as CheckableTool)),
   ];
@@ -166,7 +161,7 @@ export function createServer(opts: ServerOptions) {
     specsRoot: resolution.specsRoot,
     // Behind the same one flag as the check at start-up: a server nobody
     // asked to check anything never spawns a CLI to do it.
-    recheckTools: opts.checkToolsOnStart ? toolRechecker(modelsFor) : undefined,
+    recheckTools: opts.checkToolsOnStart ? toolRechecker() : undefined,
   });
   resolution.attachBranchFileSteps(schedules.branchFileSteps);
 
@@ -438,9 +433,10 @@ export function createServer(opts: ServerOptions) {
   // Only when asked. `cli.ts` is the one caller that asks; a test that
   // starts a server says nothing and gets nothing, which is what stops a
   // suite from spawning four CLIs per fixture.
+  setModelChoices(() => queue.defaults.modelChoices);
   if (opts.checkToolsOnStart) {
     setConfiguredTools(configuredTools);
-    void checkAllTools(modelsFor).catch(() => {
+    void checkAllTools().catch(() => {
       // Same best effort: a check that could not run leaves the tab
       // reading "not checked yet", which is true.
     });

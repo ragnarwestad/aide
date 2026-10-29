@@ -22,6 +22,8 @@ export const fr: Record<TranslationKey, string> = {
   "shell.installWarning": "la dernière installation d'aide a rencontré un problème : {problem} — la sortie complète est dans {path}",
   "shell.toolFault": "{tool}: {problems} — clique sur Check dans {where}",
   "shell.toolFaultWhere": "son onglet Installation dans Settings",
+  "shell.modelsGone": "{tool} : {models} n'est plus proposé — retire-le dans {where}",
+  "shell.modelsGoneWhere": "son onglet Modèles dans Settings",
   "shell.checkoutFault": "{project} : le tableau de bord ne peut pas utiliser sa propre copie — {said}",
   "deploy.title": "Déploiement…",
   "deploy.stepFetch": "Récupérer depuis origin",
@@ -321,6 +323,8 @@ export const fr: Record<TranslationKey, string> = {
     "OpenCode n'apporte aucun modèle à lui : chaque modèle appartient à un fournisseur et s'appelle fournisseur/modèle. aide installe seulement ses instructions, dans {instructions}, et OpenCode trouve les skills d'aide là où elles sont déjà, dans {skills} et {claudeSkills}.",
   "settings.checkHelpTitle":
     "Ce que Check découvre",
+  "settings.checkHelpAll":
+    "Un appui sur Check lit les trois onglets à la fois, et chaque onglet montre ensuite ce que cet appui a trouvé.",
   "settings.part.models": "Modèles",
   "settings.part.subscription": "Utilisation",
   "settings.part.installation": "Installation",
@@ -347,7 +351,7 @@ export const fr: Record<TranslationKey, string> = {
   "settings.checkHelp.installation.copilot":
     "Cette vérification lance aide-preflight. Elle te dit si la ligne de commande est installée et en quelle version, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt. Elle ne peut pas dire si Copilot est connecté : la ligne de commande de Copilot n'a aucune commande pour cela, alors lance copilot login si une exécution est refusée.",
   "settings.checkHelp.installation.opencode":
-    "Cette vérification lance aide-preflight, opencode providers list et opencode models. Elle te dit si la ligne de commande est installée et en quelle version, si un fournisseur est connecté, où va chaque partie d'aide et si elle y est, si les fichiers installés correspondent encore à ce dépôt, et si chaque modèle configuré sur ce serveur figure encore dans la liste. Ici, le fournisseur EST la connexion, puisqu'OpenCode atteint chaque modèle par l'un d'eux.",
+    "Cette vérification lance aide-preflight et opencode providers list. Elle te dit si la ligne de commande est installée et en quelle version, si un fournisseur est connecté, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt. Ici, le fournisseur EST la connexion, puisqu'OpenCode atteint chaque modèle par l'un d'eux.",
   "settings.models.supported": "Actuellement pris en charge par Aide",
   "settings.models.available": "Disponibles",
   "settings.models.gone": "Plus disponibles",

@@ -65,16 +65,16 @@ describe("checkTool", () => {
     expect(check.extra).toEqual([]);
   });
 
-  test("only OpenCode is asked whether its models still exist", async () => {
+  test.each(["claude", "codex", "copilot", "opencode"] as const)("%s's check asks nothing about models (AC-8)", async (tool) => {
     const run = fakeRun({
       "aide-preflight": { stdout: "found\n" },
       "auth status": { stdout: '{"loggedIn":true}' },
       "login status": { stdout: "Logged in using ChatGPT\n" },
+      "opencode providers list": { stdout: "1 credentials\n" },
     });
-    for (const tool of ["claude", "codex", "copilot"] as const) {
-      const check = await checkTool(tool, opts(run));
-      expect(check.extra.some((e) => e.question.includes("models"))).toBe(false);
-    }
+    const check = await checkTool(tool, opts(run));
+    expect(check.extra.some((e) => e.question.toLowerCase().includes("models"))).toBe(false);
+    expect((check.commands ?? []).some((c) => /\bmodels\b/.test(c))).toBe(false);
   });
 
   test("a CLI that is not installed is asked nothing at all", async () => {
@@ -217,36 +217,10 @@ describe("checkTool for OpenCode", () => {
       ...preflight,
       "opencode providers list": { stdout: "Credentials\n0 credentials\n" },
     });
-    const check = await checkTool("opencode", opts(run, { configuredModels: ["opencode/x"] }));
+    const check = await checkTool("opencode", opts(run));
     const provider = check.extra.find((e) => e.question === "Is it logged in?")!;
     expect(provider.ok).toBe(false);
     expect(provider.answer).toEqual({ key: "login.out", values: { command: "opencode providers login" } });
-  });
-
-  test("a configured model that is no longer listed is named", async () => {
-    const run = fakeRun({
-      ...preflight,
-      "opencode providers list": { stdout: "1 credentials\n" },
-      "opencode models": { stdout: "opencode/here\nopencode/also-here\n" },
-    });
-    const check = await checkTool(
-      "opencode",
-      opts(run, { configuredModels: ["opencode/here", "opencode/gone"] }),
-    );
-    const models = check.extra.find((e) => e.question.includes("models"))!;
-    expect(models.ok).toBe(false);
-    expect(models.detail).toContain("opencode/gone");
-    expect(models.detail).not.toContain("opencode/here");
-  });
-
-  test("every configured model still listed is a pass", async () => {
-    const run = fakeRun({
-      ...preflight,
-      "opencode providers list": { stdout: "1 credentials\n" },
-      "opencode models": { stdout: "opencode/here\n" },
-    });
-    const check = await checkTool("opencode", opts(run, { configuredModels: ["opencode/here"] }));
-    expect(check.extra.find((e) => e.question.includes("models"))!.ok).toBe(true);
   });
 
   // The rule this file exists for.
@@ -254,9 +228,8 @@ describe("checkTool for OpenCode", () => {
     const run = fakeRun({
       ...preflight,
       "opencode providers list": { code: 1 },
-      "opencode models": { code: 1 },
     });
-    const check = await checkTool("opencode", opts(run, { configuredModels: ["opencode/here"] }));
+    const check = await checkTool("opencode", opts(run));
     for (const entry of check.extra) {
       expect(entry.ok).toBeNull();
     }
@@ -264,29 +237,18 @@ describe("checkTool for OpenCode", () => {
       key: "login.unreadable", values: { command: "opencode providers list" },
     });
   });
-
-  test("nothing configured for the tool is nothing to check, not a pass", async () => {
-    const run = fakeRun({ ...preflight, "opencode providers list": { stdout: "1 credentials\n" } });
-    const check = await checkTool("opencode", opts(run, { configuredModels: [] }));
-    const models = check.extra.find((e) => e.question.includes("models"))!;
-    expect(models.ok).toBeNull();
-    // `opencode models` is not even run when there is nothing to compare.
-    expect(run.calls.some((c) => c.join(" ").includes("opencode models"))).toBe(false);
-  });
 });
 
 describe("the commands a check ran", () => {
-  test("every command is recorded, in order, exactly as it ran", async () => {
+  test("every command is recorded, in order, exactly as it ran — OpenCode asks nothing about models (AC-8)", async () => {
     const run = fakeRun({
       "aide-preflight": { stdout: "found\n" },
       "opencode providers list": { stdout: "1 credentials\n" },
-      "opencode models": { stdout: "opencode/here\n" },
     });
-    const check = await checkTool("opencode", opts(run, { configuredModels: ["opencode/here"] }));
+    const check = await checkTool("opencode", opts(run));
     expect(check.commands).toEqual([
       "aide-preflight opencode",
       "opencode providers list",
-      "opencode models",
     ]);
   });
 
@@ -406,7 +368,7 @@ describe("the check before a job starts", () => {
     forgetChecks();
     let clock = Date.parse("2026-09-17T08:00:00.000Z");
     const asked: string[] = [];
-    const recheck = toolRechecker(() => [], {
+    const recheck = toolRechecker({
       now: () => new Date(clock),
       check: async (tool) => {
         asked.push(tool);

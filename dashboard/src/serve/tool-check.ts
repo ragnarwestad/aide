@@ -9,19 +9,18 @@
 // "Not a pair: where aide installs for each AI").
 //
 // What the preflight cannot answer is asked separately, and only where
-// there is something to ask: OpenCode reaches a model through a provider
-// and can list what that provider offers, so its own two questions are
-// answerable here. Which models each AI offers is read by a press of
+// there is something to ask: whether the AI is logged in, and for OpenCode
+// whether a provider is. Which models each AI offers is read by a press of
 // Check alone (`tool-models/`), never by this check, which also runs at
 // start and before waiting jobs.
 
 import { runScript, scriptFor } from "./land-branch/run-script.ts";
-import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, toolsWithFaults } from "../render/ui/tool-checks.ts";
+import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults } from "../render/ui/tool-checks.ts";
 
 // The store lives in the render layer, which is where both readers are
 // and which may not import this file. Re-exported so a caller has one
 // import site for "check a tool and remember the answer".
-export { forgetChecks, lastChecks, recordCheck, setConfiguredTools, toolsWithFaults };
+export { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults };
 import { CHECKABLE_TOOLS } from "../render";
 import type { CheckableTool, ExtraCheck, ToolCheck } from "../render";
 import type { BoardMessage } from "../i18n/message.ts";
@@ -47,9 +46,6 @@ const lines = (text: string): string[] =>
   stripAnsi(text).split("\n").map((l) => l.trimEnd()).filter((l) => l.trim().length > 0);
 
 export interface CheckOptions {
-  /** The configured model names for this tool, as the CLI would be given
-   *  them. Only OpenCode's are asked about here. */
-  configuredModels?: string[];
   /** Test seam: what to run instead of the real binaries. */
   run?: typeof runScript;
   /** Test seam: where to find the scripts. */
@@ -99,39 +95,6 @@ async function opencodeProviderCheck(
   if (/\b0 credentials\b/.test(stripAnsi(providers.stdout))) return loginOut("opencode providers login");
   return { question: LOGIN_QUESTION, ok: true, detail: "", answer: loggedIn(undefined, undefined) };
 }
-
-/** Whether every model configured for OpenCode still exists, which the
- *  notice on every page reads. The full lists, for every AI that has one,
- *  are read by a press of Check (`tool-models/`). */
-async function opencodeModelCheck(
-  opts: CheckOptions,
-  run: typeof runScript,
-  bin: string,
-): Promise<ExtraCheck> {
-  const question = "Do the configured models still exist?";
-  const configured = opts.configuredModels ?? [];
-  if (configured.length === 0) {
-    return {
-      question,
-      ok: null,
-      detail: "No model is configured for this tool, so there is nothing to check.",
-    };
-  }
-  const models = await run([bin, "models"], process.cwd(), CHECK_TIMEOUT_MS);
-  if (models.code !== 0 || models.timedOut) {
-    return { question, ok: null, detail: "opencode models could not be run." };
-  }
-  const available = new Set(lines(models.stdout));
-  const missing = configured.filter((m) => !available.has(m));
-  return {
-    question,
-    ok: missing.length === 0,
-    detail: missing.length === 0
-      ? `All ${configured.length} still listed.`
-      : `Not listed any more: ${missing.join(", ")}`,
-  };
-}
-
 
 const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
 
@@ -262,9 +225,6 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
         ? await opencodeProviderCheck(run, path("opencode"))
         : await loginCheck(tool, run, path(tool)),
     );
-    if (tool === "opencode") {
-      extra.push(await opencodeModelCheck(opts, run, path("opencode")));
-    }
   }
   return { tool, at, found, lines: printed, extra, commands };
 }
@@ -281,13 +241,10 @@ export function isCheckableTool(name: unknown): name is CheckableTool {
  *  on that. Failures are swallowed on purpose — a check that cannot run
  *  is a check with no answer, not a server that should refuse to
  *  serve. */
-export async function checkAllTools(
-  configuredModels: (tool: CheckableTool) => string[],
-  opts: Omit<CheckOptions, "configuredModels"> = {},
-): Promise<void> {
+export async function checkAllTools(opts: CheckOptions = {}): Promise<void> {
   for (const tool of CHECKABLE_TOOLS) {
     try {
-      recordCheck(await checkTool(tool, { ...opts, configuredModels: configuredModels(tool) }));
+      recordCheck(await checkTool(tool, opts));
     } catch {
       // Nothing to record and nothing to say: the tab still reads "not
       // checked yet", which is true.
@@ -305,12 +262,11 @@ export const RECHECK_MS = 60_000;
  *  login changed under a running board is how seven runs were spent on
  *  the wrong account. */
 export function toolRechecker(
-  configuredModels: (tool: CheckableTool) => string[],
   opts: { now?: () => Date; check?: (tool: CheckableTool) => Promise<ToolCheck> } = {},
 ): (tools: CheckableTool[]) => Promise<void> {
   const inFlight = new Set<CheckableTool>();
   const now = opts.now ?? (() => new Date());
-  const check = opts.check ?? ((tool: CheckableTool) => checkTool(tool, { configuredModels: configuredModels(tool) }));
+  const check = opts.check ?? ((tool: CheckableTool) => checkTool(tool));
   return async (tools) => {
     await Promise.all([...new Set(tools)].map(async (tool) => {
       const last = lastChecks()[tool];

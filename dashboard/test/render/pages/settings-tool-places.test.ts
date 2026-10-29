@@ -1,6 +1,6 @@
 // Each AI tab's opening sentence names where aide installs for that AI,
-// from the same table the preflight prints, and each of its three tabs has
-// a Check of its own, with what that Check reads behind a "(?)" in the
+// from the same table the preflight prints, and the AI has one Check for
+// all three of its tabs, with what it reads behind a "(?)" in the
 // reader's language.
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { helpPopover } from "../../../src/render/ui/components";
 import { t } from "../../../src/i18n";
+import { esc } from "../../../src/render/ui/html.ts";
 import {
   INSTALL_TARGETS,
   parseInstallTargets,
@@ -73,17 +74,17 @@ describe("the sentence above Check", () => {
   });
 });
 
-describe("each tab's own Check", () => {
+describe("an AI's one Check", () => {
   for (const tool of TOOL_TABS) {
-    test.each([...TOOL_PARTS])(`${tool}'s %s tab has one Check posting the AI and that tab, with its own (?)`, (part) => {
+    test.each([...TOOL_PARTS])(`${tool}'s %s tab holds one Check posting the AI alone, with the one (?) (AC-1, AC-9)`, (part) => {
       const html = toolPanel(tool, undefined, undefined, Date.now(), {}, "en", part);
-      expect(checkForms(html)).toEqual([{ tool, part }]);
-      expect(html).toContain(helpPopover(t("en", "settings.checkHelpTitle"), checkHelp("en", tool, part)));
+      expect(checkForms(html)).toEqual([{ tool }]);
+      expect(html).toContain(helpPopover(t("en", "settings.checkHelpTitle"), checkHelp("en", tool)));
     });
   }
 
-  test.each([...TOOL_TABS])("%s's three (?) say three different things", (tool) => {
-    expect(new Set(TOOL_PARTS.map((part) => checkHelp("en", tool, part))).size).toBe(3);
+  test.each([...TOOL_TABS])("%s's (?) opens with the sentence that one press reads all three tabs (AC-9)", (tool) => {
+    expect(checkHelp("en", tool).startsWith(esc(t("en", "settings.checkHelpAll")))).toBe(true);
   });
 });
 
@@ -93,7 +94,7 @@ test("a Norwegian reader gets the Norwegian sentence, tabs, (?) and model headin
   }, "nb");
   expect(html).toContain(toolWhere("nb", "codex", placesOf(INSTALL_TARGETS, "codex")));
   for (const part of TOOL_PARTS) expect(html).toContain(`>${t("nb", `settings.part.${part}`)}</a>`);
-  expect(html).toContain(helpPopover(t("nb", "settings.checkHelpTitle"), checkHelp("nb", "codex", "models")));
+  expect(html).toContain(helpPopover(t("nb", "settings.checkHelpTitle"), checkHelp("nb", "codex")));
   for (const heading of ["supported", "available", "gone"] as const) {
     expect(html).toContain(t("nb", `settings.models.${heading}`));
   }

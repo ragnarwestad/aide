@@ -70,9 +70,7 @@ describe("each form the page script posts and loads again", () => {
       setBoardInfo("round");
       return pageShell("x", NAV, "/", "", "2026-09-20T00:00:00Z", { lang: "en" });
     }, "/api/self-run"],
-    ["an AI's Models Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "models"), "/api/queue/settings/check"],
-    ["an AI's Usage Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "subscription"), "/api/queue/settings/check"],
-    ["an AI's Installation Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "installation"), "/api/queue/settings/check"],
+    ["an AI's Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "models"), "/api/queue/settings/check"],
     ["an offered model's Add", () => toolPanel("codex", undefined, undefined, 0, {
       reading: { tool: "codex", at: "2026-10-03T13:30:00Z", offered: [{ model: "gpt-5.5" }] },
     }), "/api/queue/settings/models/add"],

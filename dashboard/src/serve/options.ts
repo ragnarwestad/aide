@@ -114,11 +114,12 @@ export interface ServerOptions {
    *  on a machine with no job registered but a genuine hazard on one
    *  that has. Defaults to `createLaunchdRestart()`. */
   restart?: RestartHook;
-  /** What a press of Check runs in place of the real CLIs: the check and
-   *  the usage read. A test seam, and both halves are required, so a test
-   *  that sets it can never fall through to a real CLI on the other. */
+  /** What a press of Check runs in place of the real CLIs: the check, the
+   *  usage and the models read. A test seam, and all three halves are
+   *  required, so a test that sets it can never fall through to a real CLI
+   *  on another. */
   toolProbe?: {
-    check: (tool: CheckableTool, opts: { configuredModels: string[] }) => Promise<ToolCheck>;
+    check: (tool: CheckableTool) => Promise<ToolCheck>;
     usage: (tool: CheckableTool) => Promise<ToolUsage>;
     models: (tool: CheckableTool, opts: { configured: string[] }) => Promise<ToolModels>;
   };

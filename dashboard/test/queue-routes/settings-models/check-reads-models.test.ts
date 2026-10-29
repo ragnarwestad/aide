@@ -1,4 +1,4 @@
-// A press of the Check on an AI's Models tab reads the AI's models. For
+// A press of an AI's Check reads the AI's models. For
 // Claude it records the id each choice resolves to, exactly as a run
 // does, so every picker shows the version before any run has used it; and
 // it never changes a model choice.
@@ -45,14 +45,6 @@ describe("a press of Check reads the AI's models", () => {
     expect(body.models).toEqual(CLAUDE_READING);
     expect(lastModels().claude).toEqual(CLAUDE_READING);
     expect(toolProbe.modelReads).toEqual([{ tool: "claude", configured: ["opus", "fable"] }]);
-  });
-
-  test("opening a tab reads no models", async () => {
-    forgetChecks();
-    const toolProbe = modelsProbe({ claude: CLAUDE_READING });
-    const { base } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe });
-    await pageText(`${base}/settings?tab=claude`);
-    expect(toolProbe.modelReads).toEqual([]);
   });
 
   test("a Claude choice that never ran shows its version everywhere, also after a restart", async () => {

@@ -23,6 +23,8 @@ export const en = {
   "shell.installWarning": "aide's last install found a problem: {problem} — the full output is in {path}",
   "shell.toolFault": "{tool}: {problems} — press Check on {where}",
   "shell.toolFaultWhere": "its Installation tab in Settings",
+  "shell.modelsGone": "{tool}: {models} no longer offered — remove them on {where}",
+  "shell.modelsGoneWhere": "its Models tab in Settings",
   "shell.checkoutFault": "{project}: the dashboard cannot use its own checkout — {said}",
   "deploy.title": "Deploying…",
   "deploy.stepFetch": "Fetch from origin",
@@ -333,6 +335,8 @@ export const en = {
     "OpenCode brings no model of its own: every model belongs to a provider and is named provider/model. aide installs only its instructions, to {instructions}, and OpenCode finds aide's skills where they already are, in {skills} and {claudeSkills}.",
   "settings.checkHelpTitle":
     "What Check finds out",
+  "settings.checkHelpAll":
+    "One press of Check reads all three tabs at once, and each tab then shows what that press found.",
   "settings.part.models": "Models",
   "settings.part.subscription": "Usage",
   "settings.part.installation": "Installation",
@@ -359,7 +363,7 @@ export const en = {
   "settings.checkHelp.installation.copilot":
     "This Check runs aide-preflight. It tells you whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository. It cannot tell whether Copilot is logged in: the Copilot CLI has no command for it, so run copilot login if a run is refused.",
   "settings.checkHelp.installation.opencode":
-    "This Check runs aide-preflight, opencode providers list and opencode models. It tells you whether the command line is installed and which version, whether a provider is logged in, where each piece of aide lands and whether it is there, whether the installed files still match this repository, and whether every model configured on this server is still listed. A provider IS the login here, since OpenCode reaches every model through one.",
+    "This Check runs aide-preflight and opencode providers list. It tells you whether the command line is installed and which version, whether a provider is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository. A provider IS the login here, since OpenCode reaches every model through one.",
   "settings.models.supported": "Currently supported by Aide",
   "settings.models.available": "Available",
   "settings.models.gone": "No longer available",

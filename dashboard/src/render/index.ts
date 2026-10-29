@@ -45,7 +45,7 @@ export {
 } from "./pages/settings-page";
 export type { SettingsGroup, SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
 export {
-  CHECKABLE_TOOLS, isToolPart, TOOL_PARTS, TOOL_TAB_LABELS, TOOL_TABS, toolPanel, toolPart,
+  CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, TOOL_TABS, toolPanel, toolPart,
 } from "./pages/settings-page/tools.ts";
 export type { CheckableTool, ExtraCheck, ToolCheck, ToolPart } from "./pages/settings-page/tools.ts";
 export { usageView } from "./pages/settings-page/usage.ts";

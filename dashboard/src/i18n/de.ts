@@ -22,6 +22,8 @@ export const de: Record<TranslationKey, string> = {
   "shell.installWarning": "aides letzte Installation hat ein Problem gefunden: {problem} — die ganze Ausgabe steht in {path}",
   "shell.toolFault": "{tool}: {problems} — klicke auf Check auf {where}",
   "shell.toolFaultWhere": "seinem Tab Installation in Settings",
+  "shell.modelsGone": "{tool}: {models} nicht mehr angeboten — entferne sie auf {where}",
+  "shell.modelsGoneWhere": "seinem Tab Modelle in Settings",
   "shell.checkoutFault": "{project}: das Dashboard kann seinen eigenen Checkout nicht verwenden — {said}",
   "deploy.title": "Wird bereitgestellt…",
   "deploy.stepFetch": "Von origin holen",
@@ -321,6 +323,8 @@ export const de: Record<TranslationKey, string> = {
     "OpenCode bringt kein eigenes Modell mit: Jedes Modell gehört zu einem Anbieter und heißt Anbieter/Modell. aide installiert nur die Anweisungen, nach {instructions}, und OpenCode findet die Skills von aide dort, wo sie schon liegen, in {skills} und {claudeSkills}.",
   "settings.checkHelpTitle":
     "Was Check herausfindet",
+  "settings.checkHelpAll":
+    "Ein Druck auf Check liest alle drei Tabs gleichzeitig, und jeder Tab zeigt danach, was dieser Druck gefunden hat.",
   "settings.part.models": "Modelle",
   "settings.part.subscription": "Nutzung",
   "settings.part.installation": "Installation",
@@ -347,7 +351,7 @@ export const de: Record<TranslationKey, string> = {
   "settings.checkHelp.installation.copilot":
     "Diese Prüfung führt aide-preflight aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen. Ob Copilot angemeldet ist, kann sie nicht sagen: Die Copilot-Kommandozeile hat keinen Befehl dafür, also führe copilot login aus, wenn ein Lauf abgelehnt wird.",
   "settings.checkHelp.installation.opencode":
-    "Diese Prüfung führt aide-preflight, opencode providers list und opencode models aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob ein Anbieter angemeldet ist, wo jedes Teil von aide landet und ob es da ist, ob die installierten Dateien noch zu diesem Repository passen, und ob jedes auf diesem Server eingerichtete Modell noch aufgeführt ist. Hier IST der Anbieter die Anmeldung, da OpenCode jedes Modell über einen erreicht.",
+    "Diese Prüfung führt aide-preflight und opencode providers list aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob ein Anbieter angemeldet ist, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen. Hier IST der Anbieter die Anmeldung, da OpenCode jedes Modell über einen erreicht.",
   "settings.models.supported": "Derzeit von Aide unterstützt",
   "settings.models.available": "Verfügbar",
   "settings.models.gone": "Nicht mehr verfügbar",

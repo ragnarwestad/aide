@@ -206,7 +206,7 @@ describe("the checks the board runs on its own", () => {
   test("read no usage for any AI", async () => {
     for (const tool of CHECKABLE_TOOLS) {
       const run = fakeRun({ stdout: "found\n" });
-      await checkTool(tool, { ...opts(), run, configuredModels: ["m"] });
+      await checkTool(tool, { ...opts(), run });
       const ran = run.calls.map((argv) => argv.join(" "));
       expect(ran.length).toBeGreaterThan(0);
       expect(ran.filter((line) => line.includes("/usage") || line.includes("app-server"))).toEqual([]);
