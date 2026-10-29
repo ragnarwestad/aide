@@ -119,7 +119,8 @@ queued `create`, `archive` or `close` step â€” the ones that do no model work â€
   `error` in place: it is the reason the step stopped, not a fault the landing resolved. A stopped archive lands
   nothing: its folder reaches `archive/` on the default branch only when the archive step completes and lands.
 - `model-at-capacity` gives `stopped` too: the provider had no room for the model, so unlike a usage limit there is
-  no reset to wait for. The runner reads it from the last `error` or `turn.failed` event of a Codex turn that did not
+  no reset to wait for. The runner reads it from the turn that just ended alone, never from an earlier turn of the
+  same step, and from the last `error` or `turn.failed` event of a Codex turn that did not
   complete, when its message says "at capacity", and from Claude Code's closing result when that is an error with
   status 529 or a message saying overloaded or at capacity; a used-up limit and the step's own time limit win over
   it, and opencode has no reader. The job's `error` names the step's button and the model the step ran on and says
