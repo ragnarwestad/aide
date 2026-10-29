@@ -57,9 +57,9 @@ describe("the Installation tab", () => {
   });
 
   test.each<[string, BoardMessage]>([
-    ["logged in (AC-9)", LOGGED_IN],
-    ["not logged in (AC-10)", { key: "login.out", values: { command: "claude auth login" } }],
-    ["cannot say (AC-11)", { key: "login.noCommand", values: { tool: "Copilot" } }],
+    ["logged in", LOGGED_IN],
+    ["not logged in", { key: "login.out", values: { command: "claude auth login" } }],
+    ["cannot say", { key: "login.noCommand", values: { tool: "Copilot" } }],
   ])("a login entry that is %s is its sentence alone, with no mark and no question", (_, answer) => {
     expect(answerLines(installation(claudeCheck(answer)))).toEqual([capitalised(renderSentence("en", answer)!)]);
   });

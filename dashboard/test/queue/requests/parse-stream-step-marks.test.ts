@@ -101,8 +101,8 @@ describe("a final message holding marks", () => {
 describe("the prompt's own format is what the parser reads", () => {
   // A skill's note names the skill's steps; a schedule prompt's asks the model
   // to name its own. Both write the same mark line and endings.
-  for (const [name, ac] of [["step_log_note", ""], ["schedule_step_note", " (AC-3)"]] as const) {
-    test(`each line ${name} asks for is a mark${ac}`, () => {
+  for (const name of ["step_log_note", "schedule_step_note"] as const) {
+    test(`each line ${name} asks for is a mark`, () => {
       const script = readFileSync(join(import.meta.dir, "../../../../core/scripts/lib/run-spec/setup/invocation.sh"), "utf-8");
       const at = script.indexOf(`${name}="`);
       expect(at).toBeGreaterThanOrEqual(0);
