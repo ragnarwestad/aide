@@ -10,7 +10,7 @@
 
 import { CronExpressionParser } from "cron-parser";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, posix } from "node:path";
 import { applyEdits, modify, parse, type ParseError } from "jsonc-parser";
 import { escapesRoot, isScheduleNotify, SCHEDULE_NAME_RE, type ScheduleEntry } from "./schedule.ts";
 
@@ -50,7 +50,7 @@ export function parseScheduleEntries(raw: unknown): ScheduleEntry[] {
     const since = str(e.since);
     const notify = str(e.notify);
     entries.push({
-      name, cron, prompt, enabled: e.enabled !== false,
+      name, cron, prompt: promptPath(prompt), enabled: e.enabled !== false,
       ...(model && SCHEDULE_NAME_RE.test(model) ? { model } : {}),
       ...(since && !isNaN(Date.parse(since)) ? { since } : {}),
       ...(isScheduleNotify(notify) ? { notify } : {}),
@@ -61,13 +61,17 @@ export function parseScheduleEntries(raw: unknown): ScheduleEntry[] {
   return entries;
 }
 
+/** A prompt path as git names it: no `.` or `..` parts and no repeated `/`,
+ *  none of which `git show <ref>:<path>` resolves. */
+const promptPath = (path: string): string => posix.normalize(path);
+
 const str = (v: unknown): string | undefined => (v == null ? undefined : String(v).trim() || undefined);
 
 /** An entry as it is written: `enabled` only when it is `false`, the
  *  optional fields only when present. */
 function serialize(entry: ScheduleEntry): Record<string, unknown> {
   return {
-    name: entry.name, cron: entry.cron, prompt: entry.prompt,
+    name: entry.name, cron: entry.cron, prompt: promptPath(entry.prompt),
     ...(entry.model ? { model: entry.model } : {}),
     ...(entry.since ? { since: entry.since } : {}),
     ...(entry.notify ? { notify: entry.notify } : {}),

@@ -11,7 +11,6 @@ import {
   NEW_SCHEDULE_DEFAULTS, SCHEDULE_ROUTE, buildReportDocument, projectPagePath, renderProposalsPanel, renderReportPanel,
   renderScheduleDetailPage, renderSchedulePage, renderSchedulePromptPage, resolveBackHref,
 } from "../../../render";
-import { readFetched } from "../../../git/branch-file.ts";
 import { SPEC_VIEWER_ASSET_PATH, languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
 import { serveStatic } from "../../serve-helpers";
 import type { RoutesContext } from "..";
@@ -97,12 +96,16 @@ export async function schedulePages(
     // checkout moves only under the per-root lock a run's pull holds.
     const dir = ctx.machineryProjectDir(project);
     const base = await ctx.branchStatus.defaultBranch(dir);
-    const read = base ? await readFetched(ctx.gitRun, dir, base, entry.prompt) : null;
+    // `cat-file blob` answers only for a file: a directory, which `git show`
+    // prints as a listing, reads as not there.
+    const shown = base
+      ? await ctx.gitRun(dir, ["cat-file", "blob", `refs/remotes/origin/${base}:${entry.prompt}`])
+      : null;
     const langResult = languageChoice(url, req);
     const html = renderSchedulePromptPage(ctx.nav(), new Date().toISOString(), {
       project,
       entry,
-      text: read?.text ?? null,
+      text: shown?.code === 0 ? shown.stdout : null,
       viewerSrc: SPEC_VIEWER_ASSET_PATH,
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
