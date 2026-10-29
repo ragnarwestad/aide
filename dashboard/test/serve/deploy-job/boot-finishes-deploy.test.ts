@@ -4,7 +4,7 @@
 // `after-restart.test.ts`; this proves the boot calls it, and in time.
 
 import { afterEach, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
@@ -27,12 +27,9 @@ function checkout(): { root: string; head: string } {
   return { root, head: git("rev-parse", "HEAD").stdout.toString().trim() };
 }
 
-test("the deploy left running after its restart is done once the new process has booted on its commit", async () => {
-  const repo = checkout();
-  const results = mkdtempSync(join(tmpdir(), "aide-boot-deploy-jobs-"));
-  dirs.push(results);
-  mkdirSync(results, { recursive: true });
-  const job = {
+/** A deploy job the previous process left `running` after firing its restart. */
+function leftRunning(repo: { root: string; head: string }, results: string) {
+  return {
     id: "dep1",
     project: "aide",
     specFolder: "deploy",
@@ -54,10 +51,39 @@ test("the deploy left running after its restart is done once the new process has
     streamFile: join(results, "dep1.deploy.stream.jsonl"),
     deploy: { root: repo.root, commit: repo.head, restartedAt: new Date().toISOString(), leaving: "an-earlier-process" },
   };
+}
+
+function resultsDir(): string {
+  const results = mkdtempSync(join(tmpdir(), "aide-boot-deploy-jobs-"));
+  dirs.push(results);
+  mkdirSync(results, { recursive: true });
+  return results;
+}
+
+test("the deploy left running after its restart is done once the new process has booted on its commit (AC-1)", async () => {
+  const repo = checkout();
+  const results = resultsDir();
   const { base } = harness.start({
     extra: { dashboardRoot: repo.root, queueRunnerBin: "/usr/bin/true", queueResultDir: results },
-    queueMirror: JSON.stringify([job]),
+    queueMirror: JSON.stringify([leftRunning(repo, results)]),
   });
   const listed = (await (await fetch(`${base}/api/queue`)).json()) as { jobs: { id: string; state: string }[] };
   expect(listed.jobs.find((j) => j.id === "dep1")?.state).toBe("done");
+});
+
+test("a start that fails before the HTTP server is up does not record the deploy as done (AC-2)", () => {
+  const repo = checkout();
+  const results = resultsDir();
+  const taken = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => new Response("") });
+  try {
+    expect(() =>
+      harness.start({
+        extra: { port: taken.port, dashboardRoot: repo.root, queueRunnerBin: "/usr/bin/true", queueResultDir: results },
+        queueMirror: JSON.stringify([leftRunning(repo, results)]),
+      }),
+    ).toThrow();
+    expect(existsSync(join(results, "dep1.json"))).toBe(false);
+  } finally {
+    taken.stop(true);
+  }
 });

@@ -220,7 +220,7 @@ rides with the last of them, and the permanent records of a landing attempt — 
 any step but takes no slot. Its spawn answers the server's own pid with no process group to signal, and a cancel of a
 running one is refused (409). Its run writes `deploy.restartedAt` to the job, fires the restart and is taken down with
 it, so the job is `running` in the stored queue with an old pid and no result. The process that starts finishes it at
-boot, right before the runner reconciles: it writes the result file (done when it runs the fetched commit or one that
+boot, once its HTTP server has started and right before the runner reconciles: it writes the result file (done when it runs the fetched commit or one that
 contains it, failed otherwise or after three minutes), and `reconcile` ends the job through the usual transition. A
 deploy found `running` without `deploy.restartedAt` was cut before its restart and is interrupted. While a landing is in
 flight a queued deploy is held back, and a running one carries the same `held-back` reason (the one case of `running`
