@@ -117,6 +117,9 @@ told what happened.
 there.** The user creates it from the dashboard. Never create it
 yourself — not with `/aide-create`, not by hand — and never write,
 commit or push anything in the specs repo on your own initiative.
+When the user asks you to create it, invoke `/aide-create` for each
+spec — never the board's API, `aide-create-spec` by hand, or the files
+written directly.
 
 1. **Ask first.** Raise the choices the spec depends on — thresholds,
    scope, dependencies on other specs — before writing the text, not as
