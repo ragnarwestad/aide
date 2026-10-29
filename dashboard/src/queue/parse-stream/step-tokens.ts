@@ -2,11 +2,12 @@
 // the step's marks, summed per model call, which is the unit the tool reports in.
 //
 //   Claude    one `assistant` event per content block, the events of one message sharing its `message.id`
-//             and its `message.usage`: counted once per id.
+//             and its `message.usage`: counted once per id, wherever its events stand.
 //   opencode  one `step_finish` per model step, from its `step_start`.
 //   Codex     one `turn.completed` per turn, so a step is given a turn only when the step was open
 //             through the whole of it; a turn that holds the step's marks gives it nothing.
 //
+// A step ends where the time line ends it (`stepMarks`): at its own ending mark and at the mark of any other step.
 // A step no usage can be attributed to has no entry. The sum is the four-way sum the runner
 // reports for a whole step (`tokens_json` in core/scripts/lib/run-spec/turn/model-turn.sh).
 import { summarizeEntries } from "./entries.ts";
@@ -16,8 +17,8 @@ import { markOf } from "./step-marks.ts";
 /** What one model call wrote: the marks in it, and the usage it reported. */
 interface Call {
   id?: string;
-  starts: string[];
-  ends: string[];
+  /** The marks in the order written, by step. */
+  marks: { key: string; ends: boolean }[];
   usage?: number;
 }
 
@@ -63,15 +64,28 @@ export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<s
       .flatMap((e) => markOf(e.text) ?? []);
   };
 
-  /** The call's started marks first, its usage once, its endings last: the call that opens a step
-   *  and the call that closes one both count for it, wherever in the call the mark is. */
+  /** The call's usage goes to the last step it starts, else to the step open when it began: the call that
+   *  opens a step and the call that closes one both count for it, wherever in the call the mark is. Then
+   *  each mark sets the open step as on the time line: a started mark opens its step, any other ends it. */
   const apply = (call: Call): void => {
-    for (const key of call.starts) open = key;
-    add(call.usage);
-    for (const key of call.ends) if (open === key) open = undefined;
+    const started = call.marks.findLast((m) => !m.ends)?.key;
+    const seen = call.id === undefined ? undefined : counted.get(call.id);
+    if (seen && call.usage === undefined) {
+      // A later piece of a message already counted: its usage belongs to the last step the whole message starts.
+      if (started !== undefined && started !== seen.key) {
+        if (seen.key !== undefined) add(-seen.usage, seen.key);
+        add(seen.usage, started);
+        seen.key = started;
+      }
+    } else {
+      const key = started ?? open;
+      add(call.usage, key);
+      if (seen) seen.key = key;
+    }
+    for (const m of call.marks) open = m.ends ? undefined : m.key;
   };
   const note = (call: Call, line: string): void => {
-    for (const m of marksIn(line)) (m.ends ? call.ends : call.starts).push(m.key);
+    call.marks.push(...marksIn(line));
   };
 
   let call: Call | undefined;
@@ -79,6 +93,7 @@ export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<s
     if (call) apply(call);
     call = undefined;
   };
+  const counted = new Map<string, { usage: number; key?: string }>();
   let session: string | undefined;
   let turnOpen: string | undefined;
 
@@ -105,9 +120,14 @@ export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<s
       const id = typeof message?.id === "string" ? message.id : undefined;
       if (!call || id === undefined || id !== call.id) {
         flush();
-        call = { id, starts: [], ends: [] };
+        call = { id, marks: [] };
       }
-      call.usage ??= claudeUsage(message);
+      // A message whose events a subagent's came between starts a second call on the same id: its marks
+      // count, its usage was counted with the first.
+      if (call.usage === undefined && !(id !== undefined && counted.has(id))) {
+        call.usage = claudeUsage(message);
+        if (id !== undefined && call.usage !== undefined) counted.set(id, { usage: call.usage });
+      }
       note(call, line);
     } else if (family === "opencode") {
       const sid = typeof event.sessionID === "string" ? event.sessionID : undefined;
@@ -118,13 +138,13 @@ export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<s
       session = sid ?? session;
       if (type === "step_start") {
         flush();
-        call = { starts: [], ends: [] };
+        call = { marks: [] };
       } else if (type === "step_finish") {
         if (call) call.usage = opencodeUsage(obj(event.part));
         flush();
       } else if (call) note(call, line);
       else {
-        const lone: Call = { starts: [], ends: [] };
+        const lone: Call = { marks: [] };
         note(lone, line);
         apply(lone);
       }
@@ -133,7 +153,7 @@ export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<s
       if (turnOpen !== undefined && open === turnOpen) add(codexUsage(event.usage), turnOpen);
       turnOpen = undefined;
     } else if (type === "item.completed") {
-      const lone: Call = { starts: [], ends: [] };
+      const lone: Call = { marks: [] };
       note(lone, line);
       apply(lone);
     }
