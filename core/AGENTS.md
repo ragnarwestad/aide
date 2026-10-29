@@ -74,6 +74,9 @@ works TODAY — never a chronicle of how it got there.**
 - This applies whenever a change happens to touch documentation, not
   only to a spec whose job is documentation — an implement step that
   updates a README is bound by this exactly as a dedicated doc spec is.
+- Code comments and test names follow the same rule: they say what the
+  code does and why, and never name the spec, requirement or acceptance
+  criterion that brought it. `git log` and `git blame` keep that link.
 - A doc that keeps growing because every change appends its own
   paragraph of justification is the failure mode this guards against:
   size should track what the system does, not how many changes it took
