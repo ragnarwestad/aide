@@ -507,17 +507,23 @@ commit or push anything in the specs repo on your own initiative.
 1. **Ask first.** Raise the choices the spec depends on — thresholds,
    scope, dependencies on other specs — before writing the text, not as
    a list of open questions after it.
-2. **Hand over five parts, always, in this order:** Prosjekt (the
-   project the spec belongs to), Tittel, Beskrivelse (the description
-   without its acceptance criteria: a `## Problem` section saying what is
-   wrong, a `## Solution` section saying what should be true afterwards,
-   and `## Out of scope` when there is one), ACer (the `- **AC-n:**`
-   lines, each one sentence in one of the five EARS patterns the
-   spec-structure rule lists), and Avhengigheter (Depends on). A part with nothing in it is still handed
+2. **Hand over four parts, always, in this order:** Prosjekt (the
+   project the spec belongs to), Tittel, Beskrivelse and Avhengigheter
+   (Depends on). Beskrivelse is everything the New spec form's one
+   Description field takes: a `## Problem` section saying what is wrong,
+   a `## Solution` section saying what should be true afterwards,
+   `## Out of scope` when there is one, and last `## Acceptance criteria`
+   with the `- **AC-n:**` lines, each one sentence in one of the five
+   EARS patterns the spec-structure rule lists. The criteria never go in
+   a block of their own: the form has no field for them, and a label
+   pasted with them ends up in the spec's text. A part with nothing in it is still handed
    over as the label followed by "ingen" (`**Avhengigheter:** ingen`),
    with no reason given. Avhengigheter names
    only a spec with a queued, running or landing job, never one that is
    archived or closed: check the board in the same reply.
+   **Every requirement under Solution has a criterion of its own** — a
+   help text, a documentation page, a default — so the create step's AI
+   has none to add.
 3. **Each part in a fenced code block** (```` ```markdown ````), one
    block per part — never as rendered text between `---` lines. The
    terminal renders markdown, and what the user copies is what it
@@ -525,7 +531,7 @@ commit or push anything in the specs repo on your own initiative.
    `**` vanish. A code block is shown and copied exactly as written. An
    empty part has no block.
 4. **A label above each part**, as plain bold text outside the block:
-   `**Prosjekt:**`, `**Tittel:**`, `**Beskrivelse:**`, `**ACer:**`,
+   `**Prosjekt:**`, `**Tittel:**`, `**Beskrivelse:**`,
    `**Avhengigheter:**`, with a blank line between the parts. The blocks
    look alike, and the user pastes each into its own field.
 5. **No number.** The number is assigned when the spec is created, not
