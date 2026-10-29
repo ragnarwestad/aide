@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-29](#2026-10-29)
   - [2026-10-28](#2026-10-28)
   - [2026-10-27](#2026-10-27)
   - [2026-10-26](#2026-10-26)
@@ -112,6 +113,70 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-29
+
+Oct 28 – Oct 29. Not read: Codex v0.165.0-alpha.1.2 and v0.166.0-alpha.1 to -alpha.6 builds (no notes), the Codex
+changelog page past its first 100,000 characters, the OpenAI developer blog (no dates shown), Artificial Analysis (the
+harness comparison there is still "coming soon"), the GitHub Copilot blog (newest post shown is Oct 20), the Copilot
+changelog entries of Oct 28 other than the two opened (the listing shows titles only). The X list digest of Oct 29 was
+read. Of the watched pages, `agents.md` changed (a star count only) and the Copilot cloud-agent best-practices page changed
+(the product renamed "Copilot in the cloud"; the advice is the same); the Claude prompting pages for each model
+(`prompting-claude-*`) are new to the watch and stored, nothing to compare yet.
+
+**Claude Code (v2.1.312, no newer release):**
+
+| Date   | Version | News                                                                                                             | Source                           |
+|--------|---------|------------------------------------------------------------------------------------------------------------------|----------------------------------|
+| Oct 28 | —       | "Smart reports, surveys, and pooled group budgets for Claude Enterprise"; "Introducing artifacts for legal work" | [News](https://claude.com/blog/) |
+
+**GitHub Copilot CLI (v1.0.105):**
+
+| Date   | Version | News                                                                                                                                                                                                                                             | Source                                                                                                    |
+|--------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| Oct 28 | —       | GitHub-verified MCP servers ("connectors", public preview, 26 at launch): in the CLI, `/mcp` then the Connectors tab; Business and Enterprise need an admin to enable the `Editor preview features` policy and to allow them in an MCP allowlist | [Changelog](https://github.blog/changelog/2026-10-28-connect-your-tools-to-copilot-without-all-the-setup) |
+| Oct 28 | —       | Copilot app: Projects (public preview) coordinates agents across repositories; computer use (public preview); Copilot Fusion routes models; Agentic Workflows generally available; Automations; the SDK becomes Microsoft Copilot SDK            | [Changelog](https://github.blog/changelog/label/copilot/)                                                 |
+
+**OpenAI Codex CLI (v0.165.0, no newer release):**
+
+| Date   | Version        | News                        | Source                                               |
+|--------|----------------|-----------------------------|------------------------------------------------------|
+| Oct 29 | v0.166.0-alpha | Alpha builds only, no notes | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.1):**
+
+| Date   | Version | News                                                                                                                                                                                                                                                                                                             | Source                                                     |
+|--------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 29 | v2.2.1  | `/goal <objective>` keeps a session going until a reviewer confirms it is met; scheduled prompts (`/schedule`, experimental); opt-in `image_generate` tool; Responses API for OpenRouter, DigitalOcean and Venice. Breaking, `@opencode/ai` only: four image providers removed, five legacy entry points removed | [Releases](https://github.com/anomalyco/opencode/releases) |
+| Oct 28 | v1.19.5 | Failed TUI worker requests return an error instead of leaving the caller waiting                                                                                                                                                                                                                                 | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⭐ X list, @bcherny (Oct 28): Claude Code's team found no regression behind reports of fast token burn; most cases were
+  one or two heavy sessions, and subagents inherit the effort level by default. Aide passes `--effort` per step
+  (`core/scripts/lib/run-spec/setup/invocation.sh:368`, `dashboard/src/serve/serve-helpers/runner-argv.ts:233`), so every
+  subagent a step spawns runs at that step's effort. [Post](https://x.com/bcherny/status/2115592371224346734)
+- ⚠️ OpenCode v2.2.1 removes providers and entry points in `@opencode/ai` only; the CLI, desktop and HTTP API are
+  unaffected, and Aide installs only skills and `AGENTS.md`. The supported-version row is stamped below.
+  [Release](https://github.com/anomalyco/opencode/releases)
+- ✅ Copilot connectors: GitHub-verified MCP servers reachable from `/mcp` in the CLI. Aide installs no MCP servers for
+  Copilot, so nothing changes. [Changelog](https://github.blog/changelog/2026-10-28-connect-your-tools-to-copilot-without-all-the-setup)
+- ✅ Copilot agent-skills page: personal skills are made available in cloud sandbox sessions by putting them in
+  `.copilot/skills` in a dotfiles repository (not for GitHub Actions-based sessions). Aide installs to `~/.agents/skills`,
+  which does not reach a cloud session.
+  [Page](https://docs.github.com/en/copilot/concepts/customizations/agent-skills)
+- ✅ OpenCode v2.2.1 `/goal`: runs until a reviewer confirms the objective, the same idea as Aide's acceptance criteria
+  checked by a separate step. [Release](https://github.com/anomalyco/opencode/releases)
+- ✅ X list, @wolfe_jam (Oct 28): of 187 public skills, 8 say when they are done and 12 say what they touch; a skill that
+  says "never commit, tag or push" held an agent back in a small test. Aide's skills bound the agent the same way.
+  [Post](https://x.com/wolfe_jam/status/2115525135960551858)
+- ✅ X list, @AgenticAIFdn (Oct 28): summary of GitHub Universe (Copilot Projects, Copilot Memory, automations); the
+  changelog entries opened show no change to instruction files or skill paths.
+  [Post](https://x.com/AgenticAIFdn/status/2115632349740450084)
+- ℹ Anthropic posts on AI for Science, drug development and GSA, and Claude posts on Enterprise, legal artifacts and
+  financial advisors, are not about coding agents; the Oct 27 post on Claude Code costs on Google Cloud was in the last
+  review. X list: @theo on automated gates and an Artificial Analysis ranking, @simonw on Opus 5.5.
+- ℹ Watched pages: `agents.md` (star count), Copilot cloud-agent best practices (rename); the rest unchanged or new.
 
 ### 2026-10-28
 
