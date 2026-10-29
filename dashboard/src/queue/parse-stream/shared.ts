@@ -6,7 +6,8 @@
 //     writes tens of thousands of events; a phase's row shows the tail,
 //     because "what is it doing" is a question about now, while the Logs
 //     page asks for every line. No bound drops a skill-step mark. Each
-//     entry is bounded too — a Write's input is a whole file.
+//     entry is bounded too — a Write's input is a whole file — except a
+//     skill-step mark, which is always whole.
 //   * ESCAPED HERE, not at the call site. Every string in a transcript
 //     is arbitrary text a model wrote or a tool was handed. Escaping in
 //     the parser means no renderer can forget to.
@@ -125,7 +126,7 @@ export type StreamEntryKind = "text" | "tool" | "command" | "file";
 
 export interface StreamEntry {
   kind: StreamEntryKind;
-  /** Already escaped and clipped, exactly as `summarizeStream` returns. */
+  /** Already escaped and clipped (a mark is not), exactly as `summarizeStream` returns. */
   text: string;
   /** Whether the tool reported this entry's own failure. Only a command
    *  can carry it: it is the one entry kind all three schemas report an
@@ -197,7 +198,7 @@ const STEP_MARK = /^(?:--- |[a-z][\w-]* · )Step \d+ of \d+: .+ — (?:started|d
 
 /** A block of model text as the pieces a reader sees: each step mark on
  *  its own, the prose between marks kept together. Unescaped and
- *  unclipped; the caller does both. */
+ *  unclipped; the caller escapes both and clips the prose. */
 export function splitMarks(text: string): { text: string; mark?: true }[] {
   const out: { text: string; mark?: true }[] = [];
   let prose: string[] = [];
@@ -216,11 +217,12 @@ export function splitMarks(text: string): { text: string; mark?: true }[] {
   return out;
 }
 
-/** A block of model text as escaped entries: clipped to one line each,
- *  or `whole` — each piece of prose as the model wrote it, line breaks
- *  and all. */
+/** A block of model text as escaped entries: each piece of prose clipped
+ *  to one line, or `whole` — as the model wrote it, line breaks and all.
+ *  A step mark is whole either way. */
 export function textEntries(text: string, whole = false): StreamEntry[] {
-  return splitMarks(text).map((p) => ({ kind: "text", text: esc(prose(p.text, whole && !p.mark)), ...(p.mark ? { mark: true } : {}) }));
+  // A mark is read whole, whatever its title's length: its ending is what says what it is.
+  return splitMarks(text).map((p) => ({ kind: "text", text: esc(p.mark ? p.text : prose(p.text, whole)), ...(p.mark ? { mark: true } : {}) }));
 }
 
 /** A piece of model text as a Log shows it: whole, or clipped. */
