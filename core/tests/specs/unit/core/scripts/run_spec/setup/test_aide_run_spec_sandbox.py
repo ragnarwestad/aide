@@ -9,7 +9,9 @@ relative to the settings file and denies nothing (Claude Code 2.1.310).
 
 import json
 import os
+import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -21,6 +23,26 @@ from ..turn.test_aide_run_spec_review import _reviewing_claude
 
 def _settings(argv):
     return json.loads(argv[argv.index("--settings") + 1])
+
+
+def _denied_writes(workspace_root, tmp_path, home, **board):
+    """The denyWrite list sandbox.sh builds under another HOME, with only
+    the board paths given here. jq is found before HOME changes: a version
+    manager's shim (mise) reads its settings under HOME and refuses to run
+    under another one."""
+    jq = shutil.which("jq")
+    if Path(jq).parent.name == "shims":
+        jq = subprocess.run(["mise", "which", "jq"], capture_output=True, text=True, check=True).stdout.strip()
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    (bin_dir / "jq").unlink(missing_ok=True)
+    (bin_dir / "jq").symlink_to(jq)
+    env = {k: v for k, v in os.environ.items() if k not in ("AIDE_QUEUE_CONFIG", "AIDE_CHECKOUT_ROOT")}
+    env.update(board, HOME=str(home), PATH=f"{bin_dir}:{os.environ['PATH']}")
+    script = workspace_root / "core/scripts/lib/run-spec/setup/sandbox.sh"
+    out = subprocess.run(["bash", "-c", f'source "{script}"; sandbox_settings_json'],
+                         capture_output=True, text=True, check=True, env=env).stdout
+    return json.loads(out)["sandbox"]["filesystem"]["denyWrite"]
 
 
 @pytest.mark.parametrize("mode", ["bypassPermissions", "acceptEdits", "plan"])
@@ -101,11 +123,7 @@ def test_every_dashboard_checkout_keeps_its_git_hooks_and_its_settings_file(work
             subprocess.run(["git", "init", "-q", str(home / f".aide/dashboard/checkouts/{project}/{repo}")],
                            check=True)
     (home / ".aide/dashboard/checkouts/alpha/settings.yaml").write_text("test: x\n")
-    script = workspace_root / "core/scripts/lib/run-spec/setup/sandbox.sh"
-    out = subprocess.run(["bash", "-c", f'source "{script}"; sandbox_settings_json'],
-                         capture_output=True, text=True, check=True,
-                         env={**os.environ, "HOME": str(home)}).stdout
-    denied = json.loads(out)["sandbox"]["filesystem"]["denyWrite"]
+    denied = _denied_writes(workspace_root, tmp_path, home)
     for project in ("alpha", "beta"):
         assert f"~/.aide/dashboard/checkouts/{project}/settings.yaml" in denied, denied
         for repo in ("code", "specs"):
@@ -235,12 +253,8 @@ def test_the_boards_own_queue_settings_and_checkouts_are_denied_where_it_says_th
     AIDE_CHECKOUT_ROOT); a board set up anywhere else is covered too."""
     board = tmp_path / "board"
     subprocess.run(["git", "init", "-q", str(board / "checkouts/alpha/code")], check=True)
-    script = workspace_root / "core/scripts/lib/run-spec/setup/sandbox.sh"
-    out = subprocess.run(["bash", "-c", f'source "{script}"; sandbox_settings_json'],
-                         capture_output=True, text=True, check=True,
-                         env={**os.environ, "HOME": str(tmp_path / "home"),
-                              "AIDE_QUEUE_CONFIG": str(board / "queue-config.json"),
-                              "AIDE_CHECKOUT_ROOT": str(board / "checkouts")}).stdout
-    denied = json.loads(out)["sandbox"]["filesystem"]["denyWrite"]
+    denied = _denied_writes(workspace_root, tmp_path, tmp_path / "home",
+                            AIDE_QUEUE_CONFIG=str(board / "queue-config.json"),
+                            AIDE_CHECKOUT_ROOT=str(board / "checkouts"))
     for path in ("queue-config.json", "checkouts/alpha/settings.yaml", "checkouts/alpha/code/.git/hooks"):
         assert f"/{board}/{path}" in denied, (path, denied)
