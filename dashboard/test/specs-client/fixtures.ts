@@ -96,14 +96,24 @@ export function harness(
   // it names, not how many pixels a browser would have said.
   const phases = { innerHTML: boxes, isConnected: true, offsetWidth: 168, style: { minWidth: "" } };
   const otherPhases = { innerHTML: boxes, isConnected: true, offsetWidth: 168, style: { minWidth: "" } };
-  /** The boxes are on the phase LINES and the buttons
-   *  on the header row, so a button's own `<tr>` has none to lend —
-   *  and the code stopped asking. Every selector it does ask for is
-   *  recorded, so a lookup creeping back is a failed test rather than
-   *  a spinner appearing in the "also touches" chips beside the
-   *  button. */
+  /** A press's lock is the spec's rows, so the controls sit in a row
+   *  after the head row, as the caption and phase lines hold them. Every
+   *  selector it does ask for is recorded, so a lookup creeping back
+   *  into the "also touches" chips beside the button is a failed test
+   *  rather than a spinner appearing there. */
   const rowQueries: string[] = [];
   const row = {
+    className: "subrow",
+    // Declared before `spechead`, so a getter. A form on no spec's rows
+    // has no head row to walk back to.
+    get previousElementSibling(): unknown {
+      return o.offRow ? null : spechead;
+    },
+    nextElementSibling: null,
+    parentElement: null,
+    // Spec A's controls as its caption and phase lines hold them, and
+    // never the other spec's select.
+    querySelectorAll: () => [...new Set([runButton, cancelButton, button, ...stepBoxes, ...modelSelects, ...aiSelects, tailBoxEl])],
     querySelector: (sel: string) => {
       rowQueries.push(sel);
       return null;
@@ -114,18 +124,11 @@ export function harness(
   const tokenInput = { value: "s3cret" };
   type Listener = (e: unknown) => void | Promise<void>;
   const on: Record<string, Listener> = {};
-  // The OTHER controls on the same row. A press locks the
-  // whole row, so a fake with one button on it could not tell a
-  // row-wide lock from the single-button one it replaced.
-  //
-  // They once sat in a `<td class="stackcell">`; the
-  // row's one control is in the State cell of the head row now and
-  // that cell is gone. The scope is `tr.spechead` now, which is the same
-  // element open or shut — a collapsed row had no stack cell at all,
-  // and this fake had to model that as "no scope".
+  // The OTHER controls on the same spec. A press locks the spec's
+  // rows, so a fake with one button on it could not tell a spec-wide
+  // lock from the single-button one it replaced.
   const runButton = formClass === "rowrun" ? button : makeButton("Run", "Starting…", "primary", ROW_FORM);
   const cancelButton = formClass === "actionform" ? button : makeButton("Cancel", "cancelling…", "danger");
-  const headControls = [...new Set([runButton, cancelButton, button])];
   /** The run form as the State cell holds it: hidden fields only, and
    *  an id every control outside its tags names. */
   const runFormEl = {
@@ -133,15 +136,17 @@ export function harness(
     className: "rowrun",
     // What `rowControls` asks any form: which row am I on. And what a
     // press asks: where is this row's token.
-    closest: (sel: string) => (sel.includes("spechead") ? (o.offRow ? null : spechead) : null),
+    closest: (sel: string) => (sel === "tr" ? row : null),
     querySelector: (sel: string) => (sel.includes("token") ? tokenInput : null),
     querySelectorAll: () => [],
   };
-  /** The `<tr class="spechead">` the row's one control is drawn in.
-   *  It is what a press scopes itself to. */
+  /** The `<tr class="spechead">` that opens the spec's rows. It holds
+   *  the fold link and the name, no control; the rows after it do. */
   const spechead = {
-    querySelectorAll: () => headControls,
-    querySelector: (sel: string) => (sel.includes("rowrun") ? runFormEl : null),
+    className: "spechead",
+    previousElementSibling: null,
+    nextElementSibling: row,
+    querySelectorAll: () => [],
   };
   const form = {
     action: control.action,
@@ -168,18 +173,7 @@ export function harness(
     // `querySelectorAll` — descendants only — finds nothing at all.
     querySelectorAll: () => (formClass === "rowrun" ? [] : [button]),
     querySelector: (sel: string) => (sel.includes("token") ? tokenInput : null),
-    closest: (sel: string) =>
-      sel === "tr"
-        ? row
-        : sel.includes("spechead")
-          ? // A form that is not on a spec's row at all — the New-spec
-            // page, the Projects panel. `collapsed` no longer names a
-            // row without a scope: a shut row draws its
-            // control in the same `<tr>` an open one does.
-            (o.offRow ? null : spechead)
-          : sel.includes(`.${formClass}`)
-            ? form
-            : null,
+    closest: (sel: string) => (sel === "tr" ? row : sel.includes(`.${formClass}`) ? form : null),
   };
 
   const chips = [chip("aide"), chip("aide-dashboard")];

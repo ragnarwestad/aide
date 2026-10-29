@@ -117,6 +117,26 @@ describe("an editor content change re-dispatches as \"input\" on the raw textare
   });
 });
 
+// A save that is out disables the spec's fields; the editor's typing
+// surface is not a field, so the script follows the textarea's `disabled`.
+describe("the typing surface follows the raw textarea's disabled state", () => {
+  test("not editable while the textarea is disabled, editable again after", async () => {
+    setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
+    mount();
+    const raw = document.querySelector<HTMLTextAreaElement>(".spec-editor-raw")!;
+    const surface = document.querySelector<HTMLElement>("[contenteditable]")!;
+    expect(surface.getAttribute("contenteditable")).toBe("true");
+
+    raw.disabled = true;
+    await new Promise((r) => setTimeout(r, 0));
+    expect(surface.getAttribute("contenteditable")).toBe("false");
+
+    raw.disabled = false;
+    await new Promise((r) => setTimeout(r, 0));
+    expect(surface.getAttribute("contenteditable")).toBe("true");
+  });
+});
+
 // The editor sits in the Specs list's open row, which shows the spec whole:
 // it grows with its text at every width, never a fixed box its text spills
 // out of. The library marks the growing mode with `auto-height` on the host.

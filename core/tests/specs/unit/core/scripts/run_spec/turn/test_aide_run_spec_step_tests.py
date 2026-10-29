@@ -5,12 +5,22 @@ word — the record on the branch is the runner's own.
 
 import json
 import re
+import shlex
 import subprocess
 from ...conftest import READ_SPECS, git, run, stand_in
-from ..run_spec_results import CODEX_STREAM_OK, CODEX_THREAD_ID, RESULT_OK, emits
+from ..run_spec_results import (
+    CODEX_STREAM_AT_CAPACITY,
+    CODEX_STREAM_AT_CAPACITY_NO_TURN,
+    CODEX_STREAM_OK,
+    CODEX_THREAD_ID,
+    RESULT_OK,
+    RESULT_OVERLOADED,
+    emits,
+)
 from ..run_spec_status_files import with_status
 
 BRANCH = "aide/81-queue-and-runner"
+REVIEW_MARKER = "Read this spec's own description"
 
 
 def _project_with_test_cmd(workspace, cmd):
@@ -157,6 +167,117 @@ def test_a_suite_still_red_after_the_rounds_ends_tests_red(runner, workspace, fa
     assert out["terminalReason"] == "tests-red", out
     assert len(fake_claude.calls.read_text().splitlines()) == 4
 
+
+# --- a later turn of the step is judged on its own bytes ------------------------
+
+
+def _prints(*lines):
+    """Bash that prints `lines` one per line (nothing at all for none)."""
+    if not lines:
+        return ":"
+    return "printf '%s\\n' " + " ".join(shlex.quote(line) for line in lines)
+
+
+def _three_turns(fake, implement, review, fix):
+    """The implement, the review and the fix turn after red tests, each with
+    a body of its own: `(lines it prints, exit code)`. The implement commits
+    work but never `fixed.txt`, and the fix turn does not write it either,
+    so the suite stays red."""
+    def body(turn):
+        lines, code = turn
+        return f"{_prints(*lines)}\nexit {code}\n"
+
+    return fake(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
+        f"{body(review)}"
+        "elif printf '%s' \"$prompt\" | grep -q 'test suite is red'; then\n"
+        f"{body(fix)}"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"{body(implement)}"
+        "fi\n"
+    )
+
+
+def _claude_events(*events):
+    return [json.dumps(e) for e in events]
+
+
+REJECTED_LIMIT = {
+    "type": "rate_limit_event",
+    "rate_limit_info": {"status": "rejected", "rateLimitType": "five_hour", "resetsAt": 1789639800,
+                        "isUsingOverage": False},
+}
+CODEX_OK = (CODEX_STREAM_OK.split("\n"), 0)
+CLAUDE_OK = (_claude_events(RESULT_OK), 0)
+SILENT_EXIT = ([], 1)
+
+
+def test_a_codex_fix_turn_at_capacity_ends_the_step_model_at_capacity_though_the_first_turn_completed(
+    runner, workspace, fake_codex
+):
+    """The fix turn prints an `error` event and exits 1, with no
+    `turn.failed` of its own: the first turn's `turn.completed` is the
+    last closing event in the transcript, and must not decide how this
+    turn ended."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    codex = _three_turns(fake_codex, CODEX_OK, CODEX_OK, (CODEX_STREAM_AT_CAPACITY_NO_TURN.split("\n"), 1))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
+    assert out["terminalReason"] == "model-at-capacity", out
+    assert "at capacity right now" in out["error"], out["error"]
+
+
+def test_a_claude_fix_turn_at_capacity_ends_the_step_model_at_capacity_though_the_first_turn_completed(
+    runner, workspace, fake_claude
+):
+    """The turn-scoped read still finds the fix turn's own error result
+."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    claude = _three_turns(fake_claude, CLAUDE_OK, CLAUDE_OK, (_claude_events(RESULT_OVERLOADED), 1))
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "model-at-capacity", out
+
+
+def test_a_claude_fix_turn_at_capacity_is_not_a_provider_limit_the_review_recorded(
+    runner, workspace, fake_claude
+):
+    """The review turn recorded a rejected limit with no credit in use. It
+    is the review's, not the fix turn's, and a limit wins over capacity
+    only on the turn that wrote it."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    review = (_claude_events(REJECTED_LIMIT, RESULT_OK), 0)
+    claude = _three_turns(fake_claude, CLAUDE_OK, review, (_claude_events(RESULT_OVERLOADED), 1))
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "model-at-capacity", out
+
+
+def test_a_codex_fix_turn_that_prints_nothing_does_not_read_the_reviews_capacity_error(
+    runner, workspace, fake_codex
+):
+    """The review ended at capacity; the fix turn died without a word. The
+    capacity check reads only the turn that just ended."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    review = (CODEX_STREAM_AT_CAPACITY.split("\n"), 1)
+    codex = _three_turns(fake_codex, CODEX_OK, review, SILENT_EXIT)
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
+    assert out["terminalReason"] == "cli-error", out
+
+
+def test_a_claude_fix_turn_that_prints_nothing_does_not_read_the_reviews_capacity_result(
+    runner, workspace, fake_claude
+):
+    """The Claude twin of the Codex test above."""
+    with_status(workspace, ["create", "analyze"])
+    _project_with_test_cmd(workspace, "test -f fixed.txt")
+    review = (_claude_events(RESULT_OVERLOADED), 1)
+    claude = _three_turns(fake_claude, CLAUDE_OK, review, SILENT_EXIT)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "cli-error", out
 
 
 # --- archive: the merge with main is the step's own result too -----------------
