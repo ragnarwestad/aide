@@ -86,8 +86,8 @@ describe("tickRunner with a used-up usage limit", () => {
   });
 });
 
-describe("a person's press during the hold (AC-11)", () => {
-  test("POST /api/queue marks the new job as pressed and starts it past the hold", async () => {
+describe("a person's press during the hold", () => {
+  test("POST /api/queue marks the new job as pressed and starts it past the hold (AC-11)", async () => {
     const stoppedJob = {
       id: "old-1",
       project: "aide",

@@ -171,8 +171,8 @@ describe("queuing a stopped step again", () => {
   });
 });
 
-describe("a stop with no reset time sends one step ahead (AC-5)", () => {
-  test("only the oldest is queued again, as the probe, and the rest wait an hour from then", () => {
+describe("a stop with no reset time sends one step ahead", () => {
+  test("only the oldest is queued again, as the probe, and the rest wait an hour from then (AC-5)", () => {
     const a = stopped(job({ steps: ["implement"] }), "10:00", { until: "11:00", resetKnown: false }, "09:00");
     const b = stopped(job({ steps: ["implement"] }), "10:02", { until: "11:02", resetKnown: false }, "09:30");
     const c = job({ steps: ["analyze"] });
@@ -192,7 +192,7 @@ describe("a stop with no reset time sends one step ahead (AC-5)", () => {
     expect(usageLimitHolds(store.list(), toolOf).has(a.id)).toBe(false);
   });
 
-  test("while the probe runs nothing else is queued again", () => {
+  test("while the probe runs nothing else is queued again (AC-5)", () => {
     const a = stopped(job({ steps: ["implement"] }), "10:00", { until: "11:00", resetKnown: false }, "09:00");
     const b = stopped(job({ steps: ["implement"] }), "10:02", { until: "11:02", resetKnown: false }, "09:30");
     restartAfterUsageLimit(store, toolOf, at("11:02"));
@@ -201,7 +201,7 @@ describe("a stop with no reset time sends one step ahead (AC-5)", () => {
     expect(store.get(b.id)?.state).toBe("stopped");
   });
 
-  test("a probe that ends without a usage-limit stop queues the rest at once and releases the queue", () => {
+  test("a probe that ends without a usage-limit stop queues the rest at once and releases the queue (AC-5)", () => {
     const a = stopped(job({ steps: ["implement"] }), "10:00", { until: "11:00", resetKnown: false }, "09:00");
     const b = stopped(job({ steps: ["implement"] }), "10:02", { until: "11:02", resetKnown: false }, "09:30");
     const c = job({ steps: ["analyze"] });
@@ -238,8 +238,8 @@ describe("a stop with no reset time sends one step ahead (AC-5)", () => {
   });
 });
 
-describe("a probe that stops again with a reset time (AC-6)", () => {
-  test("the AI waits for that reset time, not for the other steps' placeholder wait", () => {
+describe("a probe that stops again with a reset time", () => {
+  test("the AI waits for that reset time, not for the other steps' placeholder wait (AC-6)", () => {
     const a = stopped(job({ steps: ["implement"] }), "10:00", { until: "11:00", resetKnown: false }, "09:00");
     const b = stopped(job({ steps: ["implement"] }), "10:02", { until: "11:02", resetKnown: false }, "09:30");
     const c = job({ steps: ["analyze"] });
@@ -257,8 +257,8 @@ describe("a probe that stops again with a reset time (AC-6)", () => {
   });
 });
 
-describe("a restarted step that hits the limit again is held again (AC-6)", () => {
-  test("it waits until the new reset time and the AI stays held until then", () => {
+describe("a restarted step that hits the limit again is held again", () => {
+  test("it waits until the new reset time and the AI stays held until then (AC-6)", () => {
     const made = stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     const queued = job({ steps: ["analyze"] });
     restartAfterUsageLimit(store, toolOf, at("14:00"));
@@ -280,22 +280,22 @@ describe("a restarted step that hits the limit again is held again (AC-6)", () =
   });
 });
 
-describe("a person's press (AC-11)", () => {
-  test("a pressed job queued after the stop is not held", () => {
+describe("a person's press", () => {
+  test("a pressed job queued after the stop is not held (AC-11)", () => {
     stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     const pressed = job({ steps: ["analyze"] });
     store.update(pressed.id, { pressed: true, createdAt: iso("10:30") });
     expect(usageLimitHolds(store.list(), toolOf).has(pressed.id)).toBe(false);
   });
 
-  test("a job pressed before the stop is held with the rest", () => {
+  test("a job pressed before the stop is held with the rest (AC-11)", () => {
     stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     const early = job({ steps: ["analyze"] });
     store.update(early.id, { pressed: true, createdAt: iso("09:00") });
     expect(usageLimitHolds(store.list(), toolOf).has(early.id)).toBe(true);
   });
 
-  test("when the reset time comes, a stopped step a person has already pressed again stays stopped and its wait is cleared", () => {
+  test("when the reset time comes, a stopped step a person has already pressed again stays stopped and its wait is cleared (AC-11)", () => {
     const made = stopped(job({ steps: ["implement"], specFolder: "81-queue-and-runner" }), "10:00", { until: "14:00", resetKnown: true });
     const again = enqueue({ specFolder: made.specFolder, steps: ["implement"] });
     tools.set(again.id, "claude");
@@ -317,8 +317,8 @@ describe("a press for another step of the spec", () => {
   });
 });
 
-describe("a restart of the board (AC-13)", () => {
-  test("the hold and the time to start again are read back from the mirror", () => {
+describe("a restart of the board", () => {
+  test("the hold and the time to start again are read back from the mirror (AC-13)", () => {
     const made = stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     const queued = job({ steps: ["analyze"] });
     const reread = new QueueStore({

@@ -100,8 +100,8 @@ describe("a job held behind it", () => {
   });
 });
 
-describe("the sentences ask for no press (AC-10)", () => {
-  test("not the stopped job's, nor a held job's", () => {
+describe("the sentences ask for no press", () => {
+  test("not the stopped job's, nor a held job's (AC-10)", () => {
     const all = [
       usageLimitText(stoppedView(), "en", NOW, TZ)!,
       usageLimitText(stoppedView({ usageLimitWait: { until: "2026-08-16T02:10:00.000Z", resetKnown: false } }), "en", NOW, TZ)!,
