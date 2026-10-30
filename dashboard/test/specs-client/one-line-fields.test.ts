@@ -25,16 +25,6 @@ function load(saveDisabled = false) {
   Object.defineProperty(field, "scrollHeight", { get: () => scroll });
   const submits: number[] = [];
   (form as { requestSubmit: () => void }).requestSubmit = () => void submits.push(1);
-  const heights: string[] = [];
-  const style = field.style;
-  const original = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(style), "height");
-  Object.defineProperty(style, "height", {
-    get: () => original?.get?.call(style),
-    set: (v: string) => {
-      heights.push(v);
-      original?.set?.call(style, v);
-    },
-  });
   bindOneLineFields(form);
   const key = (extra: object = {}) => {
     const e = new win!.Event("keydown", { bubbles: true, cancelable: true });
@@ -42,7 +32,7 @@ function load(saveDisabled = false) {
     field.dispatchEvent(e as unknown as Event);
     return e as unknown as Event;
   };
-  return { win, form, field, submits, heights, key, setScroll: (n: number) => (scroll = n) };
+  return { win, form, field, submits, key, setScroll: (n: number) => (scroll = n) };
 }
 
 describe("Enter", () => {

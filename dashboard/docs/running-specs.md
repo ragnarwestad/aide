@@ -562,7 +562,13 @@ sessions.
 The Process tab on Settings shows the number the queue is using, with the machine's number of cores beside it as a
 guide, and saves a new one into this file. A number outside 1 to 8 is refused with the reason on the tab, and nothing
 is written. A saved number is used from the next step the queue starts, with no restart. Lowering it stops no step
-that is running: the queue starts nothing new until fewer than the new number run. `1` runs one job at a time.
+that is running: the queue starts no other step until fewer than the new number run. `1` runs one job at a time.
+
+**A create starts at once and does not count towards `concurrency`.** A create takes about a minute and is what gives
+a new spec its number and its row, so the queue starts it on its next pass however many steps are running, and a running
+create keeps no other step from starting. Every other step takes a slot, the later steps of a New spec's own job
+included. A schedule run that proposes several specs starts all their creates together. A create still waits while its
+AI's usage limit is used up.
 
 Two jobs for the same spec are never started at the same time — analyze and implement for one spec are ordered by
 nature. Nor are two `archive` steps in the same project: both land into the code root's main, and the second is held
