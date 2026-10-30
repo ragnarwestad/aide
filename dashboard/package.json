@@ -10,9 +10,9 @@
     "yaml": "^2"
   },
   "devDependencies": {
-    "@happy-dom/global-registrator": "20.12.0",
+    "@happy-dom/global-registrator": "21.0.4",
     "@types/bun": "^1",
-    "happy-dom": "20.12.0",
+    "happy-dom": "21.0.4",
     "playwright": "1.62.1",
     "typescript": "^7.0.2"
   }
