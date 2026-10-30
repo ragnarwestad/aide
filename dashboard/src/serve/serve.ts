@@ -265,22 +265,6 @@ export function createServer(opts: ServerOptions) {
   // project's own readiness line, and the server serves either way.
   for (const project of allowed) void ensureCheckout(project);
 
-  // On boot, before anything new starts: every job left `running`, then every landing cut short.
-  // Primed first, so the jobs the store already holds are not news.
-  push.prime();
-  land.deployJob.finishAfterRestart();
-  runner?.reconcile();
-  if (runner) resumeCutLandingsAtBoot(runnerSetupCtx);
-  const growth = watch.streamGrowth(() => queue.list());
-  const timer = runner
-    ? setInterval(() => {
-        runner.poll();
-        growth.tick();
-        void schedules.tickRunner();
-      }, opts.queuePollMs ?? 2000)
-    : null;
-  timer?.unref?.();
-
   // Bun cuts a connection that has said nothing for `idleTimeout` (120
   // seconds, set on `Bun.serve` below for slow git work), and a page
   // watching a quiet queue is exactly such a connection. A comment
@@ -401,6 +385,23 @@ export function createServer(opts: ServerOptions) {
     },
   });
   state.server = server;
+
+  // On boot, before anything new starts: every job left `running`, then every landing cut short.
+  // Only once the server is up, so a start that fails before it records no deploy as done.
+  // Primed first, so the jobs the store already holds are not news.
+  push.prime();
+  land.deployJob.finishAfterRestart();
+  runner?.reconcile();
+  if (runner) resumeCutLandingsAtBoot(runnerSetupCtx);
+  const growth = watch.streamGrowth(() => queue.list());
+  const timer = runner
+    ? setInterval(() => {
+        runner.poll();
+        growth.tick();
+        void schedules.tickRunner();
+      }, opts.queuePollMs ?? 2000)
+    : null;
+  timer?.unref?.();
 
   // A deploy restarts this process, and the registry lives in memory:
   // a test server started before it is still up, still holding its

@@ -251,8 +251,10 @@ made. A failed step ends the job. The failure is drawn first on the Deploy tab, 
 the step and the reason; the server keeps it until the next deploy starts (a restart of the dashboard loses it), so a
 reload or another tab shows it too.
 
-A restart held back by a landing in flight, or with nothing on the machine to restart the service, ends the run after the
-restart step. While a restart is held, every page names the landings it waits for under the header, asks
+A restart held back by a landing in flight waits for that landing, with no time limit, and the row says it is held
+back meanwhile; the deploy then restarts the service as usual. A deploy with nothing on the machine to restart the
+service marks the restart and wait steps skipped and still runs the check step, which counts the checkout against
+origin and ends the job done or failed. While a restart is held, every page names the landings it waits for under the header, asks
 `/api/version` every five seconds, and loads itself again once the new service answers, so the line goes when the
 restart has happened. A deploy that leaves the dashboard's own service on an older commit than its checkout — the check
 finds them different, an install fails after the checkout moved, or there is nothing to restart with — stores one

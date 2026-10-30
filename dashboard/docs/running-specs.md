@@ -445,7 +445,8 @@ Each entry is:
 - `name` — becomes the job's `schedule-<name>` tracking key, never a spec folder.
 - `cron` — a standard five-field cron expression.
 - `prompt` — a prompt file's path, relative to the project's own root. A run reads the file as committed in the
-  dashboard's checkout, after pulling it, so a change to it takes effect once it is pushed.
+  dashboard's checkout, after pulling it, so a change to it takes effect once it is pushed. A save refuses a path
+  that is not a file in the checkout, and stores it normalised, with no `.` or `..` parts and no repeated `/`.
 
 A background poll checks every project's
 entries and enqueues a `schedule` step through the same queue, runner and worktree machinery every other step uses

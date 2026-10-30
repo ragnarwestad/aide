@@ -173,11 +173,11 @@ def test_a_followed_page_that_changes_keeps_its_diff(script, tmp_path):
     assert "+New model advice." in diff_file(line).read_text()
 
 
-def test_a_change_inside_nav_header_footer_or_aside_is_unchanged(script, tmp_path):
+def test_a_change_inside_nav_header_or_footer_is_unchanged(script, tmp_path):
     def body(menu):
         return (
             f"<header>Header {menu}</header><nav>Menu {menu}</nav>{article('The advice stays.')}"
-            f"<aside>Side {menu}</aside><footer>Footer {menu}</footer>"
+            f"<footer>Footer {menu}</footer>"
         )
 
     address = page(tmp_path, "p.html", body("one"))
@@ -190,6 +190,77 @@ def test_a_change_inside_nav_header_footer_or_aside_is_unchanged(script, tmp_pat
 
     assert result.stdout.startswith("unchanged")
     assert "@@" not in result.stdout
+
+
+CODE_MARKUPS = {
+    "newlines": (
+        '<pre><code><span class="line">metadata:</span>\n<span class="line">  author: x</span>\n'
+        '<span class="line">  model: opus</span></code></pre>'
+    ),
+    "one-div-per-line": (
+        '<pre><code><div class="ec-line"><div class="code">metadata:</div></div>'
+        '<div class="ec-line"><div class="code"><span class="indent">  </span>author: x</div></div>'
+        '<div class="ec-line"><div class="code"><span class="indent">  </span>model: opus</div></div></code></pre>'
+    ),
+}
+
+
+@pytest.mark.parametrize("markup", CODE_MARKUPS)
+def test_a_code_example_keeps_its_line_breaks_and_indentation_ac_1(module, markup):
+    html = f"<main><p>Spaced   out\n   words</p>{CODE_MARKUPS[markup]}</main>"
+
+    text = module.page_text(html)
+
+    assert text.splitlines() == ["Spaced out words", "metadata:", "  author: x", "  model: opus"]
+
+
+def test_the_text_inside_an_aside_stands_on_a_line_of_its_own_ac_2(module):
+    html = "<main><div>Keep skills short.<aside>Prefer one skill per task.</aside></div></main>"
+
+    assert module.page_text(html).splitlines() == ["Keep skills short.", "Prefer one skill per task."]
+
+
+def test_a_side_column_outside_main_stays_out_of_the_text(module):
+    html = "<aside>On this page</aside><main><p>The advice.</p></main>"
+
+    assert module.page_text(html) == "The advice."
+
+
+def test_a_code_example_whose_indentation_alone_changes_is_changed_ac_3(script, tmp_path):
+    def body(model_line):
+        example = f"<pre><code>metadata:\n  author: x\n{model_line}</code></pre>"
+        return f"<main>{example}{article('The advice stays.')}</main>"
+
+    address = page(tmp_path, "p.html", body("model: opus"))
+    store = tmp_path / "store"
+    log = write_log(tmp_path, [address])
+    run(script, tmp_path, log, store)
+
+    page(tmp_path, "p.html", body("  model: opus"))
+    result = run(script, tmp_path, log, store)
+
+    assert result.stdout.startswith("changed")
+    diff = diff_file(result.stdout.splitlines()[0]).read_text()
+    assert "-model: opus" in diff
+    assert "+  model: opus" in diff
+
+
+def test_a_change_only_inside_an_aside_is_changed_ac_4(script, tmp_path):
+    def body(tip):
+        return f"<main>{article('The advice stays.')}<aside>{tip}</aside></main>"
+
+    address = page(tmp_path, "p.html", body("Prefer one skill per task."))
+    store = tmp_path / "store"
+    log = write_log(tmp_path, [address])
+    run(script, tmp_path, log, store)
+
+    page(tmp_path, "p.html", body("Prefer several skills per task."))
+    result = run(script, tmp_path, log, store)
+
+    assert result.stdout.startswith("changed")
+    diff = diff_file(result.stdout.splitlines()[0]).read_text()
+    assert "-Prefer one skill per task." in diff
+    assert "+Prefer several skills per task." in diff
 
 
 def test_only_main_s_text_is_compared_when_the_page_has_one(script, tmp_path):

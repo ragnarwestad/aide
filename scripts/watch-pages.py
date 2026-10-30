@@ -38,9 +38,9 @@ USER_AGENT = (
 MIN_TEXT = 200
 SECTION = "### Watched pages"
 
-DROPPED = {"script", "style", "noscript", "svg", "template", "nav", "header", "footer", "aside"}
+DROPPED = {"script", "style", "noscript", "svg", "template", "nav", "header", "footer"}
 BLOCKS = {
-    "address", "article", "blockquote", "body", "br", "dd", "details", "div", "dl", "dt", "fieldset",
+    "address", "article", "aside", "blockquote", "body", "br", "dd", "details", "div", "dl", "dt", "fieldset",
     "figcaption", "figure", "form", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "li", "main", "ol", "p",
     "pre", "section", "summary", "table", "tbody", "td", "tfoot", "th", "thead", "title", "tr", "ul",
 }
@@ -72,15 +72,18 @@ def watched_pages(log_text):
 
 
 class _Text(HTMLParser):
-    """The text of a page as lines; `main` holds only <main>'s lines, when the page has one."""
+    """The text of a page as lines; `main` holds only <main>'s lines, when the page has one.
+    `code` holds the indexes of the lines written inside a <pre>."""
 
     def __init__(self):
         super().__init__()
         self.skipping = 0
         self.in_main = 0
+        self.in_pre = 0
         self.has_main = False
         self.whole = [""]
         self.main = [""]
+        self.code = set()
 
     def _break(self):
         for lines in (self.whole, self.main):
@@ -92,6 +95,8 @@ class _Text(HTMLParser):
         elif tag == "main":
             self.in_main += 1
             self.has_main = True
+        elif tag == "pre":
+            self.in_pre += 1
         if tag in BLOCKS:
             self._break()
 
@@ -100,15 +105,22 @@ class _Text(HTMLParser):
             self.skipping = max(0, self.skipping - 1)
         elif tag == "main":
             self.in_main = max(0, self.in_main - 1)
+        elif tag == "pre":
+            self.in_pre = max(0, self.in_pre - 1)
         if tag in BLOCKS:
             self._break()
 
     def handle_data(self, data):
         if self.skipping:
             return
-        self.whole[-1] += data
-        if self.in_main:
-            self.main[-1] += data
+        for number, part in enumerate(data.split("\n") if self.in_pre else [data]):
+            if number:
+                self._break()
+            if self.in_pre:
+                self.code.add(len(self.whole) - 1)
+            self.whole[-1] += part
+            if self.in_main:
+                self.main[-1] += part
 
 
 class _Links(HTMLParser):
@@ -135,12 +147,16 @@ def followed_links(html, address, pattern):
 
 
 def page_text(html):
-    """A page's text, one line per block, whitespace collapsed, empty lines dropped."""
+    """A page's text, one line per block, empty lines dropped. Whitespace is collapsed, except in a
+    code example (<pre>), where each line keeps its indentation."""
     parser = _Text()
     parser.feed(html)
     parser.close()
     lines = parser.main if parser.has_main else parser.whole
-    cleaned = (re.sub(r"\s+", " ", line).strip() for line in lines)
+    cleaned = (
+        line.rstrip() if number in parser.code else re.sub(r"\s+", " ", line).strip()
+        for number, line in enumerate(lines)
+    )
     return "\n".join(line for line in cleaned if line)
 
 
