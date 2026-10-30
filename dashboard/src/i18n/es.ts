@@ -49,6 +49,9 @@ export const es: Record<TranslationKey, string> = {
   "dialog.removing": "eliminando…",
   "shell.stopTestServer": "Detener",
   "shell.runTestRound": "Ejecutar",
+  "shell.delay": "Retardo: {value}",
+  "shell.delayOff": "No",
+  "shell.delayTitle": "Cuánto espera el modelo sustituto antes de cada paso; pulsa para la siguiente opción",
   "shell.testRound": "la ronda",
 
   "list.statesLabel": "Estados",

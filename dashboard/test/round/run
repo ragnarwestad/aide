@@ -143,7 +143,11 @@ mkdir -p "$CODE/.aide"
 # AIDE_SPECS_PATH is a fresh temp path every round, so this file is
 # templated here rather than checked in (fixture-project/.gitignore
 # keeps .aide/config out of the fixture project's own commit).
-printf 'AIDE_SPECS_PATH=%s\nAIDE_TEST_CMD=%s test\n' "$SPECS" "$BUN" > "$CODE/.aide/config"
+printf 'AIDE_SPECS_PATH=%s\n' "$SPECS" > "$CODE/.aide/config"
+# The test command is read from the manifest and nowhere else
+# (aide-resolve-test-cmd); bun's path is this machine's, so it is added
+# here and committed with the baseline.
+printf 'AIDE_TEST_CMD: %s test\n' "$BUN" >> "$CODE/.aide/project.yaml"
 git -C "$CODE" -c user.name=round -c user.email=round@localhost add -A
 git -C "$CODE" -c user.name=round -c user.email=round@localhost commit -qm "baseline"
 git -C "$CODE" tag baseline
@@ -186,6 +190,10 @@ CFG
 # claude-stub which checkout's own companion scripts to call — the one
 # this round is testing, which may not be the one `run` itself lives in.
 export AIDE_ROUND_CHECKOUT="$SERVE_FROM"
+# The board's Delay writes the stand-in's wait before each step here, and
+# the stand-in reads it (src/integrations/round-delay.ts); off to start.
+export AIDE_ROUND_DELAY_FILE="$WORK/delay"
+echo 0 > "$AIDE_ROUND_DELAY_FILE"
 if [ -n "$MODEL" ]; then
   tmp="$(mktemp)"
   jq --arg m "$MODEL" '.model.default = $m' "$WORK/queue-config.json" > "$tmp" && mv "$tmp" "$WORK/queue-config.json"
@@ -294,6 +302,8 @@ fails=0
 seed_from_script() {
   for spec_json in "$HERE"/specs/*.json; do
     slug="$(basename "$spec_json" .json)"
+    # A create meant to fail needs the board's own seeding to be graded.
+    [ "$(jq -r .expected "$spec_json")" = create-failed ] && continue
     title="$(jq -r .title "$spec_json")"
     description="$(cat "$HERE/specs/$slug.md")"
     # A fixture names its dependency by the NUMBER in its file name
@@ -356,10 +366,22 @@ if printf '%s' "$started" | jq -e '.ok' >/dev/null 2>&1; then
   # The third column is the fixture's own `expect` (state, stopReason,
   # message) as one JSON value, or "null" for a fixture that says nothing
   # about its row.
-  while IFS=$'\t' read -r slug folder expect row; do
-    [ -n "$folder" ] || { echo "  no folder for $slug"; fails=$((fails + 1)); continue; }
+  # A missing folder is "-": `read` with a tab as IFS runs two tabs
+  # together, so an empty field would shift the ones after it.
+  while IFS=$'\t' read -r slug folder expect row create_failed; do
+    # A fixture whose create is meant to fail has no folder: the board
+    # says the create failed, and there is no row to grade.
+    if [ "$expect" = "create-failed" ]; then
+      if [ "$create_failed" = "true" ] && [ "$folder" = "-" ]; then
+        printf '  %-8s %-42s create failed, as expected\n' ok "$slug"
+      else
+        printf '  %-8s %-42s the create did not fail\n' MISMATCH "$slug"; fails=$((fails + 1))
+      fi
+      continue
+    fi
+    [ "$folder" != "-" ] || { echo "  no folder for $slug"; fails=$((fails + 1)); continue; }
     FOLDERS+=("$folder"); EXPECTS+=("$expect"); ROWS+=("$row")
-  done < <(printf '%s' "$round" | jq -r '.specs[] | [.slug, (.folder // ""), .expected, (.expect // null | tojson)] | @tsv')
+  done < <(printf '%s' "$round" | jq -r '.specs[] | [.slug, (.folder // "-"), .expected, (.expect // null | tojson), (.createFailed // false | tostring)] | @tsv')
 elif [ "$started" = "not a round board" ]; then
   echo "  (this board's code predates seeding through /api/self-run; seeding from the script)"
   seed_from_script
