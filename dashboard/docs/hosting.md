@@ -86,9 +86,9 @@ Share → "Add to Home Screen". It then opens in a window of its own, with the m
 background behind the title bar.
 
 The board opens on the Specs list, with the state filter and sort it last kept, when it starts with nothing running,
-however it is opened. An installed app is launched on `start_url`, `/app`, which opens on the Running tab when the tab
-has a row and on the Specs list when it has none. Any other start does the same in the page itself: a bookmark, a typed
-address, a new tab, a Home Screen app on `/`, the app icon's "Running" shortcut, or a notification that opens a new
+however it is opened. An installed app is launched on `start_url`, `/app`, which opens on the Running tab when its saved
+filter leaves a row and on the Specs list when it leaves none. Any other start does the same in the page itself: a
+bookmark, a typed address, a new tab, a Home Screen app on `/`, the app icon's "Running" shortcut, or a notification that opens a new
 window. The first page a browser tab or window loads, when it is the Running tab with no row, replaces itself with the
 Specs list. A click on Running, a link to it and a reload later in the same tab show the Running tab, empty or not. A
 notification about a spec opens that spec's row, which is on the Running tab as long as the spec is Active.
