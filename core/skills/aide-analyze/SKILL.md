@@ -352,6 +352,16 @@ never guesses.
 Offer it only when the analysis actually completed; one that failed, or
 that you stopped part-way, has nothing to record.
 
+When the person asks for the specs to be pushed too, push them with
+
+```bash
+aide-push-specs --specs-root "<specs-root>"
+```
+
+never with a bare `git push`: the command rebases and pushes again when
+origin has moved, and tells the board, so its specs list shows the
+analysis at once.
+
 ### Step 10 of 11: Confirm
 
 First write `--- Step 10 of 11: Confirm — started`, and when this step ends, `--- Step 10 of 11: Confirm — done`.

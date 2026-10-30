@@ -211,7 +211,9 @@ settings. Those are:
   `~/.aide/dashboard/checkouts`, and each of those checkouts' `settings.yaml`, which holds the project's test command.
 
 A step therefore cannot install anything onto the serving host; `AIDE_INSTALL_CMD` does that after a landing. The
-board hands the runner where its queue settings and checkouts are (`AIDE_QUEUE_CONFIG`, `AIDE_CHECKOUT_ROOT`).
+board hands the runner where its queue settings and checkouts are (`AIDE_QUEUE_CONFIG`, `AIDE_CHECKOUT_ROOT`), and
+where it mirrors its queue (`AIDE_QUEUE_MIRROR`), which the runner reads to count the steps and landings running when it
+works out the test workers a run may use.
 
 Two more things keep what a step writes from reaching the runner's own work outside the sandbox, for every tool:
 

@@ -218,7 +218,7 @@ export class DescriptionFreshnessChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<string, { at: number; stale: boolean }>();
+  private readonly cache = new Map<string, { at: number; stale: boolean; due?: boolean }>();
 
   constructor(opts: DescriptionFreshnessOptions) {
     this.run = opts.run;
@@ -240,7 +240,7 @@ export class DescriptionFreshnessChecker {
     const key = JSON.stringify([dir, specFolder, boundarySha ?? null]);
     const hit = this.cache.get(key);
     const at = this.now();
-    if (hit && at - hit.at < this.ttlMs) return hit.stale;
+    if (hit && !hit.due && at - hit.at < this.ttlMs) return hit.stale;
 
     let stale = false;
     try {
@@ -263,6 +263,17 @@ export class DescriptionFreshnessChecker {
 
     this.cache.set(key, { at, stale });
     return stale;
+  }
+
+  /** New commits for this spec arrived: every cached answer for it,
+   *  whatever reopen mark it was read under, is due for a fresh ask.
+   *  Marked, not dropped — `peekStale` keeps answering from it until
+   *  `isStale` has replaced it, as `WorkflowHistoryChecker.forget` does. */
+  forget(dir: string, specFolder: string): void {
+    for (const [key, hit] of this.cache) {
+      const parsed = JSON.parse(key) as [string, string, string | null];
+      if (parsed[0] === dir && parsed[1] === specFolder) this.cache.set(key, { ...hit, due: true });
+    }
   }
 
   /** The LAST answer this checker holds, without asking git at all

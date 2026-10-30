@@ -191,3 +191,56 @@ describe("DescriptionFreshnessChecker.peekStale", () => {
     expect(checker.peekStale(DIR, FOLDER, "abc1234")).toEqual({ stale: false, checkedAt: null });
   });
 });
+
+// A push brought in new commits for a spec whose answer is still inside
+// its window: the answer is marked due, and peeked as it was until the
+// next ask has replaced it.
+describe("DescriptionFreshnessChecker.forget", () => {
+  const stale = () =>
+    gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
+  const OTHER_DIR = "/specs/aide/97-another-spec";
+  const OTHER_FOLDER = "97-another-spec";
+
+  test("a forgotten answer inside its window is asked of git again, and peeked as it was until then (AC-2)", async () => {
+    const git = stale();
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.isStale(DIR, FOLDER);
+    const asked = git.calls.length;
+
+    await checker.isStale(DIR, FOLDER);
+    expect(git.calls.length).toBe(asked);
+
+    checker.forget(DIR, FOLDER);
+    expect(checker.peekStale(DIR, FOLDER)).toEqual({ stale: true, checkedAt: 1000 });
+    expect(git.calls.length).toBe(asked);
+
+    await checker.isStale(DIR, FOLDER);
+    expect(git.calls.length).toBeGreaterThan(asked);
+  });
+
+  test("forgetting one spec leaves another spec's answer standing (AC-2)", async () => {
+    const git = stale();
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.isStale(DIR, FOLDER);
+    await checker.isStale(OTHER_DIR, OTHER_FOLDER);
+    const asked = git.calls.length;
+
+    checker.forget(DIR, FOLDER);
+    await checker.isStale(OTHER_DIR, OTHER_FOLDER);
+
+    expect(git.calls.length).toBe(asked);
+  });
+
+  test("every reopen boundary the spec was asked under is forgotten (AC-2)", async () => {
+    const git = stale();
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.isStale(DIR, FOLDER);
+    await checker.isStale(DIR, FOLDER, "abc1234");
+    const asked = git.calls.length;
+
+    checker.forget(DIR, FOLDER);
+    await checker.isStale(DIR, FOLDER, "abc1234");
+
+    expect(git.calls.length).toBeGreaterThan(asked);
+  });
+});

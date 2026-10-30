@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# aide-push-specs — push a specs repository, then tell the board to fetch
+# it, so the board's specs list shows the push at once instead of at its
+# next five-minute fetch.
+#
+# Usage:  aide-push-specs [--specs-root <dir>]
+#
+# The project root is the git top of the current directory (else the
+# directory itself); the specs root is --specs-root, else the project's
+# own (AIDE_SPECS_PATH in <project>/.aide/config, else <project>/specs).
+# The specs repository is the git top of the specs root.
+#
+# The push decides the exit code. When origin has moved, the command
+# rebases onto it and pushes once more; a rebase that conflicts is
+# undone and left to a person. Only after a push that went through does
+# it tell the board, and telling never changes the result: a board that
+# is missing, unreachable or unhappy is one line on stdout.
+#
+# The board's address is AIDE_BOARD_URL in ~/.aide/config, one file per
+# machine. Without it nothing is sent.
+set -u
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+
+# How long to wait for the board: the connection, then its answer, which
+# comes after the board has asked origin again.
+CONNECT_SECONDS=3
+ANSWER_SECONDS=15
+
+usage() {
+  echo "usage: aide-push-specs [--specs-root <dir>]"
+}
+
+fail() {
+  echo "aide-push-specs: $*" >&2
+  exit 1
+}
+
+specs_root=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --specs-root) specs_root="${2:-}"; [ -n "$specs_root" ] || { usage >&2; exit 2; }; shift 2 ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
+
+type aide_specs_root >/dev/null 2>&1 || fail "_aide-spec-lib.sh is missing beside aide-push-specs — reinstall aide"
+
+project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+[ -n "$specs_root" ] || specs_root="$(aide_specs_root "$project_root")"
+
+repo="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null)" \
+  || fail "$specs_root is not inside a git repository, so there is nothing to push"
+branch="$(git -C "$repo" symbolic-ref --short HEAD 2>/dev/null)" \
+  || fail "$repo is not on a branch, so there is nothing to push"
+
+# --- the push ----------------------------------------------------------------
+# The decisions are those of push_with_retry in
+# lib/run-spec/publish/publish.sh, which reads a run's own variables and
+# cannot be sourced on its own.
+err=""
+try_push() {
+  err="$(git -C "$repo" push -q origin "$branch" 2>&1)"
+}
+first_line() {
+  printf '%s\n' "$1" | grep -m1 . | sed 's/^remote: //'
+}
+
+if ! try_push; then
+  if ! git -C "$repo" ls-remote origin >/dev/null 2>&1; then
+    fail "cannot reach origin to push $branch in $repo: $(first_line "$err")"
+  fi
+  # Origin answers now but may have been away for the push itself.
+  if ! try_push; then
+    if ! git -C "$repo" ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+      fail "origin refused the push of $branch in $repo: $(first_line "$err")"
+    fi
+    # Origin answered and holds the branch: the push was rejected because
+    # something else landed on it since this repository last looked.
+    if git -C "$repo" pull -q --rebase origin "$branch" >/dev/null 2>&1; then
+      try_push || fail "cannot push $branch in $repo after a rebase: $(first_line "$err")"
+    else
+      git -C "$repo" rebase --abort >/dev/null 2>&1 || true
+      ours="$(git -C "$repo" log --oneline "origin/$branch..$branch" 2>/dev/null | tr '\n' ';')"
+      theirs="$(git -C "$repo" log --oneline "$branch..origin/$branch" 2>/dev/null | tr '\n' ';')"
+      fail "$branch has diverged from origin's copy in $repo — here: ${ours:-(nothing)} origin: ${theirs:-(nothing)} — reconcile by hand"
+    fi
+  fi
+fi
+
+# --- telling the board ---------------------------------------------------------
+url="$(aide_config_get AIDE_BOARD_URL "$HOME")"
+url="${url%/}"
+[ -n "$url" ] || exit 0
+
+project="$(aide_manifest_get name "$project_root")"
+[ -n "$project" ] || project="$(basename "$project_root")"
+
+later="and the board shows the push at its next fetch, within five minutes"
+if ! command -v curl >/dev/null 2>&1; then
+  echo "board $url was not told about $project: curl is not on this machine, $later"
+  exit 0
+fi
+
+answer="$(mktemp)"
+trap 'rm -f "$answer"' EXIT
+status="$(curl -s -o "$answer" -w '%{http_code}' --connect-timeout "$CONNECT_SECONDS" --max-time "$ANSWER_SECONDS" \
+  -X POST "$url/api/queue/projects/$project/fetch-specs" 2>/dev/null)"
+curl_exit=$?
+
+if [ "$curl_exit" -ne 0 ]; then
+  echo "board $url could not be reached within $CONNECT_SECONDS seconds, or gave no answer within $ANSWER_SECONDS, for $project: the push stands, $later"
+elif [ "$status" = "200" ]; then
+  echo "board $url has asked origin again for $project's specs"
+else
+  reason="$(grep -m1 . "$answer" 2>/dev/null | cut -c1-120)"
+  echo "board $url did not fetch the specs for $project (${reason:-status $status}): the push stands, $later"
+fi
+exit 0

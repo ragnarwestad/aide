@@ -30,8 +30,9 @@ LIMIT=20000
 # A file that starts a real browser sets its own, longer deadline —
 # `test/helpers/browser-deadline.ts`, which is what a file's own
 # `setDefaultTimeout` leaves this limit no say in.
-# Two cores are left for whatever else the host is doing — a run's own AI
-# session, another spec's suite. Override with AIDE_TEST_WORKERS.
+# The board gives a run its share of the host's cores as AIDE_TEST_WORKERS.
+# With none, two cores are left for whatever else the host is doing — a
+# run's own AI session, another spec's suite.
 CPUS=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 WORKERS=${AIDE_TEST_WORKERS:-$(( CPUS > 3 ? CPUS - 2 : 1 ))}
 # How many of those workers may be running a browser file at once. The
@@ -92,6 +93,10 @@ done
 n_browser=$(echo "$browser" | wc -w | tr -d ' ')
 [ "$n_browser" -lt "$BROWSER_WORKERS" ] && BROWSER_WORKERS="$n_browser"
 [ "$BROWSER_WORKERS" -ge "$WORKERS" ] && [ -n "$rest" ] && BROWSER_WORKERS=$(( WORKERS - 1 ))
+
+# One worker runs every file: there is no second one to keep the browser
+# files apart, and dealing them over no browser worker divides by zero.
+if [ "$WORKERS" -lt 2 ]; then rest="$browser $rest"; browser=""; BROWSER_WORKERS=0; fi
 
 i=0
 for f in $browser; do

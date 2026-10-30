@@ -287,8 +287,8 @@ skill can operate in, whether or not it sits inside the project root.
 A headless run gets its commit for free — this session does not run
 `git commit` or `git push` itself, headless or not, whatever the
 paragraph below says about the interactive case. Working interactively,
-commit and push RIGHT AWAY, with this message so the step is recognised
-the same way:
+commit RIGHT AWAY, with this message so the step is recognised the same
+way:
 
 ```text
 Run /aide-create for <spec-folder> (model: <tool> <model>)
@@ -296,9 +296,16 @@ Run /aide-create for <spec-folder> (model: <tool> <model>)
 
 The user's request to create the spec was the approval; commit without
 asking again. Commit only once the 5 files have actually been
-created — nothing to stage means nothing to commit. If origin has moved,
-`git pull --rebase` and push again; a push that still fails is reported
-out loud, never left silent.
+created — nothing to stage means nothing to commit. Then push it with
+
+```bash
+aide-push-specs --specs-root "<specs-root>"
+```
+
+never with a bare `git push`: the command rebases and pushes again when
+origin has moved, and tells the board, so its specs list shows the spec
+at once. A push that still fails is reported out loud, never left
+silent.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own
 commits — leave that line exactly as you found it in the template. The

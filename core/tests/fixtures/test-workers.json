@@ -1,0 +1,18 @@
+{
+  "cases": [
+    { "name": "one running job takes every core", "cores": 10,
+      "jobs": [{ "state": "running" }], "workers": 10 },
+    { "name": "six running jobs on ten cores round down to one", "cores": 10,
+      "jobs": [{ "state": "running" }, { "state": "running" }, { "state": "running" },
+               { "state": "running" }, { "state": "running" }, { "state": "running" }], "workers": 1 },
+    { "name": "a landing counts beside the running jobs", "cores": 10,
+      "jobs": [{ "state": "running" }, { "state": "running" }, { "state": "done", "landing": true }], "workers": 3 },
+    { "name": "queued, done, stopped and failed jobs do not count", "cores": 8,
+      "jobs": [{ "state": "running" }, { "state": "queued" }, { "state": "done" },
+               { "state": "stopped" }, { "state": "failed" }], "workers": 8 },
+    { "name": "more jobs than cores still leaves one worker", "cores": 4,
+      "jobs": [{ "state": "running" }, { "state": "running" }, { "state": "running" },
+               { "state": "running" }, { "state": "running" }, { "state": "running" }], "workers": 1 },
+    { "name": "no job at all counts as the asking run alone", "cores": 4, "jobs": [], "workers": 4 }
+  ]
+}

@@ -206,7 +206,7 @@ export function createServer(opts: ServerOptions) {
       opts.landingGate ??
       ((root, job, branch) =>
         runProjectSuiteBeforePush(root, job, branch, {
-          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined,
+          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, jobs: () => queue.list(),
         })),
     // The script that numbers a landed create lives beside the runner
     // this server was started with, so a board serving a branch numbers
@@ -221,7 +221,7 @@ export function createServer(opts: ServerOptions) {
   });
 
   const runnerSetupCtx: RunnerSetupContext = {
-    store: queue, queueConfigFile: opts.queueConfigFile, dashboardCheckoutRoot: opts.dashboardCheckoutRoot,
+    store: queue, queueConfigFile: opts.queueConfigFile, dashboardCheckoutRoot: opts.dashboardCheckoutRoot, queueMirrorPath: opts.queueMirrorPath,
     machineryProjectDir: resolution.machineryProjectDir,
     machinerySpecsRoot: resolution.machinerySpecsRoot,
     queueRunnerBin: opts.queueRunnerBin,
@@ -321,6 +321,7 @@ export function createServer(opts: ServerOptions) {
     scheduleStore,
     branchFileSteps: schedules.branchFileSteps,
     rereadSpec: schedules.rereadSpec,
+    rereadProject: schedules.rereadProject,
     targets,
     withFreshness: land.withFreshness,
     specDir: resolution.specDir,

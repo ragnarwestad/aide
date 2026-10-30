@@ -180,6 +180,16 @@ Offer it only after the move actually happened — a `not-implemented-yet`
 or `held-back` decline in Step 1 has nothing to commit here beyond its
 own decline, which the ordinary git-add workflow already covers.
 
+When the person asks for the specs repository to be pushed too, push it with
+
+```bash
+aide-push-specs --specs-root "<specs-root>"
+```
+
+never with a bare `git push`: the command rebases and pushes again when
+origin has moved, and tells the board, so its specs list shows the move
+at once. The project's own code is pushed as before.
+
 ### Step 4 of 5: Confirm
 
 First write `--- Step 4 of 5: Confirm — started`, and when this step ends, `--- Step 4 of 5: Confirm — done`.

@@ -80,6 +80,8 @@ export interface RoutesContext {
   forgetBranchFileSteps?: (dir: string, specFolder: string) => void;
   /** Read one spec's cached answers again now, and tell the page. */
   rereadSpec?: (dir: string, specFolder: string) => Promise<void>;
+  /** Read every live spec of one project again now, and tell the page once. */
+  rereadProject: (project: string) => Promise<void>;
   targets: () => SpecTarget[];
   withFreshness: (list: SpecTarget[]) => SpecTarget[];
   specDir: (project: string, specFolder: string) => string | undefined;

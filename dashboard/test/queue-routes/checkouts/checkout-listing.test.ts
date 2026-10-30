@@ -276,4 +276,81 @@ describe("the dashboard works in checkouts of its own", () => {
       server.stop();
     }
   }, 45000);
+
+  // A session on another machine pushes and tells the board by this
+  // route, so the list shows the push without waiting for the sweep.
+  describe("POST /api/queue/projects/<project>/fetch-specs", () => {
+    const post = (base: string, path: string) => fetch(`${base}${path}`, { method: "POST" });
+
+    /** A booted board on a real project whose sweep will not come round
+     *  again within the test, so whatever the list shows after the
+     *  request came from the request. */
+    async function board(gitRun?: GitRunner) {
+      const { projectsRoot, person, site, owned } = realProject();
+      const made = await ensureDashboardCheckout(createGitRunner(), { base: owned, project: "aide", personDir: person });
+      expect(made.ok).toBe(true);
+      const server = createServer({
+        port: 0,
+        mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
+        projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], dashboardCheckoutRoot: owned, driftPollMs: 0, specCachePollMs: 100_000,
+        ...(gitRun ? { gitRun } : {}),
+      });
+      const base = `http://127.0.0.1:${server.port}`;
+      expect(await untilPage(base, "/specs", (h) => h.includes("81-queue-and-runner"))).toContain("81-queue-and-runner");
+      return { projectsRoot, owned, server, base };
+    }
+
+    test("a spec pushed to origin is in the board's checkout and on the list when the answer arrives (AC-1, AC-2)", async () => {
+      const { projectsRoot, owned, server, base } = await board();
+      try {
+        pushSpecToOrigin(projectsRoot, "995-pushed-by-somebody-else");
+        expect(await page(base, "/specs")).not.toContain("995-pushed-by-somebody-else");
+
+        const answer = await post(base, "/api/queue/projects/aide/fetch-specs");
+
+        expect(answer.status).toBe(200);
+        expect(await answer.json()).toEqual({ ok: true });
+        expect(existsSync(join(owned, "aide", "code", "specs", "995-pushed-by-somebody-else"))).toBe(true);
+        expect(await page(base, "/specs")).toContain("995-pushed-by-somebody-else");
+      } finally {
+        server.stop();
+      }
+    }, 45000);
+
+    test("a project the board does not know is a plain 404 that fetches nothing, and a GET is refused (AC-1)", async () => {
+      const recorded = recording();
+      const { server, base } = await board(recorded.run);
+      try {
+        await quiet(recorded.calls);
+        const before = recorded.calls.length;
+
+        const unknown = await post(base, "/api/queue/projects/nope/fetch-specs");
+        const get = await fetch(`${base}/api/queue/projects/aide/fetch-specs`);
+
+        expect(unknown.status).toBe(404);
+        expect(await unknown.text()).toBe("no such project\n");
+        expect(get.status).toBe(405);
+        expect(recorded.calls.length).toBe(before);
+      } finally {
+        server.stop();
+      }
+    }, 45000);
+
+    test("a listed spec's history is asked of git again before the answer arrives (AC-2)", async () => {
+      const recorded = recording();
+      const { server, base } = await board(recorded.run);
+      try {
+        await quiet(recorded.calls);
+        const histories = () => recorded.calls.filter((c) => c.args[0] === "log" && c.args.includes("--all")).length;
+        const before = histories();
+        expect(before).toBeGreaterThan(0);
+
+        expect((await post(base, "/api/queue/projects/aide/fetch-specs")).status).toBe(200);
+
+        expect(histories()).toBeGreaterThan(before);
+      } finally {
+        server.stop();
+      }
+    }, 45000);
+  });
 });

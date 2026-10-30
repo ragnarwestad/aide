@@ -43,7 +43,8 @@ in the Takes column of the one row.
 **Made for** says what a route is meant for, not who has called it. `page` is an HTML page or a file a browser loads.
 `form` is a control the dashboard's own pages draw, as a form or through their script, meant for nothing else.
 `interface` is meant to be called by something other than those pages: a script, a hook, another machine. The callers
-the repository shows are the evidence: `aide-emit-run` posts to `/api/aide-run`, the round script and
+the repository shows are the evidence: `aide-emit-run` posts to `/api/aide-run`, `aide-push-specs` posts to
+`/api/queue/projects/<project>/fetch-specs` from the machine a session ran on, the round script and
 `scripts/test-linux-install` use `/api/queue`, and a browser tab can hold `/api/queue/events` open. That is what the
 repository shows, not a census of every caller.
 
@@ -165,24 +166,25 @@ and answers 400 `{ error }` with `Depends on was saved, but analyze could not be
 Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, which
 `src/serve/routes/settings-concurrency.ts` answers, the two `settings/models/<add|remove>` rows, which
 `src/serve/routes/settings-models.ts` answers, and the `deploy` and `drift` rows, which
-`src/serve/routes/deploy-steps.ts` answers. Deploy is offered on the board's own project alone, and the `deploy` row
+`src/serve/routes/deploy-steps.ts` answers. The `fetch-specs` row is `queue-admin.ts`'s too. Deploy is offered on the board's own project alone, and the `deploy` row
 queues its job. The page script posts `drift` once when the Deploy tab of any project is opened.
 
-| Route                                                 | Kind   | Takes                                                         | Answers                                                                                                                            | Made for |
-|-------------------------------------------------------|--------|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|----------|
-| `POST /api/queue/settings`                            | action | model and timeout defaults per step                           | `{ ok }`; 400 `{ error }` for an unknown step or model                                                                             | form     |
-| `POST /api/queue/settings/check`                      | action | tool: the AI tool                                             | `{ ok, check, usage, models }`: all three read at once; 400 for a tool it cannot check                                             | form     |
-| `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8                           | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue                                       | form     |
-| `POST /api/queue/settings/models/add`                 | action | tool and model                                                | `{ ok, name }`: the new choice's name; 400 `{ error }` for a model the last Check's Models reading did not offer                   | form     |
-| `POST /api/queue/settings/models/remove`              | action | name: a model choice                                          | `{ ok, name }`; 400 `{ error }` for no such choice, or one that is a step's default model                                          | form     |
-| `POST /api/queue/projects`                            | action | name, git URL, the settings and the three commands            | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                       | form     |
-| `POST /api/queue/projects/test-command`               | action | a git URL                                                     | `{ ok, testCmd }`: the test command its root files point at, or `null`; reads only                                                 | form     |
-| `POST /api/queue/projects/<project>/settings`         | action | the project's settings                                        | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                       | form     |
-| `POST /api/queue/projects/<project>/deploy`           | action | nothing                                                       | `{ ok, job }`: the queued deploy job; 400 `{ error }` for a project that is not the board's, or a deploy under way                 | form     |
-| `POST /api/queue/projects/<project>/drift`            | action | nothing                                                       | `{ ok, behind }` after a fresh count; 400 `{ error }` when it cannot count; reads only                                             | form     |
-| `POST /api/queue/projects/<project>/test-server`      | action | nothing                                                       | a 303 or an HTML page, never JSON                                                                                                  | form     |
-| `POST /api/queue/projects/<project>/test-server/stop` | action | nothing                                                       | `{ ok }`                                                                                                                           | form     |
-| `POST /api/queue/projects/<project>/remove`           | action | nothing                                                       | `{ ok, project, results }`: the steps taken; 400 when one failed                                                                   | form     |
+| Route                                                 | Kind   | Takes                                                         | Answers                                                                                                                            | Made for  |
+|-------------------------------------------------------|--------|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| `POST /api/queue/settings`                            | action | model and timeout defaults per step                           | `{ ok }`; 400 `{ error }` for an unknown step or model                                                                             | form      |
+| `POST /api/queue/settings/check`                      | action | tool: the AI tool                                             | `{ ok, check, usage, models }`: all three read at once; 400 for a tool it cannot check                                             | form      |
+| `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8                           | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue                                       | form      |
+| `POST /api/queue/settings/models/add`                 | action | tool and model                                                | `{ ok, name }`: the new choice's name; 400 `{ error }` for a model the last Check's Models reading did not offer                   | form      |
+| `POST /api/queue/settings/models/remove`              | action | name: a model choice                                          | `{ ok, name }`; 400 `{ error }` for no such choice, or one that is a step's default model                                          | form      |
+| `POST /api/queue/projects`                            | action | name, git URL, the settings and the three commands            | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                       | form      |
+| `POST /api/queue/projects/test-command`               | action | a git URL                                                     | `{ ok, testCmd }`: the test command its root files point at, or `null`; reads only                                                 | form      |
+| `POST /api/queue/projects/<project>/settings`         | action | the project's settings                                        | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                       | form      |
+| `POST /api/queue/projects/<project>/deploy`           | action | nothing                                                       | `{ ok, job }`: the queued deploy job; 400 `{ error }` for a project that is not the board's, or a deploy under way                 | form      |
+| `POST /api/queue/projects/<project>/drift`            | action | nothing                                                       | `{ ok, behind }` after a fresh count; 400 `{ error }` when it cannot count; reads only                                             | form      |
+| `POST /api/queue/projects/<project>/fetch-specs`      | action | nothing                                                       | `{ ok }` once origin is asked again and the live specs are read again; 404 for an unknown project; 400 `{ error }` with no checkout| interface |
+| `POST /api/queue/projects/<project>/test-server`      | action | nothing                                                       | a 303 or an HTML page, never JSON                                                                                                  | form      |
+| `POST /api/queue/projects/<project>/test-server/stop` | action | nothing                                                       | `{ ok }`                                                                                                                           | form      |
+| `POST /api/queue/projects/<project>/remove`           | action | nothing                                                       | `{ ok, project, results }`: the steps taken; 400 when one failed                                                                   | form      |
 
 ### Schedule
 
