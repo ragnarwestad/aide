@@ -169,7 +169,7 @@ export class Runner {
       // Every slot is busy. The row says so by its queue position, not
       // by a sentence — a sentence left from an earlier pass goes with
       // the other stale holds after the loop. A board step (a deploy)
-      // takes no slot and waits for none.
+      // and a create take no slot and wait for none (`takesSlot`).
       if (takesSlot(job) && this.runningJobs().filter(takesSlot).length >= this.maxConcurrent) continue;
       // A job whose OWN landing is in flight is still not restarted:
       // its own next step waits for its merge, which is what `landing`

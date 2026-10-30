@@ -31,6 +31,21 @@ def test_every_aide_script_a_skill_runs_exists():
     assert not missing, f"skills run scripts core/scripts does not have: {missing}"
 
 
+PUSHING_SKILLS = ("aide-create", "aide-analyze", "aide-implement", "aide-archive", "aide-close")
+
+
+@pytest.mark.validation
+def test_the_skills_that_push_the_specs_run_the_one_command_and_never_a_bare_git_push_AC_3():
+    wrong = []
+    for name in PUSHING_SKILLS:
+        blocks = BASH_BLOCK.findall((CORE_SKILLS_DIR / name / "SKILL.md").read_text(encoding="utf-8"))
+        if not any("aide-push-specs" in block for block in blocks):
+            wrong.append(f"{name} has no bash block that runs aide-push-specs")
+        if any(re.search(r"\bgit\s+push\b", block) for block in blocks):
+            wrong.append(f"{name} has a bash block that runs a bare git push")
+    assert not wrong, "\n".join(wrong)
+
+
 @pytest.mark.validation
 def test_analyze_plan_and_review_share_the_parts_lines():
     """The plan step writes the Parts lines the plan review checks

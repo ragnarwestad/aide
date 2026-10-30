@@ -736,12 +736,12 @@ export const MESSAGES = {
     resolve: "add them to Depends on",
   },
   "wordPhase.stopShortAnalysisOverLimit": {
-    en: "the short analysis was over a limit — run it again to have the full analysis written",
-    nb: "den korte analysen var over en grense — kjør på nytt for å få skrevet den fulle analysen",
-    es: "el análisis corto superaba un límite — ejecútalo de nuevo para que se escriba el análisis completo",
-    de: "die kurze Analyse lag über einer Grenze — führe es erneut aus, damit die vollständige Analyse geschrieben wird",
-    fr: "l'analyse courte dépassait une limite — relancez-le pour que l'analyse complète soit écrite",
-    resolve: "run it again to have the full analysis written",
+    en: "the short analysis was over a limit — the analysis runs again by itself and writes the full one",
+    nb: "den korte analysen var over en grense — analysen kjører på nytt av seg selv og skriver den fulle",
+    es: "el análisis corto superaba un límite — el análisis se ejecuta de nuevo por sí solo y escribe el completo",
+    de: "die kurze Analyse lag über einer Grenze — die Analyse läuft von selbst erneut und schreibt die vollständige",
+    fr: "l'analyse courte dépassait une limite — l'analyse se relance d'elle-même et écrit l'analyse complète",
+    resolve: "runs again by itself",
   },
   "wordPhase.stopSentBack": {
     en: "the spec was not small after all and was sent back to a full analysis — the analysis and then the implement run again by themselves",

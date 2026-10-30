@@ -623,6 +623,76 @@ describe("a deploy takes no slot", () => {
   });
 });
 
+// A create takes about a minute and gives a spec its number and its row, so
+// it is never left behind an analyze or an implement. Every job in a test is
+// on its own spec, so the same-spec hold cannot be what the test proves. The
+// analyze is ticked into its slot before the create is queued: a create is a
+// quick step and would take a free slot first.
+describe("a create takes no slot", () => {
+  test("it starts with the only slot taken by an analyze (AC-1)", () => {
+    const a = enqueue();
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    const c = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
+    runner.tick();
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(c.id)?.state).toBe("running");
+    expect(spawns.map((s) => s.step)).toEqual(["analyze", "create"]);
+  });
+
+  test("it starts with every one of two slots taken (AC-1)", () => {
+    enqueue();
+    enqueue({ specFolder: "91-parallel-spec-runs" });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    const c = enqueue({ project: "other-project", steps: ["create"] });
+    runner.tick();
+    expect(store.get(c.id)?.state).toBe("running");
+  });
+
+  test("a running create is not counted against the slots (AC-2)", () => {
+    const c = enqueue({ steps: ["create"] });
+    const a = enqueue({ specFolder: "91-parallel-spec-runs" });
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    expect(store.get(c.id)?.state).toBe("running");
+    runner.tick();
+    expect(store.get(a.id)?.state).toBe("running");
+  });
+
+  test("every other step still waits while the slot is taken (AC-3)", () => {
+    const a = enqueue();
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    const c = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
+    const i = enqueue({ project: "other-project", steps: ["implement"] });
+    const r = enqueue({ project: "other-project", specFolder: "91-parallel-spec-runs", steps: ["archive"] });
+    runner.tick();
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(c.id)?.state).toBe("running");
+    expect(store.get(i.id)?.state).toBe("queued");
+    expect(store.get(r.id)?.state).toBe("queued");
+  });
+
+  test("the next step of a job that began with a create waits for a slot (AC-3)", () => {
+    enqueue();
+    const finished = new Set<string>();
+    const runner = makeRunner({
+      maxConcurrent: 1,
+      readResult: (path) => (finished.has(path) ? okResult(1) : null),
+    });
+    runner.tick();
+    const j = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create", "analyze"] });
+    runner.tick();
+    expect(store.get(j.id)?.state).toBe("running");
+    finished.add(join(dir, `${j.id}.json`));
+    runner.poll();
+    runner.tick();
+    expect(store.get(j.id)?.state).toBe("queued");
+    expect(spawns.filter((s) => s.step === "analyze")).toHaveLength(1);
+  });
+});
+
 // A job in the usage-limit map is held before the slot check, so it says
 // why it waits even while every slot is busy; the other holds keep their
 // place after it.

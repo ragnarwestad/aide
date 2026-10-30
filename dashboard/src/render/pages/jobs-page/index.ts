@@ -54,12 +54,12 @@ function entries(v: JobsView): { key: string; html: string; place: TabPlace; fac
   return [...specs, ...jobs].sort((a, b) => byTabPlace(a.place, b.place));
 }
 
-/** Whether the tab has a row to draw, before its view cuts them: what the
+/** Whether the tab has a row to draw once its view has cut them: what the
  *  installed app's start address chooses between this tab and the Specs
  *  list by, and what decides whether this tab names the Specs list as the
  *  page a browser tab starts on. A failed create's message is not a row. */
 export function jobsTabHasRows(v: JobsView): boolean {
-  return entries(v).length > 0;
+  return jobsViewRows(entries(v), v.list.filter ?? {}).length > 0;
 }
 
 /** The failed-create messages, the bar and the table, with an empty row

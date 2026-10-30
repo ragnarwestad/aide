@@ -33,8 +33,8 @@ import type { DashboardCheckout } from "./dashboard-checkout.ts";
  *  which is what keeps an idle project fetching exactly as often as it
  *  did before.
  *
- *  `tickRunner` is the one caller that needs `fresh`. Reaching for `get`
- *  there — it is the shorter name, and both compile — puts the race
+ *  `tickRunner` and the `fetch-specs` route are the callers that need `fresh`.
+ *  Reaching for `get` there — it is the shorter name, and both compile — puts the race
  *  back. */
 export class CheckoutEnsurer {
   /** The run going on right now, per project. */

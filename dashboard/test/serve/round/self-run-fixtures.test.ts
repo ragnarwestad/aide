@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseCreateRequest } from "../../../src/queue/queue.ts";
-import { fixtureCreateBody, fixtureOrder, readFixtures, type RoundSpec } from "../../../src/serve/routes/self-run.ts";
+import { createEnd, fixtureCreateBody, fixtureOrder, readFixtures, type RoundSpec } from "../../../src/serve/routes/self-run.ts";
 
 const FIXTURES = join(import.meta.dir, "..", "..", "round", "specs");
 
@@ -93,4 +93,62 @@ describe("the order the round creates its fixtures in", () => {
   test("every checked-in fixture can be created in its own order", () => {
     expect(() => fixtureOrder(readFixtures(FIXTURES))).not.toThrow();
   });
+});
+
+// A fixture can be about a create that ends without a spec: the round
+// records that it failed and goes on to the next fixture.
+describe("what a fixture's create has come to", () => {
+  const spec = (expected: string) =>
+    ({ slug: "13-a-create-that-fails", title: "A create that fails", steps: ["analyze"], expected, dependsOn: [] }) as RoundSpec;
+
+  test("a create meant to fail that failed is recorded as failed", () => {
+    expect(createEnd(spec("create-failed"), { specFolder: "new-abcdef12", state: "failed" })).toEqual({ failed: true });
+  });
+
+  test("a create meant to fail that made a spec is refused by name", () => {
+    expect(() => createEnd(spec("create-failed"), { specFolder: "13-a-create-that-fails", state: "done" })).toThrow(
+      "13-a-create-that-fails was meant to fail its create, and made 13-a-create-that-fails",
+    );
+  });
+
+  test("a create that failed when it was not meant to is refused by name", () => {
+    expect(() => createEnd(spec("archived"), { specFolder: "new-abcdef12", state: "failed" })).toThrow(
+      "create failed for 13-a-create-that-fails",
+    );
+  });
+
+  test("a landed create gives its folder, and one still going gives nothing yet", () => {
+    expect(createEnd(spec("archived"), { specFolder: "13-a-create", state: "done" })).toEqual({ folder: "13-a-create" });
+    expect(createEnd(spec("archived"), { specFolder: "new-abcdef12", state: "running" })).toBeUndefined();
+    expect(createEnd(spec("create-failed"), { specFolder: "new-abcdef12", state: "running" })).toBeUndefined();
+  });
+});
+
+// A fixture whose create must reach the model says so with `aiCreate`:
+// without it the board makes the folder itself, as New spec does with
+// "let AI formulate acceptance criteria" cleared.
+test("a fixture with aiCreate asks for the create through the model, and one without does not", () => {
+  const parse = (spec: RoundSpec) =>
+    parseCreateRequest(fixtureCreateBody("aide-test", spec, "Text.\n", []), {
+      allow: () => true,
+      defaults: { timeoutSec: { default: 60 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } },
+    });
+  const plain = { slug: "01-a", title: "A", steps: ["analyze"], expected: "archived", dependsOn: [] } as RoundSpec;
+  const viaModel = parse({ ...plain, aiCreate: true });
+  const mechanical = parse(plain);
+  expect(viaModel.ok && mechanical.ok).toBe(true);
+  if (!viaModel.ok || !mechanical.ok) return;
+  expect(viaModel.job.createNoAiFormulate).toBeUndefined();
+  expect(mechanical.job.createNoAiFormulate).toBe(true);
+});
+
+test("a fixture's aiCreate is read from its json", () => {
+  const dir = mkdtempSync(join(tmpdir(), "aide-round-fixtures-"));
+  try {
+    writeFileSync(join(dir, "01-a.json"), JSON.stringify({ title: "A", steps: ["analyze"], expected: "create-failed", aiCreate: true }));
+    writeFileSync(join(dir, "01-a.md"), "A.\n");
+    expect(readFixtures(dir)[0]?.aiCreate).toBe(true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

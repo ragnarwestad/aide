@@ -115,6 +115,16 @@ Offer it only after the move actually happened — a `refused`,
 `already-closed` or `already-archived` outcome in Step 1 has nothing to
 commit here beyond its own decline.
 
+When the person asks for the specs to be pushed too, push them with
+
+```bash
+aide-push-specs --specs-root "<specs-root>"
+```
+
+never with a bare `git push`: the command rebases and pushes again when
+origin has moved, and tells the board, so its specs list shows the move
+at once.
+
 ### Step 3 of 4: Confirm
 
 First write `--- Step 3 of 4: Confirm — started`, and when this step ends, `--- Step 3 of 4: Confirm — done`.
@@ -150,4 +160,5 @@ IMPORTANT:
 - When the specs root lies outside the project root, spec files are
   staged with the specs repo's git, never the project's
 - The code branch is left for the landing after this step, which deletes
-  it; nothing in this skill pushes or merges any branch
+  it; this skill never pushes or merges it, and pushes the specs only when
+  the person asks, through `aide-push-specs`

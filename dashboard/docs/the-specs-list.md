@@ -223,7 +223,7 @@ A spec whose latest analysis was short carries one more notice line, in the info
 spec page, which is the list with the row open. A full analysis, or a spec analysed before the bullet existed, draws
 nothing.
 
-A spec implement sent back to a full analysis carries one more line in the same variant: "Sent back to a full analysis:
+A spec implement sent back to a full analysis, or whose analyze wrote a short analysis over a limit, carries one more line in the same variant: "Sent back to a full analysis:
 <the sentence>". It is read from the `Sent back to a full analysis:` bullet in the Tracking info of `1-description.md`,
 the create phase's own file, so it shows on a live and an archived row alike, and on the spec page. Without the bullet,
 or with an empty one, the row draws nothing.
@@ -754,8 +754,10 @@ Two things this deliberately does NOT do:
   notices, not after the step really moved.
 
 What arrives from elsewhere — a spec pushed from another machine, a branch deleted on the git host — shows within
-five minutes. That is how often the board fetches every project's checkouts and asks which `aide/*` branches origin
-still has (`SPEC_CACHE_POLL_MS`), one round trip to the git host each. What the board does itself refreshes at once.
+five minutes, except a spec pushed with `aide-push-specs` from a machine whose `~/.aide/config` names the board:
+that command posts to `fetch-specs`, and the list shows the push at once. Five minutes is how often the board
+fetches every project's checkouts and asks which `aide/*` branches origin still has (`SPEC_CACHE_POLL_MS`), one round
+trip to the git host each. What the board does itself refreshes at once.
 The Deploy tab's own check of how far a checkout is behind origin runs on its own 30-second schedule, and once more
 whenever the Deploy tab is opened.
 

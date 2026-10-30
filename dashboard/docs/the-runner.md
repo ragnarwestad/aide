@@ -446,8 +446,15 @@ info, `Grade:` and `Acceptance criteria:` from `3-solution.md`'s, and counts the
 `- **AC-n:**` lines of the description itself. The larger of the two criteria counts is logged and held to no limit. Every completed analyze is logged as
 `short analysis: <short|full> — grade <g>, <n> acceptance criteria, <m> files to change, <s> of them source files`. A full analysis is only logged. A short
 one over a limit, with no grade or no files recorded, or on a spec that asks to choose the approach, ends `short-analysis-over-limit`: `ok` false, the commit subject ending
-`(stopped: short-analysis-over-limit)`, and an error naming each limit crossed (for the files limit, the source files it counted) and telling the reader to press Analyze
-again for the full analysis. The state file does not gain `analyze`, and the next Analyze writes the full one. The
+`(stopped: short-analysis-over-limit)`, and an error naming each limit crossed (for the files limit, the source files it counted). The state file does not gain
+`analyze`. The runner also writes `- **Sent back to a full analysis:** a short analysis was written over a limit: <the
+limits crossed>` into the description (`record_sent_back`, the sentence cleaned as the sent-back check cleans its own),
+unless the description already carries the line, whose reason is kept as it is; a description with no `Created:` line
+cannot hold it, and the step ends the same way. The board then lands the step's specs branch (where the specs live inside the code root, the spec's own folder) and
+queues one job for the same spec with Analyze and the steps the stopped job had not run, on its models and effort, with
+nothing for a person to press. The line is on the main checkout once the branch has landed, so that Analyze is not
+offered a short analysis and writes the full one. This is queued once per spec: a second `short-analysis-over-limit`
+for the same spec queues nothing and waits for a press. The
 `Analysis:` cases both the runner and the board read are in `core/tests/fixtures/analysis-line.json`. A spec whose
 description carries a `Sent back to a full analysis:` line is never offered a short analysis, and one written for it
 anyway ends `short-analysis-over-limit` with "it was sent back to a full analysis" among the limits crossed.

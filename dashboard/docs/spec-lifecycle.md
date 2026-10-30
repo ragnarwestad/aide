@@ -114,7 +114,7 @@ is the whole set:
 | stopped: tests-red                    | The project's suite is red, after the runner gave the session two more turns at it | Make the suite green, then press Implement                                 |
 | stopped: timeout                      | The step reached its own time limit                                                | Press the same button again; the work it committed is on the branch        |
 | stopped: shared-files                 | Analyze found files another open spec also changes, and stopped before the plan    | Add those specs to Depends on and save, or press Analyze again to go on    |
-| stopped: short-analysis-over-limit    | Analyze wrote a short analysis for a spec over a limit of the runner's             | Press Analyze again; the full analysis is written                          |
+| stopped: short-analysis-over-limit    | Analyze wrote a short analysis for a spec over a limit of the runner's             | Nothing. Analyze is queued again by the board, with a full analysis        |
 | stopped: sent-back                    | Implement found a spec with a short analysis is not small after all                | Nothing. Analyze and then Implement are queued, with a full analysis       |
 | stopped: sent-back-refused            | Implement asked to send the spec back, but its analysis was already full           | Press Analyze for a new plan, or press Implement to build the one there is |
 | not landed                            | Archive finished, but the spec's branch is still on origin, not merged             | Run Archive again                                                          |

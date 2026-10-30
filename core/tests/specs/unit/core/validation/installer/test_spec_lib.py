@@ -298,6 +298,45 @@ class TestManifestGet:
         out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
         assert out == ""
 
+    def test_a_trailing_comment_is_dropped_ac_1(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, "acPrefix: F{spec} # feature\n")
+        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
+        assert out == "F{spec}"
+
+    def test_a_tab_before_the_hash_starts_a_comment_ac_1(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, "worktreeLinks: .venv dashboard/node_modules\t# both\n")
+        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
+        assert out == ".venv dashboard/node_modules"
+
+    def test_a_value_that_is_only_a_comment_is_empty_ac_1(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, "acPrefix: # none yet\n")
+        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
+        assert out == ""
+
+    def test_a_hash_with_no_space_before_it_is_part_of_the_value_ac_1(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, "acPrefix: a#b\n")
+        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
+        assert out == "a#b"
+
+    def test_a_hash_inside_double_quotes_is_kept_ac_2(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, 'acPrefix: "F{spec} # x"\n')
+        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
+        assert out == "F{spec} # x"
+
+    def test_a_comment_after_single_quotes_is_dropped_and_the_hash_inside_kept_ac_2(
+        self, workspace_root, tmp_path,
+    ):
+        self._manifest(tmp_path, "acPrefix: 'a # b'  # c\n")
+        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
+        assert out == "a # b"
+
+    def test_a_comment_after_double_quotes_is_dropped_with_the_quotes_ac_2(
+        self, workspace_root, tmp_path,
+    ):
+        self._manifest(tmp_path, 'acPrefix: "F{spec}"   # c\n')
+        out = _call(workspace_root, f'aide_manifest_get "acPrefix" "{tmp_path}"')
+        assert out == "F{spec}"
+
 
 @pytest.mark.validation
 @pytest.mark.validation

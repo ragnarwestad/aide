@@ -72,6 +72,11 @@ def test_a_value_quoted_as_a_whole_is_read_without_its_quotes(script, project):
     assert prefix_for(script, project, FOLDER) == (0, {"ok": True, "prefix": "652"})
 
 
+def test_a_trailing_comment_is_not_part_of_the_prefix_ac_3(script, project):
+    write_manifest(project, "acPrefix: F{spec} # feature\n")
+    assert prefix_for(script, project, FOLDER) == (0, {"ok": True, "prefix": "F652"})
+
+
 def test_every_spec_in_the_value_is_replaced(script, project):
     write_manifest(project, "acPrefix: '{spec}/F{spec}'\n")
     assert prefix_for(script, project, "02-totals") == (0, {"ok": True, "prefix": "02/F02"})

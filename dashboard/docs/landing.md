@@ -25,7 +25,7 @@ exists in the project and in the specs repo, with different contents and two sep
 does nothing for the other: each repo's branch is landed on its own, asked of that repo's own checkout.
 
 A project whose specs live inside it has one repo and one branch for both. There, a step that lands no code —
-`analyze`, `reopen`, `close` — copies the spec's own folder, and its `archive/` twin, from the branch onto the
+`analyze`, `reopen`, `close`, and an `implement` sent back to a full analysis — copies the spec's own folder, and its `archive/` twin, from the branch onto the
 default branch as one commit, and leaves every other path as it was. The branch stays open for the next step,
 whose run merges the default branch in before it starts; a `close` deletes it afterwards.
 
@@ -37,7 +37,9 @@ point.
 
 - `create` and `analyze` merge the branch they pushed into that repo's default branch, and leave the
   project's code root out.
-- `implement` lands nothing. The code stays on the branch for anyone who wants to read or test it first.
+- `implement` lands nothing. The code stays on the branch for anyone who wants to read or test it first. The one
+  exception is an implement sent back to a full analysis in a project whose specs live inside the code root: it
+  lands the spec's own folder, so main, the row and the next analyze have the Sent back line, and not its code.
 - `archive` merges every repo it was told about: the roots its own run reported, plus the ones the queue's own
   history recorded for the spec. **The code root goes first and the specs root last.** The specs root carries the
   `Result: completed` stamp, and that stamp must not reach the default branch before the code landing is

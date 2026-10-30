@@ -307,6 +307,16 @@ Offer it only once the verification in Step 4 has passed. A red
 suite, a failing build or a step of this skill you could not finish is not a step
 that completed.
 
+When the person asks for the specs repository to be pushed too, push it with
+
+```bash
+aide-push-specs --specs-root "<specs-root>"
+```
+
+never with a bare `git push`: the command rebases and pushes again when
+origin has moved, and tells the board, so its specs list shows the work
+at once. The project's own code is pushed as before.
+
 ### Reporting RED, GREEN and VERIFY
 
 One Bash call at the start of Steps 2, 3 and 4, with the spec's ID:
