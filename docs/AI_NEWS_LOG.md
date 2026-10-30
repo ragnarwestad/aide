@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-30](#2026-10-30)
   - [2026-10-29](#2026-10-29)
   - [2026-10-28](#2026-10-28)
   - [2026-10-27](#2026-10-27)
@@ -113,6 +114,75 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-30
+
+Oct 29 – Oct 30. Not read: the Codex changelog page past its first 100,000 characters, the OpenCode changelog page past its
+first 100,000 characters, the OpenAI developer blog (no dates shown), Artificial Analysis (the harness comparison there is
+still "coming soon"), the GitHub Copilot blog (newest post shown is Oct 20), the Claude Code v2.1.314 notes (the release
+page cut them off in the middle; the tag page gave the last 15 bullets, all cloud sessions, Remote Control and Claude Tag),
+the Copilot changelog (titles only, newest Oct 28). The X list digest of Oct 30 says the list could not be read (the
+machine's Chrome was not connected); the digest of Oct 29 was read in the last review. Of the watched pages, the Claude
+prompting page for Fable 5.1 changed in what it advises (below); `agents.md` (star counts), the hooks guide, the Claude Code
+and Agent Skills best-practices pages, the Codex and Copilot pages, the OpenCode rules, skills and agents pages, the
+agentskills.io specification and the three Anthropic engineering articles changed in layout or related links only; the
+Haiku 5.5 and Sonnet 5.5 pages gained a migration pointer and the Haiku page a system-prompt note.
+
+**Claude Code (v2.1.314):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Source                                                                      |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| Oct 30 | v2.1.314 | New `permissions.blockWritesOutsideWorkingDirectories`: Write, Edit and NotebookEdit refuse paths outside the working directories in every permission mode; `claude -p` that fails at startup now prints the error and exits 1 (was exit 0 with no output); sandbox protections now apply to a worktree entered by `claude -p --resume` or `--continue`; hooks matching Bash now run on commands started by the Monitor tool (they can block or ask, not approve or rewrite); a PreCompact hook's output is cut at 10,000 characters; "Continue automatically at usage limit" no longer continues more than three times without a prompt when a task restarts itself (a `/goal` check-in, a background or scheduled task); `--setting-sources` now excludes a file fully; `~/.claude/skills/.trash` and `plugins/.trash` are capped at about 1024 entries; the Bash edit diff no longer lists a whole CRLF file as changed; many fixes for the gateway, Bedrock, Foundry, Remote Control, cloud sessions and vim mode | [Releases](https://github.com/anthropics/claude-code/releases/tag/v2.1.314) |
+
+**GitHub Copilot CLI (v1.0.105, no newer release):**
+
+| Date | Version | News                                       | Source                                                     |
+|------|---------|--------------------------------------------|------------------------------------------------------------|
+| —    | —       | No release or changelog entry after Oct 28 | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.166.0):**
+
+| Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                         | Source                                               |
+|--------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Oct 29 | v0.166.0 | Keyboard-driven transcript selection with search; GPT-6.1 Terra in the bundled, Vertex AI and Bedrock model catalogs; `codex queue --resume` resumes unloaded threads; clearer safety-block explanations in the TUI; `codex doctor --network-only`; approval and permission settings preserved when resuming or forking threads; reasoning-token accounting preserved across resume and fork | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.2):**
+
+| Date   | Version | News                                                                                                                                                                                                                                                                                                                  | Source                                                     |
+|--------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 29 | v2.2.2  | Image generation (`experimental_image_generate`) on by default when a connected provider supports image models; worktree picker from the current branch on the new-session screen; one comment editor for timeline quotes, terminal quotes and browser annotations; SDK `if` and `until` inputs for scheduled prompts | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⚠️ Claude Code v2.1.314: `claude -p` now exits 1 with the error printed when startup fails; before it exited 0 with no
+  output. The runner starts `claude -p` for every step, so a step that failed at startup used to look like an empty
+  success and now fails. This is the safer behaviour; the next real run is where to watch it.
+  [Release](https://github.com/anthropics/claude-code/releases/tag/v2.1.314)
+- ✅ Claude Code v2.1.314: sandbox protections now apply to a worktree entered by `claude -p --resume` or `--continue`.
+  Aide's steps run in worktrees and resume sessions, so a resumed step is now sandboxed the same as a fresh one.
+  [Release](https://github.com/anthropics/claude-code/releases/tag/v2.1.314)
+- ✅ Claude Code v2.1.314: new setting `permissions.blockWritesOutsideWorkingDirectories` refuses Write, Edit and
+  NotebookEdit outside the working directories in every permission mode. Aide's steps write to the specs worktree as an
+  additional directory, so the setting would need that directory listed before anyone turns it on.
+  [Release](https://github.com/anthropics/claude-code/releases/tag/v2.1.314)
+- ✅ Claude Code v2.1.314: hooks matching Bash now run on Monitor-started commands (block or ask only), and a PreCompact
+  hook's output is cut at 10,000 characters. Aide's `guard-push` hook is a Bash hook, so it now also sees Monitor commands.
+  [Release](https://github.com/anthropics/claude-code/releases/tag/v2.1.314)
+- ✅ Prompting page for Fable 5.1 (watched): the thinking-block check can now be set with
+  `thinking.block_binding.prefix_mismatch_behavior` (`error` or `drop_block`, beta header
+  `thinking-binding-controls-2026-08-01`), and cache reads cost $0.25 per million tokens (2.5 percent of the input
+  price). An API matter; Aide calls the models through Claude Code only, so nothing changes.
+  [Page](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1)
+- ✅ Codex v0.166.0: approval and permission settings are kept when a thread is resumed or forked. Aide installs only
+  skills and `AGENTS.md` for Codex. [Release](https://github.com/openai/codex/releases)
+- ℹ OpenCode v2.2.2 (image generation by default, worktree picker) and v2.2.1's `/goal` from the last review; Codex
+  v0.166.0 transcript selection, GPT-6.1 Terra and `codex doctor --network-only`; Anthropic's engineering articles now
+  link to "Anthropic acquires Stainless", "Code execution with MCP" and "Demystifying evals for AI agents" (not read here).
+- ℹ Haiku 5.5 prompting page: system-prompt text is added to new conversations only, since a request sending thinking
+  blocks back after the system prompt changed can fail with 400; to change instructions mid-conversation, put them in the
+  newest turn. Aide starts each step as a new session.
+- ℹ Claude posts on Oct 28 (Enterprise, legal artifacts) were in the last review; the Claude blog, resources and Anthropic
+  news pages show nothing newer than Oct 28 besides an empty "October 30, 2026" heading.
 
 ### 2026-10-29
 
