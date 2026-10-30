@@ -122,8 +122,16 @@ export function handedToMerge(
 /** Steps whose landing carries no code. Where the specs live inside the
  *  code repo, their branch is also the code's, and merging it whole
  *  would put an earlier `implement`'s code on the default branch before
- *  `archive` — so these land the spec's own folder alone. */
-const SPEC_ONLY_STEPS = new Set(["analyze", "reopen", "close"]);
+ *  `archive` — so these land the spec's own folder alone. `implement`
+ *  lands only when it is sent back to a full analysis, and then it is
+ *  its Sent back line that lands, not its code. */
+const SPEC_ONLY_STEPS = new Set(["analyze", "reopen", "close", "implement"]);
+
+/** Whether the specs root lies inside `root`, by the very test that makes
+ *  a landing from `root` carry the spec's folder alone. */
+export function specsLiveInside(root: string, specsRoot: string | undefined): boolean {
+  return specPathsIn(root, specsRoot, "") !== undefined;
+}
 
 /** The spec's folder and its `archive/` twin
  *  relative to `root`, or `undefined` when the specs root is not inside
