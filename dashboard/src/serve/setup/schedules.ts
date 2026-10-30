@@ -24,6 +24,7 @@ import type { CheckableTool, SpecTarget } from "../../render";
 import {
   refreshDrift as refreshDriftImpl,
   warmSpec as warmSpecImpl,
+  rereadProject as rereadProjectImpl,
   rereadSpec as rereadSpecImpl,
   refreshSpecCaches as refreshSpecCachesImpl,
   refreshSchedules as refreshSchedulesImpl,
@@ -162,6 +163,9 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   function rereadSpec(dir: string, specFolder: string, opts?: { askOrigin?: boolean }) {
     return rereadSpecImpl(scheduleCtx, dir, specFolder, opts);
   }
+  function rereadProject(project: string) {
+    return rereadProjectImpl(scheduleCtx, project);
+  }
   function refreshSpecCaches() {
     return refreshSpecCachesImpl(scheduleCtx);
   }
@@ -222,7 +226,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
 
   return {
     mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
-    warmSpec, rereadSpec, refreshSpecCaches, tickRunner,
+    warmSpec, rereadSpec, rereadProject, refreshSpecCaches, tickRunner,
     timers: [driftTimer, specCacheTimer, scheduleTimer, branchPreviewTimer],
   };
 }

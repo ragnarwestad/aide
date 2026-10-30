@@ -59,6 +59,31 @@ describe("the configuration reference's manifest table", () => {
   });
 });
 
+/** The keys in the first column of the `~/.aide/config` section's table. */
+function machineTableKeys(): string[] {
+  const text = readFileSync(CONFIGURATION, "utf-8");
+  const section = text.split(/^## /m).find((s) => s.startsWith("~/.aide/config"));
+  if (!section) throw new Error("docs/CONFIGURATION.md has no ~/.aide/config section");
+  return [...section.matchAll(/^\| `([^`]+)`/gm)].map((m) => m[1]!);
+}
+
+describe("the configuration reference's ~/.aide/config table", () => {
+  test("names AIDE_BOARD_URL (AC-7)", () => {
+    expect(machineTableKeys()).toContain("AIDE_BOARD_URL");
+  });
+
+  test("every key in it is read from $HOME by a script in core/scripts (AC-7)", () => {
+    const scripts = join(REPO, "core", "scripts");
+    const sources = readdirSync(scripts, { withFileTypes: true })
+      .filter((f) => f.isFile())
+      .map((f) => readFileSync(join(scripts, f.name), "utf-8"));
+    for (const key of machineTableKeys()) {
+      const reads = sources.some((text) => text.includes(`aide_config_get ${key} "$HOME"`));
+      expect([key, reads]).toEqual([key, true]);
+    }
+  });
+});
+
 describe("no page names a manifest key that nothing reads", () => {
   test("none of the retired keys is written as a code span", () => {
     const hits: string[] = [];

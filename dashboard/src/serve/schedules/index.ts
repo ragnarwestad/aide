@@ -169,6 +169,20 @@ export async function rereadSpec(
   ctx.notifyQueueChanged();
 }
 
+/** Every live spec of one project read again now, after a fetch brought in what another machine pushed, and the
+ *  page told once. Marked stale first: an answer younger than its window is otherwise handed back as it was. */
+export async function rereadProject(ctx: ScheduleContext, project: string): Promise<void> {
+  const live = ctx.targets().filter((t) => t.project === project);
+  for (const t of live) {
+    if (!t.dir) continue;
+    ctx.readWorkflowHistory().forget(t.dir, t.specFolder);
+    ctx.readBranchFileSteps().forget(t.dir, t.specFolder);
+    ctx.readFreshness().forget(t.dir, t.specFolder);
+  }
+  await Promise.all(live.map((t) => warmSpec(ctx, t)));
+  ctx.notifyQueueChanged();
+}
+
 /** The ONE schedule that feeds every peek on every page.
  *
  *  This is `refreshDrift`'s shape applied to the rest of
@@ -405,7 +419,7 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   // made once and the call is a map lookup ever after, so this costs
   // one `existsSync` per waiting project per tick.
   //
-  // `fresh`, not `get`. This is the one caller that may not
+  // `fresh`, not `get`. This and the `fetch-specs` route are the callers that may not
   // be handed a bring-up-to-date that was already running when it
   // asked — such a fetch took its picture of origin before this job
   // was queued, and a spec pushed in between is one the step will

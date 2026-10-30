@@ -380,6 +380,22 @@ export async function handleQueueAdminRoutes(
     return json({ ok: true });
   }
 
+  // A session on another machine pushed specs and says so: ask origin again now instead of at the next sweep.
+  // It takes nothing, so an unknown project is refused before anything is read.
+  const fetchSpecs = path.match(/^\/api\/queue\/projects\/([^/]+)\/fetch-specs$/);
+  if (fetchSpecs) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const name = decodeURIComponent(fetchSpecs[1]!);
+    if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) return new Response("no such project\n", { status: 404 });
+    // `fresh`, as a queued job asks: a fetch already running took its picture of origin before this push.
+    if (!(await ctx.ensureCheckout(name, { fresh: true }))) {
+      return json({ ok: false, error: `the dashboard has no checkout of its own for ${name}, so there was nothing to fetch` }, 400);
+    }
+    ctx.invalidateScan();
+    await ctx.rereadProject(name).catch(() => {});
+    return json({ ok: true });
+  }
+
   const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);
   if (removal) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });

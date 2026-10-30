@@ -321,6 +321,7 @@ export function createServer(opts: ServerOptions) {
     scheduleStore,
     branchFileSteps: schedules.branchFileSteps,
     rereadSpec: schedules.rereadSpec,
+    rereadProject: schedules.rereadProject,
     targets,
     withFreshness: land.withFreshness,
     specDir: resolution.specDir,
