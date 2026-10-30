@@ -9,6 +9,7 @@
 - [Checking on it afterwards](#checking-on-it-afterwards)
 - [Stopping it](#stopping-it)
 - [Running the sample specs again](#running-the-sample-specs-again)
+- [Slowing the samples down](#slowing-the-samples-down)
 - [After the dashboard restarts](#after-the-dashboard-restarts)
 - [Which commit it serves](#which-commit-it-serves)
 - [Which projects this works for](#which-projects-this-works-for)
@@ -145,7 +146,7 @@ carries no start link, and a start reached directly for an archived spec is refu
 
 ## Running the sample specs again
 
-A test server started from the Deploy tab carries a **Run** button beside Stop: it puts the eleven
+A test server started from the Deploy tab carries a **Run** button beside Stop: it puts the
 sample specs through again on that same server, the server itself left as it is. Whatever the last
 run left is cleared first — its jobs cancelled and dropped, the throwaway project and its specs put
 back to their first commit — and then the samples go in one by one, exactly as
@@ -156,6 +157,14 @@ it has come.
 
 A test server started from a spec's row carries no Run button. It previews that spec, and its
 sample specs are seeded once, when the server comes up.
+
+## Slowing the samples down
+
+A test server `dashboard/test/round/run` started carries a **Delay** button beside Stop and Run, saying the current
+wait: "Delay: Off" to start. Each press moves it on to the next choice — 10 s, 30 s, 60 s, then Off again — and the
+stand-in model waits that long before it does each step, so a row stays in each state long enough to be watched. A
+press takes effect at the next step. At phone width the button sits in the first row of the "…" menu, with Stop and
+Run.
 
 ## After the dashboard restarts
 
@@ -230,7 +239,9 @@ Each sample spec is a pair in `dashboard/test/round/specs/`:
 
 The `.json` carries these fields:
 
-- `expected` — `archived` or `not-archived`.
+- `expected` — `archived`, `not-archived`, or `create-failed` for a fixture whose create ends without a spec: it gets
+  no row, and the Specs list shows the message for a failed create. A new round dismisses the message the last one
+  left.
 - `expect` — optional; what its row on the board must show at the end:
   - `state` — the job's.
   - `stopReason` — the job's.
@@ -242,6 +253,9 @@ The `.json` carries these fields:
     so `state` and `expected` cannot tell the two apart.
 - `timeoutSec` — a fixture can also tighten its own time limit with it, which is how there is a row
   the clock stopped.
+- `aiCreate` — `true` sends the create through the model, as New spec does with "let AI formulate acceptance
+  criteria" ticked. Without it the board writes the spec's folder itself and the stand-in is never asked, so a
+  fixture about a create that fails needs it.
 
 The script grades every field and names the one that was off, so a message that changes on the board
 is caught here before anyone reads it on the real one.

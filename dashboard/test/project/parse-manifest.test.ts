@@ -2,7 +2,8 @@
 // the keys nothing uses are left out of the result, the way `schedule` and
 // `criteriaChecks` are.
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseManifest } from "../../src/project/parse-manifest.ts";
 
@@ -147,4 +148,46 @@ describe("criteriaChecks", () => {
     if (!result.ok) throw new Error(result.error);
     expect(result.data).not.toHaveProperty("criteriaChecks");
   });
+});
+
+// The runner reads the manifest in bash, the board in TypeScript. Both have
+// to give the same value for one line, comment or no comment.
+describe("the bash reader and parseManifest read a line alike", () => {
+  const lib = join(import.meta.dir, "..", "..", "..", "core", "scripts", "_aide-spec-lib.sh");
+  const LINES = [
+    "acPrefix: F{spec} # feature",
+    'acPrefix: "F{spec} # x"',
+    "acPrefix:    deps   ",
+    "acPrefix:",
+    "acPrefix: F{spec}\t# tab",
+    "acPrefix: # none yet",
+    "acPrefix: a#b",
+    "acPrefix: 'a # b'  # c",
+    'acPrefix: "F{spec}"   # c',
+    'acPrefix: echo "a # b"',
+  ];
+
+  const bashValue = (text: string): string => {
+    const root = mkdtempSync(join(tmpdir(), "manifest-pair-"));
+    try {
+      mkdirSync(join(root, ".aide"));
+      writeFileSync(join(root, ".aide", "project.yaml"), text);
+      const out = Bun.spawnSync({
+        cmd: ["bash", "-c", 'source "$1"; aide_manifest_get "$2" "$3"', "_", lib, "acPrefix", root],
+        stdout: "pipe",
+      }).stdout.toString();
+      return out.endsWith("\n") ? out.slice(0, -1) : out;
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  };
+
+  for (const line of LINES) {
+    test(`${JSON.stringify(line)} reads the same in both (AC-4)`, () => {
+      const text = `${line}\n`;
+      const result = parseManifest(text);
+      if (!result.ok) throw new Error(result.error);
+      expect(bashValue(text)).toBe(result.data.acPrefix ?? "");
+    });
+  }
 });

@@ -8,13 +8,14 @@
 // Analyze, reopen and reset land the specs repo alone now. Where the
 // specs live inside the code repo, that repo lands the spec's own folder
 // and nothing else of the branch — and so does a close there, whose
-// folder move went with the deleted branch.
+// folder move went with the deleted branch. An implement sent back to a
+// full analysis lands the same way: its Sent back line, and not its code.
 
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { landClosedSpec, landNewSpec, landStepBranch } from "../../../src/serve/land-branch";
+import { landClosedSpec, landNewSpec, landStepBranch, landStoppedStepBranch } from "../../../src/serve/land-branch";
 import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 
 const JOB = { id: "job-1", project: "aide", specFolder: "479-spec" };
@@ -113,5 +114,25 @@ describe("a close landing with the specs inside the code repo", () => {
     const deleted = git.calls.findIndex((c) => c.args.join(" ").startsWith("push -q origin --delete"));
     expect(copied).toBeGreaterThanOrEqual(0);
     expect(deleted).toBeGreaterThan(copied);
+  });
+});
+
+describe("a sent-back implement landing with the specs inside the code repo", () => {
+  test("lands the spec's folder and never the branch with its code (AC-1)", async () => {
+    const code = mkdtempSync(join(tmpdir(), "aide-sent-back-land-inproject-"));
+    mkdirSync(join(code, "specs"), { recursive: true });
+    const git = landingGit();
+    const { ctx } = landCtx(git.run, {
+      machineryProjectDir: () => code,
+      machinerySpecsRoot: () => join(code, "specs"),
+    });
+    await landStoppedStepBranch(
+      ctx as unknown as Parameters<typeof landStoppedStepBranch>[0],
+      JOB as unknown as Parameters<typeof landStoppedStepBranch>[1],
+      "implement",
+      { branch: BRANCH, terminalReason: "sent-back", branchUrls: [{ root: code, url: "" }] },
+    );
+    expect(copiedTheSpec(git.calls)).toBe(true);
+    expect(mergedTheBranch(git.calls)).toBe(false);
   });
 });

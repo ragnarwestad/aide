@@ -49,6 +49,9 @@ export const nb: Record<TranslationKey, string> = {
   "dialog.removing": "fjerner…",
   "shell.stopTestServer": "Stopp",
   "shell.runTestRound": "Kjør",
+  "shell.delay": "Forsinkelse: {value}",
+  "shell.delayOff": "Av",
+  "shell.delayTitle": "Hvor lenge testmodellen venter før hvert steg; trykk for neste valg",
   "shell.testRound": "runden",
 
   "list.statesLabel": "Tilstand",

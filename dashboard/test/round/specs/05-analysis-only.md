@@ -1,7 +1,7 @@
 ## Problem
 
-Archive asked for a spec that was never implemented must refuse.
+A spec can be analyzed and left there, with nothing implemented yet.
 
 ## Solution
 
-Nothing is implemented. Archive is expected to refuse with not-implemented-yet.
+Only Analyze is queued. The row ends waiting at Implement, and the board refuses Archive until Implement has run.

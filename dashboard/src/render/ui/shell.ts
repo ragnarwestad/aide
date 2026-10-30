@@ -16,6 +16,7 @@ import { buttonForm, confirmDialog, messageSlot } from "./components";
 import { capitalizeFirst } from "../../format/error-sentence.ts";
 import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
+import { delayFile, nextDelay, readDelay } from "../../integrations/round-delay.ts";
 import { headerNotices } from "./header-notices.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
@@ -198,7 +199,7 @@ function boardLine(lang: Language): string {
  *  visible one can be pressed. A prod board has no Stop, and no row. */
 function boardRow(lang: Language): string {
   const stop = stopForm(lang);
-  return stop ? `<div class="boardrow muted small">${stop}${runForm(lang)}</div>` : "";
+  return stop ? `<div class="boardrow muted small">${stop}${runForm(lang)}${delayForm(lang)}</div>` : "";
 }
 
 function boardTitle(): string {
@@ -218,7 +219,7 @@ function boardText(lang: Language): string {
   const which = isSpecFolder(board.specFolder)
     ? ` - ${esc(specNumber(board.specFolder))}`
     : ` - ${esc(t(lang, "shell.testRound"))}`;
-  return `${machine} - Test${which}${stopForm(lang)}${runForm(lang)}`;
+  return `${machine} - Test${which}${stopForm(lang)}${runForm(lang)}${delayForm(lang)}`;
 }
 
 /** A round board's Run control: the round's fixture specs through again
@@ -234,6 +235,25 @@ function runForm(lang: Language): string {
     hook: "actionform reloadform",
     button: { label: t(lang, "shell.runTestRound"), pending: "starting…" },
     after: messageSlot("refused"),
+  });
+}
+
+/** A test board's Delay control: one press moves the stand-in model's
+ *  wait before each step on to the next choice (round-delay.ts). Only on a
+ *  board `test/round/run` started, which names the file the stand-in
+ *  reads; nothing on a prod board. */
+function delayForm(lang: Language): string {
+  const file = delayFile();
+  if (!getBoardInfo() || !file) return "";
+  const current = readDelay(file);
+  return buttonForm({
+    action: "/api/self-run/delay",
+    hook: "actionform reloadform",
+    hidden: { seconds: String(nextDelay(current)) },
+    button: {
+      label: t(lang, "shell.delay", { value: current ? `${current} s` : t(lang, "shell.delayOff") }),
+      title: t(lang, "shell.delayTitle"),
+    },
   });
 }
 

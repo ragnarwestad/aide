@@ -1,15 +1,10 @@
 {
   "title": "Analysis only",
   "steps": [
-    "analyze",
-    "archive"
+    "analyze"
   ],
   "expected": "not-archived",
   "expect": {
-    "state": "done",
-    "stepReason": {
-      "step": "archive",
-      "terminalReason": "not-implemented-yet"
-    }
+    "state": "done"
   }
 }

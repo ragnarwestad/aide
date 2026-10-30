@@ -100,14 +100,18 @@ default_branch() {
 # that plainly does not have the folder refuses — this now runs for
 # EVERY dependency, archived or not, so a locally-known-archived
 # dependency pays one more fetch than it used to.
+#
+# The private ref is named for this run ($$): runs of one project share
+# the specs checkout, and another run's cleanup must not delete the ref
+# this one is about to read.
 dependency_archived_on_origin() {
-  local dep_folder="$1" base found
+  local dep_folder="$1" base found ref="refs/aide-dep/base-$$"
   base="$(default_branch "$specs_root")"
-  git -C "$specs_root" fetch -q origin "refs/heads/$base:refs/aide-dep/base" \
+  git -C "$specs_root" fetch -q origin "refs/heads/$base:$ref" \
     >/dev/null 2>&1 || return 0
-  git -C "$specs_root" cat-file -e "refs/aide-dep/base:./archive/$dep_folder" 2>/dev/null
+  git -C "$specs_root" cat-file -e "$ref:./archive/$dep_folder" 2>/dev/null
   found=$?
-  git -C "$specs_root" update-ref -d refs/aide-dep/base >/dev/null 2>&1 || true
+  git -C "$specs_root" update-ref -d "$ref" >/dev/null 2>&1 || true
   return $found
 }
 

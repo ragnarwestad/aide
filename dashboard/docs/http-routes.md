@@ -207,16 +207,18 @@ Answered by `src/serve/routes/push-routes.ts`.
 
 ### A test server only
 
-Answered by `src/serve/routes/self-stop.ts` and `src/serve/routes/self-run.ts`. On an ordinary server both answer 404
-`not a test board`. On a test server started from a spec's branch, `POST /api/self-run` answers 404 once the round
+Answered by `src/serve/routes/self-stop.ts`, `src/serve/routes/self-run.ts` and `src/serve/routes/self-delay.ts`. On
+an ordinary server all three answer 404 `not a test board`, and so does `POST /api/self-run/delay` on a test server
+`dashboard/test/round/run` did not start. On a test server started from a spec's branch, `POST /api/self-run` answers 404 once the round
 script's own seeding press has been made — which is the whole life of such a server, since the stage never returns to
 idle after it.
 
-| Route                 | Kind   | Takes   | Answers                                                                               | Made for  |
-|-----------------------|--------|---------|---------------------------------------------------------------------------------------|-----------|
-| `GET /api/self-run`   | read   | nothing | JSON: how far the round has come                                                      | interface |
-| `POST /api/self-run`  | action | nothing | starts queueing the fixtures: `{ ok, stage }`; 409 while one is resetting or queueing | interface |
-| `POST /api/self-stop` | action | nothing | a stopped page, then the board exits                                                  | form      |
+| Route                      | Kind   | Takes                    | Answers                                                                               | Made for  |
+|----------------------------|--------|--------------------------|---------------------------------------------------------------------------------------|-----------|
+| `GET /api/self-run`        | read   | nothing                  | JSON: how far the round has come                                                      | interface |
+| `POST /api/self-run`       | action | nothing                  | starts queueing the fixtures: `{ ok, stage }`; 409 while one is resetting or queueing | interface |
+| `POST /api/self-stop`      | action | nothing                  | a stopped page, then the board exits                                                  | form      |
+| `POST /api/self-run/delay` | action | seconds: 0, 10, 30 or 60 | `{ ok, seconds }`; 400 for any other value                                            | form      |
 
 ### Sessions and probes
 
