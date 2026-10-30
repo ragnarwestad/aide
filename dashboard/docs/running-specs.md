@@ -100,6 +100,12 @@ Implement, on the models and effort the stopped job ran with. The steps the stop
 not carried over. The description keeps the requirement, so that analyze writes a full analysis and implement cannot
 send the spec back a second time: one that tries ends `failed` with `sent-back-refused`, and nothing is queued.
 
+An analyze that writes a short analysis over one of its limits ends `failed` with the reason
+`short-analysis-over-limit`. The runner records the same requirement in the description, the board lands the step's
+specs branch (where the specs live inside the code root, the spec's own folder), and it queues one job for the same spec with Analyze and every step the stopped job
+had not run, on its models and effort. This happens once per spec: a second short analysis over a limit for the same
+spec queues nothing.
+
 ## Which requests the dashboard answers
 
 The dashboard asks for no sign-in. It refuses requests from other sites instead, with one check in front of every

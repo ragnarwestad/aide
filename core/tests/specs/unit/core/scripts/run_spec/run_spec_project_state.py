@@ -254,7 +254,7 @@ BASH_ERROR_REGISTRY: list[dict] = [
     {
         "name": "an analyze wrote a short analysis for a spec over a limit",
         "pattern": r"\$step_button wrote a short analysis for a spec that may not have one: .*",
-        "resolve": "again to have the full analysis written",
+        "resolve": "when $step_button runs again",
     },
     {
         "name": "a step stopped at its own time limit",

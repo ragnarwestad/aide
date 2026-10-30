@@ -46,10 +46,11 @@ Each entry says what the word is and links the page that has the rest.
   states the limits in the analyze prompt (set in
   `core/scripts/lib/run-spec/setup/arguments.sh`) and fails a short analysis
   over any of them. [Spec files](../core/skills/aide-analyze/references/spec-files.md).
-- **Sent back** — a spec whose implement found its short analysis too
-  small for it: the step stops, the description keeps a `Sent back to a full
-  analysis:` line, and the board queues Analyze (with a full analysis) and
-  Implement. It happens at most once per spec.
+- **Sent back** — a spec whose short analysis turned out too small: either
+  its implement found it so, or its analyze wrote a short analysis over a
+  limit. The step stops, the description keeps a `Sent back to a full
+  analysis:` line, and the board queues Analyze (with a full analysis) and the
+  steps after it. It is queued at most once per spec.
   [The sent-back check](../dashboard/docs/the-runner.md).
 - **Phase** — one of the four steps a spec passes through: create,
   analyze, implement, archive.
