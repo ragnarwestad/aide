@@ -118,7 +118,8 @@ queued `create`, `archive` or `close` step — the ones that do no model work �
   as one sentence in place of the runner's own summary. A stopped step other than `archive` lands what it pushed
   outside the code root — a
   `timeout` or `provider-limit` step, with something pushed, and no code root among it; a stopped `implement` whose
-  code branch was pushed lands nothing, and that code waits for `archive`. A landing that does run leaves the job's
+  code branch was pushed lands nothing, and that code waits for `archive`. The exception is an implement sent back
+  (`sent-back`) where the specs live inside the code root: it lands the spec's own folder alone. A landing that does run leaves the job's
   `error` in place: it is the reason the step stopped, not a fault the landing resolved. A stopped archive lands
   nothing: its folder reaches `archive/` on the default branch only when the archive step completes and lands.
 - A `provider-limit` stop also writes `usageLimitWait` on the job: when the board queues the step again. It is the
