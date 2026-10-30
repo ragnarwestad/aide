@@ -24,6 +24,8 @@ export interface JobLike {
   state: QueueRowView["state"];
   landing?: boolean;
   createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
   landingError?: unknown;
   results?: readonly { terminalReason?: string }[];
 }
@@ -33,6 +35,12 @@ type TitleRow = { specFolder: string; steps: readonly string[]; stepIndex: numbe
 
 export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
   job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
+
+/** Whether a job's row offers Dismiss, and the dismiss route takes it: a
+ *  scheduled job that failed, stopped or was interrupted. */
+export const jobDismissible = (
+  job: Pick<JobLike, "steps" | "specFolder" | "state" | "landing" | "results">,
+): boolean => isScheduleJob(job) && !inFlight(job) && waitsForPerson(job);
 
 const at = (job: JobLike): number => Date.parse(job.createdAt) || 0;
 const sameJob = (job: JobLike): string => `${job.project}\0${job.specFolder}`;
@@ -52,7 +60,12 @@ export interface TabPlace {
 const lastStamp = (j: { createdAt: string; startedAt?: string; finishedAt?: string }): number =>
   Math.max(0, ...[j.createdAt, j.startedAt, j.finishedAt].map((s) => Date.parse(s ?? "")).filter(Number.isFinite));
 
-export const jobPlace = (job: JobLike & { startedAt?: string; finishedAt?: string }): TabPlace => ({
+/** A dismissal holds for the ending it was pressed on: a job the board queues
+ *  again after a usage limit and that ends again has a newer stamp. */
+const dismissed = (job: JobLike & { dismissedAt?: string }): boolean =>
+  !!job.dismissedAt && Date.parse(job.dismissedAt) >= lastStamp(job);
+
+export const jobPlace = (job: JobLike): TabPlace => ({
   band: group(job),
   changedAt: lastStamp(job),
 });
@@ -76,9 +89,9 @@ export const byTabPlace = (a: TabPlace, b: TabPlace): number => a.band - b.band 
  *  Reopen jobs and the board's own deploys, in flight, or waiting for a person and not yet dealt with. A
  *  waiting job is dealt with when a job of the same project and tracking key
  *  was created after it and was not cancelled; a scheduled job also when its
- *  entry is deleted. Any other job of a spec is never returned: its spec's row
+ *  entry is deleted or a person dismissed it. Any other job of a spec is never returned: its spec's row
  *  stands for it. */
-export function jobsShown<T extends JobLike>(
+export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
   jobs: T[],
   o: {
     scheduleEntryExists: (project: string, name: string) => boolean;
@@ -94,7 +107,7 @@ export function jobsShown<T extends JobLike>(
     if (inFlight(job)) return true;
     if (!waitsForPerson(job)) return false;
     if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;
-    return !schedule || o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder));
+    return !schedule || (!dismissed(job) && o.scheduleEntryExists(job.project, scheduleNameOf(job.specFolder)));
   });
 }
 

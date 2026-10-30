@@ -272,6 +272,9 @@ export interface Job {
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
+  /** When a person dismissed this job's row on the Running tab. The job,
+   *  its log and its page stay; only the row goes. */
+  dismissedAt?: string;
   /** The instant the step now in flight was actually spawned,
    *  set fresh on every `startOne()` call — unlike `startedAt` above, which
    *  is set once for the whole job and kept. Transient like `sessionId`/

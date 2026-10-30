@@ -12,11 +12,12 @@
 // Stop or Cancel, and open it adds a line per step of the job. A deploy is
 // drawn as they are, with Cancel while it is queued. A job that ended badly
 // says why in a line under its state, open or shut, and the line ends with a
-// Log link to the job's own page; a deploy held back has its waiting line
-// there, with no link.
+// Log link to the job's own page and, for a scheduled job, Dismiss, which
+// takes the row off the tab and asks nothing first; a deploy held back has its
+// waiting line there, with no link.
 
 import { t, type Language } from "../../../i18n";
-import { askButton, confirmDialog, foldArrow, rowMessage, stepLabel } from "../../ui/components";
+import { askButton, buttonForm, confirmDialog, foldArrow, rowMessage, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
 import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
@@ -27,7 +28,7 @@ import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { stepRows, type JobStep } from "../specs-list/phase-messages";
 import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
-import { isScheduleJob, jobControl, jobKey, jobMessage, jobTitle } from "./rows.ts";
+import { isScheduleJob, jobControl, jobDismissible, jobKey, jobMessage, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
 export type { JobStep };
@@ -87,12 +88,19 @@ function timeCell(row: QueueRowView, now: number): string {
 }
 
 /** The line under the state, open or shut, from `jobMessage`; its Log link
- *  ends the line. */
+ *  and, for a scheduled job, Dismiss end the line. */
 function messageLine(row: QueueRowView, lang: Language): string {
   const m = jobMessage(row, lang);
   if (!m) return "";
   const log = m.log ? `<a data-goto href="${esc(m.log)}">${esc(t(lang, "job.tabLog"))}</a>` : "";
-  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(m.variant, m.text, { actions: log })}</td></tr>`;
+  const dismiss = jobDismissible(row)
+    ? buttonForm({
+        action: `/api/queue/${row.id}/dismiss`,
+        hook: "actionform",
+        button: { label: t(lang, "list.createDismiss"), small: true },
+      })
+    : "";
+  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(m.variant, m.text, { actions: log + dismiss })}</td></tr>`;
 }
 
 /** A Close's, Reopen's, deploy's or scheduled job's steps, a line each in the row's columns, while the row is open

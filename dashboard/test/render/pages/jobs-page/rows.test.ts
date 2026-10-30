@@ -9,6 +9,7 @@ import { phaseKey } from "../../../../src/render/pages/specs-list/phase-messages
 import {
   byTabPlace,
   jobControl,
+  jobDismissible,
   jobKey,
   jobMessage,
   jobPlace,
@@ -196,6 +197,38 @@ describe("a waiting scheduled job whose entry was deleted", () => {
   test("a running scheduled job does not ask whether its entry exists", () => {
     const running = sched({ id: "r", state: "running" });
     expect(ids([running], { ...none, scheduleEntryExists: () => false })).toEqual(["r"]);
+  });
+});
+
+describe("which jobs may be dismissed from the tab", () => {
+  test("a scheduled job that failed, stopped or was interrupted (AC-1)", () => {
+    for (const state of ["failed", "stopped", "interrupted"] as const) expect(jobDismissible(sched({ state }))).toBe(true);
+  });
+
+  test("a scheduled job in flight, done or cancelled, and no other kind of job (AC-4)", () => {
+    for (const state of ["queued", "running", "done", "cancelled"] as const) expect(jobDismissible(sched({ state }))).toBe(false);
+    expect(jobDismissible(sched({ state: "done", landing: true }))).toBe(false);
+    for (const step of ["close", "reopen", "deploy"]) {
+      expect(jobDismissible(job({ steps: [step], state: "failed" }))).toBe(false);
+    }
+    expect(jobDismissible(job({ state: "failed" }))).toBe(false);
+  });
+});
+
+describe("a dismissed scheduled job has no row", () => {
+  const failed = (o: Partial<J> = {}): J => sched({ id: "s", state: "failed", createdAt: T(1), startedAt: T(2), finishedAt: T(3), ...o });
+
+  test("it is left out while its dismissal is not older than its newest stamp (AC-3)", () => {
+    expect(ids([failed({ dismissedAt: T(4) })])).toEqual([]);
+    expect(ids([failed({ dismissedAt: T(3) })])).toEqual([]);
+  });
+
+  test("it is returned again once it ended after the dismissal (AC-3)", () => {
+    expect(ids([failed({ dismissedAt: T(2) })])).toEqual(["s"]);
+  });
+
+  test("a job in flight is shown whatever stamp is left on it (AC-3)", () => {
+    expect(ids([sched({ id: "r", state: "running", startedAt: T(2), dismissedAt: T(9) })])).toEqual(["r"]);
   });
 });
 

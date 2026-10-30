@@ -143,6 +143,37 @@ describe("a scheduled job's row folds and stops in place", () => {
   });
 });
 
+describe("a failed scheduled job's row is dismissed in place", () => {
+  const failed = { ...nightly, id: "nightlyf", state: "failed", finishedAt: "2026-10-08T03:05:00Z" };
+  const JOB_ROW = 'tr.spechead[id="spec-aide/schedule-nightly"]';
+
+  test("Dismiss takes the row off at once, with no dialog and no page load, and the job stays (AC-2, AC-3)", async () => {
+    const own = mkdtempSync(join(tmpdir(), "aide-e2e-dismiss-"));
+    const queueConfigFile = join(own, "queue-config.json");
+    writeFileSync(
+      queueConfigFile,
+      JSON.stringify({ schedules: { aide: [{ name: "nightly", cron: "0 3 * * *", prompt: "docs/n.md", enabled: false }] } }),
+    );
+    const { base } = harness.start({ extra: { queueConfigFile }, queueMirror: JSON.stringify([failed]) });
+    const page = await browser.newPage();
+    try {
+      await page.goto(`${base}/`);
+      await page.locator(JOB_ROW).waitFor();
+      const loads = countLoads(page);
+
+      await page.getByRole("button", { name: t("en", "list.createDismiss"), exact: true }).click();
+      await page.locator(JOB_ROW).waitFor({ state: "detached", timeout: 10_000 });
+      expect(await page.locator("dialog[open]").count()).toBe(0);
+      expect(pathOf(page)).toBe("/");
+      expect(loads.n).toBe(0);
+      expect(await stateOf(base, "nightlyf")).toBe("failed");
+    } finally {
+      await page.close();
+      rmSync(own, { recursive: true, force: true });
+    }
+  });
+});
+
 
 test("the first job arrives and the last leaves without a reload, then search still works", async () => {
   const own = mkdtempSync(join(tmpdir(), "aide-empty-running-"));

@@ -1,5 +1,5 @@
 // The job-level API routes: listing/creating a job at /api/queue,
-// cancel, and the two tail-edit routes (steps, model). Extracted
+// cancel, dismiss, and the two tail-edit routes (steps, model). Extracted
 // from routes.ts (split of split serve.ts step 2).
 import { readFileSync } from "node:fs";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
@@ -9,6 +9,7 @@ import { readSpecState } from "../../project/parse-spec-state.ts";
 import { parseStatus } from "../../project/parse-status";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { isDeployJob } from "../../queue/queue.ts";
+import { jobDismissible } from "../../render/pages/jobs-page/rows.ts";
 import { bodyToObject, json, logRefusal, readBounded } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
@@ -209,6 +210,28 @@ export async function handleJobActionRoutes(
     // bound.
     signalGroup(job.pgid);
     return json({ ok: true, job: result.job });
+  }
+
+  const dismiss = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/dismiss$/);
+  if (dismiss) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const [, id] = dismiss;
+    if (!ctx.queue.get(id)) return json({ error: "no such job" }, 404);
+    const sent = await readBounded(req);
+    if ("refusal" in sent) return sent.refusal;
+    // Read again after the body: the board may have queued the job anew
+    // while the request was still arriving.
+    const job = ctx.queue.get(id);
+    if (!job) return json({ error: "no such job" }, 404);
+    if (!jobDismissible(job)) {
+      const spec = `${job.project}/${job.specFolder}`;
+      const reason = "only a scheduled job that failed, stopped or was interrupted can be dismissed";
+      logRefusal("dismiss", spec, reason);
+      return json({ error: reason, spec }, 409);
+    }
+    // Stamped on every press: a row that came back after the job ended
+    // again is dismissed by the newer stamp.
+    return json({ ok: true, job: ctx.queue.update(id, { dismissedAt: new Date().toISOString() }) });
   }
 
   const tailEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/steps$/);

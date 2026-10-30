@@ -735,7 +735,10 @@ keeps its row while it waits for the user:
 the tab when the user has dealt with it:
 
 - a newer job of the same project and tracking key exists and was not cancelled: a scheduled job's `schedule-<name>`;
-- a scheduled job's entry is deleted.
+- a scheduled job's entry is deleted;
+- the user pressed Dismiss on a scheduled job's row. The job stays in the queue with its log and its page
+  `/jobs/<id>`; only the row goes. A job the board queues again after a usage limit and that ends again has its row
+  back, with Dismiss offered again.
 
 The queue keeps 200 jobs, so a waiting job older than that leaves with its history.
 
@@ -757,9 +760,10 @@ shut by default: it shows its title, state, time and cost. Its › opens it to s
 marks, and Aide's tests and commit, each with its state, its time (a figure for Aide's own parts, a dash for the
 model's) and a › that unfolds the step's own part of the log. A step not yet marked has no line; the open row follows
 the log while the job runs. The prompt asks the model for those marks. It has no links under its title. A job that failed, stopped or was interrupted says why in a line under its state, open or shut: its own
-sentence or, with none, one saying how it ended, and the line ends with a Log link to the job's own page. A queued,
+sentence or, with none, one saying how it ended, and the line ends with a Log link to the job's own page and then Dismiss, which asks nothing first. A queued,
 running or finished job has no Log link. A queued job offers Cancel and a running or landing one Stop, each asking
-first; a finished job has nothing to stop. The rules for which scheduled jobs show, their titles, the line under the
+first; a finished scheduled job has nothing to stop, and Dismiss is the one button its row has: running the entry again is on
+the Schedule tab. The rules for which scheduled jobs show, their titles, the line under the
 state and their controls are in `src/render/pages/jobs-page/rows.ts`.
 
 The rows stand in one order, spec rows and job rows together: running or landing first, then queued, then the rest, the

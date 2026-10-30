@@ -218,13 +218,17 @@ describe("which kind of row a job gets", () => {
     expect(group(html, "spec-aide/schedule-nightly")).toContain('action="/api/queue/sched1/cancel"');
   });
 
-  test("a failed scheduled job says how it ended under its state, shut and open, and the line ends with its Log link", async () => {
+  test("a failed scheduled job says how it ended under its state, shut and open, and the line ends with its Log link and Dismiss (AC-1, AC-5, AC-8)", async () => {
     const { base } = scheduled([failedReport]);
     for (const query of ["", "open=aide/schedule-report"]) {
       const g = group(await rowsOf(base, query), "spec-aide/schedule-report");
       const line = noticeOf(g);
       expect(text(line)).toContain(t("en", "jobs.endedFailed"));
-      expect(line).toMatch(/<a [^>]*href="\/jobs\/reportf\?tab=steps"[^>]*>Log<\/a>(<\/div>)?<\/td><\/tr>$/);
+      expect(line).toMatch(
+        /<a [^>]*href="\/jobs\/reportf\?tab=steps"[^>]*>Log<\/a><form [^>]*action="\/api\/queue\/reportf\/dismiss"[\s\S]*<\/form>(<\/div>)?<\/td><\/tr>$/,
+      );
+      // Dismiss is the row's one form: no Run again, no Cancel.
+      expect(g.match(/<form\b/g)).toHaveLength(1);
       expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
       expect(g).not.toContain("/api/queue/reportf/cancel");
       expect(g).not.toContain("data-ask");
