@@ -43,6 +43,8 @@ run_model_turn() {
   # and a project's own MCP servers are left as they are (verified 2.1.310).
   ( cd "$project_wt" || exit
     [ -n "${opencode_config:-}" ] && export OPENCODE_CONFIG_CONTENT="$opencode_config"
+    # The tests the session runs itself keep to the same share as the runner's own run.
+    workers="$(test_workers_now)"; [ -n "$workers" ] && export AIDE_TEST_WORKERS="$workers"
     AIDE_HEADLESS=1 ENABLE_CLAUDEAI_MCP_SERVERS=false exec "${argv[@]}" ) < "$1" >> "$transcript" 2>> "$work_dir/err" &
   child=$!
   set +m

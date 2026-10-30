@@ -41,7 +41,7 @@ describe("the runner invocation", () => {
     // half-empty on a slow machine.
     writeFileSync(
       bin,
-      `#!/usr/bin/env bash\nprintf '%s\\n' "$AIDE_RUN_URL" "$PATH" "$AIDE_QUEUE_CONFIG" "$AIDE_CHECKOUT_ROOT" > ${envFile}\nprintf '%s\\n' "$*" > ${argvFile}\n`,
+      `#!/usr/bin/env bash\nprintf '%s\\n' "$AIDE_RUN_URL" "$PATH" "$AIDE_QUEUE_CONFIG" "$AIDE_CHECKOUT_ROOT" "$AIDE_QUEUE_MIRROR" > ${envFile}\nprintf '%s\\n' "$*" > ${argvFile}\n`,
       { mode: 0o755 },
     );
     return { bin, argvFile, envFile };
@@ -53,10 +53,10 @@ describe("the runner invocation", () => {
 
   /** What the spawned child actually had in its environment: the run
    *  URL on the first line, PATH on the second. */
-  async function envOf(envFile: string): Promise<{ runUrl: string; path: string; queueConfig: string; checkoutRoot: string }> {
-    const [runUrl = "", path = "", queueConfig = "", checkoutRoot = ""] =
+  async function envOf(envFile: string): Promise<{ runUrl: string; path: string; queueConfig: string; checkoutRoot: string; queueMirror: string }> {
+    const [runUrl = "", path = "", queueConfig = "", checkoutRoot = "", queueMirror = ""] =
       (await fileOnceWritten(envFile, "the runner was never invoked")).split("\n");
-    return { runUrl, path, queueConfig, checkoutRoot };
+    return { runUrl, path, queueConfig, checkoutRoot, queueMirror };
   }
 
   /** The variable belongs to the SERVER's process while the
@@ -122,6 +122,25 @@ describe("the runner invocation", () => {
     const env = await envOf(envFile);
     expect(env.queueConfig).toBe(queueConfigFile);
     expect(env.checkoutRoot).toBe(dashboardCheckoutRoot);
+  });
+
+  // The runner counts the steps and landings running at the moment its tests
+  // start by reading the board's queue mirror, so it has to know where that is.
+  test("the runner is told where the board mirrors its queue (AC-1)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-queue-mirror-path-"));
+    ownDirs.push(dir);
+    const { bin, envFile } = stub(dir);
+    const queueMirrorPath = join(dir, "aide-queue.json");
+    const { base } = start({
+      queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueMirrorPath,
+    });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+    });
+    expect(res.status).toBe(200);
+    expect((await envOf(envFile)).queueMirror).toBe(queueMirrorPath);
   });
 
   test("what the runner writes to stderr lands in the step's own run log", async () => {

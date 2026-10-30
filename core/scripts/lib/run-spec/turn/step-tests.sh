@@ -53,15 +53,16 @@ run_step_tests_within_time() {
   : > "$work_dir/step-test-progress"
   step_tests_progress_seen=0
   set -m
-  # Four bun workers, not one per core: two steps' suites share the
-  # machine with the board and each other, and at eight apiece the
-  # git-backed tests ran out of time on load alone. pytest keeps one per
-  # core: at four its suite took two and a half times as long.
-  AIDE_TEST_WORKERS="${AIDE_TEST_WORKERS:-4}" \
-  "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
-    --folder "$step_tests_folder" "${step_test_args[@]}" \
-    --progress-file "$work_dir/step-test-progress" \
-    --result-file "$work_dir/step-test-run.json" > "$work_dir/step-test-run.log" 2>&1 &
+  # The host's cores divided among the steps and landings running now
+  # (run-spec/turn/test-workers.sh): taken as the run starts, since the
+  # session before it can take most of the step's time limit. A runner
+  # started by hand has no board to share with, and keeps four.
+  ( workers="$(test_workers_now)"
+    export AIDE_TEST_WORKERS="${workers:-${AIDE_TEST_WORKERS:-4}}"
+    exec "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_wt" --specs-root "$specs_root_wt" \
+      --folder "$step_tests_folder" "${step_test_args[@]}" \
+      --progress-file "$work_dir/step-test-progress" \
+      --result-file "$work_dir/step-test-run.json" ) > "$work_dir/step-test-run.log" 2>&1 &
   tests_pid=$!
   set +m
   child="$tests_pid"

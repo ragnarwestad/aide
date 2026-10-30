@@ -119,3 +119,38 @@ def test_one_browser_file_keeps_one_worker_and_the_rest_share_the_others(workspa
     assert r.returncode == 0, r.stdout + r.stderr
     plain_workers = [ln for ln in calls.read_text().splitlines() if "plain-" in ln]
     assert len(plain_workers) == 3, calls.read_text()
+
+
+def _run_files(workspace_root, tmp_path, env_extra):
+    import os
+    import subprocess
+    calls = tmp_path / "calls.txt"
+    fake = r'''() { echo "$*" >> "$AIDE_FAKE_BUN_CALLS"; echo "Ran 1 tests across 1 file."; }'''
+    env = {k: v for k, v in os.environ.items() if k != "AIDE_TEST_WORKERS"}
+    env.update({"BASH_FUNC_bun%%": fake, "AIDE_FAKE_BUN_CALLS": str(calls), **env_extra})
+    r = subprocess.run(
+        ["bash", str(workspace_root / "dashboard" / "scripts" / "run-tests.sh"), str(tmp_path)],
+        capture_output=True, text=True, env=env, timeout=60,
+    )
+    return r, (calls.read_text().splitlines() if calls.exists() else [])
+
+
+def test_one_worker_runs_every_file_even_with_a_browser_file_ac_4(workspace_root, tmp_path):
+    """A board whose cores are all spoken for gives a run one worker; the
+    browser file has no worker of its own then, and the files are not
+    dealt over none."""
+    (tmp_path / "browser.test.ts").write_text('import { chromium } from "playwright";\n')
+    (tmp_path / "plain-0.test.ts").write_text("")
+    (tmp_path / "plain-1.test.ts").write_text("")
+    r, calls = _run_files(workspace_root, tmp_path, {"AIDE_TEST_WORKERS": "1"})
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert len(calls) == 1, calls
+    assert all(name in calls[0] for name in ("browser.test.ts", "plain-0.test.ts", "plain-1.test.ts")), calls
+
+
+def test_with_no_worker_count_the_cores_less_two_are_used_ac_5(workspace_root, tmp_path):
+    for n in range(12):
+        (tmp_path / f"plain-{n}.test.ts").write_text("")
+    r, calls = _run_files(workspace_root, tmp_path, {"BASH_FUNC_sysctl%%": "() { echo 10; }"})
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert len(calls) == 8, calls

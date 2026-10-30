@@ -1,10 +1,10 @@
-// The landing's test run uses four test processes, as the step's own run
-// does, so a landing leaves the host's other cores to the specs running
-// beside it.
+// The landing's test run is told how many workers it may use: the host's cores
+// divided among the steps and landings running as it starts, so a landing
+// leaves the other cores to the specs running beside it.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
 
@@ -24,7 +24,7 @@ function git(cwd: string, ...args: string[]): void {
 }
 
 describe("the landing's test run", () => {
-  test("runs the dashboard's tests with four processes", async () => {
+  test("is given the cores divided among the running steps and landings (AC-1)", async () => {
     const root = mkdtempSync(join(tmpdir(), "aide-gate-workers-"));
     dirs.push(root);
     mkdirSync(join(root, ".aide"));
@@ -51,8 +51,14 @@ describe("the landing's test run", () => {
     process.env.AIDE_RECORD_TEST_RUN_BIN = join(bin, "record");
     process.env.AIDE_TEST_GATE_LOG = join(bin, "gate.log");
 
-    const verdict = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x");
+    // The landing itself and one running job fewer than the host has cores:
+    // every core is spoken for, so the run gets one worker.
+    const jobs = () => [
+      { state: "done", landing: true },
+      ...Array.from({ length: availableParallelism() - 1 }, () => ({ state: "running", landing: false })),
+    ] as { state: "running" | "done"; landing: boolean }[];
+    const verdict = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x", { jobs });
     expect(verdict.ok).toBe(true);
-    expect(readFileSync(seen, "utf-8").trim()).toBe("4");
+    expect(readFileSync(seen, "utf-8").trim()).toBe("1");
   });
 });

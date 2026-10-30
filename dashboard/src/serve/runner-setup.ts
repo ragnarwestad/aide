@@ -36,6 +36,10 @@ export interface RunnerSetupContext {
    *  defaults under `~/.aide/dashboard`. */
   queueConfigFile?: string;
   dashboardCheckoutRoot?: string;
+  /** Handed to every step as `AIDE_QUEUE_MIRROR`: the file this board's store
+   *  writes its queue to, which the runner reads to count the steps and
+   *  landings running when its test run starts. */
+  queueMirrorPath?: string;
   machineryProjectDir: (project: string) => string;
   /** `machineryProjectDir`'s sibling for the specs root —
    *  `setupLand()` already takes this for the identical reason; passed
@@ -181,6 +185,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl,
         ...(ctx.queueConfigFile ? { AIDE_QUEUE_CONFIG: ctx.queueConfigFile } : {}),
         ...(ctx.dashboardCheckoutRoot ? { AIDE_CHECKOUT_ROOT: ctx.dashboardCheckoutRoot } : {}),
+        ...(ctx.queueMirrorPath ? { AIDE_QUEUE_MIRROR: ctx.queueMirrorPath } : {}),
       };
       // Only a `schedule` step's own spawn gets this: the
       // directory THIS run's prompt writes its output to, made

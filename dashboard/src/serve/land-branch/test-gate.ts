@@ -10,13 +10,14 @@
 // main is about to become.
 
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { availableParallelism, homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
 import { resolveWorktreeLinks } from "../../project/discover";
 import { runScript, scriptFor } from "./run-script.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
 import { runLogPath } from "../../queue/runner/run-log-path.ts";
+import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
 
 /** Resolve the command(s) the merged change calls for, run them through
  *  aide-record-test-run (which keeps the run's output), and say green
@@ -58,11 +59,19 @@ export interface GateVerdict {
   retriedAfter?: string;
 }
 
+/** `jobs` is the board's queue, read as each run starts: the landing's test
+ *  workers are the host's cores divided among the jobs running or landing in
+ *  it. A caller that passes none counts this landing alone. */
+export interface GateOpts {
+  scriptDir?: string;
+  jobs?: () => readonly BusyJob[];
+}
+
 export async function runProjectSuiteBeforePush(
   root: string,
   job: GatedJob,
   branch: string,
-  opts: { scriptDir?: string } = {},
+  opts: GateOpts = {},
 ): Promise<GateVerdict> {
   // The suite runs in a throwaway worktree of the merge commit, never in
   // the live checkout: a run's own git and a fast-forward of main moved
@@ -156,24 +165,29 @@ async function defaultBranchRef(root: string): Promise<string | null> {
  *  say a failure main already had is not the spec's. `recorder` and
  *  `argTail` are the landing's own run, less its `--project-dir <root>`. Anything that stops
  *  the question being answered reads as "no": the ordinary sentence. */
-async function redOnDefaultBranch(liveRoot: string, recorder: string, argTail: string[]): Promise<boolean> {
+async function redOnDefaultBranch(
+  liveRoot: string,
+  recorder: string,
+  argTail: string[],
+  jobs: GateOpts["jobs"],
+): Promise<boolean> {
   const ref = await defaultBranchRef(liveRoot);
   if (!ref) return false;
   const tree = await checkoutForGate(liveRoot, ref);
   if (tree.dir === liveRoot) return false;
   try {
-    const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS, undefined, testWorkers());
+    const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS, undefined, testWorkers(jobs));
     return out.code !== 0 && !out.timedOut;
   } finally {
     await tree.remove();
   }
 }
 
-/** Four bun test processes, as the step's own run uses
- *  (run-spec/turn/step-tests.sh): a landing runs while specs are running, and a
- *  suite on every core starves them. */
-function testWorkers(): Record<string, string> {
-  return { AIDE_TEST_WORKERS: process.env.AIDE_TEST_WORKERS ?? "4" };
+/** The host's cores divided among the steps and landings running as this
+ *  run starts (`testWorkerShare`). `jobs` is read at each call; a caller
+ *  that passes none counts this landing alone. */
+function testWorkers(jobs: GateOpts["jobs"]): Record<string, string> {
+  return { AIDE_TEST_WORKERS: String(testWorkerShare(availableParallelism(), jobs?.() ?? [])) };
 }
 
 /** A line in the landed step's own run log, stamped the way `aide-run-spec`
@@ -260,7 +274,7 @@ async function runSuiteIn(
   liveRoot: string,
   job: GatedJob,
   branch: string,
-  opts: { scriptDir?: string },
+  opts: GateOpts,
 ): Promise<GateVerdict> {
   // Beside the runner first, never PATH alone: see `scriptFor`.
   const resolver = scriptFor("aide-resolve-test-cmd", { beside: opts.scriptDir, override: process.env.AIDE_RESOLVE_TEST_CMD_BIN });
@@ -316,7 +330,7 @@ async function runSuiteIn(
       const progress = join(scratch, `progress${label.replace(/\W+/g, "-")}`);
       writeFileSync(progress, "");
       const follow = followProgress(job, progress);
-      const out = await runScript([...argv, "--progress-file", progress], root, LANDING_GATE_TIMEOUT_MS, job.id, testWorkers()).finally(follow.stop);
+      const out = await runScript([...argv, "--progress-file", progress], root, LANDING_GATE_TIMEOUT_MS, job.id, testWorkers(opts.jobs)).finally(follow.stop);
       keepStepOutput(job, `${out.stdout}${out.stderr}`);
       // The run's own output, kept where the archive step used to keep
       // it, under the same header a reader already knows.
@@ -353,7 +367,7 @@ async function runSuiteIn(
       };
     }
     if (gate.code !== 0) stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
-    if (gate.code !== 0 && (await redOnDefaultBranch(liveRoot, recorder, argv.slice(3)))) {
+    if (gate.code !== 0 && (await redOnDefaultBranch(liveRoot, recorder, argv.slice(3), opts.jobs))) {
       stepLogLine(job, "the tests are red on main as well — the failure is main's, not this spec's", true);
       return {
         ok: false,

@@ -4,6 +4,7 @@ word — the record on the branch is the runner's own.
 """
 
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -609,8 +610,9 @@ def test_an_implement_that_changed_only_markdown_runs_the_docs_check_not_the_sui
     assert record["exitCode"] == 0 and record["command"] == "scripts/check-docs", record
 
 
-def test_the_runners_own_run_asks_for_four_workers(runner, workspace, fake_claude, tmp_path):
-    """Two steps' suites at one worker per core each ran the git-backed
+def test_a_runner_started_by_hand_asks_for_four_workers_ac_1(runner, workspace, fake_claude, tmp_path):
+    """With no board to share the host with, the runner's own run keeps
+    four: two suites at one worker per core each ran the git-backed
     tests out of time on load alone."""
     with_status(workspace, ["create", "analyze"])
     seen = tmp_path / "workers.txt"
@@ -618,6 +620,26 @@ def test_the_runners_own_run_asks_for_four_workers(runner, workspace, fake_claud
     rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
     assert out["terminalReason"] == "completed", out
     assert seen.read_text().strip() == "4"
+
+
+def test_the_runners_own_run_gets_the_cores_divided_among_the_running_steps_ac_1(
+    runner, workspace, fake_claude, tmp_path, monkeypatch
+):
+    """The board's queue mirror holds as many running jobs as the host
+    has cores, one of them landing: the run gets one worker, whatever the
+    host's core count is."""
+    with_status(workspace, ["create", "analyze"])
+    cores = os.cpu_count() or 1
+    mirror = tmp_path / "aide-queue.json"
+    mirror.write_text(json.dumps(
+        [{"state": "done", "landing": True}] + [{"state": "running"}] * (cores - 1)
+    ))
+    monkeypatch.setenv("AIDE_QUEUE_MIRROR", str(mirror))
+    seen = tmp_path / "workers.txt"
+    _project_with_test_cmd(workspace, f'echo "$AIDE_TEST_WORKERS" > {seen}')
+    rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
+    assert out["terminalReason"] == "completed", out
+    assert seen.read_text().strip() == "1"
 
 
 def test_a_failing_test_the_output_names_twice_is_reported_once(runner, workspace, fake_claude, tmp_path):

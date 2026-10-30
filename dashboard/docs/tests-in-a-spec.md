@@ -41,8 +41,12 @@ whatever the change touched; aide's own runs pytest, `make test` and the browser
 The one exception is a change to Markdown files and nothing else, compared with the default branch: it runs the
 project's `scripts/check-docs` when it has one, and nothing when it does not. A paragraph cannot turn the suite red.
 
-An implement's own run and a landing's run both ask the dashboard's runner for four workers (`AIDE_TEST_WORKERS`),
-so two suites can share the machine with the board. pytest keeps one worker per core.
+Every test run the board starts is told how many workers it may use, as `AIDE_TEST_WORKERS`: the host's cores
+divided by the steps and landings running at that moment, rounded down and at least one. An implement's own run and a
+landing's run work it out as they start; a step's session gets it as its turn starts, for the tests it runs itself.
+Aide's own suites keep to it: pytest starts that many workers, and the dashboard's `scripts/run-tests.sh` that many
+test processes. A project's own test command may read `AIDE_TEST_WORKERS` to do the same. Run outside the board,
+with nothing set, pytest starts one worker per core and `run-tests.sh` leaves two cores free.
 
 A project without `AIDE_TEST_CMD` has nothing to run, and passes. Its page says there is no test command.
 

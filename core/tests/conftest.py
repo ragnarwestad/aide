@@ -1,6 +1,12 @@
 """Shared pytest fixtures for aide testing."""
 import os as _os
 
+# The worker count the board gives a run (AIDE_TEST_WORKERS), read before the
+# clean below drops every AIDE_* variable. Unset, or not a whole number above
+# zero, leaves pytest-xdist's own `-n auto`: one worker per core.
+_given = _os.environ.get("AIDE_TEST_WORKERS", "")
+_test_workers = int(_given) if _given.isdecimal() and int(_given) > 0 else None
+
 # The same environment wherever the suite is started (same_env.py), before
 # anything below sets a variable of its own.
 from .same_env import mise_tool_dirs as _mise_tool_dirs, same_env as _same_env
@@ -34,6 +40,12 @@ _os.environ["TMPDIR"] = _own_tmp
 _tempfile.tempdir = None
 import atexit as _atexit
 _atexit.register(shutil.rmtree, _own_tmp, True)
+
+
+@pytest.hookimpl(tryfirst=True, optionalhook=True)
+def pytest_xdist_auto_num_workers(config):
+    """`-n auto` (pytest.ini) keeps to the count the board gave the run."""
+    return _test_workers
 
 
 @pytest.fixture
