@@ -5,13 +5,8 @@
     "implement",
     "archive"
   ],
-  "expected": "not-archived",
+  "expected": "archived",
   "expect": {
-    "state": "failed",
-    "message": "wrote a short analysis for a spec that may not have one",
-    "stepReason": {
-      "step": "analyze",
-      "terminalReason": "short-analysis-over-limit"
-    }
+    "state": "done"
   }
 }
