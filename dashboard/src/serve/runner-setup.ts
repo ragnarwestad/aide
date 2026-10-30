@@ -27,6 +27,7 @@ import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpe
 import { analysisSessionToResume, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
 import { followOnJob } from "./routes/spec-edit/shared.ts";
+import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
@@ -411,7 +412,9 @@ export function stepDoneHandler(
     // A stopped archive never lands: its pre-check already moved the
     // folder on the branch, and that move must wait for a completed archive.
     // Other stopped steps land only when no code root was pushed;
-    // code waits on its branch for `archive`.
+    // code waits on its branch for `archive`. An implement sent back is the
+    // one that lands past a code root, and only where the specs live inside
+    // it: the landing then copies the spec's folder and leaves the code.
     //
     // The wall clock, a provider limit, a shared-files stop, an
     // implement sent back to a full analysis and a short analysis over a
@@ -428,9 +431,12 @@ export function stepDoneHandler(
     // the next prompt is read from, also where the specs live inside the code
     // root: `landStepBranch` lands the spec's own folder there and no code.
     if (outcome.terminalReason === "short-analysis-over-limit") return ctx.landStepBranch(job, step, outcome);
-    const codeRoots = new Set([ctx.machineryProjectDir(job.project)]);
+    const codeRoot = ctx.machineryProjectDir(job.project);
     const pushed = outcome.branchUrls ?? [];
-    if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;
+    if (pushed.length === 0) return undefined;
+    const sentBackWithSpecsInside = step === "implement" && outcome.terminalReason === "sent-back"
+      && specsLiveInside(codeRoot, ctx.machinerySpecsRoot(job.project));
+    if (pushed.some((r) => r.root === codeRoot) && !sentBackWithSpecsInside) return undefined;
     return ctx.landStoppedStepBranch(job, step, outcome);
   }
 }

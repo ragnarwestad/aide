@@ -60,10 +60,11 @@ reads what a landing left.
   merge has not reached yet. An analyze or implement landing moves the
   specs repository alone and holds nothing — `landStepBranch` leaves the
   code root out even when the run's own catch-up merge moved it. Where
-  the specs live inside that root, an analyze, reopen or close
-  landing copies the spec's own folder onto main and nothing else of the
-  branch (`landSpecFolderOnly`, `git/spec-folder-landing.ts`, chosen in
-  `handed-to-merge.ts`): code reaches main through `archive` alone.
+  the specs live inside that root, an analyze, reopen, close or
+  sent-back implement landing copies the spec's own folder onto main and
+  nothing else of the branch (`landSpecFolderOnly`,
+  `git/spec-folder-landing.ts`, chosen in `handed-to-merge.ts`): code
+  reaches main through `archive` alone.
 - **Origin decides whether an `archive` landing finished.** It asks
   whether `aide/<folder>` is still on origin, and a root that holds it is
   a landing that did not finish. The check is `archive`'s alone, by the

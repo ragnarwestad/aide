@@ -351,8 +351,14 @@ export function deployStep(job: { steps: readonly string[]; stepIndex: number })
 export const isDeployJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
   job.steps.length === 1 && job.steps[0] === "deploy" && job.specFolder === DEPLOY_KEY;
 
-/** Whether the job's step holds one of the runner's slots. A board step runs in
- *  the server's own process, so it neither counts against `maxConcurrent` nor
- *  waits for it. */
+/** The steps that hold none of the runner's slots. A board step runs in the
+ *  server's own process. A create takes about a minute and is what gives a
+ *  spec its number and its row, so it is never left behind an analyze or an
+ *  implement. Every other step takes a slot. */
+const SLOT_FREE_STEPS: readonly string[] = [...BOARD_STEPS, "create"];
+
+/** Whether the job's CURRENT step holds one of the runner's slots. A step
+ *  that takes none neither counts against `maxConcurrent` nor waits for it;
+ *  the same job's next step is asked again when it starts. */
 export const takesSlot = (job: { steps: readonly string[]; stepIndex: number }): boolean =>
-  !(BOARD_STEPS as readonly string[]).includes(job.steps[job.stepIndex] ?? "");
+  !SLOT_FREE_STEPS.includes(job.steps[job.stepIndex] ?? "");

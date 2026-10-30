@@ -1,9 +1,11 @@
 // An implement the runner ended `sent-back` is landed when it pushed only the
-// specs repository, and the board then queues Analyze and Implement for the
-// spec on the models it ran with. An analyze the runner ended
-// `short-analysis-over-limit` is landed the same way and queues Analyze and the
-// steps the job had not run, once per spec. Any other ending queues nothing, and
-// so does one the runner refused: the spec's analysis was already full.
+// specs repository, or when the specs live inside the code repository it
+// pushed (the landing then copies the spec's folder alone), and the board then
+// queues Analyze and Implement for the spec on the models it ran with. An
+// analyze the runner ended `short-analysis-over-limit` lands its spec folder
+// and queues Analyze and the steps the job had not run, once per spec. Any
+// other ending queues nothing, and so does one the runner refused: the spec's
+// analysis was already full.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore, type Job } from "../../src/queue/queue.ts";
@@ -31,13 +33,13 @@ let landedWhole: string[];
 
 /** The step-done hook as the server wires it, with the landing recorded and
  *  settled at once. */
-const hook = () => {
+const hook = (specsRoot: (project: string) => string = (project) => join(dir, project, "specs")) => {
   landed = [];
   landedWhole = [];
   return stepDoneHandler({
     store,
     machineryProjectDir: (project: string) => join(dir, project),
-    machinerySpecsRoot: (project: string) => join(dir, project, "specs"),
+    machinerySpecsRoot: specsRoot,
     specDir: () => undefined,
     peekMachinerySpecDir: (_p: string, d: string) => d,
     forgetSpecCaches: () => {},
@@ -54,12 +56,13 @@ const hook = () => {
 };
 
 const SPECS_ONLY = [{ root: join("specs-repo"), url: "https://example.test/specs" }];
+const CODE = (): { root: string; url: string } => ({ root: join(dir, "aide"), url: "https://example.test/code" });
 const WITH_CODE = (): { root: string; url: string }[] => [...SPECS_ONLY, { root: join(dir, "aide"), url: "https://example.test/code" }];
 
 /** An implement job (with an Archive behind it) whose step ends as `result` says. */
-const endImplement = async (result: Record<string, unknown>) => {
+const endImplement = async (result: Record<string, unknown>, specsRoot?: (project: string) => string) => {
   const job = enqueue(["implement", "archive"]);
-  const runner = makeRunner({ store, onStepDone: hook(), readResult: () => ({ ...okResult(0.1), ok: false, ...result }) });
+  const runner = makeRunner({ store, onStepDone: hook(specsRoot), readResult: () => ({ ...okResult(0.1), ok: false, ...result }) });
   runner.tick();
   runner.poll();
   // The round is queued on a timer, after the landing has settled.
@@ -88,10 +91,25 @@ describe("an implement sent back to a full analysis", () => {
     expect(round?.model?.archive).toBeUndefined();
   });
 
-  test("that also pushed the code repository lands nothing and still queues the round", async () => {
-    const job = await endImplement({ terminalReason: "sent-back", error: WHY, branchUrls: WITH_CODE() });
+  test("that pushed the code repository holding the specs is landed, and the round still queues (AC-1, AC-3)", async () => {
+    const job = await endImplement({ terminalReason: "sent-back", error: WHY, branchUrls: [CODE()] });
+    expect(landed).toEqual([`${job.id}:implement`]);
+    expect(others(job).map((j) => j.steps)).toEqual([["analyze", "implement"]]);
+  });
+
+  test("that pushed a code repository apart from the specs lands nothing and still queues the round", async () => {
+    const job = await endImplement(
+      { terminalReason: "sent-back", error: WHY, branchUrls: WITH_CODE() },
+      () => join(dir, "specs-repo", "aide"),
+    );
     expect(landed).toEqual([]);
     expect(others(job).map((j) => j.steps)).toEqual([["analyze", "implement"]]);
+  });
+
+  test("another stop that pushed the code repository holding the specs lands nothing", async () => {
+    const job = await endImplement({ terminalReason: "timeout", error: "x", branchUrls: [CODE()] });
+    expect(landed).toEqual([]);
+    expect(others(job)).toEqual([]);
   });
 
   for (const terminalReason of ["no-progress", "timeout", "tests-red", "short-analysis-over-limit"]) {
