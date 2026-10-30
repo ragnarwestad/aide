@@ -199,6 +199,35 @@ describe("POST /api/self-run", () => {
     expect(jobs.jobs).toEqual([]);
   });
 
+  test("a press dismisses the failed-create messages the project's last round left, and no other project's", async () => {
+    const failedCreatesPath = join(fixtures, "..", `failed-creates-${Date.now()}.json`);
+    const record = (id: string, project: string) => ({
+      id, project, title: `Title of ${id}`, description: "",
+      reason: { key: "runner.serverRestarted", values: { button: "Create" } }, failedAt: "2026-10-30T07:00:00.000Z",
+    });
+    writeFileSync(failedCreatesPath, JSON.stringify([record("last-round", "aide"), record("elsewhere", "other")]));
+    try {
+      const { base, dir } = harness.start({
+        extra: { testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures, failedCreatesPath },
+      });
+      const code = join(dir, "root", "aide");
+      repoWithHistory(code, join(dir, "code-origin.git"), true);
+
+      await fetch(`${base}/api/self-run`, { method: "POST", ...auth });
+      let state: { stage: string } = { stage: "resetting" };
+      for (let i = 0; i < 100 && state.stage !== "done" && state.stage !== "failed"; i++) {
+        await new Promise((r) => setTimeout(r, 100));
+        state = (await (await fetch(`${base}/api/self-run`, auth)).json()) as typeof state;
+      }
+      expect(state.stage).toBe("done");
+      const kept = JSON.parse(readFileSync(failedCreatesPath, "utf8")) as { id: string; dismissedAt?: string }[];
+      expect(kept.find((r) => r.id === "last-round")?.dismissedAt).toEqual(expect.any(String));
+      expect(kept.find((r) => r.id === "elsewhere")?.dismissedAt).toBeUndefined();
+    } finally {
+      rmSync(failedCreatesPath, { force: true });
+    }
+  });
+
   test("a second press while the first is still queueing is refused", async () => {
     const { base, dir } = harness.start({
       extra: { testBoardSpec: TEST_BOARD, roundFixturesDir: fixtures },

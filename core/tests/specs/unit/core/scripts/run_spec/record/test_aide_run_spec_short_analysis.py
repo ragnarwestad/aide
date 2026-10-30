@@ -23,7 +23,8 @@ FILES = ["a.ts", "b.ts", "c.ts"]
 def _describe(workspace, criteria, choose=None, checks="off", sent_back=None):
     """The spec's own description: `criteria` `- **AC-n:**` lines and the
     two Tracking-info choices the check reads, committed."""
-    lines = ["# Queue - Description", "", "## Tracking info", "", "- **Task:** `81-queue-and-runner/`"]
+    lines = ["# Queue - Description", "", "## Tracking info", "", "- **Task:** `81-queue-and-runner/`",
+             "- **Created:** `2026-10-29 20:42 UTC`"]
     if choose is not None:
         lines.append(f"- **Let me choose the approach:** {choose}")
     if sent_back is not None:
@@ -78,7 +79,6 @@ def _failed_on_a_limit(out, said):
     assert out["ok"] is False, out
     assert out["terminalReason"] == "short-analysis-over-limit", out
     assert said in out["error"], out["error"]
-    assert "Press Analyze again" in out["error"], out["error"]
 
 
 def test_a_short_analysis_within_every_limit_completes_and_says_so(runner, workspace, fake_claude):
@@ -187,6 +187,24 @@ def test_every_limit_crossed_is_named_and_the_criteria_are_not_one(runner, works
 def test_a_short_analysis_for_a_spec_sent_back_to_a_full_one_fails(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, sent_back="it changes the result format")
     _failed_on_a_limit(out, "it was sent back to a full analysis")
+
+
+def _description_on_the_branch(workspace):
+    return git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/1-description.md")
+
+
+def test_a_short_analysis_over_a_limit_records_the_sent_back_line_on_the_branch(runner, workspace, fake_claude):
+    out, _ = _analyze(runner, workspace, fake_claude, grade="MEDIUM")
+    _failed_on_a_limit(out, "it is graded MEDIUM, not LOW")
+    lines = [l for l in _description_on_the_branch(workspace).splitlines() if l.startswith("- **Sent back to a full analysis:**")]
+    assert lines == ["- **Sent back to a full analysis:** a short analysis was written over a limit: it is graded MEDIUM, not LOW"]
+
+
+def test_a_sent_back_line_already_there_is_kept_word_for_word(runner, workspace, fake_claude):
+    out, _ = _analyze(runner, workspace, fake_claude, sent_back="it changes the result format")
+    _failed_on_a_limit(out, "it was sent back to a full analysis")
+    lines = [l for l in _description_on_the_branch(workspace).splitlines() if "Sent back to a full analysis" in l]
+    assert lines == ["- **Sent back to a full analysis:** it changes the result format"]
 
 
 def test_a_full_analysis_for_a_spec_sent_back_completes(runner, workspace, fake_claude):

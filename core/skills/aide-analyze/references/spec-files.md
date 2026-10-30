@@ -41,7 +41,8 @@ Read the section the step at hand needs.
 - A `Sent back to a full analysis:` line in Tracking info — one sentence
   saying what made the spec larger than its short analysis allowed —
   written by `aide-run-spec` when `/aide-implement` on a short analysis
-  finds the spec is not small after all, directly after the `Let me choose
+  finds the spec is not small after all, or when `/aide-analyze` writes a
+  short analysis over a limit, directly after the `Let me choose
   the approach:` line (else after `Acceptance criteria checks:`, else after
   `Created:`). It is kept on the spec: a spec with the line is never given
   a short analysis again, so it goes back at most once. Absent, or empty,

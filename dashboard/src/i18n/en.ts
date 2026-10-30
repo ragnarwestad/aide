@@ -50,6 +50,9 @@ export const en = {
   "dialog.removing": "removing…",
   "shell.stopTestServer": "Stop",
   "shell.runTestRound": "Run",
+  "shell.delay": "Delay: {value}",
+  "shell.delayOff": "Off",
+  "shell.delayTitle": "How long the stand-in model waits before each step; press for the next choice",
   "shell.testRound": "round",
 
   "list.statesLabel": "States",

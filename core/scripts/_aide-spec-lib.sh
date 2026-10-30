@@ -118,24 +118,29 @@ aide_config_get() {
 #
 # Deliberately a sibling of aide_config_get rather than a YAML parser.
 # A top-level scalar is one anchored sed away, and that is the whole
-# shape this reads: `^key: value`. An indented key belongs to whatever
+# shape this reads: `^key: value`, less a trailing comment. An indented key belongs to whatever
 # block it sits under and is not this one, so the anchor is load-bearing
 # rather than incidental. Nesting would need a hand-written collector —
 # /bin/bash here is 3.2, with no mapfile — and a silent misparse of a
 # gitignored-path list is a worktree that comes up missing what the
 # project's own commands need, with nothing said about it.
 aide_manifest_get() {
-  local key="$1" root="${2:-.}" file value q
+  local key="$1" root="${2:-.}" file value q dq sq
   file="$root/.aide/project.yaml"
   [ -f "$file" ] || return 0
   value="$(sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -1 | sed 's/[[:space:]]*$//')"
-  # A value quoted as a whole is a YAML string, and is read the way the
-  # dashboard's YAML parser reads it: without the quotes.
-  # shellcheck disable=SC1003 # a literal backslash, not an escaped quote
-  case "$value" in
-    '"'*'"') value="${value:1:${#value}-2}"; value="${value//\\\"/\"}"; value="${value//\\\\/\\}" ;;
-    "'"*"'") value="${value:1:${#value}-2}"; q="'"; value="${value//$q$q/$q}" ;;
-  esac
+  # Read the way the dashboard's YAML parser reads a one-line scalar: a value
+  # quoted as a whole loses its quotes and any comment after them, a plain
+  # value is cut where a `#` follows a space or a tab.
+  dq='^"(([^"\\]|\\.)*)"([[:space:]]+#.*)?$'
+  sq="^'(([^']|'')*)'([[:space:]]+#.*)?\$"
+  if [[ $value =~ $dq ]]; then
+    value="${BASH_REMATCH[1]}"; value="${value//\\\"/\"}"; value="${value//\\\\/\\}"
+  elif [[ $value =~ $sq ]]; then
+    value="${BASH_REMATCH[1]}"; q="'"; value="${value//$q$q/$q}"
+  else
+    value="$(printf '%s' "$value" | sed -E 's/(^|[[:space:]]+)#.*$//')"
+  fi
   printf '%s\n' "$value"
 }
 

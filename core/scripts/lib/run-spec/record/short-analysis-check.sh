@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # run-spec/record/short-analysis-check.sh — a completed analyze is logged with
-# the analysis it wrote, and a SHORT analysis over a limit ends failed.
+# the analysis it wrote, and a SHORT analysis over a limit ends failed. The
+# failed step also records `Sent back to a full analysis:` in the description
+# (lib/tracking-info.sh's record_sent_back) unless one is there, so the next
+# analyze is not offered a short analysis; the board queues that analyze.
 #
 # Sourced by aide-run-spec after run-spec/record/shared-files-check.sh, so an
 # analysis Step 6 stopped on shared files (which wrote no 3-solution.md, so no
@@ -70,6 +73,11 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
     ok="false"
     suffix=" (stopped: short-analysis-over-limit)"
     amend_note="${model_suffix}${suffix}"
-    error_msg="$step_button wrote a short analysis for a spec that may not have one: $sa_crossed. Press $step_button again to have the full analysis written."
+    if [ -z "$(tracking_info_field "$sa_dir/1-description.md" "Sent back to a full analysis")" ]; then
+      sa_why="$(printf 'a short analysis was written over a limit: %s' "$sa_crossed" | tr '\n\r' '  ' | tr -d '`' \
+        | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | cut -c1-300 | sed 's/[[:space:]]*$//')"
+      record_sent_back "$sa_dir/1-description.md" "$sa_why" || true
+    fi
+    error_msg="$step_button wrote a short analysis for a spec that may not have one: $sa_crossed. The full analysis is written when $step_button runs again."
   fi
 fi

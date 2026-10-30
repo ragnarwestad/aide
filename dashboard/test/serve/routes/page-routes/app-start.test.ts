@@ -1,13 +1,12 @@
 // Where the installed app is sent when it is launched: the Running tab when
-// the tab has a row, the bare Specs list when it has none. The rows are counted
-// by the rule the tab draws its empty sentence by, so a test here asks the
-// served board, not the renderer.
+// the tab has a row left by its saved view, the bare Specs list when it has
+// none. The rows are counted by the rule the tab draws its rows by, so a test
+// here asks the served board, not the renderer.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { t } from "../../../../src/i18n";
 import type { FailedCreate } from "../../../../src/push/failed-creates.ts";
 import { setupQueueRoutesHarness } from "../../../queue-routes/fixtures.ts";
 
@@ -63,16 +62,36 @@ describe("the installed app's start address sends it to the tab or the list", ()
     expect(await launch(base)).toEqual({ status: 302, location: "/" });
   });
 
-  test("rows are counted before the tab's own view hides them", async () => {
-    const { base } = board();
-    const hidden = await fetch(`${base}/?q=nothing-matches`, { redirect: "manual" });
-    expect(await hidden.text()).toContain(t("en", "jobs.noRowMatchesFilter"));
-    const cookie = hidden.headers
+  /** The cookie the Running tab keeps its view in, set by a first visit to `path`. */
+  const savedView = async (base: string, path: string): Promise<string> => {
+    const res = await fetch(`${base}${path}`, { redirect: "manual" });
+    const cookie = res.headers
       .getSetCookie()
       .map((c) => c.split(";")[0]!)
       .find((c) => c.startsWith("aide_jobs_view_"));
     expect(cookie).toBeDefined();
-    expect(await launch(base, { cookie: cookie! })).toEqual({ status: 302, location: "/" });
+    return cookie!;
+  };
+
+  test("a saved view that hides every row opens the Specs list (AC-1)", async () => {
+    const { base } = board();
+    const cookie = await savedView(base, "/?q=nothing-matches");
+    expect(await launch(base, { cookie })).toEqual({ status: 302, location: "/specs" });
+  });
+
+  test("a saved view that leaves a row opens the Running tab (AC-2)", async () => {
+    const { base } = board();
+    const cookie = await savedView(base, "/?q=queue-and-runner");
+    expect(await launch(base, { cookie })).toEqual({ status: 302, location: "/" });
+  });
+
+  test("a browser tab's first page names the Specs list when the saved view hides every row (AC-1)", async () => {
+    const { base } = board();
+    const cookie = await savedView(base, "/?q=nothing-matches");
+    const hiding = await (await fetch(`${base}/`, { headers: { cookie } })).text();
+    expect(hiding).toContain('<meta name="aide-start" content="/specs">');
+    const leaving = await (await fetch(`${base}/?q=queue-and-runner`)).text();
+    expect(leaving).not.toContain('<meta name="aide-start"');
   });
 
   test("a board with no row opens the Specs list bare, so its cookies decide the view", async () => {

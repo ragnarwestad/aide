@@ -74,9 +74,9 @@ export async function jobsPage(
     },
   };
 
-  // The installed app's start: on to this tab when it has a row, and to the
-  // Specs list, bare, when it has none, so the list opens with the state
-  // filter and sort its cookies keep.
+  // The installed app's start: on to this tab when its saved view leaves a
+  // row, and to the Specs list, bare, when it leaves none, so the list opens
+  // with the state filter and sort its cookies keep.
   if (path === APP_START_ROUTE) {
     return new Response(null, { status: 302, headers: { location: jobsTabHasRows(view) ? "/" : "/specs" } });
   }

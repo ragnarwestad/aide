@@ -27,6 +27,7 @@ import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpe
 import { analysisSessionToResume, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
 import { followOnJob } from "./routes/spec-edit/shared.ts";
+import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
@@ -301,22 +302,45 @@ export function stepDoneHandler(
     forgetSpecCachesFor(ctx, job);
     const landing = landingFor(job, step, outcome);
     if (!landing) rereadSpecCachesFor(ctx, job);
-    if (step === "implement" && outcome.terminalReason === "sent-back") queueFullAnalysisRound(job, landing);
+    if (step === "implement" && outcome.terminalReason === "sent-back") {
+      queueFullAnalysisRound(job, ["analyze", "implement"], landing, "sent back");
+    }
+    if (step === "analyze" && outcome.terminalReason === "short-analysis-over-limit" && !overLimitBefore(job)) {
+      queueFullAnalysisRound(job, job.steps.slice(job.stepIndex), landing, "short analysis over a limit");
+    }
     return landing;
   };
 
-  /** Analyze, then Implement, for a spec implement sent back to a full
-   *  analysis, on the models and effort the stopped job ran with. Queued on
+  /** Whether another job for the spec already has an analyze that ended
+   *  `short-analysis-over-limit`: the analyze after it was not offered a short
+   *  analysis and wrote one anyway, and another round would loop. */
+  function overLimitBefore(job: Job): boolean {
+    return ctx.store.list().some(
+      (j) =>
+        j.id !== job.id &&
+        j.project === job.project &&
+        j.specFolder === job.specFolder &&
+        j.results.some((r) => r.step === "analyze" && r.terminalReason === "short-analysis-over-limit"),
+    );
+  }
+
+  /** A full analysis round for a spec whose analysis was found too small:
+   *  `steps` on the models and effort the stopped job ran with. Queued on
    *  a timer once the landing has settled: until the runner has moved the
-   *  job to `stopped` and cleared its `landing`, the store refuses a job for
-   *  the same spec (`clashing`, `landingJob`). */
-  function queueFullAnalysisRound(job: Job, landing: Promise<unknown> | undefined): void {
+   *  job to `stopped` or `failed` and cleared its `landing`, the store refuses
+   *  a job for the same spec (`clashing`, `landingJob`). */
+  function queueFullAnalysisRound(
+    job: Job,
+    steps: string[],
+    landing: Promise<unknown> | undefined,
+    label: string,
+  ): void {
     void Promise.resolve(landing)
       .catch(() => undefined)
       .then(() => {
         setTimeout(() => {
-          const made = ctx.store.enqueue(followOnJob(job.project, job.specFolder, ["analyze", "implement"], job));
-          if (!made.ok) logRefusal("sent back", `${job.project}/${job.specFolder}`, made.error);
+          const made = ctx.store.enqueue(followOnJob(job.project, job.specFolder, steps, job));
+          if (!made.ok) logRefusal(label, `${job.project}/${job.specFolder}`, made.error);
         }, 0);
       });
   }
@@ -388,20 +412,31 @@ export function stepDoneHandler(
     // A stopped archive never lands: its pre-check already moved the
     // folder on the branch, and that move must wait for a completed archive.
     // Other stopped steps land only when no code root was pushed;
-    // code waits on its branch for `archive`.
+    // code waits on its branch for `archive`. An implement sent back is the
+    // one that lands past a code root, and only where the specs live inside
+    // it: the landing then copies the spec's folder and leaves the code.
     //
-    // The wall clock, a provider limit, a shared-files stop and an
-    // implement sent back to a full analysis all stop after the runner
-    // has committed the work. A CLI error has no such safe landing
-    // promise.
+    // The wall clock, a provider limit, a shared-files stop, an
+    // implement sent back to a full analysis and a short analysis over a
+    // limit all stop after the runner has committed the work. A CLI error
+    // has no such safe landing promise.
     if (
       !step ||
-      !["timeout", "provider-limit", "shared-files", "sent-back"].includes(outcome.terminalReason ?? "")
+      !["timeout", "provider-limit", "shared-files", "sent-back", "short-analysis-over-limit"].includes(
+        outcome.terminalReason ?? "",
+      )
     ) return undefined;
     if (step === "archive") return undefined;
-    const codeRoots = new Set([ctx.machineryProjectDir(job.project)]);
+    // The line the over-limit analyze recorded must reach the main checkout
+    // the next prompt is read from, also where the specs live inside the code
+    // root: `landStepBranch` lands the spec's own folder there and no code.
+    if (outcome.terminalReason === "short-analysis-over-limit") return ctx.landStepBranch(job, step, outcome);
+    const codeRoot = ctx.machineryProjectDir(job.project);
     const pushed = outcome.branchUrls ?? [];
-    if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;
+    if (pushed.length === 0) return undefined;
+    const sentBackWithSpecsInside = step === "implement" && outcome.terminalReason === "sent-back"
+      && specsLiveInside(codeRoot, ctx.machinerySpecsRoot(job.project));
+    if (pushed.some((r) => r.root === codeRoot) && !sentBackWithSpecsInside) return undefined;
     return ctx.landStoppedStepBranch(job, step, outcome);
   }
 }

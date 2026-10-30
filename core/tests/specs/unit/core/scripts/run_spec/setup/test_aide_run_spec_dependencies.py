@@ -202,3 +202,39 @@ def test_a_dependency_archived_on_origin_is_confirmed_even_if_this_checkout_has_
     assert out["terminalReason"] == "completed"
     assert (workspace["specs"] / "80-dependency").exists(), \
         "the answer came from origin, not from moving anything locally"
+
+def test_another_run_cleaning_up_its_own_read_of_origin_does_not_refuse_this_one(
+    runner, workspace, fake_claude, local_origins
+):
+    """Runs of one project share the specs checkout, and dependents of the
+    same spec are released on the same tick. The ref a run reads origin
+    into is its own: another run deleting the ref it used, the moment
+    this one has fetched, must not turn an archived dependency into
+    "not archived yet"."""
+    add_spec(workspace, "80-dependency", archived=True)
+    git(workspace["specs"], "push", "-q", "origin", "main")
+    set_depends_on(workspace, "80")
+
+    # Plays the other run: once this run has fetched origin into a ref
+    # under refs/aide-dep/, the other run's cleanup deletes the name it
+    # read its own fetch into.
+    hooks = workspace["specs"] / git(workspace["specs"], "rev-parse", "--git-path", "hooks").strip()
+    hooks.mkdir(parents=True, exist_ok=True)
+    hook = hooks / "reference-transaction"
+    hook.write_text(
+        "#!/bin/sh\n"
+        '[ "$1" = committed ] || exit 0\n'
+        "while read -r old new ref; do\n"
+        '  case "$ref" in refs/aide-dep/*)\n'
+        '    [ "$new" = 0000000000000000000000000000000000000000 ] '
+        '|| git update-ref -d refs/aide-dep/base ;;\n'
+        "  esac\n"
+        "done\n"
+    )
+    hook.chmod(0o755)
+
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace), command="implement"
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"

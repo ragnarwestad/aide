@@ -37,6 +37,27 @@ export function settledCreateFolder(job: { specFolder: string; landing?: Job["la
   return job.specFolder;
 }
 
+/** What a fixture's create has come to: its folder once landed, `failed`
+ *  for a create the fixture expects to fail (`expected: "create-failed"`),
+ *  nothing while it goes on. A create that ends any other way than the
+ *  fixture says is the round's own error, named. */
+export function createEnd(
+  spec: Pick<RoundSpec, "slug" | "expected">,
+  job: { specFolder: string; state: string; landing?: Job["landing"] },
+): { folder: string } | { failed: true } | undefined {
+  const folder = settledCreateFolder(job);
+  const meantToFail = spec.expected === "create-failed";
+  if (folder) {
+    if (meantToFail) throw new Error(`${spec.slug} was meant to fail its create, and made ${folder}`);
+    return { folder };
+  }
+  if (job.state === "failed" || job.state === "cancelled" || job.state === "stopped") {
+    if (meantToFail && job.state === "failed") return { failed: true };
+    throw new Error(`create ${job.state} for ${spec.slug}`);
+  }
+  return undefined;
+}
+
 /** What the spec's row is expected to show once the round is over
  *  (`dashboard/test/round/run` reads it back and compares): the job's
  *  state, its stop reason when stopped, and the message — a message
@@ -64,8 +85,15 @@ export interface RoundSpec {
    *  the one way a fixture can make the runner's clock the outcome. */
   timeoutSec?: number;
   expect?: RoundExpect;
+  /** The create goes through the model, as New spec's "let AI formulate
+   *  acceptance criteria" box asks; without it the board writes the
+   *  folder itself and the stand-in is never asked. */
+  aiCreate?: boolean;
   /** The `NN-slug` folder the create step made — absent until it has. */
   folder?: string;
+  /** Set when the create ended without a spec, as a fixture with
+   *  `expected: "create-failed"` says it must. */
+  createFailed?: boolean;
 }
 
 export interface RoundState {
@@ -146,6 +174,9 @@ async function runRound(ctx: RoutesContext): Promise<void> {
     const ownRepo = (await ctx.specsRoot(specs)) !== (await ctx.specsRoot(code));
     await cancelLiveJobs(ctx, project);
     ctx.queue.dropProject(project);
+    // The last round's failed create is a message on the Specs list until
+    // it is dismissed; the round makes a new one each time.
+    for (const r of ctx.push.failedCreates.list()) if (r.project === project) ctx.push.failedCreates.dismiss(r.id);
     await resetRepo(ctx, code, "baseline");
     if (ownRepo) await resetRepo(ctx, specs, null);
     // The dashboard's own clones AFTER both origins are back at their
@@ -309,6 +340,7 @@ export function readFixtures(dir: string): RoundSpec[] {
         dependsOn?: string[];
         timeoutSec?: number;
         expect?: RoundExpect;
+        aiCreate?: boolean;
       };
       return {
         slug,
@@ -318,6 +350,7 @@ export function readFixtures(dir: string): RoundSpec[] {
         dependsOn: meta.dependsOn ?? [],
         ...(typeof meta.timeoutSec === "number" ? { timeoutSec: meta.timeoutSec } : {}),
         ...(meta.expect ? { expect: meta.expect } : {}),
+        ...(meta.aiCreate ? { aiCreate: true } : {}),
       };
     });
 }
@@ -337,6 +370,7 @@ export function fixtureCreateBody(
     title: spec.title,
     description,
     acceptanceRequired: true,
+    ...(spec.aiCreate ? { aiFormulateAcceptance: true } : {}),
     ...(dependsOn.length ? { dependsOn } : {}),
   };
 }
@@ -376,11 +410,13 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
     const until = Date.now() + 180_000;
     while (!spec.folder) {
       const job = ctx.queue.get(jobId);
-      const folder = job && settledCreateFolder(job);
-      if (folder) spec.folder = folder;
-      else if (job && (job.state === "failed" || job.state === "cancelled" || job.state === "stopped")) {
-        throw new Error(`create ${job.state} for ${spec.slug}`);
-      } else if (Date.now() > until) throw new Error(`create never landed for ${spec.slug}`);
+      const end = job && createEnd(spec, job);
+      if (end && "failed" in end) {
+        spec.createFailed = true;
+        return;
+      }
+      if (end) spec.folder = end.folder;
+      else if (Date.now() > until) throw new Error(`create never landed for ${spec.slug}`);
       else await new Promise((r) => setTimeout(r, 1000));
     }
     // The folder the landing pushed, into the checkout the board reads

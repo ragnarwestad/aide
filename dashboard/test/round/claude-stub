@@ -64,6 +64,15 @@ fi
 step="$(printf '%s' "$prompt" | sed -n 's#^/aide-\([a-z-]*\).*#\1#p' | head -1)"
 [ -n "$step" ] || fail "claude-stub: the prompt does not name a step: $prompt"
 
+# The board's Delay (src/integrations/round-delay.ts): a wait before each
+# step, so a row stays in each state long enough to be watched. Read at
+# every step, so a press takes effect at the next one.
+delay="$(cat "${AIDE_ROUND_DELAY_FILE:-/nonexistent}" 2>/dev/null | tr -d '[:space:]')"
+case "$delay" in
+  ''|*[!0-9]*|0) ;;
+  *) say "claude-stub: waits ${delay}s before $step (Delay)"; sleep "$delay" ;;
+esac
+
 if [ "$step" = "create" ]; then
   # The prompt aide-run-spec builds for a create step
   # (run-spec/setup/invocation.sh) gives the title and the description in
@@ -74,6 +83,9 @@ if [ "$step" = "create" ]; then
   depends="$(printf '%s' "$prompt" | sed -n 's/^Use exactly this Depends-on value in Tracking info: \(.*\)$/\1/p' | head -1)"
   description="$(printf '%s\n' "$prompt" | sed -n '/^<description>$/,/^<\/description>$/p' | sed '1d;$d')"
   [ -n "$title" ] || fail "claude-stub: no <title> in the create prompt: $prompt"
+  # The round's one create that ends without a spec, for the Specs list's
+  # message about it.
+  [ "$title" = "A create that fails" ] && fail "the model stopped before it wrote the spec"
 
   specs_root="$(aide_config_get AIDE_SPECS_PATH .)"
   [ -n "$specs_root" ] || fail "claude-stub: no AIDE_SPECS_PATH in .aide/config"
@@ -174,6 +186,7 @@ fact_for() {
     a-step-that-runs-past-its-time-limit) echo "a step the clock ends is stopped, not failed" ;;
     a-step-that-writes-outside-its-own-folder) echo "a step writes only its own spec folder" ;;
     a-step-the-tool-could-not-finish) echo "a tool error fails the step and names the button" ;;
+    a-short-analysis-over-the-limit) echo "a short analysis stays within its limits" ;;
     *) echo "" ;;
   esac
 }
@@ -220,6 +233,16 @@ TEST
 
 case "$step" in
   analyze)
+    # A short analysis is written only where the prompt allows one, as the
+    # model would; this one lists four source files, one over the limit,
+    # and the runner stops the step on it.
+    if [ "$slug" = "a-short-analysis-over-the-limit" ] \
+        && printf '%s' "$prompt" | grep -q "A short analysis is allowed"; then
+      # shellcheck disable=SC2016 # the backticks are Markdown, not a command
+      printf '# %s - Analysis\n\n## Tracking info\n\n- **Analysis:** short\n\n## Findings\n\n### Files to change\n\n- `src/facts.ts`\n- `src/queue.ts`\n- `src/runner.ts`\n- `src/landing.ts`\n' "$slug" | write 2-analysis.md
+      printf '# %s - Solution\n\n## Tracking info\n\n- **Grade:** LOW\n\n## Short analysis\n\nNo plan.\n' "$slug" | write 3-solution.md
+      ok "analyzed $folder"
+    fi
     printf '# %s - Analysis\n\n## Summary\n\nOne fact goes onto the list in src/facts.ts, and one test looks for it.\nComplexity: LOW.\n' "$slug" | write 2-analysis.md
     printf '# %s - Solution\n\n## Plan\n\n1. Write the failing test.\n2. Append the fact.\n' "$slug" | write 3-solution.md
     acceptance=""

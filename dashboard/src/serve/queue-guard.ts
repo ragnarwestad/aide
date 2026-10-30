@@ -52,7 +52,9 @@ export const isQueuePath = (path: string) =>
   // real consequences, guarded exactly like every other queue route.
   path === "/api/self-stop" ||
   // And its Run control (2026-09-11), on the same terms.
-  path === "/api/self-run";
+  path === "/api/self-run" ||
+  // And its Delay control.
+  path === "/api/self-run/delay";
 
 /** Where the server listens when `--bind` names no address: this machine alone. */
 export const DEFAULT_BIND_HOST = "127.0.0.1";

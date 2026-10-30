@@ -1,0 +1,10 @@
+{
+  "title": "A create that fails",
+  "steps": [
+    "analyze",
+    "implement",
+    "archive"
+  ],
+  "expected": "create-failed",
+  "aiCreate": true
+}
