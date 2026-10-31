@@ -64,7 +64,9 @@ describe("the runner and the landing turn hooks off the same way", () => {
       new URL("../../../core/scripts/lib/run-spec/setup/git-hooks.sh", import.meta.url),
       "utf8",
     );
-    expect(bash).toContain(`git() { command git ${NO_GIT_HOOKS.join(" ")} "$@"; }`);
+    const calls = bash.match(/command git -c \S+/g) ?? [];
+    expect(calls.length).toBeGreaterThan(0);
+    expect(new Set(calls)).toEqual(new Set([`command git ${NO_GIT_HOOKS.join(" ")}`]));
   });
 });
 

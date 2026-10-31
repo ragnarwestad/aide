@@ -219,7 +219,9 @@ Three more things keep what a step writes from reaching the runner's own work ou
 
 - a scheduled job's prompt is read as committed in the checkout, never from the file on disk;
 - each worktree's `.git` file, and the `commondir` and `gitdir` files of its git directory, are recorded when the
-  worktree is cut and put back after every turn, so the runner's own git never follows a step's rewrite of them;
+  worktree is cut and put back after every turn, and the runner's own git in a worktree passes the git directory it
+  recorded (`--git-dir`, `--work-tree`) rather than reading the `.git` file, so it never follows a step's rewrite of
+  it, not even one made after the turn by a process the step left running;
 - the runner's and the landing's own git run no hooks (`-c core.hooksPath=/dev/null`), so a hook the step wrote into
   the working tree, through a relative `core.hooksPath` or a tool such as lefthook that reads its settings from there,
   is never started. What the runner starts itself, the AI tool and the project's tests, runs git with its hooks as

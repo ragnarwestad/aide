@@ -9,10 +9,14 @@ What it starts itself (the AI tool, the project's tests) is left alone.
 
 import json
 import shlex
+import subprocess
 
 from ...conftest import git, run
+from ..run_spec_fakes import git_on_path
 from ..run_spec_origins import fetchable_origin_both_roots
 from ..run_spec_results import RESULT_OK
+
+GIT_FUNCTION = "core/scripts/lib/run-spec/setup/git-hooks.sh"
 
 
 def _planting_claude(fake_claude, marker):
@@ -65,3 +69,47 @@ def test_the_steps_own_git_still_runs_its_hooks(runner, workspace, fake_claude, 
     started_by = marker.read_text().splitlines()
     assert started_by, "the step's own commit ran its pre-commit hook"
     assert set(started_by) == {"git commit -q -m The step commits its own work"}
+
+
+def test_a_pinned_worktree_keeps_the_git_directory_it_was_cut_with(workspace_root, tmp_path):
+    """The runner's git reads a worktree's git directory from what it
+    recorded when the worktree was cut, never from the worktree's `.git`
+    file, which a process the step left running could rewrite after the
+    runner has put it back."""
+    main = tmp_path / "main"
+    main.mkdir()
+    git(main, "init", "-q", "-b", "main")
+    git(main, "commit", "-q", "--allow-empty", "-m", "base")
+    wt = tmp_path / "wt"
+    git(main, "worktree", "add", "-q", "-b", "aide/x", str(wt))
+    decoy = tmp_path / "decoy"
+    decoy.mkdir()
+    git(decoy, "init", "-q", "-b", "decoy")
+    script = (
+        f"source {shlex.quote(str(workspace_root / GIT_FUNCTION))}\n"
+        f"git_pin_worktrees {shlex.quote(str(wt))}\n"
+        f"printf 'gitdir: %s\\n' {shlex.quote(str(decoy / '.git'))} > {shlex.quote(str(wt / '.git'))}\n"
+        f"git -C {shlex.quote(str(wt))} rev-parse --abbrev-ref HEAD\n"
+    )
+    out = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip() == "aide/x"
+
+
+def test_the_runner_pins_its_worktrees_before_the_step_runs(
+    runner, workspace, fake_claude, tmp_path, monkeypatch
+):
+    """Wired once: the runner's own commit in the step's worktree names
+    that worktree's git directory."""
+    calls = tmp_path / "git-calls.txt"
+    git_on_path(tmp_path, monkeypatch, f'printf "%s\\n" "$*" >> {shlex.quote(str(calls))}')
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        'echo "written by the step" > "$PWD/new-code.txt"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    commits = [c for c in calls.read_text().splitlines() if " commit " in f" {c} " and "--git-dir=" in c]
+    assert any("/worktrees/" in c.split("--git-dir=")[1].split()[0] for c in commits), \
+        "\n".join(c for c in calls.read_text().splitlines() if " commit " in f" {c} ")
