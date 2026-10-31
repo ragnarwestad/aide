@@ -192,6 +192,30 @@ def command_for(worktree, rel, xml, python):
     return None
 
 
+def install_commands(worktree):
+    """The commands that install a JavaScript project's packages in a fresh worktree, through mise when the project
+    has a mise config; none when it has its packages already or uses no lockfile this knows."""
+    tree = Path(worktree)
+    if not (tree / "pnpm-lock.yaml").exists() or (tree / "node_modules").exists():
+        return []
+    install = ["pnpm", "install", "--frozen-lockfile", "--prefer-offline"]
+    if (tree / "mise.toml").exists() or (tree / ".mise.toml").exists():
+        return [["mise", "trust", "--quiet"], ["mise", "exec", "--", *install]]
+    return [install]
+
+
+def install_packages(worktree, timeout=600):
+    """Run `install_commands`; the row's note when one of them failed, else empty."""
+    for command in install_commands(worktree):
+        try:
+            done = subprocess.run(command, cwd=worktree, capture_output=True, timeout=timeout)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            return f"`{' '.join(command)}` could not run: {error}"
+        if done.returncode != 0:
+            return f"`{' '.join(command)}` failed, so the original tests ran without the project's packages"
+    return ""
+
+
 class ProgramMissing(Exception):
     """The program that runs a test file is not on PATH."""
     def __init__(self, program):

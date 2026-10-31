@@ -150,6 +150,7 @@ def original_tests(run, folder, found, code_dir, work):
     tree = str(work / "measure")
     git(code_dir, "worktree", "add", "--quiet", "--detach", tree, tip)
     copies.link_worktree_paths(run.code, tree, manifest_dir=code_dir)
+    installed = measure.install_packages(tree)
     python = Path(tree) / ".venv" / "bin" / "python"
     passed = ran = not_run = 0
     failed = []
@@ -171,7 +172,8 @@ def original_tests(run, folder, found, code_dir, work):
         else:
             passed, ran = passed + counts[0], ran + counts[1]
             failed += counts[2]
-    return (passed, ran, not_run), tuple(failed), measure.missing_programs_note(missing)
+    notes = "; ".join(n for n in (installed, measure.missing_programs_note(missing)) if n)
+    return (passed, ran, not_run), tuple(failed), notes
 
 
 def replay_steps(run, row, folder, archived, found, code_dir, specs_repo, specs_dir, work, out):

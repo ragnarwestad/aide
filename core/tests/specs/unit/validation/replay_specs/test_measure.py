@@ -146,3 +146,19 @@ def test_step_tokens_sum_every_turn_in_the_stream_not_the_last(tmp_path):
     assert measure.step_tokens(str(claude), "claude") == 167 + 19 + 1000
     assert measure.step_tokens(str(codex), "codex") == 165 + 2
     assert measure.step_tokens(str(tmp_path / "missing.jsonl"), "claude") is None
+
+
+def test_a_pnpm_project_without_its_packages_is_installed_through_mise_when_it_has_mise(tmp_path):
+    plain, with_mise, linked, other = (tmp_path / n for n in ("plain", "mise", "linked", "other"))
+    write(plain / "pnpm-lock.yaml", "\n")
+    write(with_mise / "pnpm-lock.yaml", "\n")
+    write(with_mise / "mise.toml", "[tools]\n")
+    write(linked / "pnpm-lock.yaml", "\n")
+    (linked / "node_modules").mkdir()
+    write(other / "package.json", "{}\n")
+
+    install = ["pnpm", "install", "--frozen-lockfile", "--prefer-offline"]
+    assert measure.install_commands(str(plain)) == [install]
+    assert measure.install_commands(str(with_mise)) == [["mise", "trust", "--quiet"], ["mise", "exec", "--", *install]]
+    assert measure.install_commands(str(linked)) == []
+    assert measure.install_commands(str(other)) == []

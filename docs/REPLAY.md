@@ -58,6 +58,10 @@ One row per spec, and a total row:
 | Judge                     | A score from 1 (clearly worse than the original plan) to 5 (clearly better); 3 means as good                           |
 | Time/tokens/cost per step | For analyze, implement and the judge                                                                                   |
 
+The original tests run in a fresh worktree of the new code. A project with a `pnpm-lock.yaml` and no `node_modules`
+there gets `pnpm install --frozen-lockfile --prefer-offline` first, through `mise exec` when it has a `mise.toml`;
+a failed install is named in the row's note.
+
 Under the table, the judge's reasons for each score. With `--repeat N` each spec is
 replayed N times, and the row also says how many of its replays went green and how
 far implement's cost spread: one replay cannot tell a steady result from a lucky one.
