@@ -342,10 +342,13 @@ say so rather than guessing one. Always run it in single-run mode.
 on this machine it is currently Atlasaurus (since 3 August 2026), PaceUp and Aide (since 27
 September 2026). Elsewhere, ask the user to run it.**
 
-**Aide: run `cd dashboard && make test-e2e` before every push to main**, whatever the change
-touched — about 20 seconds. Otherwise only a landing runs it, and a browser test broken on main
-stops the next spec's archive as if that spec had broken it. The one exception is a push that
-changes only markdown files: no browser test reads them, and `scripts/check-docs` is their check.
+**Aide: run `cd dashboard && make test-e2e` before every commit headed for main**, whatever the
+change touched — about 30 seconds, in the background beside the full suite. Otherwise only a
+landing runs it, and a browser test broken on main stops the next spec's archive as if that spec
+had broken it. Running it at commit time means a push that follows waits for nothing. Run it
+again at push time only when the rebase onto origin brought in new commits. The one exception is
+a change to markdown files only: no browser test reads them, and `scripts/check-docs` is their
+check.
 
 The list stays short on purpose: a suite that hangs blocks the session for minutes with nothing to
 show for it. Where a project's suite is fast, that risk is gone; where it still crawls, ask the
