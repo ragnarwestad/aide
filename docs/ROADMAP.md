@@ -483,6 +483,20 @@ Then compare the analyses' cost, the judge's score, the original tests and how f
 the one before it. Two rounds of five or six specs cost roughly $80–150 and several hours on the serving host, from
 the same usage limit as the board.
 
+Where it stands (2026-10-31): parked until a feature is split into several specs again.
+
+- **Time is no reason to build it.** In the two chains measured from their commits, most of the waiting was the
+  next spec waiting for the one before it to have its criteria ticked: 1 h 28 min of 6 h 33 min for Aide 572–576,
+  41 min of 2 h 36 min for Skjera 22–25. Clearing "Acceptance ticking required" removes that wait today. What
+  sections would save beyond it is the landings in between, about half an hour in Aide and next to nothing in
+  Skjera, against parts that could have run side by side having to run in turn.
+- **Better results are the one possible gain left, and are unmeasured.** That is what the replay above would show.
+- **Skjera 19–25 are the wrong specs for it.** They were separate items from an outstanding list, given Depends on
+  only so they ran one at a time; 19, 20 and 21 ran side by side with commits by hand in between. Aide 572–576 are
+  one planned clean-up in five parts and fit the idea, at roughly $215 and five hours for one round.
+- **The next try writes the shared description first:** when a feature is next split into specs, its goal and
+  decisions are written before the specs run, rather than reconstructed afterwards.
+
 ### 25. A plain way to run agents Aide has no support of its own for
 
 From looking at [T3 Code](https://github.com/pingdotgg/t3code) (2026-10-29), which adds agents such as Devin, Cline
