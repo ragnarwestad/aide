@@ -61,6 +61,12 @@ if printf '%s' "$prompt" | grep -q "test suite is red"; then
   ok "left the suite red on purpose"
 fi
 
+# The round's one scheduled job (fixture-project/schedules/), whose prompt
+# names no step: it fails, so its row on the Running tab is a failed one.
+if printf '%s' "$prompt" | grep -q "^A scheduled job that fails\.$"; then
+  fail "the scheduled job failed on purpose"
+fi
+
 step="$(printf '%s' "$prompt" | sed -n 's#^/aide-\([a-z-]*\).*#\1#p' | head -1)"
 [ -n "$step" ] || fail "claude-stub: the prompt does not name a step: $prompt"
 

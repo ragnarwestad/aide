@@ -175,12 +175,20 @@ cat > "$WORK/queue-config.json" <<CFG
   "timeoutSec": { "default": 600 },
   "permissionMode": { "default": "bypassPermissions" },
   "model": { "default": "script", "create": "script", "analyze": "script",
-             "implement": "script", "archive": "script" },
+             "implement": "script", "archive": "script", "schedule": "script" },
   "modelChoices": { "script": { "tool": "fake-claude" } },
   "push": "branch", "concurrency": 6,
-  "projects": ["aide-test"]
+  "projects": ["aide-test"],
+  "schedules": { "aide-test": [
+    { "name": "a-job-that-fails", "cron": "0 0 1 1 *",
+      "prompt": "schedules/a-job-that-fails.md", "notify": "never" }
+  ] }
 }
 CFG
+# The one scheduled job fires as soon as the board is up: its cron's most
+# recent time is in the past and no job has run it yet. The stand-in fails
+# it on purpose, so the Running tab shows a failed scheduled job's row. A
+# press of Run drops the project's jobs, and it fires again.
 
 # The stand-in by default, exactly as ~/develop/aide-test's own
 # .aide/config used to point AIDE_CLAUDE_BIN at fake-claude — but this
@@ -457,6 +465,14 @@ while [ "$i" -lt "${#FOLDERS[@]}" ]; do
   i=$((i + 1))
 done
 
+# The scheduled job is graded on its row alone: it has no spec to archive.
+sched_state="$(printf '%s' "$jobs" | jq -r '[.jobs[] | select(.specFolder=="schedule-a-job-that-fails")] | sort_by(.createdAt) | last | .state // "no job"')"
+if [ "$sched_state" = failed ] || [ -n "$MODEL" ]; then
+  printf '  %-8s %-42s job=%s\n' ok "schedule-a-job-that-fails" "$sched_state"
+else
+  printf '  %-8s %-42s job=%s — state=%s(want failed)\n' MISMATCH "schedule-a-job-that-fails" "$sched_state" "$sched_state"
+  fails=$((fails + 1))
+fi
 
 if [ -n "$MODEL" ]; then
   total_cost="$(printf '%s' "$jobs" | jq '[.jobs[].costUsd // 0] | add')"

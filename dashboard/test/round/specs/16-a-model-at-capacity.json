@@ -9,6 +9,6 @@
   "expect": {
     "state": "stopped",
     "stopReason": "model-at-capacity",
-    "message": "at capacity"
+    "message": "runner.modelAtCapacity"
   }
 }
