@@ -29,6 +29,7 @@ def test_every_claude_step_runs_in_the_sandbox_with_no_way_out(runner, workspace
     assert rc == 0, out
     sandbox = _settings(out["argv"])["sandbox"]
     assert sandbox["enabled"] is True
+    assert sandbox["failIfUnavailable"] is True
     assert sandbox["allowUnsandboxedCommands"] is False
     assert sandbox["autoAllowBashIfSandboxed"] is True
 

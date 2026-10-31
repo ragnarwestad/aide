@@ -186,7 +186,8 @@ Which files each tool reads automatically:
   goes on (verified 2.1.310). `aide-run-spec` therefore does not deny
   elicitation: no headless run waits for an answer.
 - **Sandbox in a headless step:** `aide-run-spec` passes `--settings` with
-  `sandbox.enabled`, `allowUnsandboxedCommands: false`,
+  `sandbox.enabled`, `failIfUnavailable: true` (2.1.316),
+  `allowUnsandboxedCommands: false`,
   `autoAllowBashIfSandboxed: true`, `filesystem.allowWrite` of `~/` and the
   temporary directories, `network.allowLocalBinding: true`, and a fixed deny
   list as `denyRead`, `denyWrite` and `Read(...)`/`Edit(...)` deny rules

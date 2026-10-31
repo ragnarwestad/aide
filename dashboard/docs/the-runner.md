@@ -230,7 +230,8 @@ Everything else is reachable:
 
 The sandbox confines shell commands only. Claude's file tools follow permission rules instead, so the runner passes the
 same paths as `Read(...)` and `Edit(...)` deny rules, which win over the user's own global `allow` of `Edit` and
-`Write`. A command cannot ask to run outside the sandbox.
+`Write`. A command cannot ask to run outside the sandbox, and a step whose sandbox cannot start stops instead of
+running its commands unconfined.
 
 **A browser cannot start in the sandbox.** Chromium registers a macOS service the sandbox has no setting for. A Claude
 step is told so in its prompt and does not run browser tests itself; the runner's own test run, outside the sandbox,

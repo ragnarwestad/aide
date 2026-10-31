@@ -95,6 +95,8 @@ sandbox_rule_path() {
 # permission rules, and a `deny` rule wins over the user's own global `allow`
 # of `Edit` and `Write`. An `Edit(...)` rule covers every tool that writes a
 # file, and Claude Code ignores `Write(...)` for files, so none is written.
+# `failIfUnavailable` stops the step when the sandbox cannot start, rather
+# than letting its commands run unconfined (Claude Code 2.1.316).
 # `allowUnsandboxedCommands: false` keeps a command from asking its way out,
 # and `autoAllowBashIfSandboxed` lets a sandboxed command run with nobody
 # there to answer. The temporary directories are added because scripts and
@@ -125,6 +127,7 @@ sandbox_settings_json() {
   jq -cn --argjson paths "$paths" --argjson writes "$writes" '{
     sandbox: {
       enabled: true,
+      failIfUnavailable: true,
       allowUnsandboxedCommands: false,
       autoAllowBashIfSandboxed: true,
       filesystem: {
