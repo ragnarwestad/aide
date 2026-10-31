@@ -3,9 +3,9 @@
 
 Every push to main while a landing's test gate runs moves main under it, and the landing gives up after the second
 move. The hook reads the board's queue mirror, `~/.aide/dashboard/aide-queue.json`, on the machine that serves the
-board, and over ssh from AIDE_BOARD_HOST anywhere else. A job is landing when it carries `landing`, or is running
-with `archive` as its current step. A queue that cannot be read blocks the push too: not knowing is not "nothing is
-running".
+board, and over ssh from AIDE_BOARD_HOST anywhere else. A job is landing while it carries `landing`: an archive step
+that is still running works on its own branch, and a push then moves nothing under it. A queue that cannot be read
+blocks the push too: not knowing is not "nothing is running".
 
 Exit 0 lets the command run; exit 2 blocks it, with the reason on stderr for the session to read.
 """
@@ -47,9 +47,7 @@ def read_queue():
 
 
 def landing(job):
-    steps, index = job.get("steps") or [], job.get("stepIndex") or 0
-    current = steps[index] if 0 <= index < len(steps) else None
-    return bool(job.get("landing")) or (job.get("state") == "running" and current == "archive")
+    return bool(job.get("landing"))
 
 
 def main():

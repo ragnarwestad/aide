@@ -11,6 +11,7 @@ ARCHIVE_RUNNING = {"project": "aide", "specFolder": "640-deploy", "state": "runn
                    "stepIndex": 1}
 IMPLEMENT_RUNNING = {"project": "aide", "specFolder": "641-log", "state": "running", "steps": ["implement", "archive"],
                      "stepIndex": 0}
+ARCHIVE_LANDING = {**ARCHIVE_RUNNING, "state": "done", "landing": True}
 
 
 def guard(tmp_path, command, queue=None, host=None, ssh_queue=None):
@@ -40,23 +41,22 @@ def test_a_command_that_does_not_push_passes_without_reading_the_queue(tmp_path)
     assert guard(tmp_path, "git status -sb && git log --oneline -1").returncode == 0
 
 
-def test_a_push_while_an_archive_runs_is_blocked_and_names_the_spec(tmp_path):
-    done = guard(tmp_path, "git pull --rebase -q && git push -q", queue=[ARCHIVE_RUNNING])
+def test_a_push_while_a_job_is_landing_is_blocked_and_names_the_spec(tmp_path):
+    done = guard(tmp_path, "git pull --rebase -q && git push -q", queue={"jobs": [ARCHIVE_LANDING]})
     assert done.returncode == 2
     assert "640-deploy" in done.stderr
 
 
-def test_a_push_while_a_job_is_landing_is_blocked(tmp_path):
-    landing = {**IMPLEMENT_RUNNING, "state": "done", "landing": True}
-    assert guard(tmp_path, "git -C ~/develop/aide push", queue={"jobs": [landing]}).returncode == 2
+def test_a_push_while_an_archive_step_runs_before_its_landing_passes(tmp_path):
+    assert guard(tmp_path, "git -C ~/develop/aide push", queue={"jobs": [ARCHIVE_RUNNING]}).returncode == 0
 
 
-def test_a_push_with_no_archive_running_passes(tmp_path):
+def test_a_push_with_nothing_landing_passes(tmp_path):
     assert guard(tmp_path, "git push", queue=[IMPLEMENT_RUNNING]).returncode == 0
 
 
 def test_away_from_the_board_the_queue_is_read_over_ssh_from_the_board_host(tmp_path):
-    done = guard(tmp_path, "git push", host="board", ssh_queue=[ARCHIVE_RUNNING])
+    done = guard(tmp_path, "git push", host="board", ssh_queue=[ARCHIVE_LANDING])
     assert done.returncode == 2
     assert "board" in (tmp_path / "ssh-args").read_text()
     assert guard(tmp_path, "git push", host="board", ssh_queue=[]).returncode == 0
