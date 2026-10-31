@@ -244,7 +244,16 @@ case "$step" in
       printf '# %s - Solution\n\n## Tracking info\n\n- **Grade:** LOW\n\n## Short analysis\n\nNo plan.\n' "$slug" | write 3-solution.md
       ok "analyzed $folder"
     fi
-    printf '# %s - Analysis\n\n## Summary\n\nOne fact goes onto the list in src/facts.ts, and one test looks for it.\nComplexity: LOW.\n' "$slug" | write 2-analysis.md
+    # The analysis-only spec and the one that shares a file both list
+    # src/notes.ts, so the second one's analyze, queued after the first
+    # is analyzed, ends stopped on the file they share.
+    files=""
+    # shellcheck disable=SC2016 # the backticks are Markdown, not a command
+    case "$slug" in
+      analysis-only|a-step-that-shares-a-file) files='\n### Files to change\n\n- `src/notes.ts`\n' ;;
+    esac
+    # shellcheck disable=SC2059 # $files is part of the format: its \n are meant
+    printf "# %s - Analysis\\n\\n## Summary\\n\\nOne fact goes onto the list in src/facts.ts, and one test looks for it.\\nComplexity: LOW.\\n$files" "$slug" | write 2-analysis.md
     printf '# %s - Solution\n\n## Plan\n\n1. Write the failing test.\n2. Append the fact.\n' "$slug" | write 3-solution.md
     acceptance=""
     case "$slug" in an-unticked-acceptance-row) acceptance="$(acceptance_section)" ;; esac

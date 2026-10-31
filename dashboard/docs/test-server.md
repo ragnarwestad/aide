@@ -256,6 +256,9 @@ The `.json` carries these fields:
 - `aiCreate` — `true` sends the create through the model, as New spec does with "let AI formulate acceptance
   criteria" ticked. Without it the board writes the spec's folder itself and the stand-in is never asked, so a
   fixture about a create that fails needs it.
+- `after` — another fixture, by the number in its file name (`"05"`): this fixture's steps are queued only once
+  every job of that one has settled, so its work is already on the default branch. That is how a fixture's analyze
+  can find another open spec changing the same file.
 
 The script grades every field and names the one that was off, so a message that changes on the board
 is caught here before anyone reads it on the real one.

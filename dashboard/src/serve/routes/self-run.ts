@@ -89,6 +89,10 @@ export interface RoundSpec {
    *  acceptance criteria" box asks; without it the board writes the
    *  folder itself and the stand-in is never asked. */
   aiCreate?: boolean;
+  /** Another fixture, by the number in its file name, whose job must have
+   *  settled before this one's steps are queued: the one way a fixture can
+   *  find another's work already on the default branch. */
+  after?: string;
   /** The `NN-slug` folder the create step made — absent until it has. */
   folder?: string;
   /** Set when the create ended without a spec, as a fixture with
@@ -341,6 +345,7 @@ export function readFixtures(dir: string): RoundSpec[] {
         timeoutSec?: number;
         expect?: RoundExpect;
         aiCreate?: boolean;
+        after?: string;
       };
       return {
         slug,
@@ -351,6 +356,7 @@ export function readFixtures(dir: string): RoundSpec[] {
         ...(typeof meta.timeoutSec === "number" ? { timeoutSec: meta.timeoutSec } : {}),
         ...(meta.expect ? { expect: meta.expect } : {}),
         ...(meta.aiCreate ? { aiCreate: true } : {}),
+        ...(meta.after ? { after: meta.after } : {}),
       };
     });
 }
@@ -423,6 +429,14 @@ async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSp
     // the spec's state from, before its steps are asked for.
     await pullDisplay(ctx, [specsDir]);
     ctx.invalidateScan();
+    if (spec.after) {
+      const other = specs.find((s) => s.slug.startsWith(`${spec.after}-`));
+      const waitUntil = Date.now() + 600_000;
+      while (other?.folder && !jobSettled(ctx.queue.list(), other.folder)) {
+        if (Date.now() > waitUntil) throw new Error(`${spec.slug} waited ten minutes for ${other.slug}`);
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
     await api("/api/queue", {
       project,
       specFolder: spec.folder,
@@ -451,6 +465,22 @@ export function fixtureOrder(specs: RoundSpec[]): RoundSpec[] {
       if (at < 0) throw new Error(`no fixture found for dependency ${dep} of ${spec.slug}`);
       if (at > i) throw new Error(`${spec.slug} depends on ${specs[at]!.slug}, which comes after it`);
     }
+    if (spec.after) {
+      const at = specs.findIndex((s) => s.slug.startsWith(`${spec.after}-`));
+      if (at < 0) throw new Error(`no fixture found for ${spec.after}, which ${spec.slug} waits for`);
+      if (at > i) throw new Error(`${spec.slug} waits for ${specs[at]!.slug}, which comes after it`);
+    }
   });
   return specs;
+}
+
+/** Whether the jobs for a spec folder have settled: there is at least one,
+ *  and none is queued, running or landing its work. Every job counts, since
+ *  the create's own job carries the folder too and settles first. */
+export function jobSettled(
+  jobs: readonly { specFolder?: string; state: string; landing?: boolean }[],
+  folder: string,
+): boolean {
+  const mine = jobs.filter((j) => j.specFolder === folder);
+  return mine.length > 0 && mine.every((j) => j.state !== "queued" && j.state !== "running" && j.landing !== true);
 }

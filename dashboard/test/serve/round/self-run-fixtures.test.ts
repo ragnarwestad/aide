@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseCreateRequest } from "../../../src/queue/queue.ts";
-import { createEnd, fixtureCreateBody, fixtureOrder, readFixtures, type RoundSpec } from "../../../src/serve/routes/self-run.ts";
+import { createEnd, fixtureCreateBody, fixtureOrder, jobSettled, readFixtures, type RoundSpec } from "../../../src/serve/routes/self-run.ts";
 
 const FIXTURES = join(import.meta.dir, "..", "..", "round", "specs");
 
@@ -151,4 +151,46 @@ test("a fixture's aiCreate is read from its json", () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// A fixture can wait for another fixture's job to settle before its own
+// steps are queued: `after` names the other by the number in its file
+// name, the way `dependsOn` does.
+describe("a fixture that waits for another's job", () => {
+  const spec = (slug: string, after?: string) =>
+    ({ slug, title: slug, steps: ["analyze"], expected: "done", dependsOn: [], ...(after ? { after } : {}) }) as RoundSpec;
+
+  test("reads after from the fixture's json", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-round-after-"));
+    try {
+      writeFileSync(join(dir, "01-first.json"), JSON.stringify({ title: "First", steps: ["analyze"], expected: "not-archived" }));
+      writeFileSync(join(dir, "02-second.json"), JSON.stringify({ title: "Second", steps: ["analyze"], expected: "not-archived", after: "01" }));
+      expect(readFixtures(dir).map((s) => s.after)).toEqual([undefined, "01"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("one that waits for a fixture listed after it is refused by name", () => {
+    expect(() => fixtureOrder([spec("01-a", "02"), spec("02-b")])).toThrow("01-a waits for 02-b, which comes after it");
+  });
+
+  test("one that waits for no fixture at all is refused by name", () => {
+    expect(() => fixtureOrder([spec("01-a", "09")])).toThrow("no fixture found for 09, which 01-a waits for");
+  });
+
+  test("the other's job has settled once it is neither queued, running nor landing", () => {
+    const job = (state: string, landing = false) => ({ specFolder: "05-x", state, ...(landing ? { landing } : {}) });
+    expect(jobSettled([], "05-x")).toBe(false);
+    expect(jobSettled([job("queued")], "05-x")).toBe(false);
+    expect(jobSettled([job("running")], "05-x")).toBe(false);
+    expect(jobSettled([job("done", true)], "05-x")).toBe(false);
+    expect(jobSettled([job("done")], "05-x")).toBe(true);
+    expect(jobSettled([job("stopped")], "05-x")).toBe(true);
+    expect(jobSettled([{ ...job("done"), specFolder: "06-y" }], "05-x")).toBe(false);
+    // The create job carries the folder too, and is done long before the
+    // job with the fixture's own steps.
+    expect(jobSettled([job("done"), job("running")], "05-x")).toBe(false);
+    expect(jobSettled([job("done"), job("done")], "05-x")).toBe(true);
+  });
 });
