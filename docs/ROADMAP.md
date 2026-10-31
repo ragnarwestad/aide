@@ -29,6 +29,7 @@
   - [23. An agent that tries the criteria in a browser before a person ticks them](#23-an-agent-that-tries-the-criteria-in-a-browser-before-a-person-ticks-them)
   - [24. One spec in sections, each analysed and implemented in turn on one branch](#24-one-spec-in-sections-each-analysed-and-implemented-in-turn-on-one-branch)
   - [25. A plain way to run agents Aide has no support of its own for](#25-a-plain-way-to-run-agents-aide-has-no-support-of-its-own-for)
+  - [26. A check that nothing on a changed page runs past the screen's edge](#26-a-check-that-nothing-on-a-changed-page-runs-past-the-screens-edge)
 
 ---
 
@@ -44,7 +45,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 26.
+same idea later. The next number is 27.
 
 ## To consider
 
@@ -509,3 +510,25 @@ board showing less for it: no tokens per step, and a stop at a usage limit read 
 
 Worth taking up when someone wants to run an agent outside the four, or when the protocol reports tokens and usage
 limits.
+
+### 26. A check that nothing on a changed page runs past the screen's edge
+
+From looking at [Anton](https://github.com/Ramgopalbhat10/anton-v2) (2026-10-31), a personal coding agent whose
+agent checks its own change in a browser before it finishes: it opens the app, takes screenshots and has a vision
+model describe them. Aide has no layout tests by choice, and its browser tests check what a page does, not how it
+looks, so a page that is wider than a phone passes every test and is found by a person.
+
+The idea: once an implement has changed a page, the runner opens that page at phone width and at desktop width and
+looks for any element whose right edge runs past the screen's. That is measured, not judged, so no model is needed
+and the answer is the same every time. It is not a layout test either: it is tied to no page or markup, it holds
+for every page, and it is run once on the change rather than kept in the suite.
+
+A vision model, as Anton uses, could later look for what cannot be measured, such as overlapping or unreadable
+text, but only if the measured check alone lets too much through. Idea 23 is the wider version: an agent that tries
+each acceptance criterion in a browser.
+
+Open questions:
+
+- How the runner knows which pages a change touched, and how it reaches them with data on them.
+- Whether an element past the edge sends the step back to the same session, as red tests do, or only notes it on
+  the spec.
