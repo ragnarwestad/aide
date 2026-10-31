@@ -6,6 +6,7 @@ reached 1017 lines. Every builder is unchanged and keeps its name.
 """
 
 import json
+import os
 import shlex
 import shutil
 from ..conftest import READ_SPECS, stand_in
@@ -194,8 +195,10 @@ def make_worktree_add_gate(tmp_path, name, target_root, events_file):
         shim,
         "#!/usr/bin/env bash\n"
         f"real={shlex.quote(real_git)}\n"
-        f'if [ "$1" = "-C" ] && [ "$2" = {shlex.quote(str(target_root))} ] '
-        '&& [ "$3" = "worktree" ] && [ "$4" = "add" ]; then\n'
+        # The runner's own git puts `-c core.hooksPath=/dev/null` first.
+        'a=("$@"); [ "${a[0]}" = "-c" ] && a=("${a[@]:2}")\n'
+        f'if [ "${{a[0]}}" = "-C" ] && [ "${{a[1]}}" = {shlex.quote(str(target_root))} ] '
+        '&& [ "${a[2]}" = "worktree" ] && [ "${a[3]}" = "add" ]; then\n'
         f'  echo "{name} ready" >> {shlex.quote(str(events_file))}\n'
         f"  while [ ! -f {shlex.quote(str(go))} ]; do sleep 0.05; done\n"
         '  "$real" "$@"\n'
@@ -383,3 +386,22 @@ def specs_foreign_folder_claude(fake_claude, workspace):
         + f'echo "analysis" >> "$specs/{folder}/2-analysis.md"\n'
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
+
+
+def git_on_path(tmp_path, monkeypatch, after):
+    """A `git` first on PATH that runs the real one, then `after`, with
+    `$real` the real git and `$rc` its exit code; the stand-in exits with
+    `$rc`. The runner's own git is a function that calls the command
+    `git`, so this is where a test steps in between the runner and git."""
+    real = shutil.which("git")
+    bin_dir = tmp_path / "git-bin"
+    bin_dir.mkdir()
+    stand_in(
+        bin_dir / "git",
+        "#!/usr/bin/env bash\n"
+        f"real={shlex.quote(real)}\n"
+        '"$real" "$@"; rc=$?\n'
+        f"{after}\n"
+        "exit $rc\n",
+    )
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")

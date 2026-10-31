@@ -15,6 +15,7 @@ import { dirname, isAbsolute, join } from "node:path";
 import { LANDING_GATE_TIMEOUT_MS } from "../serve-helpers";
 import { resolveWorktreeLinks } from "../../project/discover";
 import { runScript, scriptFor } from "./run-script.ts";
+import { NO_GIT_HOOKS } from "../../integrations/no-git-hooks.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
 import { runLogPath } from "../../queue/runner/run-log-path.ts";
 import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
@@ -94,7 +95,7 @@ export async function runProjectSuiteBeforePush(
  *  made, saying so in the log. */
 async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: string; remove: () => Promise<void> }> {
   const dir = mkdtempSync(join(tmpdir(), "aide-landing-gate-tree-"));
-  const added = await runScript(["git", "worktree", "add", "--detach", "--quiet", dir, ref], root, 60_000);
+  const added = await runScript(["git", ...NO_GIT_HOOKS, "worktree", "add", "--detach", "--quiet", dir, ref], root, 60_000);
   if (added.code !== 0) {
     rmSync(dir, { recursive: true, force: true });
     console.error(`queue: the landing's test run could not make a worktree in ${root} — testing in the live checkout: ${(added.stderr ?? "").trim().slice(-200)}`);
@@ -122,7 +123,7 @@ async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: strin
   // the ones the copy names are made too.
   const manifestSource = [join(root, ".aide", "project.yaml"), join(owner, ".aide", "project.yaml")].find((p) => existsSync(p));
   if (manifestSource) {
-    const tracked = await runScript(["git", "ls-files", "--error-unmatch", "--", ".aide/project.yaml"], dir, 30_000);
+    const tracked = await runScript(["git", ...NO_GIT_HOOKS, "ls-files", "--error-unmatch", "--", ".aide/project.yaml"], dir, 30_000);
     if (tracked.code === 1) {
       mkdirSync(join(dir, ".aide"), { recursive: true });
       copyFileSync(manifestSource, join(dir, ".aide", "project.yaml"));
@@ -143,7 +144,7 @@ async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: strin
   return {
     dir,
     remove: async () => {
-      await runScript(["git", "worktree", "remove", "--force", dir], root, 60_000);
+      await runScript(["git", ...NO_GIT_HOOKS, "worktree", "remove", "--force", dir], root, 60_000);
       rmSync(dir, { recursive: true, force: true });
     },
   };
@@ -152,10 +153,10 @@ async function checkoutForGate(root: string, ref = "HEAD"): Promise<{ dir: strin
 /** The default branch as origin has it, or the local one where there is
  *  no origin: main without the spec being landed. */
 async function defaultBranchRef(root: string): Promise<string | null> {
-  const head = await runScript(["git", "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"], root, 30_000);
+  const head = await runScript(["git", ...NO_GIT_HOOKS, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"], root, 30_000);
   const candidates = [head.stdout.trim(), "refs/remotes/origin/main", "refs/remotes/origin/master", "refs/heads/main", "refs/heads/master"];
   for (const ref of candidates.filter(Boolean)) {
-    if ((await runScript(["git", "show-ref", "--verify", "--quiet", ref], root, 30_000)).code === 0) return ref;
+    if ((await runScript(["git", ...NO_GIT_HOOKS, "show-ref", "--verify", "--quiet", ref], root, 30_000)).code === 0) return ref;
   }
   return null;
 }
@@ -262,7 +263,7 @@ function keepStepOutput(job: GatedJob, output: string): void {
  *  own `.git`; for the main checkout it answers `.git` itself, and the
  *  answer is `root` unchanged. */
 async function mainCheckoutOf(root: string): Promise<string> {
-  const common = await runScript(["git", "rev-parse", "--git-common-dir"], root, 30_000);
+  const common = await runScript(["git", ...NO_GIT_HOOKS, "rev-parse", "--git-common-dir"], root, 30_000);
   const out = common.stdout.trim();
   if (common.code !== 0 || !out) return root;
   const abs = isAbsolute(out) ? out : join(root, out);

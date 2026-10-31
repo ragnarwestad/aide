@@ -10,6 +10,7 @@
 // every push mode this project uses.
 
 import { join } from "node:path";
+import { NO_GIT_HOOKS } from "../integrations/no-git-hooks.ts";
 
 /** The branch a step pushes to: the convention documented in README.md
  *  ("aide/<spec-folder>"), which is why the NAME is not stored on Job. */
@@ -96,7 +97,7 @@ export function createGitRunner(timeoutMs = DEFAULT_TIMEOUT_MS): GitRunner {
     let proc;
     try {
       proc = Bun.spawn({
-        cmd: ["git", ...args],
+        cmd: ["git", ...NO_GIT_HOOKS, ...args],
         cwd: dir,
         stdout: "pipe",
         // Read, not discarded: git says WHY a pull failed only here, and

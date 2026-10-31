@@ -7,9 +7,10 @@ unchanged and keep their names.
 """
 
 import re
+import shlex
 import subprocess
 from ...conftest import git, run
-from ..run_spec_fakes import writing_claude
+from ..run_spec_fakes import git_on_path, writing_claude
 from ..run_spec_invoking import run_traced
 from ..run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin, local_origins
 from ..run_spec_status_files import add_spec, set_depends_on
@@ -204,7 +205,7 @@ def test_a_dependency_archived_on_origin_is_confirmed_even_if_this_checkout_has_
         "the answer came from origin, not from moving anything locally"
 
 def test_another_run_cleaning_up_its_own_read_of_origin_does_not_refuse_this_one(
-    runner, workspace, fake_claude, local_origins
+    runner, workspace, fake_claude, local_origins, tmp_path, monkeypatch
 ):
     """Runs of one project share the specs checkout, and dependents of the
     same spec are released on the same tick. The ref a run reads origin
@@ -218,20 +219,11 @@ def test_another_run_cleaning_up_its_own_read_of_origin_does_not_refuse_this_one
     # Plays the other run: once this run has fetched origin into a ref
     # under refs/aide-dep/, the other run's cleanup deletes the name it
     # read its own fetch into.
-    hooks = workspace["specs"] / git(workspace["specs"], "rev-parse", "--git-path", "hooks").strip()
-    hooks.mkdir(parents=True, exist_ok=True)
-    hook = hooks / "reference-transaction"
-    hook.write_text(
-        "#!/bin/sh\n"
-        '[ "$1" = committed ] || exit 0\n'
-        "while read -r old new ref; do\n"
-        '  case "$ref" in refs/aide-dep/*)\n'
-        '    [ "$new" = 0000000000000000000000000000000000000000 ] '
-        '|| git update-ref -d refs/aide-dep/base ;;\n'
-        "  esac\n"
-        "done\n"
+    specs = shlex.quote(str(workspace["specs"]))
+    git_on_path(
+        tmp_path, monkeypatch,
+        f'case " $* " in *" fetch "*refs/aide-dep/*) "$real" -C {specs} update-ref -d refs/aide-dep/base ;; esac',
     )
-    hook.chmod(0o755)
 
     rc, out, _ = run(
         runner, workspace, writing_claude(fake_claude, workspace), command="implement"

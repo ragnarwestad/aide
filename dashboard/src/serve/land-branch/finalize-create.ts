@@ -12,6 +12,7 @@
 
 import { join, relative } from "node:path";
 import type { Sentence } from "../../i18n/message.ts";
+import { NO_GIT_HOOKS_ENV } from "../../integrations/no-git-hooks.ts";
 import { runScript, scriptFor } from "./run-script.ts";
 import { failingLines } from "./test-gate.ts";
 
@@ -42,6 +43,8 @@ export async function assignSpecNumberAfterMerge(
     [script, "--specs-root", specsRootInWork, "--assign-number", "--folder", provisionalFolder],
     work,
     30_000,
+    undefined,
+    NO_GIT_HOOKS_ENV,
   );
   let parsed: { ok?: boolean; specFolder?: string; error?: string } = {};
   try {

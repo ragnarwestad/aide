@@ -215,11 +215,15 @@ board hands the runner where its queue settings and checkouts are (`AIDE_QUEUE_C
 where it mirrors its queue (`AIDE_QUEUE_MIRROR`), which the runner reads to count the steps and landings running when it
 works out the test workers a run may use.
 
-Two more things keep what a step writes from reaching the runner's own work outside the sandbox, for every tool:
+Three more things keep what a step writes from reaching the runner's own work outside the sandbox, for every tool:
 
 - a scheduled job's prompt is read as committed in the checkout, never from the file on disk;
 - each worktree's `.git` file, and the `commondir` and `gitdir` files of its git directory, are recorded when the
-  worktree is cut and put back after every turn, so the runner's own git never follows a step's rewrite of them.
+  worktree is cut and put back after every turn, so the runner's own git never follows a step's rewrite of them;
+- the runner's and the landing's own git run no hooks (`-c core.hooksPath=/dev/null`), so a hook the step wrote into
+  the working tree, through a relative `core.hooksPath` or a tool such as lefthook that reads its settings from there,
+  is never started. What the runner starts itself, the AI tool and the project's tests, runs git with its hooks as
+  usual.
 
 Everything else is reachable:
 
@@ -239,7 +243,7 @@ runs them before the work can land. A scheduled job whose own commands start a b
 entry's Sandbox is set to Off on its Settings tab (`"sandbox": false`, `aide-run-spec --no-sandbox`).
 
 **The runner's own test run executes what the step wrote, outside the sandbox.** An `implement` step's tests, a
-landing's tests and every hook git runs there run with everything the user can reach, the denied paths included. A
+landing's tests and every hook git runs for them run with everything the user can reach, the denied paths included. A
 step talked into writing a test that reads a key gets that key read when the runner runs the suite; the step itself
 never sees the output of a passing run, but the test can send what it read over the open network. Only a container
 per run (`docs/ROADMAP.md`, idea 18b) closes this.

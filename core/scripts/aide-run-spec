@@ -246,6 +246,10 @@ aide_part_close() {  # [<ending>, default done]
 # shellcheck disable=SC2329  # called from the lib/ files sourced below
 stage_error() { stage "error: $*"; }
 
+# --- the runner's own git, which runs no hooks ---
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/setup/git-hooks.sh"
+
 # --- the vocabulary, the command line, and what they refuse ---
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/run-spec/setup/arguments.sh"

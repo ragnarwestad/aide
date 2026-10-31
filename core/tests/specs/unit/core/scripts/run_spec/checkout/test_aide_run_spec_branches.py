@@ -8,11 +8,12 @@ unchanged and keep their names.
 
 import json
 import re
+import shlex
 import subprocess
 import threading
 import time
 from ...conftest import READ_SPECS, git, run
-from ..run_spec_fakes import conflicting_race_claude, project_only_claude, race_pushing_claude, self_pushing_claude, specs_only_claude, writing_claude
+from ..run_spec_fakes import conflicting_race_claude, git_on_path, project_only_claude, race_pushing_claude, self_pushing_claude, specs_only_claude, writing_claude
 from ..run_spec_origins import fetchable_origin, fetchable_origin_both_roots, is_ancestor, origin
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import already_ran, with_status
@@ -211,11 +212,10 @@ def test_origin_back_between_a_failed_push_and_the_check_is_pushed_not_rebased(
     project_bare.rename(hidden)
     # A failed push brings origin back at once, so the check that follows
     # finds it answering.
-    monkeypatch.setenv(
-        "BASH_FUNC_git%%",
-        "() { if [ \"$1\" = -C ] && [ \"$3\" = push ] && [ -e '" + str(hidden) + "' ]; then "
-        "command git \"$@\"; local rc=$?; [ $rc -ne 0 ] && mv '" + str(hidden) + "' '" + str(project_bare) + "'; "
-        "return $rc; fi; command git \"$@\"; }",
+    git_on_path(
+        tmp_path, monkeypatch,
+        f'case " $* " in *" push "*) [ $rc -ne 0 ] && [ -e {shlex.quote(str(hidden))} ] '
+        f"&& mv {shlex.quote(str(hidden))} {shlex.quote(str(project_bare))} ;; esac",
     )
     claude = fake_claude(
         "cat > /dev/null\n"
