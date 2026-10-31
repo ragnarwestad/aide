@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-10-31](#2026-10-31)
   - [2026-10-30](#2026-10-30)
   - [2026-10-29](#2026-10-29)
   - [2026-10-28](#2026-10-28)
@@ -114,6 +115,73 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-10-31
+
+Oct 30 – Oct 31. Not read: Claude Code v2.1.315 (the releases page skips it and its tag page answers 404), the Codex
+changelog page past its first 100,000 characters, the OpenCode changelog page past its first 100,000 characters, the
+OpenAI developer blog (no dates shown), Artificial Analysis (the harness comparison there is still "coming soon"), the
+GitHub Copilot blog (newest post shown is Oct 20), the Copilot changelog (titles only, newest Oct 28). The X list digest
+of Oct 31 says the list could not be read (the machine's Chrome was not connected), and so did the one of Oct 30. Of the
+watched pages, none changed in what it advises: the Claude Code best-practices page added "Ultra" to the plans that
+show `/usage` by skill, subagent, plugin and MCP server; the Claude prompting page changed in whitespace only;
+`agents.md` changed in star counts.
+
+**Claude Code (v2.1.316):**
+
+| Date   | Version  | News | Source |
+|--------|----------|------|--------|
+| Oct 31 | v2.1.316 | New `CLAUDE_CODE_SUBAGENT_EFFORT` sets the effort subagents run at when nothing else names one, instead of inheriting the session's; new `CLAUDE_CODE_DISABLE_ULTRATHINK` turns the `ultrathink` keyword off; fast mode for Opus 4.8 is deprecated as of Oct 30 and removed Nov 30, after which a fast-mode request on Opus 4.8 returns an error and does not fall back (migrate to Opus 5.5); server-managed settings for Team and Enterprise logins now apply without an approval prompt; an `autoMode.allow` list without `"$defaults"` no longer removes the built-in rule on scheduled-task prompts; fixed sub-agents that inherited a parent sub-agent's model moving to the main model when a background job woke them; fixed `--restricted` sessions uploading files from outside the working directories; fixed shell commands left running when Claude Code exits by itself; fixed bash scripts stopping after their first command when `SHELLOPTS` is exported; Claude apps gateway pooled group budgets and `managed.policy_mode: layered` | [Releases](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (v1.0.105, no newer release):**
+
+| Date | Version | News | Source |
+|------|---------|------|--------|
+| —    | —       | No release or changelog entry after Oct 28 | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.166.0, no newer release):**
+
+| Date | Version | News | Source |
+|------|---------|------|--------|
+| —    | —       | No release or changelog entry after v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.5):**
+
+| Date   | Version | News | Source |
+|--------|---------|------|--------|
+| Oct 30 | v2.2.3  | Built-in Claude Agent provider that uses your Claude Code login, picked in `/connect` (`OPENCODE_CLAUDE_PATH` overrides the executable); breaking: TUI plugins need OpenTUI 0.8 or later; breaking: in managed policy `integration.use` now covers integrations only, with new `mcp.use`, `skill.use` and `plugin.use` actions | [Releases](https://github.com/anomalyco/opencode/releases) |
+| Oct 30 | v2.2.4  | Opt-in artifacts (`"experimental": { "artifacts": true }`) let agents publish and serve HTML or static files; guided Claude Agent setup in the provider picker; schedules run under `opencode serve` and fire once across processes; config can override Console-supplied provider settings | [Releases](https://github.com/anomalyco/opencode/releases) |
+| Oct 30 | v2.2.5  | `compaction.buffer` accepts a percentage such as `"20%"`; calls to a tool named `bash` now run as `shell`; large MCP stdio messages no longer disconnect servers; compaction capped to the context window; worktree and base-branch shortcuts | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⭐ Claude Code v2.1.316: new `CLAUDE_CODE_SUBAGENT_EFFORT` sets the effort subagents run at, instead of inheriting the
+  session's. Aide's steps start `claude -p` at the effort their job named and spawn subagents, which inherit that
+  effort today; the Oct 29 digest (@bcherny) named that inheritance as a main cause of fast token use. The runner can now
+  set a lower subagent effort per step. [Release](https://github.com/anthropics/claude-code/releases)
+- ⚠️ Claude Code v2.1.316: fast mode for Opus 4.8 is deprecated as of Oct 30 and removed Nov 30; after that a fast-mode
+  request on Opus 4.8 returns an error with no fallback. Aide offers `claude-opus-4-8` as a fixed model choice, so check that no step or queue config relies on fast mode with that model.
+  [Release](https://github.com/anthropics/claude-code/releases)
+- ✅ Claude Code v2.1.316: fixed sub-agents that inherited a parent sub-agent's model moving to the main model when a
+  background job woke them; fixed `--restricted` sessions uploading files from outside the working directories; fixed
+  shell commands left running when Claude Code exits by itself. All touch how Aide's headless steps run.
+  [Release](https://github.com/anthropics/claude-code/releases)
+- ✅ Claude Code v2.1.316: an `autoMode.allow` list without `"$defaults"` no longer removes the built-in rule on
+  scheduled-task prompts. The board's scheduled jobs run headless, so this is the behaviour they get.
+  [Release](https://github.com/anthropics/claude-code/releases)
+- ℹ Claude Code v2.1.316: `CLAUDE_CODE_DISABLE_ULTRATHINK`, Claude apps gateway pooled budgets and layered policy,
+  `/code-review` findings card in cloud sessions, VS Code gateway sign-in, Claude Tag and Code Review analytics fixes.
+- ⚠️ OpenCode v2.2.3: in managed policy `integration.use` now covers integrations only; MCP, skill and plugin access
+  need `mcp.use`, `skill.use` and `plugin.use`. Aide installs skills for OpenCode, so a machine with a managed policy
+  must allow `skill.use` for them to load. [Release](https://github.com/anomalyco/opencode/releases)
+- ✅ OpenCode v2.2.3: a built-in Claude Agent provider that uses the Claude Code login. It gives OpenCode a model
+  without a separate provider login, which the repo's note that no model is reachable until a provider is logged in
+  does not yet cover. [Release](https://github.com/anomalyco/opencode/releases)
+- ✅ OpenCode v2.2.5: calls to a tool named `bash` now run as `shell`. A skill that names the `bash` tool by name is
+  unaffected in text, but a permission rule written for `bash` should be checked. [Release](https://github.com/anomalyco/opencode/releases)
+- ℹ OpenCode v2.2.4 artifacts, schedules under `opencode serve` and v2.2.5 `compaction.buffer` percentage; no Copilot or
+  Codex release in the period; the Claude blog, resources, Anthropic news and Copilot blog show nothing newer than Oct 28.
+- ℹ X list digests of Oct 30 and Oct 31 could not be read (Chrome not connected), so those two days are a gap.
 
 ### 2026-10-30
 
