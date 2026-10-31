@@ -17,33 +17,48 @@
 # The git directory: a worktree's `.git` file says where its git directory
 # is, and the step can write it. The runner puts it back after every turn
 # (`sandbox_restore_git_links`), but a process the step left running could
-# rewrite it again afterwards. `git -C <worktree>` for a worktree pinned
-# here passes the git directory recorded when it was cut, so git never
-# reads that file.
+# rewrite it again afterwards. Git run in a worktree pinned here, with
+# `-C <worktree>` or from inside it, gets the git directory recorded when
+# the worktree was cut, so it never reads that file.
 git_pinned_trees=()
 git_pinned_dirs=()
 
-# Records each worktree's git directory, resolved, as it is now.
+# Records each worktree's git directory, resolved, as it is now; the
+# worktree under both the name it was given and its resolved path.
 git_pin_worktrees() {
-  local wt dir
+  local wt dir real
   for wt in "$@"; do
     [ -f "$wt/.git" ] || continue
     dir="$(command git -C "$wt" rev-parse --absolute-git-dir 2>/dev/null)" || continue
-    git_pinned_trees+=("$wt"); git_pinned_dirs+=("$dir")
+    real="$(cd "$wt" && pwd -P)" || continue
+    git_pinned_trees+=("$wt" "$real"); git_pinned_dirs+=("$dir" "$dir")
+  done
+}
+
+# The pinned git directory for a worktree path, or nothing.
+git_pinned_dir() {
+  local i=0
+  while [ "$i" -lt "${#git_pinned_trees[@]}" ]; do
+    [ "${git_pinned_trees[$i]}" = "$1" ] && { printf '%s' "${git_pinned_dirs[$i]}"; return; }
+    i=$((i + 1))
   done
 }
 
 git() {
-  local i=0
+  local dir
   if [ "${1:-}" = "-C" ]; then
-    while [ "$i" -lt "${#git_pinned_trees[@]}" ]; do
-      if [ "${git_pinned_trees[$i]}" = "${2:-}" ]; then
-        command git -c core.hooksPath=/dev/null -C "$2" \
-          --git-dir="${git_pinned_dirs[$i]}" --work-tree="$2" "${@:3}"
-        return
-      fi
-      i=$((i + 1))
-    done
+    dir="$(git_pinned_dir "${2:-}")"
+    if [ -n "$dir" ]; then
+      command git -c core.hooksPath=/dev/null -C "$2" --git-dir="$dir" --work-tree="$2" "${@:3}"
+      return
+    fi
+  else
+    dir="$(git_pinned_dir "$PWD")"
+    [ -n "$dir" ] || dir="$(git_pinned_dir "$(pwd -P)")"
+    if [ -n "$dir" ]; then
+      command git -c core.hooksPath=/dev/null --git-dir="$dir" --work-tree="$PWD" "$@"
+      return
+    fi
   fi
   command git -c core.hooksPath=/dev/null "$@"
 }

@@ -90,10 +90,12 @@ def test_a_pinned_worktree_keeps_the_git_directory_it_was_cut_with(workspace_roo
         f"git_pin_worktrees {shlex.quote(str(wt))}\n"
         f"printf 'gitdir: %s\\n' {shlex.quote(str(decoy / '.git'))} > {shlex.quote(str(wt / '.git'))}\n"
         f"git -C {shlex.quote(str(wt))} rev-parse --abbrev-ref HEAD\n"
+        # The same from inside the worktree, without -C.
+        f"cd {shlex.quote(str(wt))} && git rev-parse --abbrev-ref HEAD\n"
     )
     out = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
     assert out.returncode == 0, out.stderr
-    assert out.stdout.strip() == "aide/x"
+    assert out.stdout.split() == ["aide/x", "aide/x"]
 
 
 def test_the_runner_pins_its_worktrees_before_the_step_runs(
