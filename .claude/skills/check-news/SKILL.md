@@ -146,6 +146,11 @@ Format — follow the existing pattern in the file:
 - ℹ Informative findings
 ```
 
+The tables' pipes line up: pad every cell, the header and the `---` row included,
+to the width of the widest cell in its column. Then run
+`npx markdownlint-cli2 docs/AI_NEWS_LOG.md` from the repo root, and fix what it
+reports until it reports nothing.
+
 ## Step 5: Flag proposals for the matrix and reference
 
 The log is further distilled into two documents in the repo:
