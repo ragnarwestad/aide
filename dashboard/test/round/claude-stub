@@ -187,6 +187,7 @@ fact_for() {
     a-step-that-writes-outside-its-own-folder) echo "a step writes only its own spec folder" ;;
     a-step-the-tool-could-not-finish) echo "a tool error fails the step and names the button" ;;
     a-short-analysis-over-the-limit) echo "a short analysis stays within its limits" ;;
+    a-step-that-hits-the-usage-limit) echo "a step stopped by the usage limit starts again by itself" ;;
     *) echo "" ;;
   esac
 }
@@ -284,6 +285,29 @@ case "$step" in
         ;;
       a-step-the-tool-could-not-finish)
         fail "the model's tool stopped with an error before it could finish"
+        ;;
+      a-step-that-hits-the-usage-limit)
+        fact="$(fact_for "$slug")"
+        if [ ! -f "test/$slug.test.ts" ]; then
+          # The first implement: the test is written, then the account's
+          # five-hour limit is spent, resetting in half a minute. The
+          # runner commits the test, the board holds every Claude step
+          # until the reset and then starts this one again by itself,
+          # which finds the test on its branch and finishes.
+          write_test "$slug" "$fact"
+          reset=$(( $(date +%s) + 30 ))
+          emit "$(jq -cn --argjson r "$reset" '{type:"rate_limit_event",rate_limit_info:{status:"rejected",
+            rateLimitType:"five_hour",resetsAt:$r,isUsingOverage:false,overageStatus:"rejected",
+            overageDisabledReason:"out_of_credits"}}')"
+          fail "Claude usage limit reached"
+        fi
+        append_fact "$fact"
+        status_file "✅" "✅" | write 4-status.md
+        ;;
+      a-model-at-capacity)
+        # The provider has no room for the model: the closing result is
+        # an error that says so, which the runner reads as at capacity.
+        fail "Overloaded: the model is at capacity right now"
         ;;
       *)
         fact="$(fact_for "$slug")"

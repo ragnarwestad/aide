@@ -1,0 +1,14 @@
+{
+  "title": "A model at capacity",
+  "steps": [
+    "analyze",
+    "implement",
+    "archive"
+  ],
+  "expected": "not-archived",
+  "expect": {
+    "state": "stopped",
+    "stopReason": "model-at-capacity",
+    "message": "at capacity"
+  }
+}
