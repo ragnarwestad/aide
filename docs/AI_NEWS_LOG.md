@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-01](#2026-11-01)
   - [2026-10-31](#2026-10-31)
   - [2026-10-30](#2026-10-30)
   - [2026-10-29](#2026-10-29)
@@ -115,6 +116,61 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-01
+
+Oct 31 – Nov 1. Not read: Claude Code v2.1.315 (the releases page skips it), the Codex changelog page past its first
+100,000 characters, the OpenCode changelog page past its first 100,000 characters, the OpenAI developer blog (no dates
+shown), Artificial Analysis (the harness comparison there is still "coming soon"), the GitHub Copilot blog (newest post
+shown is Oct 20), the Copilot changelog (titles only, newest Oct 28). The X list digest of Oct 31 says the list could
+not be read (the machine's Chrome was not connected). Of the watched pages, none changed in what it advises: the
+OpenCode agents page renamed "OpenCode Zen" to "OpenCode Models" in one example; `agents.md` changed in star counts.
+
+**Claude Code (v2.1.316, no newer release):**
+
+| Date | Version | News                                | Source                                                         |
+|------|---------|-------------------------------------|----------------------------------------------------------------|
+| —    | —       | No release after v2.1.316 of Oct 31 | [Releases](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (v1.0.105 stable; v1.0.106-1 and v1.0.106-2 pre-releases):**
+
+| Date   | Version                  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Source                                                     |
+|--------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Oct 31 | v1.0.106-1 (pre-release) | apply_patch keeps the original line endings in files that mix LF and CRLF; `COPILOT_PROVIDER_GHES_HOST` accepts a full https URL; `web_fetch` decodes pages by their declared character encoding; blocked MCP server warnings name the registry failure reason; when an organization disables a Claude fallback model the original refusal is returned; rewind keeps turns where agents edited large files; citation sources are kept with the tool result after a resume | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 1  | v1.0.106-2 (pre-release) | `/skills` add, remove and reload stay in sync with the session's skills, and refresh failures are reported at once; saving MCP server changes keeps a symlinked `mcp-config.json`; an HTTP MCP server that never answers holds startup for its timeout once, not three times; `/resume` brings an already-running background session to the front                                                                                                                         | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.166.0, no newer release):**
+
+| Date | Version | News                                                   | Source                                               |
+|------|---------|--------------------------------------------------------|------------------------------------------------------|
+| —    | —       | No release or changelog entry after v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.5, no newer release):**
+
+| Date | Version | News                              | Source                                                     |
+|------|---------|-----------------------------------|------------------------------------------------------------|
+| —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⭐ X list, @theo, Oct 31: "OpenCode announced on Oct 30 that a Claude subscription now works in OpenCode" (the digest's
+  wording). This matches OpenCode v2.2.3's built-in Claude Agent provider from the Oct 31 review. Aide's OpenCode
+  install warns "No provider is logged in" and the support matrix says no provider is configured until one is logged
+  in, so both need to say that the Claude Agent provider, picked in `/connect`, is a way to get a model.
+  [Post](https://x.com/theo/status/2116428268224299277)
+- ✅ X list, @edwinarbus, Nov 1: a fix just landed so `ultracode` can be selected under any effort level in Claude Code.
+  Aide's skills and runner set an effort per step; no Claude Code release after v2.1.316 names the change yet.
+  [Post](https://x.com/edwinarbus/status/2116693099066135034)
+- ✅ X list, @Voxyz_ai, Oct 31: an agent told to cut CI time will skip the slow tests unless told not to change what the
+  tests check. Aide's runner runs the test command itself and hands red results back to implement steps.
+  [Post](https://x.com/Voxyz_ai/status/2116636332344889391)
+- ℹ Copilot CLI v1.0.106-1 and v1.0.106-2 are pre-releases; the stable release is still v1.0.105. The `/skills`
+  sync fix and the MCP config fixes are the ones that touch skills and MCP.
+  [Releases](https://github.com/github/copilot-cli/releases)
+- ℹ X list, Oct 31 and Nov 1: @swyx on low effort plus a critique loop, @Voxyz_ai on model-per-role splits and Herdr.
+  The Oct 31 digest could not be read (Chrome not connected), so that day is a gap.
+- ℹ No Codex or OpenCode release in the period; the Claude blog, resources and Anthropic news show nothing newer than
+  Oct 28.
 
 ### 2026-10-31
 
