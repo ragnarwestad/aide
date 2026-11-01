@@ -62,6 +62,7 @@ SKILLS=(
   "tdd-coach"
   "documentation"
   "markdown-linting"
+  "spec-handover"
   "tools-and-scripts"
   "workflows"
   "playwright-e2e"
