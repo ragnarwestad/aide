@@ -38,9 +38,14 @@ and is named `provider/model` — `opencode/gemini-3.1-pro`,
 reachable until a provider is logged in:
 
 ```bash
-opencode providers login
+opencode auth login
 opencode models          # what the logged-in providers offer
 ```
+
+Claude Agent, one of the providers `opencode auth login` and `/connect`
+offer, uses the machine's Claude Code login (`claude auth login`) and
+needs no key of its own. `OPENCODE_CLAUDE_PATH` points it at another
+`claude` executable.
 
 ## How a step runs
 

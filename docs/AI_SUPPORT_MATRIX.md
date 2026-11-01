@@ -330,7 +330,8 @@ core/implementations/codex/
 
 OpenCode reaches a model through a PROVIDER rather than bringing its own,
 so a model is named `provider/model` and no provider is configured until
-one is logged in (`opencode providers login`).
+one is logged in (`opencode auth login`). The Claude Agent provider uses
+the machine's Claude Code login.
 
 ### Instruction files (read automatically)
 

@@ -354,7 +354,7 @@ export const fr: Record<TranslationKey, string> = {
   "settings.checkHelp.installation.copilot":
     "Cette vérification lance aide-preflight. Elle te dit si la ligne de commande est installée et en quelle version, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt. Elle ne peut pas dire si Copilot est connecté : la ligne de commande de Copilot n'a aucune commande pour cela, alors lance copilot login si une exécution est refusée.",
   "settings.checkHelp.installation.opencode":
-    "Cette vérification lance aide-preflight et opencode providers list. Elle te dit si la ligne de commande est installée et en quelle version, si un fournisseur est connecté, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt. Ici, le fournisseur EST la connexion, puisqu'OpenCode atteint chaque modèle par l'un d'eux.",
+    "Cette vérification lance aide-preflight et opencode auth list. Elle te dit si la ligne de commande est installée et en quelle version, si un fournisseur est connecté, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt. Ici, le fournisseur EST la connexion, puisqu'OpenCode atteint chaque modèle par l'un d'eux.",
   "settings.models.supported": "Actuellement pris en charge par Aide",
   "settings.models.available": "Disponibles",
   "settings.models.gone": "Plus disponibles",

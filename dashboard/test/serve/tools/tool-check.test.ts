@@ -70,7 +70,7 @@ describe("checkTool", () => {
       "aide-preflight": { stdout: "found\n" },
       "auth status": { stdout: '{"loggedIn":true}' },
       "login status": { stdout: "Logged in using ChatGPT\n" },
-      "opencode providers list": { stdout: "1 credentials\n" },
+      "opencode auth list": { stdout: "1 credentials\n" },
     });
     const check = await checkTool(tool, opts(run));
     expect(check.extra.some((e) => e.question.toLowerCase().includes("models"))).toBe(false);
@@ -201,7 +201,7 @@ describe("whether a tool is logged in", () => {
   test("OpenCode answers through its providers, which are its credentials", async () => {
     const run = fakeRun({
       ...preflight,
-      "opencode providers list": { stdout: "1 credentials\n" },
+      "opencode auth list": { stdout: "1 credentials\n" },
     });
     const entry = login(await checkTool("opencode", opts(run)));
     expect(entry.ok).toBe(true);
@@ -215,26 +215,37 @@ describe("checkTool for OpenCode", () => {
   test("no provider logged in is a failure, with the command to fix it", async () => {
     const run = fakeRun({
       ...preflight,
-      "opencode providers list": { stdout: "Credentials\n0 credentials\n" },
+      "opencode auth list": { stdout: "Credentials\n0 credentials\n" },
     });
     const check = await checkTool("opencode", opts(run));
     const provider = check.extra.find((e) => e.question === "Is it logged in?")!;
     expect(provider.ok).toBe(false);
-    expect(provider.answer).toEqual({ key: "login.out", values: { command: "opencode providers login" } });
+    expect(provider.answer).toEqual({ key: "login.out", values: { command: "opencode auth login" } });
+  });
+
+  test("OpenCode 2's wording for no login is a failure too", async () => {
+    const run = fakeRun({
+      ...preflight,
+      "opencode auth list": { stdout: "No authenticated integrations\n" },
+    });
+    const check = await checkTool("opencode", opts(run));
+    const provider = check.extra.find((e) => e.question === "Is it logged in?")!;
+    expect(provider.ok).toBe(false);
+    expect(provider.answer).toEqual({ key: "login.out", values: { command: "opencode auth login" } });
   });
 
   // The rule this file exists for.
   test("a question that could not be asked stays unanswered, never a failure", async () => {
     const run = fakeRun({
       ...preflight,
-      "opencode providers list": { code: 1 },
+      "opencode auth list": { code: 1 },
     });
     const check = await checkTool("opencode", opts(run));
     for (const entry of check.extra) {
       expect(entry.ok).toBeNull();
     }
     expect(check.extra.find((e) => e.question === "Is it logged in?")!.answer).toEqual({
-      key: "login.unreadable", values: { command: "opencode providers list" },
+      key: "login.unreadable", values: { command: "opencode auth list" },
     });
   });
 });
@@ -243,12 +254,12 @@ describe("the commands a check ran", () => {
   test("every command is recorded, in order, exactly as it ran — OpenCode asks nothing about models (AC-8)", async () => {
     const run = fakeRun({
       "aide-preflight": { stdout: "found\n" },
-      "opencode providers list": { stdout: "1 credentials\n" },
+      "opencode auth list": { stdout: "1 credentials\n" },
     });
     const check = await checkTool("opencode", opts(run));
     expect(check.commands).toEqual([
       "aide-preflight opencode",
-      "opencode providers list",
+      "opencode auth list",
     ]);
   });
 

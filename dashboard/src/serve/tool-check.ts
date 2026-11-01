@@ -80,6 +80,8 @@ function loggedIn(method: string | undefined, account: string | undefined): Boar
   return { key: "login.in" };
 }
 
+const NO_CREDENTIALS = /\b0 credentials\b|No authenticated integrations/;
+
 /** OpenCode reaches a model through a PROVIDER, so a provider IS its
  *  credential: this is the same "is it logged in" question the other
  *  three answer with a status command, asked the way OpenCode can
@@ -88,11 +90,12 @@ async function opencodeProviderCheck(
   run: typeof runScript,
   bin: string,
 ): Promise<ExtraCheck> {
-  const providers = await run([bin, "providers", "list"], process.cwd(), CHECK_TIMEOUT_MS);
-  if (providers.timedOut) return loginUnknown("timedOut", "opencode providers list");
-  if (providers.code !== 0) return loginUnknown("unreadable", "opencode providers list");
-  // "0 credentials" is the CLI's own wording for none configured.
-  if (/\b0 credentials\b/.test(stripAnsi(providers.stdout))) return loginOut("opencode providers login");
+  const providers = await run([bin, "auth", "list"], process.cwd(), CHECK_TIMEOUT_MS);
+  if (providers.timedOut) return loginUnknown("timedOut", "opencode auth list");
+  if (providers.code !== 0) return loginUnknown("unreadable", "opencode auth list");
+  // The CLI's own wording for none configured: "0 credentials" before
+  // version 2, "No authenticated integrations" from it.
+  if (NO_CREDENTIALS.test(stripAnsi(providers.stdout))) return loginOut("opencode auth login");
   return { question: LOGIN_QUESTION, ok: true, detail: "", answer: loggedIn(undefined, undefined) };
 }
 

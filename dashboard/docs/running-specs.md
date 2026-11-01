@@ -229,7 +229,7 @@ dropdown: each option sits under a group named after its tool, which says it whi
 **An OpenCode model carries its provider.** OpenCode brings no model of its own: every model belongs to a provider and
 is named `provider/model`, so that whole string is what `model` holds — `opencode/gemini-3.1-pro`, not
 `gemini-3.1-pro`. The key beside it is still just what the picker shows. Nothing OpenCode offers is reachable until a
-provider is logged in (`opencode providers login`); the Settings page's own OpenCode tab answers whether one is.
+provider is logged in (`opencode auth login`; Claude Agent, offered there, uses the machine's Claude Code login); the Settings page's own OpenCode tab answers whether one is.
 
 **Each AI's tab has one Check and three tabs: Models, Usage and Installation**, and opens on Models. The
 **Check** sits above the tabs, and one press reads all three at the same time; each tab then shows the answer from

@@ -90,16 +90,9 @@ fi
 echo ""
 
 # 6. Check that a provider is logged in
-#
-# OpenCode reaches every model through a provider, and has none
-# configured until one is. A run with no credentials fails at the
-# model, not at the setup, so it is worth saying here.
 echo "6️⃣  Checking providers..."
-if command -v opencode &> /dev/null && opencode providers list 2>/dev/null | grep -q "0 credentials"; then
-  echo "   ⚠️  No provider is logged in — run: opencode providers login"
-else
-  echo "   ✅ At least one provider is configured"
-fi
+source "$SCRIPT_DIR/_login-check.sh"
+report_opencode_login
 
 echo ""
 echo "✅ OpenCode setup complete"

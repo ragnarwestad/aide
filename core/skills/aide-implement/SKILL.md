@@ -162,7 +162,9 @@ First write `--- Step 3 of 4: GREEN — Implement until tests pass — started`,
    standard states (e.g. dashboard/CLAUDE.md's "Code health" section),
    and split by responsibility instead of appending past it
 3. Run the tests after each task, and log the task as done
-4. Verify that the tests PASS
+4. Verify that the tests PASS, by changing the code. Never skip, disable
+   or weaken an existing test to get green or fast; one that is itself
+   wrong is changed only with the reason in the step's summary
 5. Tick this step's task rows in `4-status.md` as each one's tests turn
    green. Write the result with `aide-write-spec --file 4-status.md`
    (never Write/Edit)

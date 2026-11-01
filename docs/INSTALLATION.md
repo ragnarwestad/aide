@@ -379,9 +379,11 @@ model call refused until you do.
 
 4. **Log in to a provider:**
    ```bash
-   opencode providers login
+   opencode auth login
    opencode models          # what the logged-in providers offer
    ```
+
+   Claude Agent, offered there, uses the machine's Claude Code login.
 
 5. **Test the setup:**
    ```bash

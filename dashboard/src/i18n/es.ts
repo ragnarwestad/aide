@@ -354,7 +354,7 @@ export const es: Record<TranslationKey, string> = {
   "settings.checkHelp.installation.copilot":
     "Esta comprobación ejecuta aide-preflight. Te dice si la línea de comandos está instalada y qué versión, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio. No puede decir si Copilot tiene sesión iniciada: la línea de comandos de Copilot no tiene ningún comando para ello, así que ejecuta copilot login si se rechaza una ejecución.",
   "settings.checkHelp.installation.opencode":
-    "Esta comprobación ejecuta aide-preflight y opencode providers list. Te dice si la línea de comandos está instalada y qué versión, si un proveedor tiene sesión iniciada, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio. Aquí el proveedor ES la sesión, ya que OpenCode llega a cada modelo a través de uno.",
+    "Esta comprobación ejecuta aide-preflight y opencode auth list. Te dice si la línea de comandos está instalada y qué versión, si un proveedor tiene sesión iniciada, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio. Aquí el proveedor ES la sesión, ya que OpenCode llega a cada modelo a través de uno.",
   "settings.models.supported": "Compatibles con Aide ahora",
   "settings.models.available": "Disponibles",
   "settings.models.gone": "Ya no disponibles",

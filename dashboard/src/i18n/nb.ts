@@ -357,7 +357,7 @@ export const nb: Record<TranslationKey, string> = {
   "settings.checkHelp.installation.copilot":
     "Denne sjekken kjører aide-preflight. Den forteller om kommandolinjen er installert og hvilken versjon, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet. Den kan ikke fortelle om Copilot er logget inn: Copilot-kommandolinjen har ingen kommando for det, så kjør copilot login hvis en kjøring blir avvist.",
   "settings.checkHelp.installation.opencode":
-    "Denne sjekken kjører aide-preflight og opencode providers list. Den forteller om kommandolinjen er installert og hvilken versjon, om en leverandør er logget inn, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet. Her ER leverandøren innloggingen, siden OpenCode når hver modell gjennom en.",
+    "Denne sjekken kjører aide-preflight og opencode auth list. Den forteller om kommandolinjen er installert og hvilken versjon, om en leverandør er logget inn, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet. Her ER leverandøren innloggingen, siden OpenCode når hver modell gjennom en.",
   "settings.models.supported": "Støttes av Aide nå",
   "settings.models.available": "Tilgjengelig",
   "settings.models.gone": "Ikke lenger tilgjengelig",

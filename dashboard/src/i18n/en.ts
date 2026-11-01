@@ -366,7 +366,7 @@ export const en = {
   "settings.checkHelp.installation.copilot":
     "This Check runs aide-preflight. It tells you whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository. It cannot tell whether Copilot is logged in: the Copilot CLI has no command for it, so run copilot login if a run is refused.",
   "settings.checkHelp.installation.opencode":
-    "This Check runs aide-preflight and opencode providers list. It tells you whether the command line is installed and which version, whether a provider is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository. A provider IS the login here, since OpenCode reaches every model through one.",
+    "This Check runs aide-preflight and opencode auth list. It tells you whether the command line is installed and which version, whether a provider is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository. A provider IS the login here, since OpenCode reaches every model through one.",
   "settings.models.supported": "Currently supported by Aide",
   "settings.models.available": "Available",
   "settings.models.gone": "No longer available",

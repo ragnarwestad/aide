@@ -354,7 +354,7 @@ export const de: Record<TranslationKey, string> = {
   "settings.checkHelp.installation.copilot":
     "Diese Prüfung führt aide-preflight aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen. Ob Copilot angemeldet ist, kann sie nicht sagen: Die Copilot-Kommandozeile hat keinen Befehl dafür, also führe copilot login aus, wenn ein Lauf abgelehnt wird.",
   "settings.checkHelp.installation.opencode":
-    "Diese Prüfung führt aide-preflight und opencode providers list aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob ein Anbieter angemeldet ist, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen. Hier IST der Anbieter die Anmeldung, da OpenCode jedes Modell über einen erreicht.",
+    "Diese Prüfung führt aide-preflight und opencode auth list aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob ein Anbieter angemeldet ist, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen. Hier IST der Anbieter die Anmeldung, da OpenCode jedes Modell über einen erreicht.",
   "settings.models.supported": "Derzeit von Aide unterstützt",
   "settings.models.available": "Verfügbar",
   "settings.models.gone": "Nicht mehr verfügbar",
