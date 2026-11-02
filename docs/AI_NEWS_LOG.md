@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-02](#2026-11-02)
   - [2026-11-01](#2026-11-01)
   - [2026-10-31](#2026-10-31)
   - [2026-10-30](#2026-10-30)
@@ -116,6 +117,63 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-02
+
+Nov 1 – Nov 2. Not read: the Codex changelog page past its first 100,000 characters, the OpenCode changelog page past its
+first 100,000 characters, the OpenAI developer blog (no dates shown), Artificial Analysis (the harness comparison there is
+still "coming soon"), the GitHub Copilot blog (newest post shown is Oct 20), the Copilot changelog (titles only, newest
+Oct 28). Of the watched pages, none changed in what it advises: `agents.md` changed in star counts only.
+
+**Claude Code (v2.1.316, no newer release):**
+
+| Date | Version | News                                | Source                                                         |
+|------|---------|-------------------------------------|----------------------------------------------------------------|
+| —    | —       | No release after v2.1.316 of Oct 31 | [Releases](https://github.com/anthropics/claude-code/releases) |
+
+**GitHub Copilot CLI (v1.0.105 stable; v1.0.106-2 the newest pre-release):**
+
+| Date | Version | News                                                         | Source                                                     |
+|------|---------|--------------------------------------------------------------|------------------------------------------------------------|
+| —    | —       | No release after v1.0.106-2 of Nov 1; no stable v1.0.106 yet | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.166.0 stable; v0.167.0-alpha.3 pre-release):**
+
+| Date  | Version                 | News                                                                                       | Source                                               |
+|-------|-------------------------|--------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Nov 1 | v0.167.0-alpha.2 and -3 | Pre-releases with no notes ("Release 0.167.0-alpha.N"); stable is still v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.5, no newer release):**
+
+| Date | Version | News                              | Source                                                     |
+|------|---------|-----------------------------------|------------------------------------------------------------|
+| —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ✅ X list, @poteto, Nov 1: built a game in four days landing about 1,150 PRs; each defect the bot found became a lint
+  rule, and TLA+ found bugs. Touches the implement and review steps, which fix a defect but do not leave a permanent check.
+  [Post](https://x.com/poteto/status/2117043478140276847)
+- ✅ X list, @Voxyz_ai, Nov 1: a warning that Claude Code opened in a home folder can read `.env` keys, `~/.ssh` and
+  `~/.aws`, especially after "always allow" or with `--dangerously-skip-permissions`. Touches the runner's sandbox deny
+  list, which already names `~/.ssh`, `~/.aws` and other credential folders.
+  [Post](https://x.com/Voxyz_ai/status/2116998722106388796)
+- ✅ X list, @addyosmani, Nov 1: typing `ultrathink` in a prompt raises effort for the rest of that turn. Claude Code
+  v2.1.316 has `CLAUDE_CODE_DISABLE_ULTRATHINK` for it; no skill or spec text in the repository contains the word outside
+  this log. [Post](https://x.com/addyosmani/status/2116986087390486816)
+- ✅ X list, @Voxyz_ai, Nov 1: four rules for ending endless bug-fix loops when one agent both fixes and reviews. Touches
+  the review loop in `docs/AGENTS_AND_LOOPS.md`. [Post](https://x.com/Voxyz_ai/status/2116968517157212271)
+- ✅ X list, @akshay_pachaar, Nov 1: DeepSeek's open-source dsh-superagent runs several agents on GitHub tasks in parallel
+  and reports in team chat; a new agent runner next to Aide's dashboard, not in `docs/COMPARISON.md`.
+  [Post](https://x.com/akshay_pachaar/status/2116934558646206481)
+- ✅ X list, @mattpocockuk, Nov 1: Sandcastle v1 with six built-in harnesses, for a "software factory". `docs/ROADMAP.md`
+  already cites Sandcastle for a container per run. [Post](https://x.com/mattpocockuk/status/2116805878187794740)
+- ℹ Codex v0.167.0-alpha.2 and -3 are pre-releases without notes; Copilot CLI has no release after v1.0.106-2.
+  [Codex](https://github.com/openai/codex/releases)
+- ℹ X list, Nov 1: @rayamjad on Opus 5.5 favouring "receipts" wording, @somi_ai on a claimed prompt change and on
+  computer-use agents, @karpathy on Opus 5.5 at medium effort, @alex_prompter on an unconfirmed watermark claim.
+- ℹ The Claude blog, resources and Anthropic news show nothing newer than Oct 28; the Copilot blog and changelog nothing
+  newer than Oct 28 and Oct 20; no OpenCode release after Oct 30.
 
 ### 2026-11-01
 
