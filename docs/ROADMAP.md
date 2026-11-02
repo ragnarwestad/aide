@@ -30,6 +30,7 @@
   - [24. One spec in sections, each analysed and implemented in turn on one branch](#24-one-spec-in-sections-each-analysed-and-implemented-in-turn-on-one-branch)
   - [25. A plain way to run agents Aide has no support of its own for](#25-a-plain-way-to-run-agents-aide-has-no-support-of-its-own-for)
   - [26. A check that nothing on a changed page runs past the screen's edge](#26-a-check-that-nothing-on-a-changed-page-runs-past-the-screens-edge)
+  - [27. Asking for work where the conversation already is](#27-asking-for-work-where-the-conversation-already-is)
 
 ---
 
@@ -45,7 +46,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 27.
+same idea later. The next number is 28.
 
 ## To consider
 
@@ -546,3 +547,23 @@ Open questions:
 - How the runner knows which pages a change touched, and how it reaches them with data on them.
 - Whether an element past the edge sends the step back to the same session, as red tests do, or only notes it on
   the spec.
+
+### 27. Asking for work where the conversation already is
+
+From looking at DeepSeek's [dsh-superagent](https://github.com/deepseek-ai/dsh-superagent-prototype) (2026-11-02),
+a research prototype of a coding agent for one GitHub repository. It listens on GitHub and, optionally, a team chat.
+When a person on an allowed list asks it for work, it opens a work item, runs it in its own agent session and
+folder, and answers in the conversation the request came from, for example with a pull request. A web panel shows
+only the items a person has to act on. Its stated aim is to take as little human attention as possible: it speaks
+only when someone has to act or can use the result.
+
+In Aide every spec starts on the board, and the board is where a person looks to see how a run went. The idea: a
+spec could also start from where the work is already being discussed, such as a GitHub issue or a Slack thread, and
+the run would answer there when it needs a person, when the spec is held back for its criteria to be ticked, and
+when it has landed.
+
+Open questions:
+
+- Who may start a spec this way, and how the board knows which project the request belongs to.
+- Whether the request becomes the spec's description as written, or a draft a person approves on the board first.
+- Which of a run's events are worth a message, so the conversation does not fill up with status.
