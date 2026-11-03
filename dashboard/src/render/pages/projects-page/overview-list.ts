@@ -29,11 +29,9 @@ function projectRemoveControl(name: string, lang: Language): string {
       id,
       title: t(lang, "dialog.removing"),
       ask: {
-        title: `Remove ${name}?`,
-        sentence:
-          `Removing ${name} takes it off the allowlist and off this dashboard. ` +
-          `Its checkout and its specs stay on disk, untouched. This cannot be undone.`,
-        ok: { variant: "danger", pending: "removing…" },
+        title: t(lang, "project.removeTitle", { name }),
+        sentence: t(lang, "project.removeSentence", { name }),
+        ok: { variant: "danger", pending: t(lang, "dialog.removing") },
         post: { action: `/api/queue/projects/${encodeURIComponent(name)}/remove`, hook: "removeform" },
       },
     })
@@ -52,7 +50,7 @@ function overviewRow(
   // page — this is only a pointer to it, so it rises above the row's
   // stretched-link overlay.
   const warn = warnHref
-    ? `<a class="proj-row-warn" href="${esc(warnHref)}" title="cannot run yet — see the project's page" aria-label="cannot run yet">${ICON_WARN}</a>`
+    ? `<a class="proj-row-warn" href="${esc(warnHref)}" title="${esc(t(lang, "project.cannotRunTitle"))}" aria-label="${esc(t(lang, "project.cannotRunAria"))}">${ICON_WARN}</a>`
     : "";
   const del = removable ? projectRemoveControl(p.name, lang) : "";
   const projectLink = `<a class="proj-row-link" href="${esc(path)}">${esc(p.name)}</a>`;

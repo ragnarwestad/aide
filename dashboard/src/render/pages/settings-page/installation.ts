@@ -7,11 +7,11 @@ import { esc } from "../../ui/html.ts";
 import { rowMessage } from "../../ui/components";
 import { capitalizeFirst } from "../../ui/job-state/provider-limit.ts";
 import { renderSentence } from "../../../i18n/message.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
 import type { ExtraCheck, ToolCheck } from "./tools.ts";
 
-const mark = (ok: boolean | null): string =>
-  ok === null ? "?" : ok ? "OK" : "FAIL";
+const mark = (ok: boolean | null, lang: Language): string =>
+  ok === null ? "?" : ok ? t(lang, "dialog.ok") : t(lang, "settings.install.fail");
 
 const markClass = (ok: boolean | null): string =>
   ok === null ? "muted" : ok ? "ok" : "failed";
@@ -24,13 +24,13 @@ function entryLine(e: ExtraCheck, lang: Language): string {
   if (e.answer) {
     return `<li>${esc(capitalizeFirst(renderSentence(lang, e.detail ? [e.answer, e.detail] : e.answer) ?? ""))}</li>`;
   }
-  return `<li><span class="${markClass(e.ok)}">${mark(e.ok)}</span> ${esc(e.question)} ${esc(e.detail)}</li>`;
+  return `<li><span class="${markClass(e.ok)}">${esc(mark(e.ok, lang))}</span> ${esc(e.question)} ${esc(e.detail)}</li>`;
 }
 
 /** The Installation tab's body. `checkedAt` is the check's time as the tab
  *  stamps it. */
 export function installationBlock(check: ToolCheck | undefined, checkedAt: string, lang: Language = "en"): string {
-  if (!check) return `<p class="muted">Not checked yet.</p>`;
+  if (!check) return `<p class="muted">${esc(t(lang, "settings.install.unchecked"))}</p>`;
   if (check.error) {
     return rowMessage("failed", check.error, { tag: "p" });
   }
@@ -38,10 +38,10 @@ export function installationBlock(check: ToolCheck | undefined, checkedAt: strin
     ? `<ul class="checklist">${check.extra.map((e) => entryLine(e, lang)).join("")}</ul>`
     : "";
   const ran = check.commands?.length
-    ? `<p class="muted small">Ran:</p><pre class="checkoutput">${esc(check.commands.join("\n"))}</pre>`
+    ? `<p class="muted small">${esc(t(lang, "settings.install.ran"))}</p><pre class="checkoutput">${esc(check.commands.join("\n"))}</pre>`
     : "";
   return (
-    `<p class="muted small">Checked ${esc(checkedAt)}</p>` +
+    `<p class="muted small">${esc(t(lang, "settings.install.checkedAt", { at: checkedAt }))}</p>` +
     extra +
     ran +
     `<pre class="checkoutput">${esc(check.lines.join("\n"))}</pre>`

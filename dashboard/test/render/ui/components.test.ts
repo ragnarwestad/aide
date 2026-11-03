@@ -6,6 +6,7 @@ import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import {
   backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, labelledCheckbox, messageSlot, resolveBackHref,
+  saveCancelActions,
 } from "../../../src/render/ui/components";
 import { esc } from "../../../src/render/ui/html.ts";
 import { t } from "../../../src/i18n";
@@ -274,5 +275,18 @@ describe("labelledCheckbox()", () => {
       const body = parsed(labelledCheckbox({ label: "Reset", disabled }));
       expect(body.querySelector(".checkbox")).toBeNull();
     }
+  });
+});
+
+describe("saveCancelActions in the reader's language", () => {
+  test("Norwegian draws Save and Cancel from the catalogue (AC-5)", () => {
+    const html = saveCancelActions("x", {}, "nb");
+    expect(html).toContain(`>${t("nb", "list.checksSave")}<`);
+    expect(html).toContain(`>${t("nb", "dialog.cancel")}<`);
+    expect(html).not.toContain(">Cancel<");
+  });
+
+  test("with no language it draws English, as every caller did before (AC-5)", () => {
+    expect(saveCancelActions("x")).toContain(">Cancel<");
   });
 });

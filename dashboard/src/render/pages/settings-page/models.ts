@@ -47,8 +47,8 @@ export interface ModelsPanel {
 export const MODELS_ADD_ROUTE = "/api/queue/settings/models/add";
 export const MODELS_REMOVE_ROUTE = "/api/queue/settings/models/remove";
 
-const ADD = { label: "Add", pending: "adding…" };
-const REMOVE = { label: "Remove", pending: "removing…" };
+const add = (lang: Language) => ({ label: t(lang, "settings.models.add"), pending: t(lang, "settings.models.adding") });
+const remove = (lang: Language) => ({ label: t(lang, "project.remove"), pending: t(lang, "dialog.removing") });
 
 /** What a choice hands its command line: its own `model`, else its key. */
 export const choiceModel = (key: string, choice: ModelChoice): string => choice.model ?? key;
@@ -134,22 +134,22 @@ function supportedBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language,
  *  against its choices: nothing at all until a press has read them. */
 function readingBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language): string {
   const reading = panel.reading;
-  if (!reading) return `<p class="muted">Models not read yet.</p>`;
+  if (!reading) return `<p class="muted">${esc(t(lang, "settings.models.unread"))}</p>`;
   if (reading.noSource) {
-    return `<p class="muted">The board does not read this AI's models: its command line has no command that lists them.</p>`;
+    return `<p class="muted">${esc(t(lang, "settings.models.noSource"))}</p>`;
   }
-  if (reading.error) return `<p class="muted">The models could not be read: ${esc(reading.error)}</p>`;
+  if (reading.error) return `<p class="muted">${esc(t(lang, "settings.models.failed", { reason: reading.error }))}</p>`;
   const lists = modelLists(tool, panel.choices, reading);
   const offered = lists.offered.length
     ? facts(lists.offered.map((m, i) => ({
       label: esc(offeredLabel(tool, m)),
-      value: rowForm(MODELS_ADD_ROUTE, `models-add-${tool}-${i}`, { tool, model: m.model }, ADD, m.model),
+      value: rowForm(MODELS_ADD_ROUTE, `models-add-${tool}-${i}`, { tool, model: m.model }, add(lang), m.model),
     })))
     : `<p class="muted">${esc(t(lang, "settings.models.allSupported"))}</p>`;
   const gone = lists.gone.length
     ? facts(lists.gone.map((c, i) => ({
       label: esc(c.name === c.model ? c.name : `${c.name} (${c.model})`),
-      value: rowForm(MODELS_REMOVE_ROUTE, `models-remove-${tool}-${i}`, { name: c.name }, REMOVE, c.name),
+      value: rowForm(MODELS_REMOVE_ROUTE, `models-remove-${tool}-${i}`, { name: c.name }, remove(lang), c.name),
     })))
     : `<p class="muted">${esc(t(lang, "settings.models.noneGone"))}</p>`;
   return (
@@ -168,6 +168,6 @@ export function modelsBlock(
   lang: Language = "en",
   toolName: string = tool,
 ): string {
-  const read = panel.reading && !panel.reading.noSource ? `<p class="muted small">Models read ${esc(readAt)}</p>` : "";
+  const read = panel.reading && !panel.reading.noSource ? `<p class="muted small">${esc(t(lang, "settings.models.readAt", { at: readAt }))}</p>` : "";
   return read + supportedBlock(tool, panel, lang, toolName) + readingBlock(tool, panel, lang);
 }

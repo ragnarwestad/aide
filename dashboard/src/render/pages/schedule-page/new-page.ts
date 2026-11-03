@@ -35,7 +35,7 @@ export function renderScheduleNewPage(nav: NavEntry[], generatedAt: string, opts
   const lang = opts.lang ?? "en";
   const title = t(lang, "schedule.newJob");
   const body =
-    backLink(opts.backHref, title) +
+    backLink(opts.backHref, title, "", { lang }) +
     renderScheduleForm(
       {
         fixedProject: opts.project,

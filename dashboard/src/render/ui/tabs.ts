@@ -9,6 +9,7 @@
 
 import { backLink } from "./components";
 import { esc } from "./html.ts";
+import { t, type Language, type TranslationKey } from "../../i18n";
 
 /** A tab name off the query string, or the fallback. The list of tabs
  *  and the fallback are both arguments: a job has three tabs and the
@@ -33,12 +34,6 @@ export function pickTab<T extends string>(
  *  the tab CONTAINS — one row per workflow step — so only the label a
  *  reader sees changes, not the concept. */
 const TAB_LABELS: Record<string, string> = {
-  steps: "Logs",
-  // Settings' top row: "AI" is two capitals, which capitalising the key
-  // cannot give.
-  ai: "AI",
-  // Settings' models table keeps its old key as its route.
-  phases: "Models per phase",
   // The Settings page's own AI tabs: two of the four tools spell their
   // name with a word the key cannot carry ("Claude Code") or a capital
   // in the middle ("OpenCode"), and capitalising the key would give
@@ -47,8 +42,21 @@ const TAB_LABELS: Record<string, string> = {
   opencode: "OpenCode",
 };
 
-/** The word a tab key shows. */
-export const tabLabel = (key: string): string => TAB_LABELS[key] ?? key[0]!.toUpperCase() + key.slice(1);
+/** The tabs whose word is in the catalogue, under `tab.<key>`: the word a
+ *  key gives by capitalising it, or a word it cannot ("Logs", "AI",
+ *  "Models per phase"). */
+const CATALOGUE_TABS = new Set([
+  "steps", "ai", "phases", "process", "notifications", "deploy", "config", "schedule", "report", "settings",
+]);
+
+/** The word a tab key shows, in the reader's language. */
+export function tabWord(lang: Language, key: string): string {
+  if (CATALOGUE_TABS.has(key)) return t(lang, `tab.${key}` as TranslationKey);
+  return TAB_LABELS[key] ?? key[0]!.toUpperCase() + key.slice(1);
+}
+
+/** The word a tab key shows, in English. */
+export const tabLabel = (key: string): string => tabWord("en", key);
 
 /** Every tab strip on the board: a page's own tabs, a strip nested under
  *  one (a step's Log/Changed files/Errors) and the header's Specs/Projects/Schedule row. It used to build
@@ -78,6 +86,8 @@ export function tabBar<T extends string>(
     /** The word a tab shows, for a caller whose words are in the
      *  catalogue; `tabLabel()` otherwise. */
     label?: (key: T) => string;
+    /** The reader's language, for the words `tabLabel()` gives. */
+    lang?: Language;
     /** Each key written as `data-<key>` on the `<nav>`: a hook, like
      *  `aitabs`. */
     data?: Record<string, string>;
@@ -107,7 +117,7 @@ export function tabBar<T extends string>(
     (o.site ? `<nav class="tabbar"${data}>` : `<nav class="tabbar subtabs"${data}>`) +
     tabs
       .map((t) => {
-        const label = o.label ? o.label(t) : tabLabel(t);
+        const label = o.label ? o.label(t) : tabWord(o.lang ?? "en", t);
         const n = counts[t] || undefined;
         const to = href(t);
         const here = t === current ? ` aria-current="page"` : "";
@@ -141,6 +151,7 @@ export function tabbedBody(
   formFields = false,
   /** Drawn at the far end of the title's own line. */
   headTrailing = "",
+  lang: Language = "en",
 ): string {
   // One wrapper, one right edge: the head line's buttons used to sit at
   // the frame's width while the open tab's text stopped well short of
@@ -149,7 +160,7 @@ export function tabbedBody(
     // Both spellings written out rather than built by hand, so each
     // class name stands in the source as the literal the attribute holds.
     (formFields ? `<div class="doc formdoc">` : `<div class="doc">`) +
-    backLink(backHref, title, headTrailing, { keep: true }) +
+    backLink(backHref, title, headTrailing, { keep: true, lang }) +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>` +

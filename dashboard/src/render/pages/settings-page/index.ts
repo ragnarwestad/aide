@@ -9,7 +9,8 @@ import type { CheckableTool, ToolCheck } from "./tools.ts";
 import type { ToolUsage } from "./usage.ts";
 import type { ToolModels } from "./models.ts";
 import type { ModelChoice } from "../../../queue/types.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language } from "../../../i18n";
+import { stepLabel } from "../../../format/step-label.ts";
 import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES } from "../specs-list";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
 
@@ -122,12 +123,6 @@ export interface SettingsPageOptions {
   process?: ProcessSettings;
 }
 
-const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
-  create: "Create", analyze: "Analyze", implement: "Implement",
-  archive: "Archive", close: "Close", reopen: "Reopen",
-  schedule: "Schedule",
-};
-
 /** What a Settings row shows: the step's saved choice, else the default
  *  one, and the AI that choice belongs to. `models` is never empty here:
  *  a server with no choices draws no AI or Model column at all. */
@@ -147,48 +142,38 @@ const toMinutes = (sec: number): number => Math.round(sec / 60);
 /** What the page is, and what each choice on it decides. One "(?)" for
  *  the page rather than one per column: the three columns are read
  *  together on every row, and three popovers saying a third each is
- *  three things to open. */
-const PAGE_HELP =
-  "<strong>What this page sets.</strong> Every step the queue can run has a row here, and a row " +
-  "says what that step runs on and how long it may take. Nothing here starts anything; it is what " +
-  "a run uses when nobody picked something else for that one spec." +
-  "<br><br>" +
-  "<strong>On a spec.</strong> Create writes the spec's folder. Analyze works out how to do it. " +
-  "Implement writes the code and its tests. Archive merges the branch and moves the folder to " +
-  "archive. Close ends a spec whose idea did not hold, without merging its code. Reopen brings an " +
-  "archived spec back." +
-  "<br><br>" +
-  "<strong>Not on a spec.</strong> Schedule runs a job from a prompt file and names no spec " +
-  "at all." +
-  "<br><br>" +
-  "A row nothing has been saved for shows what its step runs on: Claude Code on Opus, unless the " +
-  "server's config file names another default." +
-  "<br><br>" +
-  "<strong>AI and Model.</strong> The AI is which command line runs the step; the model is which " +
-  "model it is given. Picking an AI fills in that AI's own model, and the two always belong " +
-  "together. Only AIs with a model configured on this server can be picked." +
-  "<br><br>" +
-  "<strong>Timeout.</strong> How long the step may run before it is stopped, in minutes. It is the " +
-  "only limit on a runaway step, so a step that legitimately takes longer needs a larger number " +
-  "here rather than a retry.";
+ *  three things to open. Each paragraph is a bold lead and a body, both
+ *  plain text in the catalogue; the markup is built here. */
+const HELP_PARAGRAPHS = [
+  "page", "onSpec", "offSpec", "default", "aiModel", "timeout",
+] as const;
+
+function pageHelp(lang: Language): string {
+  return HELP_PARAGRAPHS.map((name) =>
+    name === "default"
+      ? esc(t(lang, "settings.help.default"))
+      : `<strong>${esc(t(lang, `settings.help.${name}.lead`))}</strong> ${esc(t(lang, `settings.help.${name}.body`))}`,
+  ).join("<br><br>");
+}
 
 export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opts: SettingsPageOptions): string {
+  const lang = opts.lang ?? "en";
   const models = opts.modelChoices;
   const back = backLink(
     opts.backHref ?? "/",
-    "Settings",
-    helpPopover("What this page sets", PAGE_HELP),
-    { keep: true },
+    t(lang, "shell.settings"),
+    helpPopover(t(lang, "settings.help.page.title"), pageHelp(lang)),
+    { keep: true, lang },
   );
   // timeoutSec is meaningful and already enforced (runner.ts) even on a
   // server with no modelChoices configured — only the AI/model columns
   // depend on a choice actually being offered.
   const renderRow = (step: (typeof SETTINGS_STEPS)[number]): string => {
     const timeout = opts.timeoutSec[step] ?? opts.timeoutSec.default ?? 1200;
-    const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="Timeout in minutes for ${LABELS[step]}" ` +
+    const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="${esc(t(lang, "settings.row.timeoutAria", { step: stepLabel(step, lang) }))}" ` +
       `form="settings-form" name="timeoutSec.${step}" value="${toMinutes(timeout)}"></td>`;
     if (!models.length) {
-      return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th>${timeoutCell}</tr>`;
+      return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>${timeoutCell}</tr>`;
     }
     const configured = opts.defaultModels[step] ?? opts.defaultModels.default;
     const { model: chosen, tool } = settingsRowChoice(models, opts.defaultModels, step);
@@ -202,9 +187,9 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       const preferred = defaultModelForTool(models, name, configured);
       return `<option value="${name}" data-default="${esc(preferred ?? "")}"${name === tool ? " selected" : ""}>${label}</option>`;
     }).join("");
-    return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th>` +
-      `<td><select aria-label="AI for ${LABELS[step]}" form="settings-form" data-ai="model.${step}">${ai}</select></td>` +
-      `<td><select aria-label="Model for ${LABELS[step]}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
+    return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>` +
+      `<td><select aria-label="${esc(t(lang, "settings.row.aiAria", { step: stepLabel(step, lang) }))}" form="settings-form" data-ai="model.${step}">${ai}</select></td>` +
+      `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: stepLabel(step, lang) }))}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
       `${timeoutCell}</tr>`;
   };
   // One <tbody> per group, which is what makes the grouping structural
@@ -216,32 +201,32 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     steps.map(renderRow).join("") +
     `</tbody>`;
   const rows =
-    group("On a spec", SPEC_STEPS) +
-    group("Not on a spec", OTHER_STEPS);
-  const modelHeaders = models.length ? "<th>AI</th><th>Model</th>" : "";
-  const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
+    group(t(lang, "settings.group.onSpec"), SPEC_STEPS) +
+    group(t(lang, "settings.group.offSpec"), OTHER_STEPS);
+  const modelHeaders = models.length ? `<th>${esc(t(lang, "schedule.ai"))}</th><th>${esc(t(lang, "schedule.model"))}</th>` : "";
+  const noModelsNote = models.length ? "" : `<p class="muted">${esc(t(lang, "settings.noModels"))}</p>`;
   const phasesPanel =
     `<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
     messageSlot("refused", "failed") +
     messageSlot("notice", "info") +
     noModelsNote +
-    `<table class="settingstable"><thead><tr><th>Phase</th>${modelHeaders}<th>Timeout (min)</th></tr></thead>${rows}</table>` +
+    `<table class="settingstable"><thead><tr><th>${esc(t(lang, "settings.col.phase"))}</th>${modelHeaders}<th>${esc(t(lang, "settings.col.timeout"))}</th></tr></thead>${rows}</table>` +
     `<div class="configactions">` +
-    btn({ id: "settingsform-save", label: "Save", variant: "primary", pending: "saving…" }) +
-    btn({ id: "settingsform-cancel", label: "Cancel", type: "button", disabled: true }) +
+    btn({ id: "settingsform-save", label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") }) +
+    btn({ id: "settingsform-cancel", label: t(lang, "dialog.cancel"), type: "button", disabled: true }) +
     `</div></form>`;
   const { group: openGroup, panel: open } = resolveSettingsTab(opts.tab);
-  const top = tabBar(SETTINGS_GROUPS, SETTINGS_ROUTE, openGroup, {});
-  const aiRow = openGroup === "ai" ? tabBar(AI_TABS, SETTINGS_ROUTE, open as (typeof AI_TABS)[number], {}) : "";
+  const top = tabBar(SETTINGS_GROUPS, SETTINGS_ROUTE, openGroup, {}, "", { lang });
+  const aiRow = openGroup === "ai" ? tabBar(AI_TABS, SETTINGS_ROUTE, open as (typeof AI_TABS)[number], {}, "", { lang }) : "";
   const panel = open === "phases"
     ? phasesPanel
     : open === "notifications"
-      ? notificationsPanel(opts.pushPublicKey, opts.lang ?? "en")
+      ? notificationsPanel(opts.pushPublicKey, lang)
       : open === "process"
-        ? (opts.process ? processPanel(opts.process) : "")
+        ? (opts.process ? processPanel(opts.process, lang) : "")
         : toolPanel(open, opts.checks?.[open], opts.usage?.[open], Date.parse(generatedAt), {
           reading: opts.models?.[open], choices: opts.choices, options: models,
-        }, opts.lang ?? "en", toolPart(opts.aiTab));
+        }, lang, toolPart(opts.aiTab));
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's
   // Settings rule centres them, and the panel after them, as it did one row.

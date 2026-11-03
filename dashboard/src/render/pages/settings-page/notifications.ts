@@ -11,20 +11,24 @@
 
 import { switchControl } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import type { Language } from "../../../i18n";
+import { t, type Language, type TranslationKey } from "../../../i18n";
 
 export function notificationsPanel(publicKey: string | undefined, lang: Language): string {
   return (
-    `<section class="toolpanel" data-push-panel data-key="${esc(publicKey ?? "")}" data-lang="${esc(lang)}">` +
-    `<p>When a spec needs you — a step failed or stopped, its tests went red as it was merged into main, ` +
-    `or its archive is held back on unticked acceptance criteria — this device gets a notification. ` +
-    `Tapping it opens the spec.</p>` +
-    `<p class="muted">This is a setting of this device only. On an iPhone or iPad it works in the ` +
-    `installed app, from iOS 16.4.</p>` +
-    switchControl({ id: "push-toggle", label: "Notifications for this device", onWord: "On", offWord: "Off", disabled: true }) +
-    `<p class="muted" data-push-status aria-live="polite">Checking this device…</p>` +
-    `<p class="muted">A scheduled job notifies by its own choice — never, only when the run did not succeed, or every run. ` +
-    `It is set on the job's form, on the project's Schedule tab.</p>` +
+    `<section class="toolpanel" data-push-panel data-key="${esc(publicKey ?? "")}" data-lang="${esc(lang)}"` +
+    // What the script writes into the status line, in the reader's language.
+    (["on", "off", "blocked", "unsupported", "failed"] as const)
+      .map((k) => ` data-msg-${k}="${esc(t(lang, `settings.notifications.msg${k[0]!.toUpperCase()}${k.slice(1)}` as TranslationKey))}"`)
+      .join("") +
+    `>` +
+    `<p>${esc(t(lang, "settings.notifications.when"))}</p>` +
+    `<p class="muted">${esc(t(lang, "settings.notifications.device"))}</p>` +
+    switchControl({
+      id: "push-toggle", label: t(lang, "settings.notifications.toggle"),
+      onWord: t(lang, "settings.notifications.on"), offWord: t(lang, "settings.notifications.off"), disabled: true,
+    }) +
+    `<p class="muted" data-push-status aria-live="polite">${esc(t(lang, "settings.notifications.checking"))}</p>` +
+    `<p class="muted">${esc(t(lang, "settings.notifications.job"))}</p>` +
     `</section>`
   );
 }

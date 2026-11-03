@@ -2,6 +2,8 @@
 // one-line refusal every operation that fails outright uses. Split out
 // of project-admin.ts (split project-admin.ts by theme).
 
+import type { BoardMessage } from "../../i18n/message.ts";
+
 /** The steps an add or a remove is made of. `name` is the request
  *  itself: a project name becomes a directory under the projects root
  *  AND an argument to `git clone`, so it is checked before anything
@@ -65,7 +67,12 @@ export interface ReadinessCheck {
    *  being wrong: a checkout on a feature branch (the run moves it),
    *  or no worktree links configured (most projects need none). */
   blocking: boolean;
+  /** The answer in English, rendered from `message`: what every caller
+   *  that reads a reason reads. */
   detail: string;
+  /** The same answer without a language, for a page to draw in the
+   *  reader's own. */
+  message?: BoardMessage;
 }
 
 export interface ProjectReadiness {

@@ -2,6 +2,8 @@
 // about a page, a job or a project — that is the point of it living
 // apart from them.
 
+import { t, type Language } from "../../i18n";
+
 export function esc(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -44,10 +46,10 @@ export function usdOrTokens(
 // "4 min ago" beats an ISO timestamp for the question actually being
 // asked, which is "is this recent?". The exact stamp stays in the
 // tooltip.
-export function relTime(iso: string, now: number): string {
+export function relTime(iso: string, now: number, lang: Language = "en"): string {
   const then = Date.parse(iso);
   if (Number.isNaN(then)) return esc(iso);
-  return `<span title="${esc(iso)}">${relTimeLabel(iso, now)}</span>`;
+  return `<span title="${esc(iso)}">${relTimeLabel(iso, now, lang)}</span>`;
 }
 
 /** The same words without the markup, for a caller whose text is
@@ -55,14 +57,14 @@ export function relTime(iso: string, now: number): string {
  *  `rowMessage`, which would show a literal <span>). One ladder, two
  *  wrappers — two copies of these thresholds would one day disagree
  *  about when "min" becomes "h". */
-export function relTimeLabel(iso: string, now: number): string {
+export function relTimeLabel(iso: string, now: number, lang: Language = "en"): string {
   const then = Date.parse(iso);
   if (Number.isNaN(then)) return iso;
   const secs = Math.max(0, Math.round((now - then) / 1000));
   return (
-    secs < 45 ? "just now"
-    : secs < 5400 ? `${Math.round(secs / 60)} min ago`
-    : secs < 172800 ? `${Math.round(secs / 3600)} h ago`
-    : `${Math.round(secs / 86400)} d ago`
+    secs < 45 ? t(lang, "time.justNow")
+    : secs < 5400 ? t(lang, "time.minutesAgo", { n: Math.round(secs / 60) })
+    : secs < 172800 ? t(lang, "time.hoursAgo", { n: Math.round(secs / 3600) })
+    : t(lang, "time.daysAgo", { n: Math.round(secs / 86400) })
   );
 }

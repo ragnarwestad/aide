@@ -150,7 +150,7 @@ export async function runCronPreview(
     });
     const body = (await res.json().catch(() => null)) as { next?: string; error?: string } | null;
     if (res.ok && body?.next) {
-      target.textContent = `Next run: ${body.next}`;
+      target.textContent = (target.dataset?.template ?? "Next run: {at}").replace("{at}", () => body.next!);
       target.classList.remove("err");
     } else {
       target.textContent = body?.error ?? "not a valid cron expression";

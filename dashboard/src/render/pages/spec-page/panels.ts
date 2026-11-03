@@ -64,6 +64,7 @@ function editableDocumentForm(
   label: string,
   headingHtml: string,
   text: string,
+  lang: Language,
   extra = "",
 ): string {
   return (
@@ -75,7 +76,7 @@ function editableDocumentForm(
     // an absent field and an empty one say the same thing to the route,
     // and one of them is a field that cannot be there.
     `<input type="hidden" name="baseSha" value="${esc(view.formBaseSha ?? "")}">` +
-    `<div class="panelhead">${headingHtml}${saveCancelActions()}</div>` +
+    `<div class="panelhead">${headingHtml}${saveCancelActions("specform", {}, lang)}</div>` +
     extra +
     `<span class="frow">` +
     field(
@@ -117,7 +118,7 @@ export function documentPanel(
   if (label === STATUS_SPEC_FILE) return statusPanel(view, file, now, lang, mark);
   if (view.archived || activeJob(view)) return readOnlyDocument(file, now, mark);
   const heading = `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>`;
-  return editableDocumentForm(view, label, heading, file.text);
+  return editableDocumentForm(view, label, heading, file.text, lang);
 }
 
 /** The Description tab.
@@ -139,5 +140,5 @@ export function descriptionPanel(view: SpecPageView, now: number, lang: Language
   if (view.archived || activeJob(view)) return documentPanel(view, EDITABLE_SPEC_FILE, now, lang, mark);
   const heading =
     `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}${mark}</h2>`;
-  return editableDocumentForm(view, EDITABLE_SPEC_FILE, heading, file?.text ?? "");
+  return editableDocumentForm(view, EDITABLE_SPEC_FILE, heading, file?.text ?? "", lang);
 }

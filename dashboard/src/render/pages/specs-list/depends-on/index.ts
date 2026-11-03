@@ -5,8 +5,6 @@
 // script's (`specs-client/depends-on/`).
 
 import { saveCancelActions } from "../../../ui/components";
-import { t } from "../../../../i18n";
-import { capitalizeFirst } from "../../../../format/error-sentence.ts";
 import { createChoicesIn, type CriteriaChecks } from "../../../../project/discover";
 import { cardStep, type CardValues, type CardView } from "../../../../project/spec-card.ts";
 import { optionsGroup } from "../../new-spec-page/options-tab.ts";
@@ -55,13 +53,7 @@ function settingsGroup(id: string, view: CardView, lang: SpecsPageOptions["lang"
     aiFormulate: view.shown.aiFormulate,
     criteriaChecks: view.shown.criteriaChecks as CriteriaChecks,
     chooseApproach: view.shown.chooseApproach,
-    labels: {
-      acceptance: capitalizeFirst(t(lang, "spec.acceptanceTickingRequired")),
-      aiFormulate: t(lang, "spec.formulateCriteria"),
-      criteriaChecks: t(lang, "spec.criteriaChecks"),
-      chooseApproach: t(lang, "spec.chooseApproach"),
-    },
-    levelWords: { off: t(lang, "spec.checksOff"), warn: t(lang, "spec.checksWarn"), stop: t(lang, "spec.checksStop") },
+    lang,
   });
 }
 
@@ -81,7 +73,8 @@ export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "target
     project: g.project,
     form: id,
     disabled: view.locks.dependsOn !== null,
-    actions: view.saveCancel ? saveCancelActions(id) : "",
+    actions: view.saveCancel ? saveCancelActions(id, {}, opts.lang ?? "en") : "",
+    lang: opts.lang,
   });
   const settings = settingsGroup(id, view, opts.lang);
   const body = field + settings;

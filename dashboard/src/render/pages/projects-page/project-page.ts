@@ -2,15 +2,15 @@
 // the schedule section.
 
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
-import type { ProjectReadiness } from "../../../project/project-admin";
+import type { ProjectReadiness, ReadinessCheck } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
-import { SETTING_LABELS } from "../../../project/setting-labels.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { askButton, btnLink, buttonForm, messageSlot, rowMessage } from "../../ui/components";
 import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import { t } from "../../../i18n";
+import { t, type Language, type TranslationKey } from "../../../i18n";
+import { renderSentence } from "../../../i18n/message.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { SCHEDULE_REFUSED_LINE, scheduleControlCells } from "../schedule-page/controls.ts";
 import { scheduleNewPath, schedulePagePath, scheduleSettingsPath } from "../schedule-page";
@@ -33,11 +33,7 @@ import type { ProjectDrift, ProjectPageOptions, ProjectView } from "./types.ts";
 export const AWAITING_DRIFT_REFRESH_SECONDS = 5;
 
 /** What the Deploy tab of every project but the board's own says in place of a button. */
-export const NO_DEPLOY_SENTENCE =
-  "There is not enough information about how this project is deployed to offer Deploy.";
-
-const NOT_CHECKED_SENTENCE = "Whether this checkout is behind origin has not been checked yet.";
-const MATCHES_ORIGIN_SENTENCE = "This checkout matches origin.";
+export const NO_DEPLOY_SENTENCE = t("en", "project.noDeploy");
 
 /** Shared by `deploySection` and `testServerSection`: the Deploy tab's own
  *  panel wrapper, empty content drawing nothing at all. */
@@ -48,9 +44,10 @@ const panel = (inner: string): string => (inner ? `<div class="deploypanel">${in
 const checked = (name: string, inner: string): string =>
   `<div data-origin-check="${esc(`/api/queue/projects/${encodeURIComponent(name)}/drift`)}">${inner}</div>`;
 
-export const driftPrefix = (behind: number, checkedAt: number, now: number): string =>
-  `${behind} ${behind === 1 ? "commit" : "commits"} behind origin, checked ` +
-  `${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
+export const driftPrefix = (behind: number, checkedAt: number, now: number, lang: Language = "en"): string =>
+  t(lang, behind === 1 ? "project.driftOne" : "project.driftMany", {
+    n: behind, when: relTimeLabel(new Date(checkedAt).toISOString(), now, lang),
+  });
 
 /** Every project but the board's own: how far its checkout is behind
  *  origin, and one sentence saying Deploy is not offered. No button, and
@@ -61,17 +58,18 @@ function otherProjectDeploy(
   now: number,
   heading: string,
   servingLine: string,
+  lang: Language,
 ): string {
   const line = !drift
     ? ""
     : drift.checkedAt === null
-      ? rowMessage("waiting", NOT_CHECKED_SENTENCE)
+      ? rowMessage("waiting", t(lang, "project.notChecked"))
       : drift.behind === null
         ? "" // asked, unanswerable: no claim
         : drift.behind > 0
-          ? rowMessage("waiting", `${driftPrefix(drift.behind, drift.checkedAt, now)}.`)
-          : rowMessage("info", MATCHES_ORIGIN_SENTENCE);
-  const inner = heading + panel(line + servingLine + rowMessage("info", NO_DEPLOY_SENTENCE));
+          ? rowMessage("waiting", `${driftPrefix(drift.behind, drift.checkedAt, now, lang)}.`)
+          : rowMessage("info", t(lang, "project.matchesOrigin"));
+  const inner = heading + panel(line + servingLine + rowMessage("info", t(lang, "project.noDeploy")));
   return drift ? checked(name, inner) : inner;
 }
 
@@ -97,25 +95,22 @@ function otherProjectDeploy(
 function deploySection(name: string, opts: ProjectPageOptions, now: number): string {
   // This section's own heading, so it reads apart from the
   // new "Testserver med testspecene" section beside it.
-  const heading = `<h3>${esc(t(opts.lang ?? "en", "project.deployHeading"))}</h3>`;
+  const lang = opts.lang ?? "en";
+  const heading = `<h3>${esc(t(lang, "project.deployHeading"))}</h3>`;
   const serving = opts.serving;
   const servingLine = serving
     ? rowMessage(
         serving.current ? "info" : "waiting",
         serving.current
-          ? `Serving commit ${serving.sha.slice(0, 7)} — matches this checkout.`
-          : `Serving commit ${serving.sha.slice(0, 7)}, but this checkout is now at commit ` +
-            `${serving.checkoutHead.slice(0, 7)} — the running service has not picked up the latest merge.`,
+          ? t(lang, "project.servingCurrent", { sha: serving.sha.slice(0, 7) })
+          : t(lang, "project.servingStale", { sha: serving.sha.slice(0, 7), head: serving.checkoutHead.slice(0, 7) }),
       )
     : "";
   const drift = opts.drift;
-  if (!opts.boardItself) return otherProjectDeploy(name, drift, now, heading, servingLine);
+  if (!opts.boardItself) return otherProjectDeploy(name, drift, now, heading, servingLine, lang);
   if (!drift) {
     return heading + panel(
-      rowMessage(
-        "info",
-        `No ${SETTING_LABELS.AIDE_INSTALL_CMD} is configured for this project, so its origin drift is not tracked here.`,
-      ) + servingLine,
+      rowMessage("info", t(lang, "project.noInstallCmd")) + servingLine,
     );
   }
   // Shown wherever `drift` is defined, never in the ungated branch above.
@@ -124,7 +119,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   const errorLine = failure
     ? rowMessage(
         "failed",
-        t(opts.lang ?? "en", "deploy.failedAt", { step: t(opts.lang ?? "en", STEP_LABEL[failure.step]!), error: failure.error }),
+        t(lang, "deploy.failedAt", { step: t(lang, STEP_LABEL[failure.step]!), error: failure.error }),
         { hook: "refusal deploy-error", tag: "p" },
       )
     : "";
@@ -149,57 +144,57 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     s.newestSubject === undefined
       ? undefined // git could not answer — fail open, no invented claim
       : s.current
-        ? `the service is already running the newest change, "${s.newestSubject}"`
-        : `the service is ${s.behindCount ?? "some"} commit${s.behindCount === 1 ? "" : "s"} behind this checkout` +
-          ` — the newest change is "${s.newestSubject}"`;
+        ? t(lang, "project.servedNewest", { subject: s.newestSubject })
+        : t(lang, s.behindCount === 1 ? "project.servedBehindOne" : "project.servedBehindMany", {
+            n: s.behindCount ?? "some", subject: s.newestSubject,
+          });
 
   let sentenceHtml: string | undefined;
   const sentence = notYetChecked
     ? (() => {
         const phrase = serving && servedCommitPhrase(serving);
         return phrase
-          ? `${NOT_CHECKED_SENTENCE.slice(0, -1)}; ${phrase}.`
-          : NOT_CHECKED_SENTENCE;
+          ? t(lang, "project.notCheckedWith", { phrase })
+          : t(lang, "project.notChecked");
       })()
     : behind! > 0
-      ? `${driftPrefix(behind!, drift.checkedAt!, now)} — Deploy pulls ${behind === 1 ? "it" : "them"}, installs` +
-        (serving ? ", and restarts the service." : ".")
+      ? t(lang, `project.behind${behind === 1 ? "One" : "Many"}${serving ? "Restart" : ""}` as TranslationKey, {
+          prefix: driftPrefix(behind!, drift.checkedAt!, now, lang),
+        })
       : stale
         ? opts.restartWaiting?.length
           ? (() => {
               const s = jobsSentence(
-                opts.lang ?? "en", "project.deployRestartWaiting",
+                lang, "project.deployRestartWaiting",
                 { sha: serving!.sha.slice(0, 7) }, opts.restartWaiting!,
               );
               sentenceHtml = s.html;
               return s.text;
             })()
-          : `This checkout matches origin, but the service is still running commit ${serving!.sha.slice(0, 7)}; ` +
-            `Deploy restarts it on commit ${serving!.checkoutHead.slice(0, 7)}.`
+          : t(lang, "project.stale", { sha: serving!.sha.slice(0, 7), head: serving!.checkoutHead.slice(0, 7) })
         : serving
-          ? `This checkout matches origin, and the service is running commit ${serving.sha.slice(0, 7)}.`
-          : MATCHES_ORIGIN_SENTENCE;
+          ? t(lang, "project.servingMatches", { sha: serving.sha.slice(0, 7) })
+          : t(lang, "project.matchesOrigin");
 
   const title = notYetChecked
-    ? "Origin has not been checked yet."
+    ? t(lang, "project.originUnchecked")
     : disabled
-      ? MATCHES_ORIGIN_SENTENCE
+      ? t(lang, "project.matchesOrigin")
       // The button stays live (a press still retries
       // the install), but hovering it says a press will not restart the
       // service sooner.
       : stale && opts.restartWaiting?.length
-        ? "Pressing again only repeats the pull and install — it does not restart the service sooner."
+        ? t(lang, "project.pressAgain")
         : undefined;
 
   // The board's own Deploy asks first, and OK queues the job. A second press
   // is refused while one is under way, and the hover line says so.
-  const lang = opts.lang ?? "en";
   const dialogId = "deployask";
   const underWay = opts.deployUnderWay
-    ? `A deploy is already ${opts.deployUnderWay} — follow it on the Running tab.`
+    ? t(lang, "project.deployUnderWay", { state: t(lang, `state.${opts.deployUnderWay}`) })
     : undefined;
   const ask =
-    askButton({ label: "Deploy", dialogId, variant: "primary", disabled, title: underWay ?? title }) +
+    askButton({ label: t(lang, "project.deployButton"), dialogId, variant: "primary", disabled, title: underWay ?? title }) +
     deployAskDialog(lang, name, dialogId);
   return checked(
     name,
@@ -277,7 +272,7 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
               modelFlag(lang, e.model, opts.scheduleModelNames, scheduleSettingsPath(project, e.name)) +
               `</td>` +
               `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
-              scheduleControlCells(project, e) +
+              scheduleControlCells(project, e, lang) +
               `</tr>`
             );
           })
@@ -292,13 +287,17 @@ function scheduleSection(project: string, entries: readonly ScheduleEntry[], opt
   return top + slot + table;
 }
 
+/** A check's answer in the reader's language: its message, or its English
+ *  text for an answer that carries none. */
+const checkSentence = (c: ReadinessCheck, lang: Language): string => renderSentence(lang, c.message ?? c.detail) ?? c.detail;
+
 /** The checks no settings row owns that did NOT pass
  *  — a check that passed says nothing here; the summary line above
  *  has already said as much. `FIELD_OWNED_CHECKS` keeps this the one
  *  place a fact this page draws twice cannot disagree with itself. */
-function checkoutChecks(readiness: ProjectReadiness): string {
+function checkoutChecks(readiness: ProjectReadiness, lang: Language): string {
   const checks = readiness.checks.filter((c) => !FIELD_OWNED_CHECKS.has(c.check) && !c.ok);
-  return checks.map((c) => rowMessage(c.blocking ? "failed" : "waiting", c.detail)).join("");
+  return checks.map((c) => rowMessage(c.blocking ? "failed" : "waiting", checkSentence(c, lang))).join("");
 }
 
 /** The one line at the top of Config saying whether a run can start
@@ -309,12 +308,12 @@ function checkoutChecks(readiness: ProjectReadiness): string {
  *  the false branch (`readiness.ts`: `canRun = checks.every(c =>
  *  !c.blocking)`). Non-blocking-but-failing checks are named in their
  *  own amber card below (`checkoutChecks`), not repeated here. */
-function readinessSummary(readiness: ProjectReadiness): string {
+function readinessSummary(readiness: ProjectReadiness, lang: Language): string {
   if (readiness.canRun) {
-    return rowMessage("info", "Nothing stops a run: this checkout is ready to run.");
+    return rowMessage("info", t(lang, "project.readinessOk"));
   }
-  const reasons = readiness.checks.filter((c) => c.blocking).map((c) => c.detail);
-  return rowMessage("failed", `a run cannot start here yet: ${reasons.join("; ")}`);
+  const reasons = readiness.checks.filter((c) => c.blocking).map((c) => checkSentence(c, lang));
+  return rowMessage("failed", t(lang, "project.cannotStart", { reasons: reasons.join("; ") }));
 }
 
 /** The Config tab: the settings table, plus — since the Health tab went
@@ -328,6 +327,7 @@ function configSection(
   readiness: ProjectReadiness | null,
   opts: ProjectPageOptions,
 ): string {
+  const lang = opts.lang ?? "en";
   // "No file" and "a file that sets nothing" are different states, and
   // the first is the ordinary one for a project cloned onto a second
   // machine — said plainly, above the rows, so seven "not set" lines
@@ -335,9 +335,9 @@ function configSection(
   // omissions.
   const noFile = settings.hasConfigFile
     ? ""
-    : rowMessage("info", "There is no .aide/config in this checkout, so nothing below was configured on this machine.");
-  const summary = readiness ? readinessSummary(readiness) : "";
-  const checkout = readiness ? checkoutChecks(readiness) : "";
+    : rowMessage("info", t(lang, "project.noConfigFile"));
+  const summary = readiness ? readinessSummary(readiness, lang) : "";
+  const checkout = readiness ? checkoutChecks(readiness, lang) : "";
   return noFile + summary + checkout + unifiedSettingsTable(settings, name, opts.editingGroup, opts);
 }
 
@@ -390,7 +390,10 @@ export function renderProjectPage(
 
   const body =
     (awaitingDrift ? reloadMarker(AWAITING_DRIFT_REFRESH_SECONDS) : "") +
-    tabbedBody(projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}), panel, opts.backHref ?? PROJECTS_ROUTE, p.name);
+    tabbedBody(
+      projectDescription(p), tabBar(PROJECT_TABS, base, tab, {}, "", { lang: opts.lang }), panel,
+      opts.backHref ?? PROJECTS_ROUTE, p.name, false, "", opts.lang ?? "en",
+    );
   return pageShell(p.name, nav, base, body, generatedAt, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });

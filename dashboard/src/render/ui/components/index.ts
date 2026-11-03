@@ -17,6 +17,7 @@
 // invented at this layer.
 
 import { esc } from "../html.ts";
+import { t, type Language } from "../../../i18n";
 import { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel } from "../../../format/step-label.ts";
 
 export { STEP_LABELS, STEP_LABELS_NB, STEP_LABELS_ES, STEP_LABELS_DE, STEP_LABELS_FR, stepLabel };
@@ -168,12 +169,12 @@ export function backLink(
   href: string, title?: string | { html: string }, trailing = "",
   /** On a page with tabs: the page script keeps this Back while the
    *  reader switches tabs (`specs-client/back-link/`), found by `data-keep`. */
-  o: { keep?: boolean } = {},
+  o: { keep?: boolean; lang?: Language } = {},
 ): string {
   // No Referer: the page Back leads to works out its own Back from the
   // Referer, and this page as its Referer would point it straight back
   // here — two pages sending each other round in a circle.
-  const link = `<a class="backlink" rel="noreferrer" href="${esc(href)}"${o.keep ? " data-keep" : ""}>← Back</a>`;
+  const link = `<a class="backlink" rel="noreferrer" href="${esc(href)}"${o.keep ? " data-keep" : ""}>← ${esc(t(o.lang ?? "en", "nav.back"))}</a>`;
   // `trailing` rides at the far end of the title's own line: on the spec
   // page, where the spec STANDS — its four pips and, while a phase is
   // running, what it is doing. The Logs tab said it, one click away,

@@ -7,7 +7,8 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { btn, ICON_SEARCH, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { t, type Language } from "../../../i18n";
+import { t, type Language, type TranslationKey } from "../../../i18n";
+import { en } from "../../../i18n/en.ts";
 import { modelFlag } from "./model-flag.ts";
 import { scheduleSettingsPath } from "./tabs.ts";
 import { queryHref, resolveSort, sortHeading, type SortColumns } from "./sort-head.ts";
@@ -109,8 +110,13 @@ export interface ScheduleListOptions {
 
 function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelNames" | "lang">): string {
   const next = nextFireTime(r.entry.cron, now);
-  const state = capitalizeFirst(r.lastState ?? "never run");
-  const output = r.outputHref ? ` — <a href="${esc(r.outputHref)}">output</a>` : "";
+  const lang = o.lang ?? "en";
+  // A job state has a word in the catalogue; one that has none is shown as it is.
+  const stateKey = `state.${r.lastState}` as TranslationKey;
+  const state = capitalizeFirst(
+    r.lastState === undefined ? t(lang, "schedule.neverRun") : stateKey in en ? t(lang, stateKey) : r.lastState,
+  );
+  const output = r.outputHref ? ` — <a href="${esc(r.outputHref)}">${esc(t(lang, "schedule.output"))}</a>` : "";
   return (
     // The whole row goes where the name does (`followScheduleRow`).
     `<tr data-row-href="${esc(r.projectScheduleHref)}">` +
@@ -130,7 +136,7 @@ function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelN
   );
 }
 
-function searchForm(f: ScheduleFilter): string {
+function searchForm(f: ScheduleFilter, lang: Language): string {
   const keep = (["sort", "dir"] as const)
     .map((k) => (f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : ""))
     .join("");
@@ -143,29 +149,30 @@ function searchForm(f: ScheduleFilter): string {
     `<span class="searchfield">` +
     `<span class="icon-search" aria-hidden="true">${ICON_SEARCH}</span>` +
     `<input class="archive-q" type="search" name="q" value="${esc(q)}" ` +
-    `placeholder="A project, a name or a prompt path" aria-label="Search the schedule">` +
+    `placeholder="${esc(t(lang, "schedule.searchPlaceholder"))}" aria-label="${esc(t(lang, "schedule.searchAria"))}">` +
     (q
       ? `<a class="searchclear" href="${esc(scheduleHref(f, { q: "" }))}" ` +
-        `title="Clear the search" aria-label="Clear the search">&times;</a>`
+        `title="${esc(t(lang, "list.searchClearTitle"))}" aria-label="${esc(t(lang, "list.searchClearTitle"))}">&times;</a>`
       : "") +
     `</span>` +
     keep +
-    btn({ label: "Search" }) +
+    btn({ label: t(lang, "list.search") }) +
     `</form>`
   );
 }
 
-function sortableHead(f: ScheduleFilter): string {
+function sortableHead(f: ScheduleFilter, lang: Language): string {
   const now = resolveSort(SORT_COLUMNS, f);
   const th = (key: string, label: string) =>
     sortHeading(SORT_COLUMNS, now, key, label, (sort, dir) => scheduleHref(f, { sort, dir }));
   return (
-    `<thead><tr>${th("name", "Name")}${th("next", "Next run")}${th("last", "Last run")}` +
-    `${th("enabled", "Enabled")}</tr></thead>`
+    `<thead><tr>${th("name", t(lang, "schedule.colName"))}${th("next", t(lang, "schedule.colNextRun"))}` +
+    `${th("last", t(lang, "schedule.colLastRun"))}${th("enabled", t(lang, "schedule.enabled"))}</tr></thead>`
   );
 }
 
 export function renderScheduleList(opts: ScheduleListOptions): string {
+  const lang = opts.lang ?? "en";
   const now = new Date();
   const f = opts.filter ?? {};
   const visible = sortRows(
@@ -176,10 +183,10 @@ export function renderScheduleList(opts: ScheduleListOptions): string {
   const term = (f.q ?? "").trim();
   const table =
     visible.length === 0
-      ? rowMessage("info", opts.rows.length === 0 ? "No schedule entry exists yet." : `No schedule entry matches "${term}".`)
-      : `<div class="tablewrap"><table class="list">${sortableHead(f)}<tbody>${visible.map((r) => row(r, now, opts)).join("")}</tbody></table></div>`;
+      ? rowMessage("info", opts.rows.length === 0 ? t(lang, "schedule.noEntries") : t(lang, "schedule.noMatch", { term }))
+      : `<div class="tablewrap"><table class="list">${sortableHead(f, lang)}<tbody>${visible.map((r) => row(r, now, opts)).join("")}</tbody></table></div>`;
   // Always drawn, empty when there is nothing to say: the page script
   // writes a refused Run now into it.
   const slot = messageSlot("refused", "failed");
-  return searchForm(f) + slot + table;
+  return searchForm(f, lang) + slot + table;
 }

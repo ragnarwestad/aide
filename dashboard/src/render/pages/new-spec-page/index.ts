@@ -117,8 +117,11 @@ export function dependsOnField(
      *  list as two same-styled fields side by side, each with its own
      *  label, no outer title and no "none" placeholder. */
     sideBySide?: { dependsOnLabel: string; selectLabel: string };
+    /** The reader's language, for the field's own words. */
+    lang?: Language;
   } = {},
 ): string {
+  const lang = o.lang ?? "en";
   const specs = [...targets].sort(
     (a, b) =>
       a.project.localeCompare(b.project) ||
@@ -159,17 +162,13 @@ export function dependsOnField(
       form: o.form,
       disabled: o.disabled,
       plain: o.disabled,
-      title: "archived — it can be dropped here, but not added back",
+      title: t(lang, "newSpec.archivedTitle"),
     }) +
     `</span>`;
   const picked = specs.filter((t) => checked.has(t.specFolder));
   const rest = specs.filter((t) => !checked.has(t.specFolder));
   const lockedBlock = (o.locked ?? []).map(lockedChip).join("");
-  const help = helpPopover(
-    "what a dependency does",
-    "A dependency applies from this spec's next gated step (implement, resolve, archive) — " +
-      "never to a step already running.",
-  );
+  const help = helpPopover(t(lang, "newSpec.dependsHelpTitle"), esc(t(lang, "newSpec.dependsHelp")));
   // The New-spec page's own shape — picked box and pick list
   // side by side, both framed the same way, no outer title
   // (the left column's own label is it) and no "none" placeholder
@@ -201,11 +200,11 @@ export function dependsOnField(
   // A picker that cannot be changed offers nothing to pick: what it depends
   // on, and no list.
   return field(
-    "Depends on:",
+    t(lang, "newSpec.dependsOnLine"),
     phases(o.disabled ? "" : rest.map(chip).join("")),
     {
       group: true, wide: o.wide, actions: o.actions,
-      after: phases(lockedBlock + picked.map(chip).join(""), "picked") + `<span class="muted" data-none>none</span>` + help,
+      after: phases(lockedBlock + picked.map(chip).join(""), "picked") + `<span class="muted" data-none>${esc(t(lang, "newSpec.none"))}</span>` + help,
     },
   );
 }
@@ -233,6 +232,7 @@ const panel = (key: NewSpecTab, open: NewSpecTab, body: string): string =>
 // up being CALLED is decided by `/aide-create` alone: nothing here, and
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
 function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpecTab): string {
+  const lang = opts.lang ?? "en";
   const chosen = projects.find((p) => p === opts.prefill?.project);
   // What can be changed on this page is the card's to say (`project/spec-card.ts`).
   const { view } = cardStep(undefined, {
@@ -244,35 +244,36 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpec
   // Add form shares, so the shared `.pageform` look is untouched.
   const spec =
     field(
-      "Project",
+      t(lang, "newSpec.project"),
       // Nothing is chosen for the reader: the first project in the list was
       // where every untouched form used to land. `required` is what makes the
       // browser refuse the empty placeholder at the field, as it does for the
       // title and the description below. `id` is what `for` below points at.
       `<select name="project" id="new-spec-project" required>` +
-        `<option value=""${chosen ? "" : " selected"}>Choose a project…</option>` +
+        `<option value=""${chosen ? "" : " selected"}>${esc(t(lang, "newSpec.chooseProject"))}</option>` +
         projects.map((p) => `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`).join("") +
         `</select>`,
       { wide: true, for: "new-spec-project" },
     ) +
     field(
-      "Title",
+      t(lang, "newSpec.title"),
       `<input type="text" name="title" maxlength="${TITLE_MAX}" required ` +
         (opts.prefill ? `value="${esc(opts.prefill.title)}" ` : "") +
-        `placeholder="what the spec is about, in a few words">`,
+        `placeholder="${esc(t(lang, "newSpec.titlePlaceholder"))}">`,
       { wide: true },
     ) +
     `<span class="frow">` +
     field(
-      "Description",
+      t(lang, "newSpec.description"),
       `<textarea name="description" rows="10" maxlength="${DESCRIPTION_MAX}" required ` +
-        `placeholder="the problem, and what you want instead">${esc(opts.prefill?.description ?? "")}</textarea>`,
+        `placeholder="${esc(t(lang, "newSpec.descriptionPlaceholder"))}">${esc(opts.prefill?.description ?? "")}</textarea>`,
       { wide: true },
     ) +
     `</span>` +
     `<span class="frow">` +
     dependsOnField(opts.targets ?? [], new Set(), {
       wide: true,
+      lang,
       disabled: view.locks.dependsOn !== null,
       sideBySide: {
         dependsOnLabel: t(opts.lang ?? "en", "newSpec.dependsOn"),
@@ -306,20 +307,20 @@ export function renderNewSpecPage(
   // `form=`, and the form holds no button of its own: `postForm()` gives
   // the busy word to the form's first button, and only without one to a
   // button naming it (`specs-client/press.ts`).
-  const create = btn({ label: "Create", variant: "primary", pending: "creating…", form: FORM_ID });
+  const create = btn({ label: t(lang, "form.create"), variant: "primary", pending: t(lang, "form.creating"), form: FORM_ID });
   const tabs = tabBar(NEW_SPEC_TABS, NEW_SPEC_ROUTE, open, {}, "", {
+    lang,
     label: (key) => t(lang, key === "spec" ? "newSpec.tabSpec" : "newSpec.tabOptions"),
     data: { "new-spec-tabs": "" },
   });
   const body = projects.length
-    ? backLink(opts.backHref ?? "/", "New spec", create) + tabs + newSpecForm(opts, projects, open)
-    : backLink(opts.backHref ?? "/", "New spec") +
+    ? backLink(opts.backHref ?? "/", t(lang, "newSpec.pageTitle"), create, { lang }) + tabs + newSpecForm(opts, projects, open)
+    : backLink(opts.backHref ?? "/", t(lang, "newSpec.pageTitle"), "", { lang }) +
       // The link on `/` is simply not offered when there is nothing to
       // create in, but this page has an address of its own and can be
       // reached anyway — and an empty form with an empty dropdown
       // reads as a page that failed to load.
-      `<p class="muted">No project on this machine may have a spec made in it yet. ` +
-      `Add one on the Projects page first.</p>`;
+      `<p class="muted">${esc(t(lang, "newSpec.noProject"))}</p>`;
   // `/` as the current path, not this page's own: the tab bar names the
   // two AREAS of the site, and making a spec is part of the spec list's
   // — the same answer `job-page.ts` gives for a job's detail page.

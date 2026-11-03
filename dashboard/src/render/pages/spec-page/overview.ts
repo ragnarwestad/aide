@@ -201,7 +201,7 @@ export function checklist(view: SpecPageView, lang: Language = "en"): string {
       // Empty rather than absent for a file git has never committed —
       // the same answer the description's own field gives.
       `<input type="hidden" name="statusBaseSha" value="${esc(view.checks?.baseSha ?? "")}">` +
-      panelHead(saveCancelActions()) +
+      panelHead(saveCancelActions("specform", {}, lang)) +
       list +
       `</form>`
     : panelHead() + list;

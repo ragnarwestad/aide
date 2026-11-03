@@ -25,7 +25,7 @@ export function renderReportPanel(opts: { lang: Language; run?: ReportPanelRun; 
   // The time as the board says it everywhere else ("5 d ago"), with the
   // exact stamp in its tooltip; placed into the sentence after escaping.
   const MARK = "\u0000";
-  const ran = esc(t(lang, "report.ranAt", { time: MARK })).replace(MARK, relTime(run.startedAt, opts.now ?? Date.now()));
+  const ran = esc(t(lang, "report.ranAt", { time: MARK })).replace(MARK, relTime(run.startedAt, opts.now ?? Date.now(), lang));
   const head =
     `<p class="reporthead">${badge(BADGE_VARIANT[run.view.state], label)} ${ran}</p>`;
   const body =

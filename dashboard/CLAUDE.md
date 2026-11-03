@@ -164,8 +164,9 @@ health", and hold here as everywhere. The dashboard checks them in
 `test/design/code-health-limits.test.ts`, its stylesheets included. What
 is particular to the dashboard:
 
-- `messages.ts`, `en.ts` and `nb.ts` are exempt from the line limit by
-  filename — the message catalogues grow with every new string. Files
+- `messages.ts` and the five language files `en.ts`, `nb.ts`, `es.ts`,
+  `de.ts` and `fr.ts` are exempt from the line limit by filename — the
+  message catalogues grow with every new string. Files
   already over the limit are held at their recorded length in the test's
   `OVER_LINE_LIMIT`.
 - A test moved into a subfolder gains one `../` in its own imports.

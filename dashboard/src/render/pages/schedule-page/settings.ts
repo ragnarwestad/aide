@@ -59,12 +59,12 @@ export function renderScheduleSettings(opts: ScheduleSettingsOptions): string {
     { label: esc(t(lang, "schedule.notify")), value: esc(t(lang, notify)) },
     { label: esc(t(lang, "schedule.browser")), value: esc(t(lang, entry.chrome ? "schedule.browserChrome" : "schedule.browserNone")) },
     { label: esc(t(lang, "schedule.sandbox")), value: esc(t(lang, entry.sandbox === false ? "schedule.sandboxOff" : "schedule.sandboxOn")) },
-    { label: esc(t(lang, "schedule.enabled")), value: enabledBox(project, entry) },
+    { label: esc(t(lang, "schedule.enabled")), value: enabledBox(project, entry, lang) },
   ]);
   const actions =
     `<div class="row">` +
     btnLink({ href: scheduleSettingsPath(project, entry.name, true), label: t(lang, "schedule.edit"), variant: "primary" }) +
-    deleteControl(project, entry.name, { done: opts.deleteDone }) +
+    deleteControl(project, entry.name, { done: opts.deleteDone }, lang) +
     `</div>`;
   // The refusal line first: a refused action writes into the first
   // `.refused` on the page (`schedule-actions.ts`), and Delete's OK names this one.

@@ -27,6 +27,8 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { configValue, resolveAcPrefix, resolveDescription, resolveWorktreeLinks, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
+import { t, type TranslationKey } from "../i18n";
+import type { BoardMessage } from "../i18n/message.ts";
 import type { ProjectReadiness, ReadinessCheckName } from "./project-admin";
 
 export type SettingOrigin = "configured" | "derived" | "unset";
@@ -59,7 +61,7 @@ export interface SettingRow {
    *  for this row, and the checkout-level section above the table reads
    *  it the same way for a check no row owns — the same fact must not
    *  read red in one place and amber in the other. */
-  problem?: { text: string; blocking: boolean };
+  problem?: { text: string; blocking: boolean; message?: BoardMessage };
 }
 
 export interface ProjectSettingsView {
@@ -126,15 +128,10 @@ export const EDITABLE_FIELD: Record<string, string> = {
   description: "description",
 };
 
-const PURPOSE: Record<string, string> = {
-  AIDE_SPECS_PATH: "Where this project's specs are kept — its own specs/ when unset",
-  worktreeLinks: "Gitignored paths a run's worktree needs, which git does not carry",
-  AIDE_TEST_CMD: "The project's own test command",
-  acPrefix: "Put before a criterion's id in a test's name; {spec} is the spec's number, so F{spec} names a test (F02 AC-2)",
-  AIDE_INSTALL_CMD: "What installing this project means on this machine, run after its code merges",
-  previewCmd: "How to start this project so a spec's branch can be looked at, serving on $PORT",
-  description: "One line saying what the project is, shown on the Projects list",
-};
+/** What each key is for, in English: the catalogue's `setting.purpose.<key>`. */
+const PURPOSE: Record<string, string> = Object.fromEntries(
+  SETTING_KEYS.map((key) => [key, t("en", `setting.purpose.${key}` as TranslationKey)]),
+);
 
 /** The keys a lockfile can answer, and which command each is: the test
  *  command alone. The page shows no lint or build row, since nothing a
@@ -215,7 +212,7 @@ export function projectSettings(
         value: configured.value,
         origin: "configured",
         ...(configured.source ? { source: configured.source } : {}),
-        ...(failed ? { problem: { text: failed.detail, blocking: failed.blocking } } : {}),
+        ...(failed ? { problem: { text: failed.detail, blocking: failed.blocking, message: failed.message } } : {}),
       };
     }
     const kind = DERIVABLE[key];
@@ -243,7 +240,7 @@ export function projectSettings(
       purpose,
       value: null,
       origin: "unset",
-      ...(unresolved ? { problem: { text: unresolved.detail, blocking: unresolved.blocking } } : {}),
+      ...(unresolved ? { problem: { text: unresolved.detail, blocking: unresolved.blocking, message: unresolved.message } } : {}),
     };
   });
   return { hasConfigFile: existsSync(join(projectDir, ".aide", "config")), rows };

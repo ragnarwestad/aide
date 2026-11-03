@@ -174,22 +174,22 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     `<div class="frow">` +
     (opts.projects
       ? field(
-          "Project",
+          t(lang, "schedule.project"),
           `<select name="project">` + opts.projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") + `</select>`,
         )
       : "") +
-    field("Name", `<input type="text" name="name" required maxlength="64" value="${esc(e?.name ?? "")}">`) +
+    field(t(lang, "schedule.colName"), `<input type="text" name="name" required maxlength="64" value="${esc(e?.name ?? "")}">`) +
     `</div>` +
     `<div class="frow">` +
     field(
-      "Cron",
+      t(lang, "schedule.cron"),
       `<input type="text" name="cron" required class="cron-input" value="${esc(e?.cron ?? "")}">` +
-        `<span class="muted" data-${CRON_NEXT_HOOK}>` +
-        (initialNext ? `Next run: ${esc(initialNext.toISOString())}` : "") +
+        `<span class="muted" data-${CRON_NEXT_HOOK} data-template="${esc(t(lang, "schedule.nextRunAt", { at: "{at}" }))}">` +
+        (initialNext ? esc(t(lang, "schedule.nextRunAt", { at: initialNext.toISOString() })) : "") +
         `</span>`,
     ) +
     field(
-      "Prompt file path",
+      t(lang, "schedule.promptPath"),
       `<input type="text" name="prompt" required value="${esc(e?.prompt ?? "")}">`,
     ) +
     `</div>` +
@@ -202,10 +202,10 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     notifyField(opts, lang) +
     browserField(opts, lang) +
     sandboxField(opts, lang) +
-    `<div class="factions">${btn({ label: opts.entryName ? "Save" : "Create", variant: "primary" })}` +
+    `<div class="factions">${btn({ label: t(lang, opts.entryName ? "list.checksSave" : "form.create"), variant: "primary" })}` +
     // A link, as the Config tab's Cancel is: it loads the tab as saved,
     // and `data-discard-changes` lets it past the leave question.
-    (opts.cancelHref ? btnLink({ href: opts.cancelHref, label: "Cancel", data: { "discard-changes": "" } }) : "") +
+    (opts.cancelHref ? btnLink({ href: opts.cancelHref, label: t(lang, "dialog.cancel"), data: { "discard-changes": "" } }) : "") +
     `</div>` +
     `</form>`
   );

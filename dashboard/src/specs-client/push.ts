@@ -152,7 +152,8 @@ export function bindPushPanel(panel: HTMLElement, deps?: Omit<PushDeps, "publicK
   // refuses (blocked, or no push support) it is off and unpressable.
   const show = (view: PushView) => {
     state = view.state;
-    status.textContent = view.message;
+    const key = Object.entries(VIEWS).find(([, v]) => v.message === view.message)?.[0];
+    status.textContent = (key && panel.getAttribute(`data-msg-${key}`)) || view.message;
     setSwitch(toggle, { checked: view.state === "on", disabled: view.state === "blocked" || view.state === "unsupported" });
   };
   toggle.addEventListener("click", () => {

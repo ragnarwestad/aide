@@ -97,7 +97,7 @@ export function renderScheduleDetailPage(
 ): string {
   const tab = pickTab(SCHEDULE_TABS, opts.tab, "report");
   const base = schedulePagePath(opts.project, opts.entry.name);
-  const bar = tabBar(SCHEDULE_TABS, base, tab, {});
+  const bar = tabBar(SCHEDULE_TABS, base, tab, {}, "", { lang: opts.lang });
   // The entry's runs — a run's report, and every run below it — and what
   // the entry IS, on Settings, where it is also changed.
   const panel =
@@ -111,7 +111,7 @@ export function renderScheduleDetailPage(
           lang: opts.lang ?? "en", project: opts.project, name: opts.entry.name, runs: opts.runs,
           shown: opts.shownRun, sort: opts.runSort?.sort, dir: opts.runSort?.dir,
         });
-  const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name);
+  const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name, false, "", opts.lang ?? "en");
   return pageShell(opts.entry.name, nav, base, body, generatedAt, {
     script: opts.script,
     hideHeading: true,

@@ -104,24 +104,26 @@ function stamp(at: string): string {
 /** How much of the AI's subscription is used, as the last press of its
  *  Check read it. A reading that failed is muted like a question the check
  *  could not answer: the Installation tab's login line says when to act. */
-function usageBlock(usage: ToolUsage | undefined, now: number): string {
-  const view = usageView(usage, now);
-  const read = (at: string) => `<p class="muted small">Usage read ${esc(stamp(at))}</p>`;
+function usageBlock(usage: ToolUsage | undefined, now: number, lang: Language): string {
+  const view = usageView(usage, now, lang);
+  const read = (at: string) => `<p class="muted small">${esc(t(lang, "settings.usage.readAt", { at: stamp(at) }))}</p>`;
   switch (view.kind) {
     case "unread":
-      return `<p class="muted">Usage not read yet.</p>`;
+      return `<p class="muted">${esc(t(lang, "settings.usage.unread"))}</p>`;
     case "failed":
-      return read(view.at) + `<p class="muted">The usage could not be read: ${esc(view.reason)}</p>`;
+      return read(view.at) + `<p class="muted">${esc(t(lang, "settings.usage.failed", { reason: view.reason }))}</p>`;
     case "noSource":
-      return `<p class="muted">The board does not read this AI's usage: its command line has no command that reports it.</p>`;
+      return `<p class="muted">${esc(t(lang, "settings.usage.noSource"))}</p>`;
     case "none":
-      return read(view.at) + `<p class="muted">This AI reports no usage windows.</p>`;
+      return read(view.at) + `<p class="muted">${esc(t(lang, "settings.usage.none"))}</p>`;
     case "text":
       return read(view.at) + `<pre class="checkoutput">${esc(view.text)}</pre>`;
     case "windows":
       return read(view.at) + facts(view.rows.map((row) => ({
         label: esc(row.label),
-        value: esc(`${row.usedPercent}% used${row.resets ? ` · resets ${row.resets}` : ""}`),
+        value: esc(row.resets
+          ? t(lang, "settings.usage.usedResets", { percent: row.usedPercent, resets: row.resets })
+          : t(lang, "settings.usage.used", { percent: row.usedPercent })),
       })));
   }
 }
@@ -136,7 +138,7 @@ function partBody(
 ): string {
   const { check, usage, models } = readings;
   if (part === "installation") return installationBlock(check, check ? stamp(check.at) : "", lang);
-  if (part === "subscription") return usageBlock(usage, now);
+  if (part === "subscription") return usageBlock(usage, now, lang);
   return modelsBlock(tool, models, models.reading ? stamp(models.reading.at) : "", lang, TOOL_TAB_LABELS[tool]);
 }
 
@@ -168,10 +170,11 @@ export function toolPanel(
       hook: "configactions reloadform",
       hidden: { tool },
       before: helpPopover(t(lang, "settings.checkHelpTitle"), checkHelp(lang, tool)),
-      button: { id: `${id}-run`, label: "Check", variant: "primary", pending: "checking…" },
+      button: { id: `${id}-run`, label: t(lang, "settings.checkButton"), variant: "primary", pending: t(lang, "settings.checking") },
       after: messageSlot("refused"),
     }) +
     tabBar(TOOL_PARTS, (p) => `/settings?tab=${tool}&aitab=${p}`, part, {}, "", {
+      lang,
       label: (p) => t(lang, `settings.part.${p}`),
       data: { aitabs: "" },
     }) +

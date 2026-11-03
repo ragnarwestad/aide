@@ -23,9 +23,23 @@ import { existsSync, statSync, realpathSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { configValue, resolveWorktreeLinks } from "../discover";
-import { SETTING_LABELS } from "../setting-labels.ts";
+import { renderMessage, type BoardMessage } from "../../i18n/message.ts";
 import { worktreeLinksError } from "./manifest-io.ts";
 import type { ProjectReadiness, ReadinessCheck } from "./types.ts";
+
+/** One answer: its flags, and its sentence as a message, with the English
+ *  `detail` every caller reads rendered from that same message. */
+function answer(
+  check: ReadinessCheck["check"], subject: string, ok: boolean, blocking: boolean, message: BoardMessage,
+): ReadinessCheck {
+  return { check, subject, ok, blocking, detail: renderMessage("en", message), message };
+}
+
+/** What a repository is called inside a sentence, as a message of its own,
+ *  since a sentence is written in the reader's language after this is built. */
+const labelOf = (label: string): BoardMessage => ({
+  key: label === "project" ? "readiness.label.project" : label === "specs" ? "readiness.label.specs" : "readiness.label.dashboard",
+});
 
 /** `git -C dir <args>`, trimmed, or `null` when git refused. */
 async function gitSays(run: GitRunner, dir: string, args: string[]): Promise<string | null> {
@@ -75,23 +89,15 @@ async function repoChecks(run: GitRunner, root: string, label: string): Promise<
   const base = await defaultBranchOf(run, root);
   const current = (await gitSays(run, root, ["rev-parse", "--abbrev-ref", "HEAD"])) ?? "";
   if (!base) {
-    checks.push({
-      check: "defaultBranch",
-      subject: root,
-      ok: false,
-      blocking: true,
-      detail: `the default branch of the ${label} repository at ${root} cannot be worked out`,
-    });
+    checks.push(answer("defaultBranch", root, false, true, {
+      key: "readiness.branch.unknown", values: { root }, inner: labelOf(label),
+    }));
     return checks;
   }
   if (current === base) {
-    checks.push({
-      check: "defaultBranch",
-      subject: root,
-      ok: true,
-      blocking: false,
-      detail: `the ${label} checkout is on ${base}`,
-    });
+    checks.push(answer("defaultBranch", root, true, false, {
+      key: "readiness.branch.on", values: { base }, inner: labelOf(label),
+    }));
     return checks;
   }
   // A branch git can reach is one it can switch to: either it is there
@@ -103,38 +109,22 @@ async function repoChecks(run: GitRunner, root: string, label: string): Promise<
   const remote =
     (await run(root, ["show-ref", "--verify", "--quiet", `refs/remotes/origin/${base}`])).code === 0;
   if (!local && !remote) {
-    checks.push({
-      check: "defaultBranch",
-      subject: root,
-      ok: false,
-      blocking: true,
-      detail:
-        `the ${label} checkout is on ${current}, and a run cannot move it to ${base}: there is no such branch, here or on origin — ` +
-        `create ${base}, or point this project at a branch that exists`,
-    });
+    checks.push(answer("defaultBranch", root, false, true, {
+      key: "readiness.branch.missing", values: { current, base }, inner: labelOf(label),
+    }));
     return checks;
   }
   const held = await branchHeldElsewhere(run, root, base);
   checks.push(
     held
-      ? {
-          check: "defaultBranch",
-          subject: root,
-          ok: false,
-          blocking: true,
-          detail:
-            `the ${label} checkout is on ${current}, and a run cannot move it to ${base}: another worktree has ${base} checked out at ${held} — ` +
-            `free ${base} there, or point this project at ${held}`,
-        }
-      : {
-          // Worth saying and nothing more: the runner puts a clean
-          // checkout on its default branch itself, and leaves it there.
-          check: "defaultBranch",
-          subject: root,
-          ok: false,
-          blocking: false,
-          detail: `the ${label} checkout is on ${current}, not ${base} — a run moves it to ${base} first`,
-        },
+      ? answer("defaultBranch", root, false, true, {
+          key: "readiness.branch.held", values: { current, base, held }, inner: labelOf(label),
+        })
+      // Worth saying and nothing more: the runner puts a clean
+      // checkout on its default branch itself, and leaves it there.
+      : answer("defaultBranch", root, false, false, {
+          key: "readiness.branch.moves", values: { current, base }, inner: labelOf(label),
+        }),
   );
   return checks;
 }
@@ -177,10 +167,7 @@ async function dashboardCheckoutChecks(
   const checks: ReadinessCheck[] = [];
   for (const { root, label } of roots) {
     const origin = await gitSays(run, root, ["remote", "get-url", "origin"]);
-    checks.push({
-      check: "dashboardCheckout",
-      subject: root,
-      ok: origin !== null,
+    checks.push(answer("dashboardCheckout", root, origin !== null,
       // Worth SAYING and nothing more, the same shape as a checkout on
       // a feature branch. A project the dashboard cannot clone still
       // runs — it falls back to the checkout it was pointed at, exactly
@@ -188,12 +175,11 @@ async function dashboardCheckoutChecks(
       // would take away something that works. What the reader needs to
       // know is that this project is the one where a run and their own
       // editing can still meet.
-      blocking: false,
-      detail:
-        origin === null
-          ? `the ${label} repository at ${root} has no origin remote, so the dashboard cannot make a checkout of its own — a run works in ${root} itself, where editing it meanwhile can collide`
-          : `the dashboard makes its own checkout of the ${label} repository at ${machineryDir} the first time a run needs one`,
-    });
+      false,
+      origin === null
+        ? { key: "readiness.checkout.noOrigin", values: { root }, inner: labelOf(label) }
+        : { key: "readiness.checkout.willMake", values: { dir: machineryDir }, inner: labelOf(label) },
+    ));
   }
   return checks;
 }
@@ -233,20 +219,13 @@ export async function assessProjectReadiness(
     }
   };
   const isRoot = top !== null && real(top) === real(projectDir);
-  checks.push({
-    check: "gitRoot",
-    subject: projectDir,
-    ok: isRoot,
-    blocking: !isRoot,
-    detail:
-      top === null
-        ? `${projectDir} is not a git repository, and every step of a run branches one — ` +
-          `make it one, or point this project at a checkout that already is`
-        : isRoot
-          ? `${projectDir} is its own git repository`
-          : `${projectDir} is not a repository of its own — it is inside the one at ${top}, which is what a run would branch — ` +
-            `move it to its own directory to fix this`,
-  });
+  checks.push(answer("gitRoot", projectDir, isRoot, !isRoot,
+    top === null
+      ? { key: "readiness.gitRoot.notRepo", values: { dir: projectDir } }
+      : isRoot
+        ? { key: "readiness.gitRoot.ok", values: { dir: projectDir } }
+        : { key: "readiness.gitRoot.inside", values: { dir: projectDir, top } },
+  ));
   const projectRoot = isRoot ? projectDir : top || projectDir;
 
   // 2. The specs root, configured or fallen back to, has to EXIST: the
@@ -254,17 +233,11 @@ export async function assessProjectReadiness(
   const configured = configValue(projectDir, "AIDE_SPECS_PATH");
   const specsRoot = configured ?? join(projectDir, "specs");
   const specsThere = existsSync(specsRoot) && statSync(specsRoot).isDirectory();
-  checks.push({
-    check: "specsRoot",
-    subject: specsRoot,
-    ok: specsThere,
-    blocking: !specsThere,
-    detail: specsThere
-      ? `the specs live at ${specsRoot}${configured ? "" : " (its own specs/, because no specs root was given)"}`
-      : configured
-        ? `there is no specs root at ${specsRoot}, and a run refuses without one`
-        : `no specs root was given, so a run looks for ${specsRoot} — and there is no such directory`,
-  });
+  checks.push(answer("specsRoot", specsRoot, specsThere, !specsThere,
+    specsThere
+      ? { key: configured ? "readiness.specsRoot.ok" : "readiness.specsRoot.okOwn", values: { root: specsRoot } }
+      : { key: configured ? "readiness.specsRoot.missingConfigured" : "readiness.specsRoot.missingFallback", values: { root: specsRoot } },
+  ));
 
   const roots: { root: string; label: string }[] = [{ root: projectRoot, label: "project" }];
   if (specsThere) {
@@ -272,19 +245,13 @@ export async function assessProjectReadiness(
     //    spec it writes, and a specs root outside git is a run whose
     //    analysis nothing keeps.
     const specsTop = await gitSays(run, specsRoot, ["rev-parse", "--show-toplevel"]);
-    checks.push({
-      check: "specsRepo",
-      subject: specsRoot,
-      ok: specsTop !== null,
-      blocking: specsTop === null,
-      detail:
-        specsTop === null
-          ? `${specsRoot} is in no git repository, so nothing would commit the spec a run writes there — ` +
-            `put it under one, or point ${SETTING_LABELS.AIDE_SPECS_PATH} at a directory that already is`
-          : resolve(specsTop) === resolve(projectRoot)
-            ? `the specs are in the project's own repository`
-            : `the specs are in the repository at ${specsTop}, which a run branches too`,
-    });
+    checks.push(answer("specsRepo", specsRoot, specsTop !== null, specsTop === null,
+      specsTop === null
+        ? { key: "readiness.specsRepo.none", values: { root: specsRoot } }
+        : resolve(specsTop) === resolve(projectRoot)
+          ? { key: "readiness.specsRepo.own" }
+          : { key: "readiness.specsRepo.other", values: { top: specsTop } },
+    ));
     if (specsTop !== null && resolve(specsTop) !== resolve(projectRoot)) {
       roots.push({ root: specsTop, label: "specs" });
     }
@@ -322,43 +289,20 @@ export async function assessProjectReadiness(
     : [];
   checks.push(
     !links
-      ? {
-          check: "worktreeLinks",
-          subject: projectDir,
-          // Not a failure: most projects need none, and the dashboard
-          // cannot infer which gitignored paths a test command wants.
-          // Said all the same, because it is silent otherwise.
-          ok: false,
-          blocking: false,
-          // Names the destination, not only the gap: this is the one
-          // readiness answer a person closes out themselves, and a note
-          // that describes what is missing without saying where to put
-          // it leaves them hunting. The label comes from the shared
-          // table so it is the same words the Config row
-          // shows.
-          detail:
-            `no ${SETTING_LABELS.worktreeLinks.toLowerCase()} are configured — a run's ` +
-            "worktree carries tracked files only, so name any gitignored path the project's " +
-            `own commands need (node_modules, .venv) in ${SETTING_LABELS.worktreeLinks} ` +
-            "on the Config tab",
-        }
+      // Not a failure: most projects need none, and the dashboard
+      // cannot infer which gitignored paths a test command wants.
+      // Said all the same, because it is silent otherwise. Names the
+      // destination, not only the gap: this is the one readiness answer
+      // a person closes out themselves.
+      ? answer("worktreeLinks", projectDir, false, false, { key: "readiness.links.none" })
       : linkError
-        ? { check: "worktreeLinks", subject: projectDir, ok: false, blocking: true, detail: linkError }
+        ? answer("worktreeLinks", projectDir, false, true, { key: "readiness.links.invalid", values: { error: linkError } })
         : missing.length
-          ? {
-              check: "worktreeLinks",
-              subject: projectDir,
-              ok: false,
-              blocking: true,
-              detail: `a run refuses a worktree link with nothing to link: ${missing.map((e) => `${e} is not in ${projectRoot}`).join(", ")}`,
-            }
-          : {
-              check: "worktreeLinks",
-              subject: projectDir,
-              ok: true,
-              blocking: false,
-              detail: `the worktree links are all there: ${links}`,
-            },
+          ? answer("worktreeLinks", projectDir, false, true,
+            missing.length === 1
+              ? { key: "readiness.links.missingOne", values: { entry: missing[0]!, root: projectRoot } }
+              : { key: "readiness.links.missingMany", values: { entries: missing.join(", "), root: projectRoot } })
+          : answer("worktreeLinks", projectDir, true, false, { key: "readiness.links.ok", values: { links } }),
   );
 
   const canRun = checks.every((c) => !c.blocking);

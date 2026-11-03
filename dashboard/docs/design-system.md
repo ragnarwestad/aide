@@ -310,6 +310,13 @@ and `LANGUAGE_NATIVE_NAMES` in `header-controls.ts`, and `LOCALES` in `job-state
 `format/gerund.ts` and `format/step-label.ts` are `Partial` and fall back to English, so they can be left. Everything
 else reads `Language`/`LANGUAGES` generically and needs nothing.
 
+**The Settings, Projects, Schedule and New spec pages are checked in Norwegian** by
+`test/render/pages/in-norwegian/`: each page state is drawn with Norwegian chosen, and a word inside `<main>` that
+the Norwegian catalogue does not hold fails the test, naming the page and the word. A page added to that test draws
+every word through `t()`; a name the page shows as it is (a tool, a model, a file, a setting key) is listed in
+`vocabulary.ts` under the kind of name it is. A source scan (`test/guards/catalogue/`) keeps the Cancel label and
+the confirmation dialogs out of the page code.
+
 ## Header and tab bar, not a sidebar
 
 Every page's `<body>` is `header + nav.tabbar + main`, with the page's own notices and dialogs between the header

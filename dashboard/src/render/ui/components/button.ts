@@ -4,6 +4,7 @@
 
 import { esc } from "../html.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
+import { t, type Language } from "../../../i18n";
 import { ICON_CLOSE, SPINNER } from "./icons.ts";
 
 // --- button -------------------------------------------------------------------
@@ -159,11 +160,13 @@ export function btnLink(o: {
  *  `o.variant` is for the one form whose submit cannot be undone — Close
  *  deletes the spec's code branch without merging it — so it carries
  *  `danger` the way every other irreversible control does. */
-export function saveCancelActions(prefix = "specform", o: { variant?: BtnVariant } = {}): string {
+export function saveCancelActions(
+  prefix = "specform", o: { variant?: BtnVariant } = {}, lang: Language = "en",
+): string {
   return (
     `<span class="factions">` +
-    btn({ id: `${prefix}-save`, label: "Save", variant: o.variant ?? "primary", pending: "saving…" }) +
-    btn({ id: `${prefix}-cancel`, label: "Cancel", type: "button", disabled: true }) +
+    btn({ id: `${prefix}-save`, label: t(lang, "list.checksSave"), variant: o.variant ?? "primary", pending: t(lang, "list.checksSaving") }) +
+    btn({ id: `${prefix}-cancel`, label: t(lang, "dialog.cancel"), type: "button", disabled: true }) +
     `</span>`
   );
 }

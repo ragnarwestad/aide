@@ -34,7 +34,7 @@ import {
   type SpecView,
   type ProjectPageOptions,
 } from "./types.ts";
-import { SETTING_LABELS } from "../../../project/setting-labels.ts";
+import { settingLabel } from "../../../project/setting-labels.ts";
 import { codeLandingChoices, previewFromChoices } from "./settings-table.ts";
 
 export type { SpecView, ProjectView, ProjectDrift, ProjectPageOptions };
@@ -53,10 +53,6 @@ export {
 
 /** Where a project is added: its own page, like `/new`. */
 export const ADD_PROJECT_ROUTE = "/projects/new";
-
-/** What the Test command field on Add is drawn with, and what the page
- *  script puts back when the Git URL gives no command. */
-const TEST_CMD_PLACEHOLDER = "optional — the project's own test command";
 
 export interface ProjectsPageOptions {
   /** The page's browser code, compiled from `specs-client.ts` by the
@@ -173,42 +169,37 @@ export function renderAddProjectPage(
   generatedAt: string,
   opts: ProjectsPageOptions,
 ): string {
+  const lang = opts.lang ?? "en";
   const body =
-    backLink("/projects", "Add project") +
+    backLink("/projects", t(lang, "project.add.title"), "", { lang }) +
     // Where what this form collects is kept, before the form rather
     // than in a doc nobody has open. It says nothing about a project's
     // stack, deployment or docs: the dashboard neither asks for those
     // nor shows them anywhere, and a line sending a reader off to fill
     // them in belongs where something reads them.
-    rowMessage(
-      "info",
-      "The specs path and the install command go to the project's .aide/config on this machine. " +
-        "The other settings go to the dashboard's own settings file. For a repository that already tracks " +
-        ".aide/project.yaml, they are committed to that file instead.",
-      { tag: "p" },
-    ) +
+    rowMessage("info", t(lang, "project.add.info"), { tag: "p" }) +
     `<form method="post" action="/api/queue/projects" class="pageform addprojectform">` +
     `<span class="frow">` +
     field(
-      "Name",
+      t(lang, "schedule.colName"),
       // A project's name IS its directory name, and here it
       // names the directory the clone is about to make.
       `<input type="text" name="name" maxlength="64" required ` +
         `pattern="[A-Za-z0-9][A-Za-z0-9._-]*" ` +
-        `placeholder="the directory the clone makes under the projects root">`,
+        `placeholder="${esc(t(lang, "project.add.namePh"))}">`,
       { wide: true },
     ) +
     field(
-      "Git URL",
-      `<input type="text" name="gitUrl" maxlength="300" required placeholder="cloned under the projects root">`,
+      t(lang, "project.add.gitUrl"),
+      `<input type="text" name="gitUrl" maxlength="300" required placeholder="${esc(t(lang, "project.add.gitUrlPh"))}">`,
       { wide: true },
     ) +
     `</span>` +
     `<span class="frow">` +
     field(
-      SETTING_LABELS.AIDE_SPECS_PATH,
+      settingLabel("AIDE_SPECS_PATH", lang),
       `<input type="text" name="specsPath" maxlength="300" ` +
-        `placeholder="optional — its own specs/ otherwise">`,
+        `placeholder="${esc(t(lang, "project.add.specsPathPh"))}">`,
       { wide: true },
     ) +
     // The same choice the project page's Edit offers, asked here so a
@@ -217,12 +208,12 @@ export function renderAddProjectPage(
     // code is reviewed before it lands is how a team works, and the
     // dashboard cannot know it. The server refuses an Add without it.
     field(
-      "Code landing",
+      t(lang, "setting.label.codeLanding"),
       `<select name="codeLanding" required>` +
-        `<option value="" selected>Choose how code lands…</option>` +
+        `<option value="" selected>${esc(t(lang, "project.add.chooseLanding"))}</option>` +
         // `null`: the project is not cloned yet, so it HAS no branch
         // name to show. The project page names the real one.
-        codeLandingChoices(null)
+        codeLandingChoices(null, lang)
           .map((o) => `<option value="${o.value}">${esc(o.label)}</option>`)
           .join("") +
         `</select>`,
@@ -232,9 +223,9 @@ export function renderAddProjectPage(
     // `none`, what a manifest without the key already means; the Config
     // tab changes it later.
     field(
-      "Try a branch",
+      t(lang, "setting.label.previewFrom"),
       `<select name="previewFrom">` +
-        previewFromChoices()
+        previewFromChoices(lang)
           .map((o) => `<option value="${o.value}"${o.value === "none" ? " selected" : ""}>${esc(o.label)}</option>`)
           .join("") +
         `</select>`,
@@ -248,12 +239,12 @@ export function renderAddProjectPage(
       // behind a gitignored path fails in every run for a reason that
       // has nothing to do with its change. Nothing can derive which
       // paths those are, so the form asks.
-      "Worktree links",
+      settingLabel("worktreeLinks", lang),
       // No suggestion list here, unlike the project page's own Edit: the
       // candidates are read from a checkout's `.gitignore`, and the
       // project being added has no checkout on this host yet.
       `<input type="text" name="worktreeLinks" maxlength="300" ` +
-        `placeholder="optional — gitignored paths a run must link in: node_modules .venv">`,
+        `placeholder="${esc(t(lang, "project.add.worktreeLinksPh"))}">`,
       { wide: true },
     ) +
     `</span>` +
@@ -263,35 +254,35 @@ export function renderAddProjectPage(
     // files point at; it is a suggestion and is never saved.
     `<span class="frow">` +
     field(
-      SETTING_LABELS.AIDE_TEST_CMD,
-      `<input type="text" name="testCmd" maxlength="300" placeholder="${TEST_CMD_PLACEHOLDER}">`,
+      settingLabel("AIDE_TEST_CMD", lang),
+      `<input type="text" name="testCmd" maxlength="300" placeholder="${esc(t(lang, "project.add.testCmdPh"))}">`,
       { wide: true },
     ) +
     field(
-      SETTING_LABELS.AIDE_INSTALL_CMD,
-      `<input type="text" name="installCmd" maxlength="300" placeholder="optional — run after its code merges">`,
+      settingLabel("AIDE_INSTALL_CMD", lang),
+      `<input type="text" name="installCmd" maxlength="300" placeholder="${esc(t(lang, "project.add.installCmdPh"))}">`,
       { wide: true },
     ) +
     field(
-      SETTING_LABELS.previewCmd,
-      `<input type="text" name="previewCmd" maxlength="300" placeholder="optional — serving on $PORT">`,
+      settingLabel("previewCmd", lang),
+      `<input type="text" name="previewCmd" maxlength="300" placeholder="${esc(t(lang, "project.add.previewCmdPh"))}">`,
       { wide: true },
     ) +
     field(
-      SETTING_LABELS.acPrefix,
-      `<input type="text" name="acPrefix" maxlength="300" placeholder="optional — F{spec} names a test (F02 AC-2)">`,
+      settingLabel("acPrefix", lang),
+      `<input type="text" name="acPrefix" maxlength="300" placeholder="${esc(t(lang, "project.add.acPrefixPh"))}">`,
       { wide: true },
     ) +
     `</span>` +
     `<span class="frow">` +
     field(
-      "Description",
+      settingLabel("description", lang),
       `<textarea name="description" rows="2" maxlength="500" ` +
-        `placeholder="one line: what the project is"></textarea>`,
+        `placeholder="${esc(t(lang, "setting.ph.description"))}"></textarea>`,
       { wide: true },
     ) +
     `<span class="factions">` +
-    btn({ label: "Save", variant: "primary", pending: "saving…" }) +
+    btn({ label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") }) +
     `</span></span>` +
     messageSlot("refused") +
     `</form>`;

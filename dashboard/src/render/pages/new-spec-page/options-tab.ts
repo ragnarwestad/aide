@@ -5,6 +5,8 @@
 
 import { helpPopover, phaseChip, stepLabel } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { t, type Language } from "../../../i18n";
+import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import type { CriteriaChecks } from "../../../project/discover";
 import type { CardLock, CardPlace, CardSetting, CardValues, CardView } from "../../../project/spec-card.ts";
 import { PHASE_LINES, type SpecGroup } from "../specs-list";
@@ -37,6 +39,7 @@ export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardV
       aiFormulate: card.shown.aiFormulate,
       criteriaChecks: card.shown.criteriaChecks as CriteriaChecks,
       chooseApproach: card.shown.chooseApproach,
+      lang: opts.lang ?? "en",
     }) +
     `</span>`
   );
@@ -55,6 +58,7 @@ export function optionsTab(opts: NewSpecPageOptions, formId: string, card: CardV
 // here, and `formIdOverride` (this page's own form id) is what actually
 // ties every select to it.
 function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
+  const lang = opts.lang ?? "en";
   const pickerOpts: PickerOptions = {
     modelChoices: opts.modelChoices,
     defaultModels: opts.defaultModels,
@@ -69,7 +73,7 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
     dependsOn: [], analyzeStale: false,
   };
   const captionRow = (opts.modelChoices ?? []).length
-    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts, false, "", opts.lang ?? "en")}</tr>`
+    ? `<tr class="subrow" data-caption="1">${phaseCaptionCells(pickerOpts, false, "", lang)}</tr>`
     : "";
   const phaseRows = PHASE_LINES.map((step) => {
     // `create` MADE the spec these lines belong to and cannot be
@@ -81,8 +85,8 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
       value: step,
       label: "",
       ariaLabel: locked
-        ? "Create — always runs, and not a step you can drop"
-        : stepLabel(step),
+        ? t(lang, "newSpec.createLockedAria")
+        : stepLabel(step, lang),
       name: locked ? "" : "steps",
       form: formId,
       checked: true,
@@ -90,7 +94,7 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
       plain: true,
     });
     return (
-      `<tr class="subrow" data-step="${esc(step)}"><td class="phasecell">${esc(stepLabel(step))}</td>` +
+      `<tr class="subrow" data-step="${esc(step)}"><td class="phasecell">${esc(stepLabel(step, lang))}</td>` +
       `<td class="modelcell"><span class="row">` +
       `<span class="aimodel">${aiPicker(row, pickerOpts, step, false, false, undefined, undefined, formId)}` +
       `${modelPicker(row, pickerOpts, step, false, false, undefined, undefined, formId)}</span>` +
@@ -117,12 +121,26 @@ export interface OptionsGroupValues {
   place: CardPlace;
   /** Why each setting cannot be changed, or null where it can. */
   locks: Record<CardSetting, CardLock | null>;
-  /** The labels, where the page has a language of its own. */
-  labels?: Partial<Record<"acceptance" | "aiFormulate" | "criteriaChecks" | "chooseApproach", string>>;
-  /** The level words of the checks select, by value. */
-  levelWords?: Partial<Record<CriteriaChecks, string>>;
+  /** The reader's language: the labels, the level words and the "(?)" texts. */
+  lang?: Language;
   /** The checks select last, after choosing the approach. */
   checksLast?: boolean;
+}
+
+/** The four settings' labels, in the reader's language: the same words on
+ *  New spec's Options tab and on the Specs list's open row. */
+export function optionLabels(lang: Language): Record<"acceptance" | "aiFormulate" | "criteriaChecks" | "chooseApproach", string> {
+  return {
+    acceptance: capitalizeFirst(t(lang, "spec.acceptanceTickingRequired")),
+    aiFormulate: t(lang, "spec.formulateCriteria"),
+    criteriaChecks: t(lang, "spec.criteriaChecks"),
+    chooseApproach: t(lang, "spec.chooseApproach"),
+  };
+}
+
+/** The three levels of the checks select, in the reader's language. */
+export function checkLevelWords(lang: Language): Record<CriteriaChecks, string> {
+  return { off: t(lang, "spec.checksOff"), warn: t(lang, "spec.checksWarn"), stop: t(lang, "spec.checksStop") };
 }
 
 /** The four settings about the spec as a whole, one to a line, as one
@@ -156,6 +174,7 @@ export function optionsGroup(v: OptionsGroupValues): string {
 // quietly skipped its acceptance table could only be put right by
 // running the whole analysis again.
 function acceptanceField(v: OptionsGroupValues): string {
+  const lang = v.lang ?? "en";
   const open = v.locks.acceptanceRequired === null;
   return (
     `<span class="field"><span class="fieldhead">` +
@@ -165,7 +184,7 @@ function acceptanceField(v: OptionsGroupValues): string {
     phaseChip({
       dataAttr: "data-acceptance",
       value: "1",
-      label: v.labels?.acceptance ?? "Acceptance ticking required",
+      label: optionLabels(lang).acceptance,
       name: open ? "acceptanceRequired" : "",
       form: v.form,
       checked: v.acceptance,
@@ -173,11 +192,7 @@ function acceptanceField(v: OptionsGroupValues): string {
       plain: true,
     }) +
     `<span class="fieldend">` +
-    helpPopover(
-      "what this does",
-      "Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. " +
-        "Cleared, every acceptance criterion is marked Not verified. Archive can proceed, and you can verify each row later.",
-    ) +
+    helpPopover(t(lang, "newSpec.optionHelpTitle"), esc(t(lang, "newSpec.help.acceptance"))) +
     `</span></span></span>`
   );
 }
@@ -188,12 +203,13 @@ function acceptanceField(v: OptionsGroupValues): string {
 // stumbles into. Ticked, create runs exactly as it always has: the only
 // path left to an AI session anywhere inside create.
 function aiFormulateAcceptanceField(v: OptionsGroupValues): string {
+  const lang = v.lang ?? "en";
   return (
     `<span class="field"><span class="fieldhead">` +
     phaseChip({
       dataAttr: "data-ai-formulate",
       value: "1",
-      label: v.labels?.aiFormulate ?? "Let AI formulate acceptance criteria",
+      label: optionLabels(lang).aiFormulate,
       name: v.locks.aiFormulate ? "" : "aiFormulateAcceptance",
       form: v.form,
       checked: v.aiFormulate,
@@ -201,13 +217,7 @@ function aiFormulateAcceptanceField(v: OptionsGroupValues): string {
       plain: true,
     }) +
     `<span class="fieldend">` +
-    helpPopover(
-      "what this does",
-      "Ticked, create runs a short AI session that writes an acceptance criterion for each " +
-        "requirement in this description that has none, and keeps the criteria you wrote " +
-        "yourself word for word; cleared, create writes the spec directly from what is typed " +
-        "here — no AI session, done in seconds.",
-    ) +
+    helpPopover(t(lang, "newSpec.optionHelpTitle"), esc(t(lang, "newSpec.help.formulate"))) +
     `</span></span></span>`
   );
 }
@@ -217,12 +227,13 @@ function aiFormulateAcceptanceField(v: OptionsGroupValues): string {
 // implement builds it, as it always has. The runner records the choice in
 // the new spec's Tracking info either way.
 function chooseApproachField(v: OptionsGroupValues): string {
+  const lang = v.lang ?? "en";
   return (
     `<span class="field"><span class="fieldhead">` +
     phaseChip({
       dataAttr: "data-choose-approach",
       value: "1",
-      label: v.labels?.chooseApproach ?? "Let me choose the approach",
+      label: optionLabels(lang).chooseApproach,
       name: v.locks.chooseApproach === null ? "chooseApproach" : "",
       form: v.form,
       checked: v.chooseApproach,
@@ -230,13 +241,7 @@ function chooseApproachField(v: OptionsGroupValues): string {
       plain: true,
     }) +
     `<span class="fieldend">` +
-    helpPopover(
-      "what this does",
-      "Ticked, analyze marks each approach it considered as a real alternative or as rejected. " +
-        "When it finds two or more real alternatives, Implement waits, and the spec's row lists them " +
-        "with the recommended one chosen: save it to go on, or choose another to have analyze plan " +
-        "that one instead. Cleared, analyze picks the approach and Implement builds it.",
-    ) +
+    helpPopover(t(lang, "newSpec.optionHelpTitle"), esc(t(lang, "newSpec.help.approach"))) +
     `</span></span></span>`
   );
 }
@@ -256,25 +261,20 @@ export const criteriaChecksChoices = (): { value: CriteriaChecks; label: string 
 // way the two switches beside it are — the control on the label's line,
 // the "(?)" at its end — so the three read as one row.
 function criteriaChecksField(v: OptionsGroupValues): string {
+  const lang = v.lang ?? "en";
   // A row's own form names its select, so two open rows never share an id.
   const row = v.place === "running-row" && v.form;
   const id = row ? `${v.form}-criteria-checks` : v.place === "running-row" ? "spec-criteria-checks" : "new-spec-criteria-checks";
   return (
     `<span class="field"><span class="fieldhead"><span class="row">` +
-    `<label for="${esc(id)}">${esc(v.labels?.criteriaChecks ?? "Acceptance criteria checks")}</label>` +
+    `<label for="${esc(id)}">${esc(optionLabels(lang).criteriaChecks)}</label>` +
     `<select ${v.locks.criteriaChecks === null ? `name="criteriaChecks"` : "disabled"}${row ? ` form="${esc(v.form!)}"` : ""} id="${esc(id)}">` +
     criteriaChecksChoices()
-      .map((o) => `<option value="${o.value}"${o.value === v.criteriaChecks ? " selected" : ""}>${esc(v.levelWords?.[o.value] ?? o.label)}</option>`)
+      .map((o) => `<option value="${o.value}"${o.value === v.criteriaChecks ? " selected" : ""}>${esc(checkLevelWords(lang)[o.value])}</option>`)
       .join("") +
     `</select></span>` +
     `<span class="fieldend">` +
-    helpPopover(
-      "what this does",
-      "How strictly analyze checks this spec's acceptance criteria — that each is written as a " +
-        "testable requirement, has a scenario, contradicts no other and can be built. Off: no " +
-        "checks. Warn: the plan review lists what it finds, and analyze completes. Stop: analyze " +
-        "stops until the criteria are put right. Chosen here, and not changed after the spec is created.",
-    ) +
+    helpPopover(t(lang, "newSpec.optionHelpTitle"), esc(t(lang, "newSpec.help.checks"))) +
     `</span></span></span>`
   );
 }

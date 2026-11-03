@@ -31,7 +31,7 @@ export function renderSchedulePromptPage(nav: NavEntry[], generatedAt: string, o
   const of = esc(t(o.lang, "schedule.promptOfJob", { job: MARK })).replace(MARK, job);
   const body =
     `<div class="doc">` +
-    backLink(settings, o.entry.prompt) +
+    backLink(settings, o.entry.prompt, "", { lang: o.lang }) +
     `<p class="muted">${of}</p>` +
     (o.text !== null
       ? viewerPair(o.text)

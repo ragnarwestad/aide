@@ -97,7 +97,7 @@ export function approachPanel(g: SpecGroup, lang: Language): string {
     `<form class="actionform approachform" id="${esc(id)}" method="post" ` +
     `action="/api/queue/specs/${esc(g.project)}/${esc(g.specFolder)}/approach">` +
     `<ul class="approachlist">${items}</ul>` +
-    (locked ? "" : saveCancelActions(id)) +
+    (locked ? "" : saveCancelActions(id, {}, lang)) +
     `</form>`
   );
 }

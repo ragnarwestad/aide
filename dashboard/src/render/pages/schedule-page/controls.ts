@@ -5,6 +5,7 @@
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { askButton, buttonForm, confirmDialog } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
+import { t, type Language } from "../../../i18n";
 
 /** The Schedule tab's refusal line, which Delete's OK names: the dialog
  *  it is posted from is closed before the refusal is written. */
@@ -14,11 +15,11 @@ const entryApi = (project: string, name: string): string =>
   `/api/queue/schedule/${encodeURIComponent(project)}/${encodeURIComponent(name)}`;
 
 /** The three cells, in order: Enabled, Run now, Delete. */
-export function scheduleControlCells(project: string, entry: ScheduleEntry): string {
+export function scheduleControlCells(project: string, entry: ScheduleEntry, lang: Language = "en"): string {
   return (
-    `<td>${enabledBox(project, entry)}</td>` +
-    `<td>${runNowForm(project, entry.name)}</td>` +
-    `<td>${deleteControl(project, entry.name)}</td>`
+    `<td>${enabledBox(project, entry, lang)}</td>` +
+    `<td>${runNowForm(project, entry.name, lang)}</td>` +
+    `<td>${deleteControl(project, entry.name, {}, lang)}</td>`
   );
 }
 
@@ -26,20 +27,20 @@ export function scheduleControlCells(project: string, entry: ScheduleEntry): str
 // `postTailStep`'s own tail-step chip has and for the same reason: it
 // does nothing without script, and flips the flag immediately — no
 // confirm — the instant it does (`schedule-actions.ts`).
-export function enabledBox(project: string, entry: ScheduleEntry): string {
+export function enabledBox(project: string, entry: ScheduleEntry, lang: Language = "en"): string {
   return (
     `<input type="checkbox" class="scheduleenabled"${entry.enabled ? " checked" : ""} ` +
-    `aria-label="Enabled: ${esc(entry.name)}" data-post-to="${esc(`${entryApi(project, entry.name)}/enabled`)}">`
+    `aria-label="${esc(t(lang, "schedule.enabledAria", { name: entry.name }))}" data-post-to="${esc(`${entryApi(project, entry.name)}/enabled`)}">`
   );
 }
 
 /** The page's ordinary button: this is the entry's action, and it
  *  stands beside Delete. */
-export function runNowForm(project: string, name: string): string {
+export function runNowForm(project: string, name: string, lang: Language = "en"): string {
   return buttonForm({
     action: `${entryApi(project, name)}/run`,
     hook: "actionform schedulerun",
-    button: { label: "Run now", pending: "running…" },
+    button: { label: t(lang, "schedule.runNow"), pending: t(lang, "schedule.running") },
   });
 }
 
@@ -58,18 +59,21 @@ export function runNowForm(project: string, name: string): string {
 // What it asks is the question itself, in the heading, with the two
 // answers under it. It asked for the entry's exact name, typed back,
 // until 2026-09-08.
-export function deleteControl(project: string, name: string, o: { done?: string } = {}): string {
+export function deleteControl(
+  project: string, name: string, o: { done?: string } = {}, lang: Language = "en",
+): string {
   const id = `deleteask-${project}/${name}`;
   return (
-    askButton({ label: "Delete", dialogId: id, variant: "danger", ariaLabel: `Delete ${name}` }) +
+    askButton({
+      label: t(lang, "schedule.delete"), dialogId: id, variant: "danger", ariaLabel: t(lang, "schedule.deleteAria", { name }),
+    }) +
     // The dialog's own heading asks the question: the press is the
-    // whole of "yes". This page has no catalogue, so the box keeps to
-    // English.
-    confirmDialog("en", {
+    // whole of "yes".
+    confirmDialog(lang, {
       id,
-      title: `Delete ${project}:${name}?`,
-      sentence: "The entry is removed and stops firing. Its own run history stays in the queue.",
-      ok: { variant: "danger", pending: "deleting…" },
+      title: t(lang, "schedule.deleteTitle", { project, name }),
+      sentence: t(lang, "schedule.deleteSentence"),
+      ok: { variant: "danger", pending: t(lang, "schedule.deleting") },
       post: {
         action: `${entryApi(project, name)}/delete`,
         hook: "reloadform",
