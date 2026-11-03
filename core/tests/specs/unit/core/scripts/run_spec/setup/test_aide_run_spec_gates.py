@@ -396,3 +396,17 @@ def test_a_refusal_is_an_error_line_in_the_log(runner, workspace, fake_claude):
     rc, out, _, err = run(runner, workspace, fake_claude("exit 1"), command="implement", return_stderr=True)
     assert out["terminalReason"] == "refused", out
     assert re.search(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s error: .*/aide-analyze", err, re.M), err
+
+
+def test_every_part_the_runner_sources_is_checked_before_the_first_phase(runner):
+    """A part sourced without being in the `need_part` list is found
+    missing only when the run reaches it, after the model has been paid
+    for. Parts sourced behind their own `[ -f ... ] &&` are optional and
+    need no check."""
+    text = pathlib.Path(runner).read_text()
+    loop = re.search(r"^for _part in (.+); do need_part", text, re.M)
+    assert loop, "the need_part loop is gone"
+    checked = set(loop.group(1).split())
+    sourced = set(re.findall(r'^source "\$SCRIPT_DIR/lib/([^"]+)"', text, re.M))
+    assert sourced, "no sourced parts found; the pattern no longer matches the script"
+    assert sorted(sourced - checked) == []
