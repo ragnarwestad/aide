@@ -107,6 +107,12 @@
       "body": "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| AC-1: one | ❌ Failed | Failed: the log shows no row |\n| AC-2: two | Failed | Failed: x |\n| AC-3: three | ✅ | |\n",
       "done": 1,
       "total": 3
+    },
+    {
+      "name": "a-task-with-an-escaped-pipe-is-still-a-row",
+      "body": "## Acceptance criteria\n\n| Criterion | Status | Notes |\n|-----------|--------|-------|\n| AC-1: `a \\| b` is parsed | ⬜ | |\n| AC-2: plain | ✅ | |\n",
+      "done": 1,
+      "total": 2
     }
   ]
 }

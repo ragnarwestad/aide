@@ -40,9 +40,12 @@ status_progress_for() {   # sets $progress_done, $progress_total
       line = $0
       gsub(/^[ \t]+|[ \t]+$/, "", line)
       if (line !~ /^\|.*\|$/) { prev_counted = 0; next }
+      # An escaped pipe (`\|`) inside a cell is text, not a column.
+      gsub(/\\\|/, "\001", line)
       n = split(line, cells, "|")
       if (n != 5) { prev_counted = 0; next }
       task = cells[2]; mark = cells[3]
+      gsub(/\001/, "\\|", task)
       gsub(/^[ \t]+|[ \t]+$/, "", task)
       gsub(/^[ \t]+|[ \t]+$/, "", mark)
       if (task == "") { prev_counted = 0; next }
@@ -99,9 +102,12 @@ status_advanced_count_for() {   # sets $advanced_count
       line = $0
       gsub(/^[ \t]+|[ \t]+$/, "", line)
       if (line !~ /^\|.*\|$/) { prev_counted = 0; next }
+      # An escaped pipe (`\|`) inside a cell is text, not a column.
+      gsub(/\\\|/, "\001", line)
       n = split(line, cells, "|")
       if (n != 5) { prev_counted = 0; next }
       task = cells[2]; mark = cells[3]
+      gsub(/\001/, "\\|", task)
       gsub(/^[ \t]+|[ \t]+$/, "", task)
       gsub(/^[ \t]+|[ \t]+$/, "", mark)
       if (task == "") { prev_counted = 0; next }

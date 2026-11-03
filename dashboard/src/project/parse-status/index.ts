@@ -293,7 +293,8 @@ export function isDoneMark(mark: string): boolean {
 function splitRowCells(line: string): [string, string, string] | null {
   const trimmed = line.trim();
   if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return null;
-  const parts = trimmed.split("|");
+  // An escaped pipe (`\|`) inside a cell is text, not a column.
+  const parts = trimmed.split(/(?<!\\)\|/);
   if (parts.length !== 5) return null;
   return [parts[1]!.trim(), parts[2]!.trim(), parts[3]!.trim()];
 }
