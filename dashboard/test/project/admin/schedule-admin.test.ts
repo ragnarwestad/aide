@@ -201,6 +201,19 @@ describe("setScheduleEnabled", () => {
     expect(stored()[0]!.enabled).toBe(true);
   });
 
+  test("resuming a paused entry stamps a fresh since, so a fire missed while paused is not run at once", () => {
+    const { store, stored } = setup([{ name: "nightly", enabled: false, since: "2020-01-01T00:00:00.000Z" }]);
+    const before = Date.now();
+    expect(setScheduleEnabled(store, PROJECT, "nightly", true).ok).toBe(true);
+    expectFreshSince(stored()[0]!.since, before, Date.now());
+  });
+
+  test("pausing an entry leaves its since as it was", () => {
+    const { store, stored } = setup([{ name: "nightly", since: "2020-01-01T00:00:00.000Z" }]);
+    expect(setScheduleEnabled(store, PROJECT, "nightly", false).ok).toBe(true);
+    expect(stored()[0]!.since).toBe("2020-01-01T00:00:00.000Z");
+  });
+
   test("setting the same value writes nothing", () => {
     const { store, file } = setup([{ name: "nightly" }]);
     const bytes = readFileSync(file, "utf-8");

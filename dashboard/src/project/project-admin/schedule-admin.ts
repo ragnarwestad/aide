@@ -197,7 +197,9 @@ export function deleteScheduleEntry(store: ScheduleStore, project: string, name:
 }
 
 /** Pause or resume one entry: an immediate, no-confirm flip. A value
- *  that matches what is already stored writes nothing. */
+ *  that matches what is already stored writes nothing. Resuming stamps
+ *  a fresh `since`, so a fire time that passed while the entry was
+ *  paused does not make it due the moment it is switched back on. */
 export function setScheduleEnabled(
   store: ScheduleStore,
   project: string,
@@ -208,5 +210,7 @@ export function setScheduleEnabled(
   const current = existing.find((e) => e.name === name);
   if (!current) return { ok: false, error: `no schedule entry named "${name}"` };
   if (current.enabled === enabled) return { ok: true };
-  return saveEntries(store, project, existing.map((e) => (e.name === name ? { ...e, enabled } : e)));
+  const changed = (e: ScheduleEntry): ScheduleEntry =>
+    enabled ? { ...e, enabled, since: new Date().toISOString() } : { ...e, enabled };
+  return saveEntries(store, project, existing.map((e) => (e.name === name ? changed(e) : e)));
 }
