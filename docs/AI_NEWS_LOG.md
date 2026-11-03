@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-03](#2026-11-03)
   - [2026-11-02](#2026-11-02)
   - [2026-11-01](#2026-11-01)
   - [2026-10-31](#2026-10-31)
@@ -117,6 +118,82 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-03
+
+Nov 2 – Nov 3. Not read: the Codex changelog page past its first 100,000 characters, the OpenCode changelog page past
+its first 100,000 characters, the OpenAI developer blog (no dates shown), Artificial Analysis (the harness comparison
+there is still "Coming soon"), the GitHub Copilot blog (newest post shown is Oct 20), the Copilot changelog (titles only,
+newest Oct 28), the v2.1.317 release notes (cut off in the page at a self-hosted runner fix). Of the watched pages,
+`agents.md` changed in star counts only, and the prompting pages for Haiku 5.5, Opus 4.8 and Sonnet 5 changed in platform
+wording only.
+
+**Claude Code (v2.1.317):**
+
+| Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Source                                                           |
+|-------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| Nov 3 | v2.1.317 | `/schedule` warns when a new cloud task gets connectors you did not ask for; a check asks before a web or shell tool call sends your account email to the network; `onFailure: "block"` for Agent SDK hook callbacks; `SendMessage` to a running background agent moves its command to the background instead of stopping it; subagents and teammates on another model use that model's effort level; the Read tool no longer returns a "file unchanged" stub; `claude -p` exits 1 when a full disk or quota loses transcript writes; `CLAUDE_CODE_DISABLE_NESTED_SESSION_ID=1` restores session-ID reuse for `claude -p` inside a session | [Releases](https://github.com/anthropics/claude-code/releases)   |
+| Nov 2 | —        | Blog post "Make long-running agents faster with message threads": the Messages API keeps the conversation, so only new content is sent each turn                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | [Article](https://claude.com/resources/articles/message-threads) |
+
+**GitHub Copilot CLI (v1.0.105 stable; v1.0.106-5 the newest pre-release):**
+
+| Date  | Version        | News                                                                                                                                                                                                        | Source                                                     |
+|-------|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 3 | v1.0.106-5     | Honors the setting that turns off Co-authored-by trailers in ACP mode; `copilot mcp enable` reports a failure for servers the repository disables; a BYOK provider key stays out of error messages and logs | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 2 | v1.0.106-3, -4 | Opt-in session management tools and `@` mentions for local sessions; `@file` mentions inside brackets, quotes or backticks attach correctly; built-in agent names no longer duplicated by custom agents     | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.166.0 stable; v0.167.0-alpha.4 pre-release):**
+
+| Date  | Version          | News                                                          | Source                                               |
+|-------|------------------|---------------------------------------------------------------|------------------------------------------------------|
+| Nov 3 | v0.167.0-alpha.4 | Pre-release with no notes; stable is still v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.5, no newer release):**
+
+| Date | Version | News                              | Source                                                     |
+|------|---------|-----------------------------------|------------------------------------------------------------|
+| —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⚠️ X list, @nisten, Nov 2: claims Playwright 1.64.1 bundles an early Chromium 156 with four CVEs and runs with its
+  sandbox off by default. `dashboard/package.json` pins `playwright` at exactly 1.64.1. A single unconfirmed post: read
+  Playwright's release notes and the CVE entries before changing anything.
+  [Post](https://x.com/nisten/status/2117322879859568756)
+- ✅ Claude Code v2.1.317: the changes that touch the runner are `SendMessage` to a running background agent no longer
+  stopping its command, subagents on another model using that model's effort level, `claude -p` exiting 1 when
+  transcript writes fail, and the new `CLAUDE_CODE_DISABLE_NESTED_SESSION_ID`. The Read tool returns content again on a
+  re-read instead of a stub. [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ Claude blog and X list (@ClaudeDevs), Nov 2: message threads in public beta on the Messages API, already used by
+  Claude Code; median time to first token about 35% lower on 500K to 1M token requests. Long spec steps are that case.
+  [Article](https://claude.com/resources/articles/message-threads),
+  [Post](https://x.com/ClaudeDevs/status/2117332449382510884)
+- ✅ Watched page `learn.chatgpt.com/docs/build-skills`: Codex now takes a `[skills.bundled] enabled = false` setting in a
+  project's trusted `.codex/config.toml` to turn off all bundled system skills, and `[[skills.config]]` entries take
+  exactly one selector (a path or a name), the last matching entry winning.
+  [Page](https://learn.chatgpt.com/docs/build-skills)
+- ✅ Watched page `code.claude.com/docs/en/best-practices`: auto mode's list is now called "Recently blocked" in
+  `/permissions` (before "Recently denied"), where you approve an action so Claude may retry.
+  [Page](https://code.claude.com/docs/en/best-practices)
+- ✅ X list, @theo, Nov 3: Anthropic's plans are renamed (Max 20x became "Claude Ultra", Max 5x became Max). No file in
+  the repository names "Max 5x" or "Max 20x". [Post](https://x.com/theo/status/2117479094711673131)
+- ✅ X list, @mardehaym, Nov 2: OpenAI and Anthropic changed limits and plans six times in one week; Codex and ChatGPT now
+  share one usage meter. Touches how the runner reacts to a Codex limit hit.
+  [Post](https://x.com/mardehaym/status/2117279285807657019)
+- ✅ X list, @poteto, Nov 2: adversarial reviews are mostly a waste of tokens next to empirical checks and formal
+  verification. Touches the review passes in `docs/AGENTS_AND_LOOPS.md`.
+  [Post](https://x.com/poteto/status/2117437607940681849)
+- ✅ X list, @Voxyz_ai, Nov 1: many installed skills change nothing because nobody compared them with running without
+  the skill. Aide ships a set of skills with no such comparison.
+  [Post](https://x.com/Voxyz_ai/status/2117372427714089436)
+- ✅ X list, @housecor, Nov 2: pointing Claude at a big ticket gives bloated context; split it or use subagents. Aide's
+  spec steps already do this. [Post](https://x.com/housecor/status/2117244057303007624)
+- ✅ X list, @theo, Nov 2: Codex usage limits doubled for Pro 100/200/500 and Business Premium.
+  [Post](https://x.com/theo/status/2117156281144447066)
+- ℹ Copilot CLI v1.0.106-3 to -5 and Codex v0.167.0-alpha.4 are pre-releases; OpenCode has no release after v2.2.5.
+- ℹ X list, Nov 2: @somi_ai on an agent that deleted a production volume after finding a database token, @trq212 on
+  the $200 plans being enough, @dair_ai on a grep-only harness.
+- ℹ Anthropic news shows nothing newer than Oct 28; the Copilot blog and changelog nothing newer than Oct 20 and Oct 28.
 
 ### 2026-11-02
 
