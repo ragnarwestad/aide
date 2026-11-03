@@ -42,6 +42,10 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     (tmp_path / "lib" / "files-to-change.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "files-to-change.sh").read_bytes()
     )
+    # translation-files.sh too: the branch update merges with it, sourced by path.
+    (tmp_path / "lib" / "translation-files.sh").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "translation-files.sh").read_bytes()
+    )
     # tracking-info.sh too: the script sources it by path before any phase.
     (tmp_path / "lib" / "tracking-info.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "tracking-info.sh").read_bytes()

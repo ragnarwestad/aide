@@ -71,3 +71,19 @@ export async function runScript(
   clearTimeout(hard);
   return out;
 }
+
+/** The `git -c` arguments that make a merge in `work` merge the project's
+ *  translation files key by key, as `root`'s .aide/project.yaml names them,
+ *  from `aide-translation-merge-args`, so the rule for which files those
+ *  are lives in one place. Any failure gives none: the merge is then git's
+ *  own, exactly as without them. */
+export async function translationMergeArgs(root: string, work: string, opts: { scriptDir?: string } = {}): Promise<string[]> {
+  const script = scriptFor("aide-translation-merge-args", { beside: opts.scriptDir });
+  try {
+    const result = await runScript([script, root, work], work, 10_000);
+    if (result.code !== 0) return [];
+    return result.stdout.split("\n").filter((line) => line !== "");
+  } catch {
+    return [];
+  }
+}

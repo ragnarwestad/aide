@@ -2,6 +2,7 @@ import { resolve, dirname } from "node:path";
 import { checkAllTools, setConfiguredTools, setModelChoices, toolRechecker, type CheckableTool } from "./tool-check.ts";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
+import { translationMergeArgs } from "./land-branch/run-script.ts";
 // The aide-dashboard server: serves every page of the board and its
 // actions, and receives aide-run events (POST /api/aide-run).
 //
@@ -217,6 +218,7 @@ export function createServer(opts: ServerOptions) {
         assignSpecNumberAfterMerge(work, root, specs, folder, {
           scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined,
         })),
+    translationMergeArgs: (root, work) => translationMergeArgs(root, work, { scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined }),
     testServers: testServersCtx,
   });
 

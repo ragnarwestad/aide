@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# aide-merge-translation — git's merge driver for a project's translation
+# files (`translationFiles` in .aide/project.yaml): a JSON object of
+# messages, merged key by key, so two branches that each add messages to the
+# same file merge cleanly instead of conflicting on the lines they both
+# appended. The rules are lib/merge-translation.mjs's.
+#
+# Git calls it as `aide-merge-translation %O %A %B %L %P` and reads the exit
+# code: 0, the merged file is in <ours>; anything else, the file is in
+# conflict. A custom driver that fails leaves <ours> as it was, with no
+# markers, so every way this cannot merge — bun missing, a layout the key
+# merge will not write back, two different values for one key — falls back
+# to git's own line merge, markers included, exactly as a merge without
+# this driver would have left the file.
+#
+# Usage: aide-merge-translation <base> <ours> <theirs> [<marker-size> [<path>]]
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+case "${1:-}" in
+  -h|--help)
+    echo "usage: aide-merge-translation <base> <ours> <theirs> [<marker-size> [<path>]]"
+    exit 0 ;;
+esac
+if [ $# -lt 3 ] || [ $# -gt 5 ]; then
+  echo "usage: aide-merge-translation <base> <ours> <theirs> [<marker-size> [<path>]]" >&2
+  exit 2
+fi
+base="$1"; ours="$2"; theirs="$3"; marker_size="${4:-7}"; path="${5:-$ours}"
+
+# The key merge writes <ours> only when it succeeds, so the three inputs are
+# still untouched for the line merge when it does not.
+if command -v bun >/dev/null 2>&1 \
+  && bun "$SCRIPT_DIR/lib/merge-translation.mjs" "$base" "$ours" "$theirs" 2>/dev/null; then
+  exit 0
+fi
+git merge-file --marker-size="$marker_size" -L "$path" -L base -L theirs "$ours" "$base" "$theirs"

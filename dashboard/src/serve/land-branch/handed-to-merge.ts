@@ -88,6 +88,8 @@ export function handedToMerge(
     ? (work: string) => ctx.finalizeCreateSpec!(work, root, specsRootAbs, job.specFolder)
     : undefined;
   const hooks: MergeHooks = {
+    // A code root only: the translation files are the project's code.
+    mergeArgs: codeRoots.has(root) && ctx.translationMergeArgs ? (work) => ctx.translationMergeArgs!(root, work) : undefined,
     beforeCheckoutMoves: (info) => {
       if (info.assignedSpecFolder) {
         // The pendingModels rename runs BEFORE the job's own specFolder

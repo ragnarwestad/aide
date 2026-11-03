@@ -21,12 +21,12 @@
 
 shared_files_json=""
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ -f "$SCRIPT_DIR/aide-spec-overlap" ]; then
-  shared_after="$("$SCRIPT_DIR/aide-spec-overlap" --specs-root "$specs_root_wt" --spec "$spec_label" --record 2>/dev/null | tail -1)"
+  shared_after="$("$SCRIPT_DIR/aide-spec-overlap" --specs-root "$specs_root_wt" --spec "$spec_label" --record --project-dir "$project_root" 2>/dev/null | tail -1)"
   shared_before_file="$work_dir/analysis-before"
   : > "$shared_before_file"
   [ -n "${specs_ref_before:-}" ] && \
     git -C "$specs_root_wt/$spec_label" show "$specs_ref_before:./2-analysis.md" > "$shared_before_file" 2>/dev/null
-  shared_before="$("$SCRIPT_DIR/aide-spec-overlap" --specs-root "$specs_root_wt" --spec "$spec_label" --analysis "$shared_before_file" 2>/dev/null | tail -1)"
+  shared_before="$("$SCRIPT_DIR/aide-spec-overlap" --specs-root "$specs_root_wt" --spec "$spec_label" --analysis "$shared_before_file" --project-dir "$project_root" 2>/dev/null | tail -1)"
   shared_new="$(jq -cn --argjson after "${shared_after:-null}" --argjson before "${shared_before:-null}" '
     ($before.warned // [] | map(.spec)) as $known
     | [($after.warned // [])[] | select(.spec as $s | ($known | index([$s])) | not)]' 2>/dev/null)" || shared_new=""

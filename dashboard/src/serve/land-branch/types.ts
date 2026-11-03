@@ -75,6 +75,10 @@ export interface LandContext {
     specsRootAbs: string,
     provisionalFolder: string,
   ) => Promise<{ ok: true; specFolder: string } | { ok: false; error: Sentence; detail?: string }>;
+  /** The `git -c` arguments that make a merge in `work` merge the
+   *  translation files the manifest in `root` names, key by key; empty
+   *  when it names none. Absent means git's own merge (tests). */
+  translationMergeArgs?: (root: string, work: string) => Promise<string[]>;
   /** The board registry: `landArchivedSpec` stops
    *  whatever is tracked for a spec once its archive actually lands. */
   testServers: TestServersContext;

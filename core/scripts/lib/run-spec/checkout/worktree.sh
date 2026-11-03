@@ -309,7 +309,15 @@ update_branch_to_base() {
   fi
   git -C "$wt" merge -q --ff-only "$ref" 2>/dev/null && return 0
   [ "$root" != "$project_root" ] || base_merged_count=$((base_merged_count + 1))
-  if ! git -C "$wt" merge -q --no-edit "$ref" >/dev/null 2>&1; then
+  # The project's translation files merge key by key: two specs that each
+  # add messages to one file are not a conflict (aide_translation_merge_args).
+  local -a translation_args=()
+  local arg
+  if [ "$root" = "$project_root" ]; then
+    while IFS= read -r arg; do translation_args+=("$arg"); done \
+      < <(aide_translation_merge_args "$project_root" "$work_dir" "$SCRIPT_DIR")
+  fi
+  if ! git -C "$wt" ${translation_args[@]+"${translation_args[@]}"} merge -q --no-edit "$ref" >/dev/null 2>&1; then
     if [ "$command_name" = "archive" ]; then
       # A conflict confined to THIS spec's own 4-status.md is
       # not two intents to merge — main's copy is a direct correction

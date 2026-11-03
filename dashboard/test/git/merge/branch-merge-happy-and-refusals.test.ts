@@ -88,6 +88,24 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
     expect(ran(git.calls, "merge --abort")).toBe(false);
   });
 
+  test("the real merge carries the arguments the hooks give, before the word merge", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      pull: { code: 0 },
+      "merge -q --ff-only origin/": { code: 0 },
+      "merge -q --ff-only": { code: 1 },
+      "-c core.attributesFile=/a -c merge.x.driver=y merge -q --no-edit": { code: 0 },
+      push: { code: 0 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    });
+    const hooks = { mergeArgs: async () => ["-c", "core.attributesFile=/a", "-c", "merge.x.driver=y"] };
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, undefined, undefined, hooks);
+    expect(result.ok).toBe(true);
+    expect(argv(git.calls)).toContain(`-c core.attributesFile=/a -c merge.x.driver=y merge -q --no-edit refs/remotes/origin/${BRANCH}`);
+  });
+
   // The dashboard host is not the machine `aide-run-spec` ran on, so a
   // LOCAL <branch> ref may be absent or stale. The remote-tracking ref
   // is the one `isMerged()` already trusts, and the fetch is what makes

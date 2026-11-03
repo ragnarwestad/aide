@@ -65,6 +65,7 @@ export interface LandSetupInputs {
   dashboardRoot?: string;
   landingGate?: LandContext["landingGate"];
   finalizeCreateSpec?: LandContext["finalizeCreateSpec"];
+  translationMergeArgs?: LandContext["translationMergeArgs"];
   testServers: TestServersContext;
 }
 
@@ -109,6 +110,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     dashboardRoot: inputs.dashboardRoot,
     landingGate: inputs.landingGate,
     finalizeCreateSpec: inputs.finalizeCreateSpec,
+    translationMergeArgs: inputs.translationMergeArgs,
     testServers: inputs.testServers,
   };
   function landNewSpec(job: Job, outcome: Partial<StepOutcome>) {

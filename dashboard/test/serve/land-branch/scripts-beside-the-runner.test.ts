@@ -11,7 +11,7 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assignSpecNumberAfterMerge } from "../../../src/serve/land-branch/finalize-create.ts";
-import { scriptFor } from "../../../src/serve/land-branch/run-script.ts";
+import { scriptFor, translationMergeArgs } from "../../../src/serve/land-branch/run-script.ts";
 
 const SERVE = readFileSync(new URL("../../../src/serve/serve.ts", import.meta.url), "utf8");
 
@@ -58,7 +58,54 @@ describe("the server wires the runner's own directory into both", () => {
   test("the numbering and the test gate get dirname(queueRunnerBin)", () => {
     const numbering = /finalizeCreateSpec:[\s\S]*?assignSpecNumberAfterMerge\([\s\S]*?scriptDir: opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
     const gate = /landingGate:[\s\S]*?runProjectSuiteBeforePush\([\s\S]*?scriptDir: opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
+    const translations = /translationMergeArgs: \(root, work\) => translationMergeArgs\(root, work, \{ scriptDir: opts\.queueRunnerBin \? dirname\(opts\.queueRunnerBin\)/;
     expect(SERVE).toMatch(numbering);
     expect(SERVE).toMatch(gate);
+    expect(SERVE).toMatch(translations);
+  });
+});
+
+describe("the landing's translation-file merge", () => {
+  const CORE_SCRIPTS = new URL("../../../../core/scripts", import.meta.url).pathname;
+  const git = (cwd: string, ...args: string[]) => {
+    const p = Bun.spawnSync({ cmd: ["git", ...args], cwd, stdout: "pipe", stderr: "pipe" });
+    return { code: p.exitCode, out: p.stdout.toString() };
+  };
+  const messages = (entries: Record<string, string>) =>
+    `{\n${Object.entries(entries).map(([k, v]) => `\t${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(",\n")}\n}\n`;
+
+  test("two branches adding messages to one file merge in a worktree, by the manifest in the project's own checkout", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-translation-landing-"));
+    try {
+      const root = join(dir, "root");
+      const work = join(dir, "work");
+      mkdirSync(root);
+      git(root, "init", "-q", "-b", "main");
+      git(root, "config", "user.email", "t@example.com");
+      git(root, "config", "user.name", "T");
+      // Kept out of the project's git, as a project the board alone knows of keeps it: no worktree has it.
+      mkdirSync(join(root, ".aide"));
+      writeFileSync(join(root, ".aide", "project.yaml"), "translationFiles: messages/*.json\n");
+      writeFileSync(join(root, ".git", "info", "exclude"), "/.aide/\n");
+      mkdirSync(join(root, "messages"));
+      writeFileSync(join(root, "messages", "nb.json"), messages({ title: "Skjera" }));
+      git(root, "add", "-A");
+      git(root, "commit", "-q", "-m", "base");
+      git(root, "checkout", "-q", "-b", "spec");
+      writeFileSync(join(root, "messages", "nb.json"), messages({ title: "Skjera", reminder: "Påminnelse" }));
+      git(root, "commit", "-q", "-am", "spec");
+      git(root, "checkout", "-q", "main");
+      writeFileSync(join(root, "messages", "nb.json"), messages({ title: "Skjera", invites: "Invitasjoner" }));
+      git(root, "commit", "-q", "-am", "main");
+      git(root, "worktree", "add", "-q", "--detach", work, "main");
+
+      const args = await translationMergeArgs(root, work, { scriptDir: CORE_SCRIPTS });
+      expect(git(work, ...args, "merge", "-q", "--no-edit", "spec").code).toBe(0);
+      expect(readFileSync(join(work, "messages", "nb.json"), "utf8")).toBe(
+        messages({ title: "Skjera", invites: "Invitasjoner", reminder: "Påminnelse" }),
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

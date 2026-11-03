@@ -35,6 +35,12 @@ export interface ManifestData {
    *  reads the same line with one anchored `sed`, and the run's own
    *  refusal wording names this key when the value came from here. */
   worktreeLinks?: string;
+  /** The project's translation files, space-separated gitattributes
+   *  patterns such as `packages/i18n/messages/*.json`. The bash side
+   *  (`aide_translation_attributes`) is what acts on it: a merge takes
+   *  them key by key, and Analyze never counts one as shared. Read here
+   *  so a manifest carrying it parses like any other. */
+  translationFiles?: string;
   /** Whether this project's archived CODE goes straight onto its default
    *  branch, or waits for a pull request. Absent means
    *  `merge`, which is what every project did before this key existed.
@@ -99,6 +105,7 @@ export function parseManifest(text: string): ManifestResult {
     if (isPreviewFrom(previewFrom)) data.deployment = { previewFrom };
   }
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
+  if (r.translationFiles != null) data.translationFiles = toStr(r.translationFiles);
   if (r.AIDE_TEST_CMD != null) data.AIDE_TEST_CMD = toStr(r.AIDE_TEST_CMD);
   if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
   if (r.acPrefix != null) data.acPrefix = toStr(r.acPrefix);

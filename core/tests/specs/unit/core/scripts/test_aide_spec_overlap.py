@@ -302,3 +302,16 @@ def test_a_missing_spec_folder_is_refused(script, root):
     assert rc == 2, out
     assert out["ok"] is False and out["terminalReason"] == "refused", out
     assert "799-not-there" in out["error"], out
+
+
+def test_the_projects_translation_files_are_never_an_overlap(script, root, tmp_path):
+    project = tmp_path / "project"
+    (project / ".aide").mkdir(parents=True)
+    (project / ".aide" / "project.yaml").write_text("translationFiles: packages/i18n/messages/*.json\n")
+    subprocess.run(["git", "init", "-q", str(project)], check=True)
+    shared = ["packages/i18n/messages/nb.json", "packages/i18n/messages/en.json", "x.ts"]
+    make_spec(root, SPEC, shared, phase="created")
+    make_spec(root, OTHER, shared)
+    rc, out = overlap(script, root, SPEC, "--project-dir", str(project))
+    assert rc == 0, out
+    assert specs_named(out["overlaps"]) == {OTHER: ["x.ts"]}, out

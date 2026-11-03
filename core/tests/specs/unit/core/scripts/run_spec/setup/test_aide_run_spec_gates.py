@@ -342,6 +342,9 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     (tmp_path / "lib" / "files-to-change.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "files-to-change.sh").read_bytes()
     )
+    (tmp_path / "lib" / "translation-files.sh").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "translation-files.sh").read_bytes()
+    )
     (tmp_path / "lib" / "tracking-info.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "tracking-info.sh").read_bytes()
     )

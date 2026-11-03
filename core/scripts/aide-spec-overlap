@@ -10,7 +10,12 @@
 # rounds and from the whole file otherwise. A path is compared as written,
 # less a leading `./` and a trailing `:<line>` or `:<from>-<to>`. A
 # Markdown file is never an overlap: pages are shared by nearly every spec,
-# and archive resolves a conflict in one. The
+# and archive resolves a conflict in one. Nor is one of the project's
+# translation files (`translationFiles` in its .aide/project.yaml, matched
+# by git the way the merge matches them): those merge key by key
+# (aide-merge-translation), so two specs adding messages to one never
+# conflict. The project is --project-dir, or the git checkout the command
+# runs in. The
 # candidates are the folders directly under the specs root, but archive/
 # and the spec itself, whose phase is analyzed or implemented: an
 # implement lands nothing, the code reaches the default branch when the spec
@@ -34,7 +39,7 @@
 #
 # Usage:
 #   aide-spec-overlap --specs-root <path> --spec <NN-slug>
-#                      [--record] [--analysis <file>]
+#                      [--record] [--analysis <file>] [--project-dir <path>]
 
 set -uo pipefail
 
@@ -45,8 +50,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
 # shellcheck source=lib/files-to-change.sh
 source "$SCRIPT_DIR/lib/files-to-change.sh"
+# shellcheck source=lib/translation-files.sh
+source "$SCRIPT_DIR/lib/translation-files.sh"
 
-specs_root=""; spec=""; record="no"; analysis_arg=""
+specs_root=""; spec=""; record="no"; analysis_arg=""; project_dir=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -56,12 +63,14 @@ Usage:
   aide-spec-overlap --specs-root <path> --spec <NN-slug>
                      [--record]           # write the record into the spec's 2-analysis.md
                      [--analysis <file>]  # read the spec's list and record from <file>
+                     [--project-dir <path>]  # whose translation files never count (default: this checkout)
 USAGE
       exit 0 ;;
     --specs-root) specs_root="${2:-}"; shift 2 ;;
     --spec) spec="${2:-}"; shift 2 ;;
     --record) record="yes"; shift ;;
     --analysis) analysis_arg="${2:-}"; shift 2 ;;
+    --project-dir) project_dir="${2:-}"; shift 2 ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
@@ -96,6 +105,21 @@ own_text="$(newest_round "$own_analysis")"
 files_json="$(printf '%s\n' "$own_text" | section "Files to change" | paths_json)"
 warned_json="$(printf '%s\n' "$own_text" | section "Overlapping specs" | record_json)"
 
+# --- the project's translation files among this spec's ----------------------
+
+[ -n "$project_dir" ] || project_dir="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+translation_json="[]"
+if [ -n "$project_dir" ]; then
+  attributes="$(mktemp)"
+  if aide_translation_attributes "$project_dir" "$attributes"; then
+    translation_json="$(jq -r '.[]' <<<"$files_json" \
+      | git -C "$project_dir" -c core.attributesFile="$attributes" check-attr --stdin merge 2>/dev/null \
+      | sed -n 's/: merge: aide-translation$//p' \
+      | jq -R -s -c 'split("\n") | map(select(. != ""))')"
+  fi
+  rm -f "$attributes"
+fi
+
 # --- the candidates: open, analysed specs of the same project ----------------
 
 candidates_json="[]"
@@ -112,11 +136,13 @@ for dir in "$specs_root"/*/; do
     '$acc + [{spec: $spec, files: $files}]')"
 done
 
-overlaps_json="$(jq -cn --argjson files "$files_json" --argjson cands "$candidates_json" --argjson warned "$warned_json" '
+overlaps_json="$(jq -cn --argjson files "$files_json" --argjson cands "$candidates_json" --argjson warned "$warned_json" \
+  --argjson translations "${translation_json:-[]}" '
   ($warned | map(.spec)) as $known
   | [$cands[]
      | select(.spec as $s | ($known | index([$s])) | not)
-     | {spec, files: ([.files[] | select(endswith(".md") | not) | select(. as $f | $files | index([$f]))] | unique)}
+     | {spec, files: ([.files[] | select(endswith(".md") | not) | select(. as $f | $translations | index([$f]) | not)
+                       | select(. as $f | $files | index([$f]))] | unique)}
      | select(.files | length > 0)]
   | sort_by(.spec)')"
 

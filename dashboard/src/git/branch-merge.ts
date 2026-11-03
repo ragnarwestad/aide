@@ -318,7 +318,7 @@ export async function mergeBranchIntoDefault(
           merged = true;
           break;
         }
-        const real = await run(work, ["merge", "-q", "--no-edit", ref]);
+        const real = await run(work, [...((await hooks?.mergeArgs?.(work)) ?? []), "merge", "-q", "--no-edit", ref]);
         if (real.code === 0) {
           merged = true;
           break;

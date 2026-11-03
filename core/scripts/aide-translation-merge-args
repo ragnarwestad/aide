@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# aide-translation-merge-args — the `git -c` arguments that make a merge in
+# <checkout> merge the project's translation files key by key
+# (aide-merge-translation), one per line, for `git <args> merge …`. Prints
+# nothing when the project's .aide/project.yaml names no `translationFiles`.
+#
+# For the dashboard's landing, which merges in a worktree of its own: the
+# rule for which files these are stays in lib/translation-files.sh, the one place
+# the runner's merge and the overlap check read it too. The manifest is read
+# from <project-root>, the project's own checkout, where every other setting
+# is read: a manifest kept out of the project's git is in no worktree. The
+# attributes file the arguments point at is kept in <checkout>'s own git
+# directory, so it goes when the worktree does.
+#
+# Usage: aide-translation-merge-args <project-root> <checkout>
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=_aide-spec-lib.sh
+source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=lib/translation-files.sh
+source "$SCRIPT_DIR/lib/translation-files.sh"
+
+case "${1:-}" in
+  -h|--help)
+    echo "usage: aide-translation-merge-args <project-root> <checkout>"
+    exit 0 ;;
+esac
+if [ $# -ne 2 ]; then
+  echo "usage: aide-translation-merge-args <project-root> <checkout>" >&2
+  exit 2
+fi
+git_dir="$(git -C "$2" rev-parse --absolute-git-dir 2>/dev/null)" || exit 0
+aide_translation_merge_args "$1" "$git_dir" "$SCRIPT_DIR"

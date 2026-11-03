@@ -697,3 +697,34 @@ def test_a_fetch_that_never_gets_the_ref_refuses_with_gits_own_words(
     assert out["terminalReason"] == "refused"
     assert "cannot fetch main from origin" in out["error"], out["error"]
     assert "lock" in out["error"], out["error"]
+
+
+def test_messages_added_to_one_translation_file_on_both_sides_do_not_stop_the_run(runner, workspace, fake_claude):
+    """Two specs each add messages at the end of the same translation file:
+    git's line merge calls that a conflict, but no message differs, so the
+    branch is brought up to main key by key and the step runs."""
+    project = workspace["project"]
+    (project / ".aide").mkdir(exist_ok=True)
+    (project / ".aide" / "project.yaml").write_text("translationFiles: messages/*.json\n")
+    (project / "messages").mkdir()
+    (project / "messages" / "nb.json").write_text('{\n\t"title": "Skjera"\n}\n')
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "translations")
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "messages" / "nb.json").write_text('{\n\t"title": "Skjera",\n\t"reminder": "Påminnelse"\n}\n')
+    git(project, "commit", "-q", "-am", "branch adds a message")
+    git(project, "switch", "-q", "main")
+    (project / "messages" / "nb.json").write_text('{\n\t"title": "Skjera",\n\t"invites": "Invitasjoner"\n}\n')
+    git(project, "commit", "-q", "-am", "main adds a message")
+
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    merged = git(project, "show", f"{branch}:messages/nb.json")
+    assert '"invites": "Invitasjoner"' in merged and '"reminder": "Påminnelse"' in merged
