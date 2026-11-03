@@ -95,7 +95,7 @@ describe("what a notification says", () => {
     await b.push.idle();
     const sent = await openCall(b.sent.calls[0]!, d);
     expect(sent.body).toBe(
-      "Implement stopped: specs 624, 619 change the same files — add them to Depends on, or press Implement again to go on.",
+      "Implement stopped: specs 624, 619 change the same files as this spec — add them to this spec's Depends on, or press Implement again to go on.",
     );
   });
 

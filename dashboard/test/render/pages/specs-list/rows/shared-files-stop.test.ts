@@ -40,7 +40,7 @@ describe("a row whose analyze stopped on shared files", () => {
     const withJob = notice([stoppedJob()], target({ stopped: { analyze: "shared-files" } }), () => OPEN);
     const withoutJob = notice([], target({ stopped: { analyze: "shared-files" } }), () => OPEN);
     expect(withoutJob).toContain(NAMED);
-    expect(withoutJob).toContain("Add them to Depends on to wait until they are archived");
+    expect(withoutJob).toContain("Add them to this spec's Depends on to wait until they are archived");
     expect(withoutJob.replace(/<[^>]*>/g, "")).toBe(withJob.replace(/<[^>]*>/g, ""));
   });
 

@@ -5,6 +5,7 @@ import * as jobState from "../../../../src/render/ui/job-state";
 import { specNotice } from "../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../src/render";
 import type { OpenOverlap } from "../../../../src/project/overlapping-specs.ts";
+import { renderMessage } from "../../../../src/i18n/message.ts";
 
 const lead = (over: Partial<QueueRowView> = {}): QueueRowView => ({
   id: "j1",
@@ -28,9 +29,14 @@ describe("sharedFilesSentence", () => {
     { folder: "82-other", label: "82 The other thing", files: ["a.ts", "b.ts"] },
     { folder: "84-third", label: "84 Third", files: ["c.ts"] },
   ];
-  const NAMED =
-    "Analyze stopped: other open specs change the same files — 82 The other thing: a.ts, b.ts. 84 Third: c.ts. — " +
-    "Add them to Depends on to wait until they are archived, or press Analyze again to go on.";
+  const NAMED = renderMessage("en", {
+    key: "wordPhase.stopSharedFilesNamed",
+    values: { button: "Analyze" },
+    inner: [
+      { key: "runner.sharedFilesSpec", values: { spec: "82 The other thing", files: "a.ts, b.ts" } },
+      { key: "runner.sharedFilesSpec", values: { spec: "84 Third", files: "c.ts" } },
+    ],
+  });
   const ARCHIVED =
     "Analyze stopped on files other open specs changed, and every one of them has been archived or removed since — " +
     "press Analyze again to go on.";
