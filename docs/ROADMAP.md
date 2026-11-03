@@ -5,8 +5,6 @@
 - [How an idea is kept here](#how-an-idea-is-kept-here)
 - [To consider](#to-consider)
   - [1. A commit body that says what was wrong and what stays unchanged](#1-a-commit-body-that-says-what-was-wrong-and-what-stays-unchanged)
-  - [2. One map of the system, updated in the same change](#2-one-map-of-the-system-updated-in-the-same-change)
-  - [3. A run that can ask a question and wait for the answer](#3-a-run-that-can-ask-a-question-and-wait-for-the-answer)
   - [4. An append-only event log for runs](#4-an-append-only-event-log-for-runs)
   - [5. The spec-structure rule describes how specs are written now](#5-the-spec-structure-rule-describes-how-specs-are-written-now)
   - [6. The plan review checks the scenarios and the test list](#6-the-plan-review-checks-the-scenarios-and-the-test-list)
@@ -22,7 +20,6 @@
   - [16. Create and archive with as little AI as possible](#16-create-and-archive-with-as-little-ai-as-possible)
   - [17. Aide as a Mac app](#17-aide-as-a-mac-app)
   - [18. A run that reaches only its own repository](#18-a-run-that-reaches-only-its-own-repository)
-  - [19. Shorter command output for a run](#19-shorter-command-output-for-a-run)
   - [20. A spec's states, separate from its run's](#20-a-specs-states-separate-from-its-runs)
   - [21. Named profiles for the AI and the step settings](#21-named-profiles-for-the-ai-and-the-step-settings)
   - [22. An analysis and a plan that are easier to read](#22-an-analysis-and-a-plan-that-are-easier-to-read)
@@ -54,17 +51,6 @@ same idea later. The next number is 28.
 
 From [OpenGeni](https://github.com/Cloudgeni-ai/opengeni): a fix's commit says what was wrong, why, what it meant for
 a user, and what deliberately does not change, so the next reader does not undo something that was intended.
-
-### 2. One map of the system, updated in the same change
-
-From OpenGeni: one map of how the system is built, kept current by the same change that alters it, since "a stale map
-is a bug". Aide has most of the map in its documentation table; the rule that keeps it current is
-missing.
-
-### 3. A run that can ask a question and wait for the answer
-
-From OpenGeni: a run that meets something unclear asks, and carries on once it has the answer, instead of guessing or
-stopping. Aide has this for two fixed questions; the goal is a run that can ask anything.
 
 ### 4. An append-only event log for runs
 
@@ -322,30 +308,6 @@ own git run no hooks, and the runner's own git in a worktree uses the git direct
 - The network, which is still open.
 - The runner's own test run, which executes what the step wrote outside the sandbox, with the denied paths
   reachable. Only b closes this.
-
-### 19. Shorter command output for a run
-
-From [rtk](https://github.com/rtk-ai/rtk), which sits between the AI tool and the shell and shortens what common
-commands print before the agent reads it: a test run reduced to its failures, `git log` to one line per commit,
-`git diff` without its context lines. Its authors measure 60-90% less command output; they point out that this is
-a share of the output alone, not of the cost, which also counts the prompt, the conversation and the answer.
-
-A step on the board reads a great deal of command output: the tests it runs while it works, the diffs a review
-reads, the logs of a failing run. Less of it means more of the step's context left for the work, and less to pay
-for on a long implement.
-
-Two ways to get it:
-
-- **a. rtk itself**, installed on the serving host and turned on for the runs. It hooks into Claude Code's Bash tool
-  only; Read and Grep pass it by.
-- **b. The runner shortening more of what it hands a session.** After a red test run it already hands back the
-  failing lines alone; the commands a session runs itself are not shortened.
-
-Measured on the board's last 60 analyze and implement steps (October 2026), neither is worth doing now. Of what
-the tools handed the sessions, reading files was 66% (`cat`, `sed` and `head` 41%, the Read tool 25%), searching
-and listing 24% (`grep`, `rg`, `find`, `ls`), git 6%, and test runs and checks 2%. What rtk shortens best, test
-runs and git logs, is about 6% of it; the files a session reads are what it needs to change the code, and cannot
-be shortened without losing that. The large share is finding and reading code.
 
 ### 20. A spec's states, separate from its run's
 
