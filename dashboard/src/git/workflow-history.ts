@@ -256,10 +256,10 @@ export class WorkflowHistoryChecker {
    *
    *  `history: null` is the whole point of the shape. A real, empty
    *  history is an ANSWER — "git can prove nothing has run" — and a
-   *  null one is the absence of one, which the row draws as "checking…"
-   *  rather than as a spec still ahead of its workflow. A peek that
-   *  handed back `EMPTY` for both would put back exactly the false
-   *  negative this spec exists to stop.
+   *  null one is the absence of one, and the row then keeps what the
+   *  spec's own files say rather than drawing a spec still ahead of its
+   *  workflow. A peek that handed back `EMPTY` for both would draw
+   *  exactly that false negative.
    *
    *  Keyed the same way `read` keys, boundary included: the boundary is
    *  part of the QUESTION. */
@@ -358,8 +358,8 @@ export interface ResolvedWorkflowState {
 /** The one canonical `{ done, stopped, fileDisagrees, fileSteps }`
  *  a spec's steps resolve to — the `create` special case included — built
  *  from the same two peeks `withFreshness` used to assemble by hand.
- *  `null` when nothing has asked git about this spec yet (the caller's
- *  own cue to draw "checking…" rather than a false negative). */
+ *  `null` when nothing has asked git about this spec yet, and the
+ *  caller then keeps what the spec's own files say. */
 export function resolveWorkflowState(
   history: WorkflowHistoryChecker,
   branchFileSteps: BranchFileStepsChecker,

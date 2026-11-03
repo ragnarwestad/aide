@@ -54,12 +54,12 @@ export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[
     // nothing else; `refreshSpecCaches` is what keeps these fed, on a
     // schedule of its own). `null` when nothing has ever been asked
     // about this spec: not "no step has run" — that is a real answer
-    // with a real, empty history — and the row draws "checking…" rather
-    // than a false negative.
+    // with a real, empty history — and the row then keeps what the
+    // spec's own files say rather than a false negative.
     const resolved = resolveWorkflowState(
       ctx.workflowHistory, ctx.branchFileSteps, t.dir, t.specFolder, t.reopenedAfter, t.fileSteps,
     );
-    if (!resolved) return { ...t, freshnessUnknown: true };
+    if (!resolved) return t;
     const createdAtPeek = ctx.specCreatedAt.peekCreatedAt(t.dir, t.specFolder);
     const withHistory: SpecTarget = {
       ...t,

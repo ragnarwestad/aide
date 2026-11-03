@@ -59,7 +59,6 @@ function fromTarget(
   | "createChoices"
   | "analyzeStale"
   | "createdAt"
-  | "freshnessUnknown"
 > {
   return {
     done: t?.done ?? [],
@@ -76,7 +75,6 @@ function fromTarget(
     dependsOn: t?.dependsOn ?? [],
     createChoices: t?.createChoices,
     analyzeStale: t?.analyzeStale ?? false,
-    freshnessUnknown: t?.freshnessUnknown,
     // From the TARGET and from nowhere else. There is
     // deliberately no fallback to a job's own `createdAt`/`startedAt`:
     // that is the field this change exists to stop reading, and a

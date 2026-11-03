@@ -17,8 +17,8 @@ import type { SpecViewsContext } from "./";
  *  peeks — and `refreshSpecCaches` never warms that cache for an
  *  archived spec, because doing so is the unbounded cost the design
  *  rules out. Reusing the live path here would read
- *  `{history: null}` for every archived row and draw "checking…" for
- *  ever, which is not a truer answer than this one, only a slower way
+ *  `{history: null}` for every archived row and know nothing about it
+ *  for ever, which is not a truer answer than this one, only a slower way
  *  of giving none.
  *
  *  A SECOND reader of the same file beside `archivedAt`, on the same

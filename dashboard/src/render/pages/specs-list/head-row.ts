@@ -3,7 +3,7 @@ import type { Language } from "../../../i18n";
 // has cost, and the one thing that can be done about it.
 
 import { specPagePath } from "../spec-page";
-import { CHECKING, badge, stepLabel } from "../../ui/components";
+import { badge, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { esc } from "../../ui/html.ts";
@@ -38,11 +38,6 @@ function specSummary(g: SpecGroup): string {
   // after, never anything between. Two specs on the same day both read
   // "0% done", one with 21 task rows behind it and one with 4. What is
   // left is what neither the pips nor the badge carries.
-  // Whatever git knows about this spec is not in yet — the
-  // schedule that fills the caches has not reached it. Said out loud
-  // rather than drawn as "nothing has run": that false negative is the
-  // whole reason the peeks carry a `checkedAt` at all.
-  if (g.freshnessUnknown) bits.push(CHECKING);
   // By NUMBER since 2026-08-21, not by folder. This line used to match
   // `aide-run-spec`'s dependency refusal word for word, which names the
   // whole folder; the number is what a reader recognises, it is

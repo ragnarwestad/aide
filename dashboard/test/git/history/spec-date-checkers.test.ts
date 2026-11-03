@@ -144,8 +144,8 @@ describe("SpecCreatedAtChecker.peekCreatedAt", () => {
     expect(checker.peekCreatedAt(DIR, FOLDER).checkedAt).toBe(1000);
   });
 
-  // Asked and undatable is a real answer, and a different cell from one
-  // nobody has asked yet: the first shows a dash, the second "Checking…".
+  // Asked and undatable is a real answer, kept apart from one nobody
+  // has asked yet by its timestamp.
   test("an undatable spec is a real, timestamped null", async () => {
     const git = fakeGit({});
     const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });

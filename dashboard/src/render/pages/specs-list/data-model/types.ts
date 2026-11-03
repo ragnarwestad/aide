@@ -83,13 +83,6 @@ export interface SpecTarget extends HasNotVerified, HasApproachChoice, HasCreate
    *  git could not answer, and then the cell shows a dash — never a
    *  job's time, which would put the movement straight back. */
   createdAt?: string;
-  /** Nothing has yet asked git anything about this spec.
-   *  Not "no step has run" — that is a real answer — and the row says
-   *  "checking…" rather than draw a done-set, a Started date and a
-   *  staleness badge it has no answers for. Set by the server when
-   *  `refreshSpecCaches` has not reached this spec yet, and true for at
-   *  most one poll interval after a restart. */
-  freshnessUnknown?: boolean;
   /** Why the last archive run did NOT move the folder, from the spec's
    *  own `## Archive held back` section. Archive is the one phase whose
    *  file-truth is always false for a row still on this page — a spec
@@ -186,7 +179,7 @@ export interface ArchivedSpecView extends HasNotVerified {
    *  and `refreshSpecCaches` never warms that cache for an archived
    *  spec: that is an unbounded cost,
    *  so reusing the live path here would read `{history: null}` for
-   *  every archived row and say "checking…" for ever. */
+   *  every archived row and know nothing about it for ever. */
   done: string[];
   /** What each phase actually ran on, from `4-status.md`'s own `Model
    *  (<step>):` lines — never the queue's job history, which
@@ -407,10 +400,6 @@ export interface SpecGroup extends HasNotVerified, HasApproachChoice, HasCreateC
   /** This spec's description has moved on since its last analysis. The
    *  analyze line says so; nothing is blocked by it. */
   analyzeStale: boolean;
-  /** Nothing has yet asked git anything about this spec.
-   *  The row draws "checking…" where it would otherwise state a fact it
-   *  does not have. */
-  freshnessUnknown?: boolean;
   /** The archived spec this row speaks for. Present exactly
    *  when `state` is `archived`, and it is what the reader row draws
    *  from: the date, the mark, the recorded duration and the link.

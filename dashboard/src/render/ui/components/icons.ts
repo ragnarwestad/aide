@@ -83,26 +83,6 @@ export const ICON_THEME_AUTO =
   '<circle cx="8" cy="8" r="5.5"></circle>' +
   '<path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" stroke="none"></path></svg>';
 
-/** What a page says where an answer has not arrived yet.
- *
- *  Every question a render used to block on is a peek now, and a peek
- *  can say three things, not two: the answer, "asked and unanswerable",
- *  and "nobody has asked yet". This is the third. It is spelled out in
- *  one place because five call sites across three pages say it, and a
- *  page wording the same absence differently in two cells is a page
- *  whose two cells look like two different states.
- *
- *  It is NOT what an unanswerable question says — a spec git cannot
- *  date still shows a dash, and a file git cannot date still shows no
- *  stamp, exactly as each did before any of this was cached.
- *
- *  A pulsing bar, not the word (asked for 2026-08-24): the text read
- *  as a fact the row was stating rather than work in progress. The
- *  word survives inside, visually hidden, for screen readers — and for
- *  every test that asks whether a cell is still checking. */
-export const CHECKING =
-  '<span class="checking" title="Checking…"><span class="sr">Checking…</span></span>';
-
 /** The cross that closes a dialog: the About box's. */
 export const ICON_CLOSE =
   `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" ` +

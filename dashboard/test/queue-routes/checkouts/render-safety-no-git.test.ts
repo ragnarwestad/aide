@@ -57,24 +57,20 @@ describe("no render path runs git or a network command", () => {
 
   // The schedule is off, so nothing has ever been warmed —
   // and the pages still answer, with no git spawned by the request.
-  test("cold, GET / and GET /?rows=1 spawn nothing and say what they do not know", async () => {
+  test("cold, GET / and GET /?rows=1 spawn nothing", async () => {
     const git = recording();
     const { base } = harness.start({
       extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 0 },
       archivedSpecs: { "77-old-thing": {} },
     });
     const before = git.calls.length;
-    const html = await (await get(base, "/specs")).text();
+    await (await get(base, "/specs")).text();
     expect(git.calls.length).toBe(before);
-    // Not a false "nothing has run": the row says the answer is not in
-    // yet. This is the shape a plan review flagged.
-    expect(html).toContain("Checking…");
-    const rows = await (await get(base, "/specs?rows=1")).text();
+    await (await get(base, "/specs?rows=1")).text();
     expect(git.calls.length).toBe(before);
-    expect(rows).toContain("Checking…");
   });
 
-  test("warm, GET / spawns nothing of its own and shows the warmed answers", async () => {
+  test("warm, GET / spawns nothing of its own", async () => {
     const git = recording();
     // One tick and then nothing for a hundred seconds: the schedule
     // cannot fire again while the request is in flight, so the count
@@ -85,9 +81,8 @@ describe("no render path runs git or a network command", () => {
     await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --format=%aI")));
     await new Promise((r) => setTimeout(r, 100));
     const before = git.calls.length;
-    const html = await (await get(base, "/specs")).text();
+    await (await get(base, "/specs")).text();
     expect(git.calls.length).toBe(before);
-    expect(html).not.toContain("Checking…");
   });
 
   // The rows are on the Specs list now, behind the chip that shows

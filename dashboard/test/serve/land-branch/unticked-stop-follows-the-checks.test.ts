@@ -54,3 +54,25 @@ describe("archive's unticked-criteria stop answers to the Checks tab", () => {
     expect(t.stopped?.implement).toBe("tests-red");
   });
 });
+
+// A spec git has not been asked about yet keeps what its own files say:
+// the done-set, the stops and the Started date stay as the disk scan
+// found them until the schedule has warmed the spec.
+describe("a spec the schedule has not reached yet", () => {
+  test("keeps the target the disk scan made, unchanged", () => {
+    const ctx = {
+      workflowHistory: { peekHistory: () => ({ history: null, checkedAt: null }) },
+      specCreatedAt: { peekCreatedAt: () => ({ createdAt: null }) },
+      freshness: { peekStale: () => ({ stale: true }) },
+      branchFileSteps: { peekFileSteps: () => ({ steps: null, checkedAt: null }) },
+    } as unknown as LandContext;
+    const target = {
+      project: "skjera",
+      specFolder: "28-reminders",
+      dir: "/some/dir",
+      done: ["create", "analyze"],
+      fileSteps: { proseSteps: ["create", "analyze"], stateSteps: undefined },
+    } as SpecTarget;
+    expect(withFreshness(ctx, [target])[0]).toBe(target);
+  });
+});

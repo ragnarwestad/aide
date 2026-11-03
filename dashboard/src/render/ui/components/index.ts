@@ -267,5 +267,5 @@ export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2 }[]): 
   `</div>`;
 
 // What used to live here too, in a part beside this file.
-export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, CHECKING } from "./icons.ts";
+export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO } from "./icons.ts";
 

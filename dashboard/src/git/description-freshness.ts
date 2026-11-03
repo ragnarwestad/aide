@@ -283,9 +283,7 @@ export class DescriptionFreshnessChecker {
    *  `checkedAt` is `null` only where NOTHING has ever been asked, and
    *  `stale` is then `false` — the same direction every unknown in this
    *  module takes, so a row the warmer has not reached yet wears no
-   *  badge. The row says "checking…" rather than claiming the plan is
-   *  current; the value alone would not be enough to tell the two
-   *  apart, which is why `checkedAt` rides with it.
+   *  badge.
    *
    *  Keyed the same way `isStale` keys, boundary included: the boundary
    *  is part of the QUESTION. */
@@ -348,10 +346,9 @@ export class SpecCreatedAtChecker {
 
   /** The LAST date this checker holds, without asking git at all.
    *  `checkedAt` is `null` only where nothing has ever been
-   *  asked, and the Started cell then says "checking…"; a real,
-   *  timestamped `null` is a spec git could not date, and that cell
-   *  shows a dash, which is what it showed before this column meant
-   *  anything. */
+   *  asked; a real, timestamped `null` is a spec git could not date.
+   *  The Started cell shows a dash for both, which is what it showed
+   *  before this column meant anything. */
   peekCreatedAt(dir: string, specFolder: string): { createdAt: string | null; checkedAt: number | null } {
     const hit = this.cache.get(JSON.stringify([dir, specFolder]));
     return hit ? { createdAt: hit.createdAt, checkedAt: hit.at } : { createdAt: null, checkedAt: null };
