@@ -298,6 +298,24 @@ Key sections: `model`, `approval_policy`, `sandbox_mode`,
 `project_doc_fallback_filenames`. Supports profiles via
 `[profiles.<name>]`.
 
+**Turning skills off** ([source](https://learn.chatgpt.com/docs/build-skills),
+2026-11-03). A skill is disabled without being deleted by a
+`[[skills.config]]` entry in `~/.codex/config.toml`. Each entry takes
+exactly one selector: `path`, an absolute path that matches one
+`SKILL.md`, or `name`, which matches every skill with that name. When
+several entries match a skill, the last one wins. All the bundled system
+skills are turned off for one project with `[skills.bundled]` in that
+project's trusted `.codex/config.toml`. Codex reads the change on restart.
+
+```toml
+[[skills.config]]   # in ~/.codex/config.toml
+name = "linear"
+enabled = false
+
+[skills.bundled]   # in a trusted project's .codex/config.toml
+enabled = false
+```
+
 ### Headless runs (`codex exec`)
 
 `codex exec --json` reads the prompt from stdin and prints JSONL; the
