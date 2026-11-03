@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # translation-files.sh — the project's translation files: which files
 # they are (`translationFiles` in .aide/project.yaml) and the git arguments
 # that merge them key by key (aide-merge-translation).
