@@ -1,20 +1,22 @@
 ---
 name: ai-tools-upgrade
 description: >-
-  How the Copilot and Codex CLIs are kept up to date on a machine, and how
+  How Claude Code and the Copilot and Codex CLIs are kept up to date on a machine, and how
   to install the daily upgrade job — plain cron on an always-on machine,
   a launchd agent on a laptop (cron silently skips runs the machine sleeps
   through). Use when: setting Aide up on a new machine, the AI tools have
   gone stale, choosing between cron and launchd, editing
-  core/scripts/upgrade-ai-tools. Do NOT use for: updating Claude Code
-  itself (it auto-updates), checking for news (use check-news).
+  core/scripts/upgrade-ai-tools. Do NOT use for: checking for news (use
+  check-news).
 ---
 
 # Updating the AI tools
 
 The CLI tools are kept up to date automatically:
 
-- **Claude Code** updates itself (auto-update on by default).
+- **Claude Code** is updated by the job's `claude update`. Its own
+  background updater is off on both machines (`"autoUpdates": false` in
+  `~/.claude.json`), so a machine without the job stays on the version it has.
 - **Copilot and Codex** are managed by [mise](https://mise.jdx.dev/), pinned to
   `latest` in `~/.config/mise/config.toml`.
 
@@ -22,7 +24,9 @@ The CLI tools are kept up to date automatically:
 `claude update`. It is installed to `~/.local/bin/` by each AI installer (via
 `core/scripts/_install-bin.sh`).
 
-The script runs daily at 08:00 — set it up once per machine, and pick the
+The script runs daily at 05:00, before the board's morning jobs (the X list
+at 06:30, Nyhetssjekk at 07:00), so they run on the new versions. Set it up
+once per machine, and pick the
 mechanism by whether the machine sleeps:
 
 **Always-on machine (desktop, server):** plain cron.
@@ -30,11 +34,11 @@ mechanism by whether the machine sleeps:
 ```bash
 crontab -e
 # Add:
-0 8 * * * ~/.local/bin/upgrade-ai-tools
+0 5 * * * ~/.local/bin/upgrade-ai-tools
 ```
 
 **Laptop:** a launchd agent instead. cron silently skips any run the machine
-sleeps through and never catches up, so a lid shut past 08:00 means no upgrade
+sleeps through and never catches up, so a lid shut past 05:00 means no upgrade
 that day. launchd runs a missed `StartCalendarInterval` job on the next wake.
 Save as `~/Library/LaunchAgents/com.<user>.upgrade-ai-tools.plist`, then
 `launchctl bootstrap gui/$(id -u) <path>`:
@@ -52,7 +56,7 @@ Save as `~/Library/LaunchAgents/com.<user>.upgrade-ai-tools.plist`, then
   </array>
   <key>StartCalendarInterval</key>
   <dict>
-    <key>Hour</key><integer>8</integer>
+    <key>Hour</key><integer>5</integer>
     <key>Minute</key><integer>0</integer>
   </dict>
   <key>StandardOutPath</key>
