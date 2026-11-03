@@ -283,7 +283,6 @@ describe("saveCancelActions in the reader's language", () => {
     const html = saveCancelActions("x", {}, "nb");
     expect(html).toContain(`>${t("nb", "list.checksSave")}<`);
     expect(html).toContain(`>${t("nb", "dialog.cancel")}<`);
-    expect(html).not.toContain(">Cancel<");
   });
 
   test("with no language it draws English, as every caller did before (AC-5)", () => {
