@@ -5,6 +5,7 @@
 - [What a run does, in order](#what-a-run-does-in-order)
 - [How a run names its Claude sessions](#how-a-run-names-its-claude-sessions)
 - [When the AI tool does not start](#when-the-ai-tool-does-not-start)
+- [When a provider limit ends a step](#when-a-provider-limit-ends-a-step)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
 - [What a step can reach](#what-a-step-can-reach)
@@ -96,114 +97,88 @@ moved the file, so when the tool's stderr names `.claude.json`, the job's `error
 file on the serving host instead of "press <step> again". A step cannot damage the file itself, since the sandbox
 lets it read `~/.claude.json` but not write it ([What a step can reach](#what-a-step-can-reach)).
 
+## When a provider limit ends a step
+
+The runner ends a step with `provider-limit` when the tool's own record says a usage window ran out; the board's side
+of it (the wait, the restart) is in [A job's states](job-states.md#beside-the-state). How each tool is read:
+
+- **Claude Code**: the `rate_limit_event` the stream carries. It names the window that ran out, when it resets, the
+  other windows' figures, and the plan or refused credit.
+- **Codex**: the session file Codex keeps for the thread. A turn is a `provider-limit` when that file shows a full
+  window, or when Codex's own error says the usage limit is hit; the error's "try again at" time is then the reset.
+- **opencode**: no reader. A step on opencode never ends `provider-limit`.
+
+The same readers decide `model-at-capacity`, which has no reset to wait for. It is read from the turn that just ended
+alone, never from an earlier turn of the same step: from the last `error` or `turn.failed` event of a Codex turn that
+did not complete, when its message says "at capacity", and from Claude Code's closing result when that is an error with
+status 529 or a message saying overloaded or at capacity. A used-up limit and the step's own time limit win over it.
+opencode has no reader.
+
 ## The dashboard's own checkouts
 
-**The checkout a run is cut from is not the one a user edits.** Cutting a worktree from
-`<projects root>/<project>` — the directory Add clones into and the directory somebody works in — puts two writers on
-one tree: the runner puts every root it touches onto its default branch before it starts, and a landing merges and
-pushes from the same tree, while a user edits it meanwhile. The per-repo lock serializes the dashboard against itself. Nothing serializes it against a person's own git
-client.
-
-So the dashboard keeps clones of its own, under
-`~/.aide/dashboard/checkouts/<project>/` — `code/`, plus `specs/` when the specs root is a separate repository. One per
-project, never one per run;
-`--dashboard-checkouts <dir>` moves them. They are made only when a project is added or its settings are saved,
-by cloning the user's checkout's own `origin`, and reused ever after; anything else that finds one missing reports it
-and does not clone. Everything that MUTATES goes there: `aide-run-spec
+**The checkout a run is cut from is not the one a user edits.** The dashboard keeps clones of its own under
+`~/.aide/dashboard/checkouts/<project>/`: `code/`, plus `specs/` when the specs root is a separate repository. There
+is one per project, never one per run, and `--dashboard-checkouts <dir>` moves them. They are made when a project is
+added or its settings are saved, by cloning the user's checkout's own `origin`, and reused after that; anything else
+that finds one missing reports it and does not clone. Everything that MUTATES goes there: `aide-run-spec
 --project-dir`, a landing's merge and push, Save, Update, the dependency gate's fetches, the drift poll. The user's
-checkout is read and never written: the project list, the manifests, its `.aide/config`, its `AIDE_SPECS_PATH`,
-the sources its worktree links point at, and the `origin` a clone is made from.
+checkout is read and never written: the project list, the manifests, its `.aide/config`, its `AIDE_SPECS_PATH`, the
+sources its worktree links point at, and the `origin` a clone is made from.
 
-**The spec list itself is read from the dashboard's own checkout, not the user's.** Every reader-facing
-listing —
-`GET /projects/:name`, `GET /projects` and the home page's queue rows, archived rows included — lists from
-`resolvedCheckouts.get(project)?.specs`
-when the dashboard's own clone exists, falling back to the user's checkout otherwise (a new project, or one whose
-clone failed). This is the same clone `aide-run-spec` resolves a spec folder against, so a folder that only exists in
-the user's checkout, committed but never pushed, does not appear in the list — a row for it would offer a step that
-fails with `unknown spec: ... (not under
-<dashboard-checkout>/specs/<project>)`. The fetch that keeps the dashboard's clone current is
-`ensureDashboardCheckout`'s, run for every allowed project on `refreshSpecCaches`'s schedule — and awaited inside
-the few requests that write, such as a Settings save. A render never waits on it: the read-only paths ask
-`peekMachinerySpecDir`, which reads the cache and spawns no git.
+**The spec list is read from the dashboard's own checkout.** Every listing of specs, archived rows included, comes
+from that clone when it exists, and from the user's checkout otherwise (a new project, or one whose clone failed). A
+folder committed in the user's checkout but never pushed therefore has no row. A render never waits on the fetch that
+keeps the clone current.
 
-Two consequences worth knowing:
-
-- **A landed run and a Save do not show up in a user's own checkout until they pull it.** Nothing auto-syncs into
-  it, deliberately: an auto-pull would recreate exactly the collision this removes. An operator closes that gap with a cron entry for `aide-pull-specs` — every two minutes on the serving host — set
-  up by hand; see [Hosting the dashboard](hosting.md#keeping-the-hosts-specs-current).
-- **`.aide/config` is gitignored, so a clone never carries it.** It is copied from the user's checkout on every
-  ensure, because it is the file an operator edits by hand between merges: a copy taken once would go stale.
-  `AIDE_SPECS_PATH` is the one key that does not survive the copy: it names a directory in the user's checkout, and is
-  replaced with the dashboard's own specs. The file is written once, finished, through a rename — a run starting for
-  another job never reads a copy that still names the user's path.
+- **A landed run and a Save do not show up in a user's own checkout until they pull it.** Nothing auto-syncs into it.
+  An operator can set up a cron entry for `aide-pull-specs` on the serving host; see
+  [Hosting the dashboard](hosting.md#keeping-the-hosts-specs-current).
+- **`.aide/config` is copied from the user's checkout on every ensure**, since it is gitignored and edited by hand
+  between merges. `AIDE_SPECS_PATH` is the one key replaced: it names a directory in the user's checkout, and is set to
+  the dashboard's own specs.
 
 A project whose checkout has no `origin` gets no clone of its own. It runs in the user's checkout, and its readiness
-line says so, so a reader sees which project that is.
+line says so.
 
 ## How a run touches the repositories
 
 **`aide-run-spec` branches EVERY repo it touches, not just the project.** An `analyze` step changes only the specs
-repo, so branching the project alone would leave the analysis committed on `main` — the one thing `push branch` exists
-to prevent. Three conditions decide it (`run-spec/publish/publish.sh`), in this order:
+repo, so branching the project alone would leave the analysis committed on `main`. A repo is pushed when all three
+hold (`run-spec/publish/publish.sh`):
 
-1. The branch holds something beyond its own default branch. A branch with nothing of its own is never pushed.
+1. The branch holds something beyond its own default branch.
 2. Origin does not already have that tip.
-3. Either this run moved the root's HEAD, or the run ended `completed` — `terminalReason` in the result, the one
-   word saying how the step ended (`completed`, `tests-red`, `no-progress`, `timeout`, `scope-violation` and the
-   rest). A root the run did move is pushed whatever
-   the run's terminal reason; a root it did not move is pushed only by a completed run.
+3. Either this run moved the root's HEAD, or the run ended `completed` (`terminalReason` in the result: `completed`,
+   `tests-red`, `no-progress`, `timeout`, `scope-violation` and the rest).
 
-**A `schedule` step commits and pushes exactly like any other command** — the project repository and the specs root,
-the same two roots every other step reaches. Its own report and any proposed specs live outside both, under
-`$AIDE_SCHEDULE_OUTPUT_DIR`, so a run that also commits still writes its report. Once the step ends, the board lands
-what it pushed the way an archive's own landing does (`landScheduleRun`, `dashboard/src/serve/land-branch/steps.ts`):
-the project repository's commit only after that repository's own test command is green on the merge, the specs root
-directly. A run stopped by its own timeout or a cancel keeps whatever it had already committed, on its branch, the
-same as any other command.
+The third condition lets a later run retry a commit whose push failed earlier. None of them is `changedFiles`, which
+counts only what the run's own commit loop found uncommitted and is `0` for a step that commits its own work. The
+compare link is built from the repos that were pushed (`branchUrls` in the result; `branchUrl` keeps the most
+interesting one).
 
-The third condition is what lets a later run retry a commit whose push failed in an earlier one: a rule that asked
-only "did THIS run move it" would strand that commit, since no later run would ever pick it up. **It is never
-`changedFiles`** — that field counts only what the run's own commit loop found uncommitted, and a step that commits
-its own work, as archive does, leaves it at `0` with real commits on the branch. The compare link
-is built from the repos that were pushed (`branchUrls` in the result; `branchUrl` keeps the single most interesting
-one).
+**A `schedule` step commits and pushes like any other command.** Its report and any proposed specs live under
+`$AIDE_SCHEDULE_OUTPUT_DIR`, outside both roots. Afterwards the board lands what it pushed (`landScheduleRun`): the
+project repository's commit only after that repository's own test command is green on the merge, the specs root
+directly. A run stopped by its timeout or a cancel keeps what it had committed, on its branch.
 
-**It branches them in `git worktree` checkouts of its own**, under `$HOME/.aide/dashboard/worktrees/`. The path is
-`<project>/<spec>/<basename of each root>`. The first segment is the project's name: for the dashboard's own clone,
-`checkouts/<project>/code`, it is `<project>` (`worktree_project_key` in `run-spec/setup/invocation.sh`), and for any other
-`--project-dir` it is that directory's basename. The real
-checkouts are put back **onto** their default branch before the worktrees are made and never leave it, so several runs
-can go at once, the dashboard's spec list never describes whatever branch a running job is on, and a user can use the
-checkout meanwhile. Two consequences worth knowing before changing anything here:
+**It branches in `git worktree` checkouts of its own**, under `$HOME/.aide/dashboard/worktrees/<project>/<spec>/<basename
+of each root>`. For the dashboard's own clone `<project>` is the project's name; for any other `--project-dir` it is
+that directory's basename (`worktree_project_key`, `run-spec/setup/invocation.sh`). The real checkouts are put back onto
+their default branch before the worktrees are made and never leave it, so several runs can go at once.
 
-- The result's `repos[].root` is the MAIN checkout, not the directory the work happened in — the dashboard spawns git
-  in that path after the run is over, and a worktree path is deleted when the run ends. `repos[].worktree` carries the
-  throwaway one.
-- A worktree carries tracked files only, so `.venv` and `dashboard/node_modules` reach it through `worktreeLinks:` in
-  the `.aide/project.yaml` (committed, or the dashboard's untracked copy, which the run copies into the worktree and
-  keeps out of the commit) — symlinked in, and excluded from `git add -A` by pathspec, because a `dir/`
-  gitignore rule does not match a symlink. The run reports which file it read (`worktreeLinksSource` in the result
-  blob, and a line on stderr).
+- The result's `repos[].root` is the MAIN checkout, not the directory the work happened in; `repos[].worktree` carries
+  the throwaway one.
+- A worktree carries tracked files only. `.venv` and `dashboard/node_modules` reach it through `worktreeLinks:` in the
+  `.aide/project.yaml` (committed, or the dashboard's untracked copy, kept out of the commit). The run reports which
+  file it read (`worktreeLinksSource`).
 - The specs root reaches the worktree in one of three shapes. A separate specs repository gets a worktree of its own. A
-  specs root inside the project that git ignores — aide's own `/specs/` — is linked in from the main checkout and never
-  committed. One inside the project that is tracked, or not committed yet as in a new project's first spec, is part
-  of the branch and committed with the step. A `.aide/config` naming the specs root by absolute path is pointed at the
-  worktree's copy for the run.
+  specs root inside the project that git ignores (aide's own `/specs/`) is linked in from the main checkout and never
+  committed. One inside the project that is tracked, or not committed yet, is part of the branch and committed with the
+  step. A `.aide/config` naming the specs root by absolute path is pointed at the worktree's copy.
 
-**A run reaches the project and its specs root, and under the specs root only its own spec's folder.** A step
-that writes another spec's folder ends `scope-violation`, with those changes discarded before the commit. A repo the run was not told about is not touched,
-and there is no flag to name a third one. A spec that has to change two projects at once needs that naming built,
-deliberately.
-
-**`aide-run-spec` runs from a private copy of itself.** an `implement` step reinstalls Aide,
-which copies the script over itself while bash is still reading it by byte offset. The copy's marker holds its own
-path and is unset before `claude` starts — a bare exported flag would be inherited by `claude`, and the next nested
-invocation would delete the installed script.
-
-**`aide-run-spec`'s shebang finds `/bin/bash` on this machine, and that is bash 3.2 — `mapfile` is bash 4 and is not
-available.** Anything added to this script that wants an array built from multiple lines has to set it via repeated
-`array+=(...)` instead.
+**A run reaches the project and its specs root, and under the specs root only its own spec's folder.** A step that
+writes another spec's folder ends `scope-violation`, with those changes discarded before the commit. There is no flag
+to name a third repo.
 
 ## What a step can reach
 
@@ -212,41 +187,28 @@ the credentials on the serving host and the board's own secrets: `~/.ssh`, `~/.g
 macOS keychains, Docker's, npm's and netrc's credentials, the Codex and OpenCode logins, and the board's tokens and
 push key. It lives in `run-spec/setup/sandbox.sh`, and no project setting changes it.
 
-**A second list may be read but not written**: what something outside the sandbox later runs or reads as its
-settings. Those are:
+**A second list may be read but not written**: what something outside the sandbox later runs or reads as its settings.
 
 - the shell's startup files (`~/.zshrc`, `~/.zshenv`, `~/.bashrc` and the rest);
 - `~/Library/LaunchAgents`, `~/.local/bin` and mise's tools and settings;
 - git's own settings (`~/.gitconfig`, `~/.config/git`);
-- the AI tools' settings, hooks, skills, agents and rules (`~/.claude.json`, the settings and those folders under
-  `~/.claude`, `~/.agents`, `~/.codex`, `~/.config/opencode`), and the same files under the directory of every
-  Claude account the board has configured (`.claude.json`, `settings.json`, `settings.local.json`, `hooks`,
-  `skills`, `agents`, `rules`, `plugins`, `CLAUDE.md`) — the directory itself stays writable, since Claude Code keeps
-  its sessions there;
+- the AI tools' settings, hooks, skills, agents and rules (`~/.claude.json`, and those under `~/.claude`, `~/.agents`,
+  `~/.codex`, `~/.config/opencode`), and the same files under the directory of every Claude account the board has
+  configured; the directory itself stays writable, since Claude Code keeps its sessions there;
 - the board's `queue-config.json`, where a scheduled job may turn the sandbox off;
 - the `.git/hooks` and `.git/config` of the step's own main checkouts and of every checkout under
   `~/.aide/dashboard/checkouts`, and each of those checkouts' `settings.yaml`, which holds the project's test command.
 
-A step therefore cannot install anything onto the serving host; `AIDE_INSTALL_CMD` does that after a landing. The
-board hands the runner where its queue settings and checkouts are (`AIDE_QUEUE_CONFIG`, `AIDE_CHECKOUT_ROOT`), and
-where it mirrors its queue (`AIDE_QUEUE_MIRROR`), which the runner reads to count the steps and landings running when it
-works out the test workers a run may use. It also hands over the directory of every Claude account it has configured,
-one per line (`AIDE_CLAUDE_CONFIG_DIRS`), and a step on another account is started with `--claude-config-dir <dir>`:
-every Claude turn of that step — the step's own, its review and verification, and the fix turns — runs with
-`CLAUDE_CONFIG_DIR` set to it, and a Codex or OpenCode turn beside it does not. A directory that is not there refuses
-the run before any turn starts.
+A step therefore cannot install anything onto the serving host; `AIDE_INSTALL_CMD` does that after a landing.
 
 Three more things keep what a step writes from reaching the runner's own work outside the sandbox, for every tool:
 
 - a scheduled job's prompt is read as committed in the checkout, never from the file on disk;
-- each worktree's `.git` file, and the `commondir` and `gitdir` files of its git directory, are recorded when the
-  worktree is cut and put back after every turn, and the runner's own git in a worktree passes the git directory it
-  recorded (`--git-dir`, `--work-tree`) rather than reading the `.git` file, so it never follows a step's rewrite of
-  it, not even one made after the turn by a process the step left running;
-- the runner's and the landing's own git run no hooks (`-c core.hooksPath=/dev/null`), so a hook the step wrote into
-  the working tree, through a relative `core.hooksPath` or a tool such as lefthook that reads its settings from there,
-  is never started. What the runner starts itself, the AI tool and the project's tests, runs git with its hooks as
-  usual.
+- each worktree's `.git` file and its git directory's `commondir` and `gitdir` files are recorded when the worktree is
+  cut and put back after every turn, and the runner's own git passes the recorded git directory (`--git-dir`,
+  `--work-tree`);
+- the runner's and the landing's own git run no hooks (`-c core.hooksPath=/dev/null`). What the runner starts itself,
+  the AI tool and the project's tests, runs git with its hooks as usual.
 
 Everything else is reachable:
 
@@ -275,7 +237,7 @@ per run (`docs/ROADMAP.md`, idea 18b) closes this.
 in a worktree fails under `workspace-write`, because the worktree's git directory lies in the main checkout. OpenCode
 has no sandbox of its own. `docs/AI_SUPPORT_MATRIX.md` has the versions this was checked against.
 
-The runner's own commit, push and landing run outside the sandbox, as before.
+The runner's own commit, push and landing run outside the sandbox.
 
 ## What counts as a step having run
 
@@ -305,33 +267,23 @@ a guess is not.
 evidence that the phase happened:
 
 - `implement` counts only if the project's HEAD moved, its tree changed, or its branch differs from the default
-  branch — the third catches a re-pressed implement that finds an earlier run's code already on the branch and
-  writes nothing itself. Otherwise the step ends `no-progress` and
-  the line is not extended. Once past that check, a second, fresh AI session — never resumed, on the model the
-  queue config's `model.review` names, else the step's own — reads the spec's own description and, with `git diff` itself, everything the branch changed
-  since it left the default branch, and looks for defects against the description, each with the concrete case it
-  goes wrong for; it never comments on style, naming or structure (`run-spec/turn/review.sh`),
-  except that a description with an `## Out of scope` section makes each change under an item in it a defect too. One or
-  more found are checked first, when `model.verify` names a model, by a third fresh session that keeps or drops each
-  one after tracing it in the code; only the kept ones go on, and a verification that does not complete keeps them
-  all. A review or verification runs on the step's own tool or on Codex, read-only (`run-spec/turn/side-turn.sh`),
-  and a review on Codex that does not complete, out of quota or at capacity, is done again by the step's own model.
-  Those found go back to the ORIGINAL implement session as one follow-up turn that fixes them, or turns one down on a
-  `not a defect: <number>. <why>` line when the review is wrong, and that turn's own
-  failure stands as the step's outcome; the review's own turn is best-effort, and any outcome other than a clean
-  "no defects" — a verdict it cannot parse, or its own turn failing to complete — falls back to "found nothing"
-  rather than failing an already-successful, already-committed implement over the added safety net's own hiccup.
-  Either is logged as an error, never as a review that found nothing.
-  The step ends only on a green test run the runner made ITSELF
-  (`run-spec/turn/step-tests.sh`), which always follows the review: the same `aide-resolve-test-cmd` and
-  `aide-record-test-run` the landing's gate calls run
-  on the step's result in its worktree, and the record on the branch is the runner's. Red goes back to the same
-  session first — the failing lines as a follow-up turn, up to two more rounds within what is left of the step's
-  time limit (`AIDE_TEST_FIX_ROUNDS`; claude resumes its session, Codex its thread through `codex exec resume`). Still red after
-  that, the step ends `tests-red` with the failing lines as its detail, and Implement is the button to press again.
-  A project without `AIDE_TEST_CMD` has nothing to run and passes. A record the session wrote through
-  `aide-record-test-run` on exactly the delivered tree (its `tree` hash), green and naming the same commands, is
-  accepted as that run; anything the session changed afterwards makes the runner run the suite itself.
+  branch. Otherwise the step ends `no-progress` and the line is not extended. After that check:
+  - **A review.** A second, fresh session reads the spec's description and the branch's diff and looks for defects
+    against the description, each with the concrete case it goes wrong for (`run-spec/turn/review.sh`). It never
+    comments on style, naming or structure, except that a description with an `## Out of scope` section makes each
+    change under an item in it a defect too. It runs on the queue config's `model.review`, else the step's own
+    model, read-only, on the step's tool or on Codex (`run-spec/turn/side-turn.sh`); a review on Codex that does not
+    complete is done again by the step's own model.
+  - **A verification**, when `model.verify` names a model: a third fresh session keeps or drops each defect after
+    tracing it in the code. One that does not complete keeps them all.
+  - **A fix turn.** The defects that are kept go back to the ORIGINAL implement session as one follow-up turn, which
+    fixes them or turns one down on a `not a defect: <number>. <why>` line. The review itself is best-effort: a
+    verdict it cannot parse, or a turn that does not complete, counts as "found nothing" and is logged as an error.
+  - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red goes back
+    to the same session as a follow-up turn, at most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time
+    limit. Still red ends the step `tests-red` with the failing lines as its detail, and Implement is the button to
+    press again. A project without `AIDE_TEST_CMD` passes. A record the session wrote through `aide-record-test-run`
+    on exactly the delivered tree, green and naming the same commands, is accepted as that run.
 - `archive` runs no suite of its own, merged with main or not: its landing runs the project's tests once, on
   exactly what the default branch is about to become, and that is the one run an archive gets
   ([Branches and landing](landing.md#the-tests-run-on-the-landing-once)).
@@ -400,106 +352,75 @@ ending `— done`, or `— stopped: <why>` for a step that failed. A model turn 
 turn opens it again after itself, so the log reads as one sequence of marked parts (`aide_part_open`,
 `aide_part_close`).
 
-The marks the model writes itself are dated while it works. The wait loop of `run_model_turn` reads the transcript's new
-bytes each time it polls (`model_marks_record`, `run-spec/turn/model-marks.sh`), finds the lines of the model's own
-text that are marks and prints each into the run log, so it carries the run's clock like Aide's own parts. The three
-tools share no clock of their own, so the time is the moment the runner first sees the line, at most a poll (0.2
-seconds) late; a model that writes several marks at once gets the same second for each, in order. The text is a
-`text` block of a Claude `assistant` event with no `parent_tool_use_id`, the text of a Codex `agent_message` item
-(`item_type` or `type`), or an opencode `text` part. A turn reads from where its own output begins, so the review's and
-a fix turn's marks are each recorded once; a line past 1 MiB is skipped, and a last line with no newline is read when
-the turn ends. The page shows the model's own line with that time in front and drops the recorded copy, so a mark is
-one line of the Log, and a recorded line no line of the model matches (the landing's merge step, a line before the byte
-a tailed transcript starts at) stays among Aide's. The Log shows a mark whole, whatever the length of its title. A run
-from before has no recorded marks, and its model steps show a dash for time.
+The marks the model writes itself are dated while it works: the wait loop of `run_model_turn` reads the transcript's new
+bytes each poll (`model_marks_record`, `run-spec/turn/model-marks.sh`) and prints each mark into the run log with the
+run's clock. The three tools share no clock, so the time is the moment the runner first sees the line, at most 0.2
+seconds late. The page shows the model's own line with that time in front and drops the recorded copy, so a mark is one
+line of the Log. A run from before has no recorded marks, and its model steps show a dash for time.
 
 A `schedule` step's prompt is the prompt file's text, then a request to split the work into a few named steps and mark
-each one with the same lines (`schedule_step_note`, `core/scripts/lib/run-spec/setup/invocation.sh`), then the headless
-note. The prompt file names no steps, so the model names them itself, and the marks it writes in its output are the
-steps the job's row on the Running page unfolds into.
+each one with the same lines (`schedule_step_note`, `run-spec/setup/invocation.sh`). The marks it writes are the steps
+the job's row on the Running page unfolds into.
 
 Every physical line is its own line. Only the `error: ` prefix marks an error and only the turn line marks a turn:
 the transcript is cut at each turn's byte, and Aide's lines go between the turns. The script writes one `error:` line
 for the step's own failure before its result line, and one for a refused run.
 
 **What the two reviews found** is written in the `tests and commit` part. A completed analyze gets one line, read from
-the `**Findings:**` line that opens the plan's Plan review section (`plan_review_line`, `run-spec/turn/review.sh`):
-`plan review: 2 must-fix, 3 should-fix, 4 acted on — the findings are under Plan review in the plan (3-solution.md)`,
-or that the plan has no Plan review section, or that the section gives no counts. Code blocks are skipped, and after a
-`## Round N` heading only that round's review counts.
+the `**Findings:**` line that opens the plan's Plan review section (`plan_review_line`, `run-spec/turn/review.sh`), or
+a line saying the plan has no Plan review section or the section gives no counts. An implement's code review writes
+`the review found no defects` or an `error:` line with the count, one `review: <line>` per line of the reviewer's list,
+one `the verification dropped review: …` per defect a verification dropped, `the defect(s) went back to the implement
+session to be fixed`, and one `the implement session found it not a defect: …` per defect the session turned down.
 
-**Let AI formulate acceptance criteria.** A completed create records which path it took as the `Let AI formulate
-acceptance criteria:` line in the new spec's Tracking info: `yes` when an AI session ran, `no` for `--no-ai-formulate`
-(`aide_spec_record_ai_formulate`). The board reads it for the spec's banner; a spec without the line is read as `yes`.
+**Let AI formulate acceptance criteria.** A completed create records `yes` or `no` (`--no-ai-formulate`) as the `Let AI
+formulate acceptance criteria:` line in the new spec's Tracking info. The board reads it for the spec's banner; a spec
+without the line is read as `yes`.
 
-**Let me choose the approach.** The New spec form's box is passed to `create` as `--choose-approach yes|no`, and any
-other value is refused before the run starts. A completed create records it as the `Let me choose the approach:` line
-after the `Acceptance criteria checks:` line (or after `Created`) in the new spec's Tracking info. Analyze reads it once
-(`aide_spec_choose_approach`); with `yes` the prompt gets one line asking the skill to mark each approach
-`(recommended)`, `(real alternative)` or `(considered and rejected)`, and with anything else the prompt is unchanged.
+**Let me choose the approach.** The New spec form's box is passed to `create` as `--choose-approach yes|no` and recorded
+as the `Let me choose the approach:` line. Analyze reads it (`aide_spec_choose_approach`); with `yes` the prompt asks
+the skill to mark each approach `(recommended)`, `(real alternative)` or `(considered and rejected)`.
 `core/tests/fixtures/choose-approach-line.json` is the table the runner and the dashboard both read the line against.
 
-**The acceptance criteria checks.** The level (`off`, `warn` or `stop`) is chosen on the New spec form and passed to
-`create` as `--criteria-checks`. A completed create records it as the `Acceptance criteria checks:` line after
-`Created` in the new spec's Tracking info, whether or not an AI session ran. Analyze reads that line once and states
-it in the prompt; a spec without the line, or with any other value, is read as `off`. At `stop`, a completed analyze whose Plan
-review section's `**Criteria check:**` line names a fault after ` — ` ends `acceptance-criteria`
-(`run-spec/record/criteria-check.sh`, after the scope guard, so a write outside the spec's folder is decided first):
-`ok` false, the commit subject ending `(stopped: acceptance-criteria)`, the error naming each fault, and the result's
-`criteriaFaults` sorting them into `missing`, `notEars`, `noScenario`, `contradictions` (each an `AC-a/AC-b` pair)
-and `cannotBuild`. The state file does not gain `analyze`.
-A line reading `none found`, or no such line at all, completes the step, and the log says what was read. The
-runner reads the line and never judges the criteria itself. An implement's code review writes
-`the review found no defects`, or an `error:` line with the count, one `review: <line>` per line of the reviewer's
-list, one `the verification dropped review: <number>. <defect> — <why>` per defect a verification dropped, and
-`the defect(s) went back to the implement session to be fixed` before the fix turn; after it, one
-`the implement session found it not a defect: <number>. <why>` line per defect the session turned down.
+**The acceptance criteria checks.** The level (`off`, `warn` or `stop`) is chosen on the New spec form, passed to
+`create` as `--criteria-checks` and recorded as the `Acceptance criteria checks:` line. Analyze states it in the prompt;
+a spec without the line is read as `off`. At `stop`, a completed analyze whose Plan review `**Criteria check:**` line
+names a fault after ` — ` ends `acceptance-criteria` (`run-spec/record/criteria-check.sh`, after the scope guard): `ok`
+false, the commit subject ending `(stopped: acceptance-criteria)`, the error naming each fault, and the result's
+`criteriaFaults` sorting them into `missing`, `notEars`, `noScenario`, `contradictions` (each an `AC-a/AC-b` pair) and
+`cannotBuild`. The runner reads the line and never judges the criteria itself. `none found`, or no line, completes the
+step.
 
-**The shared files check.** The analyze skill compares the files its analysis will change (`### Files to change` in
-`2-analysis.md`) with those of every other open spec in the project that is analyzed or implemented and not archived,
-by running `aide-spec-overlap`, and stops before the plan when one shares a file. A Markdown file never counts: pages
-are shared by nearly every spec, and archive resolves a conflict in one. After the turn
-(`run-spec/record/shared-files-check.sh`, after the scope guard and before the criteria check) the runner runs the
-same command with `--record`, which writes the specs found into the analysis's `### Overlapping specs`, and compares
-that list with the one the analysis had before the turn. A spec that is new in it ends the step `shared-files`: `ok`
-false, the commit subject ending `(stopped: shared-files)`, the error naming each spec with its files, and the
-result's `sharedFiles` (`[{ "spec": "<folder>", "files": [...] }]`) carrying the same. The state file does not gain
-`analyze`. A spec already in the list does not stop the next Analyze, which is how pressing it again goes on. When
-`aide-spec-overlap` is not installed, the check is skipped.
+**The shared files check.** The analyze skill compares the files its analysis will change with those of every other
+open spec in the project that is analyzed or implemented and not archived, with `aide-spec-overlap`, and stops before
+the plan when one shares a file. A Markdown file never counts. After the turn (`run-spec/record/shared-files-check.sh`)
+the runner runs the command with `--record`, which writes the specs found into the analysis's `### Overlapping specs`.
+A spec that is new in that list ends the step `shared-files`: `ok` false, the error naming each spec with its files,
+and the result's `sharedFiles` (`[{ "spec": "<folder>", "files": [...] }]`). A spec already in the list does not stop
+the next Analyze. When `aide-spec-overlap` is not installed, the check is skipped.
 
 **The short analysis check.** A small spec may get a short analysis: the files to change and where the tests sit, with
-no plan and no plan review. The limits, the grade and the number of source files, are the `SHORT_ANALYSIS_*` constants in `run-spec/setup/arguments.sh`, the one
-place they are set, with no per-project or environment override. For a spec that does not ask to choose the approach, the analyze prompt carries one line, `A short analysis is allowed for this spec`, stating
-them; any other spec is told nothing and gets the full analysis. After the turn (`run-spec/record/short-analysis-check.sh`,
-after the shared files check and before the criteria check) the runner reads `Analysis:` from `2-analysis.md`'s Tracking
-info, `Grade:` and `Acceptance criteria:` from `3-solution.md`'s, and counts the source files among the paths under `### Files to change` (a test or a Markdown file is not counted) and the
-`- **AC-n:**` lines of the description itself. The larger of the two criteria counts is logged and held to no limit. Every completed analyze is logged as
-`short analysis: <short|full> — grade <g>, <n> acceptance criteria, <m> files to change, <s> of them source files`. A full analysis is only logged. A short
-one over a limit, with no grade or no files recorded, or on a spec that asks to choose the approach, ends `short-analysis-over-limit`: `ok` false, the commit subject ending
-`(stopped: short-analysis-over-limit)`, and an error naming each limit crossed (for the files limit, the source files it counted). The state file does not gain
-`analyze`. The runner also writes `- **Sent back to a full analysis:** a short analysis was written over a limit: <the
-limits crossed>` into the description (`record_sent_back`, the sentence cleaned as the sent-back check cleans its own),
-unless the description already carries the line, whose reason is kept as it is; a description with no `Created:` line
-cannot hold it, and the step ends the same way. The board then lands the step's specs branch (where the specs live inside the code root, the spec's own folder) and
-queues one job for the same spec with Analyze and the steps the stopped job had not run, on its models and effort, with
-nothing for a person to press. The line is on the main checkout once the branch has landed, so that Analyze is not
-offered a short analysis and writes the full one. This is queued once per spec: a second `short-analysis-over-limit`
-for the same spec queues nothing and waits for a press. The
-`Analysis:` cases both the runner and the board read are in `core/tests/fixtures/analysis-line.json`. A spec whose
-description carries a `Sent back to a full analysis:` line is never offered a short analysis, and one written for it
-anyway ends `short-analysis-over-limit` with "it was sent back to a full analysis" among the limits crossed.
+no plan and no plan review. The limits and the grade are the `SHORT_ANALYSIS_*` constants in
+`run-spec/setup/arguments.sh`, with no per-project or environment override. For a spec that does not ask to choose the
+approach, the analyze prompt says `A short analysis is allowed for this spec`; any other spec gets the full analysis.
+After the turn (`run-spec/record/short-analysis-check.sh`) the runner reads `Analysis:`, `Grade:` and the acceptance
+criteria count, and counts the source files under `### Files to change` (a test or a Markdown file is not counted).
+Every completed analyze is logged as `short analysis: <short|full> — grade <g>, <n> acceptance criteria, <m> files to
+change, <s> of them source files`. A short one over a limit, with no grade or no files recorded, or on a spec that asks
+to choose the approach, ends `short-analysis-over-limit`: `ok` false, the error naming each limit crossed. The runner
+writes `- **Sent back to a full analysis:** …` into the description (`record_sent_back`), unless it already carries
+the line, and the board queues Analyze and the steps the stopped job had not run, once per spec
+([Running specs](running-specs.md)). A spec whose description carries that line is never offered a short analysis.
+`core/tests/fixtures/analysis-line.json` holds the `Analysis:` cases the runner and the board both read.
 
-**The sent-back check.** Every implement prompt names a file in the run's work directory, `sent-back`, and says: if the
-spec's analysis is short and the change is not small after all (more source files to change than the short analysis allows, or
-not graded LOW), write one sentence saying what made it larger there, change nothing else and end the step. After the
-turn (`run-spec/record/sent-back-check.sh`, after `checkout/cleanup.sh` and before the no-progress check, the code
-review and the step's test run) a non-empty file decides the step. The sentence is joined to one line, stripped of
+**The sent-back check.** Every implement prompt names a file in the run's work directory, `sent-back`, where the session
+writes one sentence if the spec's analysis is short and the change is not small after all. After the turn
+(`run-spec/record/sent-back-check.sh`) a non-empty file decides the step. The sentence is joined to one line, stripped of
 backticks and cut to 300 characters. When `2-analysis.md` reads `Analysis: short` and the description has a `Created:`
-line, `record_sent_back` (`lib/tracking-info.sh`) writes `- **Sent back to a full analysis:** <sentence>` into the
-description's Tracking info and the step ends `sent-back`: `ok` false, the commit subject ending `(stopped: sent-back)`.
-Otherwise the description is left as it was and the step ends `sent-back-refused`, failed, with `(stopped:
-sent-back-refused)`: the analysis was already full, or the line could not be kept. A missing or empty file changes
-nothing. The line's cases both the runner and the board read are in `core/tests/fixtures/sent-back-line.json`.
+line, `record_sent_back` writes `- **Sent back to a full analysis:** <sentence>` into the description and the step ends
+`sent-back`: `ok` false, the commit subject ending `(stopped: sent-back)`. Otherwise the description is left as it was
+and the step ends `sent-back-refused`, failed. A missing or empty file changes nothing.
+`core/tests/fixtures/sent-back-line.json` holds the line's cases.
 
 ## Running a step by hand
 

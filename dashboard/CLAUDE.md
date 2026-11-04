@@ -60,7 +60,9 @@ get them, and reads them by hand.
   so does a schedule entry with `"sandbox": false` (`docs/the-runner.md`,
   "What a step can reach").
 - The script runs from a private copy of itself — an `implement` step
-  reinstalls it under bash's feet — and `/bin/bash` here is 3.2: no
+  reinstalls it under bash's feet — and the copy's marker is unset before
+  `claude` starts, since an inherited flag would make the next nested
+  invocation delete the installed script. `/bin/bash` here is 3.2: no
   `mapfile`, build arrays with `array+=(...)`.
 - **An `implement` whose own turn ends `completed` is reviewed before
   its tests decide anything** (`run-spec/turn/review.sh`): a second,

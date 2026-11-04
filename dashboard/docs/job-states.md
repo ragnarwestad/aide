@@ -10,20 +10,16 @@
 ---
 
 A job carries a `state`, and only the queue's own state machine moves it. This page says what that state can be,
-which piece of code moves it and when, and which fields beside it behave like a state without being one.
+when it moves, and which fields beside it behave like a state without being one.
 
-The code is `JOB_STATES` and `TRANSITIONS` in `src/queue/steps.ts`. Nothing writes `state` directly — every caller
-goes through the one `QueueStore.transition()` in `src/queue/store/index.ts`: the runner
-(`src/queue/runner/index.ts` and `src/queue/runner/unticked-archive.ts`), the cancel route in
-`src/serve/routes/job-actions.ts`, the test board's own bulk cancel in `src/serve/routes/self-run.ts`, and the
-landing in `src/serve/land-branch/merge.ts`.
+The states and transitions are `JOB_STATES` and `TRANSITIONS` in `src/queue/steps.ts`. Every write goes through
+`QueueStore.transition()` in `src/queue/store/index.ts`.
 
 Three pages sit beside this one:
 
 - [The specs list and the spec page](the-specs-list.md) — how a state reads on the page
-- [How a spec moves between phases](spec-transitions.md) — the level above: which of the four phases a SPEC has reached
-- [Error sentences](error-sentences.md) — the one rule a job's own `error` sentence follows
-
+- [How a spec moves between phases](spec-transitions.md) — which of the four phases a SPEC has reached
+- [Error sentences](error-sentences.md) — the rule a job's own `error` sentence follows
 
 ## The seven states
 
@@ -39,12 +35,11 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 | `cancelled`   | A user pressed Cancel.                                                                                                                                                                                      |
 | `interrupted` | The step's process died without leaving a result.                                                                                                                                                           |
 
-Only `queued` and `running` own their work (`UNFINISHED` in `src/queue/steps.ts`), and the duplicate guard is
-built on that set alone. A second guard sits beside it: `QueueStore.landingJob()` refuses a NEW job of any step for
-a spec whose own job reads `done` with a landing still in flight, since that spec's working tree is half merged.
-Once the landing settles, the same step may be queued again — as a new job. A finished job is never resumed, with
-one exception: a step its AI's usage limit stopped is queued again, as the same job — by the board itself
-(`limit-reset`, below) or by a person who moves it to another Claude account (`run-on-account`, below).
+Only `queued` and `running` own their work (`UNFINISHED`), and the duplicate guard is built on that set alone. A
+second guard refuses a NEW job of any step for a spec whose own job reads `done` with a landing still in flight; once
+the landing settles, the same step may be queued again as a new job. A finished job is never resumed, except a step
+its AI's usage limit stopped: the board queues it again as the same job (`limit-reset`), or a person moves it to
+another Claude account (`run-on-account`).
 
 ## The transitions
 
@@ -66,224 +61,154 @@ stateDiagram-v2
     running --> cancelled: Cancel
 ```
 
-**Into the queue.** Six callers insert a job as `queued`: `POST /api/queue`, `POST /api/queue/create`, the
-schedule poll, the schedule page's own Run now, the Close control on a spec's page, and the Deploy button on the
-board's own project page (`POST /api/queue/projects/<project>/deploy`).
+**Into the queue.** A job is inserted as `queued` by a step button, Create, the schedule, Run now, the Close control
+and the Deploy button on the board's own project page.
 
-**The runner's tick, every two seconds** (`Runner.tick()`), walks the queue in `queuePriorityOrder()`'s order — every
-queued `create`, `archive` or `close` step — the ones that do no model work — before any queued `analyze` or
-`implement`, oldest first within each group
-(`src/queue/steps.ts`) — and, for each `queued` job:
+**The runner's tick**, every two seconds, takes the queued jobs in the order of `queuePriorityOrder()`: `create`,
+`archive` and `close` first, since they do no model work, then `analyze` and `implement`, oldest first within each
+group. For each queued job it:
 
-- Skips a job that has `landing` set: that job's next step waits for its own merge. Every other job runs as
-  usual — see [Beside the state](#beside-the-state).
-- Skips a job whose spec already has a running job: two steps for one spec are ordered by nature.
-- Leaves an `archive` job `queued` with a reason on it — "held back: another archive is running in this project — it
-  starts when that one has merged" — while another `archive` in the same project is running or landing. Both branch
-  from the code root's main and both land into it, so the second waits for the first to have merged. This is the
-  cheapest of the three holds and the one asked first; the two below need the spec's own files or the network.
-- Leaves a `schedule` job `queued` with a reason on it while anything else in its project is running or landing
-  (`runner/project-holds.ts`). A row held this way resolves on its own.
-- Leaves a job `queued` with a reason on it — "held back: not analyzed yet — run /aide-analyze first" — when its own
-  spec's `analyze` step has not completed, and tries again next tick. The state does not move.
-- Leaves a job `queued` with a reason on it — "held back: choose the approach to build, then press Save" — when its
-  next step is `implement`, its step before that in the same job was `analyze`, and the spec asked to choose the
-  approach and has two or more real alternatives with none chosen (`waitingForApproachChoice`,
-  `schedules/blocked.ts`). An `implement` started on its own is never held for this. It starts at the first tick after
-  a choice is saved; saving another approach than the recommended one cancels it instead.
-- Leaves a job `queued` with a reason on it — "held back: depends on …" — when a dependency it names has not
-  archived, and tries again next tick. The state does not move.
-- Ends an `archive` whose spec still has an unticked acceptance row `done`, before anything else and without
-  taking a slot, with the result `core/scripts/aide-archive-spec`'s own pre-check would have written
-  (`terminalReason: acceptance-criteria-unticked`, no process, no cost). The row's badge reads **Ready** — unticked
-  criteria are the spec's own next step — and the notice line under it carries the reason. A user presses Archive
-  once the rows are ticked; a tick never starts it. It is judged only on the
-  BRANCH copy read since the last tick (`archiveWithOpenAcceptance`, `schedules/blocked.ts`); an unread or stale
-  answer starts the step, and the script's own pre-check decides.
-  That reason is worked out afresh on every render, never remembered from a refusal, and it
-  asks the BRANCH's copy of `4-status.md` before the disk's (`spec-lookup.ts`): a tick on a spec whose
-  `aide/<folder>` is open lands there, and the disk copy stays unticked until archive lands. It says nothing while
-  a round is under way (`row-marks.ts`) — a reader whose own run is going has nothing to go and tick.
+- Skips a job that has `landing` set: its next step waits for its own merge.
+- Skips a job whose spec already has a running job.
+- Leaves an `archive` queued, with the reason on it, while another `archive` in the same project is running or
+  landing.
+- Leaves a `schedule` job queued, with a reason, while anything else in its project is running or landing.
+- Leaves a job queued with "held back: not analyzed yet — run /aide-analyze first" until its spec's `analyze` has
+  completed.
+- Leaves an `implement` queued with "held back: choose the approach to build, then press Save" when its spec asked to
+  choose the approach, has two or more real alternatives and none is chosen. An `implement` started on its own is
+  never held for this. Saving another approach than the recommended one cancels it.
+- Leaves a job queued with "held back: depends on …" until the dependency it names has archived.
+- Ends an `archive` whose spec has an unticked acceptance row as `done`, without taking a slot, with
+  `terminalReason: acceptance-criteria-unticked` and no cost. The row's badge reads **Ready**; the notice line under it
+  carries the reason. A tick never starts the archive; a user presses Archive once the rows are ticked.
 - Moves a job with no step left to `done`.
-- Otherwise spawns the step and writes `running`, with the process and file fields.
+- Otherwise starts the step and writes `running`.
 
-**When a step ends** (`Runner.complete()`, reached from `poll()` when the result file appears):
+A held-back job keeps its state; the reason is on the row and clears on a later tick.
 
-- `timeout` or `provider-limit` as the run's terminal reason gives `stopped`, with that `stopReason`. A
-  `provider-limit` step also carries `providerLimit` — the tool's own record of which window ran out, when it resets,
-  the other windows' figures, and the plan or refused credit where the tool names them. The runner reads it from
-  claude's `rate_limit_event` and from the session file Codex keeps for the thread. A Codex turn is a
-  `provider-limit` when that file shows a full window, or when Codex's own error says the usage limit is hit; the
-  error's "try again at" time is then the reset. opencode has no reader. The row and the Logs tab say it
-  as one sentence in place of the runner's own summary. A stopped step other than `archive` lands what it pushed
-  outside the code root — a
-  `timeout` or `provider-limit` step, with something pushed, and no code root among it; a stopped `implement` whose
-  code branch was pushed lands nothing, and that code waits for `archive`. The exception is an implement sent back
-  (`sent-back`) where the specs live inside the code root: it lands the spec's own folder alone. A landing that does run leaves the job's
-  `error` in place: it is the reason the step stopped, not a fault the landing resolved. A stopped archive lands
-  nothing: its folder reaches `archive/` on the default branch only when the archive step completes and lands.
-- A `provider-limit` stop also writes `usageLimitWait` on the job: when the board queues the step again. It is the
-  reset time the tool named when that is later than the stop, and an hour after the stop otherwise
-  (`resetKnown` says which). The board starts no other queued step on that AI until then, and at that time the
-  `limit-reset` transition moves the job from `stopped` back to `queued` with no press. A stop recorded without a
-  wait is never started again by the board.
-- A Claude step stopped on a usage limit can be moved to another Claude account (`run-on-account`, also
-  `stopped` to `queued`): the button "Run on <account>" on its row and its page. The transition puts the account on
-  the job (`claudeAccount`), so the job's later Claude steps run there too, and clears the stop and the wait like
-  `limit-reset` does. The wait it clears stays on the job as `usageLimitLeft`, so the account it was moved off stays
-  held until its old time.
-- `model-at-capacity` gives `stopped` too: the provider had no room for the model, so unlike a usage limit there is
-  no reset to wait for. The runner reads it from the turn that just ended alone, never from an earlier turn of the
-  same step, and from the last `error` or `turn.failed` event of a Codex turn that did not
-  complete, when its message says "at capacity", and from Claude Code's closing result when that is an error with
-  status 529 or a message saying overloaded or at capacity; a used-up limit and the step's own time limit win over
-  it, and opencode has no reader. The job's `error` names the step's button and the model the step ran on and says
-  to press the button again or choose another model; the phase, worded from the commit history alone, says the model
-  was at capacity without naming it. It lands nothing, and the step is offered again.
-- `shared-files` gives `stopped` too: an analyze whose analysis names files another open spec also changes. It lands
-  like a `timeout` stop — what it pushed went to the specs repository only, so the analysis is merged into the
-  default branch — and the job's `error` names each spec with the files it shares, from the result's `sharedFiles`.
-- `acceptance-criteria` gives `stopped` too: an analyze the runner stopped at the spec's `criteriaChecks: stop`.
-  Its `error` names each fault the plan review found, by kind, from the result's `criteriaFaults`, and is the
-  runner's own sentence when that lists none. It lands nothing: the analysis stays on the spec's branch, where the
-  next Analyze takes it up.
+**When a step ends:**
+
+- `timeout` or `provider-limit` gives `stopped`, with that `stopReason`. A `provider-limit` step also carries
+  `providerLimit`: which window ran out, when it resets, the other windows' figures, and the plan or refused credit
+  where the tool names them ([how the runner tells](the-runner.md#when-a-provider-limit-ends-a-step)). The row and
+  the Logs tab say it in one sentence, in place of the runner's own summary. What a stopped step lands is in
+  [landing.md](landing.md#branches-and-merging-them); a landing that does run leaves the job's `error` in place.
+- A `provider-limit` stop also writes `usageLimitWait`: when the board queues the step again. It is the reset time
+  the tool named when that is later than the stop, and an hour after the stop otherwise (`resetKnown` says which).
+  The board starts no other queued step on that AI until then, and at that time `limit-reset` moves the job from
+  `stopped` back to `queued` with no press. A stop recorded without a wait is never started again by the board.
+- A Claude step stopped on a usage limit can be moved to another Claude account (`run-on-account`, also `stopped` to
+  `queued`) with "Run on <account>" on its row and its page. The job's later Claude steps run on that account too.
+  The wait it clears stays on the job as `usageLimitLeft`, so the account it was moved off stays held until its old
+  time.
+- `model-at-capacity` gives `stopped`: the provider had no room for the model, so there is no reset to wait for. The
+  job's `error` names the step's button and the model and says to press the button again or choose another model.
+  It lands nothing, and the step is offered again. [How the runner tells](the-runner.md#when-a-provider-limit-ends-a-step).
+- `shared-files` gives `stopped`: an analyze whose analysis names files another open spec also changes. The job's
+  `error` names each spec with the files it shares.
+- `acceptance-criteria` gives `stopped`: an analyze the runner stopped at the spec's `criteriaChecks: stop`. Its
+  `error` names each fault the plan review found, by kind. The analysis stays on the spec's branch, where the next
+  Analyze takes it up.
 - Any other failure gives `failed`, with `error` and, when the runner found a merge conflict at step start,
-  `errorReason: "conflict"`.
-  A result whose `stop_reason` is `refusal` ends `model-refused`: the model itself declined, so the error names the
-  step and says so, and gives no advice about installing or logging in.
+  `errorReason: "conflict"`. A result whose `stop_reason` is `refusal` ends `model-refused`: the error names the step
+  and says the model declined, and gives no advice about installing or logging in.
 - Success on the last step gives `done`. Success with steps left gives `queued` again, with `stepIndex` advanced.
   There is no stop between steps: every step lands its own work.
 
-**Interrupted** is written in two places, both for a `running` job whose process is gone and whose result file is
-empty: `poll()` while the server runs ("the run vanished without leaving a result"), and `reconcile()` on boot ("the
-server restarted while this step was running"). A job whose process is gone but whose result IS on disk is completed
-normally from that file — nothing about a restart is guessed at.
+**Interrupted** is written for a `running` job whose process is gone and whose result file is empty, while the server
+runs ("the run vanished without leaving a result") and on boot ("the server restarted while this step was running").
+A job whose process is gone but whose result is on disk is completed from that file.
 
-**Cancelled** comes from `POST /api/queue/<id>/cancel`, and from the test board's own control, which cancels every
-queued and running job of a project at once. Both write `cancelled` first and then send `SIGTERM` to the job's
-process group, where there is one. A job that has already finished is refused with 409 and keeps its state: `done`,
-`failed`, `stopped` and the rest are history, and Cancel does not rewrite history.
+**Cancelled** comes from `POST /api/queue/<id>/cancel` and from the test board's control, which cancels every queued
+and running job of a project. Both write `cancelled` and then send `SIGTERM` to the job's process group. A job that
+has already finished is refused with 409 and keeps its state.
 
-**Done to failed** is the one transition made after the fact. The step succeeded, so `complete()` has already written
-`done`, and the landing runs afterwards. When that landing is refused for a conflict, or `archive`'s landing finds the
-spec's branch still on origin, the `landing-failed` transition moves the job to `failed` with `errorReason` — and only
-from `done`: the runner may have queued the job's next step in between, and a landing must not overwrite a job that
-has moved on; the table simply has no entry for that case, so the attempt is refused. `error`/`errorReason`/
-`stopReason` say what a row is waiting for RIGHT NOW, so none of them are written onto a job that has moved on — only
-`landingError`, the permanent record of that attempt, survives there, exactly as it already does on the `done`/
-`stopped` path below, and `landingErrorDetail` carries the raw words behind it — `errorDetail` belongs to what the row
-waits for now, and a job that has moved on has overwritten it. The record names the step it belongs to, and that
-step's OWN landing clears it when it succeeds later; a LATER step's success leaves it alone. See
-[Branches and landing](landing.md).
+**Done to failed** is the one transition made after the fact. The step succeeded and the job reads `done`; when the
+landing is then refused for a conflict, or `archive`'s landing finds the spec's branch still on origin,
+`landing-failed` moves it to `failed` with `errorReason`. It applies only from `done`: a job that has moved on keeps
+its state, and only `landingError` (with `landingErrorDetail` beside it) records the attempt. The record names the
+step it belongs to; that step's own landing clears it when it succeeds later, and a later step's success leaves it
+alone. See [Branches and landing](landing.md).
 
-**Done to stopped** is the same transition for the one landing failure that is nobody's fault. The landing runs the
-project's own suite on the merged result, and a red suite pushes nothing: `landing-held` moves the job to `stopped`
-with `stopReason: "tests-red"`, so the State cell reads **Stopped** and the row's message line carries an amber "tests red". The
-work is not green yet — run implement again — which is a different thing from a broken agent, and the row says so.
+**Done to stopped** is the landing failure that is nobody's fault. The landing runs the project's own suite on the
+merged result, and a red suite pushes nothing: `landing-held` moves the job to `stopped` with
+`stopReason: "tests-red"`, and the row carries an amber "tests red". The work is not green yet — run implement again.
 
-Cancel works while a finished step's work is being merged and tested, though the job already reads `done`: the
-scripts the merge runs for it are stopped, nothing is pushed, and `landing-cancelled` moves the job to `cancelled`.
+Cancel works while a finished step's work is being merged and tested, though the job already reads `done`: nothing is
+pushed, and `landing-cancelled` moves the job to `cancelled`.
 
 ## Beside the state
 
-Three fields say something the state alone does not, and each is read by the page as if it were one. `error`
-rides with the last of them, and the permanent records of a landing attempt — `landingError` and
-`landingErrorDetail` — are in [The transitions](#the-transitions) above, where they are written.
+Three fields say something the state alone does not, and the page reads each as if it were one. `error` rides with
+the last of them.
 
-- **`landing`** is set on a job while its finished step's branch is being merged, and cleared once the whole landing
-  promise settles. It holds back that job alone — its own next step waits for its merge — and nothing else on the
-  board: the landing merges in a worktree of its own and touches the shared checkout for one fast-forward at the
-  end. It is never restored from the persisted mirror: a flag that survived a restart would hold that job shut with
-  nothing left to clear it. The job is read back with `landingCut` instead, and the boot runs that landing again from
-  the step's own result file (`src/queue/runner/cut-landing.ts`), holding the job with `landing` until it settles.
-  The step it was landing gets the end its landing never stamped: the job's own end, or the boot that reads it back
-  when the job had steps left. **An `onLanded` callback runs before its own job's flag is
-  cleared.** `Runner.complete()` in `src/queue/runner/index.ts` is synchronous: it starts the landing work (`onStepDone`,
-  e.g. `landArchivedSpec` for `archive`), writes `landing: true` onto the job's own store row, and only clears that
-  flag in a `.then()` once the WHOLE landing promise settles — including whatever `onLanded` itself does. So a callback
-  that reads `queue.list()` sees its own triggering job still marked `landing: true` even though the landing calling
-  it has already succeeded, and must treat that one row as settled by hand; every other row's flag is as trustworthy
-  as ever. The step's own phase line follows the same flag: its badge reads "Running", not "done", and its
-  own duration keeps counting until the landing settles — the row's state and the phase line never disagree about
-  whether the step is still going. The flag belongs to the step being merged: a chained job has already moved
-  `stepIndex` on to its next step when the landing starts, so that next step reads "Queued", never "Running".
+- **`landing`** is set on a job while its finished step's branch is merged. It holds back that job's own next step
+  and nothing else on the board. It is not restored on a restart: the job is read back with `landingCut`, and the
+  boot runs that landing again from the step's result file. The step's badge reads "Running", and its duration keeps
+  counting, until the landing settles. A chained job's next step reads "Queued", never "Running". A session writing an
+  `onLanded` callback reads the caveat in [the landing rule](../.claude/rules/landing.md).
 
-  The row also reads the spec's files and git history, which are cached and catch up after the queue does. Each
-  answer carries when it was read (`SpecTarget.sourcesCheckedAt`, the oldest of the history's read, the branch copy's
-  read and, when the disk copy is the one compared, the disk scan's read), and a phase whose latest run ended after that reads as its run's own word, with no sentence about the files
-  disagreeing — they have not seen the run yet. A step with no landing of its own (`implement`, a failed step) has
-  those answers read again as soon as its result is written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step
-  with a landing has them read again by the landing.
+  A row also reads the spec's files and git history; how they are cached is in
+  [the specs list](the-specs-list.md#the-page-changes-when-something-changes).
 - **`stopReason`** is `timeout`, `provider-limit`, `model-at-capacity`, `tests-red`, `acceptance-criteria`, `shared-files` or `sent-back`, set with `stopped` and
-  nowhere else. `stopped` is deliberately not `failed`: under a tight timeout a time-stop is a common, healthy
-  outcome, a red suite on a landing is work that is not green yet rather than a broken agent, and an analyze stopped
-  on its acceptance criteria waits for the description to be put right. An implement sent back to a full analysis is
-  stopped too: the board queues Analyze and Implement for the spec by itself.
-- **`usageLimitWait`**, **`usageLimitProbe`**, **`usageLimitLeft`**, **`claudeAccount`** and **`pressed`** (`src/queue/types.ts`)
-  belong to the usage-limit wait above. `claudeAccount` is `{ name, configDir }`, the Claude account a person moved
-  the job to, copied onto the job so a rename or removal later changes nothing for a job already there; absent means the
-  default account. `usageLimitLeft` is `{ hold, until, resetKnown, since }`: the wait a move left on the login it was
-  made from. `StepResult.claudeAccount` is the account's name on each Claude step that ran there.
-  `usageLimitWait` is `{ until, resetKnown }` on a stopped job and is cleared when the job is queued again;
-  `usageLimitProbe` is `{ results, at, since }` on the one step sent ahead of the others; `pressed` is set on a job
-  a person queued (a step button, Run now, Create, Close) and never on one the board queued by itself. A mirror
-  written without them reads back unchanged.
+  nowhere else. `stopped` is deliberately not `failed`: a time-stop is a common, healthy outcome, a red suite on a
+  landing is work that is not green yet, and an analyze stopped on its acceptance criteria waits for the description
+  to be put right. An implement sent back to a full analysis is stopped too: the board queues Analyze and Implement
+  for the spec by itself.
+- **`usageLimitWait`**, **`usageLimitProbe`**, **`usageLimitLeft`**, **`claudeAccount`** and **`pressed`**
+  (`src/queue/types.ts`) belong to the usage-limit wait below. `claudeAccount` is `{ name, configDir }`, the account a
+  person moved the job to, copied onto the job; absent means the default account. `usageLimitLeft` is
+  `{ hold, until, resetKnown, since }`: the wait a move left on the login it was made from. `usageLimitWait` is
+  `{ until, resetKnown }` on a stopped job, cleared when the job is queued again. `usageLimitProbe` is
+  `{ results, at, since }` on the one step sent ahead of the others. `pressed` is set on a job a person queued, and
+  never on one the board queued by itself.
 - **`errorReason`** is `conflict`, `held-back`, `tests-red` or `unlanded`, set when something stands in the way of
-  the job: the class of it, for a reader who needs to act without matching on the sentence. `conflict` and `unlanded` are
-  resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and
-  `held-back` clears itself on a later tick, with nothing for anyone to press — including the three sentences of a
-  hold for a used-up usage limit, which carry the AI and the time as plain values and are put in the reader's language
-  where they are drawn. A landing held for a red suite sets
-  it beside `stopReason: tests-red` — the same fact, once as the state's reason and once as its class. It is declared in `src/queue/types.ts` and again
-  in `src/render/ui/job-state/types.ts`,
-  which do not import each other; `test/queue/requests/parsing-schedule-and-errors.test.ts` reads both as text and asserts they agree.
-  `error` beside it is what a reader is told: always written on `failed`, on `interrupted`, on a `queued` job that
-  is held back, and on a landing held for a red suite. A `timeout` or `provider-limit` stop passes the run's own
-  error through, so a result file that recorded none leaves it unset. It is a `Sentence`, or several: a message key and its values, translated where it is drawn, never
-  a finished string the queue made up.
+  the job: the class of it, for a reader who needs to act without matching on the sentence. `conflict` and `unlanded`
+  are resolved by running `archive` again; `tests-red` by making the suite green and running the step again; and
+  `held-back` clears itself on a later tick. A landing held for a red suite sets it beside `stopReason: tests-red`.
+  It is declared in `src/queue/types.ts` and in `src/render/ui/job-state/types.ts`; a test asserts they agree.
+  `error` is what a reader is told: always written on `failed`, on `interrupted`, on a `queued` job that is held
+  back, and on a landing held for a red suite. A `timeout` or `provider-limit` stop passes the run's own error
+  through. It is a `Sentence`, or several, translated where it is drawn.
 
-**A usage limit's wait** (`src/queue/runner/usage-limit.ts`). The hold is worked out from the queue on every tick,
-so the mirror is its one record and a restart of the board keeps it.
+**A usage limit's wait** (`src/queue/runner/usage-limit.ts`) is worked out from the queue on every tick, so a
+restart of the board keeps it.
 
-- An AI is held while one of its steps is stopped on `provider-limit` with a `usageLimitWait`, or while the step
-  sent ahead of the others is running. Every `queued` job whose step runs on that AI waits with `held-back`; jobs
-  on other AIs start as before. A job whose own landing is in flight is not held.
-- A hold belongs to one login. For Claude it is keyed by the AI and the account's directory (`holdKey`,
-  `src/queue/runner/claude-accounts.ts`): a step on another account is held only by that account's own wait, and a
-  wait on it holds no step on the default account. A `usageLimitLeft` holds its login's queued steps like a waiting
-  step's wait, is never queued again, and is dropped at its time.
-- `restartAfterUsageLimit` runs first in each tick. At the AI's time (the latest `until` among its stopped steps)
-  it moves the stopped steps to `queued` through `limit-reset`, clearing `usageLimitWait`, `stopReason`,
-  `finishedAt` and `error`. A step started again that stops on the limit again gets a new wait and the AI is held
-  again, with no limit on how many times.
+- An AI is held while one of its steps is stopped on `provider-limit` with a `usageLimitWait`, or while the step sent
+  ahead of the others is running. Every `queued` job whose step runs on that AI waits with `held-back`; jobs on other
+  AIs start as before. A job whose own landing is in flight is not held.
+- A hold belongs to one login. For Claude it is the AI plus the account's directory: a step on another account is
+  held only by that account's own wait. A `usageLimitLeft` holds its login's queued steps, is never queued again,
+  and is dropped at its time.
+- At the AI's time (the latest `until` among its stopped steps) `limit-reset` moves the stopped steps to `queued`,
+  clearing `usageLimitWait`, `stopReason`, `finishedAt` and `error`. A step that stops on the limit again gets a new
+  wait, with no limit on how many times.
 - With no reset time (`resetKnown: false`) only the oldest stopped step is queued again, as the probe; the others
-  wait another hour from then. The probe carries `usageLimitProbe`, and the AI stays held until the probe's step has
-  ended. When it ends without a usage-limit stop, every step that stopped before it is queued again at once; when it
-  stops on the limit, the AI waits for the new stop's time.
-- A person's press queues a new job with `pressed`, which is not held by a stop made before it. A stopped step
-  whose spec has had a job queued since the stop is not started again at its time: its wait is cleared.
-- The step's transcript is `<job id>.<step>.stream.jsonl`; a later attempt of the same step in the same job is
+  wait another hour. The AI stays held until the probe's step has ended. When it ends without a usage-limit stop,
+  every step that stopped before it is queued again at once; when it stops on the limit, the AI waits for the new
+  stop's time.
+- A person's press queues a new job with `pressed`, which a stop made before it does not hold. A stopped step whose
+  spec has had a job queued since the stop is not started again at its time.
+- The step's transcript is `<job id>.<step>.stream.jsonl`; a later attempt of the same step is
   `<job id>.<step>.<n>.stream.jsonl`, so the stopped attempt's log stays.
 
-**A deploy across its own restart.** The board's own deploy (`deploy`, the one step the server runs itself) starts like
-any step but takes no slot. Its spawn answers the server's own pid with no process group to signal, and a cancel of a
-running one is refused (409). Its run writes `deploy.restartedAt` to the job, fires the restart and is taken down with
+**A deploy across its own restart.** The board's own deploy takes no slot, has no process group to signal, and a
+cancel of a running one is refused (409). It writes `deploy.restartedAt`, restarts the server and is taken down with
 it, so the job is `running` in the stored queue with an old pid and no result. The process that starts finishes it at
-boot, once its HTTP server has started and right before the runner reconciles: it writes the result file (done when it runs the fetched commit or one that
-contains it, failed otherwise or after three minutes), and `reconcile` ends the job through the usual transition. A
-deploy found `running` without `deploy.restartedAt` was cut before its restart and is interrupted. While a landing is in
-flight a queued deploy is held back, and a running one carries the same `held-back` reason (the one case of `running`
-with an `errorReason`) until the wait ends.
+boot: `done` when it runs the fetched commit or one that contains it, `failed` otherwise or after three minutes. A
+deploy found `running` without `deploy.restartedAt` was cut before its restart and is interrupted. While a landing is
+in flight a queued deploy is held back, and a running one carries the same `held-back` reason (the one case of
+`running` with an `errorReason`) until the wait ends.
 
 ## What the page makes of it
 
 The row's badge is short by design, and what it does not say is on the notice line under it. A running job reads
-**Running**; a queued one **Queued 3/11** — its place among every job waiting its turn, off the same order the
-runner picks — or "<phase> queued" when it has no position, or **Held back**. Once nothing is running the badge is
-one word: **Ready**, **Done** or **Stopped**, and `failed`, `cancelled` and `interrupted` are the bare word too.
+**Running**; a queued one **Queued 3/11** — its place among every job waiting its turn — or "<phase> queued" when it
+has no position, or **Held back**. Once nothing is running the badge is one word: **Ready**, **Done** or
+**Stopped**, and `failed`, `cancelled` and `interrupted` are the bare word too.
 
-The badge is that one word everywhere it appears — the row, the phase lines, the job page's chip and the schedule
-report. Why a job stopped is on the row's message line and in the popover beside the job page's chip. `cancelled` is drawn amber like
-`stopped`, since it is a step somebody stopped by hand rather than a failure; `interrupted` is grouped with
-`failed`. The words themselves live in `src/render/ui/job-state/` and are described on
-[The specs list and the spec page](the-specs-list.md#the-state-column).
+The badge is that one word everywhere it appears: the row, the phase lines, the job page's chip and the schedule
+report. Why a job stopped is on the row's message line and in the popover beside the job page's chip. `cancelled` is
+drawn amber like `stopped`, since somebody stopped it by hand; `interrupted` is grouped with `failed`. The words live
+in `src/render/ui/job-state/` and are described on [The specs list and the spec page](the-specs-list.md#the-state-column).

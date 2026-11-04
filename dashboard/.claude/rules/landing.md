@@ -38,8 +38,11 @@ reads what a landing left.
   reads (`archiveHeldBackApplies`). Asking `done` alone would drop the
   acceptance hold-back from every row waiting on one.
 - **An `onLanded` callback runs before its own job's `landing` flag is
-  cleared**, so it cannot trust that one row's flag and must treat it as
-  settled by hand — `docs/job-states.md`, "Beside the state".
+  cleared.** `Runner.complete()` starts the landing work, sets `landing`
+  on the job's row, and clears it only when the whole landing promise
+  settles, `onLanded` included. A callback that reads `queue.list()` sees
+  its triggering job still marked `landing: true`, and treats that one row
+  as settled by hand; every other row's flag is trustworthy.
 - **An `archive` lands on `terminalReason: "completed"` alone.** A
   refusal from `aide-archive-spec` (`not-implemented-yet`,
   `acceptance-criteria-unticked`) is `ok` and the job is `done` — the

@@ -103,6 +103,8 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 | Every key in `.aide/config` and `.aide/project.yaml`      | `docs/CONFIGURATION.md`                       | Both              |
 | What each AI tool supports, verified                      | `docs/AI_SUPPORT_MATRIX.md`                   | Changing the code |
 | How to write a skill                                      | `docs/SKILL_GUIDE.md`                         | Changing the code |
+| Installing Aide on a machine, checking the install        | `docs/INSTALLATION.md`                        | Both              |
+| What changed in the AI tools Aide installs for            | `docs/AI_NEWS_LOG.md`                         | Both              |
 
 ---
 

@@ -695,76 +695,54 @@ The page's own browser code does one thing to the controls: it keeps the reader 
 
 ## The page changes when something changes
 
-The list does not re-ask the server on a timer. Polling every five seconds and redrawing whether anything had happened
-or not costs twice: a reader with the browser's own tools open has the ground move under them twelve times a minute,
-and a step that finished waits up to five seconds to show. The server says when instead.
+The list does not re-ask the server on a timer. The server says when something moved, and the rows redraw then and at
+no other time.
 
-`GET /api/queue/events` is held open and answers `text/event-stream`. It answers any request with a `Host` of the
-dashboard's own, like every other route, and `EventSource` needs no cookie for it. The event it writes is a bare `changed` signal with no payload: the browser
-already knows how to fetch a fresh `#jobrows`, so
-`renderSpecsRows` stays the one place a row is described and there is no second format to keep in step with it.
+`GET /api/queue/events` is held open and answers `text/event-stream`. The event is a bare `changed` signal with no
+payload: the browser fetches a fresh `#jobrows`, so `renderSpecsRows` stays the one place a row is described. Two things
+broadcast, because two independent stores feed a row:
 
-Two things broadcast, because two independent stores feed a row:
-
-- `QueueStore`'s `onChange` hook — covers every write to a job (the runner's step transitions, the page's presses,
-  the API's enqueues), because `insert`, `editTailStep` and `update` are the only three ways in.
-- `POST /api/aide-run` — broadcasts separately: cost, subagent count and live state arrive there and are invisible
-  to the queue's store, so a push driven by the store alone would let those numbers sit still for the whole of a
-  long step.
-
-A write that was REFUSED
-broadcasts nothing.
+- `QueueStore`'s `onChange` hook covers every write to a job: the runner's step transitions, the page's presses, the
+  API's enqueues. A write that was REFUSED broadcasts nothing.
+- `POST /api/aide-run` broadcasts separately, since cost, subagent count and live state arrive there and are invisible
+  to the queue's store.
 
 A step writes its transcript straight to a file, so nothing above fires while it runs. A tab that unfolded a phase
 (`?phases=`) opens the stream with the same query, and on the runner's two-second tick the server compares the size of
-each running step's transcript and run log with the last tick and sends `changed` only to the tabs whose keys name that step.
-The job page and the Logs tab name their running job's phases on the stream themselves while the running row is open. A
-tab with nothing unfolded, or only other phases, is never told, and while no tab has keys no file is measured. Pressing
-a › reopens the stream with the new `phases`.
+each running step's transcript and run log with the last tick and sends `changed` only to the tabs whose keys name that
+step. The job page and the Logs tab name their running job's phases themselves. A tab with nothing unfolded is never
+told, and while no tab has keys no file is measured.
 
-On the browser's side there is no polling timer that fetches. The one timer there is — a one-second tick that
-rewrites the TEXT of the running-phase elapsed marks, see "A spec's date does not move"
-below — fetches nothing, swaps no rows and touches nothing that could move the page, so the rule this section states
-holds: the rows redraw when the server says something moved, and at no other time. A `changed` event redraws the
-rows unless a press is in flight — the same `inFlight`
-guard a press already uses, for the same reason: the server still shows the pre-press state until the press answers. The `open`
-event redraws too, and that is what makes a reconnect heal itself either way it happened. A dropped
-network is the browser's own problem: `EventSource` reconnects on its own, `open` fires again, and the
-resync picks up whatever was missed. A restarted server behind a proxy is not — the proxy answers a
-reconnect with a non-200 status while nothing is listening yet, and that closes `EventSource` for good,
-with no retry of its own. The client notices instead: on `error`, a source left `CLOSED` is dropped and
-reopened after a wait that grows on each further failure up to a ceiling and resets once a connection
-opens, and the same `open`-redraws-the-rows resync above is what a proxied restart heals through too.
-A hidden tab closes its connection and
-opens a fresh one when it comes back, which is the
-"the timer already stops for a hidden tab" behaviour applied to a socket. A tab that comes BACK fetches the rows at
-once, before that connection is up, so an installed app returning from a phone's lock screen shows the current list
-without waiting for the stream. Only a tab that has been
-hidden does it — the first paint is the server's own — and a restore from the browser's back/forward cache
-(`pageshow`) counts as coming back, since Android can bring the app forward that way without the page ever being told
-it was hidden.
+On the browser's side:
+
+- A `changed` event redraws the rows unless a press is in flight, since the server still shows the pre-press state until
+  the press answers. The `open` event redraws too, so a reconnect heals itself.
+- A dropped network reconnects on its own. A restarted server behind a proxy closes `EventSource` for good, so on
+  `error` a source left `CLOSED` is reopened after a wait that grows on each failure up to a ceiling.
+- A hidden tab closes its connection and opens a fresh one when it comes back. A tab that comes back fetches the rows at
+  once, before the connection is up; a restore from the back/forward cache (`pageshow`) counts as coming back.
+- The one timer is a one-second tick that rewrites the TEXT of the running-phase elapsed marks. It fetches nothing.
 
 Two things this deliberately does NOT do:
 
-- There is no periodic server-side broadcast to reconcile drift — an idle page must issue no requests and redraw not
-  at all, which is the whole point — so a spec file hand-edited outside the dashboard leaves its staleness explanation behind
-  until some real change happens nearby. The transcript check above is the one exception, and only for a tab that
-  unfolded the running phase.
-- The runner's own two-second poll is not made faster: "about a second" means about a second after the SERVER
-  notices, not after the step really moved.
+- There is no periodic server-side broadcast to reconcile drift. A spec file hand-edited outside the dashboard leaves
+  its staleness explanation behind until some real change happens nearby.
+- The runner's own two-second poll is not made faster.
 
-What arrives from elsewhere — a spec pushed from another machine, a branch deleted on the git host — shows within
-five minutes, except a spec pushed with `aide-push-specs` from a machine whose `~/.aide/config` names the board:
-that command posts to `fetch-specs`, and the list shows the push at once. Five minutes is how often the board
-fetches every project's checkouts and asks which `aide/*` branches origin still has (`SPEC_CACHE_POLL_MS`), one round
-trip to the git host each. What the board does itself refreshes at once.
-The Deploy tab's own check of how far a checkout is behind origin runs on its own 30-second schedule, and once more
-whenever the Deploy tab is opened.
+What arrives from elsewhere shows within five minutes, the interval at which the board fetches every project's
+checkouts and asks which `aide/*` branches origin still has (`SPEC_CACHE_POLL_MS`). A spec pushed with
+`aide-push-specs` from a machine whose `~/.aide/config` names the board shows at once. What the board does itself
+refreshes at once. The Deploy tab's check of how far a checkout is behind origin runs every 30 seconds, and when the
+tab is opened.
 
-The one server-side timer here is a `: ping\n\n` comment every 45 seconds. `Bun.serve` cuts a connection quiet for
-`idleTimeout` (120 seconds here, set for slow git work), and a page watching a quiet queue is exactly that. It is
-`.unref()`'d like the runner's timer and cleared in `stop()` besides — `bun test` runs many suites in one process, and a
-timer from a stopped test's server would fire into the next one.
+A `: ping` comment every 45 seconds keeps a quiet connection from being cut by `idleTimeout`.
+
+**A row reads the spec's files and git history from a cache,** which catches up after the queue does. Each answer
+carries when it was read (`SpecTarget.sourcesCheckedAt`: the oldest of the history's read, the branch copy's read
+and, when the disk copy is the one compared, the disk scan's read). A phase whose latest run ended after that reads
+as its run's own word, with no sentence about the files disagreeing, because they have not seen the run yet. A step
+with no landing of its own (`implement`, a failed step) has those answers read again as soon as its result is
+written (`stepDoneHandler`, `src/serve/runner-setup.ts`); a step with a landing has them read again by the landing.
 
 ## A spec's date does not move, and a phase says how long it took
 
