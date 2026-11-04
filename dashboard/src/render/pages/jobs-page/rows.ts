@@ -151,7 +151,9 @@ export function scheduleStreamKey(key: string): string | undefined {
 /** The line under a job row's state, or none. A job that failed, stopped or
  *  was interrupted says why, in its own sentence or, with none, in one saying
  *  how it ended, and the line carries the address of the job's own page for
- *  its Log link. A deploy held back says why it waits, with no link. Every
+ *  its Log link. A deploy held back says why it waits, with no link. A job
+ *  whose step ran on another Claude account names it: after its own sentence
+ *  when it has one, on a line of its own once it is done or cancelled. Every
  *  other row has no line. */
 export interface JobMessage {
   variant: MessageVariant;
@@ -173,18 +175,28 @@ const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
   interrupted: "jobs.endedInterrupted",
 };
 
+/** The sentence naming the account a job's step ran on, from the newest
+ *  step result that names one; none when every step ran on the default. */
+function ranOnSentence(row: MessageRow, lang: Language): string | undefined {
+  const result = [...(row.results ?? [])].reverse().find((r) => r.claudeAccount);
+  if (!result?.claudeAccount) return undefined;
+  return t(lang, "notice.accountRan", { step: stepLabel(result.step ?? row.steps[row.stepIndex] ?? "", lang), who: onAccount("Claude", result.claudeAccount, lang) });
+}
+
 export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefined {
   const ended = ENDED[row.state];
   if (ended) {
     // A step moved between Claude accounts is told in the usage-limit
     // sentence, which names the account the stop was on.
-    const onAccount = row.state === "stopped" && (row.claudeAccount || row.runOnAccounts?.length)
+    const limitText = row.state === "stopped" && (row.claudeAccount || row.runOnAccounts?.length)
       ? usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now())
       : undefined;
+    const own = limitText ?? (renderSentence(lang, row.error) || t(lang, ended));
+    const ranOn = limitText === undefined ? ranOnSentence(row, lang) : undefined;
     return {
       // The badge's own colour: a stop is amber, a failure red.
       variant: row.state === "stopped" ? "waiting" : "failed",
-      text: onAccount ?? (renderSentence(lang, row.error) || t(lang, ended)),
+      text: ranOn ? `${own} · ${ranOn}` : own,
       log: `/jobs/${row.id}?tab=steps`,
     };
   }
@@ -200,6 +212,12 @@ export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefi
       variant: "info",
       text: t(lang, "notice.accountRuns", { step: stepLabel(step, lang), who: onAccount("Claude", row.claudeAccount, lang) }),
     };
+  }
+  // A finished job says which account its step ran on, when it was not the
+  // default one.
+  if (row.state === "done" || row.state === "cancelled") {
+    const text = ranOnSentence(row, lang);
+    if (text) return { variant: "info", text };
   }
   return undefined;
 }

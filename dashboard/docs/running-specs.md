@@ -633,7 +633,10 @@ each `CLAUDE_CONFIG_DIR`, so a second login is a directory of its own, such as `
   A step that continues an earlier session of the spec (an implement continuing its analysis, a fix after a review or
   red tests) finds it under the account's `projects`, which is linked to `~/.claude`'s.
 - **Where it shows.** The job's row and its page name the account when it was not Default ("Claude (Opus) on Work"),
-  and the page's Overview and each step's facts have an Account line.
+  and the page's Overview and each step's facts have an Account line. On the Jobs tab a row names it while the job
+  runs and after it has ended: a done or cancelled job gets a line "Implement ran on Claude on Work", and a failed or
+  interrupted one gets that sentence after its own. A job moved to an account and cancelled before a step ran there
+  names none.
 - **The sandbox.** The step may not write the account's `.claude.json`, settings, hooks, skills, agents, rules or
   plugins, as for `~/.claude` ([What a step can reach](the-runner.md#what-a-step-can-reach)).
 

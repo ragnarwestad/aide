@@ -5,6 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { t } from "../../../../src/i18n";
 import { renderSentence } from "../../../../src/i18n/message.ts";
+import { stepLabel } from "../../../../src/render/ui/components";
 import { phaseKey } from "../../../../src/render/pages/specs-list/phase-messages/keys.ts";
 import {
   byTabPlace,
@@ -423,6 +424,48 @@ describe("the line under a job row's state", () => {
     for (const make of [schedule, close, reopen]) {
       expect(message(make({ state: "queued", errorReason: "held-back", error }))).toBeUndefined();
     }
+  });
+
+  describe("the account a step ran on", () => {
+    const ranOn = (step: string, who: string): string =>
+      t("en", "notice.accountRan", { step: stepLabel(step, "en"), who: t("en", "account.on", { who: "Claude", account: who }) });
+    const onWork = [
+      { step: "analyze", ok: true },
+      { step: "implement", ok: true, claudeAccount: "Work" },
+    ];
+
+    test("a done job whose newest result ran on another account says so in the info colour, with no log (AC-8)", () => {
+      expect(message(schedule({ state: "done", results: onWork } as never))).toEqual({ variant: "info", text: ranOn("implement", "Work") });
+    });
+
+    test("a failed job names the account after its own sentence and keeps its log (AC-8)", () => {
+      const row = schedule({ id: "f2", state: "failed", error: said, results: onWork } as never);
+      expect(message(row)).toEqual({
+        variant: "failed", text: `${sentenceOf} · ${ranOn("implement", "Work")}`, log: "/jobs/f2?tab=steps",
+      });
+    });
+
+    test("a job moved to another account and cancelled before any step ran there names none (AC-8)", () => {
+      const row = schedule({ state: "cancelled", claudeAccount: "Work", results: [{ step: "analyze", ok: true }] } as never);
+      expect(message(row)).toBeUndefined();
+    });
+
+    test("a done job whose steps all ran on the default account names none (AC-8)", () => {
+      expect(message(schedule({ state: "done", results: [{ step: "implement", ok: true }] } as never))).toBeUndefined();
+    });
+
+    test("a job stopped on a usage limit keeps the usage-limit sentence alone, which names the account once (AC-8)", () => {
+      const until = new Date(Date.now() + 3_600_000).toISOString();
+      const row = schedule({
+        id: "u1", state: "stopped", stopReason: "provider-limit", claudeAccount: "Work",
+        usageLimitWait: { until, resetKnown: true },
+        results: [{ step: "implement", ok: false, claudeAccount: "Work", providerLimit: { tool: "claude", window: "five-hour" } }],
+      } as never);
+      const m = message(row);
+      expect(m?.text.split("on Work").length).toBe(2);
+      expect(m?.text).not.toContain(ranOn("implement", "Work"));
+      expect(m?.log).toBe("/jobs/u1?tab=steps");
+    });
   });
 });
 
