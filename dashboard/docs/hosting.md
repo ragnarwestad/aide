@@ -171,7 +171,7 @@ stops gets a line saying who asked and which process group was signalled.
 **The repo it clones there is the dashboard's OWN checkout —
 `~/.aide/dashboard/checkouts/aide/code` — not a checkout a user edits.** That is the directory a code landing merges
 into and runs
-`AIDE_INSTALL_CMD` in. The landing never restarts the launchd job: a restart mid-run kills every job's process, and
+`AIDE_INSTALL_CMD` in. The landing never restarts the launchd job: a restart takes down every landing in flight, and
 no rule for a safe moment held up. It logs that the served page runs older code than main, and the user restarts
 when it suits — the Deploy button on the project's own page (`/projects/aide`) reinstalls and restarts. The reinstall
 drops from the launchd job's plist every option the serve code no longer accepts, since a job still passing one would
