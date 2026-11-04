@@ -388,7 +388,13 @@ else
   cost="0"; cost_measured="false"
   error_msg="$(tail -c 400 "$work_dir/err" 2>/dev/null | tr '\n' ' ')"
   [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
-  error_msg="$error_msg — press $step_button again"
+  # claude will not start on a ~/.claude.json that is not valid JSON, and
+  # says how to fix it; pressing again fails the same way until someone has.
+  if grep -q 'claude\.json' "$work_dir/err" 2>/dev/null; then
+    error_msg="$error_msg — fix or move that file on the serving host before $step_button can run"
+  else
+    error_msg="$error_msg — press $step_button again"
+  fi
 fi
 [ -n "$resume_part" ] && [ "$resume_part" != "preparing" ] && aide_part_open "$resume_part"
 return 0

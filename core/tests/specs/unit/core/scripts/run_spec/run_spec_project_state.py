@@ -283,7 +283,12 @@ BASH_ERROR_REGISTRY: list[dict] = [
     },
     {
         "name": "the tool produced no result JSON at all",
-        "pattern": r'no result JSON \(exit \$exit_code\)"\n\s*error_msg="\$error_msg — press \$step_button again"',
+        "pattern": r'no result JSON \(exit \$exit_code\)"\n(?:.*\n)*?\s*error_msg="\$error_msg — press \$step_button again"',
         "resolve": "press $step_button again",
+    },
+    {
+        "name": "the tool will not start on a damaged ~/.claude.json",
+        "pattern": r'error_msg="\$error_msg — fix or move that file on the serving host[^"]*"',
+        "resolve": "fix or move that file on the serving host",
     },
 ]

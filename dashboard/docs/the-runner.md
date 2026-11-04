@@ -91,8 +91,9 @@ job's `error` is the last 400 characters the tool wrote to stderr, followed by "
 
 A damaged `~/.claude.json` on the serving host is such a case. When the file is not valid JSON, `claude -p` exits 1
 without starting: it names the file, says to fix the JSON or move the file aside, and leaves it unchanged (Claude Code
-2.1.318). Every Claude step and every scheduled job on the host then fails the same way, and pressing the step again
-does not help until someone has fixed or moved the file. A step cannot damage the file itself, since the sandbox
+2.1.318). Every Claude step and every scheduled job on the host then fails the same way until someone has fixed or
+moved the file, so when the tool's stderr names `.claude.json`, the job's `error` ends by saying to fix or move that
+file on the serving host instead of "press <step> again". A step cannot damage the file itself, since the sandbox
 lets it read `~/.claude.json` but not write it ([What a step can reach](#what-a-step-can-reach)).
 
 ## The dashboard's own checkouts

@@ -7,6 +7,7 @@ in conftest.py beside them.
 
 import json
 import os
+import shlex
 import subprocess
 import time
 import pytest
@@ -358,3 +359,20 @@ def test_a_claude_server_error_after_529_retries_is_a_cli_error(runner, workspac
     claude = fake_claude(stream_body(result, before=OVERLOAD_RETRIES, exit_code=1))
     rc, out, _ = run(runner, workspace, claude)
     assert out["terminalReason"] == "cli-error"
+
+CORRUPT_CLAUDE_JSON = (
+    "Configuration error in /Users/me/.claude.json: JSON Parse error: Expected '}'\n"
+    "No backup of this file was found.\n"
+    "Fix the JSON in /Users/me/.claude.json, or move the file aside to start with default settings.\n"
+)
+
+def test_a_damaged_claude_json_is_not_answered_with_press_again(runner, workspace, fake_claude):
+    """claude refuses to start on a ~/.claude.json that is not valid JSON,
+    and every later press fails the same way until the file is fixed."""
+    body = f"cat > /dev/null\nprintf '%s' {shlex.quote(CORRUPT_CLAUDE_JSON)} >&2\nexit 1\n"
+    _, out, _ = run(runner, workspace, fake_claude(body))
+    assert out["ok"] is False
+    assert out["terminalReason"] == "cli-error"
+    assert "Fix the JSON in /Users/me/.claude.json" in out["error"], out["error"]
+    assert "press Analyze again" not in out["error"], out["error"]
+    assert "serving host" in out["error"], out["error"]
