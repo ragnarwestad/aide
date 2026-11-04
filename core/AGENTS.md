@@ -189,14 +189,18 @@ why, with the context a reader needs.
 ## Pushing and push status
 
 Push only when the current request itself explicitly asks for it — a past "and push" isn't a
-standing instruction for later requests. The user pushes from the IDE. After committing, state
-what was committed and stop there.
+standing instruction for later requests. The user pushes from the IDE.
 
-Don't report push status unprompted, in any phrasing — "N commits ahead of origin", "husk å
-pushe", "remember to push", "tre commits ligger klare", "goes out in the same deploy", or a count
-of commits recalled from earlier in the conversation. The same holds for any other claim about
-repository state: uncommitted changes, what another session or person has or hasn't landed,
-ahead/behind, staged content. Only if the user asks directly, run `git status -sb` and
+**When a job you committed is done, say so, and say it is ready to push.** Run
+`git log origin/main..main --oneline` in that same reply and end the report with what it shows:
+the commits waiting for a push, and, when they change something that runs on a server, that it
+takes effect only after the push and a deploy. Work that is finished but never pushed gets
+forgotten; this line is what stops that.
+
+Otherwise, don't report repository state from memory, in any phrasing — "N commits ahead of
+origin", "tre commits ligger klare", or a count of commits recalled from earlier in the
+conversation. The same holds for uncommitted changes, what another session or person has or
+hasn't landed, ahead/behind, staged content. When the user asks, run `git status -sb` and
 `git log origin/main..main --oneline` in the same reply and report the actual result.
 
 Why: the user pushes continuously from the IDE and other sessions commit to the same repo, so any
@@ -461,7 +465,10 @@ restarting at `a` under every point. The user's reply may then be nothing but a 
 
 **Never include:**
 
-- What has been done, what was committed, or any other status
+- What has been done, what was committed, or any other status — with one exception: commits not
+  yet pushed. Run `git log origin/main..main --oneline` in the same reply, and when it lists any,
+  end the list with a point saying they are ready to push (and to Deploy, when they change what a
+  server runs), so finished work is not forgotten
 - Whether the working tree is clean, tests are green, or the build passes
 - Backlog headings without content ("see docs/SPEC.md") — write out the actual points
 - Preamble, summary or closing remarks around the list
