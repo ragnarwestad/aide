@@ -10,6 +10,7 @@
 // construction time would be.
 
 import { resumeCutLandings } from "../queue/runner/cut-landing.ts";
+import { configDirsList } from "../queue/runner/claude-accounts.ts";
 import { dirname, join } from "node:path";
 import { spawnEnv } from "./tool-path.ts";
 import { scriptArgv } from "../integrations/script-argv.ts";
@@ -188,6 +189,10 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         ...(ctx.dashboardCheckoutRoot ? { AIDE_CHECKOUT_ROOT: ctx.dashboardCheckoutRoot } : {}),
         ...(ctx.queueMirrorPath ? { AIDE_QUEUE_MIRROR: ctx.queueMirrorPath } : {}),
       };
+      // Every Claude login the board may run a step on, so the runner's
+      // sandbox keeps a step from writing to any of their settings.
+      const accountDirs = configDirsList(ctx.store.defaults.claudeAccounts, homedir());
+      if (accountDirs) env.AIDE_CLAUDE_CONFIG_DIRS = accountDirs;
       // Only a `schedule` step's own spawn gets this: the
       // directory THIS run's prompt writes its output to, made
       // ahead of time so a prompt with no `mkdir -p` of its own still

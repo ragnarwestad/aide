@@ -6,6 +6,7 @@
 import { describe, expect, test } from "bun:test";
 import { specNotice } from "../../../../src/render/ui/job-state";
 import { usageLimitText } from "../../../../src/render/ui/job-state/provider-limit.ts";
+import { runOnAccountButtons } from "../../../../src/render/ui/job-state/run-on-account.ts";
 import { renderJobFollowParts } from "../../../../src/render/pages/job-page";
 import type { QueueRowView } from "../../../../src/render";
 import { row } from "../../pages/fixtures.ts";
@@ -136,5 +137,56 @@ describe("where the sentence is drawn", () => {
       const unescaped = html.replace(/&#39;|&#x27;/g, "'");
       expect(unescaped).toContain(usageLimitText(view, "en", NOW)!.replace(/^./, (c) => c.toUpperCase()));
     }
+  });
+});
+
+describe("a step that ran on another Claude account", () => {
+  const onWork = (over: Partial<QueueRowView> = {}): QueueRowView =>
+    stoppedView({ claudeAccount: "Work", runOnAccounts: ["Default", "Spare"], ...over });
+
+  test("the stopped sentence names the account after the model (AC-8)", () => {
+    expect(usageLimitText(onWork(), "en", NOW, TZ)).toContain("Claude (opus) on Work");
+  });
+
+  test("the held sentence names the account the hold is for (AC-8)", () => {
+    const held = heldView("runner.usageLimitHeld", { tool: "claude", at: "2026-08-16T05:00:00.000Z", account: "Work" });
+    expect(usageLimitText(held, "en", NOW, TZ)).toContain("Claude on Work");
+  });
+
+  test("the default account is not named (AC-8)", () => {
+    expect(usageLimitText(stoppedView(), "en", NOW, TZ)).not.toContain(" on ");
+    const held = heldView("runner.usageLimitHeld", { tool: "claude", at: "2026-08-16T05:00:00.000Z" });
+    expect(usageLimitText(held, "en", NOW, TZ)).not.toContain("Claude on");
+  });
+
+  test("the row's notice marks the usage-limit sentence as the one the buttons follow (AC-2)", () => {
+    const view = onWork({ usageLimitWait: { until: new Date(Date.now() + 3_600_000).toISOString(), resetKnown: true } });
+    const parts = specNotice(view)?.parts ?? [];
+    expect(parts.find((p) => p.kind === "run-on-account")?.text).toContain("Claude (opus) on Work");
+  });
+
+  test("one button per account to move to, each posting its name to the job's run-on route (AC-2)", () => {
+    const html = runOnAccountButtons(onWork(), "en");
+    expect(html).toContain("Run on Default");
+    expect(html).toContain("Run on Spare");
+    expect(html).toContain(`/api/queue/${onWork().id}/run-on`);
+    expect(html).toContain("Spare");
+  });
+
+  test("a row with no other account to move to has no buttons and no such part (AC-9)", () => {
+    const view = onWork({ runOnAccounts: [], usageLimitWait: { until: new Date(Date.now() + 3_600_000).toISOString(), resetKnown: true } });
+    expect(runOnAccountButtons(view, "en")).toBe("");
+    expect((specNotice(view)?.parts ?? []).some((p) => p.kind === "run-on-account")).toBe(false);
+  });
+
+  test("a job that is running on Work says so on the row's notice (AC-8)", () => {
+    const running = row({ steps: ["implement"], state: "running", claudeAccount: "Work" });
+    expect(specNotice(running)?.text).toContain("Implement runs on Claude on Work");
+    const done = row({ steps: ["implement"], state: "done", claudeAccount: "Work" });
+    expect(specNotice(done)?.text).toContain("Implement ran on Claude on Work");
+  });
+
+  test("a job on the default account says nothing of the kind (AC-8)", () => {
+    expect(specNotice(row({ steps: ["implement"], state: "running" }))).toBeUndefined();
   });
 });

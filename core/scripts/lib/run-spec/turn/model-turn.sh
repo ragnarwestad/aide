@@ -43,6 +43,10 @@ run_model_turn() {
   # and a project's own MCP servers are left as they are (verified 2.1.310).
   ( cd "$project_wt" || exit
     [ -n "${opencode_config:-}" ] && export OPENCODE_CONFIG_CONTENT="$opencode_config"
+    # The step's Claude account, for every Claude turn: the step's own, its
+    # review and verification, and the fix turns. A Codex or OpenCode side
+    # turn beside it is not given it.
+    case "$tool" in codex|opencode) ;; *) [ -n "${claude_config_dir:-}" ] && export CLAUDE_CONFIG_DIR="$claude_config_dir" ;; esac
     # The tests the session runs itself keep to the same share as the runner's own run.
     workers="$(test_workers_now)"; [ -n "$workers" ] && export AIDE_TEST_WORKERS="$workers"
     AIDE_HEADLESS=1 ENABLE_CLAUDEAI_MCP_SERVERS=false exec "${argv[@]}" ) < "$1" >> "$transcript" 2>> "$work_dir/err" &

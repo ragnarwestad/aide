@@ -97,7 +97,7 @@ function offeredLabel(tool: CheckableTool, m: OfferedModel): string {
 
 /** One row's button, in a form of its own. The id carries the row's
  *  place, since a model name may hold characters an id should not. */
-function rowForm(
+export function rowForm(
   action: string,
   id: string,
   hidden: Record<string, string>,

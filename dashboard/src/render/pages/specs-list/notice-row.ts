@@ -15,7 +15,7 @@
 
 import { helpPopover, messageSlot, rowMessage, rowMessageParts, stepLabel, type MessagePart } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
-import { sharedFilesSentence, specNotice, wordPhase } from "../../ui/job-state";
+import { runOnAccountButtons, sharedFilesSentence, specNotice, wordPhase } from "../../ui/job-state";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { t, type Language } from "../../../i18n";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
@@ -179,7 +179,9 @@ export function specNoticeRow(
         ? { ...p, after: deleteBranchForm(g, lang) }
         : "kind" in p && p.kind === "approach-choice"
           ? view.specOpen ? p : { ...p, after: approachPanel(g, lang) }
-          : p,
+          : "kind" in p && p.kind === "run-on-account"
+            ? { ...p, after: runOnAccountButtons(lead!, lang) }
+            : p,
   );
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";
   return (

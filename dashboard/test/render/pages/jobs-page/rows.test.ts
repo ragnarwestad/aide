@@ -438,3 +438,9 @@ describe("the key the event stream listens on for a job row's key", () => {
     }
   });
 });
+
+test("a scheduled job running on another Claude account says so on its row (AC-8)", () => {
+  const m = jobMessage({ id: "j", state: "running", steps: ["schedule"], stepIndex: 0, claudeAccount: "Work" } as never, "en");
+  expect(m?.text).toContain("on Work");
+  expect(jobMessage({ id: "j", state: "running", steps: ["schedule"], stepIndex: 0 } as never, "en")).toBeUndefined();
+});

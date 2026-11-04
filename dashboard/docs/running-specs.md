@@ -12,6 +12,7 @@
 - [Running a job on a schedule](#running-a-job-on-a-schedule)
 - [How many run at once](#how-many-run-at-once)
 - [When an AI's usage limit is used up](#when-an-ais-usage-limit-is-used-up)
+- [Running a step on another Claude account](#running-a-step-on-another-claude-account)
 - [Notifications](#notifications)
     - [Push notifications on a phone or laptop](#push-notifications-on-a-phone-or-laptop)
 - [The Running tab](#the-running-tab)
@@ -187,8 +188,8 @@ model may differ) and the analysis ended within the hour; past that the tool's c
 back costs more than starting afresh. A session that cannot be continued starts the implement afresh. Off unless set.
 
 The server WRITES some of that file's keys as well as reading them, each from one page: `projects` from the Add and
-Remove buttons on `/projects`, `schedules` from a project's Schedule tab, and `model`, `timeoutSec`, `concurrency`
-and `modelChoices` from Settings. A write keeps the file's comments and every other key. `projects` is the queue's allowlist, and
+Remove buttons on `/projects`, `schedules` from a project's Schedule tab, and `model`, `timeoutSec`, `concurrency`,
+`modelChoices` and `claudeAccounts` from Settings. A write keeps the file's comments and every other key. `projects` is the queue's allowlist, and
 rewriting it is what makes Add and Remove take effect without a restart. The
 `--queue-projects` flag is the seed for a first install where this file does not exist yet; where the file HAS a
 `projects` array, it wins over the flag. A malformed one is ignored entirely and the flag is kept, the same direction
@@ -608,6 +609,46 @@ one, that the step starts again by itself, and the time. With no reset time they
 limit resets, and the time the board tries again. A held job says that it waits for that AI's usage limit and the
 time it starts; while the step sent ahead is running, it says when the board tried again and that it starts once that
 step has run. [A job's states](job-states.md) has the fields and the transition behind it.
+
+## Running a step on another Claude account
+
+The serving host can have a second Claude login with quota left. Claude Code keeps one login and keychain entry for
+each `CLAUDE_CONFIG_DIR`, so a second login is a directory of its own, such as `~/.claude-2`.
+
+- **The accounts.** Settings → AI → Claude Code → Accounts lists the logins the board may use. **Default** is the
+  login the board uses today (`~/.claude`); it is always there and is neither renamed nor removed. Add takes a name and
+  the directory, written from `/` or `~/`, which has to exist on the serving host; each added account has Rename and
+  Remove. They are the `claudeAccounts` key of `queue-config.json`
+  (`"claudeAccounts": { "Work": { "configDir": "~/.claude-2" } }`), which the board writes and reads back.
+- **The button.** A Claude step stopped on a usage limit offers one button for each other account: "Run on Work",
+  and "Run on Default" once it is on another account. It is on the row's notice on the Specs list and the Running tab,
+  on a job's row on the Jobs tab, and under the state on the job's page. Pressing it queues the step again at once on
+  that account, without waiting for the limit to reset. No button is offered while no account besides Default
+  is configured.
+- **Nobody presses.** A stopped step behaves as in [When an AI's usage limit is used up](#when-an-ais-usage-limit-is-used-up):
+  it is queued again by itself when the limit resets, on the account it ran on. The hold is per login: a step on Work
+  waits for Work's limit only, and the login a step was moved off stays held until its old reset time.
+- **What runs on the account.** The account goes onto the job from the press on, so its later Claude steps run there
+  too. Every Claude turn of such a step runs with that account's directory, the review and its verification included.
+  A step that continues an earlier session of the spec (an implement continuing its analysis, a fix after a review or
+  red tests) finds it under the account's `projects`, which is linked to `~/.claude`'s.
+- **Where it shows.** The job's row and its page name the account when it was not Default ("Claude (Opus) on Work"),
+  and the page's Overview and each step's facts have an Account line.
+- **The sandbox.** The step may not write the account's `.claude.json`, settings, hooks, skills, agents, rules or
+  plugins, as for `~/.claude` ([What a step can reach](the-runner.md#what-a-step-can-reach)).
+
+**Setting up a second login on the serving host** is done by hand, once:
+
+1. Make the directory: `mkdir ~/.claude-2`.
+2. Link what the two logins share from `~/.claude`: `settings.json`, `CLAUDE.md`, `hooks`, `skills`, `agents`,
+   `rules`, `plugins` and `projects`. For each, `ln -s ~/.claude/<name> ~/.claude-2/<name>`. Without `projects` a
+   step on the account cannot continue a session another account made, and without the rest it runs without the
+   skills.
+3. Log in as the second account: `CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login`.
+4. Add it under Settings → AI → Claude Code → Accounts, with the name to show and `~/.claude-2`.
+
+The board's login check and the Usage tab read the default account only. A step on an account that is not logged in
+ends with Claude's own error.
 
 ## Notifications
 

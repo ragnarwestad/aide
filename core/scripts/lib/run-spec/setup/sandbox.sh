@@ -63,6 +63,22 @@ sandbox_write_denied=(
   .config/opencode
 )
 
+# What a step may not write under each Claude account's directory
+# (`CLAUDE_CONFIG_DIR`), the same names as under `~/.claude` above. The
+# directory itself is not listed: Claude Code writes its sessions there, and
+# a deny cannot be opened again below it.
+sandbox_account_write_denied=(
+  .claude.json
+  settings.json
+  settings.local.json
+  hooks
+  skills
+  agents
+  rules
+  plugins
+  CLAUDE.md
+)
+
 # The same for the files the runner and the board run git and the tests
 # from, outside the sandbox: the board's queue settings, where a schedule
 # entry may turn the sandbox off, every main checkout's hooks and git
@@ -72,8 +88,15 @@ sandbox_write_denied=(
 # AIDE_CHECKOUT_ROOT). One path per line, written the way the rules read
 # it: `~/…` under $HOME, `//…` anywhere else.
 sandbox_runtime_write_denied() {
-  local dir checkouts="${AIDE_CHECKOUT_ROOT:-$HOME/.aide/dashboard/checkouts}"
+  local dir name checkouts="${AIDE_CHECKOUT_ROOT:-$HOME/.aide/dashboard/checkouts}"
   printf '%s\n' "${AIDE_QUEUE_CONFIG:-$HOME/.aide/dashboard/queue-config.json}"
+  # Every Claude account the board may run a step on (one directory per
+  # line), and this step's own.
+  while IFS= read -r dir; do
+    [ -n "$dir" ] || continue
+    for name in "${sandbox_account_write_denied[@]}"; do printf '%s\n' "$dir/$name"; done
+  done <<< "${AIDE_CLAUDE_CONFIG_DIRS:-}
+${claude_config_dir:-}"
   for dir in "${project_root:-}" "${specs_repo:-}" "$checkouts"/*/code "$checkouts"/*/specs; do
     [ -n "$dir" ] && [ -d "$dir/.git" ] || continue
     printf '%s\n' "$dir/.git/hooks" "$dir/.git/config"

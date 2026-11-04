@@ -44,6 +44,7 @@ import { handleQueueEvents } from "./sse.ts";
 import { handleQueueAdminRoutes } from "./queue-admin.ts";
 import { handleSettingsConcurrencyRoute } from "./settings-concurrency.ts";
 import { handleSettingsModelsRoutes } from "./settings-models.ts";
+import { handleClaudeAccountRoutes } from "./claude-accounts";
 import { handleDeploySteps, type DeployHooks } from "./deploy-steps.ts";
 import { handleJobActionRoutes } from "./job-actions.ts";
 import { handleSpecEditRoutes } from "./spec-edit";
@@ -176,6 +177,7 @@ export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, p
     (await handleQueueAdminRoutes(ctx, req, path)) ??
     (await handleSettingsConcurrencyRoute(ctx, req, path)) ??
     (await handleSettingsModelsRoutes(ctx, req, path)) ??
+    (await handleClaudeAccountRoutes(ctx, req, path)) ??
     (await handlePushRoutes(ctx, req, url, path)) ??
     (await handleJobActionRoutes(ctx, req, path)) ??
     (await handleSpecEditRoutes(ctx, req, url, path)) ??

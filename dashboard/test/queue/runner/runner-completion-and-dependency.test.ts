@@ -72,6 +72,32 @@ describe("the completion hook and the landing window", () => {
     expect(store.get(bareJob.id)?.results[0]?.tool).toBe("claude");
   });
 
+  // A job a person moved to another Claude account says so on the result
+  // of each Claude step it runs there.
+  test("a Claude step of a job on another account records the account on its result, a Codex step and the default do not (AC-8)", () => {
+    const work = { name: "Work", configDir: "/home/ragnar/.claude-2" };
+    const onWork = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    store.update(onWork.id, { claudeAccount: work });
+    const onCodex = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    store.update(onCodex.id, { claudeAccount: work });
+    const byTool = new Map([[onWork.id, "claude"], [onCodex.id, "codex"]]);
+    const runner = makeRunner({
+      readResult: (path) => outcome({ tool: byTool.get([...byTool.keys()].find((id) => path.includes(id)) ?? "") }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(onWork.id)?.results[0]?.claudeAccount).toBe("Work");
+    expect(store.get(onCodex.id)?.results[0]?.claudeAccount).toBeUndefined();
+  });
+
+  test("a job on the default account records none (AC-8)", () => {
+    const job = enqueue({ steps: ["analyze"] });
+    const runner = makeRunner({ readResult: () => outcome() });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.claudeAccount).toBeUndefined();
+  });
+
   // The narrowing used to name the tools it kept, so a third one was
   // recorded as claude however clearly the result said otherwise. Read
   // from the one list instead, and a tool the runner can start is a

@@ -96,6 +96,9 @@ export interface StepResult {
   terminalReason: string;
   /** Present only on a step a provider's usage limit stopped. */
   providerLimit?: ProviderLimit;
+  /** The name of the Claude account a Claude step ran on, when it was not
+   *  the default. */
+  claudeAccount?: string;
   /** Present only on an analyze stopped on files other open specs share. */
   sharedFiles?: SharedFiles[];
   /** The tree and the test commands this step saw green, hashed the way
@@ -175,6 +178,13 @@ export function mergeBranchRefs(prev: BranchRef[] | undefined, next: BranchRef[]
     else out.push(ref);
   }
   return out;
+}
+
+/** A Claude login a job runs on: the name it is shown by and the
+ *  `CLAUDE_CONFIG_DIR` Claude Code is started with. */
+export interface ClaudeAccount {
+  name: string;
+  configDir: string;
 }
 
 export interface Job {
@@ -342,6 +352,17 @@ export interface Job {
    *  probe is over once a result exists at that index — `at` is when
    *  the board tried again and `since` the stop it came from. */
   usageLimitProbe?: { results: number; at: string; since: string };
+  /** The Claude account a person moved this job to, with its directory as
+   *  it was when pressed. Absent means the default account. */
+  claudeAccount?: ClaudeAccount;
+  /** The usage-limit wait a press left behind on the login the job was
+   *  moved off, so the steps nobody pressed stay held until that login's
+   *  reset time. `hold` is the key the login is held under
+   *  (`holdKey`), `since` the stop it came from. */
+  usageLimitLeft?: { hold: string; until: string; resetKnown: boolean; since: string };
+  /** The waits earlier presses left, when the job was moved more than once
+   *  before they ended. */
+  usageLimitLeftBefore?: { hold: string; until: string; resetKnown: boolean; since: string }[];
   /** Queued by a person's press, not by the board itself. A press made
    *  after a usage-limit stop is not held by it. */
   pressed?: boolean;
@@ -420,6 +441,10 @@ export interface QueueDefaults {
    *  granted. Absent means no choice is offered and naming one is
    *  refused — off by default, like the rest of the queue. */
   modelChoices?: Record<string, ModelChoice>;
+  /** The Claude logins besides the default one, by name, each with the
+   *  directory Claude Code keeps its login in. `~/` in a directory is the
+   *  serving host's home. Absent means the default account alone. */
+  claudeAccounts?: Record<string, { configDir: string }>;
   /** An implement continues its analysis's own AI session when both ran
    *  with the same AI and the analysis ended within the hour
    *  (`analysisSessionToResume`). Off unless the host's config says so. */

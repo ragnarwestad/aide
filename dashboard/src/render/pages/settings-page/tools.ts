@@ -18,6 +18,7 @@ import { INSTALL_TARGETS, placesOf } from "./places.ts";
 import { usageView, type ToolUsage } from "./usage.ts";
 import { modelsBlock, type ModelsPanel } from "./models.ts";
 import { installationBlock } from "./installation.ts";
+import { accountsBlock } from "./accounts.ts";
 
 export const TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
@@ -74,14 +75,21 @@ export function toolWhere(lang: Language, tool: CheckableTool, places: Record<st
   return t(lang, `settings.where.${tool}`, places);
 }
 
-/** The three tabs inside an AI's tab, in the order they are shown. The one
- *  Check above them reads all three. */
+/** The three tabs every AI has inside its tab, in the order they are shown.
+ *  The one Check above them reads all three. */
 export const TOOL_PARTS = ["models", "subscription", "installation"] as const;
-export type ToolPart = (typeof TOOL_PARTS)[number];
 
-/** The open tab inside an AI's tab, off `?aitab=`: Models when none, or an
- *  unknown one, is named. */
-export const toolPart = (raw: string | undefined): ToolPart => pickTab(TOOL_PARTS, raw, "models");
+/** Claude Code has a fourth: the logins the board may run a step on. */
+const CLAUDE_PARTS = [...TOOL_PARTS, "accounts"] as const;
+export type ToolPart = (typeof CLAUDE_PARTS)[number];
+
+/** The tabs inside one AI's tab. */
+export const toolParts = (tool: CheckableTool): readonly ToolPart[] => (tool === "claude" ? CLAUDE_PARTS : TOOL_PARTS);
+
+/** The open tab inside an AI's tab, off `?aitab=`: Models when none, or one
+ *  the AI has not got, is named. */
+export const toolPart = (raw: string | undefined, tool?: CheckableTool): ToolPart =>
+  pickTab(tool ? toolParts(tool) : TOOL_PARTS, raw, "models");
 
 /** The body of the "(?)" before the Check, as trusted markup: that one
  *  press reads all three tabs, then what it reads for this AI on each, and
@@ -132,13 +140,14 @@ function usageBlock(usage: ToolUsage | undefined, now: number, lang: Language): 
 function partBody(
   part: ToolPart,
   tool: CheckableTool,
-  readings: { check?: ToolCheck; usage?: ToolUsage; models: ModelsPanel },
+  readings: { check?: ToolCheck; usage?: ToolUsage; models: ModelsPanel; accounts?: Record<string, { configDir: string }> },
   now: number,
   lang: Language,
 ): string {
   const { check, usage, models } = readings;
   if (part === "installation") return installationBlock(check, check ? stamp(check.at) : "", lang);
   if (part === "subscription") return usageBlock(usage, now, lang);
+  if (part === "accounts") return accountsBlock(readings.accounts, lang);
   return modelsBlock(tool, models, models.reading ? stamp(models.reading.at) : "", lang, TOOL_TAB_LABELS[tool]);
 }
 
@@ -157,6 +166,7 @@ export function toolPanel(
   models: ModelsPanel = {},
   lang: Language = "en",
   part: ToolPart = "models",
+  accounts?: Record<string, { configDir: string }>,
 ): string {
   const id = `check-${tool}`;
   return (
@@ -173,12 +183,12 @@ export function toolPanel(
       button: { id: `${id}-run`, label: t(lang, "settings.checkButton"), variant: "primary", pending: t(lang, "settings.checking") },
       after: messageSlot("refused"),
     }) +
-    tabBar(TOOL_PARTS, (p) => `/settings?tab=${tool}&aitab=${p}`, part, {}, "", {
+    tabBar(toolParts(tool), (p) => `/settings?tab=${tool}&aitab=${p}`, part, {}, "", {
       lang,
       label: (p) => t(lang, `settings.part.${p}`),
       data: { aitabs: "" },
     }) +
-    partBody(part, tool, { check, usage, models }, now, lang) +
+    partBody(part, tool, { check, usage, models, accounts }, now, lang) +
     `</section>`
   );
 }

@@ -249,7 +249,8 @@ export type TransitionEvent =
   | "landing-failed" // done -> failed: a landing did not finish
   | "landing-held" // done -> stopped: the landing's suite went red
   | "landing-cancelled" // done -> cancelled: Cancel pressed while it merged
-  | "limit-reset"; // stopped -> queued: its AI's usage limit has reset
+  | "limit-reset" // stopped -> queued: its AI's usage limit has reset
+  | "run-on-account"; // stopped -> queued: a person moved the step to another Claude account
 
 /** The one table every state change is checked against. Each
  *  entry is `(from, event) -> to`; anything absent is refused. This is
@@ -289,9 +290,11 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
   },
   // The one way out of `stopped`: a step its AI's usage limit stopped is
   // queued again by the board once the limit has reset
-  // (`restartAfterUsageLimit`). Every other stop waits for a person.
+  // (`restartAfterUsageLimit`), or a person moves it to another Claude
+  // account. Every other stop waits for a person.
   stopped: {
     "limit-reset": "queued",
+    "run-on-account": "queued",
   },
 };
 

@@ -12,6 +12,7 @@ import { t, type Language, type TranslationKey } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import { waitsForPerson } from "../../../queue/steps.ts";
 import { heldBackResolvesOnItsOwn, inFlight, type QueueRowView } from "../../ui/job-state";
+import { onAccount, usageLimitText } from "../../ui/job-state/provider-limit.ts";
 import type { SpecGroup } from "../specs-list";
 
 /** What a job and its row view have in common, and all the rules read. */
@@ -161,9 +162,10 @@ export interface JobMessage {
 
 /** What the line reads: the row view's fields, with `steps` as `JobLike` has
  *  them, so the tests' plain jobs fit as `StateRow`'s do. */
-type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | "stepIndex"> & {
-  steps: readonly string[];
-};
+type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | "stepIndex"> &
+  Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait" | "results" | "stepModels" | "model" | "claudeAccount" | "runOnAccounts">> & {
+    steps: readonly string[];
+  };
 
 const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
   failed: "jobs.endedFailed",
@@ -174,16 +176,30 @@ const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
 export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefined {
   const ended = ENDED[row.state];
   if (ended) {
+    // A step moved between Claude accounts is told in the usage-limit
+    // sentence, which names the account the stop was on.
+    const onAccount = row.state === "stopped" && (row.claudeAccount || row.runOnAccounts?.length)
+      ? usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now())
+      : undefined;
     return {
       // The badge's own colour: a stop is amber, a failure red.
       variant: row.state === "stopped" ? "waiting" : "failed",
-      text: renderSentence(lang, row.error) || t(lang, ended),
+      text: onAccount ?? (renderSentence(lang, row.error) || t(lang, ended)),
       log: `/jobs/${row.id}?tab=steps`,
     };
   }
   if (deployStep(row) && row.errorReason === "held-back") {
     const text = renderSentence(lang, row.error);
     if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
+  }
+  // A job on another Claude account says so while it runs, as the Specs
+  // list's row does.
+  if (row.claudeAccount && row.state !== "done" && row.state !== "cancelled") {
+    const step = row.steps[row.stepIndex] ?? row.steps[row.steps.length - 1] ?? "";
+    return {
+      variant: "info",
+      text: t(lang, "notice.accountRuns", { step: stepLabel(step, lang), who: onAccount("Claude", row.claudeAccount, lang) }),
+    };
   }
   return undefined;
 }

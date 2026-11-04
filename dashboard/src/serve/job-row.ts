@@ -7,7 +7,10 @@
 import { queuePriorityOrder, tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import type { QueueRowView } from "../render";
+import { homedir } from "node:os";
+import { runOnAccounts } from "../queue/runner/claude-accounts.ts";
 import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers";
+import { stepTool } from "./serve-helpers/runner-argv.ts";
 
 export interface JobRowContext {
   queue: QueueStore;
@@ -18,6 +21,8 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
   // The step whose model the row is about: the one running, or the
   // last one for a job that has finished.
   const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
+  const tool = step ? stepTool(job, step, ctx.queue.defaults) : "claude";
+  const offered = runOnAccounts(job, tool, ctx.queue.defaults.claudeAccounts, homedir());
   return {
     id: job.id,
     project: job.project,
@@ -60,6 +65,10 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     pushError: job.pushError,
     stopReason: job.stopReason,
     usageLimitWait: job.usageLimitWait,
+    // Named only while the step runs on Claude: a Codex step of the same
+    // job has no Claude login to name.
+    claudeAccount: tool === "claude" ? job.claudeAccount?.name : undefined,
+    runOnAccounts: offered.length ? offered : undefined,
     error: job.error,
     errorDetail: job.errorDetail,
     // Why the landing was refused, when it was refused for something
@@ -79,6 +88,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     results: job.results.map((r) => ({
       step: r.step, ok: r.ok, tool: r.tool, costUsd: r.costUsd, tokens: r.tokens?.total, modelId: r.modelId, terminalReason: r.terminalReason,
       providerLimit: r.providerLimit,
+      claudeAccount: r.claudeAccount,
       // When the step ENDED — what a phase's own duration
       // is sliced out of, together with its own recorded start below.
       at: r.at,

@@ -234,6 +234,11 @@ export function runnerArgv(
     // the argv it produced before this flag existed — the same shape
     // `--model` itself has had all along.
     ...(tool !== "claude" ? ["--tool", tool] : []),
+    // Only a Claude step of a job a person moved to another account: a job
+    // on the default account keeps byte-for-byte the argv it had. A Codex
+    // step has no Claude turn, and a Claude review beside it is left out
+    // (`reviewModelArgs`).
+    ...(tool === "claude" && job.claudeAccount ? ["--claude-config-dir", job.claudeAccount.configDir] : []),
     ...reviewModelArgs(step, tool, o),
     // Chosen by the runner BEFORE the spawn, so the queue can watch the
     // session while the step runs instead of learning it from a result

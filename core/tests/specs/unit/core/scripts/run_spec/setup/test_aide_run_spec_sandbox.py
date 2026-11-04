@@ -245,3 +245,28 @@ def test_the_boards_own_queue_settings_and_checkouts_are_denied_where_it_says_th
     denied = json.loads(out)["sandbox"]["filesystem"]["denyWrite"]
     for path in ("queue-config.json", "checkouts/alpha/settings.yaml", "checkouts/alpha/code/.git/hooks"):
         assert f"/{board}/{path}" in denied, (path, denied)
+
+
+def test_each_claude_account_directory_has_its_named_entries_denied_and_not_the_directory(workspace_root, tmp_path):
+    """The board hands over every configured account's directory
+    (AIDE_CLAUDE_CONFIG_DIRS) and the step its own (--claude-config-dir): the
+    files a step could write to change what Claude Code runs are denied under
+    each, as they are under ~/.claude. The directory itself is not: Claude
+    Code writes its sessions there, and a deny cannot be opened again."""
+    home = tmp_path / "home"
+    script = workspace_root / "core/scripts/lib/run-spec/setup/sandbox.sh"
+    listed = f"{home}/.claude-2\n{home}/.claude-3\n/opt/claude-3"
+    out = subprocess.run(["bash", "-c", f'source "{script}"; claude_config_dir=/opt/claude-4; sandbox_settings_json'],
+                         capture_output=True, text=True, check=True,
+                         env={**os.environ, "HOME": str(home), "AIDE_CLAUDE_CONFIG_DIRS": listed}).stdout
+    settings = json.loads(out)
+    denied = settings["sandbox"]["filesystem"]["denyWrite"]
+    rules = settings["permissions"]["deny"]
+    names = [".claude.json", "settings.json", "settings.local.json", "hooks", "skills", "agents", "rules",
+             "plugins", "CLAUDE.md"]
+    for directory in ("~/.claude-2", "~/.claude-3", "//opt/claude-3", "//opt/claude-4"):
+        for name in names:
+            assert f"{directory}/{name}" in denied, (directory, name)
+            assert f"Edit({directory}/{name})" in rules, (directory, name)
+        assert directory not in denied, directory
+        assert f"Edit({directory}/**)" not in rules, directory

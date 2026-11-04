@@ -24,6 +24,7 @@ import {
 } from "../../project/discover";
 import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { Job, QueueStore } from "../../queue/queue.ts";
+import { holdKey } from "../../queue/runner/claude-accounts.ts";
 import { restartAfterUsageLimit, usageLimitHolds } from "../../queue/runner/usage-limit.ts";
 import type { Runner } from "../../queue/runner";
 import type { CheckableTool, SpecTarget } from "../../render";
@@ -412,7 +413,7 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   if (!runner) return;
   // First, so a stopped step whose AI's usage limit has reset is queued
   // again before the checkout refresh and the tool recheck, and gets both.
-  const toolOf = (job: Job): string => stepTool(job, job.steps[job.stepIndex] ?? "", ctx.queue.defaults);
+  const toolOf = (job: Job): string => holdKey(job, stepTool(job, job.steps[job.stepIndex] ?? "", ctx.queue.defaults));
   restartAfterUsageLimit(ctx.queue, toolOf, (ctx.now ?? Date.now)());
   // Nothing may be STARTED in a checkout that is not there.
   // Every project with a job waiting, and only those — a clone is

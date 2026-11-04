@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { extraPathDirs, pathWithToolDirs } from "../../../src/serve/tool-path.ts";
 import { fileOnceWritten } from "../../helpers/file-once-written.ts";
 import { existsSync, readdirSync, readFileSync, rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { statusSaying } from "../../helpers/queue-server.ts";
 import { scheduleRunOutputDir } from "../../../src/queue/schedule.ts";
@@ -463,5 +463,63 @@ describe("the analysis session an implement continues", () => {
       );
     expect(argvFor("implement")).toContain("--resume-session");
     expect(argvFor("archive")).not.toContain("--resume-session");
+  });
+});
+
+// A job a person moved to another Claude account runs its Claude step with
+// that account's directory; nothing else changes its argv.
+describe("--claude-config-dir", () => {
+  const WORK = { name: "Work", configDir: "/home/ragnar/.claude-2" };
+  const argvFor = (extra: Record<string, unknown>, choices?: Record<string, { tool?: "codex" }>): string[] =>
+    runnerArgv(
+      {
+        id: "j1", project: "aide", specFolder: "700-x", steps: ["implement"], stepIndex: 0,
+        model: choices ? { implement: "gpt" } : {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [], ...extra,
+      } as unknown as Parameters<typeof runnerArgv>[0],
+      "implement", "/tmp/r.json", { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", modelChoices: choices },
+    );
+
+  test("a Claude step of a job on another account is handed the account's directory (AC-5)", () => {
+    const argv = argvFor({ claudeAccount: WORK });
+    expect(argv.slice(argv.indexOf("--claude-config-dir"), argv.indexOf("--claude-config-dir") + 2)).toEqual([
+      "--claude-config-dir", "/home/ragnar/.claude-2",
+    ]);
+  });
+
+  test("a job on the default account, and a Codex step of a job on another, are handed none (AC-5)", () => {
+    expect(argvFor({})).not.toContain("--claude-config-dir");
+    expect(argvFor({ claudeAccount: WORK }, { gpt: { tool: "codex" } })).not.toContain("--claude-config-dir");
+  });
+});
+
+describe("the account directories handed to the runner's environment", () => {
+  async function envListFor(queueDefaults: Record<string, unknown>): Promise<string> {
+    const dir = mkdtempSync(join(tmpdir(), "aide-queue-account-dirs-"));
+    ownDirs.push(dir);
+    const envFile = join(dir, "runner-env.txt");
+    const bin = join(dir, "fake-run-spec");
+    writeFileSync(bin, `#!/usr/bin/env bash\nprintf '<%s>\\n' "\${AIDE_CLAUDE_CONFIG_DIRS-unset}" > ${envFile}\n`, { mode: 0o755 });
+    const { base } = start({ queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueDefaults } as never);
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+    });
+    expect(res.status).toBe(200);
+    return (await fileOnceWritten(envFile, "the runner was never invoked")).trimEnd();
+  }
+  const BASE = {
+    timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { implement: "opus", default: "sonnet" },
+  };
+
+  test("every configured account's directory, expanded, one per line (AC-7)", async () => {
+    const env = await envListFor({
+      ...BASE, claudeAccounts: { Work: { configDir: "~/.claude-2" }, Spare: { configDir: "/opt/claude-3" } },
+    });
+    expect(env).toBe(`<${homedir()}/.claude-2\n/opt/claude-3>`);
+  });
+
+  test("not set when no account is configured (AC-7)", async () => {
+    expect(await envListFor(BASE)).toBe("<unset>");
   });
 });

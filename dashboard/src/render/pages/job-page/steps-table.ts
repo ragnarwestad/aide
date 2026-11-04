@@ -116,8 +116,9 @@ function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
       value:
         esc(r.terminalReason) +
         // The usage limit that stopped the step, from the tool's own record.
-        (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en"))}</span>` : ""),
+        (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en", Date.now(), undefined, r.claudeAccount))}</span>` : ""),
     },
+    ...(r.claudeAccount ? [{ label: t(lang, "job.account"), value: esc(r.claudeAccount) }] : []),
   ]);
   return hasLog ? table : `${table}<p class="muted">${t(lang, "job.logMissing")}</p>`;
 }

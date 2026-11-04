@@ -219,7 +219,10 @@ settings. Those are:
 - `~/Library/LaunchAgents`, `~/.local/bin` and mise's tools and settings;
 - git's own settings (`~/.gitconfig`, `~/.config/git`);
 - the AI tools' settings, hooks, skills, agents and rules (`~/.claude.json`, the settings and those folders under
-  `~/.claude`, `~/.agents`, `~/.codex`, `~/.config/opencode`);
+  `~/.claude`, `~/.agents`, `~/.codex`, `~/.config/opencode`), and the same files under the directory of every
+  Claude account the board has configured (`.claude.json`, `settings.json`, `settings.local.json`, `hooks`,
+  `skills`, `agents`, `rules`, `plugins`, `CLAUDE.md`) — the directory itself stays writable, since Claude Code keeps
+  its sessions there;
 - the board's `queue-config.json`, where a scheduled job may turn the sandbox off;
 - the `.git/hooks` and `.git/config` of the step's own main checkouts and of every checkout under
   `~/.aide/dashboard/checkouts`, and each of those checkouts' `settings.yaml`, which holds the project's test command.
@@ -227,7 +230,11 @@ settings. Those are:
 A step therefore cannot install anything onto the serving host; `AIDE_INSTALL_CMD` does that after a landing. The
 board hands the runner where its queue settings and checkouts are (`AIDE_QUEUE_CONFIG`, `AIDE_CHECKOUT_ROOT`), and
 where it mirrors its queue (`AIDE_QUEUE_MIRROR`), which the runner reads to count the steps and landings running when it
-works out the test workers a run may use.
+works out the test workers a run may use. It also hands over the directory of every Claude account it has configured,
+one per line (`AIDE_CLAUDE_CONFIG_DIRS`), and a step on another account is started with `--claude-config-dir <dir>`:
+every Claude turn of that step — the step's own, its review and verification, and the fix turns — runs with
+`CLAUDE_CONFIG_DIR` set to it, and a Codex or OpenCode turn beside it does not. A directory that is not there refuses
+the run before any turn starts.
 
 Three more things keep what a step writes from reaching the runner's own work outside the sandbox, for every tool:
 

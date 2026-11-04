@@ -20,7 +20,7 @@ import { t, type Language } from "../../../i18n";
 import { askButton, buttonForm, confirmDialog, foldArrow, rowMessage, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
-import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
+import { currentStep, durationLabel, inFlight, runOnAccountButtons, specStateChip, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
 import { costCell } from "../specs-list/cell-helpers.ts";
 import type { SpecsFilter } from "../specs-list";
@@ -100,7 +100,8 @@ function messageLine(row: QueueRowView, lang: Language): string {
         button: { label: t(lang, "list.createDismiss"), small: true },
       })
     : "";
-  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(m.variant, m.text, { actions: log + dismiss })}</td></tr>`;
+  const runOn = row.state === "stopped" ? runOnAccountButtons(row, lang) : "";
+  return `<tr class="specnotice"><td colspan="${LIST_COLUMNS}">${rowMessage(m.variant, m.text, { actions: runOn + log + dismiss })}</td></tr>`;
 }
 
 /** A Close's, Reopen's, deploy's or scheduled job's steps, a line each in the row's columns, while the row is open

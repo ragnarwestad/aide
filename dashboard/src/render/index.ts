@@ -45,8 +45,9 @@ export {
 } from "./pages/settings-page";
 export type { SettingsGroup, SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
 export {
-  CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, TOOL_TABS, toolPanel, toolPart,
+  CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, TOOL_TABS, toolPanel, toolPart, toolParts,
 } from "./pages/settings-page/tools.ts";
+export { ACCOUNTS_ADD_ROUTE, ACCOUNTS_REMOVE_ROUTE, ACCOUNTS_RENAME_ROUTE } from "./pages/settings-page/accounts.ts";
 export type { CheckableTool, ExtraCheck, ToolCheck, ToolPart } from "./pages/settings-page/tools.ts";
 export { usageView } from "./pages/settings-page/usage.ts";
 export type { ToolUsage, UsageView, UsageWindow } from "./pages/settings-page/usage.ts";

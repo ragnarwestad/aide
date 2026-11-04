@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   AI_TABS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_GROUPS, SETTINGS_STEPS,
-  SPEC_STEPS, TOOL_PARTS, toolPanel, toolPart, UNROWED_STEPS,
+  SPEC_STEPS, TOOL_PARTS, toolPanel, toolPart, toolParts, UNROWED_STEPS,
 } from "../../../src/render";
 import { t } from "../../../src/i18n";
 import { tabLabel } from "../../../src/render/ui/tabs.ts";
@@ -139,10 +139,11 @@ describe("the tabs inside an AI's tab", () => {
       label: m[2],
     }));
 
-  test("they are Models, Usage and Installation, in that order, each a link of its own", () => {
+  test("they are Models, Usage and Installation, in that order, each a link of its own, and Claude Code has Accounts after them", () => {
     expect([...TOOL_PARTS]).toEqual(["models", "subscription", "installation"]);
+    expect(toolParts("claude")).toEqual([...TOOL_PARTS, "accounts"]);
     for (const tool of ["claude", "codex", "copilot", "opencode"] as const) {
-      expect(innerTabs(toolPanel(tool, undefined))).toEqual(TOOL_PARTS.map((part) => ({
+      expect(innerTabs(toolPanel(tool, undefined))).toEqual(toolParts(tool).map((part) => ({
         href: `/settings?tab=${tool}&aitab=${part}`,
         label: t("en", `settings.part.${part}`),
       })));
@@ -156,6 +157,11 @@ describe("the tabs inside an AI's tab", () => {
   test("a named inner tab opens that tab, not Models", () => {
     expect(toolPart("installation")).toBe("installation");
     expect(toolPart("subscription")).toBe("subscription");
+  });
+
+  test("Accounts opens on Claude Code alone", () => {
+    expect(toolPart("accounts", "claude")).toBe("accounts");
+    expect(toolPart("accounts", "codex")).toBe("models");
   });
 });
 

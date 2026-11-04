@@ -124,7 +124,7 @@ stops one that is running.
 ### Jobs and the board
 
 Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`, `src/serve/routes/sse.ts` and
-`src/serve/routes/failed-create-routes.ts`. `POST /api/queue/create` is the exception: it is answered by
+`src/serve/routes/failed-create-routes.ts`; `run-on` is `src/serve/routes/claude-accounts/run-on.ts`'s. `POST /api/queue/create` is the exception: it is answered by
 `src/serve/routes/queue-admin.ts`, beside the project and settings routes.
 
 | Route                                         | Kind   | Takes                                              | Answers                                                                    | Made for  |
@@ -135,6 +135,7 @@ Answered by `src/serve/routes/job-actions.ts`, `src/serve/routes/job-detail.ts`,
 | `GET /api/queue/events`                       | read   | optional `?phases=` and `?open=`                   | a held-open `text/event-stream` of queue changes                           | interface |
 | `POST /api/queue/<id>/cancel`                 | action | nothing                                            | `{ ok, job }`; 409 for a finished job, unless its landing is still running | form      |
 | `POST /api/queue/<id>/dismiss`                | action | nothing                                            | `{ ok, job }`; 404 if unknown; 409 unless a waiting scheduled job          | form      |
+| `POST /api/queue/<id>/run-on`                 | action | account: a name the row offers                     | `{ ok, job }`; 404 unknown job; 409 no usage-limit stop; 400 not offered   | form      |
 | `POST /api/queue/<id>/steps`                  | action | step and checked, for a running job's tail         | `{ ok, job }`                                                              | form      |
 | `POST /api/queue/<id>/model`                  | action | step and model, for a running job's tail           | `{ ok, job }`                                                              | form      |
 | `POST /api/queue/create`                      | action | JSON or form: the new spec's title and description | `{ ok, job }`; 400 `{ error }`                                             | interface |
@@ -165,7 +166,8 @@ and answers 400 `{ error }` with `Depends on was saved, but analyze could not be
 
 Answered by `src/serve/routes/queue-admin.ts`, except `settings/concurrency`, which
 `src/serve/routes/settings-concurrency.ts` answers, the two `settings/models/<add|remove>` rows, which
-`src/serve/routes/settings-models.ts` answers, and the `deploy` and `drift` rows, which
+`src/serve/routes/settings-models.ts` answers, the three `settings/accounts/<add|rename|remove>` rows, which
+`src/serve/routes/claude-accounts/settings.ts` answers, and the `deploy` and `drift` rows, which
 `src/serve/routes/deploy-steps.ts` answers. The `fetch-specs` row is `queue-admin.ts`'s too. Deploy is offered on the board's own project alone, and the `deploy` row
 queues its job. The page script posts `drift` once when the Deploy tab of any project is opened.
 
@@ -176,6 +178,9 @@ queues its job. The page script posts `drift` once when the Deploy tab of any pr
 | `POST /api/queue/settings/concurrency`                | action | concurrency: a whole number, 1 to 8                           | `{ ok, concurrency }`; 400 `{ error }` for a number outside 1 to 8 or a server with no queue                                       | form      |
 | `POST /api/queue/settings/models/add`                 | action | tool and model                                                | `{ ok, name }`: the new choice's name; 400 `{ error }` for a model the last Check's Models reading did not offer                   | form      |
 | `POST /api/queue/settings/models/remove`              | action | name: a model choice                                          | `{ ok, name }`; 400 `{ error }` for no such choice, or one that is a step's default model                                          | form      |
+| `POST /api/queue/settings/accounts/add`               | action | name and configDir: a Claude account                          | `{ ok, name }`; 400 `{ error }` for a bad, taken or Default name, or a directory that is missing or taken                          | form      |
+| `POST /api/queue/settings/accounts/rename`            | action | name and newName                                              | `{ ok, name }`: the new name; 400 `{ error }` for Default, an unknown account, or a bad or taken new name                          | form      |
+| `POST /api/queue/settings/accounts/remove`            | action | name: an account                                              | `{ ok, name }`; 400 `{ error }` for Default or an unknown account                                                                  | form      |
 | `POST /api/queue/projects`                            | action | name, git URL, the settings and the three commands            | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                       | form      |
 | `POST /api/queue/projects/test-command`               | action | a git URL                                                     | `{ ok, testCmd }`: the test command its root files point at, or `null`; reads only                                                 | form      |
 | `POST /api/queue/projects/<project>/settings`         | action | the project's settings                                        | `{ ok, project, results, readiness? }`: the steps taken; 400 when one failed                                                       | form      |

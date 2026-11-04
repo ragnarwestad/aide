@@ -14,16 +14,20 @@
 
 import type { BoardMessage } from "../../i18n/message.ts";
 import type { Job, QueueStore } from "../queue.ts";
+import { keyTool } from "./claude-accounts.ts";
 import { providerLimit } from "./types.ts";
 
 /** What the board waits when the AI named no reset time, and between two
  *  tries after a step started again has hit the limit once more. */
 export const USAGE_LIMIT_RETRY_MS = 60 * 60 * 1000;
 
-/** The AI a job's current step runs on. */
+/** The login a job's current step runs on, as a hold key: the AI's name,
+ *  and for a Claude step of a job on another account the account's
+ *  directory after it (`holdKey`). */
 export type ToolOf = (job: Job) => string;
 
 type Wait = NonNullable<Job["usageLimitWait"]>;
+type Left = NonNullable<Job["usageLimitLeft"]>;
 
 const ms = (iso: string | undefined): number => (iso === undefined ? Number.NaN : Date.parse(iso));
 const isoOf = (at: number): string => new Date(at).toISOString();
@@ -61,34 +65,41 @@ const probeStoppedAgain = (job: Job): boolean =>
   job.results[job.usageLimitProbe.results]?.terminalReason === "provider-limit" &&
   ms(job.finishedAt) >= ms(job.usageLimitProbe.at);
 
-/** The wait that decides when an AI's stopped steps start again. */
-function decidingWait(waiting: readonly Job[]): { until: number; known: boolean } {
+/** The wait that decides when a login's stopped steps start again: the
+ *  latest of its waits, the ones a press left behind included. */
+function decidingWait(waiting: readonly Job[], left: readonly Left[]): { until: number; known: boolean } {
   const again = waiting.filter(probeStoppedAgain);
-  const deciding = again.length > 0 ? again : waiting;
-  return {
-    until: Math.max(...deciding.map((w) => ms(w.usageLimitWait!.until))),
-    known: again.length > 0 ? again.every((w) => w.usageLimitWait!.resetKnown) : waiting.every((w) => w.usageLimitWait!.resetKnown),
-  };
+  const waits = [...(again.length > 0 ? again : waiting).map((w) => w.usageLimitWait!), ...left];
+  return { until: Math.max(...waits.map((w) => ms(w.until))), known: waits.every((w) => w.resetKnown) };
 }
 
 interface AiHold {
   waiting: Job[];
+  /** The waits a press left on this login when it moved a step off it. They
+   *  hold the login's queued steps but are never queued again. */
+  left: Left[];
   probe?: Job;
   /** When the hold began: the earliest stop it holds for. */
   since: number;
 }
 
-/** Every AI that is held right now. An AI is held while one of its steps
- *  waits for a reset, or while the one step sent ahead of the others is
- *  still running. */
+/** Every login that is held right now. A login is held while one of its
+ *  steps waits for a reset, while a step moved off it left its wait behind,
+ *  or while the one step sent ahead of the others is still running. */
 function heldAis(jobs: readonly Job[], toolOf: ToolOf): Map<string, AiHold> {
   const holds = new Map<string, AiHold>();
   const of = (tool: string): AiHold => {
     let hold = holds.get(tool);
-    if (!hold) holds.set(tool, (hold = { waiting: [], since: Number.POSITIVE_INFINITY }));
+    if (!hold) holds.set(tool, (hold = { waiting: [], left: [], since: Number.POSITIVE_INFINITY }));
     return hold;
   };
   for (const job of jobs) {
+    for (const left of [job.usageLimitLeft, ...(job.usageLimitLeftBefore ?? [])]) {
+      if (!left || !Number.isFinite(ms(left.until))) continue;
+      const hold = of(left.hold);
+      hold.left.push(left);
+      if (Number.isFinite(ms(left.since))) hold.since = Math.min(hold.since, ms(left.since));
+    }
     if (isWaiting(job)) {
       const hold = of(toolOf(job));
       hold.waiting.push(job);
@@ -102,6 +113,13 @@ function heldAis(jobs: readonly Job[], toolOf: ToolOf): Map<string, AiHold> {
   }
   return holds;
 }
+
+/** What the held sentence names: the AI, and the account when the job is on
+ *  one. The key carries the account's directory, which is never shown. */
+const named = (job: Job, key: string): { tool: string; account?: string } => ({
+  tool: keyTool(key),
+  ...(key.includes(":") && job.claudeAccount ? { account: job.claudeAccount.name } : {}),
+});
 
 /** Every queued job a used-up usage limit holds, by id, with the sentence
  *  it is held with. Never held: the step sent ahead of the others, a job
@@ -118,11 +136,11 @@ export function usageLimitHolds(jobs: readonly Job[], toolOf: ToolOf): Map<strin
     if (!hold || hold.probe?.id === job.id) continue;
     if (job.pressed && ms(job.createdAt) > hold.since) continue;
     if (hold.probe) {
-      held.set(job.id, { key: "runner.usageLimitHeldProbe", values: { tool, at: hold.probe.usageLimitProbe!.at } });
+      held.set(job.id, { key: "runner.usageLimitHeldProbe", values: { ...named(job, tool), at: hold.probe.usageLimitProbe!.at } });
     } else {
-      const deciding = decidingWait(hold.waiting);
+      const deciding = decidingWait(hold.waiting, hold.left);
       const key = deciding.known ? "runner.usageLimitHeld" : "runner.usageLimitHeldNoReset";
-      held.set(job.id, { key, values: { tool, at: isoOf(deciding.until) } });
+      held.set(job.id, { key, values: { ...named(job, tool), at: isoOf(deciding.until) } });
     }
   }
   return held;
@@ -157,12 +175,23 @@ function queueAgain(store: QueueStore, job: Job, probeAt?: string): void {
  *  - a waiting job a person has pressed a step for since its stop stands
  *    down at its time, and is not started again;
  *  - a job whose landing is in flight is left for the next tick;
+ *  - a wait a press left on the login (`usageLimitLeft`) holds its queued
+ *    steps like a waiting one's, and is dropped at its time;
  *  - after a probe of that AI has ended without a usage-limit stop, every
  *    job that stopped before the probe is queued again at once;
  *  - otherwise, at the AI's time, all are queued again when every reset
  *    time was known, and when one was not only the oldest is, as the
  *    probe, while the others wait an hour from now. */
 export function restartAfterUsageLimit(store: QueueStore, toolOf: ToolOf, now: number): void {
+  // A wait a press left behind is over at its time and holds nothing after.
+  for (const job of store.list()) {
+    if (!job.usageLimitLeft && !job.usageLimitLeftBefore) continue;
+    const live = (l: Left) => ms(l.until) > now;
+    const all = [job.usageLimitLeft, ...(job.usageLimitLeftBefore ?? [])].filter((l): l is Left => !!l);
+    if (all.every(live)) continue;
+    const [latest, ...before] = all.filter(live);
+    store.update(job.id, { usageLimitLeft: latest, usageLimitLeftBefore: before.length ? before : undefined });
+  }
   const jobs = store.list();
   const nowIso = isoOf(now);
   for (const [tool, hold] of heldAis(jobs, toolOf)) {
@@ -195,7 +224,7 @@ export function restartAfterUsageLimit(store: QueueStore, toolOf: ToolOf, now: n
       continue;
     }
 
-    const deciding = decidingWait(waiting);
+    const deciding = decidingWait(waiting, hold.left);
     if (now < deciding.until) continue;
     if (deciding.known) {
       for (const w of waiting) queueAgain(store, w);

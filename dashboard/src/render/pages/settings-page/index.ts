@@ -115,6 +115,9 @@ export interface SettingsPageOptions {
   /** The live model choices, with the model each hands its command line:
    *  what an AI's tab sets the reading against. */
   choices?: Record<string, ModelChoice>;
+  /** The Claude accounts besides the default one, for Claude Code's
+   *  Accounts tab. */
+  claudeAccounts?: Record<string, { configDir: string }>;
   /** The server's public key for push, which the Notifications tab's
    *  script subscribes a device with. */
   pushPublicKey?: string;
@@ -226,7 +229,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
         ? (opts.process ? processPanel(opts.process, lang) : "")
         : toolPanel(open, opts.checks?.[open], opts.usage?.[open], Date.parse(generatedAt), {
           reading: opts.models?.[open], choices: opts.choices, options: models,
-        }, lang, toolPart(opts.aiTab));
+        }, lang, toolPart(opts.aiTab, open), opts.claudeAccounts);
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's
   // Settings rule centres them, and the panel after them, as it did one row.

@@ -34,6 +34,7 @@ export {
 export {
   mergeBranchRefs,
   type BranchRef,
+  type ClaudeAccount,
   type ContextUse,
   type CreateProjectAllower,
   type Job,

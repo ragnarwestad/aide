@@ -47,6 +47,7 @@ export async function projectPages(
       usage: lastUsage(),
       models: lastModels(),
       choices: ctx.queue.defaults.modelChoices,
+      claudeAccounts: ctx.queue.defaults.claudeAccounts,
       pushPublicKey: await ctx.push.publicKey(),
       process: processSettings(ctx.runner, ctx.opts.queueConcurrency),
     });

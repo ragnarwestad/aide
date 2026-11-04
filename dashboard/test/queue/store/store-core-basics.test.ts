@@ -160,6 +160,42 @@ describe("the running step's session", () => {
   });
 });
 
+// The account a job runs on is handed to the runner's command line and to
+// the sandbox's deny list, so a mirror is read back field by field.
+describe("the Claude account a job runs on, read back from the mirror", () => {
+  const WORK = { name: "Work", configDir: "/home/ragnar/.claude-2" };
+  const LEFT = { hold: "claude", until: "2026-08-16T14:00:00.000Z", resetKnown: true, since: "2026-08-16T10:00:00.000Z" };
+
+  function mirrored(fields: Record<string, unknown>): QueueStore {
+    rmSync(mirrorPath, { force: true });
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error("enqueue failed");
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    Object.assign(raw[0]!, fields);
+    writeFileSync(mirrorPath, JSON.stringify(raw));
+    return new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+  }
+
+  test("a well-formed account and left wait are kept (AC-5)", () => {
+    const job = mirrored({ claudeAccount: WORK, usageLimitLeft: LEFT }).list()[0]!;
+    expect(job.claudeAccount).toEqual(WORK);
+    expect(job.usageLimitLeft).toEqual(LEFT);
+  });
+
+  test("an account or a left wait of the wrong shape is dropped (AC-5)", () => {
+    for (const bad of [
+      { claudeAccount: "Work", usageLimitLeft: "x" },
+      { claudeAccount: { name: "Work" }, usageLimitLeft: { hold: "claude", until: "t" } },
+      { claudeAccount: { name: 1, configDir: 2 }, usageLimitLeft: { ...LEFT, resetKnown: "yes" } },
+    ]) {
+      const job = mirrored(bad).list()[0]!;
+      expect(job.claudeAccount).toBeUndefined();
+      expect(job.usageLimitLeft).toBeUndefined();
+    }
+  });
+});
+
 // Which repos does this spec have a branch in RIGHT NOW? A
 // spec is taken through its steps as several jobs, and each job knows
 // only about the repos its own steps pushed to. The merge route needs

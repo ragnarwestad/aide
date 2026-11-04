@@ -44,11 +44,16 @@ export function when(iso: string, now: number, lang: Language, timeZone?: string
   return `${date}, ${clock}`;
 }
 
-/** The AI a limit belongs to, with its model when it has one. */
-const limitWho = (tool: string, model: string | undefined): string => {
+/** The AI a limit belongs to, with its model when it has one, and the
+ *  Claude account when the step ran on one besides the default. */
+const limitWho = (tool: string, model: string | undefined, account?: string, lang: Language = "en"): string => {
   const name = TOOL_NAMES[tool] ?? tool;
-  return model ? `${name} (${model})` : name;
+  return onAccount(model ? `${name} (${model})` : name, account, lang);
 };
+
+/** `who` with the account after it ("Claude (Opus) on Work"); `who` alone for the default. */
+export const onAccount = (who: string, account: string | undefined, lang: Language): string =>
+  account ? t(lang, "account.on", { who, account }) : who;
 
 export function providerLimitSentence(
   limit: ProviderLimit,
@@ -56,8 +61,9 @@ export function providerLimitSentence(
   lang: Language,
   now: number = Date.now(),
   timeZone?: string,
+  account?: string,
 ): string {
-  const who = limitWho(limit.tool, model);
+  const who = limitWho(limit.tool, model, account, lang);
   let first = t(lang, "limit.used", { who, limit: windowPhrase(limit.window, lang) });
   if (limit.resetsAt) first += ` — ${t(lang, "limit.resets", { when: when(limit.resetsAt, now, lang, timeZone) })}`;
   const parts = [`${first}.`];
@@ -78,7 +84,7 @@ const HELD_FOR_USAGE_LIMIT = new Set(["runner.usageLimitHeld", "runner.usageLimi
  *  behind it. The times are stored plain and put in the reader's language
  *  here; any other job gets nothing. */
 export function usageLimitText(
-  view: Pick<QueueRowView, "state" | "stopReason" | "usageLimitWait" | "results" | "steps" | "stepIndex" | "stepModels" | "model" | "error">,
+  view: Pick<QueueRowView, "state" | "stopReason" | "usageLimitWait" | "claudeAccount" | "results" | "steps" | "stepIndex" | "stepModels" | "model" | "error">,
   lang: Language,
   now: number,
   timeZone?: string,
@@ -90,7 +96,7 @@ export function usageLimitText(
     return renderMessage(lang, {
       key: view.usageLimitWait.resetKnown ? "runner.usageLimitRestarts" : "runner.usageLimitRestartsNoReset",
       values: {
-        who: record?.providerLimit ? limitWho(record.providerLimit.tool, model) : (model ?? "AI"),
+        who: record?.providerLimit ? limitWho(record.providerLimit.tool, model, view.claudeAccount, lang) : (model ?? "AI"),
         limit: windowPhrase(record?.providerLimit?.window ?? "", lang),
         step: stepLabel(step, lang),
         at: when(view.usageLimitWait.until, now, lang, timeZone),
@@ -102,7 +108,7 @@ export function usageLimitText(
     const tool = String(error.values?.tool ?? "");
     return renderMessage(lang, {
       key: error.key,
-      values: { tool: TOOL_NAMES[tool] ?? tool, at: when(String(error.values?.at ?? ""), now, lang, timeZone) },
+      values: { tool: onAccount(TOOL_NAMES[tool] ?? tool, typeof error.values?.account === "string" ? error.values.account : undefined, lang), at: when(String(error.values?.at ?? ""), now, lang, timeZone) },
     });
   }
   return undefined;
