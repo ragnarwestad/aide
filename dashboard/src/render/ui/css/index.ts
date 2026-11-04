@@ -31,28 +31,29 @@ import { join } from "node:path";
 /** One file per section, in the exact order they used to appear inside
  *  the single template literal — order matters for CSS specificity in
  *  a few places (`tokens.css`'s own header explains the one that most
- *  depends on it), so this list is not alphabetised. */
+ *  depends on it), so this list is not alphabetised. The foundation sits
+ *  beside this file; the rest are in folders named for what they style. */
 const SECTIONS = [
   "tokens.css",
   "page.css",
   "brand.css",
   "text-roles.css",
-  "button.css",
-  "switch.css",
-  "status-badge.css",
-  "phase-chip.css",
-  "remaining-checks.css",
-  "row-message.css",
-  "field.css",
-  "list.css",
-  "list-spec-head.css",
-  "list-rows.css",
-  "rows-and-forms.css",
-  "job-page.css",
-  "project-overview.css",
-  "narrow.css",
-  "narrow-spec-head.css",
-  "narrow-rows.css",
+  "components/button.css",
+  "components/switch.css",
+  "components/status-badge.css",
+  "components/phase-chip.css",
+  "components/remaining-checks.css",
+  "components/row-message.css",
+  "components/field.css",
+  "list/list.css",
+  "list/list-spec-head.css",
+  "list/list-rows.css",
+  "list/rows-and-forms.css",
+  "pages/job-page.css",
+  "pages/project-overview.css",
+  "narrow/narrow.css",
+  "narrow/narrow-spec-head.css",
+  "narrow/narrow-rows.css",
 ];
 
 export const CSS =

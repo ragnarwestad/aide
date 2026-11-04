@@ -108,14 +108,14 @@ describe("dashboard code health", () => {
     expect(bad).toEqual([]);
   });
 
-  test("every directory holds at most 15 .ts files directly inside it, unless exempt", () => {
+  test("every directory holds at most 15 .ts and .css files directly inside it, unless exempt", () => {
     const dirs = new Set<string>();
-    for (const file of [...srcFiles, ...testFiles]) {
+    for (const file of [...srcFiles, ...testFiles, ...filesUnder(SRC, ".css")]) {
       dirs.add(join(file, ".."));
     }
     const bad: string[] = [];
     for (const dir of dirs) {
-      const count = readdirSync(dir).filter((name) => name.endsWith(".ts") && statSync(join(dir, name)).isFile()).length;
+      const count = readdirSync(dir).filter((name) => /\.(ts|css)$/.test(name) && statSync(join(dir, name)).isFile()).length;
       const rel = relPath(dir);
       if (count > 15) bad.push(`${rel}: ${count} files (limit 15) — ${SPLIT_FOLDER}`);
     }

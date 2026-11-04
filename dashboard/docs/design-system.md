@@ -26,8 +26,10 @@ through a variable, and a control has one class wherever it appears — never a 
 
 ## Tokens
 
-The stylesheet is the seventeen `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
-that order into the one string inlined into every page. `tokens.css` declares every colour, type size, space and radius ONCE, as CSS
+The stylesheet is the twenty `.css` files `src/render/ui/css/index.ts` lists in `SECTIONS`, read and joined in
+that order into the one string inlined into every page. The foundation (`tokens.css`, `page.css`, `brand.css`,
+`text-roles.css`) sits beside `index.ts`, and the rest in folders named for what they style: `components/`, `list/`,
+`pages/` and `narrow/`. `tokens.css` declares every colour, type size, space and radius ONCE, as CSS
 custom properties, between the `tokens:start` and `tokens:end` sentinels. There are four such blocks:
 
 - `:root`.
