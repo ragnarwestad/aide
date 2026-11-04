@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-04](#2026-11-04)
   - [2026-11-03](#2026-11-03)
   - [2026-11-02](#2026-11-02)
   - [2026-11-01](#2026-11-01)
@@ -118,6 +119,82 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-04
+
+Nov 3 – Nov 4. Not read: the Codex changelog page past its first 100,000 characters, the OpenCode changelog page past
+its first 100,000 characters, the OpenAI developer blog (no dates shown; its list holds no post that is new to the
+log), Artificial Analysis (the harness comparison there is still "Coming soon"), the GitHub Copilot blog (newest post
+shown is Oct 20), the Copilot changelog (titles only, newest Nov 3), the Codex release page's notes for v0.166.0 (cut
+off). Of the watched pages, `agents.md` changed in star counts only, and the prompting pages for Haiku 5.5, Opus 4.8,
+Sonnet 5 and Sonnet 5.5 changed in wording only.
+
+**Claude Code (v2.1.318):**
+
+| Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Source                                                         |
+|-------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Nov 4 | v2.1.318 | Unattended runs (`claude -p`, SDK) stop rewriting `~/.claude.json` when nothing changed; a non-interactive launch with a `~/.claude.json` that is not valid JSON now fails and says how to restore it, instead of replacing it with defaults; background subagents move a shell command to the background after 3 minutes on all providers; `claude -p` prints a stderr warning from 10 days before a stored claude.ai sign-in ends (`credential_expires_at` in the JSON result); failing custom slash commands no longer give empty `claude -p` output; `deniedMcpServers` URL entries also block matching Anthropic-provided servers; `Setup` hook variables written to `CLAUDE_ENV_FILE` reach the Bash tool in cloud sessions; mods get an `effort` option on `$.model.fork` | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 3 | —        | Anthropic news and the Claude blog show nothing newer than Nov 2 (message threads) and Oct 28                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | [News](https://www.anthropic.com/news)                         |
+
+**GitHub Copilot CLI (v1.0.105 stable; v1.0.106-8 the newest pre-release):**
+
+| Date  | Version        | News                                                                                                                                                                                                                                                                                                                             | Source                                                     |
+|-------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 4 | v1.0.106-8     | Agent-file frontmatter warnings no longer go to stderr; fixes for `/fork`, UTF-8 BOM hook configs, LSP config warnings, `copilot plugin uninstall`                                                                                                                                                                               | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 3 | v1.0.106-6, -7 | `/settings` opens a unified settings dashboard; MCP content meant only for the user is no longer sent to the model; inline images in Kitty terminals; `/code` opens the session in VS Code; a Fusion tier setting in `copilot config`; about 45 fixes, among them `--agent` in ACP mode and `--yolo`/`--allow-all` when resuming | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 3 | —              | Changelog: Copilot is available in JetBrains Air; BYOK and enterprise custom models in the Copilot usage API                                                                                                                                                                                                                     | [Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (v0.166.0 stable; v0.168.0-alpha.1 pre-release):**
+
+| Date  | Version          | News                                                          | Source                                               |
+|-------|------------------|---------------------------------------------------------------|------------------------------------------------------|
+| Nov 4 | v0.168.0-alpha.1 | Pre-release with no notes; stable is still v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.5, no newer release):**
+
+| Date | Version | News                              | Source                                                     |
+|------|---------|-----------------------------------|------------------------------------------------------------|
+| —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⭐ X list, @mattpocockuk, Nov 3: a paper (arxiv 2610.34938) on his /retro skill concludes that a harness changing itself
+  needs a way to tell whether a change helps on later tasks, and to revise or remove changes that do not. Touches
+  `docs/REPLAY.md`, which replays archived specs but has no way to retire a rule or skill that replay shows did not
+  help. [Post](https://x.com/mattpocockuk/status/2117588845864575397)
+- ⚠️ Claude Code v2.1.318: a non-interactive launch with a `~/.claude.json` that is not valid JSON now fails and says how
+  to restore it, where before it replaced the file with defaults. A scheduled or spec step on a machine with a damaged
+  file stops at start instead of running. [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ Claude Code v2.1.318: background subagents move a shell command to the background after 3 minutes, unattended runs
+  no longer rewrite `~/.claude.json` when nothing changed, failing custom slash commands print output in `claude -p`,
+  and `claude -p` warns on stderr 10 days before the claude.ai sign-in ends. All four touch the runner's headless steps.
+  [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ X list, @Voxyz_ai, Nov 3: claims Claude Code's built-in Explore and Plan subagents run on the main model, so with
+  Opus they spend Opus quota on file searching. Aide's headless steps use those subagents. Not confirmed in the docs;
+  check before acting. [Post](https://x.com/Voxyz_ai/status/2117718457621926236)
+- ✅ X list, @addyosmani, Nov 4: Claude Code had refused game projects it should have built, because a short rule about
+  recreating existing games was added to the Opus 5.5 prompt; a fix is being made. A headless step could refuse
+  legitimate work the same way. [Post](https://x.com/addyosmani/status/2117848568535106001)
+- ✅ X list, @housecor, Nov 3: classifies pull requests by risk so low-risk ones get quick review and high-risk ones
+  several human reviews. Aide gives analyze a LOW/MEDIUM/HIGH grade but has no grade of the finished diff.
+  [Post](https://x.com/housecor/status/2117632142486151445)
+- ✅ X list, @omarsar0, Nov 3: recommends a paper on maintaining and scaling agent skill libraries. Aide's skill set
+  grows with every change; `docs/SKILL_GUIDE.md` has no check for stale skills.
+  [Post](https://x.com/omarsar0/status/2117744698039095459)
+- ✅ Watched page `code.claude.com/docs/en/best-practices`: the check that CLAUDE.md loaded is now `/context all` (before
+  `/context`), and `/batch` now says each unit gets its own worktree once you approve the plan and opens a PR or
+  reports what happened. [Page](https://code.claude.com/docs/en/best-practices)
+- ✅ Copilot CLI v1.0.106-6 to -8: MCP content meant only for the user no longer reaches the model, and agent-file
+  frontmatter warnings no longer print on stderr. Pre-releases; stable is still v1.0.105.
+  [Releases](https://github.com/github/copilot-cli/releases)
+- ℹ X list, Nov 3: @ClaudeDevs on Claude Code in October (mods, a desktop app for many sessions, usage insight),
+  @bcherny on company plugins connecting by themselves for Team and Enterprise, @trq212 on smarter models needing less
+  self-verification, @omarsar0 on applying a cost preference only at the end of a harness search, @JSchaeff3r on a
+  model recalling Terminal Bench instructions, @mattpocockuk on long-lived single-domain agent threads, @swyx on
+  Anthropic's "dark factory".
+- ℹ Codex v0.168.0-alpha.1 is a pre-release with no notes; OpenCode has no release after v2.2.5; the Copilot changelog
+  has JetBrains Air and a usage API entry on Nov 3.
+- ℹ Anthropic news shows nothing newer than Oct 28; the Copilot blog nothing newer than Oct 20.
 
 ### 2026-11-03
 
