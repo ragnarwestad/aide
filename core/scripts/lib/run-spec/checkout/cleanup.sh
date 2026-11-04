@@ -44,8 +44,8 @@ amend_note="${model_suffix}${suffix}"
 # and a worktree path is deleted when the run ends, so reporting it would
 # make the labels read as job ids, `isMerged` answer false forever, and
 # Merge fail in a directory that no longer exists.
-# An `archive` step is the only one that can be interrupted MID-MERGE:
-# it is the one started with the conflict open (see update_branch_to_base
+# An `archive` or `implement` step can be interrupted MID-MERGE:
+# they are the ones started with the conflict open (see update_branch_to_base
 # above), and a crash, a cancellation or a timeout between opening it
 # and deciding leaves MERGE_HEAD set with the markers still in the files.
 # The generic loop below would then `git add -A` those markers and commit
@@ -54,7 +54,7 @@ amend_note="${model_suffix}${suffix}"
 # where the step found it, which is also what "leaves the branch as it
 # found it" means when /aide-archive gives up on the resolution on
 # purpose.
-if [ "$command_name" = "archive" ]; then
+if [ "$command_name" = "archive" ] || [ "$command_name" = "implement" ]; then
   for wt in "${work_roots[@]}"; do
     git -C "$wt" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 || continue
     git -C "$wt" merge --abort >/dev/null 2>&1 || true

@@ -663,3 +663,30 @@ def test_a_failing_test_the_output_names_twice_is_reported_once(runner, workspac
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "tests-red", out
     assert out["error"].count("(fail) the one that failed") == 1, out["error"]
+
+
+def test_a_monorepo_run_shows_the_failing_packages_own_error_not_its_summary(runner, workspace, fake_claude, tmp_path):
+    """turbo ends with a summary naming the package that failed, while the
+    cause sits higher up, in that package's own prefixed lines. The tail
+    alone showed "Failed: @x/email#test" and hid a port already in use."""
+    with_status(workspace, ["create", "analyze"])
+    suite = tmp_path / "suite.sh"
+    stand_in(
+        suite,
+        "#!/bin/sh\n"
+        "echo '@x/oauth:test: WARN Login failed { message: outside the domain }'\n"
+        "echo '@x/email:test: Error response from daemon: ports are not available: bind: address already in use'\n"
+        "echo '@x/email:test:  Container x-mailpit-1 Starting'\n"
+        "echo ' Tasks:    7 successful, 8 total'\n"
+        "echo 'Failed:    @x/email#test'\n"
+        "exit 1\n"
+    )
+    _project_with_test_cmd(workspace, str(suite))
+    claude = fake_claude(
+        "printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step' 2>/dev/null\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "tests-red", out
+    assert "address already in use" in out["error"], out["error"]
+    assert "outside the domain" not in out["error"], out["error"]

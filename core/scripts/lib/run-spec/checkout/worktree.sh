@@ -283,7 +283,7 @@ branch_already_landed() {
   return "$landed"
 }
 
-# The worktrees `update_branch_to_base` handed to an archive session with
+# The worktrees `update_branch_to_base` handed to an archive or implement session with
 # the merge OPEN, and the tip of the base each was being merged with:
 # the status cross-check (run-spec/record/status-line.sh) asks afterwards
 # whether the branch came to contain that tip. A session that dropped
@@ -318,7 +318,9 @@ update_branch_to_base() {
       < <(aide_translation_merge_args "$project_root" "$work_dir" "$SCRIPT_DIR")
   fi
   if ! git -C "$wt" ${translation_args[@]+"${translation_args[@]}"} merge -q --no-edit "$ref" >/dev/null 2>&1; then
-    if [ "$command_name" = "archive" ]; then
+    # Archive and implement are handed the conflict open, to resolve as
+    # their first piece of work; a step that writes no code refuses.
+    if [ "$command_name" = "archive" ] || [ "$command_name" = "implement" ]; then
       # A conflict confined to THIS spec's own 4-status.md is
       # not two intents to merge — main's copy is a direct correction
       # (the dashboard's tick-to-fix, or a person editing the file by

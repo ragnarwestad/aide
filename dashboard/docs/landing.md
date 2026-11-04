@@ -3,7 +3,7 @@
 ## Table of contents
 
 - [Branches, and merging them](#branches-and-merging-them)
-- [Archive resolves the conflict itself](#archive-resolves-the-conflict-itself)
+- [Archive and implement resolve the conflict themselves](#archive-and-implement-resolve-the-conflict-themselves)
 - [Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished)
 - [The tests run on the landing, once](#the-tests-run-on-the-landing-once)
 - [A root that is no longer on disk](#a-root-that-is-no-longer-on-disk)
@@ -111,27 +111,29 @@ the branch; a delete that then fails puts it back. When the landing is over, the
 workflow history, the file steps on its branch — are marked due for a fresh read, as they are the moment any of its
 steps ends, so no row is drawn from what was true before.
 
-## Archive resolves the conflict itself
+## Archive and implement resolve the conflict themselves
 
-A spec's branch is brought up to date with the default branch before a step's own work starts, and every step but one
-treats a conflict there as a user's problem: the merge is aborted and the run refuses on the spot with
-`errorReason: "conflict"`. `archive` is the exception, because
-`archive` is the step that LANDS the branch — a merge that fails is the merging step's problem, not a phase of its own.
+A spec's branch is brought up to date with the default branch before a step's own work starts. A step that writes no
+code treats a conflict there as a user's problem: the merge is aborted and the run refuses on the spot with
+`errorReason: "conflict"`. `archive` and `implement` are the exceptions. `archive` is the step that LANDS the branch,
+so a merge that fails is its own problem, not a phase of its own; `implement` is the step that writes the branch's
+code, and a spec waiting while other specs land would otherwise stop on every one of them.
 A `close` skips the code repository's branch altogether, since it deletes that branch unmerged; where the specs
 live in the project, the one branch holds the folder the close moves and is brought up as for any other step.
 
-So `core/scripts/aide-run-spec` hands `archive`, and only `archive`, the worktree with the merge still open:
+So `core/scripts/aide-run-spec` hands `archive` and `implement` the worktree with the merge still open:
 `MERGE_HEAD` set, the markers in the files. One conflict it settles itself first — a conflict confined to this
 spec's own `4-status.md`, where the default branch's copy wins — and only what is left over reaches the skill. `/aide-archive`'s Step 1 checks for that and, when it finds it, follows
 `core/skills/aide-archive/references/resolve-conflict.md` before anything else — read the conflict, resolve it or decide
 not to, finish the merge with `git commit --no-edit`, run the project's own test command — and only then goes on to
-archive the spec. The default branch is never touched by the step itself; the dashboard lands the resolved branch
+archive the spec. `/aide-implement` does the same before its Step 1, by the same rules, and its own test run covers
+what the merge brought in. The default branch is never touched by the step itself; the dashboard lands the resolved branch
 afterwards, the way it lands any other step's work.
 
 There is no `resolve` step and no Resolve button: a post naming `resolve` is refused as an invalid entry in `steps`,
 and no control on the page draws off `errorReason`.
 
-- **The condition is the literal string `archive`, never a denylist.**
+- **The condition names `archive` and `implement` literally, never a denylist.**
   A step this got backwards would carry conflict markers into a commit, which is worse than a refusal.
 - **It either finishes or puts the branch back.** Tests red, or a conflict the skill will not decide, and the merge is
   undone to the commit the branch started on. A branch put back never reaches origin, because a root whose

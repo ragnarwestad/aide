@@ -46,6 +46,31 @@ Step 3 also marks each task it takes from the plan, as it finishes it:
 `--- Step 3 of 4, task K of M: <task> — done`, where M counts the
 task rows of `4-status.md`'s GREEN tables.
 
+### Before Step 1: a merge left open for you
+
+When `aide-run-spec` could not bring the spec's branch up to date with
+the default branch, it starts this step with the merge still **open** in
+the worktrees the prompt names: `MERGE_HEAD` is set and the conflicted
+files carry markers. Finish that merge before any of your own work; it
+is not leftover state, and aborting it or resetting over it ends the run
+`merge-unfinished`, with your work sitting on the old default branch.
+
+1. `git diff --name-only --diff-filter=U` lists the files; `ours` is the
+   spec's branch, `theirs` the default branch.
+2. Resolve each file so that **both** sides' intent survives — never
+   `--ours`/`--theirs` across the board. Two sides adding to one import
+   list, one table or one document's sections is the common case. Two
+   sides that changed the same logic in incompatible ways are not
+   guessed at: `git merge --abort`, and stop with what the two sides
+   wanted.
+3. Remove every marker, `git add` the files, check with
+   `git diff --check`, and finish with `git commit --no-edit`.
+4. Then begin Step 1. The tests you run in Step 4 cover what the merge
+   brought in as well as your own change.
+
+Never push, and never touch the default branch: the dashboard lands the
+branch afterwards, as it lands every step's work.
+
 ### Step 1 of 4: Preparation
 
 First write `--- Step 1 of 4: Preparation — started`, and when this step ends, `--- Step 1 of 4: Preparation — done`.

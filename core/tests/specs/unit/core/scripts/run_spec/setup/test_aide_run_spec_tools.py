@@ -125,12 +125,11 @@ def test_an_archive_that_walks_away_mid_merge_publishes_no_conflict_markers(
     assert "<<<<<<<" not in git(project, "show", f"{branch}:contested.txt")
     assert git(origin["project"], "branch", "--list", branch) == ""
 
-@pytest.mark.parametrize("step", ["create", "analyze", "implement"])
-def test_every_other_step_still_refuses_a_conflict(runner, workspace, fake_claude, step):
-    """The fork is on the literal string
-    `archive` and nothing else, so every step that refused yesterday
-    refuses today — a step let past a conflict would commit the markers.
-    All three are named, not the two that happened to be here before."""
+@pytest.mark.parametrize("step", ["create", "analyze"])
+def test_a_step_that_writes_no_code_still_refuses_a_conflict(runner, workspace, fake_claude, step):
+    """Only archive and implement are handed a conflict open: a step that
+    writes no code has no business resolving one, and let past it would
+    commit the markers."""
     project = workspace["project"]
     conflicting_branch(workspace)
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
@@ -345,3 +344,64 @@ def test_the_prompt_names_the_specs_worktree_its_open_merge_is_in(runner, tmp_pa
     run(runner, ws, claude, command="archive")
     assert seen.exists() and seen.read_text().split() == ["open"], \
         "the prompt must name the one worktree whose merge is open"
+
+
+@pytest.mark.usefixtures("origin")
+def test_implement_is_handed_the_open_conflict_and_its_result_is_pushed(runner, workspace, fake_claude, origin):
+    """A spec branch that main has moved under is no reason for implement
+    to stop: the merge is left open for the session, which resolves it
+    before its own work, and the resolution reaches origin with that
+    work."""
+    project = workspace["project"]
+    with_status(workspace, ["create", "analyze"])
+    branch = conflicting_branch(workspace, published=True)
+    seen = workspace["project"].parent / "merge-head.txt"
+    claude = fake_claude(
+        'prompt="$(cat)"\n'
+        'case "$prompt" in *"A merge with the default branch is open"*) ;; *) '
+        f"echo '{json.dumps(RESULT_OK)}'; exit 0;; esac\n"
+        f"git rev-parse -q --verify MERGE_HEAD >> {seen} 2>/dev/null\n"
+        'printf "resolved by the step\\n" > contested.txt\n'
+        "git add -A\n"
+        "git commit -q --no-edit\n"
+        'printf "the work\\n" > work.txt && git add work.txt && git commit -q -m "the work"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement", push="branch")
+    assert out["ok"] is True, out
+    assert seen.exists() and seen.read_text().strip(), "the session must be started with the merge open"
+    assert "resolved by the step" in git(origin["project"], "show", f"{branch}:contested.txt")
+    assert is_ancestor(project, "main", branch), "main must now be contained in the branch"
+
+
+@pytest.mark.usefixtures("origin")
+def test_an_implement_that_walks_away_mid_merge_publishes_no_conflict_markers(runner, workspace, fake_claude, origin):
+    project = workspace["project"]
+    with_status(workspace, ["create", "analyze"])
+    branch = conflicting_branch(workspace, published=True)
+    before = git(project, "rev-parse", branch)
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_ERROR)}'")
+    rc, out, _ = run(runner, workspace, claude, command="implement", push="branch")
+    assert out["terminalReason"] != "refused", out
+    assert git(project, "rev-parse", branch) == before, "an undecided merge must not be committed"
+    assert git(origin["project"], "branch", "--list", branch) == ""
+
+
+@pytest.mark.usefixtures("origin")
+def test_an_implement_that_drops_the_open_merge_is_merge_unfinished_not_completed(runner, workspace, fake_claude):
+    """Work done on top of a merge the session threw away is work on the
+    old base: the next landing meets the same conflict, so the step does
+    not count as done."""
+    project = workspace["project"]
+    with_status(workspace, ["create", "analyze"])
+    branch = conflicting_branch(workspace, published=True)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        "git merge --abort 2>/dev/null\n"
+        'printf "the work\\n" > work.txt && git add work.txt && git commit -q -m "the work"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement", push="branch")
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "merge-unfinished", out
+    assert not is_ancestor(project, "main", branch)

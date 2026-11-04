@@ -245,12 +245,12 @@ export const MESSAGES = {
     exempt: "a part of runner.sharedFilesStopped and wordPhase.stopSharedFilesNamed, which carry the resolution",
   },
   "runner.testsRedImplement": {
-    en: "implement reported success, but the project's tests are red on its result — the runner ran them itself, and the failing tests are listed below. — Press {button} again; the step ends only on a green run.",
-    nb: "implementering meldte ferdig, men prosjektets tester er røde på resultatet — runneren kjørte dem selv, og testene som feiler står under. — Trykk {button} igjen; steget ender bare på en grønn kjøring.",
-    es: "implement informó de éxito, pero los tests del proyecto están en rojo sobre su resultado — el runner los ejecutó él mismo, y los tests que fallan se listan debajo. — Pulsa {button} de nuevo; el paso solo termina con una ejecución en verde.",
-    de: "Implement meldete Erfolg, aber die Tests des Projekts sind bei diesem Ergebnis rot — der Runner hat sie selbst ausgeführt, und die fehlschlagenden Tests stehen darunter. — Klicke erneut auf {button}; der Schritt endet erst bei einem grünen Lauf.",
-    fr: "implement a signalé un succès, mais les tests du projet sont au rouge sur ce résultat — le runner les a lancés lui-même, et les tests en échec sont listés ci-dessous. — Cliquez de nouveau sur {button} ; l'étape ne se termine que sur une exécution au vert.",
-    resolve: "Press {button} again; the step ends only on a green run.",
+    en: "implement reported success, but the project's tests are red on its result — the runner ran them itself, and what failed is shown below. — If the fault is in the code, press {button} again; if something on the machine stopped the tests, such as a port in use or a service that is down, fix that first.",
+    nb: "implementering meldte ferdig, men prosjektets tester er røde på resultatet — runneren kjørte dem selv, og det som feilet står under. — Er feilen i koden, trykk {button} igjen; stoppet noe på maskinen testene, som en port i bruk eller en tjeneste som er nede, rett det først.",
+    es: "implement informó de éxito, pero los tests del proyecto están en rojo sobre su resultado — el runner los ejecutó él mismo, y lo que falló se muestra debajo. — Si el fallo está en el código, pulsa {button} de nuevo; si algo en la máquina detuvo los tests, como un puerto en uso o un servicio caído, arréglalo primero.",
+    de: "Implement meldete Erfolg, aber die Tests des Projekts sind bei diesem Ergebnis rot — der Runner hat sie selbst ausgeführt, und was fehlschlug, steht darunter. — Liegt der Fehler im Code, klicke erneut auf {button}; hat etwas auf der Maschine die Tests gestoppt, etwa ein belegter Port oder ein ausgefallener Dienst, behebe das zuerst.",
+    fr: "implement a signalé un succès, mais les tests du projet sont au rouge sur ce résultat — le runner les a lancés lui-même, et ce qui a échoué est affiché ci-dessous. — Si le défaut est dans le code, cliquez de nouveau sur {button} ; si quelque chose sur la machine a arrêté les tests, comme un port occupé ou un service arrêté, corrigez-le d'abord.",
+    resolve: "If the fault is in the code, press {button} again; if something on the machine stopped the tests, fix that first.",
   },
   "runner.testsRedArchive": {
     en: "archive reported success, but the project's tests are red after the merge with main — the runner ran them itself, and the failing tests are listed below. — Press {button} again; the step ends only on a green run.",
@@ -305,6 +305,14 @@ export const MESSAGES = {
     es: "archive informó de éxito, pero abandonó el merge con main que se le entregó abierto — la branch sigue por detrás de main, y el mismo conflicto espera en el próximo merge. — Pulsa {button} de nuevo; la sesión tiene que terminar ese merge.",
     de: "Archive meldete Erfolg, hat aber den offen übergebenen Merge mit main fallen gelassen — der Branch liegt weiterhin hinter main zurück, und derselbe Konflikt wartet beim nächsten Merge. — Klicke erneut auf {button}; die Sitzung muss diesen Merge fertigstellen.",
     fr: "archive a signalé un succès, mais a abandonné le merge avec main qui lui avait été confié ouvert — la branch est toujours en retard sur main, et le même conflit attend au prochain merge. — Cliquez de nouveau sur {button} ; la session doit terminer ce merge.",
+    resolve: "Press {button} again; the session has to finish that merge.",
+  },
+  "runner.mergeUnfinishedImplement": {
+    en: "implement reported success, but dropped the merge with main it was handed open — its work sits on the old main, and the same conflict waits at the next merge. — Press {button} again; the session has to finish that merge.",
+    nb: "implementering meldte ferdig, men kastet mergen med main den fikk åpen — arbeidet ligger på den gamle main, og den samme konflikten venter ved neste merge. — Trykk {button} igjen; økta må fullføre mergen.",
+    es: "implement informó de éxito, pero abandonó el merge con main que se le entregó abierto — su trabajo está sobre el main antiguo, y el mismo conflicto espera en el próximo merge. — Pulsa {button} de nuevo; la sesión tiene que terminar ese merge.",
+    de: "Implement meldete Erfolg, hat aber den offen übergebenen Merge mit main fallen gelassen — die Arbeit liegt auf dem alten main, und derselbe Konflikt wartet beim nächsten Merge. — Klicke erneut auf {button}; die Sitzung muss diesen Merge fertigstellen.",
+    fr: "implement a signalé un succès, mais a abandonné le merge avec main qui lui avait été confié ouvert — son travail repose sur l'ancien main, et le même conflit attend au prochain merge. — Cliquez de nouveau sur {button} ; la session doit terminer ce merge.",
     resolve: "Press {button} again; the session has to finish that merge.",
   },
   "runner.createEndedNoReason": {

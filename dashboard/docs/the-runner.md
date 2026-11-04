@@ -320,6 +320,8 @@ evidence that the phase happened:
   branch OPEN (`update_branch_to_base`) counts only if the branch contains that base tip afterwards — a session
   that aborted the merge and still moved the folder ends `merge-unfinished`, since the landing would meet the same
   conflict again.
+- `implement` handed a merge with the default branch open counts by the same test: a session that dropped the merge
+  and did its work on the old base ends `merge-unfinished`.
 - `analyze` is refused as `scope-violation` if it changed the project, advanced a status row, or wrote a step onto the
   line that it did not run.
 

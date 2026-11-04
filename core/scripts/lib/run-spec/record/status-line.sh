@@ -18,6 +18,30 @@
 # a stage a spec passes through, and an explore run that today writes
 # nothing at all must not start leaving a commit — and with it a branch
 # no step lands — for a line it has no news about.
+# Whether a merge this step was handed open was dropped: a branch that
+# still lacks the base tip it was being merged with lands on that same
+# conflict again. (An open merge the session left untouched was aborted by
+# run-spec/checkout/cleanup.sh before the commit loop, so HEAD is the
+# pre-merge tip here.) $open_merge_count rather than ${#open_merge_wt[@]}:
+# bash 3.2's `set -u` calls an empty array unbound.
+open_merge_dropped() {
+  local i=0
+  while [ "$i" -lt "$open_merge_count" ]; do
+    if [ -n "${open_merge_base_sha[$i]}" ] \
+       && ! git -C "${open_merge_wt[$i]}" merge-base --is-ancestor "${open_merge_base_sha[$i]}" HEAD >/dev/null 2>&1; then
+      return 0
+    fi
+    i=$((i + 1))
+  done
+  return 1
+}
+merge_unfinished() {
+  terminal_reason="merge-unfinished"
+  ok="false"
+  suffix=" (stopped: merge-unfinished)"
+  error_msg="the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press $step_button again for this step."
+}
+
 status_file=""
 case " $WORKFLOW_ARC " in
   *" $command_name "*) status_file_for "$commit_label" ;;
@@ -69,6 +93,11 @@ if [ -n "$status_file" ]; then
       suffix=" (stopped: no-progress)"
       error_msg="the step reported success but left no real progress — nothing changed in the project. Press $step_button again for this step."
     fi
+    # Work done on top of a merge the session threw away is work on the old
+    # base, and the landing meets the same conflict again.
+    if [ "$terminal_reason" = "completed" ] && open_merge_dropped; then
+      merge_unfinished
+    fi
   elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ]; then
     # A "completed" archive claim is cross-checked the same
     # way implement is cross-checked. status_file_for's own
@@ -88,25 +117,8 @@ if [ -n "$status_file" ]; then
     case "$status_file" in
       "$specs_root_wt/archive/"*)
         # The folder moved — and every merge this step was handed open
-        # has to be finished too: a branch that still lacks the base tip
-        # it was being merged with had its open merge dropped, and lands
-        # on that same conflict again. (An open merge the session left
-        # untouched was aborted by run-spec/checkout/cleanup.sh before the commit
-        # loop, so HEAD is the pre-merge tip here.)
-        # $open_merge_count rather than ${#open_merge_wt[@]}: bash 3.2's
-        # `set -u` calls an empty array unbound.
-        i=0
-        while [ "$i" -lt "$open_merge_count" ]; do
-          if [ -n "${open_merge_base_sha[$i]}" ] \
-             && ! git -C "${open_merge_wt[$i]}" merge-base --is-ancestor "${open_merge_base_sha[$i]}" HEAD >/dev/null 2>&1; then
-            terminal_reason="merge-unfinished"
-            ok="false"
-            suffix=" (stopped: merge-unfinished)"
-            error_msg="the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press $step_button again for this step."
-            break
-          fi
-          i=$((i + 1))
-        done
+        # has to be finished too.
+        open_merge_dropped && merge_unfinished
         ;;
       *)
         archive_refusal=""

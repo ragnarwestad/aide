@@ -148,6 +148,14 @@ EOF_CMDS
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
       step_fix_round=0
       step_cost_total="$cost"
+      # The lines of each task a monorepo runner's summary names as failed
+      # that say error or fail, without their colour codes, at most eight.
+      failed_task_lines() {
+        local log="$1" task
+        sed -n 's/^Failed: *\([^ ]*\)#\([^ ]*\) *$/\1:\2:/p' "$log" 2>/dev/null | while IFS= read -r task; do
+          grep -F -- "$task" "$log" | grep -iE 'error|fail'
+        done | sed $'s/\033\\[[0-9;]*m//g' | awk '!seen[$0]++' | head -8
+      }
       while :; do
         stage "running the project's tests on $command_name's result ($step_test_count command(s))"
         run_step_tests_within_time
@@ -169,6 +177,10 @@ EOF_CMDS
         # echoed — then the tail, so a suite that prints nothing of
         # that shape still shows what it said last.
         step_tests_failing="$(grep -E '^\(fail\)|^FAILED|^ERROR' "$work_dir/step-test-run.log" 2>/dev/null | awk '!seen[$0]++' | head -8)"
+        # A monorepo runner (turbo) ends on a summary naming the failed
+        # package task, "Failed:    @x/email#test"; the cause is in that
+        # task's own lines further up, each prefixed "@x/email:test:".
+        [ -n "$step_tests_failing" ] || step_tests_failing="$(failed_task_lines "$work_dir/step-test-run.log")"
         [ -n "$step_tests_failing" ] || step_tests_failing="$(tail -c 600 "$work_dir/step-test-run.log" 2>/dev/null)"
         # Another turn, or the end: the cap, a session the runner cannot
         # resume, and what the step has left of its time.

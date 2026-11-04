@@ -243,6 +243,18 @@ describe("the completion hook and the landing window", () => {
     expect(after?.errorDetail).toBe(bash);
   });
 
+  test("an implement that dropped its open merge is stored as the board's own message too", () => {
+    const bash =
+      "the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press Implement again for this step.";
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "merge-unfinished", error: bash }) });
+    runner.tick();
+    runner.poll();
+    const after = store.get(job.id);
+    expect(after?.error).toEqual({ key: "runner.mergeUnfinishedImplement", values: { button: "Implement" } });
+    expect(after?.errorDetail).toBe(bash);
+  });
+
   // `cli-error` is the CLI itself failing rather than the work in it, so
   // the row names which AI and model it failed on and points at the one
   // control that can answer whether that AI is usable. The script's own
