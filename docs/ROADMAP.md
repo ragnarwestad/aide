@@ -28,6 +28,7 @@
   - [25. A plain way to run agents Aide has no support of its own for](#25-a-plain-way-to-run-agents-aide-has-no-support-of-its-own-for)
   - [26. A check that nothing on a changed page runs past the screen's edge](#26-a-check-that-nothing-on-a-changed-page-runs-past-the-screens-edge)
   - [27. Asking for work where the conversation already is](#27-asking-for-work-where-the-conversation-already-is)
+  - [28. A rule or skill is kept only while it helps](#28-a-rule-or-skill-is-kept-only-while-it-helps)
 
 ---
 
@@ -43,7 +44,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 28.
+same idea later. The next number is 29.
 
 ## To consider
 
@@ -529,3 +530,22 @@ Open questions:
 - Who may start a spec this way, and how the board knows which project the request belongs to.
 - Whether the request becomes the spec's description as written, or a draft a person approves on the board first.
 - Which of a run's events are worth a message, so the conversation does not fill up with status.
+
+### 28. A rule or skill is kept only while it helps
+
+From the paper on harness self-evolution ([arXiv 2610.34938](https://arxiv.org/abs/2610.34938)), passed on by
+@mattpocockuk (2026-11-04), and a post by @Voxyz_ai (2026-11-01) saying that many installed skills change nothing,
+because nobody compared them with running without the skill. The paper's point: a change to an agent's rules or
+tools needs a way to tell whether it helps on later tasks, and a way to revise or remove it when it does not.
+
+Aide's rules and skills only grow. A rule is added after something goes wrong and stays, whether or not later runs
+are better for it. Replay (`docs/REPLAY.md`) can already run archived specs with another version of the skills and
+compare the results, but it is used to choose models, not to judge a rule. The idea: a change to a skill or rule
+that is meant to change how steps run is replayed on archived specs with and without it, and one that makes no
+difference is revised or taken out.
+
+Open questions:
+
+- Which changes are worth a round. A round costs money and hours, and most rule changes are small.
+- What counts as no difference, given that the measures in `docs/REPLAY.md` were set for choosing a model.
+- Whether rules already in place are replayed too, or only new changes.
