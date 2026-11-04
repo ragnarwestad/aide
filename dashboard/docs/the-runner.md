@@ -4,6 +4,7 @@
 
 - [What a run does, in order](#what-a-run-does-in-order)
 - [How a run names its Claude sessions](#how-a-run-names-its-claude-sessions)
+- [When the AI tool does not start](#when-the-ai-tool-does-not-start)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
 - [What a step can reach](#what-a-step-can-reach)
@@ -81,6 +82,18 @@ A turn that continues a session passes no name, so the session keeps the one it 
 red test run stays `<project> <spec number> implement`, and an implement that continues its analysis's session stays
 `<project> <spec number> analyze`. Codex and OpenCode sessions get no name: `codex exec` has no way to name one. The
 code is in `run-spec/setup/invocation.sh`, and the review's name in `run-spec/turn/review.sh`.
+
+## When the AI tool does not start
+
+A turn whose tool exits without a result, before the model has done anything, ends the step as `cli-error`. The
+job's `error` is the last 400 characters the tool wrote to stderr, followed by "press <step> again"
+(`run-spec/turn/model-turn.sh`), so the tool's own explanation reaches the board.
+
+A damaged `~/.claude.json` on the serving host is such a case. When the file is not valid JSON, `claude -p` exits 1
+without starting: it names the file, says to fix the JSON or move the file aside, and leaves it unchanged (Claude Code
+2.1.318). Every Claude step and every scheduled job on the host then fails the same way, and pressing the step again
+does not help until someone has fixed or moved the file. A step cannot damage the file itself, since the sandbox
+lets it read `~/.claude.json` but not write it ([What a step can reach](#what-a-step-can-reach)).
 
 ## The dashboard's own checkouts
 
