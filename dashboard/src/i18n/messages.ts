@@ -492,7 +492,7 @@ export const MESSAGES = {
     resolve: "Run archive again to merge it.",
   },
 
-  // --- branch-merge.ts's refuse() sites and its two fastForwardToOrigin ---
+  // --- git/branch-merge/'s refuse() sites and its two fastForwardToOrigin ---
 
   "landing.nothingLeftToMerge": {
     en: "there is nothing left to merge — the branch is not on origin ({ref} in {root})",

@@ -46,7 +46,7 @@ const PUSH_ERROR_SENTENCE = errorSentence({
 ```
 
 It throws if given neither `resolve` nor `exempt` — a sentence built this way cannot skip part 2 by accident. A
-lower-level helper deep in a call chain (`branch-merge.ts`'s `refuse()`, `aide-run-spec`'s own `refuse()`) does not
+lower-level helper deep in a call chain (`git/branch-merge/result.ts`'s `refuse()`, `aide-run-spec`'s own `refuse()`) does not
 call the builder — it keeps returning a plain string — but follows the same `what — resolve` shape by hand, so a
 reader sees one convention regardless of which layer wrote the words.
 

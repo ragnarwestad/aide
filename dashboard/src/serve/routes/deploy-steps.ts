@@ -3,7 +3,7 @@
 // when it is opened, for every project.
 
 import { resolve } from "node:path";
-import type { RepoMergeResult } from "../../git/branch-merge.ts";
+import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import { DEPLOY_KEY, isDeployJob, UNFINISHED } from "../../queue/queue.ts";

@@ -10,7 +10,7 @@
 // need a box for: `runnerSetupCtx.landNewSpec` and its three siblings.
 
 import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
-import type { RepoMergeResult } from "../../git/branch-merge.ts";
+import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker,
 } from "../../git/description-freshness.ts";

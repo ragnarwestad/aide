@@ -22,7 +22,7 @@ export function specBranch(specFolder: string): string {
  *  failure is a value (`code`) rather than an exception to be guessed at.
  *
  *  `stderr` is optional because only one caller reads it — the
- *  index.lock retry in `branch-merge.ts` — and a runner that does not
+ *  index.lock retry in `branch-merge/retry.ts` — and a runner that does not
  *  set it must behave exactly as it did before the field existed: an
  *  absent reason is not a reason to retry. */
 export type GitRunner = (
@@ -56,7 +56,7 @@ export const DEFAULT_TTL_MS = 30_000;
  *  which is the whole reason absence can be asserted rather than
  *  guessed: `128` is an unreachable host and means nothing about
  *  whether the branch exists. Exported because both the read path
- *  (`isMerged`) and the write path (`branch-merge.ts`) ask origin the
+ *  (`isMerged`) and the write path (`branch-merge/`) ask origin the
  *  same question, and two copies of this number would one day disagree. */
 export const LS_REMOTE_NO_MATCH = 2;
 

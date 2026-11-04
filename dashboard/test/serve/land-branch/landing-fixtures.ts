@@ -2,7 +2,7 @@
 //
 // Nothing here mocks a module: a `mock.module` is registered for the
 // WHOLE `bun test` run, not for the file it is written in, so mocking
-// `land-branch/merge.ts` or `git/branch-merge.ts` hands the fake to
+// `land-branch/merge.ts` or `git/branch-merge/` hands the fake to
 // every other file in the same run — which is how one such mock took 54
 // tests in the merge suite with it (2026-09-09).
 

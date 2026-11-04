@@ -20,84 +20,13 @@
 //     and a single collective "ok" over two repos is exactly the blind
 //     spot this whole spec exists to remove.
 
-import type { BoardMessage, Sentence } from "../i18n/message.ts";
-import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
-import { finalizeCreateOnAttempt, type CreateFinalizer } from "./create-finalizer.ts";
-import type { MergeHooks } from "./merge-hooks.ts";
 
-export interface RepoMergeResult {
-  root: string;
-  ok: boolean;
-  /** Why not, naming the repo — a refusal that does not say WHERE is
-   *  the same failure as no refusal at all when two repos are in play. */
-  error?: Sentence;
-  /** Raw git output behind `error` — never part of
-   *  `error`'s own text, which stays a fixed, resolution-bearing
-   *  sentence naming where to act. Hover-only detail. */
-  detail?: string;
-  /** What happened to the project's install after ITS code landed, when
-   *  anything did: a failure, a timeout, or the fact that nothing is
-   *  configured and deploying is still a hand step. Never set when the
-   *  install succeeded — one message about this repo's install state, or
-   *  none. A merge is never turned back into a failure by it: the merge
-   *  had already happened. */
-  installError?: Sentence;
-  /** The merge landed and was pushed, but the spec branch is still on
-   *  origin. Reported for the same reason and in the same way as
-   *  `installError`: the cleanup is what a later dependency check
-   *  reads, so a failed one has to be visible — and the merge it
-   *  follows is never turned back into a failure by it. */
-  branchDeleteError?: Sentence;
-  /** WHY it was refused, when the answer is one a machine acts on. Two
-   *  refusals carry it and no others.
-   *
-   *  `"conflict"` is the one a `resolve` step could finish,
-   *  and the row offers that step on the strength of this field.
-   *
-   *  `"gone"` is the one whose cached "not merged" answer the
-   *  refusal itself just disproved: the landing invalidates
-   *  `BranchStatusChecker` for exactly that branch rather than leaving
-   *  the row reporting a branch that is not on origin for the rest of
-   *  the 30 s TTL. 54 of the 75 refusals in the log were this one.
-   *
-   *  Every other refusal here (a base that will not fast-forward, a
-   *  failed push) leaves it unset, and so does a merge that went
-   *  through — none of them is something a step could be sent to fix.
-   *
-   *  `error` stays the sentence a person reads, and the page keeps
-   *  showing that. This field exists so the page or the server can act
-   *  on the strength of the reason without matching against that
-   *  sentence: the text is joined with every other repo's before the
-   *  page sees it, and a rewording would silently take the action away. */
-  reason?: "conflict" | "gone" | "tests-red";
-  /** This root's branch was DELETED, never merged — set only
-   *  by `deleteBranchOnly`. `landBranch`'s own per-repo success branch
-   *  reads this to skip the report and the install call a real merge
-   *  would otherwise trigger: a root that never merged anything has
-   *  nothing to report and nothing to install. */
-  discarded?: boolean;
-  /** The real `NN-slug` a `create` job's folder was renamed to, set only
-   *  by `finalizeCreate` — landing's own finalize step,
-   *  which runs under this merge's own retry loop rather than once
-   *  outside it, since a `base` that moved between attempts changes the
-   *  folder count the next attempt has to see fresh. Present only when
-   *  a `finalizeCreate` was given and it succeeded. */
-  assignedSpecFolder?: string;
-}
-
-/** Every refusal names the repo AND the branch. A landing merges
- *  several repos and reports them in one joined sentence, so a message
- *  that names only one of the two leaves the reader with the failure
- *  but not the thing to go and look at. `why` says what went wrong;
- *  this says where: the branch being merged, or — on the deploy path,
- *  which has no feature branch — the default branch it is bringing up
- *  to date. */
-export const refuse = (root: string, ref: string, why: BoardMessage, detail?: string): RepoMergeResult => ({
-  root,
-  ok: false,
-  error: { key: why.key, values: { ...why.values, ref, root } },
-  ...(detail ? { detail } : {}),
-});
+import type { Sentence } from "../../i18n/message.ts";
+import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "../branch-status.ts";
+import { finalizeCreateOnAttempt, type CreateFinalizer } from "../create-finalizer.ts";
+import type { MergeHooks } from "../merge-hooks.ts";
+import { refuse, type RepoMergeResult } from "./result.ts";
+import { GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, pushWithRetry, sleep, type Wait } from "./retry.ts";
 
 /** Where a landing does its merging: a worktree of the repo it is
  *  landing into, named for the branch so two landings in one repo never
@@ -107,76 +36,6 @@ export const refuse = (root: string, ref: string, why: BoardMessage, detail?: st
 export function mergeWorktreePath(root: string, branch: string): string {
   return `${root}.landing.${branch.replace(/[^A-Za-z0-9._-]/g, "-")}`;
 }
-
-/** git's own words when another process is holding the index. A run
- *  starting in the same second pulls the same checkout as a courtesy,
- *  and whoever gets there second sees this — not a divergence, just a
- *  lost race, and it refused three merges on 2026-08-18 as though the
- *  base had moved. */
-/** Every lock git can lose a race for, not only the index's: a run's
- *  own `aide-run-spec` writes refs in this same checkout at its start
- *  and its end (fetch --force, branch -f/-D, update-ref -d, worktree
- *  prune), and a landing in the same second met `packed-refs.lock` and
- *  `cannot lock ref` — refused as "cannot fast-forward", with git's own
- *  words thrown away (2026-09-03, twice in a row). */
-export const GIT_LOCKED = /index\.lock|\.lock'|\.lock:|cannot lock ref|Unable to create '.*\.lock|another git process|could not lock/i;
-/** Five retries, two seconds at most: a run's ref writes take well under
- *  that, and a lock that is genuinely stuck still refuses in seconds
- *  rather than holding the request open. */
-export const LOCK_RETRIES = 5;
-export const LOCK_WAIT_MS = 400;
-
-export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
-export type Wait = (ms: number) => Promise<void>;
-
-/** The same bound `aide-run-spec`'s
- *  `push_with_retry` uses (`PUSH_RETRY_WAITS`) — two extra tries,
- *  waiting longer between them than the lock retry above, since a
- *  network blip takes longer to clear than a lock held by a
- *  sibling git process on the same machine. */
-const PUSH_RETRY_WAITS_MS = [1000, 2000];
-
-interface PushRetryResult {
-  ok: boolean;
-  error?: string;
-  /** Origin answered and still refused: `base` moved under the landing. */
-  moved?: boolean;
-}
-
-/** One push, with its own recovery — the
- *  landing's side of the same rule `aide-run-spec`'s `push_with_retry`
- *  follows. `root` here is the landing's own worktree, whose HEAD is
- *  DETACHED at the merge it just made — so the refspec is explicit.
- *  `push origin <base>` would push the shared checkout's own local
- *  branch of that name, which is the one thing on the machine that does
- *  NOT have the merge in it. The push failing means base moved on
- *  origin since the worktree was cut. Unreachable origin is retried blind; a reachable
- *  origin that still rejected the push means base moved under us, which
- *  `pull --rebase` can settle on its own — unless the rebase
- *  itself conflicts, which is a person's call and never this
- *  function's. */
-export async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
-  const refspec = `HEAD:refs/heads/${base}`;
-  let pushed = await run(root, ["push", "-q", "origin", refspec]);
-  if (pushed.code === 0) return { ok: true };
-  const reachable = await run(root, ["ls-remote", "origin"]);
-  if (reachable.code !== 0) {
-    for (const ms of PUSH_RETRY_WAITS_MS) {
-      await wait(ms);
-      pushed = await run(root, ["push", "-q", "origin", refspec]);
-      if (pushed.code === 0) return { ok: true };
-    }
-    return { ok: false, error: `cannot reach origin — ${(pushed.stderr ?? "").trim().slice(-200)}` };
-  }
-  // Reachable, still rejected: base moved on origin under this landing.
-  // Not settled here with `pull --rebase` any more — a rebase of a
-  // landing's merge commits failed before it started once (364,
-  // 2026-09-03) and left the checkout ahead of origin, which then
-  // refused every later landing in that root. The caller drops the
-  // local merge and merges again onto the base that moved.
-  return { ok: false, moved: true, error: (pushed.stderr ?? "").trim().slice(-200) };
-}
-
 
 export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
 
@@ -516,90 +375,5 @@ export async function mergeBranchIntoDefault(
       await run(root, ["worktree", "remove", "--force", work]);
       await run(root, ["worktree", "prune"]);
     }
-  }
-}
-
-/** Delete a spec's branch without ever merging it — the code
- *  root's own landing for a `close` step, whose whole point is that
- *  none of that work is used. Steps 1, 7 and 8 of
- *  `mergeBranchIntoDefault` alone, with no merge, gate or push in
- *  between: the origin-existence check (a branch already gone is a
- *  no-op success, exactly as it is for a merge), the origin delete and
- *  the local delete. `discarded: true` on every non-refusal outcome —
- *  `landBranch`'s per-repo success branch reads it to skip the report
- *  and install a real merge would otherwise trigger for this root. */
-export async function deleteBranchOnly(run: GitRunner, root: string, branch: string): Promise<RepoMergeResult> {
-  try {
-    const onOrigin = await run(root, lsRemoteBranch(branch));
-    if (onOrigin.code === LS_REMOTE_NO_MATCH) {
-      return { root, ok: true, discarded: true };
-    }
-    const deleted = await run(root, ["push", "-q", "origin", "--delete", branch]);
-    if (deleted.code !== 0) {
-      const detail = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
-      return {
-        root,
-        ok: true,
-        discarded: true,
-        branchDeleteError: { key: "landing.branchDeleteFailed", values: { branch } },
-        detail,
-      };
-    }
-    // Best effort, same as `mergeBranchIntoDefault`'s own step 8: this
-    // host may not even have the ref, and a cleanup must never turn a
-    // successful origin delete into a failure.
-    await run(root, ["branch", "-D", branch]);
-    return { root, ok: true, discarded: true };
-  } catch (err) {
-    return {
-      ...refuse(root, branch, { key: "landing.gitCouldNotRun" }, err instanceof Error ? err.message : String(err)),
-      discarded: true,
-    };
-  }
-}
-
-/** Bring `base` in `root` level with what origin has — no feature
- *  branch involved. This is steps 2-3 of `mergeBranchIntoDefault`
- *  alone: the deploy button's whole job is a checkout that fell behind
- *  because a merge landed somewhere other than this dashboard's own
- *  Merge button, so there is nothing to merge IN, only to fast-forward.
- *
- *  Refuses rather than guesses when the checkout is not standing on
- *  `base`: `commitsBehindOrigin` only ever reports a real count for a
- *  checkout it found there, so a caller reaching here on the strength of
- *  that count is refused, cleanly, if the checkout moved on since. */
-export async function fastForwardToOrigin(
-  run: GitRunner,
-  root: string,
-  base: string,
-  wait: Wait = sleep,
-): Promise<RepoMergeResult> {
-  try {
-    const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
-    const on = current.stdout.trim();
-    if (current.code !== 0 || on !== base) {
-      return refuse(
-        root,
-        base,
-        { key: "landing.deployWrongBranch", values: { on: on || "an unknown branch", base } },
-      );
-    }
-    await run(root, ["fetch", "--quiet", "origin", base]);
-    let pulled = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
-    for (let n = 0; pulled.code !== 0 && GIT_LOCKED.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
-      await wait(LOCK_WAIT_MS);
-      pulled = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
-    }
-    if (pulled.code !== 0) {
-      return refuse(root, base, { key: "landing.deployCannotFastForward" });
-    }
-    return { root, ok: true };
-  } catch (err) {
-    return refuse(
-      root,
-      base,
-      { key: "landing.gitCouldNotRun" },
-      err instanceof Error ? err.message : String(err),
-    );
   }
 }

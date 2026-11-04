@@ -4,7 +4,7 @@ paths:
   - "src/serve/runner-setup.ts"
   - "src/serve/setup/land.ts"
   - "src/serve/spec-views/**"
-  - "src/git/branch-merge.ts"
+  - "src/git/branch-merge/**"
   - "src/git/spec-folder-landing.ts"
   - "src/git/merge-hooks.ts"
   - "src/queue/runner/**"
@@ -123,7 +123,7 @@ unticked` gates: Close is legal from every phase Archive would refuse.
 - **The code root's branch is deleted, never merged.** `landClosedSpec`
   (`land-branch/steps.ts`) lands like `landArchivedSpec`, but
   `landBranch`'s own `discard(root)` (`land-branch/merge.ts`) routes the
-  code root to `deleteBranchOnly` (`git/branch-merge.ts`) instead of
+  code root to `deleteBranchOnly` (`git/branch-merge/delete-branch.ts`) instead of
   `mergeBranchIntoDefault` — steps 1, 7 and 8 of that function alone, no
   merge, no gate, no push. The specs root still merges normally, carrying
   the folder move and the `**Closed:**` stamp into the specs repo's own

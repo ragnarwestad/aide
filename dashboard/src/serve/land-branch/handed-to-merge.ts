@@ -14,7 +14,7 @@ import { realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import type { CreateFinalizer } from "../../git/create-finalizer.ts";
-import type { LandingGate } from "../../git/branch-merge.ts";
+import type { LandingGate } from "../../git/branch-merge/index.ts";
 import type { MergeHooks } from "../../git/merge-hooks.ts";
 import type { SpecFolderLanding } from "../../git/spec-folder-landing.ts";
 import type { Job } from "../../queue/queue.ts";

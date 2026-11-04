@@ -14,7 +14,7 @@ import { describe, expect, test } from "bun:test";
 import { runSpecSource } from "../../helpers/run-spec-source.ts";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { mergeBranchIntoDefault } from "../../../src/git/branch-merge.ts";
+import { mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
@@ -202,7 +202,7 @@ describe("the bash and TypeScript retry bounds agree", () => {
     expect(bashMatch).not.toBeNull();
     const bashWaitsMs = bashMatch![1]!.trim().split(/\s+/).map((n) => Number(n) * 1000);
 
-    const tsSrc = readFileSync(join(import.meta.dir, "..", "..", "..", "src", "git", "branch-merge.ts"), "utf-8");
+    const tsSrc = readFileSync(join(import.meta.dir, "..", "..", "..", "src", "git", "branch-merge", "retry.ts"), "utf-8");
     const tsMatch = tsSrc.match(/const PUSH_RETRY_WAITS_MS = \[([^\]]*)\];/);
     expect(tsMatch).not.toBeNull();
     const tsWaitsMs = tsMatch![1]!.split(",").map((n) => Number(n.trim()));

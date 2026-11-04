@@ -9,7 +9,7 @@
 // pushed either — and then two more of its own: has the file moved
 // since the reader opened it, and did the text actually change.
 //
-// The failure policy is deliberately NOT `branch-merge.ts`'s. There a
+// The failure policy is deliberately NOT `git/branch-merge/`'s. There a
 // failed push leaves the commit, because that commit is a step's real
 // work. Here the commit exists only to reach origin, and one left
 // behind in the ONE shared specs checkout breaks the next fast-forward

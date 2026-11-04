@@ -212,7 +212,7 @@ def configure_sent_back(workspace, case):
 # 4 (`3-solution.md`) is what adds entries for `refuse()`'s callers, the
 # diverged/fast-forward/conflict/no-progress sentences and the
 # provider-failure strings. `refuse()` itself is not registered separately,
-# the same way the TypeScript `refuse()` in `branch-merge.ts` is not: it is
+# the same way the TypeScript `refuse()` in `dashboard/src/git/branch-merge/result.ts` is not: it is
 # a generic helper that relays whatever sentence its caller composed, and
 # every caller that reaches the board is registered below instead.
 BASH_ERROR_REGISTRY: list[dict] = [

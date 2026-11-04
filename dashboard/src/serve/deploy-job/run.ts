@@ -8,7 +8,7 @@
 // the commit and writes the result (`after-restart.ts`).
 
 import { existsSync } from "node:fs";
-import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge.ts";
+import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import type { QueueStore } from "../../queue/queue.ts";

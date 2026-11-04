@@ -4,15 +4,12 @@
 // reloaded on boot. No scheduler here: it stores and shows jobs, the
 // runner runs them.
 
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
 import { stepButton } from "../../format/step-label.ts";
 import {
   PHASE_STEPS,
   TRANSITIONS,
   UNFINISHED,
   WORKFLOW_STEPS,
-  tailEdits,
   type TransitionEvent,
   type WorkflowStep,
 } from "../steps.ts";
@@ -28,17 +25,13 @@ import {
   type CreateParseResult,
   type ParseResult,
 } from "../parse-request.ts";
-import {
-  parsePendingModels,
-  parsePendingSteps,
-  parseStoredJob,
-  persistPendingModels,
-  persistPendingSteps,
-} from "../persist.ts";
 import { gerund, landingStepIndex } from "../../format/gerund.ts";
 
 
+import { loadJobs, writeJobs } from "./mirror.ts";
 import { loadModelIds, recordModelId } from "./model-ids.ts";
+import { loadPendingModels, loadPendingSteps, savePendingModels, savePendingSteps } from "./pending-tables.ts";
+import { tailEditStep, withTailStep } from "./tail-edits.ts";
 import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 
 export class QueueStore {
@@ -82,10 +75,10 @@ export class QueueStore {
     // Before `load()`, which is not a change: nothing is listening yet
     // on the first construction, and a mirror read back at boot is the
     // store finding out what it already was.
-    this.load();
-    this.loadPendingModels();
+    loadJobs(this.mirrorPath, this.jobs);
+    loadPendingModels(this.pendingModelsPath, this.pendingModels);
     loadModelIds(this.modelIdsPath, this.modelIds);
-    this.loadPendingSteps();
+    loadPendingSteps(this.pendingStepsPath, this.pendingSteps);
   }
 
   /** An unfinished job for the same spec that already covers one of
@@ -308,40 +301,16 @@ export class QueueStore {
   editTailStep(id: string, step: string, add: boolean): ParseResult {
     const job = this.jobs.get(id);
     if (!job) return { ok: false, error: invalidRequest("no such job") };
-    const named = step || "that step";
-    const wanted = WORKFLOW_STEPS.find((s) => s === step);
-    if (!wanted || !tailEdits(job).includes(wanted)) {
-      // One sentence, and it names the step: the row has a single line
-      // to say why a tick did not take.
+    const editable = tailEditStep(job, step);
+    if ("error" in editable) return { ok: false, error: editable.error };
+    const wanted = editable.step;
+    if (add === job.steps.includes(wanted)) {
       return {
         ok: false,
-        error: invalidRequest(
-          job.state === "running"
-            ? `${named} is not a step this run can still be given`
-            : `${named} cannot be changed: this job is ${job.state}, not running`,
-        ),
+        error: invalidRequest(add ? `${wanted} is already part of this job` : `${wanted} is not part of this job`),
       };
     }
-    const present = job.steps.includes(wanted);
-    if (add === present) {
-      return {
-        ok: false,
-        error: invalidRequest(add ? `${named} is already part of this job` : `${named} is not part of this job`),
-      };
-    }
-    const head = job.steps.slice(0, job.stepIndex + 1);
-    const tail = job.steps.slice(job.stepIndex + 1);
-    if (add) {
-      // Into the TAIL at its own rank, never at the array's end: a job
-      // running analyze that is given archive and then implement must
-      // run implement first.
-      const rank = WORKFLOW_STEPS.indexOf(wanted);
-      const before = tail.findIndex((s) => WORKFLOW_STEPS.indexOf(s) > rank);
-      tail.splice(before === -1 ? tail.length : before, 0, wanted);
-    } else {
-      tail.splice(tail.indexOf(wanted), 1);
-    }
-    const next = { ...job, steps: [...head, ...tail] };
+    const next = { ...job, steps: withTailStep(job, wanted, add) };
     this.jobs.set(id, next);
     this.mirror();
     this.changed();
@@ -371,20 +340,9 @@ export class QueueStore {
   editTailModel(id: string, step: string, model: string): ParseResult {
     const job = this.jobs.get(id);
     if (!job) return { ok: false, error: invalidRequest("no such job") };
-    const named = step || "that step";
-    const wanted = WORKFLOW_STEPS.find((s) => s === step);
-    if (!wanted || !tailEdits(job).includes(wanted)) {
-      // One sentence, and it names the step — the row has a single line
-      // to say why a pick did not take.
-      return {
-        ok: false,
-        error: invalidRequest(
-          job.state === "running"
-            ? `${named} is not a step this run can still be given`
-            : `${named} cannot be changed: this job is ${job.state}, not running`,
-        ),
-      };
-    }
+    const editable = tailEditStep(job, step);
+    if ("error" in editable) return { ok: false, error: editable.error };
+    const wanted = editable.step;
     if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
     const found = lookUpModel(this.defaults, model);
     if ("error" in found) return { ok: false, error: found.error };
@@ -508,30 +466,8 @@ export class QueueStore {
     return { ok: true, job: next };
   }
 
-  private load(): void {
-    if (!this.mirrorPath || !existsSync(this.mirrorPath)) return;
-    try {
-      const raw = JSON.parse(readFileSync(this.mirrorPath, "utf-8")) as unknown;
-      if (!Array.isArray(raw)) return;
-      for (const entry of raw) {
-        const job = parseStoredJob(entry);
-        if (job) this.jobs.set(job.id, job);
-      }
-    } catch {
-      // a corrupt mirror is not worth crashing over — start empty
-    }
-  }
-
   private mirror(): void {
-    if (!this.mirrorPath) return;
-    try {
-      mkdirSync(dirname(this.mirrorPath), { recursive: true });
-      const tmp = `${this.mirrorPath}.tmp`;
-      writeFileSync(tmp, JSON.stringify([...this.jobs.values()], null, 2));
-      renameSync(tmp, this.mirrorPath);
-    } catch {
-      // mirroring is best effort
-    }
+    writeJobs(this.mirrorPath, this.jobs.values());
   }
 
   /** The newest run of a choice wins; see `model-ids.ts`. */
@@ -539,36 +475,12 @@ export class QueueStore {
     recordModelId(this.modelIdsPath, this.modelIds, choice, modelId);
   }
 
-  private loadPendingModels(): void {
-    if (!this.pendingModelsPath || !existsSync(this.pendingModelsPath)) return;
-    try {
-      const raw = JSON.parse(readFileSync(this.pendingModelsPath, "utf-8")) as unknown;
-      const parsed = parsePendingModels(raw);
-      if (parsed) Object.assign(this.pendingModels, parsed);
-    } catch {
-      // a corrupt file is not worth crashing over — start empty
-    }
-  }
-
   private persistPendingModels(): void {
-    if (!this.pendingModelsPath) return;
-    persistPendingModels(this.pendingModelsPath, this.pendingModels);
-  }
-
-  private loadPendingSteps(): void {
-    if (!this.pendingStepsPath || !existsSync(this.pendingStepsPath)) return;
-    try {
-      const raw = JSON.parse(readFileSync(this.pendingStepsPath, "utf-8")) as unknown;
-      const parsed = parsePendingSteps(raw);
-      if (parsed) Object.assign(this.pendingSteps, parsed);
-    } catch {
-      // a corrupt file is not worth crashing over — start empty
-    }
+    savePendingModels(this.pendingModelsPath, this.pendingModels);
   }
 
   private persistPendingStepsTable(): void {
-    if (!this.pendingStepsPath) return;
-    persistPendingSteps(this.pendingStepsPath, this.pendingSteps);
+    savePendingSteps(this.pendingStepsPath, this.pendingSteps);
   }
 }
 

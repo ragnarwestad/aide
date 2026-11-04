@@ -32,9 +32,9 @@ import { noProgressMessage, runStopMessage, withoutRestatedError } from "./cross
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
-import { mergeBranchRefs, queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
-import { claudeAccountOf, contextUse, modelIdOf, providerLimit, sharedFiles, stepRepoRanges, testedGreen, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
-import { asResultTool, isRunStop, takesSlot } from "../steps.ts";
+import { queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
+import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
+import { isRunStop, takesSlot } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
@@ -42,6 +42,7 @@ import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-
 import { projectHold } from "./project-holds.ts";
 import { clearStaleHolds, holdJob } from "./holds.ts";
 import { usageLimitWait } from "./usage-limit.ts";
+import { afterStep, stepResultEntry } from "./step-result.ts";
 
 export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
@@ -376,42 +377,8 @@ export class Runner {
     // name, which a re-run of the same step later in this job's life
     // could make ambiguous.
     const resultIndex = job.results.length;
-    const results = [
-      ...job.results,
-      {
-        step,
-        ok: !!outcome.ok,
-        costUsd: cost,
-        // Read as defensively as everything else here, and narrowed to
-        // the names the page knows how to route on: whatever else a
-        // result file says, it is not a tool this dashboard can render
-        // for. "none" is the deterministic create path — the one
-        // other value `aide-run-spec` actually writes, alongside
-        // "codex" — and must not be silently collapsed into "claude".
-        // Checked against the one list rather than a copy of it.
-        tool: asResultTool(outcome.tool) ?? "claude",
-        tokens, modelId, context: contextUse(outcome.context), providerLimit: providerLimit(outcome.providerLimit), claudeAccount: claudeAccountOf(job, outcome.tool), testedGreen: testedGreen(outcome.testedGreen),
-        costMeasured: outcome.costMeasured !== false,
-        terminalReason: outcome.terminalReason ?? "no reason recorded",
-        subtype: outcome.subtype, sharedFiles: sharedFiles(outcome.sharedFiles),
-        // What the run reported, or failing that the id we gave it — a
-        // step whose result carried no session was still run under one.
-        sessionId: outcome.sessionId ?? job.sessionId,
-        streamFile: job.streamFile,
-        // Every repo root this step's own commit(s) span —
-        // `aide-run-spec` emits this for every step.
-        repos: stepRepoRanges(outcome.repos),
-        prError: outcome.prError,
-        // A step whose work lands: the clock this
-        // stamp ends is the step's OWN work, and that work is not over
-        // until the merge is. Written immediately only when there is
-        // no landing to wait for.
-        at: landingWork ? undefined : this.o.now(),
-        // This step's own start — moves off `Job.stepStartedAt`
-        // and onto the result it produced.
-        startedAt: job.stepStartedAt,
-      },
-    ];
+    const measures = { cost, tokens, modelId, at: landingWork ? undefined : this.o.now() };
+    const results = [...job.results, stepResultEntry(job, step, outcome, measures)];
     // Against the choice the step ran on: what the pickers say an alias gives today.
     if (modelId) this.o.store.recordModelId(resolveStepModel(job, step, this.o.store.defaults.model), modelId);
     if (landingWork) {
@@ -441,36 +408,7 @@ export class Runner {
         },
       );
     }
-    const base = {
-      results,
-      landing,
-      spentUsd: job.spentUsd + cost,
-      // Undefined until something measures one: a job of steps that all
-      // predate token measurement shows a dash, not a zero.
-      spentTokens:
-        tokens || job.spentTokens !== undefined
-          ? (job.spentTokens ?? 0) + (tokens?.total ?? 0)
-          : undefined,
-      branchUrl: outcome.branchUrl ?? job.branchUrl,
-      // Kept across steps the same way `branchUrl` is: the
-      // request belongs to the CODE branch, which `implement` pushes and
-      // `archive` never touches, so the step that ends the job is not
-      // the step that opened it.
-      prUrl: outcome.prUrl ?? job.prUrl,
-      pushError: outcome.pushError ?? job.pushError,
-      // Accumulated BY ROOT, never replaced: a step that pushed to one
-      // repo must not erase the repo an earlier step pushed to.
-      branchUrls: mergeBranchRefs(job.branchUrls, outcome.branchUrls),
-      pid: undefined,
-      pgid: undefined,
-      // The step is over: nothing is live under this id any more, and a
-      // page that kept showing it would say the job is still working.
-      sessionId: undefined,
-      // Its value just moved onto the result above; left set,
-      // a job merely `queued` for its NEXT step would read as still
-      // ticking from the step that already finished.
-      stepStartedAt: undefined,
-    };
+    const base = afterStep(job, outcome, results, landing, measures);
 
     // The clock, a usage limit or the criteria checks ending a run is
     // `stopped` — never `failed`: a common, healthy outcome, and a reader

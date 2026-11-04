@@ -13,7 +13,7 @@
 import {
   GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, mergeWorktreePath, pushWithRetry, refuse, sleep,
   type RepoMergeResult, type Wait,
-} from "./branch-merge.ts";
+} from "./branch-merge/index.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
 import type { MergeHooks } from "./merge-hooks.ts";
 

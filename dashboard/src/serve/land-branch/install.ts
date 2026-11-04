@@ -3,7 +3,7 @@
 
 import { resolveInstallCmd } from "../../project/discover";
 import { SETTING_LABELS } from "../../project/setting-labels.ts";
-import type { RepoMergeResult } from "../../git/branch-merge.ts";
+import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers";
 import type { LandContext } from "./types.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";

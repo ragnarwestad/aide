@@ -57,7 +57,7 @@ export const QUEUE_DEFAULTS: QueueDefaults = {
  *
  *  Per repo ROOT, not global: two requests that touch no directory in
  *  common cannot collide, and serializing them would only add latency.
- *  This is additive to `branch-merge.ts`'s `index.lock` retry, which
+ *  This is additive to `git/branch-merge/retry.ts`'s `index.lock` retry, which
  *  guards a collision this cannot see — `aide-run-spec` is a different
  *  process.
  *

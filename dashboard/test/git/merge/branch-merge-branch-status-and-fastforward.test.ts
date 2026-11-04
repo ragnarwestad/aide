@@ -5,7 +5,7 @@
 // injected, so the suite spawns no subprocess.
 
 import { describe, expect, test } from "bun:test";
-import { fastForwardToOrigin, mergeBranchIntoDefault } from "../../../src/git/branch-merge.ts";
+import { fastForwardToOrigin, mergeBranchIntoDefault } from "../../../src/git/branch-merge/index.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "../../helpers/fake-git.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 

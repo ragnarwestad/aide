@@ -13,7 +13,7 @@ import {
   createRootLock,
 } from "../../../src/serve/serve.ts";
 import { installAfterMerge, landingJobNames, restartAfterLanding, type LandContext, type RestartHook } from "../../../src/serve/land-branch";
-import type { RepoMergeResult } from "../../../src/git/branch-merge.ts";
+import type { RepoMergeResult } from "../../../src/git/branch-merge/index.ts";
 
 /** The message a landing carries, as text: it is
  *  stored as WHICH message and what fills its blanks, and the

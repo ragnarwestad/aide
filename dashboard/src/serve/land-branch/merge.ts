@@ -31,7 +31,7 @@ export function sameRoot(a: string, b: string): boolean {
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { renderSentence, type Sentence } from "../../i18n/message.ts";
-import { deleteBranchOnly, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge.ts";
+import { deleteBranchOnly, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../git/spec-folder-landing.ts";
 import { specFileText } from "../../project/discover";
 import { STATUS_SPEC_FILE } from "../../render";
@@ -258,7 +258,7 @@ export async function landBranch(
           leftBehindRoots.add(repo.root);
           // The ROOT is folded into the message's own template here —
           // this is the one place that knows whether several repos are
-          // being reported at once. `branch-merge.ts` always
+          // being reported at once. `git/branch-merge/` always
           // composes this as a `BoardMessage`, never a plain string.
           const del = result.branchDeleteError;
           deleteErrors.push(
