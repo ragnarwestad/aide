@@ -513,9 +513,9 @@ told what happened.
 ## Handing over a spec
 
 **A spec agreed in the conversation is handed over as text, and it ends
-there.** The user creates it from the dashboard. Never create it yourself,
-and never write, commit or push anything in the specs repo on your own
-initiative. The format the text is handed over in is the `spec-handover`
+there.** The user creates it from the dashboard. Create it only when the
+user asks, and then with `/aide-create`; never write, commit or push
+anything in the specs repo on your own initiative. The format the text is handed over in is the `spec-handover`
 skill: load it before writing the text.
 
 ---

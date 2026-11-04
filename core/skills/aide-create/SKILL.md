@@ -61,6 +61,17 @@ starts, write one line `--- Step N of X: <title> — started`, and when
 it ends, one line `--- Step N of X: <title> — done`. A step that ends
 the run early says `— stopped: <why>` in place of `— done`, and one that does not apply to this run `— skipped: <why>`.
 
+**Working interactively, every line says it comes from this skill.** The
+user must be able to tell a spec being created by `/aide-create` from an
+assistant writing spec files on its own. So, in a session (not a headless
+run):
+
+- The first line is `▶ /aide-create: "<title>"`.
+- Every message written during the run starts with `/aide-create:`, the
+  step marks included.
+- The last line is `■ /aide-create done: <specFolder>`, or
+  `■ /aide-create stopped: <why>` when the run ends early.
+
 Step 7, the merge into the default branch, is Aide's, after this
 session: Aide writes its marks, and the create is finished only when it is
 done.
