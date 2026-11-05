@@ -687,6 +687,16 @@ describe("the queue records when each STEP started", () => {
 const said = (testsNotStarted: unknown) => testsNotStartedMessage("implement", { terminalReason: "tests-not-started", testsNotStarted });
 
 describe("a test run that never started", () => {
+  test("an unresolved test command names the manifest setting to fix", () => {
+    expect(said({ kind: "test-command-unresolved" })).toEqual({ key: "runner.testsNotStartedCommand", values: { button: "Implement" } });
+  });
+
+  test("a server failure names the command that stopped and its line", () => {
+    expect(said({ kind: "server-exited", command: "make browser-test", line: "webServer exited early" })).toEqual({
+      key: "runner.testsNotStartedServer",
+      values: { command: "make browser-test", line: "webServer exited early", button: "Implement" },
+    });
+  });
   test("a port another spec's test server holds names that spec by its number", () => {
     expect(
       said({ kind: "port-in-use", port: 8806, holder: { pid: 4242, command: "node", spec: "58-sign-up-flow" } }),

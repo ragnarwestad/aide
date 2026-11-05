@@ -272,6 +272,21 @@ def test_a_stale_lock_left_by_a_killed_run_is_reclaimed_without_waiting(
         "the stale lock must be reclaimed and then released, not left in place"
     )
 
+
+def test_a_lock_without_a_pid_times_out_with_the_path_and_safe_removal_condition_ac_5(
+    runner, workspace, fake_claude, monkeypatch
+):
+    """An ownerless lock needs actionable, cautious cleanup advice."""
+    lock = workspace["project"] / ".git" / "aide-run-spec-worktree.lock"
+    lock.mkdir()
+    monkeypatch.setenv("AIDE_WORKTREE_LOCK_WAIT_SECONDS", "0")
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc != 0, out
+    assert str(lock) in out["error"], out["error"]
+    assert "safe to remove" in out["error"], out["error"]
+    assert "no aide-run-spec process is using that checkout" in out["error"], out["error"]
+
 def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
     runner, workspace, fake_claude, tmp_path
 ):

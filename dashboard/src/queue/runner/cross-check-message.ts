@@ -87,6 +87,15 @@ function testList(names: string[], errors: string[], count: number): string {
 export function testsNotStartedMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): Sentence {
   const button = stepButton(step);
   const cause = testsNotStarted(outcome.testsNotStarted);
+  if (cause?.kind === "test-command-unresolved") return { key: "runner.testsNotStartedCommand", values: { button } };
+  if (
+    cause &&
+    (cause.kind === "port-in-use" || cause.kind === "server-timeout" || cause.kind === "server-exited") &&
+    cause.command &&
+    cause.line
+  ) {
+    return { key: "runner.testsNotStartedServer", values: { command: cause.command, line: cause.line, button } };
+  }
   if (cause?.kind === "port-in-use") {
     const port = String(cause.port);
     if (cause.holder?.spec) {

@@ -158,7 +158,7 @@ run_red_files_again() {
 # says no test ran: aide-record-test-run refused (`ok:false`), or ended
 # without a result at all. Kind `spec-folder-missing` (with `folder`) for
 # a spec folder it could not find on the spec's branch, otherwise
-# `recorder-failed` (with `error`). Prints nothing when the recorder
+# `recorder-failed` (with `exitCode`). Prints nothing when the recorder
 # recorded a run, red or green: then the tests' own exit code speaks.
 recorder_failure() {   # $1 = the recorder's result file, $2 = its log, $3 = its exit code
   local result="$1" log="$2" rc="$3" error
@@ -167,12 +167,11 @@ recorder_failure() {   # $1 = the recorder's result file, $2 = its log, $3 = its
   fi
   error="$(jq -r '.error // empty' "$result" 2>/dev/null)"
   [ -n "$error" ] || error="$(grep -v '^[[:space:]]*$' "$log" 2>/dev/null | tail -1)"
-  [ -n "$error" ] || error="it ended with exit code $rc and no result"
   case "$error" in
     "no such spec folder: "*)
       jq -cn --arg f "${error#no such spec folder: }" '{kind:"spec-folder-missing", folder:$f}' ;;
     *)
-      jq -cn --arg e "$error" '{kind:"recorder-failed", error:$e}' ;;
+      jq -cn --argjson rc "$rc" '{kind:"recorder-failed", exitCode:$rc}' ;;
   esac
 }
 
@@ -214,10 +213,11 @@ if [ -n "$step_tests_folder" ]; then
     stage "only Markdown files changed — running the documentation check, not the whole suite"
   fi
   if ! printf '%s' "$step_tests_resolved" | jq -e '.ok == true' >/dev/null 2>&1; then
-    terminal_reason="tests-red"
+    tests_not_started_json="$(jq -cn '{kind:"test-command-unresolved"}')"
+    terminal_reason="tests-not-started"
     ok="false"
-    suffix=" (stopped: tests-red)"
-    error_msg="the step reported success, but the runner could not work out the project's test command — $(printf '%s' "$step_tests_resolved" | jq -r '.error // "no answer"' 2>/dev/null). Press $step_button again for this step."
+    suffix=" (stopped: tests-not-started)"
+    error_msg="the step reported success, but no test ran because the runner could not work out the project's test command. Fix AIDE_TEST_CMD in the project's .aide/project.yaml before pressing $step_button again."
   else
     step_test_args=()
     step_test_count=0
@@ -270,7 +270,7 @@ EOF_CMDS
           if [ "$(jq -r '.kind' <<<"$step_tests_unrun")" = "spec-folder-missing" ]; then
             error_msg="the step reported success, but the project's tests were not run — the spec's folder $(jq -r '.folder' <<<"$step_tests_unrun") was not found on the spec's branch, where the runner records the test run. Press $step_button again for this step once the folder is back in place."
           else
-            error_msg="the step reported success, but the project's tests were not run — the runner's test recorder failed: $(jq -r '.error' <<<"$step_tests_unrun"). Press $step_button again for this step once that is put right."
+            error_msg="the step reported success, but the project's tests were not run — the test recorder did not write a readable result (exit code $(jq -r '.exitCode' <<<"$step_tests_unrun")). Press $step_button again for this step once the recorder is working."
           fi
           break
         fi
@@ -292,16 +292,24 @@ EOF_CMDS
         # ends the step at once, with the cause and, for a port, who holds it.
         step_tests_start="$(test_start_failure "$work_dir/step-test-run.log")"
         if [ -n "$step_tests_start" ]; then
+          step_tests_start_line="$(printf '%s' "$step_tests_start" | jq -r '.line')"
+          step_tests_failed_command_index="$(awk -v target="$step_tests_start_line" '
+            /^--- aide test command: / { sub(/^--- aide test command: /, ""); command = $0; next }
+            $0 == target { print command; exit }
+          ' "$work_dir/step-test-run.log")"
+          step_tests_failed_command="$(jq -r --argjson index "${step_tests_failed_command_index:-0}" \
+            'if $index > 0 then .commands[$index - 1].command // empty else .command // empty end' \
+            "$work_dir/step-test-run.json")"
           step_tests_port="$(printf '%s' "$step_tests_start" | jq -r '.port // empty')"
           step_tests_holder=""
           [ -n "$step_tests_port" ] && step_tests_holder="$(port_holder "$step_tests_port")"
-          tests_not_started_json="$(jq -c --argjson holder "${step_tests_holder:-null}" \
-            'del(.line) + (if $holder == null then {} else {holder:$holder} end)' <<<"$step_tests_start")"
+          tests_not_started_json="$(jq -c --arg command "$step_tests_failed_command" --argjson holder "${step_tests_holder:-null}" \
+            '. + {command:$command} + (if $holder == null then {} else {holder:$holder} end)' <<<"$step_tests_start")"
           terminal_reason="tests-not-started"
           ok="false"
           suffix=" (stopped: tests-not-started)"
-          error_msg="the step reported success, but the project's tests did not start — the server the tests need could not start, so no test ran. Press $step_button again for this step once that is put right.
-$(printf '%s' "$step_tests_start" | jq -r '.line')"
+          error_msg="the step reported success, but the project's tests stopped when the server needed by ${step_tests_failed_command:-the test command} could not start. Press $step_button again once that server can start.
+$step_tests_start_line"
           [ -n "$step_tests_holder" ] && error_msg="$error_msg
 port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(.command // "a process") (pid \(.pid))" + (if .spec then ", spec \(.spec)" else "" end)')"
           break

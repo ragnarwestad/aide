@@ -621,6 +621,22 @@ export const MESSAGES = {
   },
   // An implement whose own test run never started (run-spec/turn/test-start.sh):
   // what stopped it, and for a port, who holds it.
+  "runner.testsNotStartedCommand": {
+    en: "implement finished, but no test ran because the project's test command could not be worked out. — Fix AIDE_TEST_CMD in the project's .aide/project.yaml, then press {button} again.",
+    nb: "implementering er ferdig, men ingen test ble kjørt fordi prosjektets testkommando ikke kunne finnes. — Rett AIDE_TEST_CMD i prosjektets .aide/project.yaml, og trykk deretter {button} igjen.",
+    es: "implement terminó, pero no se ejecutó ningún test porque no se pudo determinar el comando de test del proyecto. — Corrige AIDE_TEST_CMD en .aide/project.yaml del proyecto y vuelve a pulsar {button}.",
+    de: "Implement ist fertig, aber es wurde kein Test ausgeführt, weil der Testbefehl des Projekts nicht ermittelt werden konnte. — Korrigiere AIDE_TEST_CMD in der .aide/project.yaml des Projekts und klicke dann erneut auf {button}.",
+    fr: "implement est terminé, mais aucun test n'a été exécuté, car la commande de test du projet n'a pas pu être déterminée. — Corrigez AIDE_TEST_CMD dans le fichier .aide/project.yaml du projet, puis cliquez de nouveau sur {button}.",
+    resolve: "Fix AIDE_TEST_CMD in the project's .aide/project.yaml, then press {button} again.",
+  },
+  "runner.testsNotStartedServer": {
+    en: "implement finished, but the tests stopped at {command} because its server could not start: {line} — Fix the server failure and press {button} again.",
+    nb: "implementering er ferdig, men testene stoppet ved {command} fordi serveren ikke kunne starte: {line} — Rett serverfeilen, og trykk {button} igjen.",
+    es: "implement terminó, pero los tests se detuvieron en {command} porque su servidor no pudo arrancar: {line} — Corrige el fallo del servidor y vuelve a pulsar {button}.",
+    de: "Implement ist fertig, aber die Tests stoppten bei {command}, weil der Server nicht starten konnte: {line} — Behebe den Serverfehler und klicke erneut auf {button}.",
+    fr: "implement est terminé, mais les tests se sont arrêtés à {command}, car son serveur n'a pas pu démarrer : {line} — Corrigez l'échec du serveur, puis cliquez de nouveau sur {button}.",
+    resolve: "Fix the server failure and press {button} again.",
+  },
   "runner.testsNotStartedPortSpec": {
     en: "implement finished, but the tests did not start: port {port} is in use by the test server of spec {spec}. — Wait for it to finish, or stop it, and press {button} again.",
     nb: "implementering er ferdig, men testene kom ikke i gang: port {port} er i bruk av testserveren til spec {spec}. — Vent til den er ferdig, eller stopp den, og trykk {button} igjen.",
@@ -1381,42 +1397,20 @@ export const MESSAGES = {
   // --- the landing's own test run and its verdicts -----------------------
 
   "testGate.cannotResolveCommand": {
-    en: "the merge could not work out the test command in {root} — {resolverError}",
-    nb: "mergen klarte ikke å finne testkommandoen i {root} — {resolverError}",
-    es: "el merge no pudo determinar el comando de test en {root} — {resolverError}",
-    de: "der Merge konnte den Testbefehl in {root} nicht ermitteln — {resolverError}",
-    fr: "le merge n'a pas pu déterminer la commande de test dans {root} — {resolverError}",
-    exempt: "the resolver's own error, carried as a value, already names what to look at",
+    en: "the test command in {root} could not be worked out — fix AIDE_TEST_CMD in the project's .aide/project.yaml",
+    nb: "testkommandoen i {root} kunne ikke finnes — rett AIDE_TEST_CMD i prosjektets .aide/project.yaml",
+    es: "no se pudo determinar el comando de test en {root} — corrige AIDE_TEST_CMD en .aide/project.yaml del proyecto",
+    de: "der Testbefehl in {root} konnte nicht ermittelt werden — korrigiere AIDE_TEST_CMD in der .aide/project.yaml des Projekts",
+    fr: "la commande de test dans {root} n'a pas pu être déterminée — corrigez AIDE_TEST_CMD dans le fichier .aide/project.yaml du projet",
+    resolve: "fix AIDE_TEST_CMD in the project's .aide/project.yaml",
   },
   "testGate.cannotReadResolverAnswer": {
-    en: "the merge could not read aide-resolve-test-cmd's answer in {root}",
-    nb: "mergen klarte ikke å lese svaret fra aide-resolve-test-cmd i {root}",
-    es: "el merge no pudo leer la respuesta de aide-resolve-test-cmd en {root}",
-    de: "der Merge konnte die Antwort von aide-resolve-test-cmd in {root} nicht lesen",
-    fr: "le merge n'a pas pu lire la réponse de aide-resolve-test-cmd dans {root}",
-    exempt: "an internal resolver failure with no separate action beyond investigating the resolver itself",
-  },
-  "testGate.timedOut": {
-    en: "the project's tests did not finish within {minutes} minutes on the merge — nothing was " +
-      "pushed; the archive step's own log has what they managed to say. Run archive again when the " +
-      "host is quieter.",
-    nb: "prosjektets tester ble ikke ferdig innen {minutes} minutter på mergen — ingenting ble " +
-      "pushet; arkiveringsstegets egen logg har det de rakk å si. Kjør arkivering igjen når " +
-      "maskinen er roligere.",
-    es: "los tests del proyecto no terminaron en {minutes} minutos en el merge — no se hizo push de nada; el propio log del paso archive tiene lo que llegaron a decir. Ejecuta archive de nuevo cuando la máquina esté más tranquila.",
-    de: "die Tests des Projekts sind beim Merge nicht innerhalb von {minutes} Minuten fertig geworden — es wurde nichts gepusht; das eigene Log des Archive-Schritts enthält, was sie noch sagen konnten. Führe Archive erneut aus, wenn die Maschine ruhiger ist.",
-    fr: "les tests du projet n'ont pas fini dans les {minutes} minutes sur le merge — rien n'a été poussé ; le propre journal de l'étape archive contient ce qu'ils ont pu dire. Relancez archive quand la machine est plus calme.",
-    resolve: "Run archive again",
-  },
-  "testGate.redSuite": {
-    en: "the project's tests are red on this merge, so nothing was pushed — the work is still on {branch}. " +
-      "The archive step's own log names the tests that failed; archive merges the work once they pass.",
-    nb: "prosjektets tester er røde på denne mergen, så ingenting ble pushet — arbeidet ligger fortsatt på {branch}. " +
-      "Arkiveringsstegets egen logg navngir testene som feiler; arkivering merger arbeidet så snart de er grønne.",
-    es: "los tests del proyecto están en rojo en este merge, así que no se hizo push de nada — el trabajo sigue en {branch}. El propio log del paso archive nombra los tests que fallaron; archive mergea el trabajo en cuanto pasen.",
-    de: "die Tests des Projekts sind bei diesem Merge rot, also wurde nichts gepusht — die Arbeit liegt weiterhin auf {branch}. Das eigene Log des Archive-Schritts nennt die fehlgeschlagenen Tests; Archive mergt die Arbeit, sobald sie bestehen.",
-    fr: "les tests du projet sont au rouge sur ce merge, donc rien n'a été poussé — le travail est toujours sur {branch}. Le propre journal de l'étape archive nomme les tests qui ont échoué ; archive merge le travail dès qu'ils passent.",
-    resolve: "archive merges the work once they pass",
+    en: "the test command answer in {root} could not be read — inspect aide-resolve-test-cmd on the serving host",
+    nb: "svaret med testkommandoen i {root} kunne ikke leses — undersøk aide-resolve-test-cmd på maskinen som kjører tjenesten",
+    es: "no se pudo leer la respuesta del comando de test en {root} — revisa aide-resolve-test-cmd en el servidor",
+    de: "die Antwort mit dem Testbefehl in {root} konnte nicht gelesen werden — prüfe aide-resolve-test-cmd auf dem Server",
+    fr: "la réponse contenant la commande de test dans {root} n'a pas pu être lue — vérifiez aide-resolve-test-cmd sur le serveur",
+    resolve: "inspect aide-resolve-test-cmd on the serving host",
   },
 
   // --- a tab's refusal (queue/parse-request.ts, queue/store.ts) -----------

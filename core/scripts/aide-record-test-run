@@ -141,7 +141,10 @@ fi
 # can see the status of all of them, not just the first that failed.
 results_json="[]"
 agg_exit=0
+command_index=0
 for c in "${cmds[@]}"; do
+  command_index=$((command_index + 1))
+  printf '%s\n' "--- aide test command: $command_index"
   run_cmd "$c"
   ec=$?
   [ "$ec" -ne 0 ] && agg_exit="$ec"
