@@ -29,14 +29,26 @@ heading under `## News log`).
 ## Step 2: Fetch news from sources
 
 Fetch every source in the **Sources** table of `docs/AI_NEWS_LOG.md` (its
-`### Sources` section) for news **since the last review**: one WebFetch per
-address, all of them, every tool. The table is the one list of sources; add
-or change a source there, not here.
+`### Sources` section) for news **since the last review**, all of them, every
+tool. The table is the one list of sources; add or change a source there, not
+here. Run from the repo root, with the last review's date:
 
-A releases page lists many versions, and a fetch can come back cut short. Read
-every version since the last review; when one is missing from what came back,
-or shown without its notes, fetch that version's own page
-(`.../releases/tag/<version>`) rather than leaving it unread.
+```bash
+scripts/fetch-sources.py --since <YYYY-MM-DD>
+```
+
+It writes each source's own text to a file and prints one line per address:
+`fetched` with the file, or `failed` with what the fetch answered. A GitHub
+releases page comes from GitHub's API, every release since the date with its
+whole notes. Read the files, not a summary: WebFetch hands back a model's
+summary of a page, which can leave out or contradict what the page says, so
+use it only for a page the script failed on, and say in the report that the
+page was read through WebFetch.
+
+A file can be long (a changelog that keeps every entry on one page): search it
+for the dates since the last review rather than reading it whole. A releases
+file that ends by saying more releases may exist names a period with more
+releases than one fetch holds; read the rest on the releases page.
 
 Then run the watched pages from the repo root:
 
