@@ -29,7 +29,11 @@
 # A run whose tests never started — the server they need could not
 # start (run-spec/turn/test-start.sh) — ends `tests-not-started` at once,
 # with the cause in the result's `testsNotStarted`: a session cannot free
-# a port another process holds, so no turn is spent on it.
+# a port another process holds, so no turn is spent on it. The same
+# ending, at once, for a run the recorder itself did not make — it
+# refused (the spec's folder not found on the branch) or ended without a
+# result: the cause is `spec-folder-missing` or `recorder-failed`, read
+# from the recorder's result, never from its exit code alone.
 #
 # An `archive` runs nothing here, merged or not: its landing runs the
 # suite once on exactly what main is about to become, and a run here too
@@ -57,6 +61,9 @@ run_step_tests_within_time() {
   deadline=$(( started_at + ${timeout_sec%.*} ))
   : > "$work_dir/step-test-progress"
   step_tests_progress_seen=0
+  # The recorder's own answer, read after the run (recorder_failure): a
+  # file left by an earlier round must not speak for this one.
+  rm -f "$work_dir/step-test-run.json"
   set -m
   # The host's cores divided among the steps and landings running now
   # (run-spec/turn/test-workers.sh): taken as the run starts, since the
@@ -95,6 +102,28 @@ run_step_tests_within_time() {
   kill -TERM "-$tests_pid" 2>/dev/null || true
   child=""
   return "$rc"
+}
+
+# The recorder's own failure, as one JSON object, when the run's result
+# says no test ran: aide-record-test-run refused (`ok:false`), or ended
+# without a result at all. Kind `spec-folder-missing` (with `folder`) for
+# a spec folder it could not find on the spec's branch, otherwise
+# `recorder-failed` (with `error`). Prints nothing when the recorder
+# recorded a run, red or green: then the tests' own exit code speaks.
+recorder_failure() {   # $1 = the recorder's result file, $2 = its log, $3 = its exit code
+  local result="$1" log="$2" rc="$3" error
+  if [ -s "$result" ] && jq -e '.ok == true' "$result" >/dev/null 2>&1; then
+    return 0
+  fi
+  error="$(jq -r '.error // empty' "$result" 2>/dev/null)"
+  [ -n "$error" ] || error="$(grep -v '^[[:space:]]*$' "$log" 2>/dev/null | tail -1)"
+  [ -n "$error" ] || error="it ended with exit code $rc and no result"
+  case "$error" in
+    "no such spec folder: "*)
+      jq -cn --arg f "${error#no such spec folder: }" '{kind:"spec-folder-missing", folder:$f}' ;;
+    *)
+      jq -cn --arg e "$error" '{kind:"recorder-failed", error:$e}' ;;
+  esac
 }
 
 # The full-suite row of the spec's own 4-status.md is the runner's: its
@@ -175,6 +204,21 @@ EOF_CMDS
           ok="false"
           suffix=" (stopped: timeout)"
           error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step while the project's tests were running — the work is committed to the branch; press $step_button again to test it"
+          break
+        fi
+        # The recorder did not run the tests: no session can fix that by
+        # changing the code, so it ends the step at once, never as red tests.
+        step_tests_unrun="$(recorder_failure "$work_dir/step-test-run.json" "$work_dir/step-test-run.log" "$step_tests_rc")"
+        if [ -n "$step_tests_unrun" ]; then
+          tests_not_started_json="$step_tests_unrun"
+          terminal_reason="tests-not-started"
+          ok="false"
+          suffix=" (stopped: tests-not-started)"
+          if [ "$(jq -r '.kind' <<<"$step_tests_unrun")" = "spec-folder-missing" ]; then
+            error_msg="the step reported success, but the project's tests were not run — the spec's folder $(jq -r '.folder' <<<"$step_tests_unrun") was not found on the spec's branch, where the runner records the test run. Press $step_button again for this step once the folder is back in place."
+          else
+            error_msg="the step reported success, but the project's tests were not run — the runner's test recorder failed: $(jq -r '.error' <<<"$step_tests_unrun"). Press $step_button again for this step once that is put right."
+          fi
           break
         fi
         # The lines a reader looks for first — a runner's own failure

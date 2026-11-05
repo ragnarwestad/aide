@@ -134,6 +134,10 @@ carry_manifest_into_worktree() {
 }
 carry_manifest_into_worktree
 
+# A folder an unlanded archive left under archive/ on this branch goes back
+# where the default branch has it (run-spec/checkout/unlanded-archive.sh).
+restore_unlanded_archive
+
 # A passenger repo is addressed by absolute path and nothing else, so
 # without this the step writes into the MAIN checkout: the commit loop
 # (now on the worktree) would commit nothing, the result would report

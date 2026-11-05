@@ -12,11 +12,12 @@ import bisect
 import io
 import json
 import re
-import subprocess
 import tokenize
 from pathlib import Path
 
 import pytest
+
+from .repo_files import repo_files
 
 REPO = Path(__file__).resolve().parents[6]
 FOLDERS = ("dashboard/src", "dashboard/test", "core/scripts", "core/tests")
@@ -418,14 +419,6 @@ def hits_in(path, src):
     return sorted(set(found))
 
 
-def tracked_files():
-    out = subprocess.run(
-        ["git", "-c", "core.quotepath=false", "-C", str(REPO), "ls-files", "-z", "--", *FOLDERS],
-        capture_output=True, text=True, check=True,
-    ).stdout
-    return [p for p in out.split("\0") if p]
-
-
 def read(path):
     try:
         return (REPO / path).read_text(encoding="utf-8")
@@ -435,7 +428,7 @@ def read(path):
 
 def all_hits():
     report = []
-    for path in tracked_files():
+    for path in repo_files(REPO, *FOLDERS):
         src = read(path)
         if src is None:
             continue
@@ -515,7 +508,7 @@ def test_a_criterion_id_in_a_test_title_is_let_through_but_not_in_a_describe_tit
 
 
 def test_the_listing_finds_files_in_each_folder():
-    files = tracked_files()
+    files = repo_files(REPO, *FOLDERS)
     for folder in FOLDERS:
         assert [p for p in files if p.startswith(folder + "/")], f"no tracked file under {folder}"
 

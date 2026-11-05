@@ -275,11 +275,14 @@ export function sharedFiles(raw: unknown): SharedFiles[] | undefined {
   return specs.length ? specs : undefined;
 }
 
-/** Why a test run never started, as `run-spec/turn/test-start.sh` sorts it. */
+/** Why a test run never started, as `run-spec/turn/test-start.sh` sorts it, or
+ *  why the runner's test recorder did not run it (`run-spec/turn/step-tests.sh`). */
 export type TestsNotStarted =
   | { kind: "port-in-use"; port: number; holder?: { pid: number; command?: string; spec?: string } }
   | { kind: "server-timeout"; ms?: number }
-  | { kind: "server-exited" };
+  | { kind: "server-exited" }
+  | { kind: "spec-folder-missing"; folder: string }
+  | { kind: "recorder-failed"; error: string };
 
 /** `outcome.testsNotStarted`, read as defensively as `sharedFiles`: a
  *  kind the runner does not write, or a port that is not a number, is
@@ -302,6 +305,10 @@ export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
   }
   if (r.kind === "server-timeout") return { kind: "server-timeout", ...(num(r.ms) !== undefined ? { ms: num(r.ms) } : {}) };
   if (r.kind === "server-exited") return { kind: "server-exited" };
+  const folder = text(r.folder);
+  if (r.kind === "spec-folder-missing" && folder) return { kind: "spec-folder-missing", folder };
+  const error = text(r.error);
+  if (r.kind === "recorder-failed" && error) return { kind: "recorder-failed", error };
   return undefined;
 }
 

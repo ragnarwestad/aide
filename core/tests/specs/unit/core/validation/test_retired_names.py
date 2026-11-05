@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from .repo_files import repo_files
+
 REPO = Path(__file__).resolve().parents[6]
 
 RETIRED = {
@@ -18,18 +20,15 @@ NAMES = [pytest.param(name, id=name) for names in RETIRED.values() for name in n
 
 @pytest.mark.parametrize("name", NAMES)
 def test_no_tracked_path_names_a_retired_name(name):
-    tracked = subprocess.run(
-        ["git", "-C", str(REPO), "ls-files"],
-        capture_output=True, text=True, check=True,
-    ).stdout.splitlines()
-    assert [p for p in tracked if name in p] == []
+    assert [p for p in repo_files(REPO) if name in p] == []
 
 
 @pytest.mark.parametrize("name", NAMES)
 def test_no_tracked_file_names_a_retired_name(name):
-    # Exit 1 means no match; -I leaves binary files out.
+    # Exit 1 means no match; -I leaves binary files out, and --untracked
+    # takes in a file not yet committed, leaving the ignored ones out.
     result = subprocess.run(
-        ["git", "-C", str(REPO), "grep", "-l", "-I", "-F", "-e", name],
+        ["git", "-C", str(REPO), "grep", "--untracked", "-l", "-I", "-F", "-e", name],
         capture_output=True, text=True,
     )
     assert result.returncode == 1, f"{name!r} is named in: {result.stdout.split()}"

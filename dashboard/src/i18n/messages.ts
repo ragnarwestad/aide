@@ -294,6 +294,25 @@ export const MESSAGES = {
     fr: "implement est terminé, mais les tests n'ont pas démarré : le serveur de tests s'est arrêté avant d'être prêt. — Si le défaut est dans le code, cliquez de nouveau sur {button} ; si quelque chose sur la machine a arrêté le serveur, corrigez-le d'abord.",
     resolve: "If the fault is in the code, press {button} again; if something on the machine stopped the server, fix that first.",
   },
+  // An implement whose test run the runner's recorder did not make
+  // (run-spec/turn/step-tests.sh): the spec's folder was not on its branch,
+  // or the recorder failed in its own words.
+  "runner.testsNotStartedNoSpecFolder": {
+    en: "implement finished, but the tests were not run: the spec's folder {folder} was not found on the spec's branch. — Press {button} again; if the folder is still missing, look at the spec's branch in the specs repository.",
+    nb: "implementering er ferdig, men testene ble ikke kjørt: mappen {folder} til specen fantes ikke på specens gren. — Trykk {button} igjen; mangler mappen fortsatt, se på specens gren i spec-repoet.",
+    es: "implement terminó, pero los tests no se ejecutaron: la carpeta {folder} de la spec no está en la rama de la spec. — Pulsa {button} de nuevo; si la carpeta sigue sin aparecer, mira la rama de la spec en el repositorio de specs.",
+    de: "Implement ist fertig, aber die Tests wurden nicht ausgeführt: Der Ordner {folder} der Spec wurde auf dem Branch der Spec nicht gefunden. — Klicke erneut auf {button}; fehlt der Ordner weiterhin, sieh dir den Branch der Spec im Spec-Repository an.",
+    fr: "implement est terminé, mais les tests n'ont pas été lancés : le dossier {folder} de la spec est introuvable sur la branche de la spec. — Cliquez de nouveau sur {button} ; si le dossier manque toujours, regardez la branche de la spec dans le dépôt des specs.",
+    resolve: "Press {button} again; if the folder is still missing, look at the spec's branch in the specs repository.",
+  },
+  "runner.testsNotStartedRecorder": {
+    en: "implement finished, but the tests were not run: {reason}. — Find what stopped the test run in the detail, fix it, and press {button} again.",
+    nb: "implementering er ferdig, men testene ble ikke kjørt: {reason}. — Finn det som stoppet testkjøringen i detaljene, rett det, og trykk {button} igjen.",
+    es: "implement terminó, pero los tests no se ejecutaron: {reason}. — Busca en el detalle qué detuvo la ejecución de los tests, arréglalo y pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber die Tests wurden nicht ausgeführt: {reason}. — Finde im Detail, was den Testlauf gestoppt hat, behebe es und klicke erneut auf {button}.",
+    fr: "implement est terminé, mais les tests n'ont pas été lancés : {reason}. — Trouvez dans le détail ce qui a arrêté l'exécution des tests, corrigez-le, puis cliquez de nouveau sur {button}.",
+    resolve: "Find what stopped the test run in the detail, fix it, and press {button} again.",
+  },
   "runner.testsNotStarted": {
     en: "implement finished, but the tests did not start. — Find what stopped them in the detail, fix it, and press {button} again.",
     nb: "implementering er ferdig, men testene kom ikke i gang. — Finn det som stoppet dem i detaljene, rett det, og trykk {button} igjen.",

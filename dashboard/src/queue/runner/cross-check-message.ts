@@ -39,7 +39,7 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
 
 /** A test run that never started, as the board's sentence naming what
  *  stopped it: a port and who holds it, a server that did not answer in
- *  time, or one that exited. A cause the result does not carry gets the
+ *  time, one that exited, or a recorder that did not run them. A cause the result does not carry gets the
  *  sentence that says only that the tests did not start. */
 export function testsNotStartedMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): Sentence {
   const button = stepButton(step);
@@ -61,6 +61,12 @@ export function testsNotStartedMessage(step: WorkflowStep, outcome: Partial<Step
     return { key: "runner.testsNotStartedTimeout", values: { seconds: String(Math.round(cause.ms / 1000)), button } };
   }
   if (cause?.kind === "server-exited") return { key: "runner.testsNotStartedExited", values: { button } };
+  if (cause?.kind === "spec-folder-missing") {
+    return { key: "runner.testsNotStartedNoSpecFolder", values: { folder: cause.folder, button } };
+  }
+  if (cause?.kind === "recorder-failed") {
+    return { key: "runner.testsNotStartedRecorder", values: { reason: cause.error, button } };
+  }
   return { key: "runner.testsNotStarted", values: { button } };
 }
 
