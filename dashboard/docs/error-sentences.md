@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [The three parts](#the-three-parts)
+- [Only what was checked](#only-what-was-checked)
 - [The shared builder](#the-shared-builder)
 - [An error that has resolved itself](#an-error-that-has-resolved-itself)
 - [Words the reader does not use](#words-the-reader-does-not-use)
@@ -33,6 +34,19 @@ The row's own text starts with an uppercase letter. That happens once, at render
 (`src/specs-client/press.ts`) for a line the page's script fills — after every part above is
 joined into the finished sentence — never in the message catalog (`src/i18n/messages.ts`), which stays lowercase
 because its entries are reused both on their own and glued behind a phase name.
+
+## Only what was checked
+
+A sentence claims no more than the code that wrote it has checked.
+
+- **A cause is named only when something shows it.** "The fault is likely in the change" or "that points to unstable
+  tests" is said only when the evidence for it is in hand. A test file that is red each time it runs alone is not
+  unstable. Where nothing points either way, the sentence says what failed and stops there.
+- **The failure itself comes first, not only its name.** A failing test's own error line ("not found", "timed out",
+  "expected 3, received 0") is part of what happened. A sentence that names the test and leaves out what it hit sends
+  the reader to the log for the one fact they needed.
+- **A guess is worded as one.** "Likely" and "points to" mark a judgement, and they are kept for the cases where the
+  check behind the judgement is real; a fact is stated without them.
 
 ## The shared builder
 
