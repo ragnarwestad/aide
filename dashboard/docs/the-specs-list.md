@@ -271,8 +271,10 @@ is the "Not verified" box. A read-only mark (✅, ☐, "Not verified", "Failed")
 text stays at the left of every row. When acceptance ticking is required, every row starts open, including a
 criterion no test proves. The reader sets Not verified row by row, or for every row by clearing "Acceptance ticking
 required" when creating the spec. No skill sets the mark; the runner applies that saved choice after analyze.
-A row marked Not verified counts as done, so archive is not held back by it, but the spec keeps an
-info line `N not verified` on its list row — live and archived, not closed — whose › unfolds the criteria. On a row
+A row marked Not verified counts as done, so archive is not held back by it, and an archived spec keeps an
+info line `N not verified` on its list row, whose › unfolds the criteria. A live spec shows the count only under
+the Not verified filter: before the archive every row of a spec that needs no ticking stands Not verified, so the
+count says nothing yet. A closed spec has none. On a row
 held back for unticked criteria the held-back line's › unfolds that list, and the count's line has none of its own.
 While a job runs on the spec the unfolded list is drawn with its boxes disabled and nothing to save. When the rows cannot be read, the unfolded line says so and links to
 the Status tab. The State filter has a "Not verified" entry that shows only specs with such a row, archived ones

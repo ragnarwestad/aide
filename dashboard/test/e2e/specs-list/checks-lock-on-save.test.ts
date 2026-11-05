@@ -27,11 +27,14 @@ const state = (rows: object[]) =>
   JSON.stringify({ completedPhases: ["analyze", "implement"], archived: null, reopened: null, acceptanceCriteria: rows, phaseCounts: {} });
 
 const CASES = {
+  // A live spec's count shows under the Not verified filter.
   "the not-verified count": {
+    filter: "not-verified",
     status: status(["| AC-1: it deploys | Not verified | Not tested: needs production |", "| AC-2: it saves | ✅ | |"]),
     state: state([{ task: "AC-1: it deploys", done: true, notVerified: true }, { task: "AC-2: it saves", done: true }]),
   },
   "a row held back for its criteria": {
+    filter: "all",
     status: status(["| AC-1: it deploys | ⬜ | |", "| AC-2: it saves | ✅ | |"]),
     state: state([{ task: "AC-1: it deploys", done: false }, { task: "AC-2: it saves", done: true }]),
   },
@@ -60,7 +63,7 @@ describe("an unfolded list of criteria locks when its Save is pressed", () => {
           await held;
           await route.abort();
         });
-        await withBrowser(page.goto(`${started.base}/specs?live=0&state=all&checks=${KEY}`), "page.goto(/)");
+        await withBrowser(page.goto(`${started.base}/specs?live=0&state=${c.filter}&checks=${KEY}`), "page.goto(/)");
         const form = page.locator("form.rowchecks");
         await form.waitFor();
         const boxes = page.locator(`input[type="checkbox"][form="${await form.getAttribute("id")}"]`);
