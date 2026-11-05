@@ -13,7 +13,8 @@ import time
 import pytest
 from ...conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from ..run_spec_results import (
-    OVERLOAD_RETRIES, RESULT_OK, RESULT_OVERLOADED, RESULT_OVERLOADED_TEXT, STREAM_NOISE, stream_body,
+    OVERLOAD_RETRIES, RESULT_OK, RESULT_OVERLOADED, RESULT_OVERLOADED_TEXT, STREAM_NOISE, claude_api_error,
+    stream_body,
 )
 
 def test_the_kept_stream_survives_the_work_dir_cleanup(runner, workspace, fake_claude, tmp_path):
@@ -144,6 +145,31 @@ def test_a_login_failure_stays_a_cli_error(runner, workspace, fake_claude):
     _, out, _ = run(runner, workspace, claude)
     assert out["ok"] is False
     assert out["terminalReason"] == "cli-error"
+
+@pytest.mark.parametrize(("text", "name", "status", "kind"), [
+    ("Not logged in \u00b7 Please run /login", "authentication_failed", None, "login"),
+    ("Failed to authenticate: OAuth session expired and could not be refreshed", "authentication_failed", None, "login"),
+    ("API Error: 500 Internal server error. This is a server-side issue, usually temporary \u2014 try again in a "
+     "moment. If it persists, check https://status.claude.com.", "server_error", 500, "provider"),
+])
+def test_a_claude_api_error_carries_the_provider_s_own_words_and_kind(runner, workspace, fake_claude, text, name, status, kind):
+    """The words are in the result's text, not an error list: they reach the
+    error instead of "provider reported an error", and are sorted for the board."""
+    before, result = claude_api_error(text, name, status)
+    claude = fake_claude(stream_body(result, before=before, exit_code=1))
+    _, out, _ = run(runner, workspace, claude, command="analyze")
+    assert out["terminalReason"] == "cli-error", out
+    assert out["error"] == f"{text} \u2014 press Analyze again", out["error"]
+    assert out["providerError"]["kind"] == kind, out
+
+def test_a_claude_error_of_no_known_kind_carries_its_first_line(runner, workspace, fake_claude):
+    result = {**RESULT_OK, "is_error": True, "errors": ["provider request failed", "more"]}
+    _, out, _ = run(runner, workspace, fake_claude(stream_body(result)))
+    assert out["providerError"] == {"kind": "other", "message": "provider request failed; more"}
+
+def test_a_step_that_completed_carries_no_provider_error(runner, workspace, fake_claude):
+    _, out, _ = run(runner, workspace, fake_claude(stream_body(RESULT_OK)))
+    assert "providerError" not in out
 
 def test_nonzero_exit_prevents_a_success_subtype_from_completing(runner, workspace, fake_claude):
     claude = fake_claude(stream_body(RESULT_OK, exit_code=1))
@@ -359,6 +385,7 @@ def test_a_claude_server_error_after_529_retries_is_a_cli_error(runner, workspac
     claude = fake_claude(stream_body(result, before=OVERLOAD_RETRIES, exit_code=1))
     rc, out, _ = run(runner, workspace, claude)
     assert out["terminalReason"] == "cli-error"
+    assert out["providerError"]["kind"] == "provider", out
 
 CORRUPT_CLAUDE_JSON = (
     "Configuration error in /Users/me/.claude.json: JSON Parse error: Expected '}'\n"

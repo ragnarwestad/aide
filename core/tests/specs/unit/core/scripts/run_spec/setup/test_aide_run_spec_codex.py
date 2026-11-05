@@ -12,7 +12,8 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from ...conftest import READ_SPECS, STOP_DEADLINE_SEC, git, run
 from ..run_spec_results import (
-    CODEX_STREAM_AT_CAPACITY, CODEX_STREAM_AT_CAPACITY_NO_TURN, CODEX_STREAM_FAILED, CODEX_STREAM_OK,
+    CODEX_401_MESSAGE, CODEX_STREAM_AT_CAPACITY, CODEX_STREAM_AT_CAPACITY_NO_TURN, CODEX_STREAM_FAILED,
+    CODEX_STREAM_NOT_LOGGED_IN, CODEX_STREAM_OK,
     CODEX_STREAM_RECOVERED, CODEX_STREAM_USAGE_LIMIT, CODEX_THREAD_ID, CODEX_USAGE, RESULT_OK, emits,
 )
 
@@ -326,6 +327,22 @@ def test_a_codex_exit_1_with_no_at_capacity_error_is_a_cli_error(runner, workspa
     codex = fake_codex(emits(CODEX_STREAM_FAILED) + "; exit 1")
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["terminalReason"] == "cli-error"
+
+
+def test_a_failed_codex_turn_says_codex_s_own_error_not_its_exit_code(runner, workspace, fake_codex):
+    """Codex exits 1 on every failed turn; its own last error says why."""
+    codex = fake_codex(emits(CODEX_STREAM_FAILED) + "; exit 1")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
+    assert out["error"] == "the model refused the turn \u2014 press Implement again", out["error"]
+    assert out["providerError"] == {"kind": "other", "message": "the model refused the turn"}
+
+
+def test_a_codex_401_is_a_login_error(runner, workspace, fake_codex):
+    codex = fake_codex(emits(CODEX_STREAM_NOT_LOGGED_IN) + "; exit 1")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert out["terminalReason"] == "cli-error", out
+    assert CODEX_401_MESSAGE in out["error"], out["error"]
+    assert out["providerError"]["kind"] == "login", out
 
 
 def test_a_codex_turn_at_capacity_with_a_full_window_keeps_the_provider_limit(

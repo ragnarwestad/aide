@@ -2,7 +2,8 @@ import type { BoardMessage, Sentence } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { WorkflowStep } from "../queue.ts";
 import { specNumber } from "../../project/spec-folder.ts";
-import { sharedFiles, testsNotStarted, testsRed, type StepOutcome } from "./types.ts";
+import { toolLabel } from "../../format/tool-failure.ts";
+import { providerError, sharedFiles, testsNotStarted, testsRed, type StepOutcome } from "./types.ts";
 
 /** The bash cross-check's verdicts (run-spec/record/status-line.sh,
  *  run-spec/turn/step-tests.sh) — a step that made `no-progress`, an
@@ -159,3 +160,20 @@ export function modelAtCapacityMessage(
  *  or on a model the provider had no room for. */
 export const runStopMessage = (step: WorkflowStep, outcome: Partial<StepOutcome>, model?: string): BoardMessage | undefined =>
   criteriaStopMessage(step, outcome) ?? sharedFilesStopMessage(step, outcome) ?? modelAtCapacityMessage(step, outcome, model);
+
+/** A step whose AI tool failed (`cli-error`), as the board's sentence for
+ *  the error the runner sorted out of the provider's own words: the tool
+ *  is not logged in on the machine that runs Aide, the provider's own side
+ *  failed, or the error's own first line. Undefined when the runner sorted
+ *  none, or the tool has no Settings tab to name: the sentence in
+ *  `src/format/tool-failure.ts` then stands. */
+export function cliErrorMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): Sentence | undefined {
+  if (outcome.terminalReason !== "cli-error") return undefined;
+  const said = providerError(outcome.providerError);
+  const tool = toolLabel(outcome.tool);
+  if (!said || !tool) return undefined;
+  const button = stepButton(step);
+  if (said.kind === "login") return { key: "runner.cliErrorLogin", values: { tool, button } };
+  if (said.kind === "provider") return { key: "runner.cliErrorProvider", values: { tool, button } };
+  return { key: "runner.cliErrorOther", values: { tool, cause: said.message, button } };
+}

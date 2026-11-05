@@ -176,6 +176,34 @@ export const MESSAGES = {
     fr: "{button} interrompu : {model} est saturé en ce moment. — Cliquez de nouveau sur {button}, ou choisissez un autre modèle pour cette étape.",
     resolve: "Press {button} again, or choose another model for this step.",
   },
+  // A step whose AI tool failed (`cli-error`), for the error the runner
+  // sorted out of the provider's own words (`providerError`): the tool is
+  // not logged in where Aide runs, the provider's own side failed, or the
+  // error's own first line as the cause. {tool} is the tool's Settings tab.
+  "runner.cliErrorLogin": {
+    en: "{tool} is not logged in on the machine that runs Aide. — Log in there (or press Check under Settings), and press {button} again.",
+    nb: "{tool} er ikke logget inn på maskinen som kjører Aide. — Logg inn der (eller trykk Sjekk under Innstillinger), og trykk {button} igjen.",
+    es: "{tool} no tiene la sesión iniciada en la máquina que ejecuta Aide. — Inicia sesión allí (o pulsa Comprobar en Ajustes) y pulsa {button} de nuevo.",
+    de: "{tool} ist auf dem Rechner, auf dem Aide läuft, nicht angemeldet. — Melde dich dort an (oder klicke unter Einstellungen auf Prüfen) und klicke erneut auf {button}.",
+    fr: "{tool} n'est pas connecté sur la machine qui exécute Aide. — Connectez-vous-y (ou cliquez sur Vérifier dans Réglages), puis cliquez de nouveau sur {button}.",
+    resolve: "Log in there (or press Check under Settings), and press {button} again.",
+  },
+  "runner.cliErrorProvider": {
+    en: "{tool} had an error on the provider's side. — Try again in a little while: press {button} again.",
+    nb: "{tool} hadde en feil hos leverandøren. — Prøv igjen om litt: trykk {button} igjen.",
+    es: "{tool} tuvo un error del lado del proveedor. — Inténtalo de nuevo dentro de un rato: pulsa {button} de nuevo.",
+    de: "{tool} hatte einen Fehler beim Anbieter. — Versuche es gleich noch einmal: klicke erneut auf {button}.",
+    fr: "{tool} a rencontré une erreur chez le fournisseur. — Réessayez dans un moment : cliquez de nouveau sur {button}.",
+    resolve: "Try again in a little while: press {button} again.",
+  },
+  "runner.cliErrorOther": {
+    en: "The step failed on {tool}: {cause}. — Press {button} again; if it fails the same way, open Settings, the {tool} tab, then Installation, and press Check.",
+    nb: "Steget feilet på {tool}: {cause}. — Trykk {button} igjen; feiler det på samme måte, åpne Innstillinger, fanen {tool}, så Installasjon, og trykk Sjekk.",
+    es: "El paso falló en {tool}: {cause}. — Pulsa {button} de nuevo; si falla igual, abre Ajustes, la pestaña {tool}, luego Instalación, y pulsa Comprobar.",
+    de: "Der Schritt ist auf {tool} fehlgeschlagen: {cause}. — Klicke erneut auf {button}; scheitert er genauso, öffne Einstellungen, den Tab {tool}, dann Installation, und klicke auf Prüfen.",
+    fr: "L'étape a échoué sur {tool} : {cause}. — Cliquez de nouveau sur {button} ; si elle échoue de la même façon, ouvrez Réglages, l'onglet {tool}, puis Installation, et cliquez sur Vérifier.",
+    resolve: "Press {button} again; if it fails the same way, open Settings, the {tool} tab, then Installation, and press Check.",
+  },
   // An analyze stopped at the spec's `criteriaChecks: stop`, with one
   // inner sentence per kind of fault the plan review named.
   "runner.criteriaStopped": {

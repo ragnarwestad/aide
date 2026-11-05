@@ -5,6 +5,7 @@
 - [What a run does, in order](#what-a-run-does-in-order)
 - [How a run names its Claude sessions](#how-a-run-names-its-claude-sessions)
 - [When the AI tool does not start](#when-the-ai-tool-does-not-start)
+- [When the AI tool reports an error](#when-the-ai-tool-reports-an-error)
 - [When a provider limit ends a step](#when-a-provider-limit-ends-a-step)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
@@ -96,6 +97,32 @@ without starting: it names the file, says to fix the JSON or move the file aside
 moved the file, so when the tool's stderr names `.claude.json`, the job's `error` ends by saying to fix or move that
 file on the serving host instead of "press <step> again". A step cannot damage the file itself, since the sandbox
 lets it read `~/.claude.json` but not write it ([What a step can reach](#what-a-step-can-reach)).
+
+## When the AI tool reports an error
+
+A turn that ends `cli-error` with the tool's own error carries that error in the job's `error`, followed by "press
+<step> again": Claude Code's error list or, when it has none, its result's text ("Not logged in · Please run /login",
+"API Error: 500 …"); Codex's and opencode's last `error` or `turn.failed` message rather than their exit code; the
+tool's stderr when it wrote no result. The runner also sorts it, and the result carries the answer as `providerError`
+(`run-spec/turn/provider-error.sh`):
+
+| `kind`     | When                                                                                                                      |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| `login`    | A 401 or 403, Claude Code's `authentication_failed`, a missing or invalid key or token, an expired session, not logged in |
+| `provider` | A 5xx, Claude Code's `server_error`, overloaded, a dropped connection or another network failure                          |
+| `other`    | Anything else; `message` is the error's first line, cut at a word after 160 characters                                    |
+
+A status counts only where it stands as one ("status 401", "API Error: 500", "502 Bad Gateway"), since the request ids
+in Codex's messages hold digits too. A provider limit, a model at capacity, a refusal and the step's own time limit are
+read first and never reach this.
+
+The board words each kind in the reader's language (`cliErrorMessage`, `src/queue/runner/cross-check-message.ts`):
+`login` says the tool is not logged in on the machine that runs Aide, and to log in there or press Check under Settings
+and then the step's button again; `provider` says the provider had an error and to try again in a little while;
+`other` gives the error's first line as the cause, with the step's button and the Check under Settings as what to do.
+The job's whole `error` stays behind the row's (?). A step with no `providerError`, or on a tool with no Settings tab,
+gets the sentence in `src/format/tool-failure.ts`, which names the tool and the model and carries the tool's words as
+they came.
 
 ## When a provider limit ends a step
 

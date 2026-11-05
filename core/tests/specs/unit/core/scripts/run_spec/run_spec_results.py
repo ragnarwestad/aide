@@ -276,3 +276,39 @@ OVERLOAD_RETRIES = [
     {"type": "system", "subtype": "api_retry", "attempt": attempt, "error_status": 529, "error": "overloaded_error"}
     for attempt in (1, 2)
 ]
+
+
+# What real Codex runs ended on when `codex` was not logged in on the
+# machine (2026-09): the same 401 repeated as `error` events while it
+# retried, a config warning as an `item.completed` error before them,
+# a `turn.failed` with the last one, and exit 1.
+CODEX_401_MESSAGE = (
+    "unexpected status 401 Unauthorized: Missing bearer or basic authentication in header, "
+    "url: https://api.openai.com/v1/responses, cf-ray: a37e466ae83c56bd-OSL, "
+    "request id: req_d2183b7f06a740ca8ecefb3b36ed5fbf"
+)
+CODEX_STREAM_NOT_LOGGED_IN = "\n".join(
+    json.dumps(e)
+    for e in [
+        {"type": "thread.started", "thread_id": CODEX_THREAD_ID},
+        {"type": "turn.started"},
+        {"type": "item.completed", "item": {"id": "item_0", "type": "error", "message":
+            "Codex is ignoring 1 unrecognized configuration setting. Check for typos or deprecated settings."}},
+        {"type": "error", "message": f"Reconnecting... 5/5 ({CODEX_401_MESSAGE})"},
+        {"type": "error", "message": CODEX_401_MESSAGE},
+        {"type": "turn.failed", "error": {"message": CODEX_401_MESSAGE}},
+    ]
+)
+
+
+def claude_api_error(text: str, name: str, status: int | None) -> tuple[list[dict], dict]:
+    """What real Claude Code runs ended on when the API call failed
+    (2026-08 to 2026-10): a synthetic assistant event carrying the words
+    and Claude's own name for the error, then an error result whose
+    subtype still says success, with the words in `result`."""
+    assistant = {"type": "assistant", "error": name, "message": {
+        "model": "<synthetic>", "role": "assistant", "stop_reason": "stop_sequence",
+        "content": [{"type": "text", "text": text}]}}
+    result = {**RESULT_OK, "is_error": True, "terminal_reason": "api_error", "total_cost_usd": 0,
+              "stop_reason": "stop_sequence", "api_error_status": status, "result": text}
+    return [assistant], result

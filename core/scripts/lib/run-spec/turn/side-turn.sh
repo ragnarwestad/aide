@@ -47,6 +47,7 @@ side_turn() {  # <tool> <prompt-file>
   local saved_tool="$tool" saved_session="$session_out" saved_subtype="$subtype" \
     saved_cost="$cost" saved_measured="$cost_measured" saved_reason="$terminal_reason" \
     saved_error="$error_msg" saved_limit="${provider_limit_out:-}" saved_capacity="${at_capacity_out:-}" \
+    saved_provider_error="${provider_error_out:-}" \
     saved_tokens="${tokens_json:-}" saved_model_id="${model_id_out:-}" saved_exit="${exit_code:-0}"
   local -a saved_argv=("${argv[@]}")
   tool="$1"; argv=("${side_argv[@]}")
@@ -58,5 +59,6 @@ side_turn() {  # <tool> <prompt-file>
   tool="$saved_tool"; argv=("${saved_argv[@]}")
   session_out="$saved_session"; subtype="$saved_subtype"; cost="$saved_cost"; cost_measured="$saved_measured"
   terminal_reason="$saved_reason"; error_msg="$saved_error"; provider_limit_out="$saved_limit"
-  at_capacity_out="$saved_capacity"; tokens_json="$saved_tokens"; model_id_out="$saved_model_id"; exit_code="$saved_exit"
+  at_capacity_out="$saved_capacity"; provider_error_out="$saved_provider_error"
+  tokens_json="$saved_tokens"; model_id_out="$saved_model_id"; exit_code="$saved_exit"
 }

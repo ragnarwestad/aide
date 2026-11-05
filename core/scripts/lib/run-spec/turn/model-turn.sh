@@ -108,6 +108,13 @@ provider_limit_out=""
 # the turn: empty unless the stream's last error says so. Unlike a usage
 # limit there is no reset to wait for.
 at_capacity_out=""
+# The provider's own error on a turn that ended `cli-error`, sorted
+# (run-spec/turn/provider-error.sh) — or empty, which leaves
+# `providerError` out of the result.
+provider_error_out=""
+# Claude's own name for the error a turn ended on (`authentication_failed`,
+# `server_error`), which its closing result does not carry.
+claude_error_name=""
 # Did the tool report an outcome of its own at all? For claude this is
 # the same question as "was a cost measured", which is why the branch
 # below used to ask that one — but a Codex step never measures a cost
@@ -285,6 +292,11 @@ fi
 
 if [ -n "$result_json" ]; then
   have_result="true"
+  # The error a failed turn ended on is named on the assistant event that
+  # carries its words, not on the result.
+  claude_error_name="$(tail -c +"$turn_from" "$transcript" 2>/dev/null | jq -Rr 'fromjson?
+    | select(type == "object" and .type == "assistant") | .error | select(type == "string")' \
+    2>/dev/null | tail -n 1)"
   session_out="$(jq -r '.session_id // empty' <<<"$result_json")"
   subtype="$(jq -r '.subtype // empty' <<<"$result_json")"
   cost="$(jq -r '.total_cost_usd // 0' <<<"$result_json")"
@@ -371,8 +383,19 @@ elif [ "$have_result" = "true" ]; then
     error_msg="$step_button stopped: the model declined to continue — press $step_button again, or choose another model for this step"
   elif [ "$is_error" = "true" ]; then
     terminal_reason="cli-error"
-    error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
+    # The provider's own words: the error list, or else the result's text,
+    # which is where Claude Code says "Not logged in" or "API Error: 500".
+    error_msg="$(jq -r 'if ((.errors // []) | length) > 0 then (.errors | join("; "))
+      else (.result // "" | tostring) end' <<<"$result_json")"
+    provider_error_out="$(provider_error_json "$error_msg" \
+      "$(jq -r '.api_error_status // empty' <<<"$result_json")" "$claude_error_name")"
     [ -n "$error_msg" ] || error_msg="provider reported an error"
+    error_msg="$error_msg — press $step_button again"
+  elif [ "$subtype" = "turn_failed" ] && [ -n "$error_msg" ]; then
+    # Codex's or OpenCode's own error, read above: it says why, where the
+    # exit code (1) says only that it failed.
+    terminal_reason="cli-error"
+    provider_error_out="$(provider_error_json "$error_msg")"
     error_msg="$error_msg — press $step_button again"
   elif [ "$exit_code" -ne 0 ]; then
     terminal_reason="cli-error"
@@ -397,6 +420,8 @@ else
   if grep -q 'claude\.json' "$work_dir/err" 2>/dev/null; then
     error_msg="$error_msg — fix or move that file on the serving host before $step_button can run"
   else
+    # What the tool wrote last, sorted the way a failed turn's error is.
+    provider_error_out="$(provider_error_json "$(tail -n 5 "$work_dir/err" 2>/dev/null)")"
     error_msg="$error_msg — press $step_button again"
   fi
 fi

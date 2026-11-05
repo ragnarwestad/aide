@@ -228,6 +228,7 @@ line="$(jq -cn \
   --argjson sharedFiles "${shared_files_json:-null}" \
   --argjson testsNotStarted "${tests_not_started_json:-null}" \
   --argjson testsRed "${tests_red_json:-null}" \
+  --argjson providerError "${provider_error_out:-null}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -280,4 +281,7 @@ line="$(jq -cn \
    + (if $testsNotStarted == null then {} else {testsNotStarted:$testsNotStarted} end)
    # And for the tests a red implement run named (run-spec/turn/failing-tests.sh):
    # at most eight, the counts, and whether they point at the change.
-   + (if $testsRed == null then {} else {testsRed:$testsRed} end)')"
+   + (if $testsRed == null then {} else {testsRed:$testsRed} end)
+   # And for the error the provider gave on a step that ended cli-error
+   # (run-spec/turn/provider-error.sh): its kind and its first line.
+   + (if $providerError == null then {} else {providerError:$providerError} end)')"

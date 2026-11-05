@@ -1,0 +1,79 @@
+// A step whose AI tool failed says why in the board's own words when the
+// runner could sort the provider's error: not logged in, the provider's own
+// side, or the error's own first line. The tool's whole message stays as
+// the (?) detail.
+
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
+import { renderSentence } from "../../../../src/i18n/message.ts";
+import { cliErrorMessage } from "../../../../src/queue/runner/cross-check-message.ts";
+
+beforeEach(resetHarness);
+afterEach(cleanupHarness);
+
+// What the runner wrote for a real Codex step that was not logged in.
+const CODEX_401 =
+  "unexpected status 401 Unauthorized: Missing bearer or basic authentication in header, " +
+  "url: https://api.openai.com/v1/responses, cf-ray: a37e466ae83c56bd-OSL — press Implement again";
+
+const failed = (outcome: Record<string, unknown>) => ({ ok: false, terminalReason: "cli-error", ...outcome });
+
+describe("cliErrorMessage", () => {
+  test("a tool that is not logged in is told to log in on the machine, naming the tool and the step", () => {
+    const m = cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "login" } }));
+    expect(m).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", button: "Implement" } });
+  });
+
+  test("a failure on the provider's side is told to try again in a while", () => {
+    const m = cliErrorMessage("analyze", failed({ tool: "claude", providerError: { kind: "provider" } }));
+    expect(m).toEqual({ key: "runner.cliErrorProvider", values: { tool: "Claude Code", button: "Analyze" } });
+  });
+
+  test("any other error is given as its own first line", () => {
+    const m = cliErrorMessage(
+      "analyze",
+      failed({ tool: "opencode", providerError: { kind: "other", message: "the model refused the turn" } }),
+    );
+    expect(m).toEqual({
+      key: "runner.cliErrorOther",
+      values: { tool: "OpenCode", cause: "the model refused the turn", button: "Analyze" },
+    });
+  });
+
+  test("with no sorted error, no tool, or another ending, there is no message of this kind", () => {
+    expect(cliErrorMessage("analyze", failed({ tool: "codex" }))).toBeUndefined();
+    expect(cliErrorMessage("analyze", failed({ providerError: { kind: "login" } }))).toBeUndefined();
+    expect(cliErrorMessage("analyze", failed({ tool: "codex", providerError: { kind: "other" } }))).toBeUndefined();
+    expect(
+      cliErrorMessage("analyze", { ok: false, terminalReason: "timeout", tool: "codex", providerError: { kind: "login" } }),
+    ).toBeUndefined();
+  });
+});
+
+describe("a Codex step that was not logged in", () => {
+  const notLoggedIn = () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({
+      readResult: () => ({
+        ...okResult(0.1),
+        ...failed({ tool: "codex", error: CODEX_401, providerError: { kind: "login", message: "unexpected status 401" } }),
+      }),
+    });
+    runner.tick();
+    runner.poll();
+    return store.get(job.id);
+  };
+
+  test("ends failed saying to log in, with the tool's own words behind the (?)", () => {
+    const after = notLoggedIn();
+    expect(after?.state).toBe("failed");
+    expect(after?.error).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", button: "Implement" } });
+    expect(after?.errorDetail).toBe(CODEX_401);
+  });
+
+  test("reads in Norwegian as the tool not being logged in on the machine that runs Aide", () => {
+    const text = renderSentence("nb", notLoggedIn()?.error as Parameters<typeof renderSentence>[1]) ?? "";
+    expect(text).toContain("Codex er ikke logget inn på maskinen som kjører Aide");
+    expect(text).toContain("trykk Implement igjen");
+  });
+});

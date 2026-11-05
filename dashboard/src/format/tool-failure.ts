@@ -6,11 +6,12 @@
 // step was on, and the one control that answers "is that AI actually
 // usable" - the Check button on that AI's own Settings tab.
 //
-// Deliberately NOT a classifier over the tool's message. Matching
-// another vendor's prose for "not logged in" or "quota spent" means
-// guessing at strings nobody here has seen, and a wrong guess reads as
-// certainty. The tool's words are carried through as detail; the
-// sentence points at the check that can answer for itself.
+// It is the fallback. When the runner could sort the provider's own error
+// (`providerError`, `core/scripts/lib/run-spec/turn/provider-error.sh`),
+// the row says that in the board's own words instead
+// (`cliErrorMessage`, `src/queue/runner/cross-check-message.ts`), and the
+// tool's words are the detail. This sentence covers the rest: the tool's
+// words as they came, and the check that can answer for itself.
 
 import { errorSentence } from "./error-sentence.ts";
 
@@ -24,6 +25,10 @@ const TOOL_TABS: Record<string, string> = {
   copilot: "Copilot",
   opencode: "OpenCode",
 };
+
+/** The name of `tool`'s own tab on the Settings page, or undefined for a
+ *  tool that has none. */
+export const toolLabel = (tool: string | undefined): string | undefined => (tool ? TOOL_TABS[tool] : undefined);
 
 /** The endings where "is this AI usable at all" is the live question.
  *  `cli-error` is the CLI itself failing rather than the work in it, and

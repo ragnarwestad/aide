@@ -272,6 +272,11 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "resolve": "press $step_button again",
     },
     {
+        "name": "a Codex or OpenCode turn failed with an error of its own",
+        "pattern": r'provider_error_out="\$\(provider_error_json "\$error_msg"\)"\n\s*error_msg="\$error_msg — press \$step_button again"',
+        "resolve": "press $step_button again",
+    },
+    {
         "name": "the model declined to continue (a refusal)",
         "pattern": r'error_msg="\$step_button stopped: the model declined to continue — press \$step_button again, or choose another model[^"]*"',
         "resolve": "press $step_button again",

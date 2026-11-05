@@ -93,6 +93,10 @@ export interface StepOutcome {
   /** The failing tests a red implement run named, and what they point at;
    *  read by `testsRed()` below. */
   testsRed?: unknown;
+  /** The provider's own error on a step that ended `cli-error`, sorted by
+   *  the runner (`run-spec/turn/provider-error.sh`); read by
+   *  `providerError()` below. */
+  providerError?: unknown;
   error?: string;
   /** A deploy's failure in the board's own words, which the English `error`
    *  beside it restates: the job's row reads this, and `error` is its
@@ -346,6 +350,25 @@ export function testsRed(raw: unknown): TestsRed | undefined {
     untouched: num(r.untouched) ?? 0,
     variedBetweenRuns: r.variedBetweenRuns === true,
   };
+}
+
+/** What the provider said when a step ended `cli-error`: `login` when the
+ *  tool is not logged in on the machine that runs it, `provider` when the
+ *  provider's own side failed, `other` for anything else, which carries
+ *  the provider's own first line as `message`. */
+export type ProviderError = { kind: "login" } | { kind: "provider" } | { kind: "other"; message: string };
+
+/** `outcome.providerError`, read as defensively as `testsRed`: a kind the
+ *  runner does not write, or an `other` with no words, is nothing at all. */
+export function providerError(raw: unknown): ProviderError | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  if (r.kind === "login") return { kind: "login" };
+  if (r.kind === "provider") return { kind: "provider" };
+  if (r.kind === "other" && typeof r.message === "string" && r.message.trim()) {
+    return { kind: "other", message: r.message.trim() };
+  }
+  return undefined;
 }
 
 /** The model id a result file names — a non-empty string, or nothing. Another
