@@ -59,21 +59,16 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
-refuse() {
-  local msg="$1" line
-  line="$(jq -cn --arg e "$msg" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}')"
-  printf '%s\n' "$line"
-  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
-  exit 2
-}
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-result.sh"
 
-[ -n "$project_dir" ] || refuse "missing --project-dir"
-[ -n "$specs_root" ] || refuse "missing --specs-root"
-[ -n "$folder" ] || refuse "missing --folder"
-[ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
+[ -n "$project_dir" ] || aide_spec_refuse "missing --project-dir"
+[ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
+[ -n "$folder" ] || aide_spec_refuse "missing --folder"
+[ -d "$project_dir" ] || aide_spec_refuse "no such --project-dir: $project_dir"
 
 target_dir="$specs_root/$folder"
-[ -d "$target_dir" ] || refuse "no such spec folder: $folder"
+[ -d "$target_dir" ] || aide_spec_refuse "no such spec folder: $folder"
 
 commit="$(git -C "$project_dir" rev-parse HEAD 2>/dev/null || echo "")"
 # The tree the commands are about to run against — what aide-run-spec
@@ -130,9 +125,9 @@ if [ "${#cmds[@]}" -le 1 ]; then
          note: ($note | if . == "" then null else . end)}' \
        > "$tmp_record" || ! mv "$tmp_record" "$record_file"; then
     rm -f "$tmp_record"
-    refuse "failed to write test-run.json"
+    aide_spec_refuse "failed to write test-run.json"
   fi
-  [ -f "$record_file" ] || refuse "test-run.json was not written"
+  [ -f "$record_file" ] || aide_spec_refuse "test-run.json was not written"
 
   line="$(jq -cn --argjson e "${exit_code:-1}" --arg c "$commit" --arg cmd "$cmd" \
     '{ok:true, exitCode:$e, commit:$c, command: ($cmd | if . == "" then null else . end), terminalReason:"recorded"}')"
@@ -163,9 +158,9 @@ if ! jq -cn --arg commit "$commit" --arg tree "$tree" --argjson exitCode "$agg_e
        note: null, commands: $commands}' \
      > "$tmp_record" || ! mv "$tmp_record" "$record_file"; then
   rm -f "$tmp_record"
-  refuse "failed to write test-run.json"
+  aide_spec_refuse "failed to write test-run.json"
 fi
-[ -f "$record_file" ] || refuse "test-run.json was not written"
+[ -f "$record_file" ] || aide_spec_refuse "test-run.json was not written"
 
 line="$(jq -cn --argjson e "$agg_exit" --arg c "$commit" --argjson commands "$results_json" \
   '{ok:true, exitCode:$e, commit:$c, command:null, commands:$commands, terminalReason:"recorded"}')"

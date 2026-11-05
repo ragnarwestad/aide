@@ -2,11 +2,10 @@
 // split out of schedules.ts by theme: that file keeps every peek fed,
 // this one decides what a tick is allowed to run.
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { proseSteps } from "../../project/discover/spec-files.ts";
 import { discoverProjects, manifestInside } from "../../project/discover";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { acceptanceStillOpen, parseStatus } from "../../project/parse-status";
+import { acceptanceStillOpen } from "../../project/parse-status";
 import { specPendingChoice } from "../../project/approach-choice.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { GATED, resolveDependencyFolder } from "../serve-helpers";
@@ -117,16 +116,6 @@ export async function blockedDependencies(ctx: ScheduleContext): Promise<Depende
     }
   }
   return blocked;
-}
-
-/** The `Workflow steps completed` line, read straight from the prose —
- *  the fallback for a spec that has no state file yet. */
-function proseSteps(dir: string): string[] {
-  try {
-    return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8")).workflowSteps;
-  } catch {
-    return [];
-  }
 }
 
 /** Which queued `implement` jobs are waiting on their own spec's
@@ -263,4 +252,3 @@ function completedSteps(ctx: ScheduleContext, dir: string, folder: string): stri
     proseSteps(dir)
   );
 }
-

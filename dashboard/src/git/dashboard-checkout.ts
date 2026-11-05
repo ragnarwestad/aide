@@ -28,7 +28,8 @@
 //  - Nothing here runs a git command in the person's directory except
 //    the two read-only questions above.
 
-import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
+import { realPathOrAbsolute as real } from "./real-path.ts";
+import { existsSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
@@ -166,19 +167,6 @@ async function cloneFrom(run: GitRunner, url: string, dest: string): Promise<str
   }
   return null;
 }
-
-/** The path with every symlink followed, so two answers about the same
- *  directory can be compared and subtracted. `git rev-parse
- *  --show-toplevel` reports the real path — on a Mac `/var/folders/...`
- *  answers as `/private/var/folders/...` — and a `relative()` between
- *  the two spellings walks out of the tree entirely. */
-const real = (path: string): string => {
-  try {
-    return realpathSync(path);
-  } catch {
-    return resolve(path);
-  }
-};
 
 const topOf = async (run: GitRunner, dir: string): Promise<string | null> => {
   if (!existsSync(dir)) return null;

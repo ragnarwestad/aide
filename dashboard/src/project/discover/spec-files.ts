@@ -3,7 +3,7 @@
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { archiveHeldBackReason } from "../parse-status";
+import { archiveHeldBackReason, parseStatus } from "../parse-status";
 
 export function specTitle(dir: string): string | null {
   const desc = join(dir, "1-description.md");
@@ -183,3 +183,11 @@ export function specCloseReason(dir: string): string | null {
   return m[1].trim() || null;
 }
 
+/** Completed workflow steps, falling back to the prose status file. */
+export function proseSteps(dir: string): string[] {
+  try {
+    return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8")).workflowSteps;
+  } catch {
+    return [];
+  }
+}

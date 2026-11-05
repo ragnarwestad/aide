@@ -10,7 +10,7 @@
 // and the cached open-branch set still named the branch (the archived
 // row read "still on origin — re-run archive").
 
-import { realpathSync } from "node:fs";
+import { realPathOrOriginal as real } from "../../git/real-path.ts";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import type { CreateFinalizer } from "../../git/create-finalizer.ts";
@@ -140,13 +140,6 @@ export function specsLiveInside(root: string, specsRoot: string | undefined): bo
  *  `root` at all. */
 function specPathsIn(root: string, specsRoot: string | undefined, folder: string): string[] | undefined {
   if (!specsRoot) return undefined;
-  const real = (p: string): string => {
-    try {
-      return realpathSync(p);
-    } catch {
-      return p;
-    }
-  };
   const rel = relative(real(root), real(specsRoot));
   if (rel.startsWith("..") || isAbsolute(rel)) return undefined;
   const prefix = rel ? `${rel.split(sep).join("/")}/` : "";

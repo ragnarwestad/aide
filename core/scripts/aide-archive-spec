@@ -68,28 +68,12 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
-refuse() {
-  local msg="$1" line
-  line="$(jq -cn --arg e "$msg" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}')"
-  printf '%s\n' "$line"
-  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
-  exit 2
-}
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-result.sh"
 
-# One shape for every non-refusal outcome: ok:true, exitCode:0, plus
-# whatever fields that outcome adds. $1 is a JSON object literal already
-# carrying terminalReason and any extra fields.
-emit_ok() {
-  local extra="$1" line
-  line="$(jq -cn --argjson extra "$extra" '{ok:true, exitCode:0} + $extra')"
-  printf '%s\n' "$line"
-  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
-  exit 0
-}
-
-[ -n "$project_dir" ] || refuse "missing --project-dir"
-[ -n "$spec_arg" ] || refuse "missing --spec"
-[ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
+[ -n "$project_dir" ] || aide_spec_refuse "missing --project-dir"
+[ -n "$spec_arg" ] || aide_spec_refuse "missing --spec"
+[ -d "$project_dir" ] || aide_spec_refuse "no such --project-dir: $project_dir"
 
 # `--specs-dir`, when the caller names one, IS the specs root — not
 # merely one more place the conflict check below also looks. A headless
@@ -112,7 +96,7 @@ elif declare -f aide_specs_root >/dev/null 2>&1; then
 else
   specs_root="$project_dir/specs"
 fi
-[ -d "$specs_root" ] || refuse "no specs root at $specs_root"
+[ -d "$specs_root" ] || aide_spec_refuse "no specs root at $specs_root"
 
 spec_folder=""
 if declare -f aide_resolve_spec >/dev/null 2>&1; then
@@ -141,7 +125,7 @@ fi
 if [ -z "$spec_folder" ]; then
   active="$(find "$specs_root" -maxdepth 1 -mindepth 1 -type d ! -name archive \
     -exec basename {} \; 2>/dev/null | sort | paste -sd', ' -)"
-  refuse "unknown spec: $spec_arg (not under $specs_root)${active:+ — active folders: $active}"
+  aide_spec_refuse "unknown spec: $spec_arg (not under $specs_root)${active:+ — active folders: $active}"
 fi
 
 # --- already archived ---------------------------------------------------
@@ -155,7 +139,7 @@ fi
 case "$spec_folder" in
   archive/*)
     folder_name="${spec_folder#archive/}"
-    emit_ok "$(jq -cn --arg n "spec $folder_name is already under archive/ on the spec branch — nothing is merged into the default branch yet" \
+    aide_spec_emit_ok "$(jq -cn --arg n "spec $folder_name is already under archive/ on the spec branch — nothing is merged into the default branch yet" \
       --arg f "$spec_folder" \
       '{terminalReason:"already-archived", note:$n, specFolder:$f, needsDocFeedback:true}')"
     ;;
@@ -172,7 +156,7 @@ check_dirs=("$project_dir")
 [ -n "$specs_dir" ] && [ -d "$specs_dir" ] && check_dirs+=("$specs_dir")
 for dir in "${check_dirs[@]}"; do
   if git -C "$dir" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
-    emit_ok '{"terminalReason":"conflict-open"}'
+    aide_spec_emit_ok '{"terminalReason":"conflict-open"}'
   fi
 done
 
@@ -215,7 +199,7 @@ remove_held_back_section() {
 
 if [ "$implement_present" = "no" ]; then
   [ -f "$status_file" ] && remove_held_back_section
-  emit_ok '{"terminalReason":"not-implemented-yet","note":"the spec has not reached implement yet — run /aide-implement next"}'
+  aide_spec_emit_ok '{"terminalReason":"not-implemented-yet","note":"the spec has not reached implement yet — run /aide-implement next"}'
 fi
 
 # --- the acceptance-criteria gate --------------------------------
@@ -242,7 +226,7 @@ if [ "$acceptance_total" -gt 0 ] && [ "$acceptance_done" -lt "$acceptance_total"
   # stamp it once, so a later round can tell which open rows are
   # unchanged since THIS round rather than since the spec's birth.
   declare -f write_round_boundary_stamp >/dev/null 2>&1 && write_round_boundary_stamp "$status_file" "$specs_root"
-  emit_ok '{"terminalReason":"acceptance-criteria-unticked","note":"tick every row under \"## Acceptance criteria\" in 4-status.md under › on the Specs list, or on the spec'"'"'s Status tab, before archiving — only a person can judge these"}'
+  aide_spec_emit_ok '{"terminalReason":"acceptance-criteria-unticked","note":"tick every row under \"## Acceptance criteria\" in 4-status.md under › on the Specs list, or on the spec'"'"'s Status tab, before archiving — only a person can judge these"}'
 fi
 
 # The tests are not this script's business any more: the landing runs
@@ -282,5 +266,5 @@ if declare -f write_spec_state >/dev/null 2>&1; then
     && git -C "$specs_root" add -- "archive/$spec_folder/4-status.json" 2>/dev/null
 fi
 
-emit_ok "$(jq -cn --arg f "archive/$spec_folder" \
+aide_spec_emit_ok "$(jq -cn --arg f "archive/$spec_folder" \
   '{terminalReason:"archived", needsDocFeedback:true, specFolder:$f}')"

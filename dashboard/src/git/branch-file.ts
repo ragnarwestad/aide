@@ -21,7 +21,9 @@
 // which is what actually rejects a race against a headless run's own
 // commit to the same branch (git enforces fast-forward server-side).
 
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { realPathOrOriginal as real } from "./real-path.ts";
+export { realPathOrOriginal as real } from "./real-path.ts";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import type { BranchStatusChecker, GitRunner } from "./branch-status.ts";
@@ -266,18 +268,6 @@ export interface OpenBranchTarget {
  *  rather than one copy per call site (the read path's cached call and
  *  the write path's `fresh` one) because the two are otherwise
  *  identical; `fresh` is the only thing that differs between them. */
-/** A path with every symlink resolved, or the path itself where it
- *  cannot be — the same shape `sameRoot` (land-branch/merge.ts) uses, and
- *  for the same reason: a path that is not there answers as itself rather
- *  than throwing. */
-export function real(p: string): string {
-  try {
-    return realpathSync(p);
-  } catch {
-    return p;
-  }
-}
-
 export async function resolveOpenBranchTarget(
   ctx: { specsRoot: (dir: string) => Promise<string>; branchStatus: BranchStatusChecker },
   dir: string,

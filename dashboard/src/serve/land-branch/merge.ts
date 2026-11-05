@@ -2,7 +2,7 @@
 // branch into the default branch of every repo it pushed to, and
 // report per repo.
 
-import { realpathSync } from "node:fs";
+import { realPathOrOriginal as real } from "../../git/real-path.ts";
 import { join } from "node:path";
 
 /** Whether two paths name the same directory, whatever each side spells
@@ -19,13 +19,6 @@ import { join } from "node:path";
  *  exactly the string one it replaces. */
 export function sameRoot(a: string, b: string): boolean {
   if (a === b) return true;
-  const real = (p: string): string => {
-    try {
-      return realpathSync(p);
-    } catch {
-      return p;
-    }
-  };
   return real(a) === real(b);
 }
 import type { Job } from "../../queue/queue.ts";
