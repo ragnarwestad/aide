@@ -20,4 +20,3 @@ export const schedulePromptPath = (project: string, name: string): string =>
   `${schedulePagePath(project, name)}/prompt`;
 
 export const SCHEDULE_TABS = ["report", "settings"] as const;
-export type ScheduleTab = (typeof SCHEDULE_TABS)[number];

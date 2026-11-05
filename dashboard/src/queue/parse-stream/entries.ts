@@ -127,10 +127,6 @@ function codexEntryText(item: Record<string, unknown>): string {
  *  same escaping. Only `item.completed` is read — `item.started` carries
  *  the same item a moment earlier, and counting both would say
  *  everything twice. */
-export function summarizeCodexStream(text: string, opts: SummarizeOptions = {}): string[] {
-  return codexEntries(text, opts).map((e) => e.text);
-}
-
 function codexEntries(text: string, opts: SummarizeOptions = {}): StreamEntry[] {
   const max = opts.max ?? 40;
   const out: StreamEntry[] = [];

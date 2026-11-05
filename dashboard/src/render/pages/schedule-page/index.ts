@@ -14,7 +14,6 @@ import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from ".
 import { renderScheduleSettings, type ScheduleSettingsOptions } from "./settings.ts";
 import {
   schedulePagePath, schedulePromptPath, scheduleRunPath, scheduleSettingsPath, SCHEDULE_TABS, scheduleTabPath,
-  type ScheduleTab,
 } from "./tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 
@@ -26,7 +25,7 @@ export type { ScheduleNewPageOptions } from "./new-page.ts";
 export { renderSchedulePromptPage } from "./prompt-page.ts";
 export type { SchedulePromptPageOptions } from "./prompt-page.ts";
 export { SCHEDULE_TABS, schedulePagePath, schedulePromptPath, scheduleRunPath, scheduleSettingsPath, scheduleTabPath };
-export type { SchedulePageRow, ScheduleFilter, ScheduleTab };
+export type { SchedulePageRow, ScheduleFilter };
 
 export const SCHEDULE_ROUTE = "/schedule";
 
