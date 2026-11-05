@@ -4,13 +4,8 @@
 
 import { t, type Language } from "../../i18n";
 
-export function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { esc } from "../../format/html.ts";
+export { esc };
 
 export function money(n: number | null | undefined): string {
   return typeof n === "number" ? `$${n.toFixed(2)}` : "–";

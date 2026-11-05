@@ -123,11 +123,6 @@ export function pickSetting(control: HTMLInputElement | HTMLSelectElement): void
   pickControl(control.closest("form.dependsform"));
 }
 
-/** A box ticked or cleared by hand. */
-export function pickDependency(box: HTMLInputElement): void {
-  pickControl(box.closest("form.dependsform"));
-}
-
 function pickControl(form: Element | null): void {
   if (!form || writing) return;
   ensureOpen(form);

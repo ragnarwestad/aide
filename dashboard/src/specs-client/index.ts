@@ -40,7 +40,7 @@ import {
 } from "./forms.ts";
 import { startOriginCheck } from "./deploy/origin-check.ts";
 import { onApproachCancel, pickApproach } from "./approach-choice";
-import { onDependsOnCancel, pickDependency, pickSetting } from "./depends-on";
+import { onDependsOnCancel, pickSetting } from "./depends-on";
 import { formatElapsed } from "./elapsed.ts";
 import { bindLimits } from "./limits";
 import { connect, onVisibility } from "./live.ts";
@@ -87,13 +87,15 @@ for (const el of document.querySelectorAll("form.projectsettingsform")) {
   bindOneLineFields(form);
 }
 
-const settingsCandidate = document.querySelector("form[data-settings-form]") as HTMLFormElement | null;
-const settingsForm = settingsCandidate?.hasAttribute?.("data-settings-form") ? settingsCandidate : null;
-settingsForm?.addEventListener("change", ((event: Event) => {
+function onAiChange(event: Event): void {
   const target = event.target as Element | null;
   const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
   if (ai) return applyAiPick(ai);
-}) as EventListener);
+}
+
+const settingsCandidate = document.querySelector("form[data-settings-form]") as HTMLFormElement | null;
+const settingsForm = settingsCandidate?.hasAttribute?.("data-settings-form") ? settingsCandidate : null;
+settingsForm?.addEventListener("change", onAiChange);
 settingsForm?.addEventListener("submit", (async (event: Event) => {
   if (event.defaultPrevented) return;
   event.preventDefault();
@@ -131,7 +133,7 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // A dependency ticked in a row's Depends on picker, remembered the same way,
   // and a setting changed under it.
   const dependency = target?.closest?.("form.dependsform input[name=dependsOn]") as HTMLInputElement | null;
-  if (dependency?.name === "dependsOn") return pickDependency(dependency);
+  if (dependency?.name === "dependsOn") return pickSetting(dependency);
   const setting = target?.closest?.("form.dependsform input[type=checkbox][name], form.dependsform select[name]") as
     | HTMLInputElement
     | HTMLSelectElement
@@ -211,11 +213,7 @@ const newSpec = document.querySelector(NEW_SPEC_FORM) as HTMLFormElement | null;
 newSpec?.addEventListener("submit", ((event: Event) => submitCreate(newSpec, event)) as EventListener);
 // This page has no `#jobrows`, so the delegated model listener above
 // cannot hear its AI and model controls.
-newSpec?.addEventListener("change", ((event: Event) => {
-  const target = event.target as Element | null;
-  const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
-  if (ai) return applyAiPick(ai);
-}) as EventListener);
+newSpec?.addEventListener("change", onAiChange);
 // Spec and Options, switched in place, and Spec brought forward when the
 // browser finds one of its required fields empty.
 bindNewSpecTabs(document);

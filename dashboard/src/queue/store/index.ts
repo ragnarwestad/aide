@@ -27,7 +27,7 @@ import { gerund, landingStepIndex } from "../../format/gerund.ts";
 
 import { loadJobs, writeJobs } from "./mirror.ts";
 import { loadModelIds, recordModelId } from "./model-ids.ts";
-import { loadPendingModels, loadPendingSteps, pendingProvidersPath, savePendingModels, savePendingSteps } from "./pending-tables.ts";
+import { loadPendingModels, loadPendingSteps, pendingProvidersPath, savePendingTable } from "./pending-tables.ts";
 import { editTailModel, renamePendingModel, setPendingModel, writePendingModel, type PickContext } from "./picks.ts";
 import { tailEditStep, withTailStep } from "./tail-edits.ts";
 import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
@@ -430,12 +430,12 @@ export class QueueStore {
   }
 
   private persistPendingModels(): void {
-    savePendingModels(this.pendingModelsPath, this.pendingModels);
-    savePendingModels(this.pendingProvidersPath, this.pendingProviders);
+    savePendingTable(this.pendingModelsPath, this.pendingModels);
+    savePendingTable(this.pendingProvidersPath, this.pendingProviders);
   }
 
   private persistPendingStepsTable(): void {
-    savePendingSteps(this.pendingStepsPath, this.pendingSteps);
+    savePendingTable(this.pendingStepsPath, this.pendingSteps);
   }
 }
 

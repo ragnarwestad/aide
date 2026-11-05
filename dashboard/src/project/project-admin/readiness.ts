@@ -19,7 +19,8 @@
 // preflight check and is said in the README rather than defended
 // against here.
 
-import { existsSync, statSync, realpathSync } from "node:fs";
+import { realPathOrAbsolute as real } from "../../git/real-path.ts";
+import { existsSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { configValue, resolveWorktreeLinks } from "../discover";
@@ -211,13 +212,7 @@ export async function assessProjectReadiness(
   // Real paths on both sides: the projects root on the serving host is a
   // directory of symlinks to the dashboard's own checkouts, and git
   // answers with the real path.
-  const real = (p: string): string => {
-    try {
-      return realpathSync(p);
-    } catch {
-      return resolve(p);
-    }
-  };
+
   const isRoot = top !== null && real(top) === real(projectDir);
   checks.push(answer("gitRoot", projectDir, isRoot, !isRoot,
     top === null

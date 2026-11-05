@@ -7,8 +7,7 @@
 // file-based channel to go stale the way the launchd plist already
 // has.
 
-import { realpathSync } from "node:fs";
-import { resolve } from "node:path";
+import { realPathOrAbsolute as real } from "../../git/real-path.ts";
 import { RESTART_DEFER_TIMEOUT_MS, RESTART_POLL_MS, type createRootLock } from "../serve-helpers";
 
 export interface RestartHook {
@@ -83,13 +82,6 @@ export function reloadScript(label: string): string {
  *  a symlinked home more often than not. */
 export function isDashboardRoot(ctx: { dashboardRoot?: string }, root: string): boolean {
   if (!ctx.dashboardRoot) return false;
-  const real = (p: string): string => {
-    try {
-      return realpathSync(p);
-    } catch {
-      return resolve(p);
-    }
-  };
   return real(ctx.dashboardRoot) === real(root);
 }
 

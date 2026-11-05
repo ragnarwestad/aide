@@ -3,14 +3,12 @@
 // session file (`SubAgentActivity`, kind `started`), and the subagent's work
 // in its own file. Shapes checked against codex-cli 0.160.0's session files:
 // an `event_msg` line holds an `item_completed` or a `task_complete` payload.
-import { commandLine, clip, esc, textEntries, type StreamEntry } from "./shared.ts";
+import { commandLine, clip, esc, isObject, textEntries, type StreamEntry } from "./shared.ts";
 import { withoutRepeat } from "./final-message.ts";
 import type { SubagentPart } from "./step-log.ts";
 
 /** The item kinds both the stream and a session file show, item for item. */
 const NUMBERED = new Set(["AgentMessage", "CommandExecution", "FileChange"]);
-
-const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
 
 /** A subagent a thread started, and where in the thread's items it was started. */
 export interface Spawn {

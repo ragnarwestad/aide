@@ -13,7 +13,7 @@
 // died: a file says what was true when it was written, and the answer
 // wanted here is what is true now.
 
-import { realpathSync } from "node:fs";
+import { realPathOrOriginal as resolved } from "../../git/real-path.ts";
 import { join } from "node:path";
 import { TEST_SERVER_PORTS, MAIN_TEST_SERVER_KEY, type TestServersContext } from "./lifecycle.ts";
 import type { TestServer } from "./store.ts";
@@ -61,13 +61,6 @@ export function parseWorktrees(porcelain: string): WorktreeLine[] {
  *  resolved path (`/private/var/folders/…` on macOS) and a process's own
  *  command line carries the one it was given (`/var/folders/…`); the two
  *  name one directory and compare unequal. */
-function resolved(path: string): string {
-  try {
-    return realpathSync(path);
-  } catch {
-    return path;
-  }
-}
 
 /** A worktree the round made: its own branch, checked out in a
  *  `checkout` directory inside a `mktemp -d` one. Both halves are

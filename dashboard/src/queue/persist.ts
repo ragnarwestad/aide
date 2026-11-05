@@ -205,7 +205,6 @@ export function persistPendingModels(file: string, table: Record<string, unknown
   }
 }
 
-
 /** A phase choice recorded before or between jobs — the
  *  sibling of `parsePendingModels` above, one level
  *  shallower: a list of steps rather than a per-step value, as it is
@@ -222,20 +221,6 @@ export function parsePendingSteps(raw: unknown): Record<string, string[]> | null
     out[key] = value.filter((s): s is string => typeof s === "string");
   }
   return out;
-}
-
-/** Write the whole table back, tmp-then-renamed like every other file
- *  this store writes — the same shape as `persistPendingModels`. */
-export function persistPendingSteps(file: string, table: Record<string, string[]>): string | null {
-  try {
-    mkdirSync(dirname(file), { recursive: true });
-    const tmp = `${file}.tmp`;
-    writeFileSync(tmp, JSON.stringify(table, null, 2));
-    renameSync(tmp, file);
-    return null;
-  } catch (err) {
-    return `could not write ${file}: ${err instanceof Error ? err.message : String(err)}`;
-  }
 }
 
 /** Each part optional: a save writes only what it names. */
