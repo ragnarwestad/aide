@@ -4,6 +4,9 @@
 // needed it).
 
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { TestServerStore, type TestServer } from "../../../src/serve/test-servers/store.ts";
 
 const entry = (overrides: Partial<TestServer> = {}): TestServer => ({
@@ -58,5 +61,18 @@ describe("TestServerStore.listAll", () => {
       specFolder: "main",
       entry: entry({ branch: "main", port: 8802 }),
     });
+  });
+});
+
+describe("a failed board read back after a restart", () => {
+  test("keeps the command that ran and what it printed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-board-store-"));
+    try {
+      const path = join(dir, "test-servers.json");
+      new TestServerStore({ path }).set("aide", "150-x", entry({ status: "failed", command: "make preview", error: "e", detail: "a\nb" }));
+      expect(new TestServerStore({ path }).get("aide", "150-x")).toMatchObject({ command: "make preview", detail: "a\nb" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

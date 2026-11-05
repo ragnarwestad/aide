@@ -166,7 +166,7 @@ export async function projectStates(): Promise<PageState[]> {
     page("project › Deploy, behind origin", renderProjectPage(proj, can.settings, can.readiness, NOW, NAV, {
       ...projectOpts, ...nb, tab: "deploy", boardItself: true, drift: { behind: 3, checkedAt: Date.parse(NOW) - 60_000 },
       serving: { sha: "abc1234", checkoutHead: "abc1234", current: true },
-      deployFailure: { step: "install", error: "ingen forbindelse" },
+      deployFailure: { step: "install", sentence: "ingen forbindelse" },
     }), ["abc1234", "ingen forbindelse"]),
     page("project › Deploy, matching origin", renderProjectPage(proj, can.settings, can.readiness, NOW, NAV, {
       ...projectOpts, ...nb, tab: "deploy", boardItself: true, drift: { behind: 0, checkedAt: Date.parse(NOW) - 60_000 },

@@ -1,0 +1,45 @@
+{
+  "about": "A server's log, and the port it says was already in use (null for none). Read by test_start_failure in core/scripts/lib/run-spec/turn/test-start.sh and by portInUse in dashboard/src/format/port-in-use.ts.",
+  "cases": [
+    {
+      "name": "playwright-url-with-port",
+      "log": "Error: http://localhost:8806/health/ready is already used, make sure that nothing is running on the port/url or set reuseExistingServer:true in config.webServer.\n",
+      "port": 8806
+    },
+    {
+      "name": "playwright-https-without-port",
+      "log": "Error: https://localhost/ is already used, make sure that nothing is running on the port/url\n",
+      "port": 443
+    },
+    {
+      "name": "node-eaddrinuse",
+      "log": "\u001b[31mError: listen EADDRINUSE: address already in use :::8806\u001b[0m\n    at Server.setupListenHandle\n",
+      "port": 8806
+    },
+    {
+      "name": "node-eaddrinuse-with-host",
+      "log": "Error: listen EADDRINUSE: address already in use 127.0.0.1:3000\n",
+      "port": 3000
+    },
+    {
+      "name": "go-bind",
+      "log": "listen tcp 0.0.0.0:1025: bind: address already in use\n",
+      "port": 1025
+    },
+    {
+      "name": "eaddrinuse-without-port",
+      "log": "Error: EADDRINUSE\n",
+      "port": null
+    },
+    {
+      "name": "tests-ran-and-failed",
+      "log": "(fail) a test > prints a port [1ms]\nError: listen EADDRINUSE: address already in use :::8806\n 1 fail\n",
+      "port": null
+    },
+    {
+      "name": "nothing-about-a-port",
+      "log": "error: Cannot find module 'zod'\n",
+      "port": null
+    }
+  ]
+}

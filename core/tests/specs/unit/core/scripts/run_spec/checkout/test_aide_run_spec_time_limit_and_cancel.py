@@ -32,6 +32,7 @@ def test_the_runners_own_test_run_stops_at_the_steps_time_limit(runner, workspac
     assert time.monotonic() - began < 60, "the suite ran on past the step's own limit"
     assert out["terminalReason"] == "timeout", out
     assert "while the project's tests were running" in out["error"]
+    assert out["timeLimit"] == {"seconds": 6, "during": "tests"}
     # The work is on the branch, for the next press to test.
     assert git(workspace["project"], "show", f"{BRANCH}:implemented.txt") == "real work"
 

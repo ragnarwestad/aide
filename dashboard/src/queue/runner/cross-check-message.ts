@@ -3,7 +3,7 @@ import { stepButton } from "../../format/step-label.ts";
 import type { WorkflowStep } from "../queue.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { toolLabel } from "../../format/tool-failure.ts";
-import { providerError, sharedFiles, testsNotStarted, testsRed, type StepOutcome } from "./types.ts";
+import { providerError, sharedFiles, testsNotStarted, testsRed, timeLimit, type StepOutcome } from "./types.ts";
 
 /** The bash cross-check's verdicts (run-spec/record/status-line.sh,
  *  run-spec/turn/step-tests.sh) — a step that made `no-progress`, an
@@ -32,9 +32,22 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   if (outcome.terminalReason === "merge-unfinished" && step === "implement") {
     return { key: "runner.mergeUnfinishedImplement", values: { button: stepButton(step) } };
   }
+  if (outcome.terminalReason === "scope-violation" && outcome.scopeViolation === "specs") {
+    return { key: "runner.scopeSpecs", values: { button: stepButton(step) } };
+  }
+  if (outcome.terminalReason === "scope-violation" && outcome.scopeViolation === "analyze") {
+    return { key: "runner.scopeAnalyze", values: { button: stepButton(step) } };
+  }
+  if (outcome.terminalReason === "short-analysis-over-limit") {
+    return { key: "runner.shortAnalysisOverLimit", values: { button: stepButton(step) } };
+  }
+  if (outcome.terminalReason === "sent-back-refused") {
+    return { key: "runner.sentBackRefused", values: { button: stepButton(step), analyze: stepButton("analyze") } };
+  }
   if (outcome.terminalReason !== "no-progress") return undefined;
   if (step === "archive") return { key: "runner.noProgressArchive", values: { button: stepButton(step) } };
   if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
+  if (step === "create") return { key: "runner.noProgressCreate", values: { button: stepButton(step) } };
   return undefined;
 }
 
@@ -101,10 +114,11 @@ export function testsNotStartedMessage(step: WorkflowStep, outcome: Partial<Step
 /** The outcome as the failure's detail should see it. A `no-progress`
  *  ending's own sentence says exactly what the board's message says, in
  *  English, so it is dropped rather than kept behind a "(?)" that only
- *  repeats the row. A red test run's sentence is kept: it carries the
+ *  repeats the row — except a create's, which names the folder it looked
+ *  for and where. A red test run's sentence is kept: it carries the
  *  failing lines. */
-export function withoutRestatedError<T extends { terminalReason?: string; error?: unknown }>(outcome: T): T {
-  return outcome.terminalReason === "no-progress" ? { ...outcome, error: undefined } : outcome;
+export function withoutRestatedError<T extends { terminalReason?: string; error?: unknown }>(outcome: T, step?: WorkflowStep): T {
+  return outcome.terminalReason === "no-progress" && step !== "create" ? { ...outcome, error: undefined } : outcome;
 }
 
 /** An analyze stopped on the project's acceptance criteria checks, as the
@@ -159,7 +173,35 @@ export function modelAtCapacityMessage(
  *  itself — the acceptance criteria or the files other open specs share —
  *  or on a model the provider had no room for. */
 export const runStopMessage = (step: WorkflowStep, outcome: Partial<StepOutcome>, model?: string): BoardMessage | undefined =>
-  criteriaStopMessage(step, outcome) ?? sharedFilesStopMessage(step, outcome) ?? modelAtCapacityMessage(step, outcome, model);
+  criteriaStopMessage(step, outcome) ??
+  sharedFilesStopMessage(step, outcome) ??
+  modelAtCapacityMessage(step, outcome, model) ??
+  timeLimitMessage(step, outcome) ??
+  sentBackMessage(step, outcome);
+
+/** A step that sent its spec back to a full analysis: the board queues the
+ *  Analyze round itself (`runner-setup.ts`). The step's own reason is the
+ *  runner's English, behind the (?). */
+export function sentBackMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
+  if (outcome.terminalReason !== "sent-back") return undefined;
+  return { key: "runner.sentBack", values: { button: stepButton(step), analyze: stepButton("analyze") } };
+}
+
+/** A step stopped at its own time limit, as the board's sentence naming the
+ *  limit and where it ran out: in the session, or in the runner's own run
+ *  of the tests. In whole minutes, the unit Settings sets it in, else in
+ *  seconds. Undefined when the result names no limit: the runner's own
+ *  sentence then stands. */
+export function timeLimitMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
+  if (outcome.terminalReason !== "timeout") return undefined;
+  const limit = timeLimit(outcome.timeLimit);
+  if (!limit) return undefined;
+  const words = limit.seconds % 60 === 0 ? `${limit.seconds / 60} min` : `${limit.seconds} s`;
+  return {
+    key: limit.during === "tests" ? "runner.timeLimitTests" : "runner.timeLimitSession",
+    values: { button: stepButton(step), limit: words },
+  };
+}
 
 /** A step whose AI tool failed (`cli-error`), as the board's sentence for
  *  the error the runner sorted out of the provider's own words: the tool

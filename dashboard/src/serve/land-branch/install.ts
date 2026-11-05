@@ -7,6 +7,7 @@ import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers";
 import type { LandContext } from "./types.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";
+import { outputTail } from "../../format/output-tail.ts";
 
 /** Run the project's own install, once its code has landed. Bounded by
  *  a timeout of its own — never trusting the server's idle timeout to
@@ -37,35 +38,38 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
   try {
     // argv, no shell — the same shape the notify command already has,
     // so nothing here has to get quoting right on someone's behalf.
-    const proc = Bun.spawn({ cmd: scriptArgv(cmd.split(/\s+/)), cwd: result.root, stdout: "ignore", stderr: "pipe" });
+    const proc = Bun.spawn({ cmd: scriptArgv(cmd.split(/\s+/)), cwd: result.root, stdout: "pipe", stderr: "pipe" });
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
       proc.kill();
     }, timeoutMs);
-    let tail = "";
+    let out = "";
+    let err = "";
     try {
-      tail = await new Response(proc.stderr).text();
+      [out, err] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()]);
     } finally {
       clearTimeout(timer);
     }
     const code = await proc.exited;
+    // What the command printed, its last whole lines, behind the (?):
+    // stderr when it wrote any, else stdout, where make and many
+    // installers say why.
+    const tail = outputTail(err) || outputTail(out);
     if (timedOut) {
-      result.installError = { key: "landing.installTimedOut", values: { seconds: timeoutMs / 1000 } };
+      result.installError = { key: "landing.installCommandTimedOut", values: { command: cmd, seconds: timeoutMs / 1000 } };
       failed = true;
     } else if (code !== 0) {
-      // The stderr tail stays out of the board-facing
-      // sentence — logged here instead, so the exact words are still on
-      // the machine for whoever goes looking, just never the sentence.
-      console.error(`land-branch: install exited ${code}: ${tail.trim().slice(-200)}`);
-      result.installError = { key: "landing.installFailedExit", values: { code } };
+      result.installError = { key: "landing.installCommandFailed", values: { command: cmd, code } };
       failed = true;
     }
+    if (failed && tail) result.installDetail = tail;
   } catch (err) {
-    console.error(`land-branch: install could not be run: ${err instanceof Error ? err.message : String(err)}`);
-    result.installError = { key: "landing.installCouldNotRun" };
+    result.installError = { key: "landing.installCommandNotRun", values: { command: cmd } };
+    result.installDetail = err instanceof Error ? err.message : String(err);
     failed = true;
   }
+  if (failed) console.error(`land-branch: install (${cmd}) failed${result.installDetail ? `:\n${result.installDetail}` : ""}`);
   // A failed install wants no restart, exactly as `set -e` used to skip
   // install-after-merge.sh's own restart block on any earlier failure.
   return !failed;

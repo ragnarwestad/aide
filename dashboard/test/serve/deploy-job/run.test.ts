@@ -9,6 +9,7 @@ import { join } from "node:path";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import type { Sentence } from "../../../src/i18n/message.ts";
 import { runDeploy, type DeployRunDeps } from "../../../src/serve/deploy-job/run.ts";
+import type { DeployFailure } from "../../../src/serve/state.ts";
 import { createRootLock } from "../../../src/serve/serve-helpers";
 import { cleanupHarness, dir, enqueue, resetHarness, store } from "../../queue/runner/runner-fixtures.ts";
 
@@ -25,7 +26,7 @@ interface Setup {
   git: string[];
   calls: { install: number; restart: number; restartWhenSettled: number };
   faults: (Sentence | null)[];
-  failures: ({ step: string; error: string } | null)[];
+  failures: (DeployFailure | null)[];
   lock: ReturnType<typeof createRootLock>;
   writes: () => number;
   result: () => Record<string, unknown> | undefined;
@@ -56,7 +57,7 @@ function setup(over: Partial<DeployRunDeps> = {}, opts: { mergeFails?: boolean }
   };
   const calls = { install: 0, restart: 0, restartWhenSettled: 0 };
   const faults: (Sentence | null)[] = [];
-  const failures: ({ step: string; error: string } | null)[] = [];
+  const failures: (DeployFailure | null)[] = [];
   const lock = createRootLock();
   let updates = 0;
   const deps: DeployRunDeps = {
@@ -153,20 +154,42 @@ describe("a deploy that fails stops where it failed", () => {
     expect(s.failures.at(-1)).toMatchObject({ step: "fetch" });
   });
 
-  test("an install that fails ends failed with its sentence and restarts nothing", async () => {
+  test("an install that fails ends failed with its sentence and what it printed, and restarts nothing", async () => {
+    const said = "make: *** [install] Error 1";
     const s = setup({
       restartRegistered: async () => true,
       installCheckout: async (r) => {
-        r.installError = "the install exploded";
+        r.installError = { key: "landing.installCommandFailed", values: { command: "make install", code: 2 } };
+        r.installDetail = said;
         return false;
       },
     });
     await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
-    expect(s.result()).toMatchObject({ ok: false, error: "the install exploded", sentence: "the install exploded" });
+    expect(s.result()).toMatchObject({ ok: false, sentence: { key: "landing.installCommandFailed" } });
+    expect(String(s.result()?.error)).toContain(said);
+    expect(s.failures.at(-1)).toMatchObject({ step: "install", sentence: { key: "landing.installCommandFailed" }, detail: said });
     expect(s.marks().at(-1)).toContain("Step 2 of 5");
     expect(s.marks().at(-1)).toContain("stopped");
     expect(s.calls.restartWhenSettled).toBe(0);
     expect(s.failures.at(-1)).toMatchObject({ step: "install" });
+  });
+
+  test("a checkout with no default branch to fetch ends failed with the board's own sentence", async () => {
+    const s = setup({ branchStatus: { defaultBranch: async () => undefined, commitsBehindOrigin: async () => 0 } } as never);
+    await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
+    expect(sentenceKey(s)).toBe("landing.deployNoDefaultBranch");
+    expect(s.failures.at(-1)).toMatchObject({ step: "fetch" });
+  });
+
+  test("an error none of its steps foresaw ends failed with the board's sentence, and the error behind the (?)", async () => {
+    const s = setup({
+      installCheckout: async () => {
+        throw new Error("ENOSPC: no space left on device");
+      },
+    });
+    await runDeploy(s.deps, s.id, join(dir, `${s.id}.json`));
+    expect(sentenceKey(s)).toBe("landing.deployBroke");
+    expect(s.failures.at(-1)?.detail).toContain("ENOSPC: no space left on device");
   });
 
   test("a checkout that is not the board's ends failed before anything is fetched", async () => {

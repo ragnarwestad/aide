@@ -209,6 +209,7 @@ export async function specPageView(
     commit: testServerEntry.commit,
     url: testServerEntry.url,
     error: testServerEntry.error,
+    detail: testServerEntry.detail,
   };
   // The busy reasons `closeUnavailableReason` reads below —
   // a board is another lifecycle action against this spec's own branch,

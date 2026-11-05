@@ -211,6 +211,7 @@ EOF_CMDS
           ok="false"
           suffix=" (stopped: timeout)"
           error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step while the project's tests were running — the work is committed to the branch; press $step_button again to test it"
+          time_limit_json="$(jq -cn --argjson s "$timeout_sec" '{seconds:$s, during:"tests"}')"
           break
         fi
         # The recorder did not run the tests: no session can fix that by

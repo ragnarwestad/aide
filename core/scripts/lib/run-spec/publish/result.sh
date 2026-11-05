@@ -231,6 +231,8 @@ line="$(jq -cn \
   --argjson testsNotStarted "${tests_not_started_json:-null}" \
   --argjson testsRed "${tests_red_json:-null}" \
   --argjson providerError "${provider_error_out:-null}" \
+  --argjson timeLimit "${time_limit_json:-null}" \
+  --arg scopeViolation "${scope_violation:-}" \
   --argjson pushFailures "${push_failures_json:-[]}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
@@ -288,6 +290,13 @@ line="$(jq -cn \
    # And for the error the provider gave on a step that ended cli-error
    # (run-spec/turn/provider-error.sh): its kind and its first line.
    + (if $providerError == null then {} else {providerError:$providerError} end)
+   # And for the time limit a step stopped at: its seconds, and whether it
+   # ran out in the session or while the runner ran the tests of the project.
+   + (if $timeLimit == null then {} else {timeLimit:$timeLimit} end)
+   # And for which check a scope-violation tripped: `specs`, a write
+   # outside the spec folder (run-spec/record/specs-guard.sh), or `analyze`,
+   # a change outside what an analysis may change (run-spec/record/status-line.sh).
+   + (if $scopeViolation == "" then {} else {scopeViolation:$scopeViolation} end)
    # And for the repos whose push failed, each with what git said, sorted
    # (lib/git-error.sh): present only when one failed or was left unpushed.
    + (if $pushFailures == [] then {} else {pushFailures:$pushFailures} end)')"

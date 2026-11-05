@@ -20,6 +20,9 @@ export interface RepoMergeResult {
    *  none. A merge is never turned back into a failure by it: the merge
    *  had already happened. */
   installError?: Sentence;
+  /** What the install printed, its last whole lines: the (?) behind
+   *  `installError`. */
+  installDetail?: string;
   /** The merge landed and was pushed, but the spec branch is still on
    *  origin. Reported for the same reason and in the same way as
    *  `installError`: the cleanup is what a later dependency check

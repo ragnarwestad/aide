@@ -8,6 +8,8 @@ import { signalGroup, signalProcess } from "../serve-helpers/signal-group.ts";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import type { TestServerStore, TestServer } from "./store.ts";
+import { outputTail } from "../../format/output-tail.ts";
+import { portInUse } from "../../format/port-in-use.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -64,6 +66,10 @@ export interface TestServersContext {
    *  round log had said. Optional so a test context need not supply
    *  one; the server passes `console.log`. */
   log?: (line: string) => void;
+  /** Whatever process listens on a port, asked when a board's log says
+   *  its port was taken (`port-owner.ts`). Optional: a test context that
+   *  leaves it out reads as "nobody could be named". */
+  portHolder?: (port: number) => { pid: number; command?: string } | undefined;
 }
 
 /** `git ls-remote --heads origin <branch>`'s own SHA — never a local
@@ -131,13 +137,23 @@ export async function findFreePort(reserved: number[], canBind: PortProbe = bind
 // created, and watches the list fill.
 const LEFT_RUNNING_RE = /(?:left running|board up): pid (\d+), (\S+)(?: — serving (\S+) @ (\S+))?/;
 
-function tailLine(logPath: string): string {
-  try {
-    const lines = readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean);
-    return lines[lines.length - 1] ?? "the round exited with no output";
-  } catch {
-    return "the round exited with no output";
+/** Why a board whose start has exited did not come up: the port its log
+ *  says was taken and who holds it, or the command that ran, with the
+ *  log's last whole lines as the detail. */
+export function whyNotUp(ctx: Pick<TestServersContext, "portHolder">, entry: TestServer, log: string): { error: string; detail?: string } {
+  const detail = outputTail(log) || undefined;
+  const port = portInUse(log);
+  if (port !== undefined) {
+    const holder = ctx.portHolder?.(port);
+    const who = holder ? `${holder.command ?? "a process"} (pid ${holder.pid})` : "another process";
+    return { error: `port ${port} is taken by ${who} — stop it on the serving host, then try again`, ...(detail ? { detail } : {}) };
   }
+  const what = entry.command ?? "the start command";
+  const last = detail?.split("\n").at(-1)?.trim();
+  const cause = last && last.length > 160 ? `${last.slice(0, 160)}…` : last;
+  return detail
+    ? { error: `${what} exited before the test server came up: ${cause} — put right what it printed, on the serving host, then try again`, detail }
+    : { error: `${what} exited with no output before the test server came up — run it by hand on the serving host to see why` };
 }
 
 /** The registry key `restartMainTestServer` tracks its board under —
@@ -215,7 +231,7 @@ export async function startTestServer(
   } catch (e) {
     const why = e instanceof Error ? e.message : String(e);
     ctx.log?.(`boards: could not start ${branch} @ ${commit.slice(0, 7)} on :${port} — ${why} (${cmd.join(" ")})`);
-    return { ok: false, error: `could not start the board: ${why}` };
+    return { ok: false, error: `could not run ${cmd.join(" ")}: ${why} — check that it is installed on the serving host, then try again` };
   }
   ctx.log?.(`boards: starting ${branch} @ ${commit.slice(0, 7)} on :${port} — pid ${proc.pid}, log ${logPath}`);
   const entry: TestServer = {
@@ -226,6 +242,7 @@ export async function startTestServer(
     workDir,
     logPath,
     status: "starting",
+    command: cmd.join(" "),
     startedAt: ctx.now(),
   };
   ctx.store.set(project, specFolder, entry);
@@ -269,7 +286,7 @@ export function refreshTestServerStatus(ctx: TestServersContext, project: string
   const m = LEFT_RUNNING_RE.exec(log);
   if (!m) {
     if (!ctx.isAlive(entry.wrapperPid)) {
-      const failed: TestServer = { ...entry, status: "failed", error: tailLine(entry.logPath) };
+      const failed: TestServer = { ...entry, status: "failed", ...whyNotUp(ctx, entry, log) };
       ctx.store.set(project, specFolder, failed);
       ctx.log?.(`boards: ${entry.branch} did not come up on :${entry.port} — ${failed.error} (log ${entry.logPath})`);
       return failed;

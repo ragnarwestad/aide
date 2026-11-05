@@ -5,7 +5,7 @@ import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { ProjectReadiness, ReadinessCheck } from "../../../project/project-admin";
 import { FIELD_OWNED_CHECKS, type ProjectSettingsView } from "../../../project/project-settings.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { askButton, btnLink, buttonForm, messageSlot, rowMessage } from "../../ui/components";
+import { askButton, btnLink, buttonForm, helpPopover, messageSlot, rowMessage } from "../../ui/components";
 import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
@@ -119,8 +119,12 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   const errorLine = failure
     ? rowMessage(
         "failed",
-        t(lang, "deploy.failedAt", { step: t(lang, STEP_LABEL[failure.step]!), error: failure.error }),
-        { hook: "refusal deploy-error", tag: "p" },
+        t(lang, "deploy.failedAt", { step: t(lang, STEP_LABEL[failure.step]!), error: renderSentence(lang, failure.sentence) ?? "" }),
+        {
+          hook: "refusal deploy-error",
+          tag: "p",
+          ...(failure.detail ? { actions: helpPopover("what it printed", esc(failure.detail)) } : {}),
+        },
       )
     : "";
   const notYetChecked = drift.checkedAt === null;

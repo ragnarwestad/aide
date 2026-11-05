@@ -112,6 +112,7 @@ at_capacity_out=""
 # (run-spec/turn/provider-error.sh) — or empty, which leaves
 # `providerError` out of the result.
 provider_error_out=""
+time_limit_json=""
 # Claude's own name for the error a turn ended on (`authentication_failed`,
 # `server_error`), which its closing result does not carry.
 claude_error_name=""
@@ -360,6 +361,8 @@ if [ -n "$stopped" ]; then
   # and that nothing was lost.
   error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step"
   error_msg="$error_msg — work up to that point is committed to the branch"
+  # The limit and that it ran out in the session, for the board's own sentence.
+  time_limit_json="$(jq -cn --argjson s "$timeout_sec" '{seconds:$s, during:"session"}')"
 # "Did the tool say how it went", not "was a cost measured" — the two
 # are the same question for claude and different for codex, which
 # finishes perfectly well without ever naming a dollar figure.

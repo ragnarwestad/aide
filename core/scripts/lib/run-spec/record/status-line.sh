@@ -231,6 +231,7 @@ if [ -n "$status_file" ]; then
     if [ "$proj_changed" = "yes" ] || [ "$rows_advanced" = "yes" ] || \
        [ "$claims_extra_step" = "yes" ]; then
       terminal_reason="scope-violation"
+      scope_violation="analyze"
       ok="false"
       suffix=" (stopped: scope-violation)"
       # Says WHICH check tripped, and for a dirty project tree, what was

@@ -3,6 +3,7 @@
 import type { SpecView, ProjectView } from "../../../project/discover";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import type { Language } from "../../../i18n";
+import type { Sentence } from "../../../i18n/message.ts";
 import type { PreviewFrom } from "../../../project/parse-manifest.ts";
 import type { SettingsGroupFile } from "../../../project/project-settings.ts";
 
@@ -59,7 +60,7 @@ export interface ProjectPageOptions {
   drift?: ProjectDrift;
   /** The step the board's last deploy job failed at and why, kept by the
    *  server until the next deploy starts. */
-  deployFailure?: { step: string; error: string };
+  deployFailure?: { step: string; sentence: Sentence; detail?: string };
   /** This process's own boot-time commit vs. this checkout's current
    *  HEAD — undefined for every project except the one this
    *  server is actually running from. */

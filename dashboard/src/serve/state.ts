@@ -119,7 +119,10 @@ export interface ServerState {
 /** What a failed deploy job leaves for the Deploy tab. */
 export interface DeployFailure {
   step: string;
-  error: string;
+  /** Worded at render time, in the reader's language. */
+  sentence: Sentence;
+  /** What the failed command printed, behind the (?). */
+  detail?: string;
 }
 
 /** When this process booted. `/api/version` answers it, so the page

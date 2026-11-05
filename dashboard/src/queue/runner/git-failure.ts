@@ -1,12 +1,13 @@
-// A step whose work did not reach origin, or whose branch could not be
-// brought up to date with the base, in the board's own words: which repo,
+// A step whose work did not reach origin, whose base could not be
+// fetched, or whose branch could not be brought up to date with the base,
+// in the board's own words: which repo,
 // which branch, and why — from what the runner sorted out of git's own
 // output (`core/scripts/lib/git-error.sh`) and the files a conflict named
 // (`update_branch_to_base`, `run-spec/checkout/worktree.sh`). The runner's
 // own English, with git's lines, stays the row's (?) detail.
 
 import type { Sentence } from "../../i18n/message.ts";
-import { conflictFiles, gitErrorSentence, type GitError } from "../../format/git-error.ts";
+import { conflictFiles, gitErrorSentence, gitFetchSentence, type GitError } from "../../format/git-error.ts";
 import type { StepOutcome } from "./types.ts";
 
 type Repo = "code" | "specs";
@@ -64,6 +65,8 @@ export function conflictOf(raw: unknown): Conflict | undefined {
 
 /** A step that ended `unpushed`: one sentence per repo whose push failed,
  *  naming the repo and the branch, with why as its inner sentence. A
+ *  refusal because the base could not be fetched (`fetchFailure`, the
+ *  same shape as one push failure): the repo, the base and why. A
  *  refusal for a conflict: the repo, the branch, the base and the files.
  *  Undefined for every other ending, or when the runner named none. */
 export function gitFailureMessage(outcome: Partial<StepOutcome>): Sentence | Sentence[] | undefined {
@@ -78,6 +81,15 @@ export function gitFailureMessage(outcome: Partial<StepOutcome>): Sentence | Sen
       }),
     );
     return sentences.length === 1 ? sentences[0] : sentences;
+  }
+  if (outcome.terminalReason === "refused" && outcome.fetchFailure !== undefined) {
+    const [f] = pushFailures([outcome.fetchFailure]);
+    if (!f) return undefined;
+    return {
+      key: f.repo === "code" ? "runner.notFetchedCode" : "runner.notFetchedSpecs",
+      values: { base: f.branch },
+      inner: gitFetchSentence(f.error),
+    };
   }
   if (outcome.terminalReason === "refused" && outcome.errorReason === "conflict") {
     const c = conflictOf(outcome.conflict);

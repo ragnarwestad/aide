@@ -703,6 +703,27 @@ def test_a_fetch_that_never_gets_the_ref_refuses_with_gits_own_words(
     assert "lock" in out["error"], out["error"]
 
 
+def test_a_fetch_github_does_not_take_the_key_for_is_sorted_like_a_failed_push(
+    runner, workspace, fake_claude, fetchable_origin, tmp_path, monkeypatch
+):
+    """A fetch refused for the machine's SSH key is sorted by the same
+    classifier as a failed push: the result names the repo, the base and
+    the kind, and keeps git's own lines whole for the (?)."""
+    git_on_path(
+        tmp_path, monkeypatch,
+        'case " $* " in *" fetch "*" origin main "*) '
+        "printf 'git@github.com: Permission denied (publickey).\\r\\n"
+        "fatal: Could not read from remote repository.\\n' >&2; rc=128 ;; esac",
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, pull=True)
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert out["fetchFailure"] == {"repo": "code", "branch": "main", "kind": "auth"}, out
+    assert "git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository." in out["error"]
+    assert "\r" not in out["error"]
+
+
 def test_messages_added_to_one_translation_file_on_both_sides_do_not_stop_the_run(runner, workspace, fake_claude):
     """Two specs each add messages at the end of the same translation file:
     git's line merge calls that a conflict, but no message differs, so the

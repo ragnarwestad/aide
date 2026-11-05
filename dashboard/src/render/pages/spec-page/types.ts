@@ -184,4 +184,6 @@ export interface TestServerStatusView {
   url?: string;
   /** Set once the board has failed to start. */
   error?: string;
+  /** What its start printed last, behind the failure's (?). */
+  detail?: string;
 }

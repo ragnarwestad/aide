@@ -254,6 +254,7 @@ def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded(
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "scope-violation", out
+    assert out["scopeViolation"] == "analyze", out
     assert recorded_line(workspace) == "create"
 
 @pytest.mark.parametrize("mark", ["✅", "🔄", "❌", "⚠️"])

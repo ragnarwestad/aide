@@ -168,6 +168,83 @@ export const MESSAGES = {
   },
   // The provider had no room for the model the step ran on (no reset to wait
   // for): said for the step and the model, with the two moves the reader has.
+  // A step stopped at its own time limit ({limit}: "40 min"), in the
+  // session or in the runner's own run of the tests (`timeLimitMessage`).
+  "runner.timeLimitSession": {
+    en: "{button} stopped at the step's time limit of {limit}; what it had done is committed to the branch. — Press {button} again to carry on from there, or raise the step's time limit under Settings.",
+    nb: "{button} stoppet ved tidsgrensen for steget ({limit}); det som var gjort, er committet til grenen. — Trykk {button} igjen for å fortsette derfra, eller øk tidsgrensen for steget under Innstillinger.",
+    es: "{button} se detuvo en el límite de tiempo del paso ({limit}); lo hecho está confirmado en la rama. — Pulsa {button} de nuevo para seguir desde ahí, o sube el límite de tiempo del paso en Ajustes.",
+    de: "{button} wurde am Zeitlimit des Schritts ({limit}) angehalten; was bis dahin getan war, ist im Branch committet. — Klicke erneut auf {button}, um dort weiterzumachen, oder erhöhe das Zeitlimit des Schritts unter Einstellungen.",
+    fr: "{button} s'est arrêté à la limite de temps de l'étape ({limit}) ; ce qui était fait est commité sur la branche. — Cliquez de nouveau sur {button} pour reprendre à partir de là, ou augmentez la limite de temps de l'étape dans Réglages.",
+    resolve: "Press {button} again to carry on from there, or raise the step's time limit under Settings.",
+  },
+  "runner.timeLimitTests": {
+    en: "{button} stopped at the step's time limit of {limit} while the project's tests were running; the work is committed to the branch. — Press {button} again to test it, or raise the step's time limit under Settings.",
+    nb: "{button} stoppet ved tidsgrensen for steget ({limit}) mens testene i prosjektet kjørte; arbeidet er committet til grenen. — Trykk {button} igjen for å teste det, eller øk tidsgrensen for steget under Innstillinger.",
+    es: "{button} se detuvo en el límite de tiempo del paso ({limit}) mientras corrían los tests del proyecto; el trabajo está confirmado en la rama. — Pulsa {button} de nuevo para probarlo, o sube el límite de tiempo del paso en Ajustes.",
+    de: "{button} wurde am Zeitlimit des Schritts ({limit}) angehalten, während die Tests des Projekts liefen; die Arbeit ist im Branch committet. — Klicke erneut auf {button}, um sie zu testen, oder erhöhe das Zeitlimit des Schritts unter Einstellungen.",
+    fr: "{button} s'est arrêté à la limite de temps de l'étape ({limit}) pendant que les tests du projet tournaient ; le travail est commité sur la branche. — Cliquez de nouveau sur {button} pour le tester, ou augmentez la limite de temps de l'étape dans Réglages.",
+    resolve: "Press {button} again to test it, or raise the step's time limit under Settings.",
+  },
+  // A step the runner downgraded because it reached past its scope:
+  // `specs`, a write outside its own spec folder, whose changes were
+  // undone, or `analyze`, a change an analysis may not make
+  // (`scopeViolation`). The paths are the runner's sentence, the (?) detail.
+  "runner.scopeSpecs": {
+    en: "{button} reported success, but wrote outside its own spec folder in the specs repo, and those changes were thrown away. — Press {button} again for this step.",
+    nb: "{button} meldte at det gikk bra, men skrev utenfor sin egen spec-mappe i spec-repoet, og de endringene ble forkastet. — Trykk {button} igjen for dette steget.",
+    es: "{button} informó de éxito, pero escribió fuera de su propia carpeta de spec en el repo de specs, y esos cambios se descartaron. — Pulsa {button} de nuevo para este paso.",
+    de: "{button} meldete Erfolg, hat aber außerhalb seines eigenen Spec-Ordners im Spec-Repo geschrieben, und diese Änderungen wurden verworfen. — Klicke erneut auf {button} für diesen Schritt.",
+    fr: "{button} a signalé un succès, mais a écrit hors de son propre dossier de spec dans le repo de specs, et ces modifications ont été abandonnées. — Cliquez de nouveau sur {button} pour cette étape.",
+    resolve: "Press {button} again for this step.",
+  },
+  "runner.scopeAnalyze": {
+    en: "{button} reported success, but changed something an analysis may not change: the project's code, a ticked row in a Phase table, or a step that did not run. — Press {button} again for this step.",
+    nb: "{button} meldte at det gikk bra, men endret noe en analyse ikke får endre: koden i prosjektet, en rad i en fasetabell som ble krysset av, eller et steg som ikke ble kjørt. — Trykk {button} igjen for dette steget.",
+    es: "{button} informó de éxito, pero cambió algo que un análisis no puede cambiar: el código del proyecto, una fila marcada de una tabla de fases o un paso que no se ejecutó. — Pulsa {button} de nuevo para este paso.",
+    de: "{button} meldete Erfolg, hat aber etwas geändert, das eine Analyse nicht ändern darf: den Code des Projekts, eine abgehakte Zeile einer Phasentabelle oder einen Schritt, der nicht lief. — Klicke erneut auf {button} für diesen Schritt.",
+    fr: "{button} a signalé un succès, mais a modifié ce qu'une analyse ne peut pas modifier : le code du projet, une ligne cochée d'un tableau de phases ou une étape qui n'a pas tourné. — Cliquez de nouveau sur {button} pour cette étape.",
+    resolve: "Press {button} again for this step.",
+  },
+  // An analyze that wrote a short analysis over its limits: the board
+  // queues a full one itself (`runner-setup.ts`) unless one already ran.
+  "runner.shortAnalysisOverLimit": {
+    en: "{button} wrote a short analysis for a spec that needs a full one. — A full analysis is queued on its own; if none shows on the Running tab, press {button} again.",
+    nb: "{button} skrev en kort analyse for en spec som trenger en full. — En full analyse legges i kø av seg selv; dukker den ikke opp i Kjører-fanen, trykk {button} igjen.",
+    es: "{button} escribió un análisis corto para una spec que necesita uno completo. — Se encola un análisis completo por sí solo; si no aparece en la pestaña En curso, pulsa {button} de nuevo.",
+    de: "{button} hat eine kurze Analyse für eine Spec geschrieben, die eine vollständige braucht. — Eine vollständige Analyse wird von selbst eingereiht; erscheint keine im Tab Läuft, klicke erneut auf {button}.",
+    fr: "{button} a écrit une analyse courte pour une spec qui en demande une complète. — Une analyse complète est mise en file d'elle-même ; si aucune n'apparaît dans l'onglet En cours, cliquez de nouveau sur {button}.",
+    resolve: "if none shows on the Running tab, press {button} again",
+  },
+  // An implement that sent its spec back to a full analysis, which the
+  // board then queues itself, or asked to and was refused. The reason the
+  // step gave is the runner's sentence, the (?) detail.
+  "runner.sentBack": {
+    en: "{button} sent the spec back to a full analysis. — {analyze} runs again on its own with a full analysis, then {button}; follow them on the Running tab.",
+    nb: "{button} sendte specen tilbake til en full analyse. — {analyze} kjører på nytt av seg selv med full analyse, og så {button}; følg dem i Kjører-fanen.",
+    es: "{button} devolvió la spec a un análisis completo. — {analyze} vuelve a ejecutarse por sí solo con un análisis completo, y luego {button}; síguelos en la pestaña En curso.",
+    de: "{button} hat die Spec an eine vollständige Analyse zurückgegeben. — {analyze} läuft von selbst erneut mit vollständiger Analyse, danach {button}; verfolge sie im Tab Läuft.",
+    fr: "{button} a renvoyé la spec à une analyse complète. — {analyze} repart de lui-même avec une analyse complète, puis {button} ; suivez-les dans l'onglet En cours.",
+    resolve: "follow them on the Running tab",
+  },
+  "runner.sentBackRefused": {
+    en: "{button} asked to send the spec back to a full analysis, but it could not be sent back. — Press {analyze} again for a new plan, or {button} again to build the plan there is.",
+    nb: "{button} ba om å sende specen tilbake til en full analyse, men den kunne ikke sendes tilbake. — Trykk {analyze} igjen for en ny plan, eller {button} igjen for å bygge planen som finnes.",
+    es: "{button} pidió devolver la spec a un análisis completo, pero no se pudo devolver. — Pulsa {analyze} de nuevo para un plan nuevo, o {button} de nuevo para construir el plan que hay.",
+    de: "{button} wollte die Spec an eine vollständige Analyse zurückgeben, aber das ging nicht. — Klicke erneut auf {analyze} für einen neuen Plan, oder erneut auf {button}, um den vorhandenen Plan umzusetzen.",
+    fr: "{button} a demandé de renvoyer la spec à une analyse complète, mais elle n'a pas pu être renvoyée. — Cliquez de nouveau sur {analyze} pour un nouveau plan, ou sur {button} pour construire le plan existant.",
+    resolve: "Press {analyze} again for a new plan, or {button} again to build the plan there is.",
+  },
+  // A create that reported success and left no spec folder where the board
+  // looks; where it looked is the runner's sentence, the (?) detail.
+  "runner.noProgressCreate": {
+    en: "{button} reported success, but the spec folder it should have made was not found where Aide looks for it. — Press {button} again.",
+    nb: "{button} meldte at det gikk bra, men spec-mappen den skulle lage, ble ikke funnet der Aide ser etter den. — Trykk {button} igjen.",
+    es: "{button} informó de éxito, pero la carpeta de spec que debía crear no se encontró donde Aide la busca. — Pulsa {button} de nuevo.",
+    de: "{button} meldete Erfolg, aber der Spec-Ordner, den es anlegen sollte, wurde nicht dort gefunden, wo Aide sucht. — Klicke erneut auf {button}.",
+    fr: "{button} a signalé un succès, mais le dossier de spec qu'il devait créer est introuvable là où Aide le cherche. — Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
   "runner.modelAtCapacity": {
     en: "{button} stopped: {model} is at capacity right now. — Press {button} again, or choose another model for this step.",
     nb: "{button} stoppet: {model} har ikke kapasitet akkurat nå. — Trykk {button} igjen, eller velg en annen modell for dette steget.",
@@ -265,6 +342,41 @@ export const MESSAGES = {
     de: "git hat keinen Fehlertext ausgegeben — versuche es erneut; scheitert es genauso, pushe den Branch von Hand aus dem Checkout auf dem Server",
     fr: "git n'a donné aucun texte d'erreur — réessayez ; si cela échoue de la même façon, poussez la branche à la main depuis le checkout sur le serveur",
     resolve: "try again; if it fails the same way, push the branch by hand from the checkout on the serving host",
+  },
+  // A step refused because the base could not be fetched from origin, with
+  // why as the inner sentence: `git.pushAuth`, `git.pushGitHub` or one of
+  // the two `git.fetch*` below (`src/queue/runner/git-failure.ts`).
+  "runner.notFetchedCode": {
+    en: "cannot fetch {base} from origin into the code repo: {message}",
+    nb: "klarer ikke å hente {base} fra origin til kode-repoet: {message}",
+    es: "no se puede traer {base} de origin al repo de código: {message}",
+    de: "kann {base} nicht von origin ins Code-Repo holen: {message}",
+    fr: "impossible de récupérer {base} depuis origin dans le repo de code : {message}",
+    exempt: "the resolution is the message it carries",
+  },
+  "runner.notFetchedSpecs": {
+    en: "cannot fetch {base} from origin into the specs repo: {message}",
+    nb: "klarer ikke å hente {base} fra origin til spec-repoet: {message}",
+    es: "no se puede traer {base} de origin al repo de specs: {message}",
+    de: "kann {base} nicht von origin ins Spec-Repo holen: {message}",
+    fr: "impossible de récupérer {base} depuis origin dans le repo de specs : {message}",
+    exempt: "the resolution is the message it carries",
+  },
+  "git.fetchOther": {
+    en: "git said: {cause} — try again; if it fails the same way, run git fetch by hand in the checkout on the serving host",
+    nb: "git sa: {cause} — prøv igjen; feiler det på samme måte, kjør git fetch for hånd i det lokale repoet på serveren",
+    es: "git dijo: {cause} — inténtalo de nuevo; si falla igual, ejecuta git fetch a mano en el checkout del servidor",
+    de: "git meldete: {cause} — versuche es erneut; scheitert es genauso, führe git fetch von Hand im Checkout auf dem Server aus",
+    fr: "git a dit : {cause} — réessayez ; si cela échoue de la même façon, lancez git fetch à la main dans le checkout sur le serveur",
+    resolve: "try again; if it fails the same way, run git fetch by hand in the checkout on the serving host",
+  },
+  "git.fetchNoText": {
+    en: "git gave no error text — try again; if it fails the same way, run git fetch by hand in the checkout on the serving host",
+    nb: "git ga ingen feiltekst — prøv igjen; feiler det på samme måte, kjør git fetch for hånd i det lokale repoet på serveren",
+    es: "git no dio ningún texto de error — inténtalo de nuevo; si falla igual, ejecuta git fetch a mano en el checkout del servidor",
+    de: "git hat keinen Fehlertext ausgegeben — versuche es erneut; scheitert es genauso, führe git fetch von Hand im Checkout auf dem Server aus",
+    fr: "git n'a donné aucun texte d'erreur — réessayez ; si cela échoue de la même façon, lancez git fetch à la main dans le checkout sur le serveur",
+    resolve: "try again; if it fails the same way, run git fetch by hand in the checkout on the serving host",
   },
   // A step refused because its branch conflicts with the base, naming the
   // files in conflict (`{files}`: `a.ts, b.ts (+3)`).
@@ -660,6 +772,8 @@ export const MESSAGES = {
     fr: "mergé, non installé — aucun {label} configuré. — Définissez {label} dans le .aide/config du projet pour l'activer.",
     resolve: "Set the {label} in the project's .aide/config",
   },
+  // Rows stored before the install named its command still name the
+  // three keys below; the install writes the `installCommand*` keys after them.
   "landing.installTimedOut": {
     en: "merged, but the install timed out after {seconds} seconds and was stopped. — " +
       "Check the install command in the checkout on the serving host.",
@@ -689,6 +803,50 @@ export const MESSAGES = {
     de: "gemergt, aber die Installation konnte nicht ausgeführt werden. — Prüfe den Installationsbefehl im Checkout auf dem Server.",
     fr: "mergé, mais l'installation n'a pas pu être exécutée. — Vérifiez la commande d'installation dans le checkout sur le serveur.",
     resolve: "Check the install command in the checkout on the serving host.",
+  },
+  // The install of a checkout, naming the command; what it printed, its
+  // last whole lines, is the (?) detail (`land-branch/install.ts`).
+  "landing.installCommandFailed": {
+    en: "the install command {command} failed with exit code {code} — put right what it printed, in the checkout on the serving host, then try again",
+    nb: "installasjonskommandoen {command} feilet med kode {code} — rett feilen den skrev ut, i det lokale repoet på serveren, og prøv igjen",
+    es: "el comando de instalación {command} falló con el código {code} — corrige lo que imprimió, en el checkout del servidor, y vuelve a intentarlo",
+    de: "der Installationsbefehl {command} ist mit Code {code} fehlgeschlagen — behebe, was er ausgegeben hat, im Checkout auf dem Server, und versuche es erneut",
+    fr: "la commande d'installation {command} a échoué avec le code {code} — corrigez ce qu'elle a affiché, dans le checkout sur le serveur, puis réessayez",
+    resolve: "put right what it printed, in the checkout on the serving host, then try again",
+  },
+  "landing.installCommandTimedOut": {
+    en: "the install command {command} was stopped after {seconds} seconds — find out what it waits for, in the checkout on the serving host, then try again",
+    nb: "installasjonskommandoen {command} ble stoppet etter {seconds} sekunder — finn ut hva den venter på, i det lokale repoet på serveren, og prøv igjen",
+    es: "el comando de instalación {command} se detuvo tras {seconds} segundos — averigua qué espera, en el checkout del servidor, y vuelve a intentarlo",
+    de: "der Installationsbefehl {command} wurde nach {seconds} Sekunden gestoppt — finde heraus, worauf er wartet, im Checkout auf dem Server, und versuche es erneut",
+    fr: "la commande d'installation {command} a été arrêtée après {seconds} secondes — trouvez ce qu'elle attend, dans le checkout sur le serveur, puis réessayez",
+    resolve: "find out what it waits for, in the checkout on the serving host, then try again",
+  },
+  "landing.installCommandNotRun": {
+    en: "the install command {command} could not be started — check that the program it names is installed on the serving host, then try again",
+    nb: "installasjonskommandoen {command} kunne ikke startes — sjekk at programmet den peker på er installert på serveren, og prøv igjen",
+    es: "el comando de instalación {command} no se pudo iniciar — comprueba que el programa que nombra está instalado en el servidor y vuelve a intentarlo",
+    de: "der Installationsbefehl {command} konnte nicht gestartet werden — prüfe, ob das Programm, das er nennt, auf dem Server installiert ist, und versuche es erneut",
+    fr: "la commande d'installation {command} n'a pas pu être lancée — vérifiez que le programme qu'elle nomme est installé sur le serveur, puis réessayez",
+    resolve: "check that the program it names is installed on the serving host, then try again",
+  },
+  // A deploy that could not find the branch to fetch, or broke on
+  // something its steps did not foresee; the error itself is the (?) detail.
+  "landing.deployNoDefaultBranch": {
+    en: "cannot work out the default branch of {root} — run git remote set-head origin --auto in that checkout on the serving host, then press Deploy again",
+    nb: "finner ikke standardgrenen til {root} — kjør git remote set-head origin --auto i det lokale repoet på serveren, og trykk så Deploy på nytt",
+    es: "no se puede determinar la rama por defecto de {root} — ejecuta git remote set-head origin --auto en ese checkout del servidor y pulsa Deploy de nuevo",
+    de: "kann den Standard-Branch von {root} nicht ermitteln — führe git remote set-head origin --auto in diesem Checkout auf dem Server aus und drücke dann erneut Deploy",
+    fr: "impossible de déterminer la branche par défaut de {root} — lancez git remote set-head origin --auto dans ce checkout sur le serveur, puis appuyez de nouveau sur Deploy",
+    resolve: "run git remote set-head origin --auto in that checkout on the serving host, then press Deploy again",
+  },
+  "landing.deployBroke": {
+    en: "the deploy stopped on an error of the board's own — press Deploy again; if it stops the same way, read the board's log on the serving host",
+    nb: "utrullingen stoppet på en feil i Aide selv — trykk Deploy på nytt; stopper den på samme måte, les loggen til Aide på serveren",
+    es: "el despliegue se detuvo por un error del propio tablero — pulsa Deploy de nuevo; si se detiene igual, lee el registro del tablero en el servidor",
+    de: "das Deployment ist an einem Fehler des Boards selbst gescheitert — drücke erneut Deploy; stoppt es genauso, lies das Log des Boards auf dem Server",
+    fr: "le déploiement s'est arrêté sur une erreur du tableau lui-même — appuyez de nouveau sur Deploy ; s'il s'arrête de la même façon, lisez le journal du tableau sur le serveur",
+    resolve: "press Deploy again; if it stops the same way, read the board's log on the serving host",
   },
   "landing.cannotMergeFallback": {
     en: "cannot merge {branch} in {root} — check the checkout on the serving host",

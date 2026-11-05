@@ -97,9 +97,21 @@ export interface StepOutcome {
    *  the runner (`run-spec/turn/provider-error.sh`); read by
    *  `providerError()` below. */
   providerError?: unknown;
+  /** On a step stopped at its time limit: the limit in seconds, and whether
+   *  it ran out in the session or in the runner's own test run
+   *  (`run-spec/turn/model-turn.sh`, `step-tests.sh`); read by `timeLimit()`. */
+  timeLimit?: unknown;
+  /** Which check a `scope-violation` tripped: `specs`, a write outside the
+   *  spec folder, or `analyze`, a change an analysis may not make
+   *  (`run-spec/record/specs-guard.sh`, `status-line.sh`). */
+  scopeViolation?: "specs" | "analyze";
   /** Each repo whose push failed, with what git said, sorted by the runner
    *  (`lib/git-error.sh`); read by `pushFailures()` in `git-failure.ts`. */
   pushFailures?: unknown;
+  /** On a refusal because the base could not be fetched: the repo, the
+   *  base as `branch`, and what git said, sorted as one push failure is
+   *  (`run-spec/checkout/branch.sh`); read in `git-failure.ts`. */
+  fetchFailure?: unknown;
   /** The files a conflict with the base named, on a refusal whose
    *  `errorReason` is `"conflict"`; read by `conflictOf()` in `git-failure.ts`. */
   conflict?: unknown;
@@ -375,6 +387,20 @@ export function providerError(raw: unknown): ProviderError | undefined {
     return { kind: "other", message: r.message.trim() };
   }
   return undefined;
+}
+
+/** The time limit a step stopped at, as the result file carries it. */
+export interface TimeLimit {
+  seconds: number;
+  during: "session" | "tests";
+}
+
+export function timeLimit(raw: unknown): TimeLimit | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.seconds !== "number" || !Number.isFinite(r.seconds) || r.seconds <= 0) return undefined;
+  if (r.during !== "session" && r.during !== "tests") return undefined;
+  return { seconds: r.seconds, during: r.during };
 }
 
 /** The model id a result file names — a non-empty string, or nothing. Another
