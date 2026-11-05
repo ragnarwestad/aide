@@ -68,12 +68,6 @@ export function stateChip(r: QueueRowView, lang: Language = "en"): string {
   return detail ? b + helpPopover("why this stopped", esc(detail)) : b;
 }
 
-/** A spec that exists and has never been run. It is this page's own
- *  pseudo-state, so it has no `QueueRowView` to hand `stateChip` — but
- *  it must render through the same component, or the one row with no
- *  job would be the one row with hand-written markup. */
-export const notStartedChip = (): string => badge("idle", "not started");
-
 /** Which states mean "still going". The list page's "Active" filter is
  *  built from this rather than the other way round: a state added to one
  *  and forgotten in the other is exactly the drift neither page can

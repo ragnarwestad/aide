@@ -133,7 +133,6 @@ export {
   documentTabScript,
   renderSpecDetail,
   renderSpecStepsFollowParts,
-  renderSpecPageHead,
   renderSpecPageFailedRest,
   listViewIn,
   specDetailPath,

@@ -7,14 +7,6 @@ import {
   type StreamEntry, type StreamEntryKind, type SummarizeOptions,
 } from "./shared.ts";
 
-/** The transcript as a bounded list of already-escaped lines: assistant
- *  text and tool calls only. System init, tool results, thinking and
- *  rate-limit chatter are the run talking to itself, not what it is
- *  doing. */
-export function summarizeClaudeStream(text: string, opts: SummarizeOptions = {}): string[] {
-  return claudeEntries(text, opts).map((e) => e.text);
-}
-
 /** Which tool calls this transcript's own results reported as failures,
  *  by the id the call and its result share. Read in a pass of its own
  *  because a result arrives AFTER the call it answers: an entry cannot

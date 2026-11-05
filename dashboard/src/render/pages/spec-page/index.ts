@@ -49,8 +49,8 @@
 
 import { buttonForm, helpPopover, messageSlot, rowMessage } from "../../ui/components";
 import type { Language } from "../../../i18n";
-import { shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
-import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
+import { shellRest, type NavEntry } from "../../ui/shell.ts";
+import { LOADING_HIDE_RULE } from "../../ui/loading.ts";
 import { t } from "../../../i18n";
 import { groupKey } from "../specs-list/data-model";
 import { landingRefusal, stepResults, tabBar } from "../job-page";
@@ -207,13 +207,6 @@ export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}):
     `<div class="tabpanel">${panel}</div>` +
     `</div>`
   );
-}
-
-/** The spec page's first chunk: the document up to `<body>`, the
- *  stylesheet and scripts, and the loading element. Needs only what the
- *  route knows before any view data exists. */
-export function renderSpecPageHead(specFolder: string, lang: Language): string {
-  return shellHead(specFolder, { lang }) + loadingBlock(lang);
 }
 
 /** What ends a spec page whose second half failed after the head was sent:
