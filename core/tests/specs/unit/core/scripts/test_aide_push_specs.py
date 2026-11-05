@@ -266,6 +266,23 @@ def test_an_ssh_key_github_does_not_take_is_said_as_such(pusher, tmp_path, monke
     assert "\r" not in result.stderr
 
 
+def test_an_https_login_failure_does_not_advise_an_ssh_key_AC_3(pusher, tmp_path, monkeypatch):
+    origin = init_origin(tmp_path)
+    machine = Machine(tmp_path, origin)
+    git(machine.specs, "remote", "set-url", "origin", "git@github.com:x/specs.git")
+    ssh = tmp_path / "ssh"
+    ssh.write_text("#!/bin/sh\nprintf 'fatal: Authentication failed for https://github.com/x/specs.git/\\n' >&2\nexit 128\n")
+    ssh.chmod(0o755)
+    monkeypatch.setenv("GIT_SSH_COMMAND", str(ssh))
+    commit_file(machine.specs, "new.md", "x\n")
+
+    result = machine.run(pusher)
+
+    assert result.returncode != 0
+    assert "HTTPS login" in result.stderr
+    assert "SSH key" not in result.stderr
+
+
 def test_a_refusal_is_origin_s_own_first_line(pusher, tmp_path):
     origin = init_origin(tmp_path)
     hook = origin / "hooks" / "pre-receive"

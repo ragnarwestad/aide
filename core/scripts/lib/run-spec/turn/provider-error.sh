@@ -27,13 +27,25 @@ provider_error_json() {
           | (if $space > 80 then $cut[0:$space] else $cut end) + "…"
         end) as $message
       | ($status | tonumber? // 0) as $code
-      | (if $code == 401 or $code == 403 or ($name | test("auth"; "i"))
-            or ($plain | test("not logged in|please run /login|failed to authenticate|authentication (failed|required|error)|status 40[13]\\b|\\b40[13] (unauthorized|forbidden)|missing bearer|invalid (api[ _-]?key|x-api-key|bearer|access token|token)|api[ _-]?key (is )?(missing|invalid|not set)|(token|session|credentials?) (has |have )?(been )?(expired|revoked)|session expired"; "i"))
+      | (if $code == 403 or ($plain | test("api error: 403\\b|status 403\\b|\\b403 forbidden"; "i")) then "forbidden"
+         elif $code == 401 or ($name | test("auth"; "i"))
+            or ($plain | test("not logged in|please run /login|failed to authenticate|authentication (failed|required|error)|status 401\\b|\\b401 unauthorized|missing bearer|invalid (api[ _-]?key|x-api-key|bearer|access token|token)|api[ _-]?key (is )?(missing|invalid|not set)|(token|session|credentials?) (has |have )?(been )?(expired|revoked)|session expired"; "i"))
          then "login"
-         elif $code >= 500 or ($name | test("server_error|overloaded|api_error"; "i"))
-            or ($plain | test("api error: 5[0-9][0-9]\\b|status 5[0-9][0-9]\\b|\\b5[0-9][0-9] (internal server error|bad gateway|service unavailable|gateway time-?out)|internal server error|server-side|bad gateway|service unavailable|gateway time-?out|overloaded|stream disconnected|connection (reset|refused|closed|error)|network error|econnreset|etimedout|enotfound|eai_again|socket hang up|fetch failed"; "i"))
+         elif $code >= 500 or ($name | test("server_error|overloaded"; "i"))
+            or ($plain | test("api error: 5[0-9][0-9]\\b|status 5[0-9][0-9]\\b|\\b5[0-9][0-9] (internal server error|bad gateway|service unavailable|gateway time-?out)|internal server error|server-side|bad gateway|service unavailable|gateway time-?out"; "i"))
          then "provider"
+         elif ($plain | test("enotfound|eai_again|econnrefused|connection (refused|error)|network error|fetch failed|could not resolve host"; "i")) then "network"
+         elif ($name | test("api_error"; "i")) or ($plain | test("overloaded|stream disconnected|connection (reset|closed)|econnreset|etimedout|socket hang up"; "i")) then "provider"
          else "other" end) as $kind
       | {kind: $kind, message: $message}
       end'
+}
+
+provider_error_ending() {
+  case "${1:-other}" in
+    login) printf '%s' "— log in to $2 on the serving host, then press $3 again" ;;
+    forbidden) printf '%s' "— check that the account may use this model, or choose another model for this step" ;;
+    network) printf '%s' "— check the network from the serving host, then press $3 again" ;;
+    *) printf '%s' "— press $3 again" ;;
+  esac
 }

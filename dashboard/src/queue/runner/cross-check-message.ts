@@ -215,7 +215,10 @@ export function cliErrorMessage(step: WorkflowStep, outcome: Partial<StepOutcome
   const tool = toolLabel(outcome.tool);
   if (!said || !tool) return undefined;
   const button = stepButton(step);
-  if (said.kind === "login") return { key: "runner.cliErrorLogin", values: { tool, button } };
-  if (said.kind === "provider") return { key: "runner.cliErrorProvider", values: { tool, button } };
+  if (said.kind === "silent") return { key: "runner.cliErrorSilent", values: { tool, button } };
+  if (said.kind === "login") return { key: "runner.cliErrorLogin", values: { tool, cause: said.message, button } };
+  if (said.kind === "forbidden") return { key: "runner.cliErrorForbidden", values: { tool, cause: said.message, button } };
+  if (said.kind === "network") return { key: "runner.cliErrorNetwork", values: { tool, cause: said.message, button } };
+  if (said.kind === "provider") return { key: "runner.cliErrorProvider", values: { tool, cause: said.message, button } };
   return { key: "runner.cliErrorOther", values: { tool, cause: said.message, button } };
 }

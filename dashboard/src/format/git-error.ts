@@ -17,15 +17,18 @@ import type { BoardMessage } from "../i18n/message.ts";
  *  nothing. */
 export type GitError =
   | { kind: "auth" }
+  | { kind: "no-write" | "https-auth" | "network"; message: string }
   | { kind: "github" }
   | { kind: "refused"; message: string }
   | { kind: "other"; message: string }
   | { kind: "none" };
 
-const AUTH =
-  /permission denied \(publickey|authentication failed|could not read (username|password)|invalid username or password|permission to \S+ denied|returned error: 40[13]\b/i;
+const AUTH = /permission denied \(publickey/i;
+const NO_WRITE = /permission to \S+ denied|returned error: 403\b/i;
+const HTTPS_AUTH = /authentication failed|could not read (username|password)|invalid username or password|returned error: 401\b/i;
 const GITHUB =
-  /internal server error|returned error: 5[0-9][0-9]\b|http 5[0-9][0-9]\b|\b5[0-9][0-9] (bad gateway|service unavailable|gateway time-?out)|bad gateway|service unavailable|could not resolve host|connection (timed out|refused|reset|closed)|operation timed out|network is unreachable|no route to host|temporary failure in name resolution|the remote end hung up unexpectedly/i;
+  /internal server error|returned error: 5[0-9][0-9]\b|http 5[0-9][0-9]\b|\b5[0-9][0-9] (bad gateway|service unavailable|gateway time-?out)|bad gateway|service unavailable|connection (reset|closed)|the remote end hung up unexpectedly/i;
+const NETWORK = /could not resolve host|connection (timed out|refused)|operation timed out|network is unreachable|no route to host|temporary failure in name resolution/i;
 const REFUSED = /\[(remote )?rejected\]|non-fast-forward|protected branch|\bGH[0-9]{3}\b|hook declined/i;
 /** Lines that say nothing about why: where git pushed to, its hints, and
  *  the sentences it adds to every failure. */
@@ -60,7 +63,6 @@ export function gitError(said: string): GitError {
   if (all.length === 0) return { kind: "none" };
   const text = all.join("\n");
   if (AUTH.test(text)) return { kind: "auth" };
-  if (GITHUB.test(text)) return { kind: "github" };
   const first =
     all.map((l) => l.replace(/^remote:\s*/, "")).find((l) => l.length > 0 && !NOT_THE_CAUSE.test(l)) ?? all[0]!;
   const message = cut(
@@ -69,6 +71,10 @@ export function gitError(said: string): GitError {
       .replace(/\s+/g, " ")
       .replace(/\.+$/, ""),
   );
+  if (NO_WRITE.test(text)) return { kind: "no-write", message };
+  if (HTTPS_AUTH.test(text)) return { kind: "https-auth", message };
+  if (GITHUB.test(text)) return { kind: "github" };
+  if (NETWORK.test(text)) return { kind: "network", message };
   return REFUSED.test(text) ? { kind: "refused", message } : { kind: "other", message };
 }
 
@@ -80,6 +86,12 @@ export function gitErrorSentence(error: GitError): BoardMessage {
       return { key: "git.pushAuth" };
     case "github":
       return { key: "git.pushGitHub" };
+    case "network":
+      return { key: "git.pushNetwork", values: { cause: error.message } };
+    case "no-write":
+      return { key: "git.pushNoWrite", values: { cause: error.message } };
+    case "https-auth":
+      return { key: "git.pushHttpsAuth", values: { cause: error.message } };
     case "refused":
       return { key: "git.pushRefused", values: { cause: error.message } };
     case "other":
@@ -96,6 +108,9 @@ export function gitFetchSentence(error: GitError): BoardMessage {
   switch (error.kind) {
     case "auth":
     case "github":
+    case "network":
+    case "no-write":
+    case "https-auth":
       return gitErrorSentence(error);
     case "refused":
     case "other":

@@ -374,17 +374,19 @@ export function testsRed(raw: unknown): TestsRed | undefined {
  *  tool is not logged in on the machine that runs it, `provider` when the
  *  provider's own side failed, `other` for anything else, which carries
  *  the provider's own first line as `message`. */
-export type ProviderError = { kind: "login" } | { kind: "provider" } | { kind: "other"; message: string };
+export type ProviderError =
+  | { kind: "login" | "forbidden" | "network" | "provider" | "other"; message: string }
+  | { kind: "silent" };
 
 /** `outcome.providerError`, read as defensively as `testsRed`: a kind the
  *  runner does not write, or an `other` with no words, is nothing at all. */
 export function providerError(raw: unknown): ProviderError | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  if (r.kind === "login") return { kind: "login" };
-  if (r.kind === "provider") return { kind: "provider" };
-  if (r.kind === "other" && typeof r.message === "string" && r.message.trim()) {
-    return { kind: "other", message: r.message.trim() };
+  if (r.kind === "silent") return { kind: "silent" };
+  if ((r.kind === "login" || r.kind === "forbidden" || r.kind === "network" || r.kind === "provider" || r.kind === "other")
+      && typeof r.message === "string" && r.message.trim()) {
+    return { kind: r.kind, message: r.message.trim() };
   }
   return undefined;
 }

@@ -7,8 +7,9 @@
 #
 #   git_error_json <what git said> [<repo>] [<branch>]
 #     {kind, message?, repo?, branch?}
-#     `auth`     GitHub does not take the machine's SSH key or login
-#     `github`   GitHub had an error (a 5xx), or the network failed
+#     `auth`     GitHub does not take the machine's SSH key
+#     `no-write`, `https-auth`, `network` carry git's own first line
+#     `github`   GitHub had an error (a 5xx)
 #     `refused`  origin turned the push down (a protected branch, a hook,
 #                a non-fast-forward); `message` is origin's own first line
 #     `other`    anything else; `message` is git's own first line
@@ -33,8 +34,11 @@ git_error_json() {
   jq -cn --arg said "${1:-}" --arg repo "${2:-}" --arg branch "${3:-}" "\$said | $GIT_ERROR_LINES_JQ"' as $lines
     | ($lines | join("\n")) as $all
     | (if ($lines | length) == 0 then "none"
-       elif ($all | test("permission denied \\(publickey|authentication failed|could not read (username|password)|invalid username or password|permission to \\S+ denied|returned error: 40[13]\\b"; "i")) then "auth"
-       elif ($all | test("internal server error|returned error: 5[0-9][0-9]\\b|http 5[0-9][0-9]\\b|\\b5[0-9][0-9] (bad gateway|service unavailable|gateway time-?out)|bad gateway|service unavailable|could not resolve host|connection (timed out|refused|reset|closed)|operation timed out|network is unreachable|no route to host|temporary failure in name resolution|the remote end hung up unexpectedly"; "i")) then "github"
+       elif ($all | test("permission denied \\(publickey"; "i")) then "auth"
+       elif ($all | test("permission to \\S+ denied|returned error: 403\\b"; "i")) then "no-write"
+       elif ($all | test("authentication failed|could not read (username|password)|invalid username or password|returned error: 401\\b"; "i")) then "https-auth"
+       elif ($all | test("internal server error|returned error: 5[0-9][0-9]\\b|http 5[0-9][0-9]\\b|\\b5[0-9][0-9] (bad gateway|service unavailable|gateway time-?out)|bad gateway|service unavailable|connection (reset|closed)|the remote end hung up unexpectedly"; "i")) then "github"
+       elif ($all | test("could not resolve host|connection (timed out|refused)|operation timed out|network is unreachable|no route to host|temporary failure in name resolution"; "i")) then "network"
        elif ($all | test("\\[(remote )?rejected\\]|non-fast-forward|protected branch|\\bGH[0-9]{3}\\b|hook declined"; "i")) then "refused"
        else "other" end) as $kind
     | ([$lines[] | sub("^remote:\\s*"; "")
@@ -47,7 +51,7 @@ git_error_json() {
         | (if $space > 80 then $cut[0:$space] else $cut end) + "…"
       end) as $message
     | {kind: $kind}
-      + (if $kind == "refused" or $kind == "other" then {message: $message} else {} end)
+      + (if (["no-write", "https-auth", "network", "refused", "other"] | index($kind)) then {message: $message} else {} end)
       + (if $repo == "" then {} else {repo: $repo} end)
       + (if $branch == "" then {} else {branch: $branch} end)'
 }

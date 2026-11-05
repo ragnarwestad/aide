@@ -392,17 +392,22 @@ elif [ "$have_result" = "true" ]; then
       else (.result // "" | tostring) end' <<<"$result_json")"
     provider_error_out="$(provider_error_json "$error_msg" \
       "$(jq -r '.api_error_status // empty' <<<"$result_json")" "$claude_error_name")"
-    [ -n "$error_msg" ] || error_msg="provider reported an error"
-    error_msg="$error_msg — press $step_button again"
+    if [ -n "$error_msg" ]; then
+      error_msg="$error_msg $(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
+    else
+      provider_error_out='{"kind":"silent"}'
+      error_msg="$tool ended (exit $exit_code) without giving a reason — its output is in this step's log; press $step_button again"
+    fi
   elif [ "$subtype" = "turn_failed" ] && [ -n "$error_msg" ]; then
     # Codex's or OpenCode's own error, read above: it says why, where the
     # exit code (1) says only that it failed.
     terminal_reason="cli-error"
     provider_error_out="$(provider_error_json "$error_msg")"
-    error_msg="$error_msg — press $step_button again"
-  elif [ "$exit_code" -ne 0 ]; then
+    error_msg="$error_msg $(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
+  elif [ "$exit_code" -ne 0 ] && [ "$(jq -r '(.errors // []) | length' <<<"$result_json")" -eq 0 ]; then
     terminal_reason="cli-error"
-    error_msg="$tool exit $exit_code — press $step_button again"
+    provider_error_out='{"kind":"silent"}'
+    error_msg="$tool ended (exit $exit_code) without giving a reason — its output is in this step's log; press $step_button again"
   else
   case "$subtype" in
     success) terminal_reason="completed" ;;
@@ -410,22 +415,31 @@ elif [ "$have_result" = "true" ]; then
     # here; only claude's shape needs digging out at this point.
     *) terminal_reason="cli-error"
        [ -n "$error_msg" ] || error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
-       error_msg="$error_msg — press $step_button again" ;;
+       if [ -n "$error_msg" ]; then
+         provider_error_out="$(provider_error_json "$error_msg")"
+         error_msg="$error_msg $(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
+       else
+         provider_error_out='{"kind":"silent"}'
+         error_msg="$tool ended (exit $exit_code) without giving a reason — its output is in this step's log; press $step_button again"
+       fi ;;
   esac
   fi
 else
   terminal_reason="cli-error"
   cost="0"; cost_measured="false"
   error_msg="$(tail -c 400 "$work_dir/err" 2>/dev/null | tr '\n' ' ')"
-  [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
   # claude will not start on a ~/.claude.json that is not valid JSON, and
   # says how to fix it; pressing again fails the same way until someone has.
   if grep -q 'claude\.json' "$work_dir/err" 2>/dev/null; then
+    [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
     error_msg="$error_msg — fix or move that file on the serving host before $step_button can run"
+  elif [ -z "$error_msg" ]; then
+    provider_error_out='{"kind":"silent"}'
+    error_msg="$tool ended (exit $exit_code) without giving a reason — its output is in this step's log; press $step_button again"
   else
     # What the tool wrote last, sorted the way a failed turn's error is.
     provider_error_out="$(provider_error_json "$(tail -n 5 "$work_dir/err" 2>/dev/null)")"
-    error_msg="$error_msg — press $step_button again"
+    error_msg="$error_msg $(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
   fi
 fi
 [ -n "$resume_part" ] && [ "$resume_part" != "preparing" ] && aide_part_open "$resume_part"

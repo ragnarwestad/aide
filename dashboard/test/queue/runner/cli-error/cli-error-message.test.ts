@@ -19,14 +19,26 @@ const CODEX_401 =
 const failed = (outcome: Record<string, unknown>) => ({ ok: false, terminalReason: "cli-error", ...outcome });
 
 describe("cliErrorMessage", () => {
-  test("a tool that is not logged in is told to log in on the machine, naming the tool and the step", () => {
-    const m = cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "login" } }));
-    expect(m).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", button: "Implement" } });
+  test("a tool that is not logged in keeps the cause (AC-6)", () => {
+    const m = cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "login", message: "token expired" } }));
+    expect(m).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", cause: "token expired", button: "Implement" } });
   });
 
   test("a failure on the provider's side is told to try again in a while", () => {
-    const m = cliErrorMessage("analyze", failed({ tool: "claude", providerError: { kind: "provider" } }));
-    expect(m).toEqual({ key: "runner.cliErrorProvider", values: { tool: "Claude Code", button: "Analyze" } });
+    const m = cliErrorMessage("analyze", failed({ tool: "claude", providerError: { kind: "provider", message: "overloaded" } }));
+    expect(m).toEqual({ key: "runner.cliErrorProvider", values: { tool: "Claude Code", cause: "overloaded", button: "Analyze" } });
+  });
+
+  test("forbidden, network and silent failures have distinct sentences (AC-4, AC-5, AC-7)", () => {
+    expect(cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "forbidden", message: "403 policy" } }))).toEqual({
+      key: "runner.cliErrorForbidden", values: { tool: "Codex", cause: "403 policy", button: "Implement" },
+    });
+    expect(cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "network", message: "ENOTFOUND" } }))).toEqual({
+      key: "runner.cliErrorNetwork", values: { tool: "Codex", cause: "ENOTFOUND", button: "Implement" },
+    });
+    expect(cliErrorMessage("implement", failed({ tool: "codex", providerError: { kind: "silent" } }))).toEqual({
+      key: "runner.cliErrorSilent", values: { tool: "Codex", button: "Implement" },
+    });
   });
 
   test("any other error is given as its own first line", () => {
@@ -67,7 +79,7 @@ describe("a Codex step that was not logged in", () => {
   test("ends failed saying to log in, with the tool's own words behind the (?)", () => {
     const after = notLoggedIn();
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", button: "Implement" } });
+    expect(after?.error).toEqual({ key: "runner.cliErrorLogin", values: { tool: "Codex", cause: "unexpected status 401", button: "Implement" } });
     expect(after?.errorDetail).toBe(CODEX_401);
   });
 

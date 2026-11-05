@@ -36,10 +36,19 @@ def sorted_(said: str, status: str = "", kind: str = "") -> dict | None:
 
 
 @pytest.mark.parametrize("said", [CODEX_401, CLAUDE_NOT_LOGGED_IN, CLAUDE_OAUTH_EXPIRED,
-                                  "Invalid API key · Fix external API key",
-                                  "unexpected status 403 Forbidden: your token has been revoked"])
+                                  "Invalid API key · Fix external API key"])
 def test_a_tool_that_is_not_logged_in_is_a_login_error(said):
     assert sorted_(said)["kind"] == "login"
+
+
+@pytest.mark.parametrize("said,status,kind", [
+    ("unexpected status 403 Forbidden: organization policy does not allow this model", "", ""),
+    ("something went wrong", "403", "authentication_failed"),
+    ("unexpected status 403 Forbidden: your token has been revoked", "", "authentication_failed"),
+    ("API Error: 403 access denied", "", "authentication_failed"),
+])
+def test_an_explicit_403_is_forbidden_and_keeps_its_cause_AC_4(said, status, kind):
+    assert sorted_(said, status, kind) == {"kind": "forbidden", "message": said}
 
 
 def test_claude_s_own_error_name_says_login_without_the_words():
@@ -59,6 +68,27 @@ def test_a_failure_on_the_provider_s_side_is_a_provider_error(said):
 def test_a_5xx_status_says_provider_without_the_words():
     assert sorted_("something went wrong", status="500")["kind"] == "provider"
     assert sorted_("something went wrong", kind="server_error")["kind"] == "provider"
+
+
+@pytest.mark.parametrize("said", [
+    "getaddrinfo ENOTFOUND api.openai.com",
+    "connect ECONNREFUSED 127.0.0.1:443",
+    "fetch failed",
+    "network error",
+    "connection error",
+])
+def test_a_request_that_cannot_reach_the_provider_is_network_AC_5(said):
+    assert sorted_(said) == {"kind": "network", "message": said}
+
+
+def test_a_network_cause_wins_over_a_generic_api_error_name_AC_5():
+    said = "connect ECONNREFUSED 127.0.0.1:443"
+    assert sorted_(said, kind="api_error") == {"kind": "network", "message": said}
+
+
+@pytest.mark.parametrize("said", ["ECONNRESET", "socket hang up", "stream disconnected before completion"])
+def test_a_connection_that_broke_after_opening_stays_provider_AC_5(said):
+    assert sorted_(said)["kind"] == "provider"
 
 
 def test_digits_inside_an_id_are_not_a_status():

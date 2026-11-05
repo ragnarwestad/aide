@@ -76,8 +76,11 @@ why() {
   local said
   said="$(git_error_json "$1")"
   case "$(jq -r .kind <<<"$said")" in
-    auth) echo "GitHub does not accept this machine's SSH key or login — add it on GitHub, then push again" ;;
-    github) echo "GitHub had an error, or the network is down — push again in a little while" ;;
+    auth) echo "GitHub does not accept this machine's SSH key — add it on GitHub, then push again" ;;
+    network) echo "this machine could not reach origin ($(jq -r .message <<<"$said")) — check its network, then push again" ;;
+    no-write) echo "$(jq -r .message <<<"$said") — the key or account may not write to this repository; give it write access on GitHub, then push again" ;;
+    https-auth) echo "GitHub does not accept the HTTPS login git uses here ($(jq -r .message <<<"$said")) — renew the token in git's credentials, then push again" ;;
+    github) echo "GitHub had an error — push again in a little while" ;;
     none) echo "git gave no error text" ;;
     *) jq -r .message <<<"$said" ;;
   esac
