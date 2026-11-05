@@ -16,20 +16,6 @@ import {
 import { SPEC_LINES, SPEC_REFUSED_LINE, specPagePath } from "./tabs.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
-/** One labelled fact about the spec: what it is, then what it says.
- *
- *  The shape `Depends on` already had, made shared (2026-08-23) because
- *  the page's other facts were loose sentences with nothing naming
- *  them — "This spec is archived — a record, and read-only." sat under
- *  the title as a notice, which is the shape this page uses for
- *  something that just happened, not for something that is the case.
- *
- *  `value` is already escaped: some of these are a list of links and
- *  some are plain words. */
-export function fact(label: string, value: string): string {
-  return `<p class="desc"><strong>${esc(label)}</strong> <span class="muted">${value}</span></p>`;
-}
-
 /** What being closed actually means for this spec —
  *  Names the reason and
  *  the date (which "travel with the spec"), never the word

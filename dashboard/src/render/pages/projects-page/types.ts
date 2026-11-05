@@ -9,11 +9,6 @@ import type { SettingsGroupFile } from "../../../project/project-settings.ts";
 
 export type { SpecView, ProjectView };
 
-export interface Page {
-  path: string;
-  html: string;
-}
-
 /** The last drift answer the server holds for a project.
  *  `checkedAt` is `null` only where nothing has ever been asked — a
  *  fresh boot, or a project just added; `behind: null` with a real
