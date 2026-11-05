@@ -289,8 +289,15 @@ evidence that the phase happened:
     verdict it cannot parse, or a turn that does not complete, counts as "found nothing" and is logged as an error.
   - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red goes back
     to the same session as a follow-up turn, at most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time
-    limit. Still red ends the step `tests-red` with the failing lines as its detail, and Implement is the button to
-    press again. A run that never started, because its server could not start or a port it needs is held
+    limit. Each red run's failing tests are read from its output (`run-spec/turn/failing-tests.sh`: Playwright,
+    vitest, bun, pytest and turbo, without colour codes, never pnpm's error box or the recorder's JSON line), and a
+    fix round's prompt names them; the log's own failing lines go only when no test is named, or no name carries a
+    file. Still red ends the step `tests-red` with the failing lines as its detail and the named tests in the result's
+    `testsRed`: at most eight, the failed and total counts when the output printed them, `touched` (a failing test's
+    file is among the files the change touched, committed or not, matched by the end of its path), `untouched` (how
+    many are not) and `variedBetweenRuns` (a run failed a test the run before it did not). The board's sentence names
+    the tests and says the fault is likely in the change, or, when none is in a touched file or the runs varied, that
+    it points to unstable tests or a busy machine. Implement is the button to press again. A run that never started, because its server could not start or a port it needs is held
     (`run-spec/turn/test-start.sh`), goes back to no session: it ends `tests-not-started` at once, with the cause and,
     for a port, the spec or process holding it in the result's `testsNotStarted`. A run `aide-record-test-run` did not
     make ends the same way at once, read from the recorder's own result and never from its exit code alone: the spec's

@@ -252,6 +252,67 @@ export const MESSAGES = {
     fr: "implement a signalé un succès, mais les tests du projet sont au rouge sur ce résultat — le runner les a lancés lui-même, et ce qui a échoué est affiché ci-dessous. — Si le défaut est dans le code, cliquez de nouveau sur {button} ; si quelque chose sur la machine a arrêté les tests, comme un port occupé ou un service arrêté, corrigez-le d'abord.",
     resolve: "If the fault is in the code, press {button} again; if something on the machine stopped the tests, fix that first.",
   },
+  // An implement whose own test run named its failing tests
+  // (run-spec/turn/failing-tests.sh): the tests, and what they point at —
+  // the change, when a failing test is in a file it touched and every run
+  // failed the same ones; otherwise unstable tests or a busy machine, with
+  // the reasons that hold as the inner sentences below.
+  "runner.testsRedInChange": {
+    en: "implement is done, but {n} of {total} tests fail on its result: {tests}. The fault is likely in the change. → Press {button} again.",
+    nb: "implementering er ferdig, men {n} av {total} tester feiler på resultatet: {tests}. Feilen er trolig i endringen. → Trykk {button} igjen.",
+    es: "implement terminó, pero {n} de {total} tests fallan sobre su resultado: {tests}. El fallo probablemente está en el cambio. → Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber {n} von {total} Tests schlagen bei diesem Ergebnis fehl: {tests}. Der Fehler liegt wahrscheinlich in der Änderung. → Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais {n} tests sur {total} échouent sur ce résultat : {tests}. Le défaut est probablement dans la modification. → Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedInChangeUncounted": {
+    en: "implement is done, but these tests fail on its result: {tests}. The fault is likely in the change. → Press {button} again.",
+    nb: "implementering er ferdig, men disse testene feiler på resultatet: {tests}. Feilen er trolig i endringen. → Trykk {button} igjen.",
+    es: "implement terminó, pero estos tests fallan sobre su resultado: {tests}. El fallo probablemente está en el cambio. → Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber diese Tests schlagen bei diesem Ergebnis fehl: {tests}. Der Fehler liegt wahrscheinlich in der Änderung. → Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais ces tests échouent sur ce résultat : {tests}. Le défaut est probablement dans la modification. → Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedUnsteady": {
+    en: "implement is done, but {n} of {total} tests fail on its result: {tests}. {message} That points to unstable tests or a busy machine, not to the change. → Press {button} again, or fix the tests on their own.",
+    nb: "implementering er ferdig, men {n} av {total} tester feiler på resultatet: {tests}. {message} Det tyder på ustabile tester eller en travel maskin, ikke på endringen. → Trykk {button} igjen, eller rett testene for seg.",
+    es: "implement terminó, pero {n} de {total} tests fallan sobre su resultado: {tests}. {message} Eso apunta a tests inestables o a una máquina ocupada, no al cambio. → Pulsa {button} de nuevo, o arregla los tests por separado.",
+    de: "Implement ist fertig, aber {n} von {total} Tests schlagen bei diesem Ergebnis fehl: {tests}. {message} Das deutet auf instabile Tests oder eine ausgelastete Maschine hin, nicht auf die Änderung. → Klicke erneut auf {button}, oder repariere die Tests für sich.",
+    fr: "implement est terminé, mais {n} tests sur {total} échouent sur ce résultat : {tests}. {message} Cela indique des tests instables ou une machine chargée, pas la modification. → Cliquez de nouveau sur {button}, ou corrigez les tests à part.",
+    resolve: "Press {button} again, or fix the tests on their own.",
+  },
+  "runner.testsRedUnsteadyUncounted": {
+    en: "implement is done, but these tests fail on its result: {tests}. {message} That points to unstable tests or a busy machine, not to the change. → Press {button} again, or fix the tests on their own.",
+    nb: "implementering er ferdig, men disse testene feiler på resultatet: {tests}. {message} Det tyder på ustabile tester eller en travel maskin, ikke på endringen. → Trykk {button} igjen, eller rett testene for seg.",
+    es: "implement terminó, pero estos tests fallan sobre su resultado: {tests}. {message} Eso apunta a tests inestables o a una máquina ocupada, no al cambio. → Pulsa {button} de nuevo, o arregla los tests por separado.",
+    de: "Implement ist fertig, aber diese Tests schlagen bei diesem Ergebnis fehl: {tests}. {message} Das deutet auf instabile Tests oder eine ausgelastete Maschine hin, nicht auf die Änderung. → Klicke erneut auf {button}, oder repariere die Tests für sich.",
+    fr: "implement est terminé, mais ces tests échouent sur ce résultat : {tests}. {message} Cela indique des tests instables ou une machine chargée, pas la modification. → Cliquez de nouveau sur {button}, ou corrigez les tests à part.",
+    resolve: "Press {button} again, or fix the tests on their own.",
+  },
+  "runner.testsRedVaried": {
+    en: "Different tests failed in each run.",
+    nb: "Det var andre tester som feilet i hver kjøring.",
+    es: "En cada ejecución fallaron tests distintos.",
+    de: "In jedem Lauf schlugen andere Tests fehl.",
+    fr: "Des tests différents ont échoué à chaque exécution.",
+    exempt: "a part of runner.testsRedUnsteady, which carries the resolution",
+  },
+  "runner.testsRedUntouched": {
+    en: "{k} of the {n} are in files the change does not touch.",
+    nb: "{k} av de {n} er i filer endringen ikke rører.",
+    es: "{k} de los {n} están en archivos que el cambio no toca.",
+    de: "{k} der {n} liegen in Dateien, die die Änderung nicht berührt.",
+    fr: "{k} des {n} sont dans des fichiers que la modification ne touche pas.",
+    exempt: "a part of runner.testsRedUnsteady, which carries the resolution",
+  },
+  "runner.testsRedVariedUntouched": {
+    en: "Different tests failed in each run, and {k} of the {n} are in files the change does not touch.",
+    nb: "Det var andre tester som feilet i hver kjøring, og {k} av de {n} er i filer endringen ikke rører.",
+    es: "En cada ejecución fallaron tests distintos, y {k} de los {n} están en archivos que el cambio no toca.",
+    de: "In jedem Lauf schlugen andere Tests fehl, und {k} der {n} liegen in Dateien, die die Änderung nicht berührt.",
+    fr: "Des tests différents ont échoué à chaque exécution, et {k} des {n} sont dans des fichiers que la modification ne touche pas.",
+    exempt: "a part of runner.testsRedUnsteady, which carries the resolution",
+  },
   // An implement whose own test run never started (run-spec/turn/test-start.sh):
   // what stopped it, and for a port, who holds it.
   "runner.testsNotStartedPortSpec": {
@@ -682,6 +743,49 @@ export const MESSAGES = {
     // own resolution; this is only the fallback for the rare case it
     // returns none at all.
     exempt: "a fallback for when the test run's own verdict carries no message of its own",
+  },
+  // The merge's own test run, red (land-branch/test-gate.ts): the failing
+  // tests by name when the output named them, and what the second run and
+  // the run on main alone say about them.
+  "landing.testsRedOnMerge": {
+    en: "the project's tests are red on this merge: {tests}. They pass on main alone and failed the same way twice, so the merge broke them; nothing was pushed, and the work is still on {branch}. — Make them pass on the branch; {button} merges the work once they do.",
+    nb: "prosjektets tester er røde på denne mergen: {tests}. De består på main alene og feilet likt to ganger, så det er mergen som brøt dem; ingenting ble pushet, og arbeidet ligger fortsatt på {branch}. — Få dem til å bestå på grenen; {button} merger arbeidet når de gjør det.",
+    es: "los tests del proyecto están en rojo en este merge: {tests}. Pasan en main solo y fallaron igual dos veces, así que el merge los rompió; no se hizo push de nada, y el trabajo sigue en {branch}. — Haz que pasen en la rama; {button} hace el merge del trabajo cuando pasen.",
+    de: "die Tests des Projekts sind bei diesem Merge rot: {tests}. Auf main allein laufen sie durch und sind zweimal gleich fehlgeschlagen, also hat der Merge sie kaputt gemacht; nichts wurde gepusht, und die Arbeit liegt weiter auf {branch}. — Bring sie auf dem Branch zum Laufen; {button} merged die Arbeit, sobald sie durchlaufen.",
+    fr: "les tests du projet sont au rouge sur ce merge : {tests}. Ils passent sur main seul et ont échoué de la même façon deux fois, donc c'est le merge qui les a cassés ; rien n'a été poussé, et le travail est toujours sur {branch}. — Faites-les passer sur la branche ; {button} fait le merge du travail une fois qu'ils passent.",
+    resolve: "Make them pass on the branch; {button} merges the work once they do.",
+  },
+  "landing.testsRedOnMergeUnnamed": {
+    en: "the project's tests are red on this merge and pass on main alone, so nothing was pushed — the work is still on {branch}. — The archive step's own log names the tests that failed; {button} merges the work once they pass.",
+    nb: "prosjektets tester er røde på denne mergen og består på main alene, så ingenting ble pushet — arbeidet ligger fortsatt på {branch}. — Loggen til arkiveringssteget navngir testene som feilet; {button} merger arbeidet når de består.",
+    es: "los tests del proyecto están en rojo en este merge y pasan en main solo, así que no se hizo push de nada — el trabajo sigue en {branch}. — El log del paso de archivo nombra los tests que fallaron; {button} hace el merge del trabajo cuando pasen.",
+    de: "die Tests des Projekts sind bei diesem Merge rot und laufen auf main allein durch, also wurde nichts gepusht — die Arbeit liegt weiter auf {branch}. — Das Log des Archive-Schritts nennt die fehlgeschlagenen Tests; {button} merged die Arbeit, sobald sie durchlaufen.",
+    fr: "les tests du projet sont au rouge sur ce merge et passent sur main seul, donc rien n'a été poussé — le travail est toujours sur {branch}. — Le log de l'étape archive nomme les tests en échec ; {button} fait le merge du travail une fois qu'ils passent.",
+    resolve: "The archive step's own log names the tests that failed; {button} merges the work once they pass.",
+  },
+  "landing.testsRedOnMergeVaried": {
+    en: "the project's tests are red on this merge, but its two runs failed different tests: {tests}. They pass on main alone; that points to unstable tests or a busy machine, not to the merge. Nothing was pushed, and the work is still on {branch}. — Press {button} again when the machine is quieter.",
+    nb: "prosjektets tester er røde på denne mergen, men de to kjøringene feilet ulike tester: {tests}. De består på main alene; det tyder på ustabile tester eller en travel maskin, ikke på mergen. Ingenting ble pushet, og arbeidet ligger fortsatt på {branch}. — Trykk {button} igjen når maskinen har mindre å gjøre.",
+    es: "los tests del proyecto están en rojo en este merge, pero sus dos ejecuciones fallaron tests distintos: {tests}. Pasan en main solo; eso apunta a tests inestables o a una máquina ocupada, no al merge. No se hizo push de nada, y el trabajo sigue en {branch}. — Pulsa {button} de nuevo cuando la máquina esté menos ocupada.",
+    de: "die Tests des Projekts sind bei diesem Merge rot, aber seine zwei Läufe sind an verschiedenen Tests gescheitert: {tests}. Auf main allein laufen sie durch; das deutet auf instabile Tests oder eine ausgelastete Maschine hin, nicht auf den Merge. Nichts wurde gepusht, und die Arbeit liegt weiter auf {branch}. — Klicke erneut auf {button}, wenn die Maschine weniger zu tun hat.",
+    fr: "les tests du projet sont au rouge sur ce merge, mais ses deux exécutions ont fait échouer des tests différents : {tests}. Ils passent sur main seul ; cela indique des tests instables ou une machine chargée, pas le merge. Rien n'a été poussé, et le travail est toujours sur {branch}. — Cliquez de nouveau sur {button} quand la machine est moins chargée.",
+    resolve: "Press {button} again when the machine is quieter.",
+  },
+  "landing.testsRedOnMainToo": {
+    en: "the project's tests are red on main as well, without this spec's change — nothing was pushed, and the work is still on {branch}. — Once main is green again, {button} merges the work.",
+    nb: "prosjektets tester er røde på main også, uten endringen fra denne specen — ingenting ble pushet, og arbeidet ligger fortsatt på {branch}. — Når main er grønn igjen, merger {button} arbeidet.",
+    es: "los tests del proyecto también están en rojo en main, sin el cambio de esta spec — no se hizo push de nada, y el trabajo sigue en {branch}. — Cuando main vuelva a estar en verde, {button} hace el merge del trabajo.",
+    de: "die Tests des Projekts sind auch auf main rot, ohne die Änderung dieser Spec — nichts wurde gepusht, und die Arbeit liegt weiter auf {branch}. — Sobald main wieder grün ist, merged {button} die Arbeit.",
+    fr: "les tests du projet sont aussi au rouge sur main, sans la modification de cette spec — rien n'a été poussé, et le travail est toujours sur {branch}. — Une fois main de nouveau au vert, {button} fait le merge du travail.",
+    resolve: "Once main is green again, {button} merges the work.",
+  },
+  "landing.testsTimedOut": {
+    en: "the project's tests did not finish within {minutes} minutes on the merge, so nothing was pushed. — The archive step's own log has what they managed to say; press {button} again when the machine is quieter.",
+    nb: "prosjektets tester ble ikke ferdige innen {minutes} minutter på mergen, så ingenting ble pushet. — Loggen til arkiveringssteget har det de rakk å si; trykk {button} igjen når maskinen har mindre å gjøre.",
+    es: "los tests del proyecto no terminaron en {minutes} minutos en el merge, así que no se hizo push de nada. — El log del paso de archivo tiene lo que llegaron a decir; pulsa {button} de nuevo cuando la máquina esté menos ocupada.",
+    de: "die Tests des Projekts sind beim Merge nicht innerhalb von {minutes} Minuten fertig geworden, also wurde nichts gepusht. — Das Log des Archive-Schritts hat, was sie noch sagen konnten; klicke erneut auf {button}, wenn die Maschine weniger zu tun hat.",
+    fr: "les tests du projet n'ont pas fini en {minutes} minutes sur le merge, donc rien n'a été poussé. — Le log de l'étape archive contient ce qu'ils ont eu le temps de dire ; cliquez de nouveau sur {button} quand la machine est moins chargée.",
+    resolve: "press {button} again when the machine is quieter.",
   },
   // Which step's landing this was, in front of what went wrong. The
   // badge beside the row names the step the job is on NOW, which is not

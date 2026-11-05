@@ -227,6 +227,7 @@ line="$(jq -cn \
   --argjson criteriaFaults "${criteria_faults_json:-null}" \
   --argjson sharedFiles "${shared_files_json:-null}" \
   --argjson testsNotStarted "${tests_not_started_json:-null}" \
+  --argjson testsRed "${tests_red_json:-null}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -276,4 +277,7 @@ line="$(jq -cn \
    # And for what stopped the test run of an implement before any test ran
    # (run-spec/turn/test-start.sh): the kind, the port or the wait, and
    # who held the port when the runner could tell.
-   + (if $testsNotStarted == null then {} else {testsNotStarted:$testsNotStarted} end)')"
+   + (if $testsNotStarted == null then {} else {testsNotStarted:$testsNotStarted} end)
+   # And for the tests a red implement run named (run-spec/turn/failing-tests.sh):
+   # at most eight, the counts, and whether they point at the change.
+   + (if $testsRed == null then {} else {testsRed:$testsRed} end)')"

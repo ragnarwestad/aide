@@ -24,7 +24,10 @@
 # transcript appended to), which fixes what it broke and runs the suite
 # again — up to AIDE_TEST_FIX_ROUNDS more turns (2), each within what
 # is left of the step's time limit. The record on the branch is always
-# the runner's last run.
+# the runner's last run. Each red run's failing tests are read by name
+# (run-spec/turn/failing-tests.sh): a fix round is handed those, and a step
+# still red carries them in the result's `testsRed`, with whether they lie
+# in files the change touched and whether the runs failed different ones.
 #
 # A run whose tests never started — the server they need could not
 # start (run-spec/turn/test-start.sh) — ends `tests-not-started` at once,
@@ -182,6 +185,10 @@ EOF_CMDS
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
       step_fix_round=0
       step_cost_total="$cost"
+      # The tests each red run named (run-spec/turn/failing-tests.sh), and
+      # whether a later run failed one an earlier run did not.
+      step_tests_runs=0
+      step_tests_varied=false
       # The lines of each task a monorepo runner's summary names as failed
       # that say error or fail, without their colour codes, at most eight.
       failed_task_lines() {
@@ -231,6 +238,13 @@ EOF_CMDS
         # task's own lines further up, each prefixed "@x/email:test:".
         [ -n "$step_tests_failing" ] || step_tests_failing="$(failed_task_lines "$work_dir/step-test-run.log")"
         [ -n "$step_tests_failing" ] || step_tests_failing="$(log_tail "$work_dir/step-test-run.log" 600)"
+        step_tests_runs=$((step_tests_runs + 1))
+        step_tests_named="$work_dir/failing-tests-$step_tests_runs.json"
+        failing_tests "$work_dir/step-test-run.log" > "$step_tests_named"
+        if [ "$step_tests_runs" -gt 1 ] && \
+           failing_tests_varied "$work_dir/failing-tests-$((step_tests_runs - 1)).json" "$step_tests_named"; then
+          step_tests_varied=true
+        fi
         # The suite never started — its server could not start (run-spec/turn/test-start.sh).
         # No session can free a port or start a machine's service, so this
         # ends the step at once, with the cause and, for a port, who holds it.
@@ -260,6 +274,10 @@ port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(
           suffix=" (stopped: tests-red)"
           error_msg="the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's. Press $step_button again for this step.
 $step_tests_failing"
+          # The tests by name, for the board's sentence: whether any is in a
+          # file the change touched, and whether the runs failed different ones.
+          failing_tests_changed_files "$project_wt" "$step_tests_base" > "$work_dir/changed-files"
+          tests_red_json="$(failing_tests_summary "$step_tests_named" "$work_dir/changed-files" "$step_tests_varied")"
           break
         fi
         step_fix_round=$((step_fix_round + 1))
@@ -276,7 +294,17 @@ $step_tests_failing"
         else
           step_fix_ask="Fix it — your own tests and any existing test the change broke. $step_fix_how Then report done. Round $step_fix_round of $step_fix_rounds."
         fi
-        printf '%s\n' "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$step_tests_failing" "" \
+        # The failing tests by name when the output named them; the lines
+        # that say why go with them only when no name carries a file (a
+        # turbo task, a bare bun test), since the name alone says too little.
+        step_fix_what="$step_tests_failing"
+        if jq -e '.tests | length > 0' "$step_tests_named" >/dev/null 2>&1; then
+          step_fix_what="$(failing_tests_list "$step_tests_named")"
+          jq -e 'any(.files[]; . != "")' "$step_tests_named" >/dev/null 2>&1 || step_fix_what="$step_fix_what
+
+$step_tests_failing"
+        fi
+        printf '%s\n' "The project's test suite is red on what you delivered. The runner ran it itself; this is what failed:" "" "$step_fix_what" "" \
           "$step_fix_ask" > "$work_dir/prompt-fix-$step_fix_round"
         # The same argv, resumed: the session the step's own turns ran in.
         resume_argv "$session_out"

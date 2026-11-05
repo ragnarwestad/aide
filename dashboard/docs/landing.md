@@ -173,6 +173,13 @@ commands the change calls for and runs them through `aide-record-test-run`.
   STOPS with `errorReason: tests-red` and `stopReason: tests-red`, amber and not red. The same commands then run once on
   the default branch alone (`redOnDefaultBranch`); red there too, the sentence says main is red as well, and archive
   merges the work once main is green again.
+- Green on main alone, the sentence names the failing tests, read from the output by the same rules as a step's own
+  run (`src/format/failing-tests.ts`, pinned to the runner's `failing-tests.sh` by
+  `core/tests/fixtures/failing-tests.json`). The same tests on both runs: the merge broke them. Different tests on the
+  two runs: that points to unstable tests or a busy machine, and only then does the sentence say to press Archive again
+  when the machine is quieter. No test named: the sentence says the tests are red on the merge and green on main
+  alone. Each outcome is a message in the board's catalogue, in the reader's language; the test output is the detail
+  behind it, without the recorder's JSON line and cut at a line.
 - The landing writes its test run into the step's Log, under "tests and commit": when it starts, green or red, the
   run once more, the run on main, and a run it skipped.
 

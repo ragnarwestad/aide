@@ -1,0 +1,188 @@
+{
+  "_about": "Test output and the failing tests read from it. Pins core/scripts/lib/run-spec/turn/failing-tests.sh and dashboard/src/format/failing-tests.ts to the same answers.",
+  "cases": [
+    {
+      "name": "Playwright under pnpm: the failed list, not pnpm's box or the recorder's line; flaky ones are not failures",
+      "log": [
+        "> @skjera/web@0.0.0 test:e2e /x/code/packages/web",
+        "\u001b[1A\u001b[2K[150/157] [chromium] › e2e/specs/teams.spec.ts:242:1 › a team's events are searched",
+        "  1) [chromium] › e2e/specs/tags.spec.ts:19:1 › events are tagged, and the site groups and filters them ───",
+        "    Error: expect(locator).toBeVisible() failed",
+        "  \u001b[31m2 failed\u001b[39m",
+        "    \u001b[31m[chromium] › e2e/specs/tags.spec.ts:19:1 › events are tagged, and the site groups and filters them \u001b[39m",
+        "    [chromium] › e2e/specs/teams.spec.ts:242:1 › a team's events are searched by title and tags, and ordered (AC-1, AC-2, AC-4) ",
+        "  \u001b[33m2 flaky\u001b[39m",
+        "    [chromium] › e2e/specs/login.spec.ts:8:1 › a user logs in ",
+        "    [chromium] › e2e/specs/menu.spec.ts:30:1 › the menu opens ",
+        "  \u001b[32m151 passed\u001b[39m\u001b[2m (5.8m)\u001b[22m",
+        "/x/code/packages/web:",
+        " ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command failed with exit code 1: playwright test",
+        "Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL",
+        "× \"pnpm recursive exec\" failed in /x/code",
+        "{\"ok\":true,\"exitCode\":1,\"commit\":\"abc\",\"command\":\"pnpm -r exec playwright test\",\"terminalReason\":\"recorded\"}"
+      ],
+      "tests": [
+        "e2e/specs/tags.spec.ts:19 › events are tagged, and the site groups and filters them",
+        "e2e/specs/teams.spec.ts:242 › a team's events are searched by title and tags, and ordered (AC-1, AC-2, AC-4)"
+      ],
+      "files": [
+        "e2e/specs/tags.spec.ts",
+        "e2e/specs/teams.spec.ts"
+      ],
+      "failed": 2,
+      "total": 155
+    },
+    {
+      "name": "Playwright with no projects and a describe block, a retry mark dropped",
+      "log": [
+        "  1 failed",
+        "    e2e/x.spec.ts:5:3 › signing up › a new member gets a mail (retry #1)",
+        "  9 passed (12.4s)"
+      ],
+      "tests": [
+        "e2e/x.spec.ts:5 › signing up › a new member gets a mail"
+      ],
+      "files": [
+        "e2e/x.spec.ts"
+      ],
+      "failed": 1,
+      "total": 10
+    },
+    {
+      "name": "vitest: its FAIL lines once each, and the Tests line, not the Test Files line",
+      "log": [
+        " ❯ test/x.test.ts (5 tests | 2 failed) 30ms",
+        "   × suite > first 5ms",
+        "\u001b[31m⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯\u001b[39m",
+        " \u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m test/x.test.ts > suite > first",
+        "AssertionError: expected 1 to be 2",
+        " FAIL  test/x.test.ts > suite > second",
+        " FAIL  test/x.test.ts > suite > first",
+        " Test Files  1 failed | 3 passed (4)",
+        "      Tests  2 failed | 38 passed | 2 skipped (42)"
+      ],
+      "tests": [
+        "test/x.test.ts › suite > first",
+        "test/x.test.ts › suite > second"
+      ],
+      "files": [
+        "test/x.test.ts",
+        "test/x.test.ts"
+      ],
+      "failed": 2,
+      "total": 40
+    },
+    {
+      "name": "bun: the file is the heading above the (fail) line, and the timing is dropped",
+      "log": [
+        "test/a.test.ts:",
+        "(pass) a > works [0.20ms]",
+        "(fail) a > breaks [5.00ms]",
+        "",
+        "test/b.test.ts:",
+        "(fail) b > also breaks [1.10ms]",
+        "",
+        " 40 pass",
+        " 2 fail",
+        "Ran 42 tests across 3 files. [1.20s]"
+      ],
+      "tests": [
+        "test/a.test.ts › a > breaks",
+        "test/b.test.ts › b > also breaks"
+      ],
+      "files": [
+        "test/a.test.ts",
+        "test/b.test.ts"
+      ],
+      "failed": 2,
+      "total": 42
+    },
+    {
+      "name": "bun under the dashboard's runner: a failure said live and again in full is one test, and several summaries give no count",
+      "log": [
+        "(fail) a > breaks [5.00ms]",
+        "--- worker 0 is RED  (1 still running)",
+        "--- worker 0, in full:",
+        "test/a.test.ts:",
+        "(fail) a > breaks [5.00ms]",
+        " 10 pass",
+        " 1 fail",
+        "--- worker 1  Ran 30 tests across 4 files.",
+        " 30 pass",
+        " 0 fail"
+      ],
+      "tests": [
+        "test/a.test.ts › a > breaks"
+      ],
+      "files": [
+        "test/a.test.ts"
+      ],
+      "failed": 1
+    },
+    {
+      "name": "pytest: FAILED and ERROR with a test id, the message dropped; a stray ERROR line is not a test",
+      "log": [
+        "ERROR: could not reach the cache",
+        "tests/test_x.py:12: AssertionError",
+        "FAILED tests/test_x.py::test_a - assert 1 == 2",
+        "ERROR tests/test_y.py::test_b[param] - fixture 'db' not found",
+        "==== 1 failed, 40 passed, 1 error in 3.21s ===="
+      ],
+      "tests": [
+        "tests/test_x.py::test_a",
+        "tests/test_y.py::test_b[param]"
+      ],
+      "files": [
+        "tests/test_x.py",
+        "tests/test_y.py"
+      ],
+      "failed": 2,
+      "total": 42
+    },
+    {
+      "name": "turbo: a package's own test lines, less the package prefix",
+      "log": [
+        "@x/email:test: test/a.test.ts:",
+        "@x/email:test: (fail) mail > is sent [3.00ms]",
+        "@x/email:test:  3 pass",
+        "@x/email:test:  1 fail",
+        " Tasks:    7 successful, 8 total",
+        "Failed:    @x/email#test"
+      ],
+      "tests": [
+        "test/a.test.ts › mail > is sent"
+      ],
+      "files": [
+        "test/a.test.ts"
+      ],
+      "failed": 1,
+      "total": 4
+    },
+    {
+      "name": "turbo with no test named: the failed task stands for it",
+      "log": [
+        "@x/email:test: Error response from daemon: ports are not available: bind: address already in use",
+        " Tasks:    7 successful, 8 total",
+        "Failed:    @x/email#test"
+      ],
+      "tests": [
+        "@x/email#test"
+      ],
+      "files": [
+        ""
+      ],
+      "failed": 1
+    },
+    {
+      "name": "nothing named: pnpm's box and the recorder's line are not tests",
+      "log": [
+        "151 passed (5.8m)",
+        "Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL",
+        "× \"pnpm recursive exec\" failed in /x/code",
+        "{\"ok\":true,\"exitCode\":1,\"terminalReason\":\"recorded\"}"
+      ],
+      "tests": [],
+      "files": []
+    }
+  ]
+}

@@ -57,7 +57,7 @@ test("red on main as well: the sentence says the failure is not the spec's", asy
   recorder("always");
   const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x");
   expect(verdict.ok).toBe(false);
-  expect(verdict.error).toContain("red on main as well");
+  expect(verdict.error).toEqual({ key: "landing.testsRedOnMainToo", values: { branch: "aide/81-x", button: "Archive" } });
 }, 30_000);
 
 test("green on main: the sentence is the ordinary one, about this merge", async () => {
@@ -65,6 +65,8 @@ test("green on main: the sentence is the ordinary one, about this merge", async 
   recorder("with the spec");
   const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x");
   expect(verdict.ok).toBe(false);
-  expect(verdict.error).toContain("red on this merge");
-  expect(verdict.error).not.toContain("red on main as well");
+  expect(verdict.error).toEqual({
+    key: "landing.testsRedOnMerge",
+    values: { tests: "a test", branch: "aide/81-x", button: "Archive" },
+  });
 }, 30_000);
