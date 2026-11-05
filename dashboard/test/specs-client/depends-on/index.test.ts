@@ -9,7 +9,7 @@ import { Window } from "happy-dom";
 import type { SpecTarget } from "../../../src/render";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
 import { dependsOnFormId, dependsOnLine } from "../../../src/render/pages/specs-list/depends-on";
-import { cancelDependsOn, pickDependency, pickSetting, resetCards } from "../../../src/specs-client/depends-on";
+import { cancelDependsOn, pickSetting, resetCards } from "../../../src/specs-client/depends-on";
 import { chosen, chosenSteps } from "../../../src/specs-client/state.ts";
 import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
 import { row as jobRow } from "../../render/pages/fixtures.ts";
@@ -67,7 +67,7 @@ function tick(rows: HTMLElement, folder: string, dependency: string, on = true):
   const b = box(rows, folder, dependency);
   b.checked = on;
   b.dispatchEvent(new Event("change", { bubbles: true }));
-  pickDependency(b);
+  pickSetting(b);
 }
 
 describe("the Depends on picker's ticks", () => {

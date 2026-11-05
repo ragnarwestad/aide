@@ -4,7 +4,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { parsePendingModels, parsePendingSteps, persistPendingModels, persistPendingSteps } from "../persist.ts";
+import { parsePendingModels, parsePendingSteps, persistPendingModels } from "../persist.ts";
 
 function loadTable<T extends object>(path: string | undefined, parse: (raw: unknown) => T | null | undefined, into: T): void {
   if (!path || !existsSync(path)) return;
@@ -22,13 +22,10 @@ export const loadPendingModels = (path: string | undefined, into: Record<string,
 export const loadPendingSteps = (path: string | undefined, into: Record<string, string[]>): void =>
   loadTable(path, parsePendingSteps, into);
 
-export function savePendingModels(path: string | undefined, table: Record<string, Record<string, string>>): void {
+export function savePendingTable(path: string | undefined, table: Record<string, unknown>): void {
   if (path) persistPendingModels(path, table);
 }
 
-export function savePendingSteps(path: string | undefined, table: Record<string, string[]>): void {
-  if (path) persistPendingSteps(path, table);
-}
 
 /** Where the providers picked beside the pending models are kept: a file of
  *  its own beside `pending-models.json`, so nothing that hands the store

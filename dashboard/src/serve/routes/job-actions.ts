@@ -1,30 +1,15 @@
 // The job-level API routes: listing/creating a job at /api/queue,
 // cancel, dismiss, and the two tail-edit routes (steps, model). Extracted
 // from routes.ts (split of split serve.ts step 2).
-import { readFileSync } from "node:fs";
+import { proseSteps } from "../../project/discover/spec-files.ts";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { cancelLanding } from "../land-branch/cancel-landing.ts";
-import { join } from "node:path";
 import { readSpecState } from "../../project/parse-spec-state.ts";
-import { parseStatus } from "../../project/parse-status";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { isDeployJob } from "../../queue/queue.ts";
 import { jobDismissible } from "../../render/pages/jobs-page/rows.ts";
 import { bodyToObject, json, logRefusal, readBounded } from "../serve-helpers";
 import type { RoutesContext } from "./";
-
-// A spec analyzed before the state file existed carries no 4-status.json yet —
-// the same gap schedules.ts's own `proseSteps` falls back for
-// (`blockedForMissingAnalyze`'s doc comment). Reading that absence as
-// "nothing has run" would refuse this spec's own, perfectly legal next
-// step, so the prose line is the fallback here too.
-function proseSteps(dir: string): string[] {
-  try {
-    return parseStatus(readFileSync(join(dir, "4-status.md"), "utf-8")).workflowSteps;
-  } catch {
-    return [];
-  }
-}
 
 /** The steps a spec's phase moves through: the ones the run route checks
  *  against the transition table. */

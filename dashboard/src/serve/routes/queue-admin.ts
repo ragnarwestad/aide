@@ -2,7 +2,7 @@
 // queue's model defaults, and add/settings/remove
 // for a project. Extracted from routes.ts (split of split
 // serve.ts step 2).
-import { realpathSync } from "node:fs";
+import { realPathOrOriginal as realpathOr } from "../../git/real-path.ts";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
@@ -468,10 +468,3 @@ function manifestSaver(ctx: RoutesContext, name: string): SaveManifest {
 
 /** The directory a path resolves to, or the path itself when it cannot
  *  be resolved — the lock key a landing into the same checkout uses. */
-function realpathOr(path: string): string {
-  try {
-    return realpathSync(path);
-  } catch {
-    return path;
-  }
-}

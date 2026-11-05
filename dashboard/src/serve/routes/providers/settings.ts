@@ -4,6 +4,7 @@
 // the write succeeded, the order the model choices follow
 // (`settings-models.ts`); a refusal changes neither.
 
+import { trimmedText as text } from "../../serve-helpers/http.ts";
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { persistQueueSettings } from "../../../queue/queue.ts";
@@ -14,22 +15,11 @@ import {
 import { PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE } from "../../../render";
 import { TOOL_NAMES } from "../../../render/pages/specs-list/index.ts";
 import { readProviderStatus } from "../../providers/status.ts";
-import { bodyToObject, json, readBounded } from "../../serve-helpers";
+import { json, parseBody } from "../../serve-helpers";
 import { prepareShadowHome } from "../../providers/shadow-home.ts";
 import type { RoutesContext } from "../";
 
-const text = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 const refuse = (error: string): Response => json({ error }, 400);
-
-async function parseBody(req: Request): Promise<Record<string, unknown> | Response> {
-  const body = await readBounded(req);
-  if ("refusal" in body) return body.refusal;
-  try {
-    return (bodyToObject(body.text, req.headers.get("content-type")) ?? {}) as Record<string, unknown>;
-  } catch {
-    return json({ error: "malformed body" }, 400);
-  }
-}
 
 /** The key whose name is this one, in any case. */
 const nameTaken = (providers: Record<string, Provider>, name: string, except?: string): string | undefined =>

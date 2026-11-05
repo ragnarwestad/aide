@@ -1,6 +1,9 @@
 // State labels, durations, the state chip, and "is this job still
 // going".
 
+import { durationLabel } from "../../../format/duration.ts";
+export { durationLabel };
+
 import { badge, helpPopover, type BadgeVariant } from "../components";
 import { esc } from "../html.ts";
 import { renderSentence } from "../../../i18n/message.ts";
@@ -27,36 +30,6 @@ const STATE_LABEL_KEYS: Record<Exclude<QueueRowView["state"], "stopped">, Transl
  *  after the word. */
 export function stateWord(r: QueueRowView, lang: Language = "en"): string {
   return r.state === "stopped" ? t(lang, "state.stopped") : t(lang, STATE_LABEL_KEYS[r.state]);
-}
-
-/** How long, in words. "45s", "4m12s", "1h04m" — the unit
- *  above the one being read is always there, so two figures beside each
- *  other compare without anyone counting digits.
- *
- *  Seconds are dropped past the hour on purpose: a step that ran for
- *  two hours is not a figure anybody reads to the second, and the
- *  column it sits in is the narrowest on the page.
- *
- *  HAND-PAIRED with `formatElapsed` in `src/specs-client/elapsed.ts`,
- *  which rewrites a running phase's mark once a second and cannot
- *  import this one — it runs in the browser, bundled from a separate
- *  entry point, not in the same process as this file. The two are
- *  pinned by `test/specs-client/live-redraw.test.ts`, "the page words a
- *  duration exactly as the server does". Change one and
- *  change the other, or a phase changes its wording the first time the
- *  clock ticks over the figure the server drew. */
-export function durationLabel(ms: number): string {
-  // A genuinely positive span never rounds down to "0s" —
-  // that reads as "nothing recorded", indistinguishable from a
-  // phase the queue never measured at all.
-  const secs = ms > 0 ? Math.max(1, Math.round(ms / 1000)) : 0;
-  if (secs < 60) return `${secs}s`;
-  const pad = (n: number): string => String(n).padStart(2, "0");
-  // A space between the two parts (2026-09-08): "15m44s" reads as one
-  // run-on token in a narrow column, and the eye has to break it up
-  // before it can be compared with the row above.
-  if (secs < 3600) return `${Math.floor(secs / 60)}m ${pad(secs % 60)}s`;
-  return `${Math.floor(secs / 3600)}h ${pad(Math.floor((secs % 3600) / 60))}m`;
 }
 
 // A wall of identical grey rows hides the one thing you came to see.

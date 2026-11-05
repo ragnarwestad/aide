@@ -267,3 +267,15 @@ export function bodyToObject(text: string, contentType: string | null): unknown 
   }
   return JSON.parse(text) as unknown;
 }
+
+export async function parseBody(req: Request): Promise<Record<string, unknown> | Response> {
+  const body = await readBounded(req);
+  if ("refusal" in body) return body.refusal;
+  try {
+    return (bodyToObject(body.text, req.headers.get("content-type")) ?? {}) as Record<string, unknown>;
+  } catch {
+    return json({ error: "malformed body" }, 400);
+  }
+}
+
+export const trimmedText = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
