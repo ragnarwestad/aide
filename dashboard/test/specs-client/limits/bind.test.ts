@@ -10,20 +10,21 @@ afterEach(async () => {
   win = undefined;
 });
 
-/** A page with one Title, one Description and a Close reason, script bound. */
-function load(body = "", opts: { title?: string; description?: string } = {}) {
+/** A page with one Title, a field cut at 5,000, a Description that is counted and never cut, and a Close reason, script bound. */
+function load(body = "", opts: { title?: string; body?: string; bound?: string } = {}) {
   win = new Window();
   win.document.write(
     `<form>` +
       `<input type="text" name="title" maxlength="120" value="${opts.title ?? ""}">` +
-      `<textarea name="description" maxlength="5000">${opts.description ?? ""}</textarea>` +
+      `<textarea name="body" maxlength="5000">${opts.body ?? ""}</textarea>` +
+      `<textarea name="description" data-bound="10000">${opts.bound ?? ""}</textarea>` +
       `<textarea name="reason" data-maxlength="5000"></textarea>` +
       `</form>${body}`,
   );
   const doc = win.document as unknown as Document;
   bindLimits(doc);
   const q = <T extends Field>(name: string) => doc.querySelector(`[name="${name}"]`) as unknown as T;
-  return { win, doc, title: q<HTMLInputElement>("title"), description: q<HTMLTextAreaElement>("description"), reason: q<HTMLTextAreaElement>("reason") };
+  return { win, doc, title: q<HTMLInputElement>("title"), body: q<HTMLTextAreaElement>("body"), description: q<HTMLTextAreaElement>("description"), reason: q<HTMLTextAreaElement>("reason") };
 }
 
 const count = (f: Field) => f.nextElementSibling as HTMLElement;
@@ -51,7 +52,7 @@ describe("the count", () => {
   test("is drawn at load, prefilled text included, and follows typing", () => {
     const h = load("", { title: "x".repeat(40) });
     expect(count(h.title).textContent).toBe("40 of 120 characters");
-    expect(count(h.description).textContent).toBe("0 of 5000 characters");
+    expect(count(h.body).textContent).toBe("0 of 5000 characters");
     type(h.win, h.title, "hello");
     expect(count(h.title).textContent).toBe("5 of 120 characters");
   });
@@ -83,12 +84,12 @@ describe("the count", () => {
 
 describe("the discarded-text line", () => {
   test("after a paste the field cut, says how many did not fit", async () => {
-    const h = load("", { description: "x".repeat(4950) });
-    await paste(h.win, h.description, "y".repeat(100), "y".repeat(50));
-    expect(note(h.description).textContent).toContain("50 characters did not fit");
-    expect(note(h.description).textContent).toContain("5000");
-    expect(count(h.description).textContent).toBe("5000 of 5000 characters, 0 left");
-    expect(note(h.description).getAttribute("role")).toBe("status");
+    const h = load("", { body: "x".repeat(4950) });
+    await paste(h.win, h.body, "y".repeat(100), "y".repeat(50));
+    expect(note(h.body).textContent).toContain("50 characters did not fit");
+    expect(note(h.body).textContent).toContain("5000");
+    expect(count(h.body).textContent).toBe("5000 of 5000 characters, 0 left");
+    expect(note(h.body).getAttribute("role")).toBe("status");
   });
 
   test("a paste over a selection counts what the selection made room for", async () => {
@@ -108,58 +109,97 @@ describe("the discarded-text line", () => {
   });
 
   test("a pasted text with CRLF line breaks is measured as LF", async () => {
-    const h = load("", { description: "x".repeat(4990) });
+    const h = load("", { body: "x".repeat(4990) });
     // "a\r\nb\r\nc" is 7 units, 5 once folded; the field takes all 5 and ends at 4995.
-    await paste(h.win, h.description, "a\r\nb\r\nc", "a\nb\nc");
-    expect(note(h.description).textContent).toBe("");
+    await paste(h.win, h.body, "a\r\nb\r\nc", "a\nb\nc");
+    expect(note(h.body).textContent).toBe("");
   });
 
   test("a drop from outside is reported; a drop of text dragged within the same field is not", async () => {
-    const h = load("", { description: "x".repeat(5000) });
-    fire(h.win, h.description, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
+    const h = load("", { body: "x".repeat(5000) });
+    fire(h.win, h.body, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
     await tick();
-    expect(note(h.description).textContent).toContain("30 characters did not fit");
-    type(h.win, h.description, "x".repeat(4999));
-    expect(note(h.description).textContent).toBe("");
-    type(h.win, h.description, "x".repeat(5000));
-    fire(h.win, h.description, "dragstart");
-    fire(h.win, h.description, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
+    expect(note(h.body).textContent).toContain("30 characters did not fit");
+    type(h.win, h.body, "x".repeat(4999));
+    expect(note(h.body).textContent).toBe("");
+    type(h.win, h.body, "x".repeat(5000));
+    fire(h.win, h.body, "dragstart");
+    fire(h.win, h.body, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
     await tick();
-    expect(note(h.description).textContent).toBe("");
+    expect(note(h.body).textContent).toBe("");
   });
 
   test("a cancelled drag does not hide a later drop from outside", async () => {
-    const h = load("", { description: "x".repeat(5000) });
-    fire(h.win, h.description, "dragstart");
-    fire(h.win, h.description, "dragend");
-    fire(h.win, h.description, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
+    const h = load("", { body: "x".repeat(5000) });
+    fire(h.win, h.body, "dragstart");
+    fire(h.win, h.body, "dragend");
+    fire(h.win, h.body, "drop", { dataTransfer: { getData: () => "z".repeat(30) } });
     await tick();
-    expect(note(h.description).textContent).toContain("30 characters did not fit");
+    expect(note(h.body).textContent).toContain("30 characters did not fit");
   });
 
   test("goes when one character is deleted, but stays through an edit that keeps the length", async () => {
-    const h = load("", { description: "x".repeat(4950) });
-    await paste(h.win, h.description, "y".repeat(100), "y".repeat(50));
-    expect(note(h.description).textContent).not.toBe("");
-    type(h.win, h.description, "z".repeat(5000));
-    expect(note(h.description).textContent).not.toBe("");
-    type(h.win, h.description, "z".repeat(4999));
-    expect(note(h.description).textContent).toBe("");
+    const h = load("", { body: "x".repeat(4950) });
+    await paste(h.win, h.body, "y".repeat(100), "y".repeat(50));
+    expect(note(h.body).textContent).not.toBe("");
+    type(h.win, h.body, "z".repeat(5000));
+    expect(note(h.body).textContent).not.toBe("");
+    type(h.win, h.body, "z".repeat(4999));
+    expect(note(h.body).textContent).toBe("");
   });
 
   test("goes when a later paste is not cut", async () => {
-    const h = load("", { description: "x".repeat(4950) });
-    await paste(h.win, h.description, "y".repeat(100), "y".repeat(50));
-    expect(note(h.description).textContent).not.toBe("");
-    h.description.value = "x".repeat(100);
-    await paste(h.win, h.description, "y".repeat(10), "y".repeat(10));
-    expect(note(h.description).textContent).toBe("");
+    const h = load("", { body: "x".repeat(4950) });
+    await paste(h.win, h.body, "y".repeat(100), "y".repeat(50));
+    expect(note(h.body).textContent).not.toBe("");
+    h.body.value = "x".repeat(100);
+    await paste(h.win, h.body, "y".repeat(10), "y".repeat(10));
+    expect(note(h.body).textContent).toBe("");
   });
 
   test("the Close reason reports an overflowing paste the way the Description does", async () => {
     const h = load();
     await paste(h.win, h.reason, "y".repeat(5100), "y".repeat(5000));
     expect(note(h.reason).textContent).toContain("100 characters did not fit");
+  });
+});
+
+describe("a field bounded by data-bound is counted and never cut", () => {
+  const over = (n: number) => "x".repeat(10000 + n);
+
+  test("carries no maxLength, and the count reads against the bound it names (AC-2, AC-3)", () => {
+    const h = load("", { bound: "x".repeat(37) });
+    expect(h.description.hasAttribute("maxlength")).toBe(false);
+    expect(h.description.maxLength).toBe(-1);
+    expect(count(h.description).textContent).toBe("37 of 10000 characters");
+  });
+
+  test("past the bound the count is over, the field invalid and the note says how many too many (AC-4)", () => {
+    const h = load();
+    type(h.win, h.description, over(120));
+    expect(count(h.description).getAttribute("data-limit")).toBe("over");
+    expect(h.description.getAttribute("aria-invalid")).toBe("true");
+    expect(note(h.description).textContent).toContain("120");
+    expect((h.description.form as unknown as HTMLFormElement).checkValidity()).toBe(false);
+  });
+
+  test("shortened to the bound, the mark, the note and the hold are gone (AC-4)", () => {
+    const h = load();
+    type(h.win, h.description, over(120));
+    type(h.win, h.description, "x".repeat(10000));
+    expect(count(h.description).getAttribute("data-limit")).not.toBe("over");
+    expect(h.description.hasAttribute("aria-invalid")).toBe(false);
+    expect(note(h.description).textContent).toBe("");
+    expect((h.description.form as unknown as HTMLFormElement).checkValidity()).toBe(true);
+  });
+
+  test("a further paste keeps all of it and leaves the over sentence in place (AC-2, AC-4)", async () => {
+    const h = load("", { bound: over(20) });
+    refreshLimit(h.description);
+    await paste(h.win, h.description, "y".repeat(100), "y".repeat(100));
+    expect(h.description.value.length).toBe(10120);
+    expect(note(h.description).textContent).toContain("120");
+    expect(h.description.getAttribute("aria-invalid")).toBe("true");
   });
 });
 
@@ -170,7 +210,7 @@ describe("drawLimits", () => {
     const { doc } = load();
     drawLimits(doc);
     drawLimits(doc);
-    for (const name of ["title", "description", "reason"]) {
+    for (const name of ["title", "body", "description", "reason"]) {
       const f = doc.querySelector(`[name="${name}"]`) as unknown as Field;
       expect(count(f).hasAttribute("data-limit")).toBe(true);
       expect(note(f).hasAttribute("data-limit-note")).toBe(true);

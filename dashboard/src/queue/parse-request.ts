@@ -10,6 +10,7 @@
 //     something an HTTP body gets to decide
 
 import { errorSentence } from "../format/error-sentence.ts";
+import { DESCRIPTION_MAX } from "../project/description-bound.ts";
 import { parseCreateChoices } from "./create-choices.ts";
 import { listedModelName } from "./model-name.ts";
 import { parseProviderPick } from "./providers/parse.ts";
@@ -246,8 +247,8 @@ export function parseJobRequest(
     // A form posts a textarea's line break as CRLF, and the field counts it as
     // one character: fold it as `text()` does, or a reason the field holds
     // at its bound is refused here.
-    if (r.closeReason.replace(/\r\n?/g, "\n").length > DESCRIPTION_MAX) {
-      return { ok: false, error: invalidRequest(`closeReason may be at most ${DESCRIPTION_MAX} characters`) };
+    if (r.closeReason.replace(/\r\n?/g, "\n").length > CLOSE_REASON_MAX) {
+      return { ok: false, error: invalidRequest(`closeReason may be at most ${CLOSE_REASON_MAX} characters`) };
     }
     closeReason = r.closeReason.trim();
   }
@@ -310,7 +311,9 @@ export function parseJobRequest(
  *  criteria, and 2,000 characters cut a spec of eleven criteria off in
  *  the middle (2026-09-20). */
 export const TITLE_MAX = 120;
-export const DESCRIPTION_MAX = 5000;
+export { DESCRIPTION_MAX };
+/** A Close reason's bound: its own, so the description's can move without it. */
+export const CLOSE_REASON_MAX = 5000;
 
 /** Anything a terminal, an argv or a prompt would read as structure. A
  *  newline is allowed in the description and nowhere else: a description

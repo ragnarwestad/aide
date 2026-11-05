@@ -393,7 +393,7 @@ event attributes are removed and the board's tokens put in their place. The file
 entry's own project, with no step after Create. A proposal is skipped, with the reason on the run's page, when its title
 equals (after trimming, collapsing spaces and lowercasing) a spec of the project (active, archived or closed) or of a
 Create job already queued, running or done; when its title is empty, runs over one line or is longer than 120
-characters; or when its description does not fit in 5,000 characters together with the source paragraph the board adds.
+characters; or when its description does not fit in 10,000 characters together with the source paragraph the board adds.
 Closing a proposed spec with a reason is how it is declined; its title keeps it from being created again. The board
 writes what it did to `proposed-specs-result.json` beside the report, and the entry's Overview tab lists it. A list that
 cannot be read, or a project whose specs the board cannot read, creates nothing and says so there.

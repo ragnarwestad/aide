@@ -3,11 +3,13 @@
 //
 // A bounded field is a text input or a textarea carrying `maxlength`, or
 // `data-maxlength` where the server holds the bound and the browser is not to
-// (a Close reason, refused by the server when script is off). The count and
-// the line are drawn here, not by the server, so a page with script off is
-// exactly what it was.
+// (a Close reason, refused by the server when script is off). A textarea
+// carrying `data-bound` is counted and never cut: past its bound it is marked
+// over, says how many characters too many it holds, and holds its form back
+// from submitting. The count and the line are drawn here, not by the server,
+// so a page with script off is exactly what it was.
 
-import { countText, discarded, discardedText, ended, limitState } from "./measure.ts";
+import { countText, discarded, discardedText, ended, limitState, overText } from "./measure.ts";
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 interface Drawn {
@@ -17,14 +19,17 @@ interface Drawn {
 }
 
 const BOUNDED =
-  'input[type="text"][maxlength], textarea[maxlength], input[type="text"][data-maxlength], textarea[data-maxlength]';
+  'input[type="text"][maxlength], textarea[maxlength], input[type="text"][data-maxlength], textarea[data-maxlength], textarea[data-bound]';
 
 const drawn = new WeakMap<Field, Drawn>();
 
+/** A field that is counted against its bound and never cut. */
+const isUncut = (field: Field): boolean => field.hasAttribute("data-bound");
+
 function draw(doc: Document, field: Field): void {
-  const bound = Number(field.getAttribute("maxlength") ?? field.dataset.maxlength);
+  const bound = Number(field.getAttribute("maxlength") ?? field.dataset.maxlength ?? field.dataset.bound);
   if (!Number.isFinite(bound) || bound <= 0) return;
-  if (!field.hasAttribute("maxlength")) field.maxLength = bound;
+  if (!field.hasAttribute("maxlength") && !isUncut(field)) field.maxLength = bound;
   const count = doc.createElement("span");
   const note = doc.createElement("span");
   note.setAttribute("data-limit-note", "");
@@ -43,7 +48,25 @@ export function refreshLimit(field: Field): void {
   const length = field.value.length;
   d.count.textContent = countText(length, d.bound);
   d.count.setAttribute("data-limit", limitState(length, d.bound));
+  if (isUncut(field)) return markOver(field, d, length);
   if (length < d.bound) d.note.textContent = "";
+}
+
+/** Mark a field that is never cut as over, or clear the mark. An invalid field
+ *  is what makes the browser refuse to submit its form. */
+function markOver(field: Field, d: Drawn, length: number): void {
+  if (length > d.bound) {
+    const sentence = overText(length - d.bound, d.bound);
+    field.setAttribute("aria-invalid", "true");
+    field.setCustomValidity(sentence);
+    d.note.textContent = sentence;
+    d.note.setAttribute("data-over", "");
+  } else {
+    field.removeAttribute("aria-invalid");
+    field.setCustomValidity("");
+    d.note.textContent = "";
+    d.note.removeAttribute("data-over");
+  }
 }
 
 const fieldOf = (e: Event): Field | null => {
@@ -88,7 +111,7 @@ export function bindLimits(doc: Document): void {
   });
   doc.addEventListener("paste", (e) => {
     const field = fieldOf(e);
-    if (!field) return;
+    if (!field || isUncut(field)) return;
     const text = (e as ClipboardEvent).clipboardData?.getData("text") ?? "";
     watch(field, fold(field, text), Math.abs((field.selectionEnd ?? 0) - (field.selectionStart ?? 0)));
   });
@@ -102,7 +125,7 @@ export function bindLimits(doc: Document): void {
   });
   doc.addEventListener("drop", (e) => {
     const field = fieldOf(e);
-    if (field && field !== dragged) {
+    if (field && !isUncut(field) && field !== dragged) {
       const text = (e as DragEvent).dataTransfer?.getData("text") ?? "";
       watch(field, fold(field, text), 0);
     }

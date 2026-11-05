@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type Job } from "../../src/queue/queue.ts";
 import { proposeSpecs, type ProposeDeps } from "../../src/queue/propose-specs.ts";
+import { DESCRIPTION_MAX } from "../../src/queue/parse-request.ts";
 import { PROPOSALS_FILE, PROPOSALS_RESULT_FILE, readProposalsRecord } from "../../src/queue/spec-proposals.ts";
 import { scheduleRunOutputDir } from "../../src/queue/schedule.ts";
 
@@ -167,8 +168,8 @@ describe("proposeSpecs", () => {
 
   test("a description too long to leave room for the source block is skipped, one that fits is created", () => {
     leave([
-      { title: "Too long", description: "x".repeat(5000) },
-      { title: "Fits", description: "x".repeat(4500) },
+      { title: "Too long", description: "x".repeat(DESCRIPTION_MAX) },
+      { title: "Fits", description: "x".repeat(DESCRIPTION_MAX - 500) },
     ]);
     proposeSpecs(deps(), runJob());
     expect(queued().map((j) => j.createTitle)).toEqual(["Fits"]);

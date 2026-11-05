@@ -3,10 +3,10 @@
 // the editor's text, and a refusal is shown on the page with the text kept.
 
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { chromium, type Browser } from "playwright";
 import { browserDeadline } from "../helpers/browser-deadline.ts";
-import { DESCRIPTION, DESCRIPTION_TAB, PAGE, SPEC, createSpecSaveHarness, descriptionPath, savable } from "../spec-page/spec-save-fixtures.ts";
+import { ANALYSIS_TAB, DESCRIPTION, DESCRIPTION_TAB, PAGE, SPEC, createSpecSaveHarness, descriptionPath, fillAnalysisAndSolution, savable, specFilePath } from "../spec-page/spec-save-fixtures.ts";
 
 browserDeadline();
 
@@ -68,5 +68,47 @@ test("a refused Save shows why on the page and keeps the typed text in the edito
   );
   expect(await editor.textContent()).toContain("Edited in the browser.");
   expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
+  await page.close();
+});
+
+const OVER_BY_50 = `# Queue and runner - Description\n\n## Description\n\n${"x".repeat(10_050)}\n\n*This description can be edited before /aide-analyze runs.*\n`;
+const NOTE = ".spec-editor-raw ~ [data-limit-note]";
+
+test("an over-bound description is counted under the editor while typing, and Save posts nothing (AC-5)", async () => {
+  const { base, dir } = harness.start({ description: OVER_BY_50, extra: { gitRun: savable("/host") } });
+  const page = await browser.newPage();
+  await page.goto(`${base}${DESCRIPTION_TAB}&live=0`);
+  const editor = page.locator("#spec-editor-host [contenteditable=true]:visible").first();
+  await editor.waitFor({ state: "visible" });
+  await editor.click();
+  await editor.pressSequentially(EDIT);
+  const posted: string[] = [];
+  await page.route("**/save", async (route) => {
+    posted.push(route.request().url());
+    await route.continue();
+  });
+  await page.waitForFunction((sel) => /too many/.test(document.querySelector(sel)?.textContent ?? ""), NOTE);
+  expect(await page.locator(NOTE).textContent()).toContain("10000");
+  await page.locator("#specform-save").click();
+  await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+  expect(posted).toEqual([]);
+  expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(OVER_BY_50);
+  await page.close();
+});
+
+test("the Analysis tab is not bounded: a long text is posted and no count is drawn under it (AC-5)", async () => {
+  const { base, dir } = start(savable("/host"));
+  fillAnalysisAndSolution(dir);
+  writeFileSync(specFilePath(dir, "2-analysis.md"), `# Q - Analysis\n\n${"a long line.\n\n".repeat(900)}`);
+  const page = await browser.newPage();
+  await page.goto(`${base}${ANALYSIS_TAB}&live=0`);
+  const editor = page.locator("#spec-editor-host [contenteditable=true]:visible").first();
+  await editor.waitFor({ state: "visible" });
+  await editor.click();
+  await editor.pressSequentially(EDIT);
+  const request = page.waitForRequest("**/save");
+  await page.locator("#specform-save").click();
+  await request;
+  expect(await page.locator(".spec-editor-raw ~ [data-limit]").count()).toBe(0);
   await page.close();
 });

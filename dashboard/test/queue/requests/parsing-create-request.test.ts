@@ -33,16 +33,15 @@ const resolve = (project: string) =>
 // and carries a provisional key until `/aide-create` decides the real
 // name.
 describe("parseCreateRequest", () => {
-  // A description holds a problem, a solution and an acceptance table:
-  // 2,000 characters cut a spec of eleven criteria off mid-sentence
-  // (2026-09-20), and the New-spec textarea dropped the rest silently.
-  test("a description of 5,000 characters is accepted, and one longer is refused", () => {
+  // A description holds a problem, a solution and an acceptance table, so it
+  // has room for eighteen criteria.
+  test("a description of 10,000 characters is accepted, and one longer is refused (AC-1)", () => {
     const at = (len: number) =>
       parseCreateRequest({ ...CREATE, description: "x".repeat(len) }, { allow, defaults: DEFAULTS });
-    expect(at(5000).ok).toBe(true);
-    const over = at(5001);
+    expect(at(10000).ok).toBe(true);
+    const over = at(10001);
     expect(over.ok).toBe(false);
-    if (!over.ok) expect(over.error).toContain("5000");
+    if (!over.ok) expect(over.error).toContain("10000");
   });
 
   // The bounds are named in the refusal, so a reader with script
@@ -53,10 +52,10 @@ describe("parseCreateRequest", () => {
     if (!r.ok) expect(r.error).toContain("120");
   });
 
-  test("a description of 5,001 characters is refused, naming 5000", () => {
-    const r = parseCreateRequest({ ...CREATE, description: "d".repeat(5001) }, { allow, defaults: DEFAULTS });
+  test("a description of 10,001 characters is refused, naming 10000 (AC-6)", () => {
+    const r = parseCreateRequest({ ...CREATE, description: "d".repeat(10001) }, { allow, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toContain("5000");
+    if (!r.ok) expect(r.error).toContain("10000");
   });
 
   const allow = (project: string) => project === "aide" || project === "brandnew";
@@ -104,7 +103,7 @@ describe("parseCreateRequest", () => {
       { ...CREATE, title: "" },
       { ...CREATE, title: "x".repeat(200) },
       { ...CREATE, description: "" },
-      { ...CREATE, description: "x".repeat(6000) },
+      { ...CREATE, description: "x".repeat(11000) },
       { ...CREATE, title: 7 },
       {},
     ]) {
@@ -483,7 +482,7 @@ describe("parseCreateRequest — chooseApproach", () => {
   });
 });
 
-// --- A close reason is held to the description's bound ---------------
+// --- A close reason has a bound of its own ---------------
 
 describe("a close request's reason", () => {
   const close = (closeReason: string) =>

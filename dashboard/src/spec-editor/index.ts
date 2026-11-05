@@ -30,6 +30,7 @@ import Editor from "@toast-ui/editor";
 import { unescapeMarkdown } from "./unescape-markdown.ts";
 import type { ToMdConvertorMap } from "@toast-ui/editor";
 import { scrollToApproach } from "./scroll-to-approach.ts";
+import { mountDescriptionCount } from "./description-count.ts";
 
 // The library exposes no constructor option for the mode
 // switch's position, and its own CSS assumes it sits last (rounded at
@@ -98,6 +99,11 @@ if (host && raw) {
   });
 
   host.dataset.mounted = "true";
+  // Only the Description tab is bounded: its count is drawn at mount, after
+  // a pause in typing, and again when Cancel puts the saved text back.
+  const descriptionCount = mountDescriptionCount(raw);
+  descriptionCount?.show(initialValue);
+  let countTimer: ReturnType<typeof setTimeout> | undefined;
   // A link from the Specs list to one approach of the plan.
   requestAnimationFrame(() => scrollToApproach(host, location.hash));
   // The library gives a toolbar button a "click" with no
@@ -133,14 +139,18 @@ if (host && raw) {
 
   // In the capture phase, so the text is in the form before the page
   // script's own submit listener on `body` reads it and posts the Save.
-  // No preventDefault(): posting it is that listener's.
+  // Posting it is that listener's.
   document.addEventListener(
     "submit",
     (event) => {
       // `unescapeMarkdown` is what keeps a pasted `## Requirements` a
       // heading rather than `\#\# Requirements` — see that file for why
       // the editor writes it that way and why these files want it back.
-      if (event.target === raw.form) raw.value = unescapeMarkdown(instance.getMarkdown());
+      if (event.target !== raw.form) return;
+      raw.value = unescapeMarkdown(instance.getMarkdown());
+      // A description over its bound is not posted: the page script's own
+      // listener steps aside for a prevented submit.
+      if (descriptionCount?.show(raw.value)) event.preventDefault();
     },
     true,
   );
@@ -151,11 +161,21 @@ if (host && raw) {
   // on every edit, which would re-serialize the whole ProseMirror tree
   // for no reader benefit; that value is read off raw.value at submit
   // time exactly as above.
-  instance.on("change", () => raw.dispatchEvent(new Event("input", { bubbles: true })));
+  instance.on("change", () => {
+    raw.dispatchEvent(new Event("input", { bubbles: true }));
+    // Counting serialises the whole document, so it waits for a pause.
+    if (!descriptionCount) return;
+    clearTimeout(countTimer);
+    countTimer = setTimeout(() => descriptionCount.show(unescapeMarkdown(instance.getMarkdown())), 300);
+  });
   // spec-form-actions.ts's Cancel handler resets raw.value from outside
   // and asks a mounted editor to redraw from it — the WYSIWYG view is a
   // separate DOM tree this instance owns, with no other way in.
-  raw.addEventListener("spec-cancel", () => instance.setMarkdown(raw.value));
+  raw.addEventListener("spec-cancel", () => {
+    instance.setMarkdown(raw.value);
+    clearTimeout(countTimer);
+    descriptionCount?.show(raw.value);
+  });
 
   // The page disables the spec's fields while one of its saves is out
   // (`rowControls`, specs-client/press.ts). The typing surface is a

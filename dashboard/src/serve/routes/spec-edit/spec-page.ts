@@ -6,6 +6,8 @@ import { refreshTestServerStatus, startTestServer } from "../../test-servers/lif
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "./test-server-waiting.ts";
 import { pullFastForward, saveSpecFiles } from "../../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
+import { errorSentence } from "../../../format/error-sentence.ts";
+import { DESCRIPTION_MAX, descriptionPart } from "../../../project/description-bound.ts";
 import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, renderSpecStepsFollowParts, resolveSpecTab, specTabPath } from "../../../render";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, streamedPage } from "../../serve-helpers";
@@ -313,6 +315,15 @@ export async function specPageRoutes(
     // that would change, remove or add that line is refused. Compared with
     // the description where this save writes, as the tracking route reads it.
     if (file === EDITABLE_SPEC_FILE) {
+      const description = descriptionPart(text);
+      if (description !== null && description.length > DESCRIPTION_MAX) {
+        const reason = errorSentence({
+          what: `the description is ${description.length - DESCRIPTION_MAX} characters over the ${DESCRIPTION_MAX} it may hold — nothing was saved`,
+          resolve: "Shorten it on the Description tab and save again.",
+        }).text;
+        logRefusal("save", `${project}/${specFolder}`, reason);
+        return json({ error: reason }, 400);
+      }
       const current = branchTarget
         ? (await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath))?.text ?? null
         : specFileText(dir, file);
