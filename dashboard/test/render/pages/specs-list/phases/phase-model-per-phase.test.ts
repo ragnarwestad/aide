@@ -70,6 +70,22 @@ describe("one picker per phase", () => {
   const phaseSelect = (html: string, step: string) =>
     html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";
 
+  test("Review and Verify use filtered pickers and lock with Implement (AC-8, AC-9, AC-12)", () => {
+    const html = rows([], { pendingModels: { "aide/169-one-picker": { review: "gpt-fast" } } });
+    expect(html).toContain('name="model.review"');
+    expect(html).toContain('name="model.verify"');
+    expect(html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0]).toContain('value="gpt-fast"');
+  });
+
+  test("side pickers follow a running job's edited Implement tool (AC-12)", () => {
+    const html = rows([
+      row({ id: "j1", specFolder: "169-one-picker", steps: ["analyze", "implement"], stepIndex: 0, state: "running", model: "sonnet", stepModels: { analyze: "sonnet", implement: "gpt-fast" } }),
+    ]);
+    const review = html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(review).toContain('value="gpt-fast"');
+    expect(review).toContain('value="sonnet" data-tool="claude" hidden disabled');
+  });
+
   // --- the server half: what a phase has already run on ---------------------
 
   // `used` is what pre-fills a select with the model its phase really

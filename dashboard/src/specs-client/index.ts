@@ -26,7 +26,7 @@
 
 import { bindAddProjectForm } from "./add-project";
 import { keepBack } from "./back-link";
-import { applyAiPick, offerEachToItsTool, refreshAiModelBox } from "./ai-sync.ts";
+import { applyAiPick, offerEachToItsTool, refreshAiModelBox, syncSidePickers } from "./ai-sync.ts";
 import { openAsk } from "./ask.ts";
 import {
   bindOneLineFields,
@@ -170,6 +170,7 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   const select = target?.closest?.("select") as HTMLSelectElement | null;
   if (select) {
     chosen.set(selectKey(select), select.value);
+    if (select.name === "model.implement") syncSidePickers(document, select.getAttribute("form") ?? undefined);
     if (select.name?.startsWith("model.")) {
       // Recorded on the server the instant it is made, not
       // only in `chosen` — which is a fresh, empty map on every page

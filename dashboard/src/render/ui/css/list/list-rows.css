@@ -85,6 +85,8 @@ table.list :is(tr.subrow, tr.phasemsgs) + tr.specnotice + tr.specnotice:is(:last
 table.list { --fold-w: calc(24px + var(--sp-1)); }
 table.list tr.subrow .phasecell { white-space: nowrap;
   padding-left: calc(var(--sp-3) + var(--fold-w)); }
+table.list tr.subrow[data-side] .phasecell {
+  padding-left: calc(var(--sp-3) + var(--fold-w) + 24px + var(--sp-1)); }
 table.list tr.subrow .phasecell > .fold { margin-left: calc(-1 * var(--fold-w)); }
 /* A phase's step line stands one level in under the phase's name: one
    more fold control's own width, 24px and the gap after it, so the step's

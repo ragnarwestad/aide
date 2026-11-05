@@ -154,7 +154,8 @@ unmeasured (`0`, and `(unmeasured)` in the step's phase file), never assumed.
 ceiling. A file still carrying the old flat `"timeoutSec": 1200` is ignored and the built-in defaults stand.
 
 `model` takes two keys besides the steps, read for an implement only: `review` names the choice implement's review runs
-on, and `verify` the choice that checks each defect the review finds
+on, and `verify` the choice that checks each defect the review finds. Settings writes these keys; a spec's own Review
+and Verify lines win over them
 ([The runner](the-runner.md#what-counts-as-a-step-having-run)). Either may be a Codex choice beside a Claude step.
 Without `review` the review runs on the step's own model, and without `verify` nothing checks it.
 
@@ -307,7 +308,7 @@ its phase file as a `- **Effort:**` line, and shown on the job's page beside its
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step, on its AI tab under Models per phase. A step with no provider saved there runs on the first provider that runs its model, which is the provider its row shows. The table has seven rows: the
+`/settings` holds the default AI and model per step, on its AI tab under Models per phase. A step with no provider saved there runs on the first provider that runs its model, which is the provider its row shows. Review and Verify sit directly under Implement, without timeouts. Review's first choice, Same as Implement, uses Implement's model; Verify's first choice, Off, runs no verification. Their AI and model lists contain the implement's own AI and Codex. The same two lines on a spec override these defaults for that spec; their first choices inherit the Settings values. The other rows are the
 six that act on a spec (Create, Analyze, Implement, Archive, Close and Reopen) and Schedule. A step nothing has been saved
 for runs on Claude Code's Opus, and its row shows that; a `model.default` in the config file is a saved choice for every
 step without one of its own. On a host whose choices hold no Opus, the row shows the first listed choice while the runner
@@ -517,9 +518,9 @@ the provider. A provider's name has letters, digits, `.`, `_` and `-`, at most 6
 - **The hold.** A usage limit holds one provider: a step on Claude-Capra waits for Claude-Capra's limit only. The
   stopped step names the provider and the reset time, and is queued again on the same provider when it resets.
   See [When an AI's usage limit is used up](#when-an-ais-usage-limit-is-used-up).
-- **What runs on the provider.** Every Claude turn of the step, the review and its verification included, runs with
-  the provider's config folder as `CLAUDE_CONFIG_DIR`. Every Codex turn runs with the provider's shadow home, else its
-  `CODEX_HOME`, as `CODEX_HOME`. A step that continues an earlier session of the spec (an implement continuing its
+- **What runs on the provider.** Every Claude turn runs with its chosen provider's config folder as
+  `CLAUDE_CONFIG_DIR`; Review and Verify use the providers selected on their own lines. Every Codex turn runs with its
+  chosen provider's shadow home, else its `CODEX_HOME`, as `CODEX_HOME`. A step that continues an earlier session of the spec (an implement continuing its
   analysis) does so only when both ran on providers that share sessions.
 - **The sandbox.** A Claude step may not write the settings, hooks, skills, agents, rules or plugins in any provider's
   Claude folder, nor anything in a Codex folder, nor read a Codex folder's `auth.json`

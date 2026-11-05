@@ -11,6 +11,8 @@ import { WORKFLOW_STEPS } from "../steps.ts";
 import type { Job, QueueDefaults } from "../types.ts";
 import { tailEditStep } from "./tail-edits.ts";
 import type { PendingModelResult } from "./types.ts";
+import { SIDE_PARTS, sideToolRefusal, sideTools } from "../providers/side-tools.ts";
+import { resolveStepModel } from "../model-name.ts";
 
 /** What the picks read and write, handed over by the store. */
 export interface PickContext {
@@ -92,6 +94,17 @@ export function writePendingModel(
   ctx.persist();
 }
 
+function clearPendingModel(ctx: PickContext, project: string, specFolder: string, step: string): void {
+  const record = `${project}/${specFolder}`;
+  for (const table of [ctx.pendingModels, ctx.pendingProviders]) {
+    if (!table[record]) continue;
+    const { [step]: _removed, ...rest } = table[record]!;
+    if (Object.keys(rest).length) table[record] = rest;
+    else delete table[record];
+  }
+  ctx.persist();
+}
+
 /** Record a model, and the provider, picked for a phase that has no job
  *  yet — the pre-job sibling of `editTailModel()`, checked the same way:
  *  the step against `WORKFLOW_STEPS`, the model against the configured
@@ -100,11 +113,30 @@ export function writePendingModel(
 export function setPendingModel(
   ctx: PickContext, project: string, specFolder: string, step: string, model: string, provider?: string,
 ): PendingModelResult {
-  const wanted = WORKFLOW_STEPS.find((s) => s === step);
+  const wanted = [...WORKFLOW_STEPS, ...SIDE_PARTS].find((s) => s === step);
   if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
+  if ((SIDE_PARTS as readonly string[]).includes(wanted) && model === "") {
+    clearPendingModel(ctx, project, specFolder, wanted);
+    ctx.changed();
+    return { ok: true };
+  }
   if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
   const found = lookUpModel(ctx.defaults, model);
   if ("error" in found) return { ok: false, error: found.error };
+  if ((SIDE_PARTS as readonly string[]).includes(wanted)) {
+    const record = `${project}/${specFolder}`;
+    const live = [...ctx.jobs.values()].find((job) =>
+      job.project === project && job.specFolder === specFolder && !("error" in tailEditStep(job, "implement"))
+    );
+    const implementName = live
+      ? resolveStepModel(live, "implement", ctx.defaults.model)
+      : ctx.pendingModels[record]?.implement ?? ctx.defaults.model.implement ?? ctx.defaults.model.default;
+    const implementTool = ctx.defaults.modelChoices?.[implementName ?? ""]?.tool ?? "claude";
+    const sideTool = ctx.defaults.modelChoices?.[found.name]?.tool ?? "claude";
+    if (!sideTools(implementTool).includes(sideTool)) {
+      return { ok: false, error: sideToolRefusal(wanted as (typeof SIDE_PARTS)[number], sideTool, implementTool) };
+    }
+  }
   let key: string | undefined;
   if (provider) {
     const checked = checkedProvider(ctx.defaults, provider, found.name);

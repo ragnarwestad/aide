@@ -7,6 +7,7 @@ import { resolveStepModel } from "../../queue/model-name.ts";
 import { providerLoginEnv, resolveStepProvider, sharesSessions, type Provider } from "../../queue/providers/index.ts";
 import { homedir } from "node:os";
 import type { CheckableTool } from "../../render";
+import { resolveSidePick, SIDE_PARTS } from "../../queue/providers/side-tools.ts";
 
 /** This step's wall clock. The field is a per-step table,
  *  but a job created before that is still in the store across the
@@ -60,17 +61,25 @@ export function stepTool(
  *  Nothing for another step, or with neither key set. */
 export function reviewModelArgs(
   step: string,
-  tool: string,
-  o: { model?: Record<string, string>; modelChoices?: Record<string, ModelChoice> },
+  _tool: string,
+  o: {
+    model?: Record<string, string>; modelChoices?: Record<string, ModelChoice>; sidePicks?: Record<string, string>;
+    sideProviders?: Record<string, string>; providers?: Record<string, Provider>; provider?: Record<string, string>; home?: string;
+  },
 ): string[] {
   if (step !== "implement") return [];
-  return (["review", "verify"] as const).flatMap((part) => {
-    const name = o.model?.[part];
+  return SIDE_PARTS.flatMap((part) => {
+    const name = resolveSidePick(part, o.sidePicks, o.model ?? {});
     if (!name) return [];
     const choice = o.modelChoices?.[name];
     const sideTool = choice?.tool ?? "claude";
-    if (sideTool !== tool && sideTool !== "codex") return [];
-    return [`--${part}-model`, choice?.model ?? name, `--${part}-tool`, sideTool];
+    const providerKey = o.sideProviders?.[part] ?? o.provider?.[part];
+    const provider = providerKey ? o.providers?.[providerKey] : undefined;
+    const env = provider ? providerLoginEnv(provider, o.home ?? homedir()) : undefined;
+    const account = sideTool === "claude" && env?.CLAUDE_CONFIG_DIR
+      ? [`--${part}-claude-config-dir`, env.CLAUDE_CONFIG_DIR]
+      : sideTool === "codex" && env?.CODEX_HOME ? [`--${part}-codex-home`, env.CODEX_HOME] : [];
+    return [`--${part}-model`, choice?.model ?? name, `--${part}-tool`, sideTool, ...account];
   });
 }
 
@@ -162,6 +171,10 @@ export function runnerArgv(
     timeoutSec?: Record<string, number>;
     permissionMode?: Record<string, string>;
     model?: Record<string, string>;
+    /** The current spec's Review and Verify choices. */
+    sidePicks?: Record<string, string>;
+    /** The provider accounts chosen beside Review and Verify. */
+    sideProviders?: Record<string, string>;
     /** The configured providers and the phase defaults' provider table: the
      *  folder a step's provider keeps its login in is looked up here. */
     providers?: Record<string, Provider>;
