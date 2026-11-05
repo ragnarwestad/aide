@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Run named test files once through the suite that owns each path.
+
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+case "${1:-}" in
+  -h|--help)
+    echo "Usage: test-files <test-file>..."
+    exit 0
+    ;;
+esac
+[ "$#" -gt 0 ] || { echo "no test file given" >&2; exit 2; }
+
+py=()
+ts=()
+for file in "$@"; do
+  case "$file" in
+    *.py) [ -f "$ROOT/$file" ] || { echo "no such test file: $file" >&2; exit 2; }; py+=("$file") ;;
+    *.test.ts) [ -f "$ROOT/dashboard/$file" ] || { echo "no such test file: $file" >&2; exit 2; }; ts+=("$file") ;;
+    *) echo "unsupported test file: $file" >&2; exit 2 ;;
+  esac
+done
+
+rc=0
+if [ "${#py[@]}" -gt 0 ]; then
+  ( cd "$ROOT" && .venv/bin/pytest -v "${py[@]}" ) || rc=$?
+fi
+if [ "${#ts[@]}" -gt 0 ]; then
+  ( cd "$ROOT/dashboard" && AIDE_TEST_ONCE=1 bash scripts/run-tests.sh "${ts[@]}" ) || rc=$?
+fi
+exit "$rc"

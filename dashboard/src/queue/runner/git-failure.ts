@@ -35,7 +35,7 @@ const text = (raw: unknown): string | undefined => (typeof raw === "string" && r
 function gitErrorOf(r: Record<string, unknown>): GitError | undefined {
   if (r.kind === "auth" || r.kind === "github" || r.kind === "none") return { kind: r.kind };
   const message = text(r.message);
-  if ((r.kind === "refused" || r.kind === "other") && message) return { kind: r.kind, message };
+  if ((r.kind === "network" || r.kind === "no-write" || r.kind === "https-auth" || r.kind === "refused" || r.kind === "other") && message) return { kind: r.kind, message };
   return undefined;
 }
 

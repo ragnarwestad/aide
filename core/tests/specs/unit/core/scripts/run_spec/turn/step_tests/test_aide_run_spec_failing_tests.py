@@ -47,50 +47,55 @@ def test_a_missing_log_names_nothing(tmp_path):
     assert json.loads(_bash(f'failing_tests "{tmp_path}/none.log"')) == {"tests": [], "files": []}
 
 
-def _against(tmp_path, failing, changed):
-    (tmp_path / "failing.json").write_text(json.dumps(failing))
-    (tmp_path / "changed.txt").write_text("".join(f"{c}\n" for c in changed))
-    return json.loads(_bash(f'failing_tests_against_change "{tmp_path}/failing.json" "{tmp_path}/changed.txt"'))
+def test_failing_files_are_distinct_and_keep_their_order_ac_3(tmp_path):
+    path = tmp_path / "failing.json"
+    path.write_text(json.dumps({"tests": ["a", "b", "c"], "files": ["x.py", "y.py", "x.py"]}))
+    assert _bash(f'failing_tests_files "{path}"').splitlines() == ["x.py", "y.py"]
 
 
-def test_a_failing_file_the_change_touched_is_found_by_the_end_of_its_path(tmp_path):
-    """Playwright names a file from its own config's folder, git from the
-    repository's root: packages/web/e2e/x.spec.ts is e2e/x.spec.ts."""
-    got = _against(
-        tmp_path,
-        {"tests": ["e2e/x.spec.ts:5 › a", "e2e/y.spec.ts:9 › b", "@x/email#test"],
-         "files": ["e2e/x.spec.ts", "e2e/y.spec.ts", ""]},
-        ["packages/web/e2e/x.spec.ts", "packages/web/src/app.ts"],
+def test_summary_separates_tests_proven_to_pass_alone_ac_1_ac_6(tmp_path):
+    failing = tmp_path / "failing.json"
+    again = tmp_path / "again.json"
+    failing.write_text(json.dumps({
+        "tests": ["test/a.test.ts › passes", "test/b.test.ts › stays red"],
+        "files": ["test/a.test.ts", "test/b.test.ts"], "failed": 2, "total": 12,
+    }))
+    again.write_text(json.dumps([
+        {"file": "test/a.test.ts", "passed": True},
+        {"file": "test/b.test.ts", "passed": False},
+    ]))
+    got = json.loads(_bash(f'failing_tests_summary "{failing}" "{again}"'))
+    assert got == {
+        "tests": ["test/b.test.ts › stays red"], "failed": 1, "total": 12,
+        "passedAlone": ["test/a.test.ts › passes"], "passedAloneCount": 1,
+    }
+
+
+def test_an_explicit_pass_is_kept_when_another_test_in_the_file_stays_red_ac_1(tmp_path):
+    failing = tmp_path / "failing.json"
+    again = tmp_path / "again.json"
+    failing.write_text(json.dumps({
+        "tests": ["test/a.test.ts › passes", "test/a.test.ts › stays red"],
+        "files": ["test/a.test.ts", "test/a.test.ts"], "failed": 2,
+    }))
+    again.write_text(json.dumps([{
+        "file": "test/a.test.ts", "passed": False,
+        "passedTests": ["test/a.test.ts › passes"],
+        "failedTests": ["test/a.test.ts › stays red"],
+    }]))
+    got = json.loads(_bash(f'failing_tests_summary "{failing}" "{again}"'))
+    assert got["tests"] == ["test/a.test.ts › stays red"]
+    assert got["passedAlone"] == ["test/a.test.ts › passes"]
+
+
+def test_pytest_passes_are_read_from_plain_and_xdist_output_ac_1_ac_5(tmp_path):
+    log = tmp_path / "again.log"
+    log.write_text(
+        "tests/test_one.py::test_plain PASSED [ 50%]\n"
+        "[gw1] [100%] PASSED tests/test_one.py::test_xdist\n"
+        "[gw0] [100%] FAILED tests/test_one.py::test_red\n"
     )
-    assert got == {"touched": True, "untouched": 1}
-
-
-def test_a_name_that_only_ends_like_a_changed_file_is_not_that_file(tmp_path):
-    got = _against(tmp_path, {"tests": ["x.spec.ts:5 › a"], "files": ["x.spec.ts"]}, ["e2e/max.spec.ts"])
-    assert got == {"touched": False, "untouched": 1}
-
-
-def test_tests_with_no_file_are_neither_touched_nor_untouched(tmp_path):
-    got = _against(tmp_path, {"tests": ["@x/email#test"], "files": [""]}, ["a.ts"])
-    assert got == {"touched": False, "untouched": 0}
-
-
-def _varied(tmp_path, before, after):
-    (tmp_path / "before.json").write_text(json.dumps({"tests": before, "files": [""] * len(before)}))
-    (tmp_path / "after.json").write_text(json.dumps({"tests": after, "files": [""] * len(after)}))
-    r = subprocess.run(
-        ["bash", "-c", f'source "{PART}"; failing_tests_varied "{tmp_path}/before.json" "{tmp_path}/after.json"'],
-        capture_output=True, text=True,
-    )
-    return r.returncode == 0
-
-
-def test_a_test_that_fails_now_and_did_not_before_is_a_varied_run(tmp_path):
-    assert _varied(tmp_path, ["a", "b"], ["b", "c"])
-
-
-def test_a_fix_round_that_mended_some_of_the_tests_is_not_a_varied_run(tmp_path):
-    """Run one fails A and B, the session mends A, run two fails B: that is
-    progress on the change, not tests that fail at random."""
-    assert not _varied(tmp_path, ["a", "b"], ["b"])
-    assert not _varied(tmp_path, ["a", "b"], ["a", "b"])
+    assert json.loads(_bash(f'test_results "{log}"')) == {
+        "passedTests": ["tests/test_one.py::test_plain", "tests/test_one.py::test_xdist"],
+        "failedTests": ["tests/test_one.py::test_red"],
+    }

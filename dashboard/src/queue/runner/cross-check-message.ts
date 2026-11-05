@@ -51,31 +51,28 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   return undefined;
 }
 
-/** A red implement run, as the board's sentence naming the failing tests
- *  and what they point at: the change, when one is in a file it touched and
- *  no run failed a test the run before it passed; otherwise unstable tests
- *  or a busy machine, saying which of the two reasons hold. A run that
- *  named no test gets the sentence that says only that the tests are red. */
+/** A red implement run names tests that remain red separately from tests
+ *  that passed when their files were run again alone. */
 export function testsRedMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage {
   const button = stepButton(step);
   const red = testsRed(outcome.testsRed);
   if (!red) return { key: "runner.testsRedImplement", values: { button } };
-  const n = String(red.failed);
-  const tests = red.tests.join("; ") + (red.failed > red.tests.length ? "; …" : "");
+  const list = (names: string[], count: number): string =>
+    [...names, ...(count > names.length ? ["…"] : [])].join("; ");
+  const tests = list(red.tests, red.failed);
   const counted = red.total !== undefined;
+  const n = String(red.failed);
   const values = { tests, button, ...(counted ? { n, total: String(red.total) } : {}) };
-  const elsewhere = red.untouched > 0 && !red.touched;
-  if (!red.variedBetweenRuns && !elsewhere) {
-    return { key: counted ? "runner.testsRedInChange" : "runner.testsRedInChangeUncounted", values };
+  if (red.passedAloneCount === 0) {
+    return { key: counted ? "runner.testsRedFailing" : "runner.testsRedFailingUncounted", values };
   }
-  const k = String(red.untouched);
-  const inner: BoardMessage =
-    red.variedBetweenRuns && red.untouched > 0
-      ? { key: "runner.testsRedVariedUntouched", values: { k, n } }
-      : red.variedBetweenRuns
-        ? { key: "runner.testsRedVaried" }
-        : { key: "runner.testsRedUntouched", values: { k, n } };
-  return { key: counted ? "runner.testsRedUnsteady" : "runner.testsRedUnsteadyUncounted", values, inner };
+  const k = String(red.passedAloneCount);
+  const passed = list(red.passedAlone, red.passedAloneCount);
+  if (red.failed === 0) return { key: "runner.testsRedPassedAlone", values: { k, passed, button } };
+  return {
+    key: counted ? "runner.testsRedFailingPassedAlone" : "runner.testsRedFailingPassedAloneUncounted",
+    values: { ...values, k, passed },
+  };
 }
 
 /** A test run that never started, as the board's sentence naming what
@@ -215,7 +212,10 @@ export function cliErrorMessage(step: WorkflowStep, outcome: Partial<StepOutcome
   const tool = toolLabel(outcome.tool);
   if (!said || !tool) return undefined;
   const button = stepButton(step);
-  if (said.kind === "login") return { key: "runner.cliErrorLogin", values: { tool, button } };
-  if (said.kind === "provider") return { key: "runner.cliErrorProvider", values: { tool, button } };
+  if (said.kind === "silent") return { key: "runner.cliErrorSilent", values: { tool, button } };
+  if (said.kind === "login") return { key: "runner.cliErrorLogin", values: { tool, cause: said.message, button } };
+  if (said.kind === "forbidden") return { key: "runner.cliErrorForbidden", values: { tool, cause: said.message, button } };
+  if (said.kind === "network") return { key: "runner.cliErrorNetwork", values: { tool, cause: said.message, button } };
+  if (said.kind === "provider") return { key: "runner.cliErrorProvider", values: { tool, cause: said.message, button } };
   return { key: "runner.cliErrorOther", values: { tool, cause: said.message, button } };
 }

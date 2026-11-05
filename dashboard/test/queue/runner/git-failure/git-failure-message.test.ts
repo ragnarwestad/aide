@@ -19,6 +19,20 @@ const UNPUSHED =
 const unpushed = (pushFailures: unknown) => ({ ok: false, terminalReason: "unpushed", pushFailures });
 
 describe("gitFailureMessage", () => {
+  test("new git kinds keep git's cause and choose their own sentence (AC-1, AC-2, AC-3)", () => {
+    const cause = "git's own line";
+    for (const [kind, key] of [
+      ["network", "git.pushNetwork"],
+      ["no-write", "git.pushNoWrite"],
+      ["https-auth", "git.pushHttpsAuth"],
+    ] as const) {
+      expect(gitFailureMessage(unpushed([{ repo: "code", branch: BRANCH, kind, message: cause }]))).toEqual({
+        key: "runner.notPushedCode",
+        values: { branch: BRANCH },
+        inner: { key, values: { cause } },
+      });
+    }
+  });
   test("one repo whose push failed: the repo, the branch, and why", () => {
     expect(gitFailureMessage(unpushed([{ repo: "code", branch: BRANCH, kind: "auth" }]))).toEqual({
       key: "runner.notPushedCode",
@@ -111,6 +125,14 @@ describe("a step refused because main could not be fetched", () => {
       key: "runner.notFetchedCode",
       values: { base: "main" },
       inner: { key: "git.pushAuth" },
+    });
+  });
+
+  test("a network fetch keeps git's own cause (AC-1)", () => {
+    expect(gitFailureMessage(refused({ repo: "code", branch: "main", kind: "network", message: "no route" }))).toEqual({
+      key: "runner.notFetchedCode",
+      values: { base: "main" },
+      inner: { key: "git.pushNetwork", values: { cause: "no route" } },
     });
   });
 

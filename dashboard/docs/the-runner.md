@@ -101,27 +101,33 @@ lets it read `~/.claude.json` but not write it ([What a step can reach](#what-a-
 
 ## When the AI tool reports an error
 
-A turn that ends `cli-error` with the tool's own error carries that error in the job's `error`, followed by "press
-<step> again": Claude Code's error list or, when it has none, its result's text ("Not logged in · Please run /login",
+A turn that ends `cli-error` with the tool's own error carries that error in the job's `error`, followed by the action
+for its kind: Claude Code's error list or, when it has none, its result's text ("Not logged in · Please run /login",
 "API Error: 500 …"); Codex's and opencode's last `error` or `turn.failed` message rather than their exit code; the
 tool's stderr when it wrote no result. The runner also sorts it, and the result carries the answer as `providerError`
 (`run-spec/turn/provider-error.sh`):
 
-| `kind`     | When                                                                                                                      |
-|------------|---------------------------------------------------------------------------------------------------------------------------|
-| `login`    | A 401 or 403, Claude Code's `authentication_failed`, a missing or invalid key or token, an expired session, not logged in |
-| `provider` | A 5xx, Claude Code's `server_error`, overloaded, a dropped connection or another network failure                          |
-| `other`    | Anything else; `message` is the error's first line, cut at a word after 160 characters                                    |
+<!-- markdownlint-disable MD060 -->
+
+| `kind`      | When                                                                                                                   |
+|-------------|------------------------------------------------------------------------------------------------------------------------|
+| `forbidden` | An explicit 403, including one whose text or error name also mentions authentication                                  |
+| `login`     | A 401, Claude Code's `authentication_failed`, a missing or invalid key or token, an expired session, not logged in    |
+| `network`   | The tool could not reach the provider: DNS, a refused connection, `fetch failed` or another network error            |
+| `provider`  | A 5xx, Claude Code's `server_error`, overloaded or a connection that broke after opening                            |
+| `other`     | Anything else                                                                                                          |
+| `silent`    | The turn ended with no reason; this kind has no `message`                                                              |
+
+<!-- markdownlint-enable MD060 -->
 
 A status counts only where it stands as one ("status 401", "API Error: 500", "502 Bad Gateway"), since the request ids
 in Codex's messages hold digits too. A provider limit, a model at capacity, a refusal and the step's own time limit are
 read first and never reach this.
 
-The board words each kind in the reader's language (`cliErrorMessage`, `src/queue/runner/cross-check-message.ts`):
-`login` says the tool is not logged in on the machine that runs Aide, and to log in there or press Check on the provider's
-page under Settings and then the step's button again; `provider` says the provider had an error and to try again in a little while;
-`other` gives the error's first line as the cause, with the step's button and the Check on the provider's page under
-Settings as what to do. The job's whole `error` stays behind the row's (?). A step with no `providerError`, or on a
+Every kind except `silent` carries the provider's first line as `message`, cut at a word after 160 characters. The board
+words each kind in the reader's language (`cliErrorMessage`, `src/queue/runner/cross-check-message.ts`): login, account
+access, the serving host's network, the provider's side, another error, or a turn that gave no reason. The cause appears
+in every sentence that has one. The job's whole `error` stays behind the row's (?). A step with no `providerError`, or on a
 tool that is no provider, gets the sentence in `src/format/tool-failure.ts`, which names the tool and the model and carries the tool's words as
 they came.
 
@@ -228,15 +234,22 @@ to name a third repo.
 
 **A push that fails is sorted from git's own words**, by `git_error_json` in `core/scripts/lib/git-error.sh`, and the
 result carries one entry per repo whose push failed as `pushFailures`: `repo` (`code` or `specs`), `branch`, `kind`
-and, for two kinds, `message`. A root the run left unpushed with no failure to show for it is listed too, as `none`.
+and, for every kind whose own line matters, `message`. A root the run left unpushed with no failure to show for it is listed too, as `none`.
 
-| `kind`    | When                                                                                                    |
-|-----------|---------------------------------------------------------------------------------------------------------|
-| `auth`    | GitHub does not take the machine's SSH key or login: `Permission denied (publickey)`, a 401 or 403       |
-| `github`  | GitHub had an error (a 5xx, `Internal Server Error`), or the network failed (a host that does not resolve, a timeout) |
-| `refused` | Origin turned the push down: a protected branch, a hook, a non-fast-forward; `message` is origin's own first line |
-| `other`   | Anything else; `message` is git's own first line                                                        |
-| `none`    | git said nothing                                                                                        |
+<!-- markdownlint-disable MD060 -->
+
+| `kind`       | When                                                                                                             |
+|--------------|------------------------------------------------------------------------------------------------------------------|
+| `auth`       | GitHub does not take the machine's SSH key: `Permission denied (publickey)`                                    |
+| `no-write`   | The accepted key or account cannot write: `Permission to … denied`, or a 403; carries `message`                  |
+| `https-auth` | GitHub does not accept the HTTPS login: authentication failed, no username or a 401; carries `message`           |
+| `github`     | GitHub had an error: a 5xx, `Internal Server Error`, or a connection that broke after GitHub answered            |
+| `network`    | The serving host could not reach origin: DNS, connection timeout or refusal, unreachable network; carries `message` |
+| `refused`    | Origin turned the push down: a protected branch, a hook, a non-fast-forward; carries `message`                   |
+| `other`      | Anything else; carries `message`                                                                                 |
+| `none`       | git said nothing                                                                                                 |
+
+<!-- markdownlint-enable MD060 -->
 
 The kinds are tried in that order: an SSH key fault is followed by "Could not read from remote repository", which a
 network failure prints too, and GitHub's 500 arrives on a `[remote rejected]` line. A failed push is followed by a
@@ -247,15 +260,15 @@ every failure, and is cut at a word after 160 characters.
 The job's `error` and `pushError` keep git's text in whole lines, eight at most, without colour codes, carriage
 returns or blank lines (`git_error_detail`), and the board shows it behind the row's (?). The row's own sentence is
 the board's (`gitFailureMessage`, `src/queue/runner/git-failure.ts`): one per repo, naming the repo and the branch,
-with why in the reader's language: `auth` says GitHub does not accept the SSH key of the machine that runs Aide;
-`github` says GitHub had an error, to try again in a little while; `refused` and `other` give the message; `none` says
+with why in the reader's language: `auth` names the SSH key; `no-write`, `https-auth` and `network` name the distinct
+fault and include git's line; `github` says GitHub had an error; `refused` and `other` give the message; `none` says
 git gave no error text.
 
 **A fetch of the base that fails is sorted the same way.** Before it cuts a new branch, the runner fetches the base
 from origin (`fetch_base_with_retry`, `run-spec/setup/gates.sh`, three retries) and refuses when it still fails, rather
 than cut the branch from the checkout's own tip. The result carries the cause as `fetchFailure`, shaped as one entry
 of `pushFailures` with the base as `branch`, and `error` keeps git's lines whole for the (?). The row names the repo and
-the base: `auth` and `github` read as for a push; `other`, `refused` and `none` give git's first line, or say git gave
+the base: `auth`, `no-write`, `https-auth`, `network` and `github` read as for a push; `other`, `refused` and `none` give git's first line, or say git gave
 no text, and say to run `git fetch` by hand in the checkout on the serving host if trying again fails the same way.
 
 **A branch that conflicts with the base names the files.** A step other than `archive` and `implement` refuses with
@@ -372,12 +385,10 @@ evidence that the phase happened:
     limit. Each red run's failing tests are read from its output (`run-spec/turn/failing-tests.sh`: Playwright,
     vitest, bun, pytest and turbo, without colour codes, never pnpm's error box or the recorder's JSON line), and a
     fix round's prompt names them; the log's own failing lines go only when no test is named, or no name carries a
-    file. Still red ends the step `tests-red` with the failing lines as its detail and the named tests in the result's
-    `testsRed`: at most eight, the failed and total counts when the output printed them, `touched` (a failing test's
-    file is among the files the change touched, committed or not, matched by the end of its path), `untouched` (how
-    many are not) and `variedBetweenRuns` (a run failed a test the run before it did not). The board's sentence names
-    the tests and says the fault is likely in the change, or, when none is in a touched file or the runs varied, that
-    it points to unstable tests or a busy machine. Implement is the button to press again. A run that never started, because its server could not start or a port it needs is held
+    file. Before a still-red step ends, each named red file is run once more alone when the project has an
+    `AIDE_TEST_FILES_CMD`. The result's `testsRed` separates tests that still fail from tests whose files passed that
+    check. Only the latter are described as possibly unstable; without the command or enough time, the board states
+    only the last observed failures. Implement is the button to press again. A run that never started, because its server could not start or a port it needs is held
     (`run-spec/turn/test-start.sh`), goes back to no session: it ends `tests-not-started` at once, with the cause and,
     for a port, the spec or process holding it in the result's `testsNotStarted`. A run `aide-record-test-run` did not
     make ends the same way at once, read from the recorder's own result and never from its exit code alone: the spec's

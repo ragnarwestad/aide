@@ -337,17 +337,14 @@ export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
   return undefined;
 }
 
-/** The failing tests a red implement run named (`run-spec/turn/failing-tests.sh`):
- *  at most eight, how many failed and of how many when the run said, whether
- *  any is in a file the change touched, how many are not, and whether the
- *  runner's runs failed different tests. */
+/** Tests that remain red and tests proven to pass when their files were
+ *  run again alone (`run-spec/turn/failing-tests.sh`). */
 export interface TestsRed {
   tests: string[];
   failed: number;
   total?: number;
-  touched: boolean;
-  untouched: number;
-  variedBetweenRuns: boolean;
+  passedAlone: string[];
+  passedAloneCount: number;
 }
 
 /** `outcome.testsRed`, read as defensively as `testsNotStarted`: no test
@@ -358,15 +355,17 @@ export function testsRed(raw: unknown): TestsRed | undefined {
   const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
   const tests = Array.isArray(r.tests) ? r.tests.filter((t): t is string => typeof t === "string" && t !== "") : [];
   const failed = num(r.failed);
-  if (!tests.length || failed === undefined) return undefined;
+  const passedAlone = Array.isArray(r.passedAlone)
+    ? r.passedAlone.filter((t): t is string => typeof t === "string" && t !== "") : [];
+  const passedAloneCount = num(r.passedAloneCount) ?? passedAlone.length;
+  if ((!tests.length && !passedAlone.length) || failed === undefined) return undefined;
   const total = num(r.total);
   return {
     tests,
     failed,
     ...(total !== undefined ? { total } : {}),
-    touched: r.touched === true,
-    untouched: num(r.untouched) ?? 0,
-    variedBetweenRuns: r.variedBetweenRuns === true,
+    passedAlone,
+    passedAloneCount,
   };
 }
 
@@ -374,17 +373,19 @@ export function testsRed(raw: unknown): TestsRed | undefined {
  *  tool is not logged in on the machine that runs it, `provider` when the
  *  provider's own side failed, `other` for anything else, which carries
  *  the provider's own first line as `message`. */
-export type ProviderError = { kind: "login" } | { kind: "provider" } | { kind: "other"; message: string };
+export type ProviderError =
+  | { kind: "login" | "forbidden" | "network" | "provider" | "other"; message: string }
+  | { kind: "silent" };
 
 /** `outcome.providerError`, read as defensively as `testsRed`: a kind the
  *  runner does not write, or an `other` with no words, is nothing at all. */
 export function providerError(raw: unknown): ProviderError | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  if (r.kind === "login") return { kind: "login" };
-  if (r.kind === "provider") return { kind: "provider" };
-  if (r.kind === "other" && typeof r.message === "string" && r.message.trim()) {
-    return { kind: "other", message: r.message.trim() };
+  if (r.kind === "silent") return { kind: "silent" };
+  if ((r.kind === "login" || r.kind === "forbidden" || r.kind === "network" || r.kind === "provider" || r.kind === "other")
+      && typeof r.message === "string" && r.message.trim()) {
+    return { kind: r.kind, message: r.message.trim() };
   }
   return undefined;
 }

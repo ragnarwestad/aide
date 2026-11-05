@@ -56,6 +56,17 @@ def test_the_command_is_the_manifest_s_aide_test_cmd(script, project):
     assert resolve(script, project) == (0, {"ok": True, "commands": ["make test"]})
 
 
+def test_the_files_command_is_read_with_the_test_command_ac_3(script, project):
+    write_manifest(project, "AIDE_TEST_CMD: make test\nAIDE_TEST_FILES_CMD: scripts/test-files\n")
+    assert resolve(script, project) == (
+        0, {"ok": True, "commands": ["make test"], "filesCommand": "scripts/test-files"})
+
+
+def test_the_files_command_is_ignored_without_a_test_command_ac_3(script, project):
+    write_manifest(project, "AIDE_TEST_FILES_CMD: scripts/test-files\n")
+    assert resolve(script, project) == (0, {"ok": True, "commands": []})
+
+
 def test_no_aide_test_cmd_resolves_to_no_command(script, project):
     assert resolve(script, project) == (0, {"ok": True, "commands": []})
 

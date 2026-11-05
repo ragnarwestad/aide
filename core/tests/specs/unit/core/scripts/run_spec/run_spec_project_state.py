@@ -267,14 +267,24 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "resolve": "press $step_button again",
     },
     {
-        "name": "the provider reported an error with no message of its own (is_error)",
-        "pattern": r'error_msg="provider reported an error"\n\s*error_msg="\$error_msg — press \$step_button again"',
-        "resolve": "press $step_button again",
+        "name": "a provider login error",
+        "pattern": r'login\) printf .*— log in to \$2 on the serving host, then press \$3 again',
+        "resolve": "log in to $2 on the serving host",
     },
     {
-        "name": "a Codex or OpenCode turn failed with an error of its own",
-        "pattern": r'provider_error_out="\$\(provider_error_json "\$error_msg"\)"\n\s*error_msg="\$error_msg — press \$step_button again"',
-        "resolve": "press $step_button again",
+        "name": "a provider permission error",
+        "pattern": r'forbidden\) printf .*— check that the account may use this model[^\n]*',
+        "resolve": "check that the account may use this model",
+    },
+    {
+        "name": "a provider network error",
+        "pattern": r'network\) printf .*— check the network from the serving host, then press \$3 again',
+        "resolve": "check the network from the serving host",
+    },
+    {
+        "name": "another provider error",
+        "pattern": r'\*\) printf .*— press \$3 again',
+        "resolve": "press $3 again",
     },
     {
         "name": "the model declined to continue (a refusal)",
@@ -282,13 +292,8 @@ BASH_ERROR_REGISTRY: list[dict] = [
         "resolve": "press $step_button again",
     },
     {
-        "name": "the tool exited non-zero with no result JSON error",
-        "pattern": r'error_msg="\$tool exit \$exit_code — press \$step_button again"',
-        "resolve": "press $step_button again",
-    },
-    {
-        "name": "the tool produced no result JSON at all",
-        "pattern": r'no result JSON \(exit \$exit_code\)"\n(?:.*\n)*?\s*error_msg="\$error_msg — press \$step_button again"',
+        "name": "the tool ended without giving a reason",
+        "pattern": r'error_msg="\$tool ended \(exit \$exit_code\) without giving a reason — its output is in this step.s log; press \$step_button again"',
         "resolve": "press $step_button again",
     },
     {

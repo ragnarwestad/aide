@@ -10,13 +10,15 @@
     {
       "name": "HTTPS credentials refused",
       "said": "remote: Invalid username or password.\nfatal: Authentication failed for 'https://github.com/x/y.git/'\n",
-      "kind": "auth",
+      "kind": "https-auth",
+      "message": "Invalid username or password",
       "detail": "remote: Invalid username or password.\nfatal: Authentication failed for 'https://github.com/x/y.git/'"
     },
     {
       "name": "A 403 over HTTPS",
       "said": "remote: Permission to x/y.git denied to someone.\nfatal: unable to access 'https://github.com/x/y.git/': The requested URL returned error: 403\n",
-      "kind": "auth",
+      "kind": "no-write",
+      "message": "Permission to x/y.git denied to someone",
       "detail": "remote: Permission to x/y.git denied to someone.\nfatal: unable to access 'https://github.com/x/y.git/': The requested URL returned error: 403"
     },
     {
@@ -32,15 +34,45 @@
       "detail": "error: RPC failed; HTTP 502 curl 22 The requested URL returned error: 502\nfatal: the remote end hung up unexpectedly"
     },
     {
+      "name": "No network: the connection is refused",
+      "said": "ssh: connect to host github.com port 22: Connection refused\nfatal: Could not read from remote repository.\n",
+      "kind": "network",
+      "message": "ssh: connect to host github.com port 22: Connection refused",
+      "detail": "ssh: connect to host github.com port 22: Connection refused\nfatal: Could not read from remote repository."
+    },
+    {
+      "name": "No network: there is no route to the host",
+      "said": "ssh: connect to host github.com port 22: No route to host\n",
+      "kind": "network",
+      "message": "ssh: connect to host github.com port 22: No route to host",
+      "detail": "ssh: connect to host github.com port 22: No route to host"
+    },
+    {
+      "name": "A deploy key without write access",
+      "said": "ERROR: Permission to x/y.git denied to deploy key\nfatal: Could not read from remote repository.\n",
+      "kind": "no-write",
+      "message": "Permission to x/y.git denied to deploy key",
+      "detail": "ERROR: Permission to x/y.git denied to deploy key\nfatal: Could not read from remote repository."
+    },
+    {
+      "name": "HTTPS cannot read a username",
+      "said": "fatal: could not read Username for 'https://github.com': terminal prompts disabled\n",
+      "kind": "https-auth",
+      "message": "could not read Username for 'https://github.com': terminal prompts disabled",
+      "detail": "fatal: could not read Username for 'https://github.com': terminal prompts disabled"
+    },
+    {
       "name": "No network: the host name does not resolve",
       "said": "ssh: Could not resolve hostname github.com: nodename nor servname provided, or not known\r\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n",
-      "kind": "github",
+      "kind": "network",
+      "message": "ssh: Could not resolve hostname github.com: nodename nor servname provided, or not known",
       "detail": "ssh: Could not resolve hostname github.com: nodename nor servname provided, or not known\nfatal: Could not read from remote repository.\nPlease make sure you have the correct access rights\nand the repository exists."
     },
     {
       "name": "No network: the connection times out",
       "said": "ssh: connect to host github.com port 22: Operation timed out\r\nfatal: Could not read from remote repository.\n",
-      "kind": "github",
+      "kind": "network",
+      "message": "ssh: connect to host github.com port 22: Operation timed out",
       "detail": "ssh: connect to host github.com port 22: Operation timed out\nfatal: Could not read from remote repository."
     },
     {

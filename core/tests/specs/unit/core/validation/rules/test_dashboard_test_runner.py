@@ -14,6 +14,7 @@ pair, and each is a silent failure if it drifts:
 """
 
 import re
+import subprocess
 
 import pytest
 
@@ -97,6 +98,17 @@ class TestAFailingTest:
         r = _run_suite(workspace_root, tmp_path, "red")
         assert r.returncode == 1, r.stdout + r.stderr
         assert "red: worker(s) 0" in r.stdout
+
+    def test_a_file_is_not_retried_when_one_run_was_requested_ac_3(self, workspace_root, tmp_path):
+        import os
+        env = {**os.environ, "AIDE_TEST_WORKERS": "1", "AIDE_TEST_ONCE": "1", "BASH_FUNC_bun%%": _FAKE_BUN}
+        (tmp_path / "red-once.test.ts").write_text("")
+        result = subprocess.run(
+            ["bash", str(workspace_root / "dashboard" / "scripts" / "run-tests.sh"), str(tmp_path)],
+            capture_output=True, text=True, env=env, timeout=60,
+        )
+        assert result.returncode == 1
+        assert "running its failing file(s) again" not in result.stdout
 
 
 

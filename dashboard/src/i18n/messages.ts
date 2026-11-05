@@ -258,20 +258,44 @@ export const MESSAGES = {
   // not logged in where Aide runs, the provider's own side failed, or the
   // error's own first line as the cause. {tool} is the tool's Settings tab.
   "runner.cliErrorLogin": {
-    en: "{tool} is not logged in on the machine that runs Aide. — Log in there (or press Check under Settings), and press {button} again.",
-    nb: "{tool} er ikke logget inn på maskinen som kjører Aide. — Logg inn der (eller trykk Sjekk under Innstillinger), og trykk {button} igjen.",
-    es: "{tool} no tiene la sesión iniciada en la máquina que ejecuta Aide. — Inicia sesión allí (o pulsa Comprobar en Ajustes) y pulsa {button} de nuevo.",
-    de: "{tool} ist auf dem Rechner, auf dem Aide läuft, nicht angemeldet. — Melde dich dort an (oder klicke unter Einstellungen auf Prüfen) und klicke erneut auf {button}.",
-    fr: "{tool} n'est pas connecté sur la machine qui exécute Aide. — Connectez-vous-y (ou cliquez sur Vérifier dans Réglages), puis cliquez de nouveau sur {button}.",
+    en: "{tool} is not logged in on the machine that runs Aide: {cause}. — Log in there (or press Check under Settings), and press {button} again.",
+    nb: "{tool} er ikke logget inn på maskinen som kjører Aide: {cause}. — Logg inn der (eller trykk Sjekk under Innstillinger), og trykk {button} igjen.",
+    es: "{tool} no tiene la sesión iniciada en la máquina que ejecuta Aide: {cause}. — Inicia sesión allí (o pulsa Comprobar en Ajustes) y pulsa {button} de nuevo.",
+    de: "{tool} ist auf dem Rechner, auf dem Aide läuft, nicht angemeldet: {cause}. — Melde dich dort an (oder klicke unter Einstellungen auf Prüfen) und klicke erneut auf {button}.",
+    fr: "{tool} n'est pas connecté sur la machine qui exécute Aide : {cause}. — Connectez-vous-y (ou cliquez sur Vérifier dans Réglages), puis cliquez de nouveau sur {button}.",
     resolve: "Log in there (or press Check under Settings), and press {button} again.",
   },
   "runner.cliErrorProvider": {
-    en: "{tool} had an error on the provider's side. — Try again in a little while: press {button} again.",
-    nb: "{tool} hadde en feil hos leverandøren. — Prøv igjen om litt: trykk {button} igjen.",
-    es: "{tool} tuvo un error del lado del proveedor. — Inténtalo de nuevo dentro de un rato: pulsa {button} de nuevo.",
-    de: "{tool} hatte einen Fehler beim Anbieter. — Versuche es gleich noch einmal: klicke erneut auf {button}.",
-    fr: "{tool} a rencontré une erreur chez le fournisseur. — Réessayez dans un moment : cliquez de nouveau sur {button}.",
+    en: "{tool}'s provider had an error: {cause}. — Try again in a little while: press {button} again.",
+    nb: "Leverandøren til {tool} hadde en feil: {cause}. — Prøv igjen om litt: trykk {button} igjen.",
+    es: "El proveedor de {tool} tuvo un error: {cause}. — Inténtalo de nuevo dentro de un rato: pulsa {button} de nuevo.",
+    de: "Der Anbieter von {tool} hatte einen Fehler: {cause}. — Versuche es gleich noch einmal: klicke erneut auf {button}.",
+    fr: "Le fournisseur de {tool} a rencontré une erreur : {cause}. — Réessayez dans un moment : cliquez de nouveau sur {button}.",
     resolve: "Try again in a little while: press {button} again.",
+  },
+  "runner.cliErrorForbidden": {
+    en: "{tool}'s provider refused the request: {cause}. — Check that the account may use this model, or choose another model for this step, then press {button} again.",
+    nb: "Leverandøren til {tool} avviste forespørselen: {cause}. — Sjekk at kontoen kan bruke denne modellen, eller velg en annen modell for steget, og trykk {button} igjen.",
+    es: "El proveedor de {tool} rechazó la solicitud: {cause}. — Comprueba que la cuenta puede usar este modelo, o elige otro modelo para este paso, y pulsa {button} de nuevo.",
+    de: "Der Anbieter von {tool} hat die Anfrage abgelehnt: {cause}. — Prüfe, ob das Konto dieses Modell verwenden darf, oder wähle ein anderes Modell für diesen Schritt und klicke erneut auf {button}.",
+    fr: "Le fournisseur de {tool} a refusé la requête : {cause}. — Vérifiez que le compte peut utiliser ce modèle, ou choisissez un autre modèle pour cette étape, puis cliquez de nouveau sur {button}.",
+    resolve: "Check that the account may use this model, or choose another model for this step, then press {button} again.",
+  },
+  "runner.cliErrorNetwork": {
+    en: "{tool} could not reach its provider from the machine that runs Aide: {cause}. — Check the network from the serving host, then press {button} again.",
+    nb: "{tool} kom ikke fram til leverandøren fra maskinen som kjører Aide: {cause}. — Sjekk nettverket fra serveren, og trykk {button} igjen.",
+    es: "{tool} no pudo alcanzar a su proveedor desde la máquina que ejecuta Aide: {cause}. — Comprueba la red desde el servidor y pulsa {button} de nuevo.",
+    de: "{tool} konnte seinen Anbieter vom Rechner, auf dem Aide läuft, nicht erreichen: {cause}. — Prüfe das Netzwerk vom Server aus und klicke erneut auf {button}.",
+    fr: "{tool} n'a pas pu joindre son fournisseur depuis la machine qui exécute Aide : {cause}. — Vérifiez le réseau depuis le serveur, puis cliquez de nouveau sur {button}.",
+    resolve: "Check the network from the serving host, then press {button} again.",
+  },
+  "runner.cliErrorSilent": {
+    en: "{tool} ended without giving a reason. — Its own output is in this step's part of the job's Log; press {button} again, and if it ends the same way, press Check on its provider under Settings.",
+    nb: "{tool} avsluttet uten å oppgi en grunn. — Verktøyets egen tekst ligger i denne delen av jobbens Logg; trykk {button} igjen, og hvis det avslutter på samme måte, trykk Sjekk på leverandøren under Innstillinger.",
+    es: "{tool} terminó sin dar una razón. — Su salida está en la parte de este paso del Registro del trabajo; pulsa {button} de nuevo y, si termina igual, pulsa Comprobar en su proveedor dentro de Ajustes.",
+    de: "{tool} wurde beendet, ohne einen Grund anzugeben. — Die eigene Ausgabe steht im Abschnitt dieses Schritts im Auftragsprotokoll; klicke erneut auf {button} und, falls es genauso endet, beim Anbieter unter Einstellungen auf Prüfen.",
+    fr: "{tool} s'est terminé sans donner de raison. — Sa sortie se trouve dans la partie de cette étape du journal de la tâche ; cliquez de nouveau sur {button} et, si cela se reproduit, cliquez sur Vérifier pour son fournisseur dans Réglages.",
+    resolve: "Its own output is in this step's part of the job's Log; press {button} again, and if it ends the same way, press Check on its provider under Settings.",
   },
   "runner.cliErrorOther": {
     en: "The step failed on {tool}: {cause}. — Press {button} again; if it fails the same way, open Settings, the Providers tab, the provider the step ran on, and press Check on its Installation tab.",
@@ -318,6 +342,30 @@ export const MESSAGES = {
     de: "GitHub hatte einen Fehler — versuche es gleich noch einmal",
     fr: "GitHub a rencontré une erreur — réessayez dans un moment",
     resolve: "try again in a little while",
+  },
+  "git.pushNetwork": {
+    en: "the serving host could not reach origin ({cause}) — check the network from the serving host, then try again",
+    nb: "serveren kom ikke fram til origin ({cause}) — sjekk nettverket fra serveren, og prøv igjen",
+    es: "el servidor no pudo alcanzar origin ({cause}) — comprueba la red desde el servidor y vuelve a intentarlo",
+    de: "der Server konnte origin nicht erreichen ({cause}) — prüfe das Netzwerk vom Server aus und versuche es erneut",
+    fr: "le serveur n'a pas pu joindre origin ({cause}) — vérifiez le réseau depuis le serveur, puis réessayez",
+    resolve: "check the network from the serving host, then try again",
+  },
+  "git.pushNoWrite": {
+    en: "GitHub accepted the login but it may not write to this repository ({cause}) — give that key or account write access on GitHub, then try again",
+    nb: "GitHub godtok innloggingen, men den kan ikke skrive til dette repoet ({cause}) — gi nøkkelen eller kontoen skrivetilgang på GitHub, og prøv igjen",
+    es: "GitHub aceptó el inicio de sesión, pero no puede escribir en este repositorio ({cause}) — concede acceso de escritura a esa clave o cuenta en GitHub y vuelve a intentarlo",
+    de: "GitHub hat die Anmeldung akzeptiert, sie darf aber nicht in dieses Repository schreiben ({cause}) — gib dem Schlüssel oder Konto Schreibzugriff auf GitHub und versuche es erneut",
+    fr: "GitHub a accepté la connexion, mais elle ne peut pas écrire dans ce dépôt ({cause}) — accordez l'accès en écriture à cette clé ou ce compte sur GitHub, puis réessayez",
+    resolve: "give that key or account write access on GitHub, then try again",
+  },
+  "git.pushHttpsAuth": {
+    en: "GitHub does not accept the HTTPS login git uses on the serving host ({cause}) — renew the token in git's credentials on the serving host, then try again",
+    nb: "GitHub godtar ikke HTTPS-innloggingen git bruker på serveren ({cause}) — forny tokenet i git-legitimasjonen på serveren, og prøv igjen",
+    es: "GitHub no acepta el inicio de sesión HTTPS que git usa en el servidor ({cause}) — renueva el token en las credenciales de git del servidor y vuelve a intentarlo",
+    de: "GitHub akzeptiert die HTTPS-Anmeldung nicht, die git auf dem Server verwendet ({cause}) — erneuere das Token in den git-Anmeldedaten auf dem Server und versuche es erneut",
+    fr: "GitHub n'accepte pas la connexion HTTPS utilisée par git sur le serveur ({cause}) — renouvelez le jeton dans les identifiants git du serveur, puis réessayez",
+    resolve: "renew the token in git's credentials on the serving host, then try again",
   },
   "git.pushRefused": {
     en: "origin refused the push: {cause} — settle that on GitHub or in the checkout on the serving host, then try again",
@@ -472,11 +520,49 @@ export const MESSAGES = {
     fr: "implement a signalé un succès, mais les tests du projet sont au rouge sur ce résultat — le runner les a lancés lui-même, et ce qui a échoué est affiché ci-dessous. — Si le défaut est dans le code, cliquez de nouveau sur {button} ; si quelque chose sur la machine a arrêté les tests, comme un port occupé ou un service arrêté, corrigez-le d'abord.",
     resolve: "If the fault is in the code, press {button} again; if something on the machine stopped the tests, fix that first.",
   },
-  // An implement whose own test run named its failing tests
-  // (run-spec/turn/failing-tests.sh): the tests, and what they point at —
-  // the change, when a failing test is in a file it touched and every run
-  // failed the same ones; otherwise unstable tests or a busy machine, with
-  // the reasons that hold as the inner sentences below.
+  // A red implement names tests that still fail separately from tests
+  // proven to pass when their files were run again alone.
+  "runner.testsRedFailing": {
+    en: "implement is done, but {n} of {total} tests fail on its result: {tests}. — Press {button} again.",
+    nb: "implementering er ferdig, men {n} av {total} tester feiler på resultatet: {tests}. — Trykk {button} igjen.",
+    es: "implement terminó, pero {n} de {total} tests fallan: {tests}. — Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber {n} von {total} Tests schlagen fehl: {tests}. — Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais {n} tests sur {total} échouent : {tests}. — Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedFailingUncounted": {
+    en: "implement is done, but these tests fail on its result: {tests}. — Press {button} again.",
+    nb: "implementering er ferdig, men disse testene feiler på resultatet: {tests}. — Trykk {button} igjen.",
+    es: "implement terminó, pero estos tests fallan: {tests}. — Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber diese Tests schlagen fehl: {tests}. — Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais ces tests échouent : {tests}. — Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedFailingPassedAlone": {
+    en: "implement is done, but {n} of {total} tests fail on its result: {tests}. {k} more failed in the suite and passed when their files were run again alone, so they may be unstable: {passed}. — Press {button} again.",
+    nb: "implementering er ferdig, men {n} av {total} tester feiler på resultatet: {tests}. {k} andre feilet i testkjøringen og besto da filene ble kjørt alene på nytt, så de kan være ustabile: {passed}. — Trykk {button} igjen.",
+    es: "implement terminó, pero {n} de {total} tests fallan: {tests}. Otros {k} pasaron al ejecutar sus archivos de nuevo por separado y pueden ser inestables: {passed}. — Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber {n} von {total} Tests schlagen fehl: {tests}. Weitere {k} bestanden beim erneuten Einzellauf ihrer Dateien und könnten instabil sein: {passed}. — Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais {n} tests sur {total} échouent : {tests}. {k} autres ont réussi lors d'un nouveau lancement isolé et peuvent être instables : {passed}. — Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedFailingPassedAloneUncounted": {
+    en: "implement is done, but these tests fail on its result: {tests}. {k} more passed when their files were run again alone, so they may be unstable: {passed}. — Press {button} again.",
+    nb: "implementering er ferdig, men disse testene feiler på resultatet: {tests}. {k} andre besto da filene ble kjørt alene på nytt, så de kan være ustabile: {passed}. — Trykk {button} igjen.",
+    es: "implement terminó, pero estos tests fallan: {tests}. Otros {k} pasaron por separado y pueden ser inestables: {passed}. — Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber diese Tests schlagen fehl: {tests}. Weitere {k} bestanden einzeln und könnten instabil sein: {passed}. — Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais ces tests échouent : {tests}. {k} autres ont réussi seuls et peuvent être instables : {passed}. — Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedPassedAlone": {
+    en: "implement is done, but its tests were red: {k} failed in the suite and passed when their files were run again alone, so they may be unstable: {passed}. — Press {button} again, or fix those tests on their own.",
+    nb: "implementering er ferdig, men testene var røde: {k} feilet i testkjøringen og besto da filene ble kjørt alene på nytt, så de kan være ustabile: {passed}. — Trykk {button} igjen, eller rett testene for seg.",
+    es: "implement terminó, pero sus tests estaban en rojo: {k} pasaron por separado y pueden ser inestables: {passed}. — Pulsa {button} de nuevo o corrige esos tests.",
+    de: "Implement ist fertig, aber die Tests waren rot: {k} bestanden einzeln und könnten instabil sein: {passed}. — Klicke erneut auf {button} oder repariere diese Tests.",
+    fr: "implement est terminé, mais ses tests étaient au rouge : {k} ont réussi seuls et peuvent être instables : {passed}. — Cliquez de nouveau sur {button} ou corrigez ces tests.",
+    resolve: "Press {button} again, or fix those tests on their own.",
+  },
+  // Stored rows may still name the old verdict keys below. New rows do not.
   "runner.testsRedInChange": {
     en: "implement is done, but {n} of {total} tests fail on its result: {tests}. The fault is likely in the change. — Press {button} again.",
     nb: "implementering er ferdig, men {n} av {total} tester feiler på resultatet: {tests}. Feilen er trolig i endringen. — Trykk {button} igjen.",
