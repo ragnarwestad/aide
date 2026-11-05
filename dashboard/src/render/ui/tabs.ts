@@ -24,24 +24,6 @@ export function pickTab<T extends string>(
   return (tabs as readonly string[]).includes(name ?? "") ? (name as T) : fallback;
 }
 
-/** A tab's key is its route (`?tab=steps`) and everywhere else it is
- *  read as data, so renaming it would ripple into the query string, the
- *  `JobTab`/`SpecTab` types and every test asserting on either. The
- *  VISIBLE word only needed to change once — "Steps" sat directly beside
- *  "Status" on the spec page, and a phase's own task table lives under
- *  Status, so two tabs both readable as "the steps" was the confusion
- *  (raised 2026-08-25). "steps" is still exactly the right word for what
- *  the tab CONTAINS — one row per workflow step — so only the label a
- *  reader sees changes, not the concept. */
-const TAB_LABELS: Record<string, string> = {
-  // The Settings page's own AI tabs: two of the four tools spell their
-  // name with a word the key cannot carry ("Claude Code") or a capital
-  // in the middle ("OpenCode"), and capitalising the key would give
-  // "Claude" and "Opencode".
-  claude: "Claude Code",
-  opencode: "OpenCode",
-};
-
 /** The tabs whose word is in the catalogue, under `tab.<key>`: the word a
  *  key gives by capitalising it, or a word it cannot ("Logs", "AI",
  *  "Models per phase"). */
@@ -52,7 +34,7 @@ const CATALOGUE_TABS = new Set([
 /** The word a tab key shows, in the reader's language. */
 export function tabWord(lang: Language, key: string): string {
   if (CATALOGUE_TABS.has(key)) return t(lang, `tab.${key}` as TranslationKey);
-  return TAB_LABELS[key] ?? key[0]!.toUpperCase() + key.slice(1);
+  return key[0]!.toUpperCase() + key.slice(1);
 }
 
 /** The word a tab key shows, in English. */

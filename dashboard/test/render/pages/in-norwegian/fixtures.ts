@@ -9,8 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   renderAddProjectPage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderSchedulePage,
-  renderScheduleDetailPage, renderScheduleNewPage, renderSchedulePromptPage, renderSettingsPage, TOOL_TABS,
-  type ProjectView, type ToolCheck, type ToolModels, type ToolUsage,
+  renderProviderPage, renderScheduleDetailPage, renderScheduleNewPage, renderSchedulePromptPage, renderSettingsPage,
+  CHECKABLE_TOOLS, type ProjectView, type ProviderStatus, type ToolCheck, type ToolModels, type ToolUsage,
 } from "../../../../src/render";
 import type { GitRunner } from "../../../../src/git/branch-status.ts";
 import { assessProjectReadiness } from "../../../../src/project/project-admin/readiness.ts";
@@ -80,33 +80,65 @@ export function settingsStates(): PageState[] {
     settings("Settings › Process", { tab: "process", process: { concurrency: 2, cores: 8, min: 1, max: 16 } }),
     settings("Settings › Notifications", { tab: "notifications", pushPublicKey: "nokkel" }),
   ];
-  for (const tool of TOOL_TABS) {
+  const providers = {
+    Konto: { name: "Konto", tool: "claude" as const, configDir: "~/.claude-konto" },
+    Kodeks: { name: "Kodeks", tool: "codex" as const, codexHome: "~/.codex-kodeks" },
+    Aapen: { name: "Aapen", tool: "opencode" as const },
+    Fraverende: { name: "Fraverende", tool: "codex" as const },
+  };
+  const statusOf = (key: string, login?: ProviderStatus["login"], installed = true): ProviderStatus =>
+    ({ key, at: AT, installed, ...(installed ? { version: "2.1.273" } : {}), ...(login ? { login } : {}) });
+  const names = Object.values(providers).map((p) => p.name);
+  const statuses = {
+    Konto: statusOf("Konto", { question: "Is it logged in?", ok: true, detail: "", answer: { key: "login.in" } }),
+    Kodeks: statusOf("Kodeks", { question: "Is it logged in?", ok: false, detail: "", answer: { key: "login.out", values: { command: "CODEX_HOME=~/.codex-kodeks codex login" } } }),
+    Aapen: statusOf("Aapen", { question: "Is it logged in?", ok: null, detail: "", answer: { key: "login.timedOut", values: { command: "opencode auth list" } } }),
+    Fraverende: statusOf("Fraverende", undefined, false),
+  };
+  states.push(
+    settings("Settings › Providers", { tab: "providers", providers, providerStatuses: statuses }, names),
+    settings("Settings › Providers, none", { tab: "providers", providers: {} }),
+    settings("Settings › claude (a removed tab opens Providers)", { tab: "claude", providers, providerStatuses: statuses }, names),
+  );
+  const providerPage = (page: string, opts: Partial<Parameters<typeof renderProviderPage>[2]>, data: string[] = []): PageState => ({
+    page,
+    html: renderProviderPage(NAV, NOW, { ...nb, ...opts }),
+    data: [...data, ...names, "~/.claude-konto", "~/.codex-kodeks", "2.1.273", "noen@eksempel.no, Max", "CODEX_HOME=~/.codex-kodeks codex login",
+      "Planlegg 1", "claude-planlegg-1", "Raskkodex", "raskkodex", "Ukjent", "ukjent", "Dagens kvote", "Nov 3 at 11:20pm (Europe/Oslo)", "funnet (2.1.273)",
+      "aide-preflight claude", "claude auth status"],
+  });
+  states.push(
+    providerPage("Provider › Add, which tool", {}),
+    ...(["claude", "codex", "opencode"] as const).map((tool) => providerPage(`Provider › Add, ${tool}`, { tool })),
+  );
+  for (const tool of CHECKABLE_TOOLS) {
+    const key = tool === "claude" ? "Konto" : tool === "codex" ? "Kodeks" : "Aapen";
     const reading = tool === "codex" ? CODEX_READING : { ...READING, tool };
     const usage = { ...USAGE, tool };
-    for (const part of ["models", "subscription", "installation"]) {
-      const base = { tab: tool, aiTab: part, choices: {}, ...(tool === "claude" ? {} : {}) };
-      states.push(settings(`Settings › ${tool} › ${part}, before a reading`, base));
+    for (const part of ["models", "installation"]) {
+      const base = { edit: { key, provider: providers[key as keyof typeof providers] }, aiTab: part, models: { choices: {} } };
+      states.push(providerPage(`Provider › ${tool} › ${part}, before a reading`, { ...base, status: statuses[key as keyof typeof statuses] }));
       states.push(
-        settings(`Settings › ${tool} › ${part}, after a reading`, {
+        providerPage(`Provider › ${tool} › ${part}, after a reading`, {
           ...base,
-          checks: { [tool]: checkOf(tool) },
-          usage: { [tool]: usage },
-          models: { [tool]: reading },
-        }, ["noen@eksempel.no, Max", "funnet (2.1.273)", "aide-preflight claude", "claude auth status", "mangler", "Er den oppdatert?", "Kan den nås?", "Dagens kvote", "Nov 3 at 11:20pm (Europe/Oslo)"]),
+          status: statuses[key as keyof typeof statuses],
+          usage,
+          check: checkOf(tool),
+          models: { choices: {}, reading },
+        }),
       );
     }
   }
   states.push(
-    settings("Settings › copilot › subscription, nothing to read", {
-      tab: "copilot", aiTab: "subscription",
-      usage: { copilot: { tool: "copilot", at: AT, windows: [], noSource: true } },
-      models: { copilot: { tool: "copilot", at: AT, offered: [], noSource: true } },
+    providerPage("Provider › codex, usage with no windows", {
+      edit: { key: "Kodeks", provider: providers.Kodeks }, status: statuses.Kodeks, usage: { tool: "codex", at: AT, windows: [] },
     }),
-    settings("Settings › codex › subscription, no windows", {
-      tab: "codex", aiTab: "subscription", usage: { codex: { tool: "codex", at: AT, windows: [] } },
+    providerPage("Provider › not installed", {
+      edit: { key: "Fraverende", provider: providers.Fraverende }, status: statuses.Fraverende,
     }),
-    settings("Settings › claude › models, none offered", {
-      tab: "claude", aiTab: "models", models: { claude: { tool: "claude", at: AT, offered: [] } },
+    providerPage("Provider › claude, models none offered", {
+      edit: { key: "Konto", provider: providers.Konto }, status: statuses.Konto,
+      models: { choices: {}, reading: { tool: "claude", at: AT, offered: [], provider: "Konto" } },
     }),
   );
   return states;

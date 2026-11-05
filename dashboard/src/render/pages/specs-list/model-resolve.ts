@@ -117,7 +117,7 @@ export function resolveProvider(
     const found = providers.find((p) => p.key === key);
     if (runs(found)) return found;
   }
-  const wanted = providers.find((p) => p.key === (opts.defaultProviders?.[step] ?? opts.defaultProviders?.default));
+  const wanted = providers.find((p) => p.key === opts.defaultProviders?.[step]);
   return runs(wanted) ? wanted : providers.find(runs);
 }
 

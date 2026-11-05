@@ -9,7 +9,8 @@ import { homedir } from "node:os";
 import { providerLoginEnv, type Provider } from "../../queue/providers/index.ts";
 import { runScript, scriptFor } from "../land-branch/run-script.ts";
 import { askLogin, CHECK_TIMEOUT_MS, stripAnsi, type CheckOptions } from "../tool-check.ts";
-import type { ProviderStatus } from "../../render";
+import { readUsage, type UsageOptions } from "../tool-usage";
+import type { ProviderStatus, ToolUsage } from "../../render";
 
 export type { ProviderStatus };
 
@@ -19,7 +20,11 @@ export type { ProviderStatus };
 export async function readProviderStatus(
   key: string,
   provider: Provider,
-  opts: Pick<CheckOptions, "run" | "scriptPath" | "now" | "home"> = {},
+  opts: Pick<CheckOptions, "run" | "scriptPath" | "now" | "home"> & {
+    /** `false` stops after `--version`: a save asks only whether the tool is
+     *  there, never for a login. */
+    login?: boolean;
+  } = {},
 ): Promise<ProviderStatus> {
   const run = opts.run ?? runScript;
   const bin = (opts.scriptPath ?? ((name: string) => scriptFor(name)))(provider.tool);
@@ -34,6 +39,18 @@ export async function readProviderStatus(
   } catch {
     return { key, at, installed: false };
   }
+  if (opts.login === false) return { key, at, installed: true, ...(printed ? { version: printed } : {}) };
   const login = await askLogin(provider.tool, run, bin, provider, home);
   return { key, at, installed: true, ...(printed ? { version: printed } : {}), login };
+}
+
+/** Reads `provider`'s usage with its own folders in the environment, so two
+ *  providers of one tool on two accounts each show their own. */
+export function readProviderUsage(
+  _key: string,
+  provider: Provider,
+  opts: Omit<UsageOptions, "env"> & { home?: string } = {},
+): Promise<ToolUsage> {
+  const { home, ...rest } = opts;
+  return readUsage(provider.tool, { ...rest, env: providerLoginEnv(provider, home ?? homedir()) });
 }

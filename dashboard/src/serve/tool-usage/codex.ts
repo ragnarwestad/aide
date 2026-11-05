@@ -50,6 +50,9 @@ export type UsageExchange = (
   messages: object[],
   id: number,
   timeoutMs: number,
+  /** Laid over the board's own environment for the server: the folders of
+   *  the provider whose usage is asked. */
+  env?: Record<string, string>,
 ) => Promise<ExchangeReply>;
 
 async function answerLine(stdout: ReadableStream<Uint8Array>, id: number): Promise<ExchangeReply> {
@@ -75,8 +78,8 @@ async function answerLine(stdout: ReadableStream<Uint8Array>, id: number): Promi
   return { error: "codex app-server ended without answering." };
 }
 
-export const appServerExchange: UsageExchange = async (argv, messages, id, timeoutMs) => {
-  const env = spawnEnv();
+export const appServerExchange: UsageExchange = async (argv, messages, id, timeoutMs, extraEnv = {}) => {
+  const env = { ...spawnEnv(), ...extraEnv };
   const proc = Bun.spawn({
     cmd: scriptArgv(argv, env.PATH),
     cwd: process.cwd(),
@@ -129,8 +132,9 @@ export async function readCodexUsage(
   bin: string,
   base: Pick<ToolUsage, "tool" | "at">,
   timeoutMs: number,
+  env?: Record<string, string>,
 ): Promise<ToolUsage> {
-  const reply = await exchange([bin, "app-server"], RATE_LIMITS_MESSAGES, RATE_LIMITS_REQUEST_ID, timeoutMs);
+  const reply = await exchange([bin, "app-server"], RATE_LIMITS_MESSAGES, RATE_LIMITS_REQUEST_ID, timeoutMs, env);
   if ("timedOut" in reply) return { ...base, windows: [], error: "codex app-server did not answer in time." };
   if ("error" in reply) return { ...base, windows: [], error: reply.error };
   const { answer } = reply;

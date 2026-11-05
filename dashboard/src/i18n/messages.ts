@@ -197,12 +197,12 @@ export const MESSAGES = {
     resolve: "Try again in a little while: press {button} again.",
   },
   "runner.cliErrorOther": {
-    en: "The step failed on {tool}: {cause}. — Press {button} again; if it fails the same way, open Settings, the {tool} tab, then Installation, and press Check.",
-    nb: "Steget feilet på {tool}: {cause}. — Trykk {button} igjen; feiler det på samme måte, åpne Innstillinger, fanen {tool}, så Installasjon, og trykk Sjekk.",
-    es: "El paso falló en {tool}: {cause}. — Pulsa {button} de nuevo; si falla igual, abre Ajustes, la pestaña {tool}, luego Instalación, y pulsa Comprobar.",
-    de: "Der Schritt ist auf {tool} fehlgeschlagen: {cause}. — Klicke erneut auf {button}; scheitert er genauso, öffne Einstellungen, den Tab {tool}, dann Installation, und klicke auf Prüfen.",
-    fr: "L'étape a échoué sur {tool} : {cause}. — Cliquez de nouveau sur {button} ; si elle échoue de la même façon, ouvrez Réglages, l'onglet {tool}, puis Installation, et cliquez sur Vérifier.",
-    resolve: "Press {button} again; if it fails the same way, open Settings, the {tool} tab, then Installation, and press Check.",
+    en: "The step failed on {tool}: {cause}. — Press {button} again; if it fails the same way, open Settings, the Providers tab, the provider the step ran on, and press Check on its Installation tab.",
+    nb: "Steget feilet på {tool}: {cause}. — Trykk {button} igjen; feiler det på samme måte, åpne Innstillinger, fanen Providere, provideren steget kjørte på, og trykk Sjekk på fanen Installasjon.",
+    es: "El paso falló en {tool}: {cause}. — Pulsa {button} de nuevo; si falla igual, abre Ajustes, la pestaña Proveedores, el proveedor en el que corrió el paso, y pulsa Comprobar en su pestaña Instalación.",
+    de: "Der Schritt ist auf {tool} fehlgeschlagen: {cause}. — Klicke erneut auf {button}; scheitert er genauso, öffne Einstellungen, den Tab Anbieter, den Anbieter, auf dem der Schritt lief, und klicke in dessen Tab Installation auf Prüfen.",
+    fr: "L'étape a échoué sur {tool} : {cause}. — Cliquez de nouveau sur {button} ; si elle échoue de la même façon, ouvrez Réglages, l'onglet Fournisseurs, le fournisseur sur lequel l'étape s'est exécutée, et cliquez sur Vérifier dans son onglet Installation.",
+    resolve: "Press {button} again; if it fails the same way, open Settings, the Providers tab, the provider the step ran on, and press Check on its Installation tab.",
   },
   // A step whose work did not reach origin (`unpushed`), one sentence per
   // repo whose push failed: the repo and the branch, then why as the inner

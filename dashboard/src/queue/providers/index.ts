@@ -96,13 +96,10 @@ export function resolveStepProvider(
   const model = resolveStepModel(job as Job, step, defaults.model);
   const listed = model && defaults.modelChoices ? listedModelName(Object.keys(defaults.modelChoices), model) : undefined;
   const choice = listed && "name" in listed ? defaults.modelChoices?.[listed.name] : undefined;
-  const wanted = defaults.provider?.[step] ?? defaults.provider?.default;
+  const wanted = defaults.provider?.[step];
   if (wanted && providers[wanted] && runsModel(providers[wanted], choice)) return wanted;
   return Object.entries(providers).find(([, p]) => runsModel(p, choice))?.[0];
 }
-
-/** The phases the Settings table sets a provider for. */
-const SETTINGS_PHASES = ["create", "analyze", "implement", "archive", "close", "reopen", "schedule"];
 
 const capitalised = (step: string): string => step.charAt(0).toUpperCase() + step.slice(1);
 
@@ -121,12 +118,8 @@ export function providerUses(
   jobs: Job[],
 ): string[] {
   const uses: string[] = [];
-  // The `default` entry has no row on Settings: it is a use only while some
-  // phase that Settings sets has no provider of its own.
-  const unset = SETTINGS_PHASES.some((step) => !defaults.provider?.[step]);
   for (const [step, chosen] of Object.entries(defaults.provider ?? {})) {
-    if (step === "default" && !unset) continue;
-    if (chosen === key) uses.push(step === "default" ? "the default" : `the ${capitalised(step)} default`);
+    if (step !== "default" && chosen === key) uses.push(`the ${capitalised(step)} default`);
   }
   for (const [project, entries] of Object.entries(schedules)) {
     for (const entry of entries) if (entry.provider === key) uses.push(`the schedule ${entry.name} in ${project}`);

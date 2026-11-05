@@ -146,14 +146,11 @@ function mixedLogins(parsed: Record<string, unknown>): string | undefined {
 }
 
 /** Whether the tool has credentials, asked of the tool itself and never
- *  by looking for a file. Three of the four have a command for it; the
- *  fourth has none, and says so rather than guessing from a token file
- *  whose location the CLI is free to change.
+ *  by looking for a file.
  *
  *  Verified 2026-09-16: `claude auth status` prints JSON with a
  *  `loggedIn` boolean; `codex login status` prints one line and exits 0
- *  when logged in; `copilot` has `login` and `logout` and no status
- *  subcommand at all. OpenCode is asked through its providers instead,
+ *  when logged in. OpenCode is asked through its providers instead,
  *  which is the same question one layer out - it reaches a model through
  *  a provider, so a provider IS the credential. */
 async function loginCheck(
@@ -163,13 +160,6 @@ async function loginCheck(
   command: string,
   env: Record<string, string>,
 ): Promise<ExtraCheck> {
-  if (tool === "copilot") {
-    return {
-      question: LOGIN_QUESTION, ok: null, detail: "",
-      answer: { key: "login.noCommand", values: { tool: "Copilot" } },
-    };
-  }
-
   const args = tool === "claude" ? ["auth", "status"] : ["login", "status"];
   const asked = [tool, ...args].join(" ");
   const result = await run([bin, ...args], process.cwd(), CHECK_TIMEOUT_MS, undefined, env);
@@ -280,10 +270,6 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
     for (const provider of own) extra.push(await askLogin(tool, run, path(tool), provider, opts.home));
   }
   return { tool, at, found, lines: printed, extra, commands };
-}
-
-export function isCheckableTool(name: unknown): name is CheckableTool {
-  return typeof name === "string" && (CHECKABLE_TOOLS as readonly string[]).includes(name);
 }
 
 /** Run every check once, for a server that has just come up.

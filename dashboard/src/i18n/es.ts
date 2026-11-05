@@ -21,9 +21,9 @@ export const es: Record<TranslationKey, string> = {
   "shell.restartWaiting": "El despliegue espera a {jobs}; el servicio se reinicia cuando terminen.",
   "shell.installWarning": "la última instalación de aide encontró un problema: {problem} — la salida completa está en {path}",
   "shell.toolFault": "{tool}: {problems} — pulsa Comprobar en {where}",
-  "shell.toolFaultWhere": "su pestaña Instalación en Settings",
+  "shell.toolFaultWhere": "la página de un proveedor, en la pestaña Proveedores de Settings",
   "shell.modelsGone": "{tool}: {models} ya no se ofrece — quítalo en {where}",
-  "shell.modelsGoneWhere": "su pestaña Modelos en Settings",
+  "shell.modelsGoneWhere": "la página de un proveedor, en la pestaña Proveedores de Settings",
   "shell.checkoutFault": "{project}: el panel no puede usar su propia copia — {said}",
   "deploy.title": "Desplegando…",
   "deploy.stepFetch": "Traer desde origin",
@@ -320,16 +320,13 @@ export const es: Record<TranslationKey, string> = {
     "Claude Code lee las skills de aide desde {skills} y sus reglas desde {rules}; los scripts de aide están en {scripts}.",
   "settings.where.codex":
     "Codex lee las instrucciones de aide desde {instructions}, sus hooks desde {hookConfig} y {hooks}, y sus skills desde {skills}, que comparte con Copilot; los scripts de aide están en {scripts}.",
-  "settings.where.copilot":
-    "Copilot lee las instrucciones de aide desde {instructions} y sus skills desde {skills}, que comparte con Codex; los scripts de aide están en {scripts}.",
   "settings.where.opencode":
     "OpenCode no trae ningún modelo propio: cada modelo pertenece a un proveedor y se llama proveedor/modelo. aide solo instala sus instrucciones, en {instructions}, y OpenCode encuentra las skills de aide donde ya están, en {skills} y {claudeSkills}.",
   "settings.checkHelpTitle":
     "Qué averigua Comprobar",
   "settings.checkHelpAll":
-    "Una pulsación de Comprobar lee las tres pestañas a la vez, y cada pestaña muestra después lo que encontró esa pulsación.",
+    "Una pulsación de Comprobar lee los modelos y la instalación de esta herramienta, con las carpetas de este proveedor. La sesión y el uso se leen cada vez que se abre esta página.",
   "settings.part.models": "Modelos",
-  "settings.part.subscription": "Uso",
   "settings.part.installation": "Instalación",
   "settings.providers.intro": "Los inicios de sesión de IA con los que el tablero puede ejecutar un paso. Cada uno es una herramienta y las carpetas donde esa herramienta guarda su sesión.",
   "settings.providers.none": "No se ha añadido ningún proveedor.",
@@ -337,12 +334,8 @@ export const es: Record<TranslationKey, string> = {
   "settings.providers.configDir": "Carpeta de configuración (vacía: la propia de Claude Code)",
   "settings.providers.codexHome": "Carpeta CODEX_HOME (vacía: la propia de Codex)",
   "settings.providers.shadowHome": "Shadow home (opcional)",
-  "settings.providers.newName": "Nuevo nombre",
   "settings.providers.add": "Añadir",
   "settings.providers.adding": "añadiendo…",
-  "settings.providers.rename": "Renombrar",
-  "settings.providers.renaming": "renombrando…",
-  "settings.providers.edit": "Editar",
   "settings.providers.newTitle": "Añadir un proveedor",
   "settings.providers.editTitle": "Editar {name}",
   "settings.providers.chooseTool": "¿Para qué herramienta es el proveedor?",
@@ -351,7 +344,15 @@ export const es: Record<TranslationKey, string> = {
   "settings.providers.installed": "Instalado, versión {version}",
   "settings.providers.installedNoVersion": "Instalado",
   "settings.providers.notInstalled": "{tool} no está instalado donde se ejecuta el tablero",
-  "settings.providers.loginUnread": "No se pudo leer la sesión — abre la pestaña de nuevo para leerla otra vez.",
+  "settings.providers.loginUnread": "No se pudo leer la sesión — abre la página de nuevo para leerla otra vez.",
+  "settings.providers.login": "Sesión",
+  "settings.providers.state.in": "Con sesión iniciada",
+  "settings.providers.state.out": "Sin sesión iniciada",
+  "settings.providers.state.unread": "Sin leer",
+  "settings.providers.state.notInstalled": "No instalado",
+  "settings.providers.removeTitle": "¿Quitar {name}?",
+  "settings.providers.removeSentence": "El proveedor se elimina del tablero. Su carpeta y su sesión se quedan como están.",
+  "settings.models.readAtWith": "Modelos leídos {at}, con las carpetas de {provider}",
   "settings.providers.loginEnds": "La sesión termina {at}",
   "settings.providers.shadowHelp": "Un shadow home tiene su propia sesión y comparte las sesiones y la configuración de CODEX_HOME. Empieza con una carpeta vacía e inicia sesión allí.",
   "job.provider": "Proveedor",
@@ -361,24 +362,12 @@ export const es: Record<TranslationKey, string> = {
     "Esta comprobación pregunta a Claude Code qué versión da hoy cada uno de opus, sonnet, fable y haiku, con /model, que no ejecuta ningún modelo, y compara lo que ofrece con los modelos que se pueden elegir en el dashboard.",
   "settings.checkHelp.models.codex":
     "Esta comprobación lee qué modelos ofrece Codex, de codex debug models, y los compara con los modelos que se pueden elegir en el dashboard.",
-  "settings.checkHelp.models.copilot":
-    "Esta comprobación no puede leer qué modelos acepta Copilot: la línea de comandos de Copilot no tiene ningún comando que los liste.",
   "settings.checkHelp.models.opencode":
     "Esta comprobación lee qué modelos ofrecen los proveedores con sesión iniciada de OpenCode, de opencode models, y los compara con los modelos que se pueden elegir en el dashboard.",
-  "settings.checkHelp.subscription.claude":
-    "Esta comprobación lee cuánto de la suscripción se ha usado y cuándo se reinicia cada límite, de claude -p /usage, que no ejecuta ningún modelo.",
-  "settings.checkHelp.subscription.codex":
-    "Esta comprobación lee cuánto de la suscripción se ha usado y cuándo se reinicia cada límite, preguntado a codex app-server.",
-  "settings.checkHelp.subscription.copilot":
-    "Esta comprobación no puede leer cuánto de la suscripción se ha usado: la línea de comandos de Copilot no tiene ningún comando que lo indique.",
-  "settings.checkHelp.subscription.opencode":
-    "OpenCode no tiene un límite de uso propio: cada modelo pertenece a un proveedor, y cada proveedor tiene el suyo. Esta comprobación no tiene nada que leer.",
   "settings.checkHelp.installation.claude":
     "Esta comprobación ejecuta aide-preflight y claude auth status. Te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada y con qué cuenta, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio.",
   "settings.checkHelp.installation.codex":
     "Esta comprobación ejecuta aide-preflight y codex login status. Te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio.",
-  "settings.checkHelp.installation.copilot":
-    "Esta comprobación ejecuta aide-preflight. Te dice si la línea de comandos está instalada y qué versión, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio. No puede decir si Copilot tiene sesión iniciada: la línea de comandos de Copilot no tiene ningún comando para ello, así que ejecuta copilot login si se rechaza una ejecución.",
   "settings.checkHelp.installation.opencode":
     "Esta comprobación ejecuta aide-preflight y opencode auth list. Te dice si la línea de comandos está instalada y qué versión, si un proveedor tiene sesión iniciada, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio. Aquí el proveedor ES la sesión, ya que OpenCode llega a cada modelo a través de uno.",
   "settings.models.supported": "Compatibles con Aide ahora",
@@ -433,14 +422,12 @@ export const es: Record<TranslationKey, string> = {
   "settings.usage.readAt": "Uso leído {at}",
   "settings.usage.unread": "Uso aún sin leer.",
   "settings.usage.failed": "No se pudo leer el uso: {reason}",
-  "settings.usage.noSource": "El tablero no lee el uso de esta IA: su línea de comandos no tiene ningún comando que lo informe.",
   "settings.usage.none": "Esta IA no informa de ventanas de uso.",
   "settings.usage.used": "{percent} % usado",
   "settings.usage.usedResets": "{percent} % usado · se reinicia {resets}",
   "settings.models.add": "Añadir",
   "settings.models.adding": "añadiendo…",
   "settings.models.unread": "Modelos aún sin leer.",
-  "settings.models.noSource": "El tablero no lee los modelos de esta IA: su línea de comandos no tiene ningún comando que los liste.",
   "settings.models.failed": "No se pudieron leer los modelos: {reason}",
   "settings.models.readAt": "Modelos leídos {at}",
   "settings.install.unchecked": "Aún sin comprobar.",

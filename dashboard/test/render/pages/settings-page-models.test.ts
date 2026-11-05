@@ -7,7 +7,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { modelLists, toolPanel, type ToolCheck, type ToolModels, type ToolUsage } from "../../../src/render";
+import { modelLists, toolPanel, type ToolCheck, type ToolModels } from "../../../src/render";
 import { t } from "../../../src/i18n";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 
@@ -119,7 +119,7 @@ describe("modelLists", () => {
 
 describe("the models on an AI's tab", () => {
   test("the Codex tab lists them under its three headings, with Add and Remove", () => {
-    const html = toolPanel("codex", undefined, undefined, Date.parse(AT), {
+    const html = toolPanel({ key: "Codex", tool: "codex" }, undefined, {
       reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" }, "gpt-5.6-luna": { tool: "codex" } },
     });
     const headings = Array.from(parse(html).querySelectorAll("h3")).map((h) => h.textContent);
@@ -129,21 +129,21 @@ describe("the models on an AI's tab", () => {
   });
 
   test("each model offered and no choice has an Add that posts the AI and the model", () => {
-    const html = toolPanel("codex", undefined, undefined, Date.parse(AT), {
+    const html = toolPanel({ key: "Codex", tool: "codex" }, undefined, {
       reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" } },
     });
     expect(posted(html, ADD)).toEqual([{ tool: "codex", model: "gpt-5.5" }]);
   });
 
   test("each choice no longer offered has a Remove that posts its name", () => {
-    const html = toolPanel("codex", undefined, undefined, Date.parse(AT), {
+    const html = toolPanel({ key: "Codex", tool: "codex" }, undefined, {
       reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" }, "gpt-5.5": { tool: "codex" }, "gpt-5.6-luna": { tool: "codex" } },
     });
     expect(posted(html, REMOVE)).toEqual([{ name: "gpt-5.6-luna" }]);
   });
 
   test("Claude's families are offered with the version each gives today", () => {
-    const html = toolPanel("claude", undefined, undefined, Date.parse(AT), { reading: CLAUDE, choices: {} });
+    const html = toolPanel({ key: "Claude", tool: "claude" }, undefined, { reading: CLAUDE, choices: {} });
     expect(posted(html, ADD).filter((f) => f.model)).toContainEqual({ tool: "claude", model: "opus" });
     expect(text(html)).toContain("opus → Opus 5.5");
     expect(text(html)).toContain("haiku → Haiku 4.5");
@@ -151,7 +151,7 @@ describe("the models on an AI's tab", () => {
 
   test("a reading that failed says so, and offers nothing to add or remove", () => {
     const failed: ToolModels = { tool: "claude", at: AT, offered: [], error: "claude did not finish in time." };
-    const html = toolPanel("claude", undefined, undefined, Date.parse(AT), {
+    const html = toolPanel({ key: "Claude", tool: "claude" }, undefined, {
       reading: failed, choices: { plan: { model: "opusplan" } },
     });
     expect(text(html)).toContain("could not be read");
@@ -160,7 +160,7 @@ describe("the models on an AI's tab", () => {
   });
 
   test("with no reading, Currently supported by Aide names each Claude choice by its version", () => {
-    const html = toolPanel("claude", undefined, undefined, Date.parse(AT), {
+    const html = toolPanel({ key: "Claude", tool: "claude" }, undefined, {
       choices: { Fable: { model: "fable" }, "claude-opus-4-8": { model: "claude-opus-4-8" } },
       options: [{ name: "Fable", ranAs: "claude-fable-5-1" }, { name: "claude-opus-4-8" }],
     });
@@ -172,26 +172,24 @@ describe("the models on an AI's tab", () => {
 
   test("the Claude Models tab has no field to type a model in, with or without a reading", () => {
     for (const reading of [undefined, CLAUDE]) {
-      const html = toolPanel("claude", undefined, undefined, Date.parse(AT), { reading, choices: {} });
+      const html = toolPanel({ key: "Claude", tool: "claude" }, undefined, { reading, choices: {} });
       expect(parse(html).querySelectorAll('input[name="model"]:not([type="hidden"])').length).toBe(0);
     }
   });
 });
 
-describe("each of an AI's tabs stamps its own reading", () => {
+describe("each tab under a provider's Check stamps its own reading", () => {
   const CHECKED = "2026-10-03T10:00:00.000Z";
-  const USAGE_AT = "2026-10-03T11:00:00.000Z";
   const MODELS_AT = "2026-10-03T12:00:00.000Z";
   const check: ToolCheck = { tool: "codex", at: CHECKED, found: true, lines: ["Codex found (0.130.0)"], extra: [] };
-  const usage: ToolUsage = { tool: "codex", at: USAGE_AT, windows: [{ name: "Stand-in window", usedPercent: 42 }] };
   const models: ToolModels = { ...CODEX, at: MODELS_AT };
-  const draw = (part: "models" | "subscription" | "installation") =>
-    text(toolPanel("codex", check, usage, Date.parse(AT), { reading: models, choices: {} }, "en", part));
+  const draw = (part: "models" | "installation") =>
+    text(toolPanel({ key: "Codex", tool: "codex" }, check, { reading: models, choices: {} }, "en", part));
   const stamped = (at: string) => at.replace("T", " ").slice(0, 19) + " UTC";
 
-  test("each shows its own reading's time and neither of the other two", () => {
-    const own = { installation: CHECKED, subscription: USAGE_AT, models: MODELS_AT } as const;
-    for (const part of ["models", "subscription", "installation"] as const) {
+  test("each shows its own reading's time and not the other's", () => {
+    const own = { installation: CHECKED, models: MODELS_AT } as const;
+    for (const part of ["models", "installation"] as const) {
       const drawn = draw(part);
       for (const [other, at] of Object.entries(own)) {
         if (other === part) expect(drawn).toContain(stamped(at));
@@ -200,9 +198,8 @@ describe("each of an AI's tabs stamps its own reading", () => {
     }
   });
 
-  test("the Usage tab draws the usage reading, and the other two do not", () => {
-    expect(draw("subscription")).toContain("Stand-in window");
-    expect(draw("models")).not.toContain("Stand-in window");
-    expect(draw("installation")).not.toContain("Stand-in window");
+  test("the Models tab names the provider the reading was read with", () => {
+    const named = text(toolPanel({ key: "Codex", tool: "codex" }, check, { reading: { ...models, provider: "Codex-p" }, choices: {} }));
+    expect(named).toContain("Codex-p");
   });
 });

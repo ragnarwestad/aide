@@ -75,7 +75,7 @@ async function addModel(ctx: RoutesContext, asked: Record<string, unknown>): Pro
   if (!isModelTool(tool)) return refuse("unknown AI: models can be added for claude, codex and opencode");
   const model = text(asked.model);
   const ai = TOOL_TAB_LABELS[tool];
-  if (!model) return refuse(`no model was named — pick one on the ${ai} tab`);
+  if (!model) return refuse(`no model was named — pick one on the Models tab of a ${ai} provider's page`);
   const choices = ctx.queue.defaults.modelChoices ?? {};
   const already = Object.entries(choices).find(
     ([name, choice]) => choiceOf(tool, choice) && sameModel(tool, choiceModel(name, choice), model),
@@ -87,7 +87,7 @@ async function addModel(ctx: RoutesContext, asked: Record<string, unknown>): Pro
     ? reading.offered.find((m) => sameModel(tool, m.model, model))
     : undefined;
   if (!read) {
-    return refuse(`${model} is not among the models ${ai} offered when it was last read — press Check on the ${ai} tab's Models tab and try again`);
+    return refuse(`${model} is not among the models ${ai} offered when it was last read — press Check on a ${ai} provider's page and try again`);
   }
 
   const key = keyFor(tool, model, Object.keys(choices));

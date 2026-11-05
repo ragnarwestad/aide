@@ -115,18 +115,20 @@ export interface ServerOptions {
    *  on a machine with no job registered but a genuine hazard on one
    *  that has. Defaults to `createLaunchdRestart()`. */
   restart?: RestartHook;
-  /** What a press of Check runs in place of the real CLIs: the check, the
-   *  usage and the models read. A test seam, and all three halves are
-   *  required, so a test that sets it can never fall through to a real CLI
-   *  on another. */
+  /** What a press of Check runs in place of the real CLIs: the check and the
+   *  models read. A test seam, and both halves are required, so a test that
+   *  sets it can never fall through to a real CLI on the other. */
   toolProbe?: {
     check: (tool: CheckableTool) => Promise<ToolCheck>;
-    usage: (tool: CheckableTool) => Promise<ToolUsage>;
-    models: (tool: CheckableTool, opts: { configured: string[] }) => Promise<ToolModels>;
+    models: (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string> }) => Promise<ToolModels>;
   };
-  /** What opening Settings on its Providers tab runs in place of the real
-   *  read of a provider's tool and login. A test seam. */
-  providerProbe?: (key: string, provider: Provider) => Promise<ProviderStatus>;
+  /** What opening Settings on its Providers tab, a provider's page, or a
+   *  save runs in place of the real read of a provider's tool and login. A
+   *  test seam. `login: false` asks only whether the tool starts. */
+  providerProbe?: (key: string, provider: Provider, opts?: { login?: boolean }) => Promise<ProviderStatus>;
+  /** What opening a provider's page runs in place of the real read of its
+   *  usage. A test seam. */
+  usageProbe?: (key: string, provider: Provider) => Promise<ToolUsage>;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
   /** The checkout the running dashboard was started from. Only a landing

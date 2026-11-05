@@ -48,7 +48,7 @@ describe("convertProvidersAtBoot", () => {
 
     const written = readConfig();
     expect(Object.keys(written.providers)).toEqual(["Claude", "Codex", "OpenCode", "Work", "Spare"]);
-    expect(written.provider).toEqual({ default: "Claude", implement: "Codex" });
+    expect(written.provider).toEqual({ implement: "Codex" });
     expect(written).not.toHaveProperty("claudeAccounts");
     expect(written.schedules.aide[0].provider).toBe("Claude");
     const [moved, done] = readMirror();
@@ -71,6 +71,20 @@ describe("convertProvidersAtBoot", () => {
     expect(readFileSync(config, "utf-8")).toBe(source);
     expect(readFileSync(mirror, "utf-8")).toBe(before);
     expect(opts.queueDefaults).toBeUndefined();
+  });
+
+  test("a start deletes provider.default from a converted file and keeps every other entry and comment (AC-23)", () => {
+    writeFileSync(config, '{\n  // keep me\n  "providers": { "Mine": { "name": "Mine", "tool": "claude" } },\n  "provider": { "default": "Mine", "implement": "Mine" }\n}\n');
+    const opts = options();
+
+    convertProvidersAtBoot(opts, HOME);
+
+    const text = readFileSync(config, "utf-8");
+    expect(text).toContain("// keep me");
+    expect(text).not.toContain('"default": "Mine"');
+    expect(text).toContain('"implement": "Mine"');
+    expect(opts.queueDefaults?.provider).toEqual({ implement: "Mine" });
+    expect(Object.keys(opts.queueDefaults?.providers ?? {})).toEqual(["Mine"]);
   });
 
   test("a board started with no config file converts nothing, and makes none", () => {

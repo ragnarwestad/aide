@@ -4,13 +4,8 @@ import { backLink, btn, helpPopover, messageSlot } from "../../ui/components";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { notificationsPanel } from "./notifications.ts";
 import { processPanel, type ProcessSettings } from "./process.ts";
-import { TOOL_TABS, toolPanel, toolPart } from "./tools.ts";
 import { providersBlock, type ProviderStatus } from "./providers.ts";
 import type { Provider } from "../../../queue/providers/index.ts";
-import type { CheckableTool, ToolCheck } from "./tools.ts";
-import type { ToolUsage } from "./usage.ts";
-import type { ToolModels } from "./models.ts";
-import type { ModelChoice } from "../../../queue/types.ts";
 import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
 import { defaultModelForTool, modelOptions, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
@@ -23,17 +18,19 @@ export const SETTINGS_ROUTE = "/settings";
 export const SETTINGS_GROUPS = ["ai", "process", "notifications"] as const;
 export type SettingsGroup = (typeof SETTINGS_GROUPS)[number];
 
-/** AI's own row: the models-per-phase table, the providers, then one tab
- *  per AI. The table keeps the key it had as the page's first tab, so
- *  `?tab=phases` still opens it. */
-export const AI_TABS = ["phases", "providers", ...TOOL_TABS] as const;
+/** AI's own row: the models-per-phase table and the providers. The table
+ *  keeps the key it had as the page's first tab, so `?tab=phases` still
+ *  opens it. */
+export const AI_TABS = ["phases", "providers"] as const;
 
-/** Every value `?tab=` can name: a group, or a tab inside AI. The tool
- *  keys, `phases` and `notifications` are the page's old tabs, so a link
- *  made before the groups opens the same panel in its new place. */
-export const SETTINGS_TABS = [...SETTINGS_GROUPS, ...AI_TABS] as const;
+/** The tool tabs the row had once: a link that still names one opens
+ *  Providers, where each tool's providers are. */
+const REMOVED_TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
-export type SettingsPanel = Exclude<(typeof SETTINGS_TABS)[number], "ai">;
+/** Every value `?tab=` can name: a group, or a tab inside AI. */
+export const SETTINGS_TABS = [...SETTINGS_GROUPS, ...AI_TABS, ...REMOVED_TOOL_TABS] as const;
+
+export type SettingsPanel = Exclude<(typeof SETTINGS_GROUPS)[number] | (typeof AI_TABS)[number], "ai">;
 
 /** Which group is open and which panel it draws, off `?tab=`. AI opens on
  *  its models table, and an unknown or absent value opens AI. */
@@ -41,7 +38,8 @@ export function resolveSettingsTab(raw: string | undefined): { group: SettingsGr
   const tab = pickTab(SETTINGS_TABS, raw, "ai");
   if (tab === "ai") return { group: "ai", panel: "phases" };
   if (tab === "process" || tab === "notifications") return { group: tab, panel: tab };
-  return { group: "ai", panel: tab };
+  if ((REMOVED_TOOL_TABS as readonly string[]).includes(tab)) return { group: "ai", panel: "providers" };
+  return { group: "ai", panel: tab as SettingsPanel };
 }
 
 /** The steps that act on a spec: what a reader presses on a row of the
@@ -104,22 +102,6 @@ export interface SettingsPageOptions {
   /** Which tab is open, off `?tab=`: a group, or a tab inside AI.
    *  Absent opens AI on its models-per-phase table. */
   tab?: string;
-  /** Which tab is open inside an AI's tab, off `?aitab=`. Absent opens
-   *  Models. */
-  aiTab?: string;
-  /** The last answer obtained for each tool, keyed by tool. A check runs
-   *  only when its button is pressed, so a tool with no entry has simply
-   *  not been asked about. */
-  checks?: Partial<Record<CheckableTool, ToolCheck>>;
-  /** The last usage read for each tool. Read only by a press of the
-   *  Usage tab's Check, so a tool with no entry has not been read. */
-  usage?: Partial<Record<CheckableTool, ToolUsage>>;
-  /** The last reading of each tool's models. Read only by a press of the
-   *  Models tab's Check, so a tool with no entry has not been read. */
-  models?: Partial<Record<CheckableTool, ToolModels>>;
-  /** The live model choices, with the model each hands its command line:
-   *  what an AI's tab sets the reading against. */
-  choices?: Record<string, ModelChoice>;
   /** The providers the Providers tab lists, by key. */
   providers?: Record<string, Provider>;
   /** What was read of each provider when the Providers tab opened, by key. */
@@ -228,12 +210,8 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     : open === "providers"
       ? providersBlock(opts.providers, lang, opts.providerStatuses)
       : open === "notifications"
-      ? notificationsPanel(opts.pushPublicKey, lang)
-      : open === "process"
-        ? (opts.process ? processPanel(opts.process, lang) : "")
-        : toolPanel(open, opts.checks?.[open], opts.usage?.[open], Date.parse(generatedAt), {
-          reading: opts.models?.[open], choices: opts.choices, options: models,
-        }, lang, toolPart(opts.aiTab, open));
+        ? notificationsPanel(opts.pushPublicKey, lang)
+        : opts.process ? processPanel(opts.process, lang) : "";
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's
   // Settings rule centres them, and the panel after them, as it did one row.

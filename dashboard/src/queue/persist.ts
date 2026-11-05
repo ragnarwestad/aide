@@ -248,8 +248,8 @@ export interface QueueSettingsUpdate {
   modelChoices?: Record<string, ModelChoice | null>;
   /** `providers` entries to write, each by its key; `null` removes one. */
   providers?: Record<string, Provider | null>;
-  /** The phase defaults' providers, per step, by key. */
-  provider?: Record<string, string>;
+  /** The phase defaults' providers, per step, by key; `null` removes one. */
+  provider?: Record<string, string | null>;
   /** Top-level keys to remove whole. */
   removeKeys?: string[];
 }
@@ -284,7 +284,7 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
       source = applyEdits(source, modify(source, ["providers", key], provider ?? undefined, opts));
     }
     for (const [step, key] of Object.entries(next.provider ?? {})) {
-      source = applyEdits(source, modify(source, ["provider", step], key, opts));
+      source = applyEdits(source, modify(source, ["provider", step], key ?? undefined, opts));
     }
     for (const key of next.removeKeys ?? []) {
       source = applyEdits(source, modify(source, [key], undefined, opts));
@@ -325,6 +325,14 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     }
     return out;
   };
+  // A providers table with no entry at all is what Remove leaves after the
+  // last provider; it stays empty. One whose entries are all invalid is a
+  // mistake, and the built-in providers stand in.
+  const emptiedProviders = (v: unknown): boolean =>
+    v !== null && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0;
+  // Providers have no default: an old `provider.default` is not read.
+  const withoutDefault = (t: Record<string, string>): Record<string, string> =>
+    Object.fromEntries(Object.entries(t).filter(([k]) => k !== "default"));
   // A malformed `tool` or `model` drops that FIELD, not the whole
   // entry: an entry that loses its tool falls back to claude — which
   // is the default every other entry already has.
@@ -361,8 +369,8 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     modelChoices,
     ...(r.providers !== undefined && parseProviders(r.providers)
       ? { providers: parseProviders(r.providers) }
-      : base.providers ? { providers: base.providers } : {}),
-    ...(r.provider !== undefined || base.provider ? { provider: table(r.provider, base.provider ?? {}) } : {}),
+      : emptiedProviders(r.providers) ? {} : base.providers ? { providers: base.providers } : {}),
+    ...(r.provider !== undefined || base.provider ? { provider: withoutDefault(table(r.provider, base.provider ?? {})) } : {}),
     ...(r.resumeAnalysis === true || (r.resumeAnalysis === undefined && base.resumeAnalysis) ? { resumeAnalysis: true } : {}),
   };
 }

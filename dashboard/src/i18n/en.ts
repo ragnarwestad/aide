@@ -22,9 +22,9 @@ export const en = {
   "shell.restartWaiting": "Deploy is waiting for {jobs}; the service restarts when they are done.",
   "shell.installWarning": "aide's last install found a problem: {problem} — the full output is in {path}",
   "shell.toolFault": "{tool}: {problems} — press Check on {where}",
-  "shell.toolFaultWhere": "its Installation tab in Settings",
+  "shell.toolFaultWhere": "a provider's page, under the Providers tab in Settings",
   "shell.modelsGone": "{tool}: {models} no longer offered — remove them on {where}",
-  "shell.modelsGoneWhere": "its Models tab in Settings",
+  "shell.modelsGoneWhere": "a provider's page, under the Providers tab in Settings",
   "shell.checkoutFault": "{project}: the dashboard cannot use its own checkout — {said}",
   "deploy.title": "Deploying…",
   "deploy.stepFetch": "Fetch from origin",
@@ -332,16 +332,13 @@ export const en = {
     "Claude Code reads aide's skills from {skills} and its rules from {rules}; aide's scripts are in {scripts}.",
   "settings.where.codex":
     "Codex reads aide's instructions from {instructions}, its hooks from {hookConfig} and {hooks}, and its skills from {skills}, which it shares with Copilot; aide's scripts are in {scripts}.",
-  "settings.where.copilot":
-    "Copilot reads aide's instructions from {instructions} and its skills from {skills}, which it shares with Codex; aide's scripts are in {scripts}.",
   "settings.where.opencode":
     "OpenCode brings no model of its own: every model belongs to a provider and is named provider/model. aide installs only its instructions, to {instructions}, and OpenCode finds aide's skills where they already are, in {skills} and {claudeSkills}.",
   "settings.checkHelpTitle":
     "What Check finds out",
   "settings.checkHelpAll":
-    "One press of Check reads all three tabs at once, and each tab then shows what that press found.",
+    "One press of Check reads the models and the installation of this tool, with the folders of this provider. The login and the usage are read each time this page opens.",
   "settings.part.models": "Models",
-  "settings.part.subscription": "Usage",
   "settings.part.installation": "Installation",
   "settings.providers.intro": "The AI logins the board may run a step on. Each one is a tool and the folders that tool keeps its login in.",
   "settings.providers.none": "No provider has been added.",
@@ -349,12 +346,8 @@ export const en = {
   "settings.providers.configDir": "Config folder (empty: Claude Code's own)",
   "settings.providers.codexHome": "CODEX_HOME folder (empty: Codex's own)",
   "settings.providers.shadowHome": "Shadow home (optional)",
-  "settings.providers.newName": "New name",
   "settings.providers.add": "Add",
   "settings.providers.adding": "adding…",
-  "settings.providers.rename": "Rename",
-  "settings.providers.renaming": "renaming…",
-  "settings.providers.edit": "Edit",
   "settings.providers.newTitle": "Add a provider",
   "settings.providers.editTitle": "Edit {name}",
   "settings.providers.chooseTool": "Which tool is the provider for?",
@@ -363,7 +356,15 @@ export const en = {
   "settings.providers.installed": "Installed, version {version}",
   "settings.providers.installedNoVersion": "Installed",
   "settings.providers.notInstalled": "{tool} is not installed where the board runs",
-  "settings.providers.loginUnread": "The login could not be read — open the tab again to read it once more.",
+  "settings.providers.loginUnread": "The login could not be read — open the page again to read it once more.",
+  "settings.providers.login": "Login",
+  "settings.providers.state.in": "Logged in",
+  "settings.providers.state.out": "Not logged in",
+  "settings.providers.state.unread": "Not read",
+  "settings.providers.state.notInstalled": "Not installed",
+  "settings.providers.removeTitle": "Remove {name}?",
+  "settings.providers.removeSentence": "The provider is deleted from the board. Its folder and its login are left as they are.",
+  "settings.models.readAtWith": "Models read {at}, with the folders of {provider}",
   "settings.providers.loginEnds": "The login ends {at}",
   "settings.providers.shadowHelp": "A shadow home keeps its own login and shares the sessions and settings of the CODEX_HOME. Start from an empty folder and log in there.",
   "job.provider": "Provider",
@@ -373,24 +374,12 @@ export const en = {
     "This Check asks Claude Code which version each of opus, sonnet, fable and haiku gives today, with /model, which runs no model, and sets what it offers against the models that can be picked on the board.",
   "settings.checkHelp.models.codex":
     "This Check reads which models Codex offers, from codex debug models, and sets them against the models that can be picked on the board.",
-  "settings.checkHelp.models.copilot":
-    "This Check cannot read which models Copilot accepts: the Copilot CLI has no command that lists them.",
   "settings.checkHelp.models.opencode":
     "This Check reads which models OpenCode's logged-in providers offer, from opencode models, and sets them against the models that can be picked on the board.",
-  "settings.checkHelp.subscription.claude":
-    "This Check reads how much of the subscription is used and when each limit resets, from claude -p /usage, which runs no model.",
-  "settings.checkHelp.subscription.codex":
-    "This Check reads how much of the subscription is used and when each limit resets, asked of codex app-server.",
-  "settings.checkHelp.subscription.copilot":
-    "This Check cannot read how much of the subscription is used: the Copilot CLI has no command that reports it.",
-  "settings.checkHelp.subscription.opencode":
-    "OpenCode keeps no usage limit of its own: every model belongs to a provider, and each provider keeps its own. This Check has nothing to read.",
   "settings.checkHelp.installation.claude":
     "This Check runs aide-preflight and claude auth status. It tells you whether the command line is installed and which version, whether it is logged in and with which account, where each piece of aide lands and whether it is there, and whether the installed files still match this repository.",
   "settings.checkHelp.installation.codex":
     "This Check runs aide-preflight and codex login status. It tells you whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository.",
-  "settings.checkHelp.installation.copilot":
-    "This Check runs aide-preflight. It tells you whether the command line is installed and which version, where each piece of aide lands and whether it is there, and whether the installed files still match this repository. It cannot tell whether Copilot is logged in: the Copilot CLI has no command for it, so run copilot login if a run is refused.",
   "settings.checkHelp.installation.opencode":
     "This Check runs aide-preflight and opencode auth list. It tells you whether the command line is installed and which version, whether a provider is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository. A provider IS the login here, since OpenCode reaches every model through one.",
   "settings.models.supported": "Currently supported by Aide",
@@ -445,14 +434,12 @@ export const en = {
   "settings.usage.readAt": "Usage read {at}",
   "settings.usage.unread": "Usage not read yet.",
   "settings.usage.failed": "The usage could not be read: {reason}",
-  "settings.usage.noSource": "The board does not read this AI's usage: its command line has no command that reports it.",
   "settings.usage.none": "This AI reports no usage windows.",
   "settings.usage.used": "{percent}% used",
   "settings.usage.usedResets": "{percent}% used · resets {resets}",
   "settings.models.add": "Add",
   "settings.models.adding": "adding…",
   "settings.models.unread": "Models not read yet.",
-  "settings.models.noSource": "The board does not read this AI's models: its command line has no command that lists them.",
   "settings.models.failed": "The models could not be read: {reason}",
   "settings.models.readAt": "Models read {at}",
   "settings.install.unchecked": "Not checked yet.",

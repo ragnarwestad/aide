@@ -21,9 +21,9 @@ export const nb: Record<TranslationKey, string> = {
   "shell.restartWaiting": "Deploy venter på {jobs}; tjenesten restarter når de er ferdige.",
   "shell.installWarning": "siste installasjon fant et problem: {problem} — hele utskriften står i {path}",
   "shell.toolFault": "{tool}: {problems} — trykk Sjekk på {where}",
-  "shell.toolFaultWhere": "Installasjon-fanen i Settings",
+  "shell.toolFaultWhere": "siden til en provider, under Providere-fanen i Settings",
   "shell.modelsGone": "{tool}: {models} tilbys ikke lenger — fjern dem på {where}",
-  "shell.modelsGoneWhere": "Modeller-fanen i Settings",
+  "shell.modelsGoneWhere": "siden til en provider, under Providere-fanen i Settings",
   "shell.checkoutFault": "{project}: dashbordet kan ikke bruke sin egen utsjekk — {said}",
   "deploy.title": "Deployer…",
   "deploy.stepFetch": "Hent fra origin",
@@ -323,29 +323,22 @@ export const nb: Record<TranslationKey, string> = {
     "Claude Code leser aides skills fra {skills} og reglene fra {rules}; aides skript ligger i {scripts}.",
   "settings.where.codex":
     "Codex leser aides instruksjoner fra {instructions}, hookene fra {hookConfig} og {hooks}, og skillsene fra {skills}, som den deler med Copilot; aides skript ligger i {scripts}.",
-  "settings.where.copilot":
-    "Copilot leser aides instruksjoner fra {instructions} og skillsene fra {skills}, som den deler med Codex; aides skript ligger i {scripts}.",
   "settings.where.opencode":
     "OpenCode har ingen modell selv: hver modell hører til en leverandør og heter leverandør/modell. aide installerer bare instruksjonene, til {instructions}, og OpenCode finner aides skills der de allerede ligger, i {skills} og {claudeSkills}.",
   "settings.checkHelpTitle":
     "Hva Sjekk finner ut",
   "settings.checkHelpAll":
-    "Ett trykk på Sjekk leser alle tre fanene samtidig, og hver fane viser deretter det trykket fant.",
+    "Ett trykk på Sjekk leser modellene og installasjonen til dette verktøyet, med mappene til denne provideren. Innloggingen og forbruket leses hver gang siden åpnes.",
   "settings.part.models": "Modeller",
-  "settings.part.subscription": "Forbruk",
   "settings.part.installation": "Installasjon",
   "settings.providers.intro": "AI-innloggingene dashbordet kan kjøre et steg på. Hver av dem er et verktøy og mappene verktøyet har innloggingen sin i.",
   "settings.providers.none": "Ingen provider er lagt til.",
   "settings.providers.name": "Navn",
-  "settings.providers.configDir": "Config-mappe (tom: Claude Codes egen)",
+  "settings.providers.configDir": "Config-mappe (tom: Claude Code sin egen)",
   "settings.providers.codexHome": "CODEX_HOME-mappe (tom: Codex sin egen)",
   "settings.providers.shadowHome": "Shadow home (valgfri)",
-  "settings.providers.newName": "Nytt navn",
   "settings.providers.add": "Legg til",
   "settings.providers.adding": "legger til…",
-  "settings.providers.rename": "Gi nytt navn",
-  "settings.providers.renaming": "endrer navn…",
-  "settings.providers.edit": "Rediger",
   "settings.providers.newTitle": "Legg til en provider",
   "settings.providers.editTitle": "Rediger {name}",
   "settings.providers.chooseTool": "Hvilket verktøy gjelder provideren?",
@@ -354,7 +347,15 @@ export const nb: Record<TranslationKey, string> = {
   "settings.providers.installed": "Installert, versjon {version}",
   "settings.providers.installedNoVersion": "Installert",
   "settings.providers.notInstalled": "{tool} er ikke installert der tavla kjører",
-  "settings.providers.loginUnread": "Innloggingen kunne ikke leses — åpne fanen på nytt for å lese den én gang til.",
+  "settings.providers.loginUnread": "Innloggingen kunne ikke leses — åpne siden på nytt for å lese den én gang til.",
+  "settings.providers.login": "Innlogging",
+  "settings.providers.state.in": "Innlogget",
+  "settings.providers.state.out": "Ikke innlogget",
+  "settings.providers.state.unread": "Ikke lest",
+  "settings.providers.state.notInstalled": "Ikke installert",
+  "settings.providers.removeTitle": "Fjerne {name}?",
+  "settings.providers.removeSentence": "Provideren slettes fra dashbordet. Mappen og innloggingen blir værende som de er.",
+  "settings.models.readAtWith": "Modeller lest {at}, med mappene til {provider}",
   "settings.providers.loginEnds": "Innloggingen utløper {at}",
   "settings.providers.shadowHelp": "En shadow home har sin egen innlogging og deler øktene og innstillingene til CODEX_HOME. Start fra en tom mappe og logg inn der.",
   "job.provider": "Provider",
@@ -364,24 +365,12 @@ export const nb: Record<TranslationKey, string> = {
     "Denne sjekken spør Claude Code hvilken versjon opus, sonnet, fable og haiku gir i dag, med /model, som ikke kjører noen modell, og holder det den tilbyr opp mot modellene som kan velges i dashbordet.",
   "settings.checkHelp.models.codex":
     "Denne sjekken leser hvilke modeller Codex tilbyr, fra codex debug models, og holder dem opp mot modellene som kan velges i dashbordet.",
-  "settings.checkHelp.models.copilot":
-    "Denne sjekken kan ikke lese hvilke modeller Copilot godtar: Copilot-kommandolinjen har ingen kommando som lister dem.",
   "settings.checkHelp.models.opencode":
     "Denne sjekken leser hvilke modeller de innloggede leverandørene til OpenCode tilbyr, fra opencode models, og holder dem opp mot modellene som kan velges i dashbordet.",
-  "settings.checkHelp.subscription.claude":
-    "Denne sjekken leser hvor mye av abonnementet som er brukt og når hver grense nullstilles, fra claude -p /usage, som ikke kjører noen modell.",
-  "settings.checkHelp.subscription.codex":
-    "Denne sjekken leser hvor mye av abonnementet som er brukt og når hver grense nullstilles, spurt fra codex app-server.",
-  "settings.checkHelp.subscription.copilot":
-    "Denne sjekken kan ikke lese hvor mye av abonnementet som er brukt: Copilot-kommandolinjen har ingen kommando som viser det.",
-  "settings.checkHelp.subscription.opencode":
-    "OpenCode har ingen bruksgrense av sin egen: hver modell hører til en leverandør, og hver leverandør har sin egen. Denne sjekken har ingenting å lese.",
   "settings.checkHelp.installation.claude":
     "Denne sjekken kjører aide-preflight og claude auth status. Den forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn og med hvilken konto, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet.",
   "settings.checkHelp.installation.codex":
     "Denne sjekken kjører aide-preflight og codex login status. Den forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet.",
-  "settings.checkHelp.installation.copilot":
-    "Denne sjekken kjører aide-preflight. Den forteller om kommandolinjen er installert og hvilken versjon, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet. Den kan ikke fortelle om Copilot er logget inn: Copilot-kommandolinjen har ingen kommando for det, så kjør copilot login hvis en kjøring blir avvist.",
   "settings.checkHelp.installation.opencode":
     "Denne sjekken kjører aide-preflight og opencode auth list. Den forteller om kommandolinjen er installert og hvilken versjon, om en leverandør er logget inn, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet. Her ER leverandøren innloggingen, siden OpenCode når hver modell gjennom en.",
   "settings.models.supported": "Støttes av Aide nå",
@@ -436,14 +425,12 @@ export const nb: Record<TranslationKey, string> = {
   "settings.usage.readAt": "Forbruk lest {at}",
   "settings.usage.unread": "Forbruket er ikke lest ennå.",
   "settings.usage.failed": "Forbruket kunne ikke leses: {reason}",
-  "settings.usage.noSource": "Tavlen leser ikke forbruket til denne AI-en: kommandolinjen har ingen kommando som melder det.",
   "settings.usage.none": "Denne AI-en melder ingen forbruksvinduer.",
   "settings.usage.used": "{percent} % brukt",
   "settings.usage.usedResets": "{percent} % brukt · nullstilles {resets}",
   "settings.models.add": "Legg til",
   "settings.models.adding": "legger til…",
   "settings.models.unread": "Modellene er ikke lest ennå.",
-  "settings.models.noSource": "Tavlen leser ikke modellene til denne AI-en: kommandolinjen har ingen kommando som lister dem.",
   "settings.models.failed": "Modellene kunne ikke leses: {reason}",
   "settings.models.readAt": "Modeller lest {at}",
   "settings.install.unchecked": "Ikke sjekket ennå.",

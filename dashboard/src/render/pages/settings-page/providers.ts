@@ -1,20 +1,18 @@
 // The Providers tab under Settings → AI: every AI login the board may run a
-// step on, each with its tool and folders, an Edit link, a field to rename
-// it and a Remove. Under the list is Add, which opens a page of its own.
+// step on, one row each with its name, its tool and its login. A row opens
+// the provider's page; under the table is Add, which opens a page of its own.
 
 import { esc } from "../../ui/html.ts";
-import { btnLink, buttonForm, facts, messageSlot } from "../../ui/components";
+import { btnLink } from "../../ui/components";
 import { capitalizeFirst } from "../../ui/job-state/provider-limit.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
-import { NORMAL_CLAUDE_DIR, NORMAL_CODEX_HOME, providerFields, type Provider, type ProviderTool } from "../../../queue/providers/index.ts";
+import { type Provider, type ProviderTool } from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../specs-list";
-import { rowForm } from "./models.ts";
 import { stamp, type ExtraCheck } from "./tools.ts";
 
 export const PROVIDERS_ADD_ROUTE = "/api/queue/settings/providers/add";
 export const PROVIDERS_EDIT_ROUTE = "/api/queue/settings/providers/edit";
-export const PROVIDERS_RENAME_ROUTE = "/api/queue/settings/providers/rename";
 export const PROVIDERS_REMOVE_ROUTE = "/api/queue/settings/providers/remove";
 
 export const PROVIDER_NEW_PATH = "/settings/providers/new";
@@ -39,7 +37,7 @@ export interface ProviderStatus {
   login?: ExtraCheck;
 }
 
-/** What a provider's row says of what was read: the tool, then the login,
+/** What a provider's page says of what was read: the tool, then the login,
  *  then when the login ends. A login that could not be read says so and
  *  says to open the tab again; it is never said to be "not logged in". */
 export function providerStatusLines(status: ProviderStatus, provider: Provider, lang: Language): string[] {
@@ -62,58 +60,64 @@ export function providerStatusLines(status: ProviderStatus, provider: Provider, 
   return lines;
 }
 
-/** The folders a provider keeps its login in, one `<code>` each, the tool's
- *  own folder named when none is written. */
-function folders(provider: Provider, lang: Language): string {
-  const normal = { configDir: NORMAL_CLAUDE_DIR, codexHome: NORMAL_CODEX_HOME } as const;
-  return providerFields(provider.tool)
-    .filter((field) => provider[field] || field in normal)
-    .map((field) => `<code>${esc(provider[field] || normal[field as keyof typeof normal])}</code>`)
-    .join(" ") || `<span class="muted">${esc(t(lang, "settings.providers.normalFolder"))}</span>`;
+/** The login of a row, in one word: `in`, `out`, `unread` (the login could not
+ *  be read, or was not asked) or `notInstalled`. A mixed Claude login
+ *  (`login.inWithAs` with `ok: false`) is still a login. */
+export type ProviderLoginState = "in" | "out" | "unread" | "notInstalled";
+
+export function providerLoginState(status: ProviderStatus | undefined): ProviderLoginState {
+  if (!status) return "unread";
+  if (!status.installed) return "notInstalled";
+  const login = status.login;
+  if (!login || login.ok === null || !login.answer) return "unread";
+  if (login.answer.key === "login.out") return "out";
+  return login.answer.key.startsWith("login.in") ? "in" : "unread";
 }
 
-/** One provider's row: its tool and folders, then Edit, a form to give it a
- *  new name and a Remove. The ids carry the row's place, since a key may
- *  hold characters an id should not. */
-function providerValue(key: string, provider: Provider, i: number, lang: Language, status?: ProviderStatus): string {
-  const rename = buttonForm({
-    id: `providers-rename-${i}`,
-    action: PROVIDERS_RENAME_ROUTE,
-    hook: "reloadform",
-    hidden: { key },
-    before:
-      `<label for="providers-rename-${i}-name">${esc(t(lang, "settings.providers.newName"))}</label> ` +
-      `<input id="providers-rename-${i}-name" name="newName" type="text" required maxlength="64" autocomplete="off">`,
-    button: { id: `providers-rename-${i}-run`, label: t(lang, "settings.providers.rename"), pending: t(lang, "settings.providers.renaming") },
-    after: messageSlot("refused"),
-  });
-  const remove = rowForm(
-    PROVIDERS_REMOVE_ROUTE,
-    `providers-remove-${i}`,
-    { key },
-    { label: t(lang, "project.remove"), pending: t(lang, "dialog.removing") },
-    provider.name,
-  );
-  const edit = btnLink({ href: providerEditPath(key), label: t(lang, "settings.providers.edit"), small: true });
-  const read = status
-    ? `<ul class="checklist">${providerStatusLines(status, provider, lang).map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`
-    : "";
-  return `${esc(TOOL_NAMES[provider.tool] ?? provider.tool)} · ${folders(provider, lang)} ${edit} ${rename}${remove}${read}`;
+/** What a row of the providers table holds, in config order. */
+export interface ProviderRow {
+  key: string;
+  name: string;
+  /** The tool's own name, as the tab shows it. */
+  tool: string;
+  login: ProviderLoginState;
+  /** The address of the provider's page. */
+  href: string;
 }
 
-/** The tab: every provider with what was read of it, and the link that adds
- *  one. */
+export function providerRows(
+  providers: Record<string, Provider> | undefined,
+  statuses: Record<string, ProviderStatus> = {},
+): ProviderRow[] {
+  return Object.entries(providers ?? {}).map(([key, p]) => ({
+    key,
+    name: p.name,
+    tool: TOOL_NAMES[p.tool] ?? p.tool,
+    login: providerLoginState(statuses[key]),
+    href: providerEditPath(key),
+  }));
+}
+
+/** The tab: every provider as a row of the Models per phase table's own kind
+ *  of table — name, tool and login — each row opening the provider's page,
+ *  and the link that adds one. */
 export function providersBlock(
   providers: Record<string, Provider> | undefined,
   lang: Language = "en",
   statuses: Record<string, ProviderStatus> = {},
 ): string {
-  const listed = Object.entries(providers ?? {});
-  const list = facts(listed.map(([key, p], i) => ({ label: esc(p.name), value: providerValue(key, p, i, lang, statuses[key]) })));
+  const rows = providerRows(providers, statuses);
+  const body = rows.map((r) =>
+    `<tr data-row-href="${esc(r.href)}"><th scope="row"><a href="${esc(r.href)}">${esc(r.name)}</a></th>` +
+    `<td>${esc(r.tool)}</td><td>${esc(t(lang, `settings.providers.state.${r.login}`))}</td></tr>`).join("");
+  const table = rows.length
+    ? `<table class="settingstable"><thead><tr><th>${esc(t(lang, "settings.providers.name"))}</th>` +
+      `<th>${esc(t(lang, "settings.providers.tool"))}</th><th>${esc(t(lang, "settings.providers.login"))}</th></tr></thead>` +
+      `<tbody>${body}</tbody></table>`
+    : `<p class="muted">${esc(t(lang, "settings.providers.none"))}</p>`;
   return (
     `<p>${esc(t(lang, "settings.providers.intro"))}</p>` +
-    list +
-    (listed.length ? "" : `<p class="muted">${esc(t(lang, "settings.providers.none"))}</p>`) +
+    table +
     `<p>${btnLink({ href: PROVIDER_NEW_PATH, label: t(lang, "settings.providers.add"), variant: "primary" })}</p>`
   );
 }

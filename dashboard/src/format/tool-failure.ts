@@ -22,7 +22,6 @@ import { errorSentence } from "./error-sentence.ts";
 const TOOL_TABS: Record<string, string> = {
   claude: "Claude Code",
   codex: "Codex",
-  copilot: "Copilot",
   opencode: "OpenCode",
 };
 
@@ -80,11 +79,11 @@ export function toolFailureSentence(f: ToolFailure): { text: string; title?: str
   const said = f.error?.trim();
   const what = said ? `The step failed on ${on}: ${said}` : `The step failed on ${on}.`;
 
-  // The tab is named only when the tool is: sending a reader to "the
-  // right tab" without saying which one is worse than not sending them.
+  // The tool is named only when it is known: sending a reader to "a
+  // provider" without saying which tool is worse than not sending them.
   const resolve = label
-    ? `Open Settings, the ${label} tab, then Installation, and press Check to see whether that AI is installed and logged in.`
-    : `Open Settings, the tab for this model's AI, then Installation, and press Check to see whether it is installed and logged in.`;
+    ? `Open Settings, the Providers tab, the ${label} provider the step ran on, and press Check on its Installation tab to see whether that AI is installed and logged in.`
+    : `Open Settings, the Providers tab, the provider this model's AI runs on, and press Check on its Installation tab to see whether it is installed and logged in.`;
 
   return errorSentence({ what, resolve, detail: said });
 }

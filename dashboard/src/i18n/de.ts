@@ -21,9 +21,9 @@ export const de: Record<TranslationKey, string> = {
   "shell.restartWaiting": "Das Deployment wartet auf {jobs}; der Dienst startet neu, sobald sie fertig sind.",
   "shell.installWarning": "aides letzte Installation hat ein Problem gefunden: {problem} — die ganze Ausgabe steht in {path}",
   "shell.toolFault": "{tool}: {problems} — klicke bei {where} auf Prüfen",
-  "shell.toolFaultWhere": "seinem Tab Installation in Settings",
+  "shell.toolFaultWhere": "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
   "shell.modelsGone": "{tool}: {models} nicht mehr angeboten — entferne sie auf {where}",
-  "shell.modelsGoneWhere": "seinem Tab Modelle in Settings",
+  "shell.modelsGoneWhere": "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
   "shell.checkoutFault": "{project}: das Dashboard kann seinen eigenen Checkout nicht verwenden — {said}",
   "deploy.title": "Wird bereitgestellt…",
   "deploy.stepFetch": "Von origin holen",
@@ -320,16 +320,13 @@ export const de: Record<TranslationKey, string> = {
     "Claude Code liest die Skills von aide aus {skills} und die Regeln aus {rules}; die Skripte von aide liegen in {scripts}.",
   "settings.where.codex":
     "Codex liest die Anweisungen von aide aus {instructions}, die Hooks aus {hookConfig} und {hooks} und die Skills aus {skills}, die es mit Copilot teilt; die Skripte von aide liegen in {scripts}.",
-  "settings.where.copilot":
-    "Copilot liest die Anweisungen von aide aus {instructions} und die Skills aus {skills}, die es mit Codex teilt; die Skripte von aide liegen in {scripts}.",
   "settings.where.opencode":
     "OpenCode bringt kein eigenes Modell mit: Jedes Modell gehört zu einem Anbieter und heißt Anbieter/Modell. aide installiert nur die Anweisungen, nach {instructions}, und OpenCode findet die Skills von aide dort, wo sie schon liegen, in {skills} und {claudeSkills}.",
   "settings.checkHelpTitle":
     "Was Prüfen herausfindet",
   "settings.checkHelpAll":
-    "Ein Druck auf Prüfen liest alle drei Tabs gleichzeitig, und jeder Tab zeigt danach, was dieser Druck gefunden hat.",
+    "Ein Klick auf Prüfen liest die Modelle und die Installation dieses Werkzeugs mit den Ordnern dieses Anbieters. Die Anmeldung und der Verbrauch werden bei jedem Öffnen dieser Seite gelesen.",
   "settings.part.models": "Modelle",
-  "settings.part.subscription": "Nutzung",
   "settings.part.installation": "Installation",
   "settings.providers.intro": "Die KI-Anmeldungen, mit denen das Dashboard einen Schritt ausführen darf. Jede ist ein Werkzeug und die Ordner, in denen es seine Anmeldung ablegt.",
   "settings.providers.none": "Es wurde kein Anbieter hinzugefügt.",
@@ -337,12 +334,8 @@ export const de: Record<TranslationKey, string> = {
   "settings.providers.configDir": "Konfigurationsordner (leer: der eigene von Claude Code)",
   "settings.providers.codexHome": "CODEX_HOME-Ordner (leer: der eigene von Codex)",
   "settings.providers.shadowHome": "Shadow Home (optional)",
-  "settings.providers.newName": "Neuer Name",
   "settings.providers.add": "Hinzufügen",
   "settings.providers.adding": "wird hinzugefügt…",
-  "settings.providers.rename": "Umbenennen",
-  "settings.providers.renaming": "wird umbenannt…",
-  "settings.providers.edit": "Bearbeiten",
   "settings.providers.newTitle": "Anbieter hinzufügen",
   "settings.providers.editTitle": "{name} bearbeiten",
   "settings.providers.chooseTool": "Für welches Werkzeug ist der Anbieter?",
@@ -351,7 +344,15 @@ export const de: Record<TranslationKey, string> = {
   "settings.providers.installed": "Installiert, Version {version}",
   "settings.providers.installedNoVersion": "Installiert",
   "settings.providers.notInstalled": "{tool} ist dort, wo das Board läuft, nicht installiert",
-  "settings.providers.loginUnread": "Die Anmeldung konnte nicht gelesen werden — öffne den Tab erneut, um sie noch einmal zu lesen.",
+  "settings.providers.loginUnread": "Die Anmeldung konnte nicht gelesen werden — öffne die Seite erneut, um sie noch einmal zu lesen.",
+  "settings.providers.login": "Anmeldung",
+  "settings.providers.state.in": "Angemeldet",
+  "settings.providers.state.out": "Nicht angemeldet",
+  "settings.providers.state.unread": "Nicht gelesen",
+  "settings.providers.state.notInstalled": "Nicht installiert",
+  "settings.providers.removeTitle": "{name} entfernen?",
+  "settings.providers.removeSentence": "Der Anbieter wird vom Dashboard entfernt. Sein Ordner und seine Anmeldung bleiben, wie sie sind.",
+  "settings.models.readAtWith": "Modelle gelesen {at}, mit den Ordnern von {provider}",
   "settings.providers.loginEnds": "Die Anmeldung endet {at}",
   "settings.providers.shadowHelp": "Ein Shadow Home hat eine eigene Anmeldung und teilt Sitzungen und Einstellungen des CODEX_HOME. Mit einem leeren Ordner beginnen und dort anmelden.",
   "job.provider": "Anbieter",
@@ -361,24 +362,12 @@ export const de: Record<TranslationKey, string> = {
     "Diese Prüfung fragt Claude Code, welche Version opus, sonnet, fable und haiku heute jeweils liefern, mit /model, das kein Modell ausführt, und hält das Angebot gegen die Modelle, die im Dashboard gewählt werden können.",
   "settings.checkHelp.models.codex":
     "Diese Prüfung liest, welche Modelle Codex anbietet, aus codex debug models, und hält sie gegen die Modelle, die im Dashboard gewählt werden können.",
-  "settings.checkHelp.models.copilot":
-    "Diese Prüfung kann nicht lesen, welche Modelle Copilot annimmt: Die Copilot-Kommandozeile hat keinen Befehl, der sie auflistet.",
   "settings.checkHelp.models.opencode":
     "Diese Prüfung liest, welche Modelle die angemeldeten Anbieter von OpenCode anbieten, aus opencode models, und hält sie gegen die Modelle, die im Dashboard gewählt werden können.",
-  "settings.checkHelp.subscription.claude":
-    "Diese Prüfung liest, wie viel des Abonnements verbraucht ist und wann jedes Limit zurückgesetzt wird, aus claude -p /usage, das kein Modell ausführt.",
-  "settings.checkHelp.subscription.codex":
-    "Diese Prüfung liest, wie viel des Abonnements verbraucht ist und wann jedes Limit zurückgesetzt wird, abgefragt bei codex app-server.",
-  "settings.checkHelp.subscription.copilot":
-    "Diese Prüfung kann nicht lesen, wie viel des Abonnements verbraucht ist: Die Copilot-Kommandozeile hat keinen Befehl, der es meldet.",
-  "settings.checkHelp.subscription.opencode":
-    "OpenCode hat kein eigenes Nutzungslimit: Jedes Modell gehört einem Anbieter, und jeder Anbieter hat sein eigenes. Diese Prüfung hat nichts zu lesen.",
   "settings.checkHelp.installation.claude":
     "Diese Prüfung führt aide-preflight und claude auth status aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist und mit welchem Konto, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen.",
   "settings.checkHelp.installation.codex":
     "Diese Prüfung führt aide-preflight und codex login status aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen.",
-  "settings.checkHelp.installation.copilot":
-    "Diese Prüfung führt aide-preflight aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen. Ob Copilot angemeldet ist, kann sie nicht sagen: Die Copilot-Kommandozeile hat keinen Befehl dafür, also führe copilot login aus, wenn ein Lauf abgelehnt wird.",
   "settings.checkHelp.installation.opencode":
     "Diese Prüfung führt aide-preflight und opencode auth list aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob ein Anbieter angemeldet ist, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen. Hier IST der Anbieter die Anmeldung, da OpenCode jedes Modell über einen erreicht.",
   "settings.models.supported": "Derzeit von Aide unterstützt",
@@ -433,14 +422,12 @@ export const de: Record<TranslationKey, string> = {
   "settings.usage.readAt": "Verbrauch gelesen {at}",
   "settings.usage.unread": "Verbrauch noch nicht gelesen.",
   "settings.usage.failed": "Der Verbrauch konnte nicht gelesen werden: {reason}",
-  "settings.usage.noSource": "Das Board liest den Verbrauch dieser KI nicht: Ihre Kommandozeile hat keinen Befehl, der ihn meldet.",
   "settings.usage.none": "Diese KI meldet keine Verbrauchsfenster.",
   "settings.usage.used": "{percent} % verbraucht",
   "settings.usage.usedResets": "{percent} % verbraucht · wird zurückgesetzt {resets}",
   "settings.models.add": "Hinzufügen",
   "settings.models.adding": "fügt hinzu…",
   "settings.models.unread": "Modelle noch nicht gelesen.",
-  "settings.models.noSource": "Das Board liest die Modelle dieser KI nicht: Ihre Kommandozeile hat keinen Befehl, der sie auflistet.",
   "settings.models.failed": "Die Modelle konnten nicht gelesen werden: {reason}",
   "settings.models.readAt": "Modelle gelesen {at}",
   "settings.install.unchecked": "Noch nicht geprüft.",

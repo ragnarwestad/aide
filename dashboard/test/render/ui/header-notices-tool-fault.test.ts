@@ -1,7 +1,7 @@
 // A tool the board checked and found wanting is said at the top of every
-// page, and the line takes the reader to that AI's Installation tab. An AI
+// page, and the line takes the reader to the Providers tab. An AI
 // whose configured models its last Models reading no longer offers is said
-// the same way, with a line to its Models tab, worked out from the choices
+// the same way, worked out from the choices
 // as they are now.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
@@ -34,7 +34,7 @@ function faultLines(html: string): Element[] {
 }
 
 describe("the tool-fault line", () => {
-  test("a Claude Code that is not logged in links to its Installation tab", () => {
+  test("a Claude Code that is not logged in links to the Providers tab", () => {
     setConfiguredTools(() => ["claude"]);
     recordCheck({
       tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true, lines: [],
@@ -44,7 +44,7 @@ describe("the tool-fault line", () => {
     expect(rest).toEqual([]);
     const links = Array.from(line!.querySelectorAll("a"));
     expect(links.map((a) => [a.getAttribute("href"), a.textContent])).toEqual([
-      ["/settings?tab=claude&aitab=installation", t("en", "shell.toolFaultWhere")],
+      ["/settings?tab=providers", t("en", "shell.toolFaultWhere")],
     ]);
   });
 
@@ -86,7 +86,7 @@ describe("the models no longer offered", () => {
     expect(toolsMissingModels()).toEqual([]);
   });
 
-  test("no reading, a reading that failed, and an AI the board cannot ask name nothing (AC-6)", () => {
+  test("no reading and a reading that failed name nothing (AC-6)", () => {
     choices({
       c: { model: "claude-opus-4-8" },
       x: { tool: "codex", model: "gpt-0" },
@@ -95,11 +95,10 @@ describe("the models no longer offered", () => {
     expect(toolsMissingModels()).toEqual([]);
     recordModels(reading("claude", [], { error: "claude -p timed out" }));
     recordModels(reading("codex", [], { error: "app-server did not answer" }));
-    recordModels(reading("opencode", [], { noSource: true }));
     expect(toolsMissingModels()).toEqual([]);
   });
 
-  test("the line links once, to that AI's Models tab, and apart from the Installation line (AC-7)", () => {
+  test("each line links once, to the Providers tab (AC-7)", () => {
     setConfiguredTools(() => ["opencode"]);
     choices({ gone: { tool: "opencode", model: "opencode/gone" } });
     recordModels(reading("opencode", []));
@@ -110,8 +109,8 @@ describe("the models no longer offered", () => {
     const hrefs = faultLines(headerNotices("en")).map((line) =>
       Array.from(line.querySelectorAll("a")).map((a) => a.getAttribute("href")));
     expect(hrefs).toEqual([
-      ["/settings?tab=opencode&aitab=installation"],
-      ["/settings?tab=opencode&aitab=models"],
+      ["/settings?tab=providers"],
+      ["/settings?tab=providers"],
     ]);
   });
 

@@ -1,4 +1,4 @@
-// Which models each AI offers, read when its Check is pressed and at no
+// Which models each AI offers, read when a provider's Check is pressed and at no
 // other time: the start-up check and the re-check before a job call
 // `checkTool()`, which reads none of it, and four Claude Code processes a
 // round would be too many for either. Each reader asks the tool in a way
@@ -26,6 +26,9 @@ export interface ModelsOptions {
   /** Test seam: where to find the binaries. */
   scriptPath?: (name: string) => string;
   now?: () => Date;
+  /** Added to the environment of every command: the folders of the
+   *  provider whose Check read the models. */
+  env?: Record<string, string>;
 }
 
 /** `opencode models`: one `provider/model` per line, from every provider
@@ -50,7 +53,9 @@ async function readOpencodeModels(
  *  started is a reading that failed, said as one. */
 export async function readModels(tool: CheckableTool, opts: ModelsOptions = {}): Promise<ToolModels> {
   const path = opts.scriptPath ?? ((name: string) => scriptFor(name));
-  const run = opts.run ?? runScript;
+  const inner = opts.run ?? runScript;
+  const env = opts.env ?? {};
+  const run: typeof runScript = (argv, cwd, timeoutMs, owner, extra) => inner(argv, cwd, timeoutMs, owner, { ...extra, ...env });
   const base = { tool, at: (opts.now ?? (() => new Date()))().toISOString() };
   try {
     switch (tool) {
@@ -60,10 +65,6 @@ export async function readModels(tool: CheckableTool, opts: ModelsOptions = {}):
         return await readCodexModels(run, path("codex"), base);
       case "opencode":
         return await readOpencodeModels(run, path("opencode"), base);
-      case "copilot":
-        // No model choice can name Copilot, and its command line cannot
-        // list models, so it is not read.
-        return { ...base, offered: [], noSource: true };
     }
   } catch (err) {
     return { ...base, offered: [], error: err instanceof Error ? err.message : String(err) };

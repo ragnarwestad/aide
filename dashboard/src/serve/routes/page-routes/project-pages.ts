@@ -12,9 +12,6 @@ import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
 import { groupForEditParam, projectSettings } from "../../../project/project-settings.ts";
 import { isDeployJob, UNFINISHED } from "../../../queue/queue.ts";
-import { lastChecks } from "../../tool-check.ts";
-import { lastUsage } from "../../tool-usage";
-import { lastModels } from "../../tool-models";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
 import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, resolveSettingsTab, specPagePath, type ProviderStatus, type TestServerRow } from "../../../render";
@@ -58,13 +55,6 @@ export async function projectPages(
       currentUrl: langResult.currentUrl,
       tab,
       providerStatuses,
-      aiTab: url.searchParams.get("aitab") ?? undefined,
-      // What the last press of Check found, never a check run because
-      // this page was opened.
-      checks: lastChecks(),
-      usage: lastUsage(),
-      models: lastModels(),
-      choices: ctx.queue.defaults.modelChoices,
       providers: ctx.queue.defaults.providers,
       pushPublicKey: await ctx.push.publicKey(),
       process: processSettings(ctx.runner, ctx.opts.queueConcurrency),

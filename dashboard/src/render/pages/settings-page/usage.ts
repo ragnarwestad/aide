@@ -1,4 +1,4 @@
-// How much of each AI's subscription is used, as its tab shows it: the
+// How much of a provider's subscription is used, as its page shows it: the
 // shape of one reading and the decision about what the tab says of it.
 // Declared here rather than beside the code that reads it, for the same
 // reason `ToolCheck` is: `src/render` may not import `src/serve`.
@@ -15,7 +15,7 @@ export interface UsageWindow extends ProviderLimitWindow {
   resets?: string;
 }
 
-/** One reading of an AI's usage, made when its Check was pressed. */
+/** One reading of a provider's usage, made when its page opened. */
 export interface ToolUsage {
   tool: CheckableTool;
   /** When the reading was made. Like a check, it is a moment. */
@@ -25,9 +25,6 @@ export interface ToolUsage {
   text?: string;
   /** Set when the usage could not be read at all. Never shown as none. */
   error?: string;
-  /** Set for an AI the board has no way to ask, which is not the same
-   *  as an AI that reports no windows. */
-  noSource?: boolean;
 }
 
 export interface UsageRow {
@@ -39,7 +36,6 @@ export interface UsageRow {
 export type UsageView =
   | { kind: "unread" }
   | { kind: "failed"; at: string; reason: string }
-  | { kind: "noSource"; at: string }
   | { kind: "windows"; at: string; rows: UsageRow[] }
   | { kind: "text"; at: string; text: string }
   | { kind: "none"; at: string };
@@ -61,7 +57,6 @@ export function usageView(usage: ToolUsage | undefined, now: number, lang: Langu
   if (!usage) return { kind: "unread" };
   const at = usage.at;
   if (usage.error) return { kind: "failed", at, reason: usage.error };
-  if (usage.noSource) return { kind: "noSource", at };
   if (usage.windows.length > 0) return { kind: "windows", at, rows: usage.windows.map((w) => row(w, now, lang)) };
   if (usage.text) return { kind: "text", at, text: usage.text };
   return { kind: "none", at };

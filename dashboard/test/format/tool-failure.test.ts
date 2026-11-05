@@ -15,10 +15,11 @@ describe("toolFailureSentence", () => {
     expect(s.text).toContain("boom");
   });
 
-  test("it points at the Check button on that AI's own Installation tab", () => {
+  test("it points at the Check button on the Installation tab of the provider of that AI", () => {
     const s = toolFailureSentence({ tool: "codex", model: "gpt-5.6-sol", terminalReason: "cli-error" })!;
     expect(s.text).toContain("Settings");
-    expect(s.text).toContain("Codex tab");
+    expect(s.text).toContain("Providers tab");
+    expect(s.text).toContain("Codex provider");
     expect(s.text).toContain("Installation");
     expect(s.text).toContain("Check");
   });
@@ -39,8 +40,8 @@ describe("toolFailureSentence", () => {
     const s = toolFailureSentence({ model: "gemini-3.1-pro", error: "cannot find the opencode binary", terminalReason: "refused" })!;
     expect(s.text).toContain("gemini-3.1-pro");
     expect(s.text).not.toContain(" on gemini-3.1-pro on ");
-    // Without a tool there is no tab to name, so it does not name one.
-    expect(s.text).toContain("the tab for this model's AI");
+    // Without a tool there is no provider to name by its tool.
+    expect(s.text).toContain("Providers tab");
     expect(s.text).toContain("Installation");
   });
 
@@ -54,7 +55,7 @@ describe("toolFailureSentence", () => {
       terminalReason: "cli-error",
     })!;
     expect(s.text).toContain("Settings");
-    expect(s.text).toContain("Claude Code tab");
+    expect(s.text).toContain("Claude Code provider");
     expect(s.text).toContain("Check");
   });
 
@@ -84,7 +85,7 @@ describe("toolFailureSentence", () => {
   });
 
   test("a CLI that could not be started is about the AI", () => {
-    expect(toolFailureSentence({ tool: "codex", terminalReason: "spawn-failed" })!.text).toContain("Codex tab");
+    expect(toolFailureSentence({ tool: "codex", terminalReason: "spawn-failed" })!.text).toContain("Codex provider");
   });
 
   test("nothing to name is not a tool failure at all", () => {

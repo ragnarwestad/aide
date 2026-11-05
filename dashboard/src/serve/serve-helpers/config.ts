@@ -51,7 +51,6 @@ export const QUEUE_DEFAULTS: QueueDefaults = {
     Codex: { name: "Codex", tool: "codex" },
     OpenCode: { name: "OpenCode", tool: "opencode" },
   },
-  provider: { default: "Claude" },
 };
 
 /** One repo, one merge at a time. Pressing Merge on two specs a few

@@ -22,6 +22,7 @@ writeFileSync(
   [
     "#!/bin/sh",
     'echo $$ > "$1"',
+    'echo "$AIDE_TEST_HOME" > "$1.env"',
     'while IFS= read -r line; do',
     '  [ "$2" = silent ] && continue',
     '  case "$line" in',
@@ -57,6 +58,12 @@ describe("the app-server exchange", () => {
     const reply = await appServerExchange([STAND_IN, pidFile, "answer"], MESSAGES, 2, 10_000);
     expect(reply).toEqual({ answer: { id: 2, result: { ok: true } } });
     expect(isGone(Number(readFileSync(pidFile, "utf8").trim()))).toBe(true);
+  });
+
+  test("the env it is handed is laid over the board's own for the server (AC-3)", async () => {
+    const pidFile = join(dir, "env.pid");
+    await appServerExchange([STAND_IN, pidFile, "answer"], MESSAGES, 2, 10_000, { AIDE_TEST_HOME: "/home/x/.codex-p" });
+    expect(readFileSync(`${pidFile}.env`, "utf8").trim()).toBe("/home/x/.codex-p");
   });
 
   test("a server that never answers times out, and is ended", async () => {

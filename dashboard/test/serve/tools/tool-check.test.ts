@@ -7,7 +7,7 @@
 
 import { describe, expect, test } from "bun:test";
 import {
-  checkTool, forgetChecks, lastChecks, recordCheck, setConfiguredTools, stripAnsi, toolRechecker, toolsWithFaults,
+  checkAllTools, checkTool, forgetChecks, lastChecks, recordCheck, setConfiguredTools, stripAnsi, toolRechecker, toolsWithFaults,
 } from "../../../src/serve/tool-check.ts";
 
 type RunResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
@@ -60,14 +60,14 @@ describe("checkTool", () => {
   });
 
   test("a check that does not finish says so instead of reporting a result", async () => {
-    const run = fakeRun({ "aide-preflight copilot": { timedOut: true, code: 143 } });
-    const check = await checkTool("copilot", opts(run));
+    const run = fakeRun({ "aide-preflight opencode": { timedOut: true, code: 143 } });
+    const check = await checkTool("opencode", opts(run));
     expect(check.error).toBe("The check did not finish in time.");
     expect(check.lines).toEqual([]);
     expect(check.extra).toEqual([]);
   });
 
-  test.each(["claude", "codex", "copilot", "opencode"] as const)("%s's check asks nothing about models (AC-8)", async (tool) => {
+  test.each(["claude", "codex", "opencode"] as const)("%s's check asks nothing about models (AC-8)", async (tool) => {
     const run = fakeRun({
       "aide-preflight": { stdout: "found\n" },
       "auth status": { stdout: '{"loggedIn":true}' },
@@ -261,16 +261,6 @@ describe("whether a tool is logged in", () => {
     expect(entry.answer).toEqual({ key: "login.out", values: { command: "codex login" } });
   });
 
-  // The rule, again: no command means no answer, never a guess from a
-  // token file whose location the CLI is free to move.
-  test("Copilot has no command for it and says so", async () => {
-    const run = fakeRun(preflight);
-    const entry = login(await checkTool("copilot", opts(run)));
-    expect(entry.ok).toBeNull();
-    expect(entry.answer).toEqual({ key: "login.noCommand", values: { tool: "Copilot" } });
-    expect(run.calls.length).toBe(1);
-  });
-
   test("OpenCode answers through its providers, which are its credentials", async () => {
     const run = fakeRun({
       ...preflight,
@@ -349,6 +339,17 @@ describe("the commands a check ran", () => {
   });
 });
 
+describe("the check at start", () => {
+  test("it checks Claude Code, Codex and OpenCode only, never Copilot (AC-25)", async () => {
+    forgetChecks();
+    const run = fakeRun({ "aide-preflight": { stdout: "found\n" } });
+    await checkAllTools(opts(run));
+    expect(run.calls.filter((argv) => argv[0] === "aide-preflight").map((argv) => argv[1])).toEqual(["claude", "codex", "opencode"]);
+    expect(Object.keys(lastChecks()).sort()).toEqual(["claude", "codex", "opencode"]);
+    forgetChecks();
+  });
+});
+
 describe("what the page reads back", () => {
   test("a recorded check is what the next page load shows, per tool", () => {
     forgetChecks();
@@ -368,11 +369,11 @@ describe("what the header notice is told", () => {
   test("a question that came back no is a fault; one nobody could ask is not", () => {
     forgetChecks();
     recordCheck({
-      tool: "copilot",
+      tool: "codex",
       at: "2026-09-16T08:00:00.000Z",
       found: true,
       lines: [],
-      // Copilot has no command that reports a login, so this is null.
+      // A tool with no command that reports a login answers null.
       // A banner on it would be on permanently.
       extra: [{ question: "Is it logged in?", ok: null, detail: "no command" }],
     });

@@ -77,7 +77,7 @@ function restartWaitingNotice(lang: Language): string {
  *  this the answer lives on a Settings tab nobody has a reason to open,
  *  and the first anyone learns of it is a run that failed. One line per
  *  tool, since two faulty tools are two different fixes. The line links to
- *  the tool's Installation tab, whose Check asks again. */
+ *  the Providers tab, where each provider's page has the Check that asks again. */
 function toolFaultNotices(lang: Language): string {
   return toolsWithFaults()
     .map(({ tool, problems }) => {
@@ -85,7 +85,7 @@ function toolFaultNotices(lang: Language): string {
       const where = t(lang, "shell.toolFaultWhere");
       // The link is placed into the sentence after escaping it.
       const MARK = "\u0000";
-      const link = `<a data-goto href="${esc(`/settings?tab=${tool}&aitab=installation`)}">${esc(where)}</a>`;
+      const link = `<a data-goto href="${esc("/settings?tab=providers")}">${esc(where)}</a>`;
       const html = esc(t(lang, "shell.toolFault", { ...values, where: MARK })).replace(MARK, link);
       return rowMessage("waiting", t(lang, "shell.toolFault", { ...values, where }), { tag: "p", hook: "tool-fault", html });
     })
@@ -93,7 +93,7 @@ function toolFaultNotices(lang: Language): string {
 }
 
 /** An AI whose configured models its last Models reading no longer offers.
- *  One line per AI, linking to its Models tab, where Remove is. Worked out
+ *  One line per AI, linking to the Providers tab, where a provider's Models tab has Remove. Worked out
  *  from the choices as they are now, so a Remove clears it at once. */
 function missingModelsNotices(lang: Language): string {
   return toolsMissingModels()
@@ -101,7 +101,7 @@ function missingModelsNotices(lang: Language): string {
       const values = { tool: TOOL_TAB_LABELS[tool], models: models.join(", ") };
       const where = t(lang, "shell.modelsGoneWhere");
       const MARK = "\u0000";
-      const link = `<a data-goto href="${esc(`/settings?tab=${tool}&aitab=models`)}">${esc(where)}</a>`;
+      const link = `<a data-goto href="${esc("/settings?tab=providers")}">${esc(where)}</a>`;
       const html = esc(t(lang, "shell.modelsGone", { ...values, where: MARK })).replace(MARK, link);
       return rowMessage("waiting", t(lang, "shell.modelsGone", { ...values, where }), { tag: "p", hook: "tool-fault", html });
     })

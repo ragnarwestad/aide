@@ -21,9 +21,9 @@ export const fr: Record<TranslationKey, string> = {
   "shell.restartWaiting": "Le déploiement attend {jobs} ; le service redémarre une fois terminés.",
   "shell.installWarning": "la dernière installation d'aide a rencontré un problème : {problem} — la sortie complète est dans {path}",
   "shell.toolFault": "{tool}: {problems} — clique sur Vérifier dans {where}",
-  "shell.toolFaultWhere": "son onglet Installation dans Settings",
+  "shell.toolFaultWhere": "la page d'un fournisseur, sous l'onglet Fournisseurs de Settings",
   "shell.modelsGone": "{tool} : {models} n'est plus proposé — retire-le dans {where}",
-  "shell.modelsGoneWhere": "son onglet Modèles dans Settings",
+  "shell.modelsGoneWhere": "la page d'un fournisseur, sous l'onglet Fournisseurs de Settings",
   "shell.checkoutFault": "{project} : le tableau de bord ne peut pas utiliser sa propre copie — {said}",
   "deploy.title": "Déploiement…",
   "deploy.stepFetch": "Récupérer depuis origin",
@@ -320,16 +320,13 @@ export const fr: Record<TranslationKey, string> = {
     "Claude Code lit les skills d'aide dans {skills} et ses règles dans {rules} ; les scripts d'aide sont dans {scripts}.",
   "settings.where.codex":
     "Codex lit les instructions d'aide dans {instructions}, ses hooks dans {hookConfig} et {hooks}, et ses skills dans {skills}, qu'il partage avec Copilot ; les scripts d'aide sont dans {scripts}.",
-  "settings.where.copilot":
-    "Copilot lit les instructions d'aide dans {instructions} et ses skills dans {skills}, qu'il partage avec Codex ; les scripts d'aide sont dans {scripts}.",
   "settings.where.opencode":
     "OpenCode n'apporte aucun modèle à lui : chaque modèle appartient à un fournisseur et s'appelle fournisseur/modèle. aide installe seulement ses instructions, dans {instructions}, et OpenCode trouve les skills d'aide là où elles sont déjà, dans {skills} et {claudeSkills}.",
   "settings.checkHelpTitle":
     "Ce que Vérifier découvre",
   "settings.checkHelpAll":
-    "Un appui sur Vérifier lit les trois onglets à la fois, et chaque onglet montre ensuite ce que cet appui a trouvé.",
+    "Un clic sur Vérifier lit les modèles et l'installation de cet outil, avec les dossiers de ce fournisseur. La connexion et l'utilisation sont lues à chaque ouverture de cette page.",
   "settings.part.models": "Modèles",
-  "settings.part.subscription": "Utilisation",
   "settings.part.installation": "Installation",
   "settings.providers.intro": "Les connexions d'IA sur lesquelles le tableau peut exécuter une étape. Chacune est un outil et les dossiers où cet outil garde sa connexion.",
   "settings.providers.none": "Aucun fournisseur n'a été ajouté.",
@@ -337,12 +334,8 @@ export const fr: Record<TranslationKey, string> = {
   "settings.providers.configDir": "Dossier de configuration (vide : celui de Claude Code)",
   "settings.providers.codexHome": "Dossier CODEX_HOME (vide : celui de Codex)",
   "settings.providers.shadowHome": "Shadow home (facultatif)",
-  "settings.providers.newName": "Nouveau nom",
   "settings.providers.add": "Ajouter",
   "settings.providers.adding": "ajout…",
-  "settings.providers.rename": "Renommer",
-  "settings.providers.renaming": "renommage…",
-  "settings.providers.edit": "Modifier",
   "settings.providers.newTitle": "Ajouter un fournisseur",
   "settings.providers.editTitle": "Modifier {name}",
   "settings.providers.chooseTool": "Pour quel outil est le fournisseur ?",
@@ -351,7 +344,15 @@ export const fr: Record<TranslationKey, string> = {
   "settings.providers.installed": "Installé, version {version}",
   "settings.providers.installedNoVersion": "Installé",
   "settings.providers.notInstalled": "{tool} n'est pas installé là où le tableau s'exécute",
-  "settings.providers.loginUnread": "La connexion n'a pas pu être lue — rouvrez l'onglet pour la lire à nouveau.",
+  "settings.providers.loginUnread": "La connexion n'a pas pu être lue — rouvrez la page pour la lire à nouveau.",
+  "settings.providers.login": "Connexion",
+  "settings.providers.state.in": "Connecté",
+  "settings.providers.state.out": "Non connecté",
+  "settings.providers.state.unread": "Non lue",
+  "settings.providers.state.notInstalled": "Non installé",
+  "settings.providers.removeTitle": "Retirer {name} ?",
+  "settings.providers.removeSentence": "Le fournisseur est retiré du tableau. Son dossier et sa connexion restent tels quels.",
+  "settings.models.readAtWith": "Modèles lus {at}, avec les dossiers de {provider}",
   "settings.providers.loginEnds": "La connexion se termine {at}",
   "settings.providers.shadowHelp": "Un shadow home a sa propre connexion et partage les sessions et les réglages du CODEX_HOME. Partez d'un dossier vide et connectez-vous-y.",
   "job.provider": "Fournisseur",
@@ -361,24 +362,12 @@ export const fr: Record<TranslationKey, string> = {
     "Cette vérification demande à Claude Code quelle version donne aujourd'hui chacun d'opus, sonnet, fable et haiku, avec /model, qui ne lance aucun modèle, et compare ce qu'il propose aux modèles qui peuvent être choisis dans le tableau de bord.",
   "settings.checkHelp.models.codex":
     "Cette vérification lit quels modèles Codex propose, depuis codex debug models, et les compare aux modèles qui peuvent être choisis dans le tableau de bord.",
-  "settings.checkHelp.models.copilot":
-    "Cette vérification ne peut pas lire quels modèles Copilot accepte : la ligne de commande de Copilot n'a aucune commande qui les liste.",
   "settings.checkHelp.models.opencode":
     "Cette vérification lit quels modèles proposent les fournisseurs connectés d'OpenCode, depuis opencode models, et les compare aux modèles qui peuvent être choisis dans le tableau de bord.",
-  "settings.checkHelp.subscription.claude":
-    "Cette vérification lit quelle part de l'abonnement est utilisée et quand chaque limite se réinitialise, depuis claude -p /usage, qui ne lance aucun modèle.",
-  "settings.checkHelp.subscription.codex":
-    "Cette vérification lit quelle part de l'abonnement est utilisée et quand chaque limite se réinitialise, demandé à codex app-server.",
-  "settings.checkHelp.subscription.copilot":
-    "Cette vérification ne peut pas lire quelle part de l'abonnement est utilisée : la ligne de commande de Copilot n'a aucune commande qui l'indique.",
-  "settings.checkHelp.subscription.opencode":
-    "OpenCode n'a pas de limite d'utilisation propre : chaque modèle appartient à un fournisseur, et chaque fournisseur a la sienne. Cette vérification n'a rien à lire.",
   "settings.checkHelp.installation.claude":
     "Cette vérification lance aide-preflight et claude auth status. Elle te dit si la ligne de commande est installée et en quelle version, si elle est connectée et avec quel compte, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt.",
   "settings.checkHelp.installation.codex":
     "Cette vérification lance aide-preflight et codex login status. Elle te dit si la ligne de commande est installée et en quelle version, si elle est connectée, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt.",
-  "settings.checkHelp.installation.copilot":
-    "Cette vérification lance aide-preflight. Elle te dit si la ligne de commande est installée et en quelle version, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt. Elle ne peut pas dire si Copilot est connecté : la ligne de commande de Copilot n'a aucune commande pour cela, alors lance copilot login si une exécution est refusée.",
   "settings.checkHelp.installation.opencode":
     "Cette vérification lance aide-preflight et opencode auth list. Elle te dit si la ligne de commande est installée et en quelle version, si un fournisseur est connecté, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt. Ici, le fournisseur EST la connexion, puisqu'OpenCode atteint chaque modèle par l'un d'eux.",
   "settings.models.supported": "Actuellement pris en charge par Aide",
@@ -433,14 +422,12 @@ export const fr: Record<TranslationKey, string> = {
   "settings.usage.readAt": "Utilisation lue {at}",
   "settings.usage.unread": "Utilisation pas encore lue.",
   "settings.usage.failed": "L'utilisation n'a pas pu être lue : {reason}",
-  "settings.usage.noSource": "Le tableau ne lit pas l'utilisation de cette IA : sa ligne de commande n'a aucune commande qui la rapporte.",
   "settings.usage.none": "Cette IA ne rapporte aucune fenêtre d'utilisation.",
   "settings.usage.used": "{percent} % utilisé",
   "settings.usage.usedResets": "{percent} % utilisé · réinitialisation {resets}",
   "settings.models.add": "Ajouter",
   "settings.models.adding": "ajout…",
   "settings.models.unread": "Modèles pas encore lus.",
-  "settings.models.noSource": "Le tableau ne lit pas les modèles de cette IA : sa ligne de commande n'a aucune commande qui les liste.",
   "settings.models.failed": "Les modèles n'ont pas pu être lus : {reason}",
   "settings.models.readAt": "Modèles lus {at}",
   "settings.install.unchecked": "Pas encore vérifié.",

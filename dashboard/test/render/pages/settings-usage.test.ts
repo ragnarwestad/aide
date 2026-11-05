@@ -53,10 +53,6 @@ describe("usageView", () => {
     expect(usageView({ tool: "codex", at: AT, windows: [] }, NOW).kind).toBe("none");
   });
 
-  test("an AI whose usage is not read is not said to have none", () => {
-    expect(usageView({ tool: "copilot", at: AT, windows: [], noSource: true }, NOW).kind).toBe("noSource");
-  });
-
   test("a reading that failed keeps its reason and is never none", () => {
     const view = usageView({ tool: "codex", at: AT, windows: [], error: "codex app-server did not answer in time." }, NOW);
     expect(view).toEqual({ kind: "failed", at: AT, reason: "codex app-server did not answer in time." });

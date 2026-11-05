@@ -1,4 +1,4 @@
-// Which models each AI offers, as its tab shows them: the shape of one
+// Which models each AI offers, as a provider's page shows them: the shape of one
 // reading, the rule that sets it against the model choices, and the block
 // the tab draws. Declared here rather than beside the code that reads it,
 // for the same reason `ToolCheck` is: `src/render` may not import
@@ -20,7 +20,7 @@ export interface OfferedModel {
   id?: string;
 }
 
-/** One reading of an AI's models, made when its Check was pressed. */
+/** One reading of an AI's models, made when a provider's Check was pressed. */
 export interface ToolModels {
   tool: CheckableTool;
   /** When the reading was made. Like a check, it is a moment. */
@@ -32,8 +32,8 @@ export interface ToolModels {
   named?: OfferedModel[];
   /** Set when the models could not be read. Never shown as none offered. */
   error?: string;
-  /** Set for an AI the board has no way to ask. */
-  noSource?: boolean;
+  /** The name of the provider whose folders the reading was made with. */
+  provider?: string;
 }
 
 /** What the tab is handed beside the reading: the live choices and the
@@ -135,9 +135,6 @@ function supportedBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language,
 function readingBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language): string {
   const reading = panel.reading;
   if (!reading) return `<p class="muted">${esc(t(lang, "settings.models.unread"))}</p>`;
-  if (reading.noSource) {
-    return `<p class="muted">${esc(t(lang, "settings.models.noSource"))}</p>`;
-  }
   if (reading.error) return `<p class="muted">${esc(t(lang, "settings.models.failed", { reason: reading.error }))}</p>`;
   const lists = modelLists(tool, panel.choices, reading);
   const offered = lists.offered.length
@@ -168,6 +165,10 @@ export function modelsBlock(
   lang: Language = "en",
   toolName: string = tool,
 ): string {
-  const read = panel.reading && !panel.reading.noSource ? `<p class="muted small">${esc(t(lang, "settings.models.readAt", { at: readAt }))}</p>` : "";
+  const read = panel.reading
+    ? `<p class="muted small">${esc(panel.reading.provider
+      ? t(lang, "settings.models.readAtWith", { at: readAt, provider: panel.reading.provider })
+      : t(lang, "settings.models.readAt", { at: readAt }))}</p>`
+    : "";
   return read + supportedBlock(tool, panel, lang, toolName) + readingBlock(tool, panel, lang);
 }

@@ -3,7 +3,7 @@
 // folder, from the board's own process.
 
 import { describe, expect, test } from "bun:test";
-import { readProviderStatus } from "../../../src/serve/providers/status.ts";
+import { readProviderStatus, readProviderUsage } from "../../../src/serve/providers/status.ts";
 import type { Provider } from "../../../src/queue/providers/index.ts";
 
 type RunResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
@@ -53,5 +53,40 @@ describe("reading a provider's status", () => {
       { argv: "claude auth status", env: { CLAUDE_CONFIG_DIR: "/home/x/.claude-2" } },
     ]);
     expect(status.login?.answer).toEqual({ key: "login.out", values: { command: "CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login" } });
+  });
+});
+
+describe("reading with no login", () => {
+  test("{ login: false } asks the version alone and runs no login command (AC-16)", async () => {
+    const run = fakeRun({ "--version": { stdout: "2.1.318\n" } });
+    const status = await readProviderStatus("Claude-2", CLAUDE_2, { ...base(run), login: false });
+    expect(status).toMatchObject({ installed: true, version: "2.1.318" });
+    expect(status.login).toBeUndefined();
+    expect(run.calls.map((c) => c.argv)).toEqual(["claude --version"]);
+  });
+});
+
+describe("reading a provider's usage", () => {
+  const CLAUDE_3: Provider = { name: "Claude-3", tool: "claude", configDir: "/opt/claude-3" };
+
+  test("each Claude provider's usage is read with its own CLAUDE_CONFIG_DIR, expanded (AC-3, AC-4)", async () => {
+    const run = fakeRun({ "/usage": { stdout: "Current session: 24% used · resets Oct 2\n" } });
+    await readProviderUsage("Claude-2", CLAUDE_2, base(run));
+    await readProviderUsage("Claude-3", CLAUDE_3, base(run));
+    expect(run.calls.map((c) => c.env)).toEqual([
+      { CLAUDE_CONFIG_DIR: "/home/x/.claude-2" },
+      { CLAUDE_CONFIG_DIR: "/opt/claude-3" },
+    ]);
+  });
+
+  test("a Codex provider's exchange is asked with its shadow home as CODEX_HOME (AC-3)", async () => {
+    const seen: (Record<string, string> | undefined)[] = [];
+    const exchange = async (_argv: string[], _m: unknown[], _id: number, _t: number, env?: Record<string, string>) => {
+      seen.push(env);
+      return { answer: { id: 2, result: { rateLimits: { primary: null, secondary: null } } } };
+    };
+    const codex: Provider = { name: "Codex-p", tool: "codex", codexHome: "~/.codex-main", shadowHome: "~/.codex-p" };
+    await readProviderUsage("Codex-p", codex, { ...base(fakeRun({})), exchange: exchange as never });
+    expect(seen).toEqual([{ CODEX_HOME: "/home/x/.codex-p" }]);
   });
 });

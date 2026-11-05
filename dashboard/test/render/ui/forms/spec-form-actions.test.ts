@@ -32,6 +32,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   document.body.innerHTML = "";
+  went.length = 0;
 });
 
 /** A Checks-shaped form: a tick checkbox, and the Save/Cancel pair
@@ -92,8 +93,12 @@ function settingsForm(): { form: HTMLFormElement; input: HTMLInputElement } {
 /** Mounts the script and fires DOMContentLoaded — the event this script
  *  waits for before touching any element, exactly as `theme-script.ts`
  *  and the shell's other head scripts do. */
+// Every mount registers its own DOMContentLoaded listener on the shared
+// document, so the first one to fire binds a form; they all report here.
+const went: string[] = [];
+const where = { assign: (url: string) => void went.push(url) };
 function mount(): void {
-  new Function(scriptText)();
+  new Function("location", scriptText)(where);
   document.dispatchEvent(new Event("DOMContentLoaded"));
 }
 
@@ -338,5 +343,57 @@ describe("a form drawn after the page loaded", () => {
     expect(raw.value).toBe("old");
     expect([saveButton.disabled, cancelButton.disabled]).toEqual([true, true]);
     expect(redraws).toBe(1);
+  });
+});
+
+/** A provider's page form: the same pair under the `providerform` prefix, and
+ *  a destination for Cancel. */
+function providerForm(leave?: string): HTMLInputElement {
+  document.body.innerHTML =
+    `<form id="provider-form" class="providerform" method="post"${leave ? ` data-cancel-href="${leave}"` : ""}>` +
+    `<input type="text" name="name" value="Claude-2">` +
+    `<button id="providerform-save" type="submit">Save</button>` +
+    `<button id="providerform-cancel" type="button" disabled>Cancel</button>` +
+    `</form>`;
+  return document.querySelector('input[name="name"]') as HTMLInputElement;
+}
+const providerCancel = (): HTMLButtonElement => document.getElementById("providerform-cancel") as HTMLButtonElement;
+const providerSave = (): HTMLButtonElement => document.getElementById("providerform-save") as HTMLButtonElement;
+
+describe("a form that names where Cancel goes", () => {
+  test("Cancel is pressable from the start, Save waits for an edit, and Cancel restores the fields and leaves", () => {
+    const name = providerForm("/settings?tab=providers");
+    mount();
+    expect(providerCancel().disabled).toBe(false);
+    expect(providerSave().disabled).toBe(true);
+
+    name.value = "Renamed";
+    name.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(providerSave().disabled).toBe(false);
+    providerCancel().dispatchEvent(new Event("click", { bubbles: true }));
+
+    expect(name.value).toBe("Claude-2");
+    expect(went).toEqual(["/settings?tab=providers"]);
+    expect(providerCancel().disabled).toBe(false);
+  });
+
+  test("Cancel leaves even when no field was changed", () => {
+    providerForm("/settings?tab=providers");
+    mount();
+    providerCancel().dispatchEvent(new Event("click", { bubbles: true }));
+    expect(went).toEqual(["/settings?tab=providers"]);
+  });
+
+  test("a form without a destination keeps Cancel disabled until an edit, and a press restores the fields and stays", () => {
+    const name = providerForm();
+    mount();
+    expect(providerCancel().disabled).toBe(true);
+    name.value = "Renamed";
+    name.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(providerCancel().disabled).toBe(false);
+    providerCancel().dispatchEvent(new Event("click", { bubbles: true }));
+    expect(name.value).toBe("Claude-2");
+    expect(providerCancel().disabled).toBe(true);
+    expect(went).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
-// Each AI tab's opening sentence names where aide installs for that AI,
-// from the same table the preflight prints, and the AI has one Check for
-// all three of its tabs, with what it reads behind a "(?)" in the
-// reader's language.
+// A provider's tool panel opens with a sentence naming where aide installs
+// for that tool, from the same table the preflight prints, and has one Check
+// for both of its tabs, posting the provider's key, with what it reads behind
+// a "(?)" in the reader's language.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
@@ -16,7 +16,7 @@ import {
   placesOf,
 } from "../../../src/render/pages/settings-page/places.ts";
 import {
-  checkHelp, toolPanel, toolWhere, TOOL_PARTS, TOOL_TABS,
+  checkHelp, CHECKABLE_TOOLS, toolPanel, toolWhere, TOOL_PARTS,
 } from "../../../src/render/pages/settings-page/tools.ts";
 
 const windows: Window[] = [];
@@ -53,7 +53,7 @@ describe("the table of places", () => {
 });
 
 describe("the sentence above Check", () => {
-  test.each([...TOOL_TABS])("%s's names every place the table gives it", (tool) => {
+  test.each([...CHECKABLE_TOOLS])("%s's names every place the table gives it", (tool) => {
     const rows = INSTALL_TARGETS.filter((row) => row.tool === tool);
     expect(rows.length).toBeGreaterThan(0);
     const sentence = toolWhere("en", tool, placesOf(INSTALL_TARGETS, tool));
@@ -74,22 +74,22 @@ describe("the sentence above Check", () => {
   });
 });
 
-describe("an AI's one Check", () => {
-  for (const tool of TOOL_TABS) {
-    test.each([...TOOL_PARTS])(`${tool}'s %s tab holds one Check posting the AI alone, with the one (?) (AC-1, AC-9)`, (part) => {
-      const html = toolPanel(tool, undefined, undefined, Date.now(), {}, "en", part);
-      expect(checkForms(html)).toEqual([{ tool }]);
+describe("a provider's one Check", () => {
+  for (const tool of CHECKABLE_TOOLS) {
+    test.each([...TOOL_PARTS])(`${tool}'s %s tab holds one Check posting the provider's key alone, with the one (?) (AC-3)`, (part) => {
+      const html = toolPanel({ key: "Some-key", tool }, undefined, {}, "en", part);
+      expect(checkForms(html)).toEqual([{ key: "Some-key" }]);
       expect(html).toContain(helpPopover(t("en", "settings.checkHelpTitle"), checkHelp("en", tool)));
     });
   }
 
-  test.each([...TOOL_TABS])("%s's (?) opens with the sentence that one press reads all three tabs (AC-9)", (tool) => {
+  test.each([...CHECKABLE_TOOLS])("%s's (?) opens with the sentence that one press reads both tabs (AC-3)", (tool) => {
     expect(checkHelp("en", tool).startsWith(esc(t("en", "settings.checkHelpAll")))).toBe(true);
   });
 });
 
 test("a Norwegian reader gets the Norwegian sentence, tabs, (?) and model headings", () => {
-  const html = toolPanel("codex", undefined, undefined, Date.now(), {
+  const html = toolPanel({ key: "Codex", tool: "codex" }, undefined, {
     reading: { tool: "codex", at: "2026-10-03T13:30:00.000Z", offered: [] },
   }, "nb");
   expect(html).toContain(toolWhere("nb", "codex", placesOf(INSTALL_TARGETS, "codex")));

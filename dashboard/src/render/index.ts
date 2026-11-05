@@ -45,10 +45,10 @@ export {
 } from "./pages/settings-page";
 export type { SettingsGroup, SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
 export {
-  CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, TOOL_TABS, toolPanel, toolPart, toolParts,
+  CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, toolPanel, toolPart, toolParts,
 } from "./pages/settings-page/tools.ts";
 export {
-  PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_RENAME_ROUTE,
+  PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE,
   PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, providerEditPath, providerNewPath,
 } from "./pages/settings-page/providers.ts";
 export type { ProviderStatus } from "./pages/settings-page/providers.ts";

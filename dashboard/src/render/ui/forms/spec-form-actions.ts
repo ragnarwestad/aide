@@ -13,6 +13,9 @@
 // and every document tab's save form share (`overview.ts`, `panels.ts`)
 // — so this one script serves all five tabs with no per-tab branching.
 //
+// A form with `data-cancel-href` keeps its Cancel pressable from the start
+// and sends the page to that address after restoring the fields.
+//
 // A ONE-WAY LATCH, not a continuous value comparison: the first
 // `input`/`change` a field inside the form fires is enough to enable
 // both controls, and nothing here re-reads a field's own content on
@@ -30,7 +33,7 @@
   // the spec page has the Checks/document form AND the tracking form
   // above the tabs, and they save different things.
   const bindAll = (): void => {
-    for (const prefix of ["specform", "settingsform"]) bind(prefix);
+    for (const prefix of ["specform", "settingsform", "providerform"]) bind(prefix);
   };
   document.addEventListener("DOMContentLoaded", bindAll);
   // The Specs list draws the open spec's forms into a row after the page has
@@ -60,9 +63,13 @@
       checked: (el as HTMLInputElement).checked,
     }));
 
+    // A form that names where Cancel goes (a page opened only to be read, or
+    // to change something) has a Cancel that is pressable from the start: it
+    // restores the fields and leaves.
+    const leaveTo = form.getAttribute("data-cancel-href");
     const setDirty = (dirty: boolean): void => {
       save.disabled = !dirty;
-      cancel.disabled = !dirty;
+      cancel.disabled = leaveTo ? false : !dirty;
     };
     // A field inside the form that names another form — the phase
     // table's AI and model, saved the moment they are picked — changes
@@ -104,6 +111,7 @@
         el.dispatchEvent(new Event("change", { bubbles: true }));
       }
       setDirty(false);
+      if (leaveTo) location.assign(leaveTo);
     });
   }
 })();

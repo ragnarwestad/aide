@@ -61,7 +61,7 @@ describe("adding a model the AI offers", () => {
   test("is written to the file and the live choices, keeping the rest", async () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ codex: CODEX_READING }));
-    await pressCheck(base, "codex");
+    await pressCheck(base, "Codex");
     const res = await post(base, ADD, { tool: "codex", model: "gpt-5.5" });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, name: "gpt-5.5" });
@@ -75,7 +75,7 @@ describe("adding a model the AI offers", () => {
     forgetChecks();
     const choices = { ...CHOICES, "gpt-5.5": { tool: "codex" as const } };
     const { base, file } = serve(modelsProbe({ opencode: OPENCODE_READING }), choices);
-    await pressCheck(base, "opencode");
+    await pressCheck(base, "OpenCode");
     const res = await post(base, ADD, { tool: "opencode", model: "opencode/gpt-5.5" });
     expect(await res.json()).toEqual({ ok: true, name: "opencode-gpt-5.5" });
     expect(choicesIn(file)["opencode-gpt-5.5"]).toEqual({ tool: "opencode", model: "opencode/gpt-5.5" });
@@ -86,7 +86,7 @@ describe("adding a model the AI offers", () => {
   test("a Claude family is added under its capitalised name and shows its version", async () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ claude: CLAUDE_READING }));
-    await pressCheck(base, "claude");
+    await pressCheck(base, "Claude");
     const res = await post(base, ADD, { tool: "claude", model: "haiku" });
     expect(await res.json()).toEqual({ ok: true, name: "Haiku" });
     expect(choicesIn(file).Haiku).toEqual({ model: "haiku" });
@@ -101,7 +101,7 @@ describe("adding a model the AI offers", () => {
       expect(res.status).toBe(400);
       expect(await errorOf(res)).toContain("Check");
     }
-    await pressCheck(base, "codex");
+    await pressCheck(base, "Codex");
     expect((await post(base, ADD, { tool: "codex", model: "gpt-9" })).status).toBe(400);
     expect(readFileSync(file, "utf-8")).toBe(CONFIG);
   });
@@ -109,7 +109,7 @@ describe("adding a model the AI offers", () => {
   test("a model already a choice of that AI is refused", async () => {
     forgetChecks();
     const { base, file } = serve(modelsProbe({ claude: CLAUDE_READING }));
-    await pressCheck(base, "claude");
+    await pressCheck(base, "Claude");
     expect((await post(base, ADD, { tool: "claude", model: "OPUS" })).status).toBe(400);
     expect(readFileSync(file, "utf-8")).toBe(CONFIG);
   });
@@ -119,7 +119,7 @@ describe("a Claude model typed as its full id", () => {
   test("is refused like any model the last reading did not offer, asking no CLI", async () => {
     forgetChecks();
     const { base, file, probe } = serve(modelsProbe({ claude: CLAUDE_READING }));
-    await pressCheck(base, "claude");
+    await pressCheck(base, "Claude");
     const before = await offeredChoices(base);
     const res = await post(base, ADD, { tool: "claude", model: "claude-opus-4-8" });
     expect(res.status).toBe(400);
@@ -146,10 +146,10 @@ describe("removing a model choice", () => {
     const choices = { ...CHOICES, "opencode-gone": { tool: "opencode" as const, model: "opencode/gone" } };
     const probe = modelsProbe({ opencode: OPENCODE_READING });
     const { base } = serve(probe, choices);
-    await pressCheck(base, "opencode");
+    await pressCheck(base, "OpenCode");
     const reads = probe.modelReads.length;
     const modelsLine = async () => (await (await fetch(`${base}/settings?tab=phases`)).text())
-      .includes("/settings?tab=opencode&amp;aitab=models");
+      .includes("tool-fault");
     expect(await modelsLine()).toBe(true);
     expect((await post(base, REMOVE, { name: "opencode-gone" })).status).toBe(200);
     expect(await modelsLine()).toBe(false);

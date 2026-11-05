@@ -3,9 +3,9 @@
 // the checks the board runs on its own read no usage at all.
 
 import { describe, expect, test } from "bun:test";
-import { checkTool, CHECKABLE_TOOLS, forgetChecks, recordCheck } from "../../../src/serve/tool-check.ts";
+import { checkTool, CHECKABLE_TOOLS } from "../../../src/serve/tool-check.ts";
 import {
-  codexWindowName, lastUsage, parseClaudeUsage, readUsage, recordUsage, type UsageExchange,
+  codexWindowName, parseClaudeUsage, readUsage, type UsageExchange,
 } from "../../../src/serve/tool-usage";
 
 type RunResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
@@ -16,18 +16,20 @@ const AT = new Date("2026-10-02T19:00:00.000Z");
 /** A stand-in for `runScript`, answering every command the same way. */
 function fakeRun(answer: Partial<RunResult> = {}) {
   const calls: string[][] = [];
-  const run = async (argv: string[]): Promise<RunResult> => {
+  const envs: Record<string, string>[] = [];
+  const run = async (argv: string[], _cwd?: string, _timeout?: number, _owner?: string, extraEnv?: Record<string, string>): Promise<RunResult> => {
     calls.push(argv);
+    envs.push(extraEnv ?? {});
     return { code: 0, stdout: "", stderr: "", timedOut: false, ...answer };
   };
-  return Object.assign(run as never as typeof import("../../../src/serve/land-branch/run-script.ts").runScript, { calls });
+  return Object.assign(run as never as typeof import("../../../src/serve/land-branch/run-script.ts").runScript, { calls, envs });
 }
 
 /** A stand-in for the app-server exchange: records what it was sent. */
 function fakeExchange(reply: Awaited<ReturnType<UsageExchange>>) {
-  const sent: { argv: string[]; messages: Record<string, unknown>[] }[] = [];
-  const exchange: UsageExchange = async (argv, messages) => {
-    sent.push({ argv, messages: messages as Record<string, unknown>[] });
+  const sent: { argv: string[]; messages: Record<string, unknown>[]; env?: Record<string, string> }[] = [];
+  const exchange: UsageExchange = async (argv, messages, _id, _timeout, env) => {
+    sent.push({ argv, messages: messages as Record<string, unknown>[], env });
     return reply;
   };
   return Object.assign(exchange, { sent });
@@ -134,7 +136,6 @@ describe("Codex's usage", () => {
     const usage = await readUsage("codex", opts({ exchange: fakeExchange({ answer }) }));
     expect(usage.windows).toEqual([]);
     expect(usage.error).toBeUndefined();
-    expect(usage.noSource).toBeUndefined();
   });
 
   test("an exchange that timed out is a reading that failed", async () => {
@@ -166,6 +167,20 @@ describe("Codex's usage", () => {
   });
 });
 
+describe("a usage read with a provider's folders", () => {
+  test("Claude's command runs with the env it is handed (AC-3)", async () => {
+    const run = fakeRun({ stdout: CLAUDE_SAMPLE });
+    await readUsage("claude", opts({ run, env: { CLAUDE_CONFIG_DIR: "/home/x/.claude-2" } }));
+    expect(run.envs).toEqual([{ CLAUDE_CONFIG_DIR: "/home/x/.claude-2" }]);
+  });
+
+  test("Codex's app-server exchange is asked with the env it is handed (AC-3)", async () => {
+    const exchange = fakeExchange({ answer: { id: 2, result: { rateLimits: { primary: null, secondary: null } } } });
+    await readUsage("codex", opts({ exchange, env: { CODEX_HOME: "/home/x/.codex-p" } }));
+    expect(exchange.sent[0]!.env).toEqual({ CODEX_HOME: "/home/x/.codex-p" });
+  });
+});
+
 describe("the AIs with no usage to read", () => {
   test("OpenCode reports no windows and runs nothing", async () => {
     const run = fakeRun();
@@ -174,29 +189,7 @@ describe("the AIs with no usage to read", () => {
     expect(run.calls).toEqual([]);
     expect(exchange.sent).toEqual([]);
     expect(usage.windows).toEqual([]);
-    expect(usage.noSource).toBeUndefined();
     expect(usage.error).toBeUndefined();
-  });
-
-  test("Copilot's usage is not read, which is not the same as none", async () => {
-    const run = fakeRun();
-    const exchange = fakeExchange({ timedOut: true });
-    const usage = await readUsage("copilot", opts({ run, exchange }));
-    expect(run.calls).toEqual([]);
-    expect(exchange.sent).toEqual([]);
-    expect(usage.noSource).toBe(true);
-  });
-});
-
-describe("the last usage per AI", () => {
-  test("a check recorded afterwards, as before a job, leaves the reading in place", () => {
-    forgetChecks();
-    const reading = { tool: "claude" as const, at: AT.toISOString(), windows: [{ name: "Current session", usedPercent: 24 }] };
-    recordUsage(reading);
-    recordCheck({ tool: "claude", at: AT.toISOString(), found: true, lines: [], extra: [] });
-    expect(lastUsage().claude).toEqual(reading);
-    forgetChecks();
-    expect(lastUsage().claude).toBeUndefined();
   });
 });
 

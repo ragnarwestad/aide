@@ -431,8 +431,8 @@ export interface QueueDefaults {
   /** The AI logins, each under a key that never changes (a rename changes
    *  the provider's `name` only), in the order a picker lists them. */
   providers?: Record<string, Provider>;
-  /** The provider each step runs on by default, as a key, with a `default`
-   *  fallback — the same shape as `model`. */
+  /** The provider each step runs on by default, as a key, per step. A step
+   *  with no entry runs on the first provider that runs its model. */
   provider?: Record<string, string>;
   /** An implement continues its analysis's own AI session when both ran
    *  with the same AI and the analysis ended within the hour

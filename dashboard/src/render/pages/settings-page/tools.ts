@@ -1,6 +1,6 @@
-// One panel per AI: where aide installs for it, one Check, then three
-// tabs — Models, Usage and Installation — each showing its own last
-// reading, which that one Check made along with the other two.
+// The tool's panel on a provider's page: where aide installs for the tool,
+// one Check, then two tabs — Models and Installation — each showing its own
+// last reading, which that one Check made along with the other.
 //
 // The places in the opening sentence come from
 // core/scripts/lib/install-targets.txt (`places.ts`), the table
@@ -14,19 +14,18 @@ import type { BoardMessage } from "../../../i18n/message.ts";
 import { esc } from "../../ui/html.ts";
 import { buttonForm, facts, helpPopover, messageSlot } from "../../ui/components";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
+import { PROVIDER_TOOLS, type ProviderTool } from "../../../queue/providers/index.ts";
 import { INSTALL_TARGETS, placesOf } from "./places.ts";
 import { usageView, type ToolUsage } from "./usage.ts";
 import { modelsBlock, type ModelsPanel } from "./models.ts";
 import { installationBlock } from "./installation.ts";
 
-export const TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
-
-/** The four tools a check can be asked about, and the shape of the
- *  answer. Declared HERE rather than beside the code that obtains one:
- *  `src/render` may not import `src/serve` (the layering guard in
- *  `test/design`), and the page is what the shape exists for. */
-export const CHECKABLE_TOOLS = TOOL_TABS;
-export type CheckableTool = (typeof CHECKABLE_TOOLS)[number];
+/** The tools a check can be asked about — the ones a provider can be for —
+ *  and the shape of the answer. Declared HERE rather than beside the code
+ *  that obtains one: `src/render` may not import `src/serve` (the layering
+ *  guard in `test/design`), and the page is what the shape exists for. */
+export const CHECKABLE_TOOLS = PROVIDER_TOOLS;
+export type CheckableTool = ProviderTool;
 
 export interface ExtraCheck {
   question: string;
@@ -69,7 +68,6 @@ export interface ToolCheck {
 export const TOOL_TAB_LABELS: Record<CheckableTool, string> = {
   claude: "Claude Code",
   codex: "Codex",
-  copilot: "Copilot",
   opencode: "OpenCode",
 };
 
@@ -79,23 +77,22 @@ export function toolWhere(lang: Language, tool: CheckableTool, places: Record<st
   return t(lang, `settings.where.${tool}`, places);
 }
 
-/** The three tabs every AI has inside its tab, in the order they are shown.
- *  The one Check above them reads all three. */
-export const TOOL_PARTS = ["models", "subscription", "installation"] as const;
+/** The two tabs a provider's page has under its Check, in the order they
+ *  are shown. The one Check above them reads both. */
+export const TOOL_PARTS = ["models", "installation"] as const;
 
 export type ToolPart = (typeof TOOL_PARTS)[number];
 
-/** The tabs inside one AI's tab. */
+/** The tabs under a provider's Check. */
 export const toolParts = (_tool: CheckableTool): readonly ToolPart[] => TOOL_PARTS;
 
-/** The open tab inside an AI's tab, off `?aitab=`: Models when none, or one
- *  the AI has not got, is named. */
+/** The open tab under the Check, off `?aitab=`: Models when none, or one
+ *  that does not exist, is named. */
 export const toolPart = (raw: string | undefined, tool?: CheckableTool): ToolPart =>
   pickTab(tool ? toolParts(tool) : TOOL_PARTS, raw, "models");
 
 /** The body of the "(?)" before the Check, as trusted markup: that one
- *  press reads all three tabs, then what it reads for this AI on each, and
- *  what it cannot. */
+ *  press reads both tabs, then what it reads for this tool on each. */
 export function checkHelp(lang: Language, tool: CheckableTool): string {
   const parts = TOOL_PARTS.map((part) =>
     `${t(lang, `settings.part.${part}`)}: ${t(lang, `settings.checkHelp.${part}.${tool}`)}`);
@@ -111,10 +108,10 @@ export function stamp(at: string): string {
   return Number.isNaN(when.getTime()) ? at : when.toISOString().replace("T", " ").slice(0, 19) + " UTC";
 }
 
-/** How much of the AI's subscription is used, as the last press of its
- *  Check read it. A reading that failed is muted like a question the check
- *  could not answer: the Installation tab's login line says when to act. */
-function usageBlock(usage: ToolUsage | undefined, now: number, lang: Language): string {
+/** How much of the provider's subscription is used, as read when its page
+ *  opened. A reading that failed is muted like a question the check could
+ *  not answer. */
+export function usageBlock(usage: ToolUsage | undefined, now: number, lang: Language): string {
   const view = usageView(usage, now, lang);
   const read = (at: string) => `<p class="muted small">${esc(t(lang, "settings.usage.readAt", { at: stamp(at) }))}</p>`;
   switch (view.kind) {
@@ -122,8 +119,6 @@ function usageBlock(usage: ToolUsage | undefined, now: number, lang: Language): 
       return `<p class="muted">${esc(t(lang, "settings.usage.unread"))}</p>`;
     case "failed":
       return read(view.at) + `<p class="muted">${esc(t(lang, "settings.usage.failed", { reason: view.reason }))}</p>`;
-    case "noSource":
-      return `<p class="muted">${esc(t(lang, "settings.usage.noSource"))}</p>`;
     case "none":
       return read(view.at) + `<p class="muted">${esc(t(lang, "settings.usage.none"))}</p>`;
     case "text":
@@ -142,33 +137,29 @@ function usageBlock(usage: ToolUsage | undefined, now: number, lang: Language): 
 function partBody(
   part: ToolPart,
   tool: CheckableTool,
-  readings: { check?: ToolCheck; usage?: ToolUsage; models: ModelsPanel },
-  now: number,
+  readings: { check?: ToolCheck; models: ModelsPanel },
   lang: Language,
 ): string {
-  const { check, usage, models } = readings;
+  const { check, models } = readings;
   if (part === "installation") return installationBlock(check, check ? stamp(check.at) : "", lang);
-  if (part === "subscription") return usageBlock(usage, now, lang);
   return modelsBlock(tool, models, models.reading ? stamp(models.reading.at) : "", lang, TOOL_TAB_LABELS[tool]);
 }
 
-/** The panel behind one AI's tab. `check`, `usage` and `models.reading`
- *  are the last answers obtained for this tool in this server's lifetime,
- *  or absent when none has been asked for: nothing is run because a page
- *  was opened. `now` is the page's own time, which a reset is written
- *  against. `models` also carries the live choices the reading is set
- *  against. `lang` is the reader's, for the sentence, the tabs and the
- *  "(?)". `part` is the open tab, which is the only one drawn. */
+/** The tool's panel on the page of the provider `provider.key`. `check` and
+ *  `models.reading` are the last answers obtained for the tool in this
+ *  server's lifetime, or absent when none has been asked for: nothing is run
+ *  because a page was opened. `models` also carries the live choices the
+ *  reading is set against. `lang` is the reader's, for the sentence, the
+ *  tabs and the "(?)". `part` is the open tab, which is the only one drawn. */
 export function toolPanel(
-  tool: CheckableTool,
+  provider: { key: string; tool: CheckableTool },
   check: ToolCheck | undefined,
-  usage?: ToolUsage,
-  now: number = Date.now(),
   models: ModelsPanel = {},
   lang: Language = "en",
   part: ToolPart = "models",
 ): string {
-  const id = `check-${tool}`;
+  const { key, tool } = provider;
+  const id = "check-provider";
   return (
     `<section class="toolpanel" data-tool="${esc(tool)}">` +
     `<p>${esc(toolWhere(lang, tool, placesOf(INSTALL_TARGETS, tool)))}</p>` +
@@ -178,17 +169,17 @@ export function toolPanel(
       id,
       action: "/api/queue/settings/check",
       hook: "configactions reloadform",
-      hidden: { tool },
+      hidden: { key },
       before: helpPopover(t(lang, "settings.checkHelpTitle"), checkHelp(lang, tool)),
       button: { id: `${id}-run`, label: t(lang, "settings.checkButton"), variant: "primary", pending: t(lang, "settings.checking") },
       after: messageSlot("refused"),
     }) +
-    tabBar(toolParts(tool), (p) => `/settings?tab=${tool}&aitab=${p}`, part, {}, "", {
+    tabBar(toolParts(tool), (p) => `/settings/providers/edit?key=${encodeURIComponent(key)}&aitab=${p}`, part, {}, "", {
       lang,
       label: (p) => t(lang, `settings.part.${p}`),
       data: { aitabs: "" },
     }) +
-    partBody(part, tool, { check, usage, models }, now, lang) +
+    partBody(part, tool, { check, models }, lang) +
     `</section>`
   );
 }

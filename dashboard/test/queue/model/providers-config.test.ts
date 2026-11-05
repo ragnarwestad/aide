@@ -65,14 +65,20 @@ describe("reading the providers", () => {
     expect(merged.providers).toEqual({ Default: { name: "Default", tool: "claude" } });
   });
 
-  test("the phase defaults per step are read like the models, strings only (AC-1)", () => {
+  test("the phase defaults per step are read like the models, strings only, and a `default` entry is left out (AC-23)", () => {
     const merged = mergeQueueDefaults(BASE, { provider: { default: "Claude", implement: "Codex", analyze: 3 } });
-    expect(merged.provider).toEqual({ default: "Claude", implement: "Codex" });
+    expect(merged.provider).toEqual({ implement: "Codex" });
   });
 
-  test("the board's built-in defaults carry a provider for each tool and Claude as the default", () => {
+  test("the board's built-in defaults carry a provider for each tool and no phase default (AC-23)", () => {
     expect(Object.values(QUEUE_DEFAULTS.providers ?? {}).map((p) => p.tool)).toEqual(["claude", "codex", "opencode"]);
-    expect(QUEUE_DEFAULTS.provider).toEqual({ default: "Claude" });
+    expect(QUEUE_DEFAULTS.provider).toBeUndefined();
+  });
+
+  test("a providers table with no entry stays empty, and one whose entries are all invalid keeps the built-in three (AC-22)", () => {
+    expect(mergeQueueDefaults(QUEUE_DEFAULTS, { providers: {} }).providers).toBeUndefined();
+    expect(Object.keys(mergeQueueDefaults(QUEUE_DEFAULTS, { providers: { x: { tool: "nope" } } }).providers ?? {})).toEqual(["Claude", "Codex", "OpenCode"]);
+    expect(Object.keys(mergeQueueDefaults(QUEUE_DEFAULTS, {}).providers ?? {})).toEqual(["Claude", "Codex", "OpenCode"]);
   });
 });
 
@@ -93,6 +99,12 @@ describe("writing the providers", () => {
     const file = write('{ "providers": { "Work": { "name": "Work", "tool": "claude", "configDir": "~/.claude-2" } } }\n');
     expect(persistQueueSettings(file, { providers: { Work: { name: "Capra", tool: "claude", configDir: "~/.claude-2" } } })).toBeNull();
     expect(providersIn(file)).toEqual({ Work: { name: "Capra", tool: "claude", configDir: "~/.claude-2" } });
+  });
+
+  test("a phase default is removed with null, the others kept (AC-23)", () => {
+    const file = write('{ "provider": { "default": "Claude", "implement": "Codex" } }\n');
+    expect(persistQueueSettings(file, { provider: { default: null } })).toBeNull();
+    expect((parse(readFileSync(file, "utf-8")) as { provider?: unknown }).provider).toEqual({ implement: "Codex" });
   });
 
   test("the phase default of a step is written under provider (AC-1)", () => {

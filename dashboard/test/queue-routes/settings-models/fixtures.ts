@@ -5,7 +5,7 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CheckableTool, ToolCheck, ToolModels, ToolUsage } from "../../../src/render";
+import type { CheckableTool, ProviderStatus, ToolCheck, ToolModels, ToolUsage } from "../../../src/render";
 import type { QueueDefaults } from "../../../src/queue/types.ts";
 
 export const AT = "2026-10-03T13:30:00.000Z";
@@ -23,15 +23,14 @@ export const CLAUDE_READING: ToolModels = {
   ],
 };
 
-/** Stands in for every CLI a press of Check starts — the check, the usage
- *  and the models — counting which models were read. */
+/** Stands in for every CLI a press of Check starts — the check and the
+ *  models — counting which models were read. */
 export function modelsProbe(readings: Partial<Record<CheckableTool, ToolModels>> = {}) {
   const probe = {
-    modelReads: [] as { tool: CheckableTool; configured: string[] }[],
+    modelReads: [] as { tool: CheckableTool; configured: string[]; env?: Record<string, string> }[],
     check: async (tool: CheckableTool): Promise<ToolCheck> => ({ tool, at: AT, found: true, lines: [], extra: [] }),
-    usage: async (tool: CheckableTool): Promise<ToolUsage> => ({ tool, at: AT, windows: [] }),
-    models: async (tool: CheckableTool, opts: { configured: string[] }): Promise<ToolModels> => {
-      probe.modelReads.push({ tool, configured: opts.configured });
+    models: async (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string> }): Promise<ToolModels> => {
+      probe.modelReads.push({ tool, configured: opts.configured, env: opts.env });
       return readings[tool] ?? { tool, at: AT, offered: [] };
     },
   };
@@ -46,6 +45,7 @@ export function defaultsOf(choices: QueueDefaults["modelChoices"], model: Record
     permissionMode: { default: "acceptEdits" },
     model: { ...model },
     modelChoices: choices ? structuredClone(choices) : undefined,
+    providers: structuredClone(PROVIDERS),
   };
 }
 
@@ -72,6 +72,19 @@ export async function offeredChoices(base: string): Promise<Record<string, strin
 export const post = (base: string, path: string, body: Record<string, string>) =>
   fetch(`${base}${path}`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
 
-/** A press of an AI's one Check, which reads its Installation, Usage and Models. */
-export const pressCheck = (base: string, tool: string) =>
-  post(base, "/api/queue/settings/check", { tool });
+/** A press of a provider's one Check, which reads its tool's Installation and Models. */
+export const pressCheck = (base: string, key: string) =>
+  post(base, "/api/queue/settings/check", { key });
+
+/** The providers a check is pressed on: one per tool, on the tool's own folders. */
+export const PROVIDERS = {
+  Claude: { name: "Claude", tool: "claude" as const },
+  Codex: { name: "Codex", tool: "codex" as const },
+  OpenCode: { name: "OpenCode", tool: "opencode" as const },
+};
+
+/** What opening a provider's page reads, so no test starts a real CLI. */
+export const stubReads = {
+  providerProbe: async (key: string): Promise<ProviderStatus> => ({ key, at: AT, installed: true }),
+  usageProbe: async (_key: string, provider: { tool: CheckableTool }): Promise<ToolUsage> => ({ tool: provider.tool, at: AT, windows: [] }),
+};

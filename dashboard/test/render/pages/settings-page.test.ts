@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
-  AI_TABS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_GROUPS, SETTINGS_STEPS,
+  AI_TABS, CHECKABLE_TOOLS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_GROUPS, SETTINGS_STEPS,
   SPEC_STEPS, TOOL_PARTS, toolPanel, toolPart, toolParts, UNROWED_STEPS,
 } from "../../../src/render";
 import { t } from "../../../src/i18n";
@@ -96,9 +96,10 @@ describe("the Settings tabs", () => {
     expect(SETTINGS_GROUPS.map(tabLabel)).toEqual(["AI", "Process", "Notifications"]);
   });
 
-  test("AI's row is the models table, the providers, then one tab per AI", () => {
-    expect([...AI_TABS]).toEqual(["phases", "providers", "claude", "codex", "copilot", "opencode"]);
-    expect(AI_TABS.map(tabLabel)).toEqual(["Models per phase", "Providers", "Claude Code", "Codex", "Copilot", "OpenCode"]);
+  test("AI's row is exactly Models per phase and Providers, no tool among them (AC-1, AC-25)", () => {
+    expect([...AI_TABS]).toEqual(["phases", "providers"]);
+    expect(AI_TABS.map(tabLabel)).toEqual(["Models per phase", "Providers"]);
+    expect([...CHECKABLE_TOOLS]).toEqual(["claude", "codex", "opencode"]);
   });
 
   test("AI opens on Models per phase, as does no tab or an unknown one", () => {
@@ -107,9 +108,12 @@ describe("the Settings tabs", () => {
     }
   });
 
-  test("every old tab opens its own panel in its new place", () => {
-    for (const old of AI_TABS) {
-      expect(resolveSettingsTab(old)).toEqual({ group: "ai", panel: old });
+  test("every tab opens its own panel, and a removed tool tab opens Providers (AC-2)", () => {
+    for (const tab of AI_TABS) {
+      expect(resolveSettingsTab(tab)).toEqual({ group: "ai", panel: tab });
+    }
+    for (const old of ["claude", "codex", "copilot", "opencode"]) {
+      expect(resolveSettingsTab(old)).toEqual({ group: "ai", panel: "providers" });
     }
     expect(resolveSettingsTab("notifications")).toEqual({ group: "notifications", panel: "notifications" });
     for (const raw of [...AI_TABS, ...SETTINGS_GROUPS, undefined, "nope"]) {
@@ -120,7 +124,7 @@ describe("the Settings tabs", () => {
   test("the page offers the AI row only under AI", () => {
     const claude = links(render("claude"));
     expect(claude.keys).toEqual(new Set([...SETTINGS_GROUPS, ...AI_TABS]));
-    expect(claude.current).toEqual(new Set(["ai", "claude"]));
+    expect(claude.current).toEqual(new Set(["ai", "providers"]));
     const notifications = links(render("notifications"));
     expect(notifications.keys).toEqual(new Set(SETTINGS_GROUPS));
     expect(notifications.current).toEqual(new Set(["notifications"]));
@@ -131,7 +135,7 @@ describe("the Settings tabs", () => {
   });
 });
 
-describe("the tabs inside an AI's tab", () => {
+describe("the tabs under a provider's Check", () => {
   /** Each inner tab the panel links to, as its address and its words. */
   const innerTabs = (html: string) =>
     [...html.matchAll(/<a [^>]*href="([^"]*aitab=[^"]*)"[^>]*>([^<]*)<\/a>/g)].map((m) => ({
@@ -139,28 +143,21 @@ describe("the tabs inside an AI's tab", () => {
       label: m[2],
     }));
 
-  test("they are Models, Usage and Installation, in that order, each a link of its own, ", () => {
-    expect([...TOOL_PARTS]).toEqual(["models", "subscription", "installation"]);
+  test("they are Models and Installation, in that order, each a link to the provider's page (AC-3)", () => {
+    expect([...TOOL_PARTS]).toEqual(["models", "installation"]);
     expect(toolParts("claude")).toEqual([...TOOL_PARTS]);
-    for (const tool of ["claude", "codex", "copilot", "opencode"] as const) {
-      expect(innerTabs(toolPanel(tool, undefined))).toEqual(toolParts(tool).map((part) => ({
-        href: `/settings?tab=${tool}&aitab=${part}`,
-        label: t("en", `settings.part.${part}`),
-      })));
-    }
+    expect(innerTabs(toolPanel({ key: "Claude-2", tool: "claude" }, undefined))).toEqual(toolParts("claude").map((part) => ({
+      href: `/settings/providers/edit?key=Claude-2&aitab=${part}`,
+      label: t("en", `settings.part.${part}`),
+    })));
   });
 
-  test("an AI's tab opens on Models, as does an unknown inner tab", () => {
-    for (const raw of [undefined, "", "nope", "Models"]) expect(toolPart(raw)).toBe("models");
+  test("the page opens on Models, as does an unknown inner tab", () => {
+    for (const raw of [undefined, "", "nope", "Models", "subscription"]) expect(toolPart(raw)).toBe("models");
   });
 
   test("a named inner tab opens that tab, not Models", () => {
     expect(toolPart("installation")).toBe("installation");
-    expect(toolPart("subscription")).toBe("subscription");
-  });
-
-  test("Accounts is no inner tab of any AI any more", () => {
-    expect(toolPart("accounts", "claude")).toBe("models");
   });
 });
 

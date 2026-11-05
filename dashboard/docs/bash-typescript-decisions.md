@@ -181,8 +181,8 @@ both:
 - `core/scripts/aide-preflight` — prints one line per row, with whether
   the place is there yet.
 - `dashboard/src/render/pages/settings-page/places.ts` — read once at
-  load; each AI's tab on Settings fills its opening sentence with that
-  AI's places.
+  load; the tool's panel on a provider's page fills its opening sentence
+  with that tool's places.
 
 It is a plain line table, not JSON: every installer runs the preflight
 before it makes sure jq is installed, and a fresh machine has no jq. The

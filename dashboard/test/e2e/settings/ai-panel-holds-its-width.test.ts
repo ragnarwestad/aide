@@ -1,5 +1,4 @@
-// An AI's panel on Settings → AI holds one width whichever of its three
-// tabs is open, and its tab row stays where it is. Installation's
+// A provider's tool panel holds one width whichever of its two tabs is open, and its tab row stays where it is. Installation's
 // preflight output is the widest thing any tab holds; it must wrap or
 // scroll inside the panel rather than widen it. Only a real browser lays
 // the page out, so the widths are measured in Chromium.
@@ -23,7 +22,16 @@ let base: string;
 beforeAll(async () => {
   browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
-  base = harness.start().base;
+  base = harness.start({
+    extra: {
+      queueDefaults: {
+        timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" },
+        providers: { Claude: { name: "Claude", tool: "claude" } },
+      },
+      providerProbe: async (key: string) => ({ key, at: "2026-11-05T09:00:00.000Z", installed: true }),
+      usageProbe: async () => ({ tool: "claude" as const, at: "2026-11-05T09:00:00.000Z", windows: [] }),
+    },
+  }).base;
   recordCheck({
     tool: "claude",
     commands: ["aide-preflight claude"],
@@ -65,7 +73,7 @@ function measure(p: Page): Promise<Layout> {
 }
 
 async function open(part: string): Promise<Layout> {
-  const address = `/settings?tab=claude&aitab=${part}`;
+  const address = `/settings/providers/edit?key=Claude&aitab=${part}`;
   await withBrowser(page.goto(`${base}${address}`), `page.goto(${address})`);
   return measure(page);
 }
@@ -73,23 +81,20 @@ async function open(part: string): Promise<Layout> {
 async function clickTab(name: string, part: string): Promise<Layout> {
   const tabs = page.locator("nav[data-aitabs]");
   await Promise.all([
-    page.waitForURL(`**/settings?tab=claude&aitab=${part}`),
+    page.waitForURL(`**/settings/providers/edit?key=Claude&aitab=${part}`),
     tabs.getByRole("link", { name, exact: true }).click(),
   ]);
   return measure(page);
 }
 
-test("the panel and its tabs hold still across the three tabs", async () => {
+test("the panel and its tabs hold still across the two tabs", async () => {
   await page.setViewportSize({ width: 1280, height: 800 });
   const models = await open("models");
-  const usage = await clickTab("Usage", "subscription");
   const installation = await clickTab("Installation", "installation");
   expect(await page.getByText(SENTENCE).count()).toBeGreaterThan(0);
-  for (const other of [usage, installation]) {
-    expect(Math.abs(other.panel.left - models.panel.left)).toBeLessThan(0.5);
-    expect(Math.abs(other.panel.width - models.panel.width)).toBeLessThan(0.5);
-    other.tabLefts.forEach((left, i) => expect(Math.abs(left - models.tabLefts[i]!)).toBeLessThan(3));
-  }
+  expect(Math.abs(installation.panel.left - models.panel.left)).toBeLessThan(0.5);
+  expect(Math.abs(installation.panel.width - models.panel.width)).toBeLessThan(0.5);
+  installation.tabLefts.forEach((left, i) => expect(Math.abs(left - models.tabLefts[i]!)).toBeLessThan(3));
 });
 
 test("Installation's output fits its box or scrolls, and the page stays inside the window", async () => {

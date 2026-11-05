@@ -118,11 +118,11 @@ in Codex's messages hold digits too. A provider limit, a model at capacity, a re
 read first and never reach this.
 
 The board words each kind in the reader's language (`cliErrorMessage`, `src/queue/runner/cross-check-message.ts`):
-`login` says the tool is not logged in on the machine that runs Aide, and to log in there or press Check under Settings
-and then the step's button again; `provider` says the provider had an error and to try again in a little while;
-`other` gives the error's first line as the cause, with the step's button and the Check under Settings as what to do.
-The job's whole `error` stays behind the row's (?). A step with no `providerError`, or on a tool with no Settings tab,
-gets the sentence in `src/format/tool-failure.ts`, which names the tool and the model and carries the tool's words as
+`login` says the tool is not logged in on the machine that runs Aide, and to log in there or press Check on the provider's
+page under Settings and then the step's button again; `provider` says the provider had an error and to try again in a little while;
+`other` gives the error's first line as the cause, with the step's button and the Check on the provider's page under
+Settings as what to do. The job's whole `error` stays behind the row's (?). A step with no `providerError`, or on a
+tool that is no provider, gets the sentence in `src/format/tool-failure.ts`, which names the tool and the model and carries the tool's words as
 they came.
 
 ## When a provider limit ends a step

@@ -13,16 +13,10 @@
 // invalidate it.
 
 import type { CheckableTool, ToolCheck } from "../pages/settings-page/tools.ts";
-import type { ToolUsage } from "../pages/settings-page/usage.ts";
 import { modelLists, sameModel, type ToolModels } from "../pages/settings-page/models.ts";
 import type { ModelChoice } from "../../queue/types.ts";
 
 const LAST: Map<CheckableTool, ToolCheck> = new Map();
-
-/** The last usage read per tool, apart from the check: the check is
- *  also run before a waiting job, and that must not wipe a reading only
- *  a press of Check makes. */
-const USAGE: Map<CheckableTool, ToolUsage> = new Map();
 
 /** The last reading of each tool's models, kept apart for the same
  *  reason as the usage: only a press of Check reads them. */
@@ -53,14 +47,6 @@ export function lastChecks(): Partial<Record<CheckableTool, ToolCheck>> {
   return Object.fromEntries(LAST) as Partial<Record<CheckableTool, ToolCheck>>;
 }
 
-export function recordUsage(usage: ToolUsage): void {
-  USAGE.set(usage.tool, usage);
-}
-
-export function lastUsage(): Partial<Record<CheckableTool, ToolUsage>> {
-  return Object.fromEntries(USAGE) as Partial<Record<CheckableTool, ToolUsage>>;
-}
-
 export function recordModels(models: ToolModels): void {
   MODELS.set(models.tool, models);
 }
@@ -73,7 +59,6 @@ export function lastModels(): Partial<Record<CheckableTool, ToolModels>> {
  *  next file's expectations. */
 export function forgetChecks(): void {
   LAST.clear();
-  USAGE.clear();
   MODELS.clear();
   configured = undefined;
   choices = undefined;
@@ -81,9 +66,8 @@ export function forgetChecks(): void {
 
 /** Which tools this server has found something wrong with, as the header
  *  notice needs it: the tool's own name and the questions that came back
- *  "no". A question nobody could ASK is not a fault - the page says so
- *  on the tab, and a banner that fired on it would be on permanently for
- *  Copilot, which has no status command at all. */
+ *  "no". A question nobody could ASK is not a fault - the page says so,
+ *  and a banner that fired on it would be on permanently. */
 export function toolsWithFaults(): { tool: CheckableTool; problems: string[] }[] {
   const out: { tool: CheckableTool; problems: string[] }[] = [];
   // A tool no model is configured for is never run, so its login is not
@@ -110,7 +94,7 @@ export function toolsMissingModels(): { tool: CheckableTool; models: string[] }[
   const live = choices?.();
   const out: { tool: CheckableTool; models: string[] }[] = [];
   for (const reading of MODELS.values()) {
-    if (reading.error || reading.noSource) continue;
+    if (reading.error) continue;
     const named = reading.named ?? [];
     const gone = modelLists(reading.tool, live, reading).gone
       .filter((c) => !named.some((m) => sameModel(reading.tool, m.model, c.model)));

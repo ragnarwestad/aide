@@ -70,11 +70,11 @@ describe("each form the page script posts and loads again", () => {
       setBoardInfo("round");
       return pageShell("x", NAV, "/", "", "2026-09-20T00:00:00Z", { lang: "en" });
     }, "/api/self-run"],
-    ["an AI's Check", () => toolPanel("claude", undefined, undefined, 0, {}, "en", "models"), "/api/queue/settings/check"],
-    ["an offered model's Add", () => toolPanel("codex", undefined, undefined, 0, {
+    ["a provider's Check", () => toolPanel({ key: "Claude", tool: "claude" }, undefined, {}, "en", "models"), "/api/queue/settings/check"],
+    ["an offered model's Add", () => toolPanel({ key: "Codex", tool: "codex" }, undefined, {
       reading: { tool: "codex", at: "2026-10-03T13:30:00Z", offered: [{ model: "gpt-5.5" }] },
     }), "/api/queue/settings/models/add"],
-    ["a choice no longer offered's Remove", () => toolPanel("codex", undefined, undefined, 0, {
+    ["a choice no longer offered's Remove", () => toolPanel({ key: "Codex", tool: "codex" }, undefined, {
       reading: { tool: "codex", at: "2026-10-03T13:30:00Z", offered: [] },
       choices: { "gpt-5.6-luna": { tool: "codex" } },
     }), "/api/queue/settings/models/remove"],

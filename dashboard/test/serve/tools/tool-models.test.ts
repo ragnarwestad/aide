@@ -14,11 +14,13 @@ const AT = new Date("2026-10-03T13:30:00.000Z");
 /** A stand-in for `runScript` that answers each command through `answer`. */
 function fakeRun(answer: (argv: string[]) => Partial<RunResult>) {
   const calls: string[][] = [];
-  const run = async (argv: string[]): Promise<RunResult> => {
+  const envs: Record<string, string>[] = [];
+  const run = async (argv: string[], _cwd?: string, _timeout?: number, _owner?: string, extraEnv?: Record<string, string>): Promise<RunResult> => {
     calls.push(argv);
+    envs.push(extraEnv ?? {});
     return { code: 0, stdout: "", stderr: "", timedOut: false, ...answer(argv) };
   };
-  return Object.assign(run as never as Run, { calls });
+  return Object.assign(run as never as Run, { calls, envs });
 }
 
 const opts = (run: Run, configured: string[] = []) => ({
@@ -197,11 +199,14 @@ describe("OpenCode's models", () => {
   });
 });
 
-describe("Copilot's models", () => {
-  test("are not read: its command line cannot list them", async () => {
-    const run = fakeRun(() => ({}));
-    const reading = await readModels("copilot", opts(run));
-    expect(reading).toMatchObject({ tool: "copilot", offered: [], noSource: true });
-    expect(run.calls).toEqual([]);
+describe("models read with a provider's folders", () => {
+  test("every command the reading runs gets the env it is handed (AC-3)", async () => {
+    const run = fakeRun(() => ({ stdout: "opencode/glm-5\n" }));
+    await readModels("opencode", { ...opts(run), env: { XDG_DATA_HOME: "/home/x/oc" } });
+    expect(run.envs).toEqual([{ XDG_DATA_HOME: "/home/x/oc" }]);
+    const claude = fakeRun(() => ({ stdout: claudeStream("claude-opus-5", "Opus") }));
+    await readModels("claude", { ...opts(claude, ["opus"]), env: { CLAUDE_CONFIG_DIR: "/home/x/.claude-2" } });
+    expect(claude.envs.length).toBeGreaterThan(0);
+    expect(claude.envs.every((e) => e.CLAUDE_CONFIG_DIR === "/home/x/.claude-2")).toBe(true);
   });
 });

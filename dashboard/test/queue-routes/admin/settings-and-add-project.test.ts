@@ -5,9 +5,8 @@ import { rmSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
-import { SETTINGS_STEPS, type CheckableTool, type ToolCheck, type ToolModels, type ToolUsage } from "../../../src/render";
+import { SETTINGS_STEPS, type CheckableTool, type ProviderStatus, type ToolCheck, type ToolModels } from "../../../src/render";
 import { forgetChecks, lastChecks, recordCheck } from "../../../src/serve/tool-check.ts";
-import { lastUsage, recordUsage } from "../../../src/serve/tool-usage";
 import { lastModels, recordModels } from "../../../src/serve/tool-models";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 
@@ -37,6 +36,17 @@ describe("Settings routes", () => {
     timeoutSec: { default: 1200, implement: 5400 }, permissionMode: { default: "acceptEdits" },
     model: { default: "sonnet" },
     modelChoices: { sonnet: {}, "codex-fast": { tool: "codex" as const } },
+    providers: {
+      Claude: { name: "Claude", tool: "claude" as const },
+      Codex: { name: "Codex", tool: "codex" as const },
+      OpenCode: { name: "OpenCode", tool: "opencode" as const },
+    },
+  };
+  /** What opening a provider's page reads, so no test starts a real CLI. */
+  const status = async (key: string): Promise<ProviderStatus> => ({ key, at: "2026-10-02T19:00:00.000Z", installed: true });
+  const readsOnOpen = {
+    providerProbe: status,
+    usageProbe: async (_key: string, provider: { tool: "claude" | "codex" | "opencode" }) => ({ tool: provider.tool, at: "2026-10-02T19:00:00.000Z", windows: [] }),
   };
   const AUTH = { "content-type": "application/json", accept: "application/json" };
   const validModel = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "sonnet"]));
@@ -45,26 +55,25 @@ describe("Settings routes", () => {
 
   // The check spawns a CLI and reaches the network, so a GET of the page
   // must never start one: it happens when the button is pressed.
-  test("opening an AI tab runs no check", async () => {
-    const { base } = start({ queueDefaults: DEFAULTS });
-    const html = await (
-      await fetch(`${base}/settings?tab=opencode&aitab=installation`, )
-    ).text();
+  test("opening a provider's page runs no check", async () => {
+    forgetChecks();
+    const { base } = start({ queueDefaults: DEFAULTS, ...readsOnOpen });
+    const html = await (await fetch(`${base}/settings/providers/edit?key=OpenCode&aitab=installation`)).text();
     expect(html).toContain('data-tool="opencode"');
     expect(html).toContain("Not checked yet.");
   });
 
-  test("opening any of an AI's tabs after a press reads nothing and shows the press's readings (AC-11)", async () => {
+  test("opening either tab of a provider's page after a press reads no check and no models, and shows the press's readings (AC-3)", async () => {
     forgetChecks();
     const toolProbe = countingProbe();
-    const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
-    expect((await pressCheck(base, "claude")).status).toBe(200);
-    const reads = () => [toolProbe.checks, toolProbe.usageReads, toolProbe.modelReads];
-    expect(reads()).toEqual([1, 1, 1]);
-    for (const aitab of ["models", "subscription", "installation"]) {
-      const html = await (await fetch(`${base}/settings?tab=claude&aitab=${aitab}`)).text();
+    const { base } = start({ queueDefaults: DEFAULTS, toolProbe, ...readsOnOpen });
+    expect((await pressCheck(base, "Claude")).status).toBe(200);
+    const reads = () => [toolProbe.checks, toolProbe.modelReads];
+    expect(reads()).toEqual([1, 1]);
+    for (const aitab of ["models", "installation"]) {
+      const html = await (await fetch(`${base}/settings/providers/edit?key=Claude&aitab=${aitab}`)).text();
       expect(html).toContain("2026-10-02 19:00:00 UTC");
-      expect(reads()).toEqual([1, 1, 1]);
+      expect(reads()).toEqual([1, 1]);
     }
     forgetChecks();
   });
@@ -75,15 +84,17 @@ describe("Settings routes", () => {
     expect(html).toContain("data-settings-form");
   });
 
-  test("the check route refuses a tool it does not know", async () => {
+  test("the check route refuses Copilot, a tool, and a key that is no provider (AC-25)", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
-    const res = await fetch(`${base}/api/queue/settings/check`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify({ tool: "../../bin/sh" }),
-    });
-    expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ error: expect.stringContaining("unknown tool") });
+    for (const body of [{ tool: "copilot" }, { tool: "claude" }, { key: "Copilot" }, { key: "../../bin/sh" }, {}]) {
+      const res = await fetch(`${base}/api/queue/settings/check`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify(body),
+      });
+      expect(res.status).toBe(400);
+      expect(await res.json()).toMatchObject({ error: expect.stringContaining("is not a provider") });
+    }
   });
 
   test("the check route answers GET with method not allowed", async () => {
@@ -96,15 +107,10 @@ describe("Settings routes", () => {
   const countingProbe = () => {
     const probe = {
       checks: 0,
-      usageReads: 0,
       modelReads: 0,
       check: async (tool: CheckableTool): Promise<ToolCheck> => {
         probe.checks += 1;
         return { tool, at: "2026-10-02T19:00:00.000Z", found: true, lines: [], extra: [] };
-      },
-      usage: async (tool: CheckableTool): Promise<ToolUsage> => {
-        probe.usageReads += 1;
-        return { tool, at: "2026-10-02T19:00:00.000Z", windows: [{ name: "Stand-in window", usedPercent: 42 }] };
       },
       models: async (tool: CheckableTool): Promise<ToolModels> => {
         probe.modelReads += 1;
@@ -114,24 +120,23 @@ describe("Settings routes", () => {
     return probe;
   };
 
-  const pressCheck = (base: string, tool: string) =>
-    fetch(`${base}/api/queue/settings/check`, { method: "POST", headers: AUTH, body: JSON.stringify({ tool }) });
+  const pressCheck = (base: string, key: string) =>
+    fetch(`${base}/api/queue/settings/check`, { method: "POST", headers: AUTH, body: JSON.stringify({ key }) });
 
   /** Readings stored before the press, each from an earlier moment. */
   const EARLIER = "2026-10-01T08:00:00.000Z";
   const storeEarlier = () => {
     recordCheck({ tool: "claude", at: EARLIER, found: true, lines: ["earlier"], extra: [] });
-    recordUsage({ tool: "claude", at: EARLIER, windows: [] });
     recordModels({ tool: "claude", at: EARLIER, offered: [] });
   };
   const stored = () => ({
-    check: lastChecks().claude?.at, usage: lastUsage().claude?.at, models: lastModels().claude?.at,
+    check: lastChecks().claude?.at, models: lastModels().claude?.at,
   });
 
   /** Each half logs when it starts and, a moment later, when it ends. */
-  const waitingProbe = (log: string[], fail: Partial<Record<"check" | "usage" | "models", Error>> = {}) => {
+  const waitingProbe = (log: string[], fail: Partial<Record<"check" | "models", Error>> = {}) => {
     const wait = () => new Promise((resolve) => setTimeout(resolve, 20));
-    const half = async <T>(name: "check" | "usage" | "models", value: T): Promise<T> => {
+    const half = async <T>(name: "check" | "models", value: T): Promise<T> => {
       log.push(`${name} start`);
       await wait();
       log.push(`${name} end`);
@@ -140,52 +145,50 @@ describe("Settings routes", () => {
     };
     return {
       check: (tool: CheckableTool) => half("check", { tool, at: "2026-10-02T19:00:00.000Z", found: true, lines: [], extra: [] } as ToolCheck),
-      usage: (tool: CheckableTool) => half("usage", { tool, at: "2026-10-02T19:00:00.000Z", windows: [] } as ToolUsage),
       models: (tool: CheckableTool) => half("models", { tool, at: "2026-10-02T19:00:00.000Z", offered: [] } as ToolModels),
     };
   };
 
-  test("one press reads Installation, Usage and Models side by side, and stores what each returned (AC-2)", async () => {
+  test("one press reads Installation and Models side by side, and stores what each returned, the models named for the provider (AC-3)", async () => {
     forgetChecks();
     storeEarlier();
     const log: string[] = [];
     const { base } = start({ queueDefaults: DEFAULTS, toolProbe: waitingProbe(log) });
-    const res = await pressCheck(base, "claude");
+    const res = await pressCheck(base, "Claude");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; check: ToolCheck; usage: ToolUsage; models: ToolModels };
-    expect(log.slice(0, 3).sort()).toEqual(["check start", "models start", "usage start"]);
-    expect(log.slice(3).every((line) => line.endsWith("end"))).toBe(true);
+    const body = (await res.json()) as { ok: boolean; check: ToolCheck; models: ToolModels };
+    expect(log.slice(0, 2).sort()).toEqual(["check start", "models start"]);
+    expect(log.slice(2).every((line) => line.endsWith("end"))).toBe(true);
     expect(lastChecks().claude).toEqual(body.check);
-    expect(lastUsage().claude).toEqual(body.usage);
     expect(lastModels().claude).toEqual(body.models);
-    expect(stored()).toEqual({ check: body.check.at, usage: body.usage.at, models: body.models.at });
+    expect(body.models.provider).toBe("Claude");
+    expect(stored()).toEqual({ check: body.check.at, models: body.models.at });
     forgetChecks();
   });
 
-  test("a part named in the body is ignored, and a press without one still reads all three (AC-2)", async () => {
+  test("a part named in the body is ignored, and a press without one still reads both (AC-3)", async () => {
     forgetChecks();
     const toolProbe = countingProbe();
     const { base } = start({ queueDefaults: DEFAULTS, toolProbe });
     const res = await fetch(`${base}/api/queue/settings/check`, {
-      method: "POST", headers: AUTH, body: JSON.stringify({ tool: "claude", part: "everything" }),
+      method: "POST", headers: AUTH, body: JSON.stringify({ key: "Claude", part: "everything" }),
     });
     expect(res.status).toBe(200);
-    expect([toolProbe.checks, toolProbe.usageReads, toolProbe.modelReads]).toEqual([1, 1, 1]);
+    expect([toolProbe.checks, toolProbe.modelReads]).toEqual([1, 1]);
     forgetChecks();
   });
 
-  test("a reading that throws is stored as one that failed, and the other two are stored as they came (AC-3)", async () => {
+  test("a reading that throws is stored as one that failed, and the other is stored as it came (AC-3)", async () => {
     forgetChecks();
     const probe = waitingProbe([], { models: new Error("opencode would not start") });
     const { base } = start({ queueDefaults: DEFAULTS, toolProbe: probe });
-    const res = await pressCheck(base, "claude");
+    const res = await pressCheck(base, "Claude");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { check: ToolCheck; usage: ToolUsage; models: ToolModels };
+    const body = (await res.json()) as { check: ToolCheck; models: ToolModels };
     expect(body.models.error).toContain("opencode would not start");
     expect(lastModels().claude?.error).toContain("opencode would not start");
     expect(lastChecks().claude).toEqual(body.check);
     expect(lastChecks().claude?.error).toBeUndefined();
-    expect(lastUsage().claude).toEqual(body.usage);
     forgetChecks();
   });
 
@@ -193,9 +196,8 @@ describe("Settings routes", () => {
     forgetChecks();
     const probe = waitingProbe([], { check: new Error("spawn failed") });
     const { base } = start({ queueDefaults: DEFAULTS, toolProbe: probe });
-    expect((await pressCheck(base, "claude")).status).toBe(200);
+    expect((await pressCheck(base, "Claude")).status).toBe(200);
     expect(lastChecks().claude?.error).toContain("spawn failed");
-    expect(lastUsage().claude).toBeDefined();
     expect(lastModels().claude).toBeDefined();
     forgetChecks();
   });

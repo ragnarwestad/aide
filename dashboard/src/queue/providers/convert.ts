@@ -61,7 +61,9 @@ export function convertToProviders(input: ConversionInput): Conversion {
   };
 
   const provider: Record<string, string> = {};
-  for (const [step, model] of Object.entries(defaults.model ?? {})) provider[step] = toolKey[toolOfModel(model)];
+  for (const [step, model] of Object.entries(defaults.model ?? {})) {
+    if (step !== "default") provider[step] = toolKey[toolOfModel(model)];
+  }
 
   const schedules: Record<string, ScheduleEntry[]> = {};
   for (const [project, entries] of Object.entries(input.schedules)) {

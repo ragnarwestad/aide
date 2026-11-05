@@ -3,7 +3,7 @@
 // schedules in the queue config, then the config itself. The config's
 // `providers` is the mark that it has run, so it is written last and a start
 // stopped part-way converts again (the conversion keeps what a job already
-// carries).
+// carries). A converted file also loses `provider.default` here.
 
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -38,6 +38,22 @@ function legacyAccounts(raw: unknown): Record<string, { configDir: string }> {
   return out;
 }
 
+/** Providers have no default: a converted file that still holds
+ *  `provider.default` loses it, and the server is handed the defaults read
+ *  back. A file without it is left untouched. */
+function dropProviderDefault(
+  opts: Pick<ServerOptions, "queueDefaults">,
+  file: string,
+  raw: Record<string, unknown>,
+): void {
+  const table = raw.provider;
+  if (table === null || typeof table !== "object" || Array.isArray(table) || !("default" in table)) return;
+  const error = persistQueueSettings(file, { provider: { default: null } });
+  if (error) return void console.error(`providers: ${error} — default not removed`);
+  const after = readConfig(file);
+  if (after) opts.queueDefaults = mergeQueueDefaults(QUEUE_DEFAULTS, after);
+}
+
 /** Converts when the queue config file has no `providers` key, and hands the
  *  server the defaults read back from what was written. Says why on stderr
  *  when it could not write; the board then starts on the built-in providers. */
@@ -48,7 +64,8 @@ export function convertProvidersAtBoot(
   const file = opts.queueConfigFile;
   if (!file || !existsSync(file)) return;
   const raw = readConfig(file);
-  if (!raw || "providers" in raw) return;
+  if (!raw) return;
+  if ("providers" in raw) return dropProviderDefault(opts, file, raw);
 
   const jobs = new Map<string, Job>();
   loadJobs(opts.queueMirrorPath, jobs);

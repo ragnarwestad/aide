@@ -43,9 +43,9 @@ describe("convertToProviders", () => {
     expect(providers["Claude-2"]).toEqual({ name: "Claude-2", tool: "claude" });
   });
 
-  test("each phase default points at the tool provider of its model's tool, a stand-in at Claude's (AC-7)", () => {
+  test("each phase default points at the tool provider of its model's tool, a stand-in at Claude's, and no `default` is written (AC-7, AC-23)", () => {
     const { provider } = convert([], defaults({ model: { default: "Opus", implement: "gpt-6", review: "Scripted" } }));
-    expect(provider).toEqual({ default: "Claude", implement: "Codex", review: "Claude" });
+    expect(provider).toEqual({ implement: "Codex", review: "Claude" });
   });
 
   test("a schedule entry that names a model gets its tool's provider, one that names none is left alone (AC-8)", () => {

@@ -155,7 +155,7 @@ export interface SpecsPageOptions {
   pendingModels?: Record<string, Record<string, string>>;
   /** The providers a phase line's AI choice lists, in config order. */
   providerChoices?: ProviderOption[];
-  /** The configured provider per step (plus a "default" key), by key. */
+  /** The configured provider per step, by key. */
   defaultProviders?: Record<string, string>;
   /** A provider picked beside a pending model, in the same shape. */
   pendingProviders?: Record<string, Record<string, string>>;
