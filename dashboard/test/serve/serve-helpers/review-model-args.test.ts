@@ -10,6 +10,9 @@ const CHOICES = {
 };
 
 describe("the models an implement's review and verification run on", () => {
+  test("neither part is handed to the runner when both levels are empty (AC-3)", () => {
+    expect(reviewModelArgs("implement", "claude", { modelChoices: CHOICES, model: {} })).toEqual([]);
+  });
   test("a review on codex and a verification on Opus are handed to an implement on claude (AC-10)", () => {
     const o = { modelChoices: CHOICES, model: { implement: "Sonnet", review: "gpt-6.1-sol", verify: "Opus" } };
     const job = { project: "aide", specFolder: "1-x", steps: ["implement"], timeoutSec: {}, permissionMode: {}, model: {} } as unknown as Job;
@@ -22,7 +25,7 @@ describe("the models an implement's review and verification run on", () => {
     expect(reviewModelArgs("analyze", "claude", { modelChoices: CHOICES, model: { review: "gpt-6.1-sol" } })).toEqual([]);
   });
 
-  test("a choice on another tool reaches the runner so it can refuse it (AC-14)", () => {
+  test("a choice on another tool reaches the runner unchanged (AC-1)", () => {
     const o = { modelChoices: CHOICES, model: { review: "big-pickle", verify: "Opus" } };
 
     expect(reviewModelArgs("implement", "codex", o)).toEqual([
@@ -35,7 +38,7 @@ describe("the models an implement's review and verification run on", () => {
     ]);
   });
 
-  test("the current spec's side picks win over Models per phase (AC-10, AC-11)", () => {
+  test("the current spec's side picks win over Models per phase (AC-4)", () => {
     const o = { modelChoices: CHOICES, model: { review: "Sonnet" }, sidePicks: { review: "gpt-6.1-sol" } };
 
     expect(reviewModelArgs("implement", "claude", o)).toEqual([

@@ -320,12 +320,12 @@ case "$tool" in
   *) refuse "invalid --tool: $tool (claude, codex, opencode or fake-claude)" ;;
 esac
 
-# Implement's review and its verification run on the step's own tool, or
-# on codex read-only beside it (run-spec/turn/side-turn.sh).
-[ -z "$review_tool" ] || [ "$review_tool" = "$tool" ] || [ "$review_tool" = "codex" ] \
-  || refuse "the review is set to run on $review_tool, which cannot run beside an implement on $tool — pick $tool or codex for Review on the spec's line or under Settings → AI → Models per phase"
-[ -z "$verify_tool" ] || [ "$verify_tool" = "$tool" ] || [ "$verify_tool" = "codex" ] \
-  || refuse "the verification is set to run on $verify_tool, which cannot run beside an implement on $tool — pick $tool or codex for Verify on the spec's line or under Settings → AI → Models per phase"
+for side_tool in "$review_tool" "$verify_tool"; do
+  case "$side_tool" in
+    ""|claude|codex|opencode) ;;
+    *) refuse "invalid Review or Verify tool: $side_tool (claude, codex or opencode)" ;;
+  esac
+done
 
 if [ -n "$effort" ]; then
   case " $EFFORT_LEVELS " in

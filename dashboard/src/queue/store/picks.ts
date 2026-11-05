@@ -11,8 +11,7 @@ import { WORKFLOW_STEPS } from "../steps.ts";
 import type { Job, QueueDefaults } from "../types.ts";
 import { tailEditStep } from "./tail-edits.ts";
 import type { PendingModelResult } from "./types.ts";
-import { SIDE_PARTS, sideToolRefusal, sideTools } from "../providers/side-tools.ts";
-import { resolveStepModel } from "../model-name.ts";
+import { SIDE_PARTS } from "../providers/side-tools.ts";
 
 /** What the picks read and write, handed over by the store. */
 export interface PickContext {
@@ -123,20 +122,6 @@ export function setPendingModel(
   if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
   const found = lookUpModel(ctx.defaults, model);
   if ("error" in found) return { ok: false, error: found.error };
-  if ((SIDE_PARTS as readonly string[]).includes(wanted)) {
-    const record = `${project}/${specFolder}`;
-    const live = [...ctx.jobs.values()].find((job) =>
-      job.project === project && job.specFolder === specFolder && !("error" in tailEditStep(job, "implement"))
-    );
-    const implementName = live
-      ? resolveStepModel(live, "implement", ctx.defaults.model)
-      : ctx.pendingModels[record]?.implement ?? ctx.defaults.model.implement ?? ctx.defaults.model.default;
-    const implementTool = ctx.defaults.modelChoices?.[implementName ?? ""]?.tool ?? "claude";
-    const sideTool = ctx.defaults.modelChoices?.[found.name]?.tool ?? "claude";
-    if (!sideTools(implementTool).includes(sideTool)) {
-      return { ok: false, error: sideToolRefusal(wanted as (typeof SIDE_PARTS)[number], sideTool, implementTool) };
-    }
-  }
   let key: string | undefined;
   if (provider) {
     const checked = checkedProvider(ctx.defaults, provider, found.name);

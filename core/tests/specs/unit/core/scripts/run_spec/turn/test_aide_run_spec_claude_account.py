@@ -36,7 +36,7 @@ def test_every_claude_turn_of_the_step_runs_with_the_accounts_directory(
     with_status(workspace, ["create", "analyze"])
     claude = _claude(fake_claude, TWO_DEFECTS, "keep 1\nkeep 2", keep_in=tmp_path)
     rc, out, _ = run(runner, workspace, claude, command="implement", model="claude-sonnet-4",
-                     verify_model="claude-opus-4", claude_config_dir=account)
+                     review_model="claude-sonnet-4", verify_model="claude-opus-4", claude_config_dir=account)
     assert out["terminalReason"] == "completed", out
     calls = fake_claude.calls.read_text().splitlines()
     assert len(calls) == 4, calls
@@ -50,8 +50,8 @@ def test_the_fix_turn_after_red_tests_runs_with_the_accounts_directory(
     _project_with_test_cmd(workspace, "test -f fixed.txt")
     rc, out, _ = run(runner, workspace, _fixing_claude(fake_claude), command="implement", claude_config_dir=account)
     assert out["terminalReason"] == "completed", out
-    assert len(fake_claude.calls.read_text().splitlines()) == 3
-    assert _config_dirs(fake_claude.env_log) == [account] * 3
+    assert len(fake_claude.calls.read_text().splitlines()) == 2
+    assert _config_dirs(fake_claude.env_log) == [account] * 2
 
 
 def test_a_step_with_no_account_is_given_no_directory_of_the_boards(runner, workspace, fake_claude, account):

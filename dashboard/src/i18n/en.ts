@@ -421,7 +421,7 @@ export const en = {
   "settings.row.timeoutAria": "Timeout in minutes for {step}",
   "settings.side.review": "Review",
   "settings.side.verify": "Verify",
-  "settings.side.reviewFirst": "Same as Implement",
+  "settings.side.reviewFirst": "Off",
   "settings.side.verifyFirst": "Off",
   "settings.row.aiAria": "AI for {step}",
   "settings.row.modelAria": "Model for {step}",

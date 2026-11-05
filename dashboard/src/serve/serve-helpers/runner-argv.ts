@@ -53,12 +53,9 @@ export function stepTool(
   return ((choiceName ? o.modelChoices?.[choiceName]?.tool : undefined) ?? "claude") as CheckableTool;
 }
 
-/** The model an implement's review and the verification of its defects
- *  run on, from the config's `model.review` and `model.verify`: a choice
- *  name, looked up like a step's. The runner runs them on the step's own
- *  tool or on codex beside it (run-spec/turn/side-turn.sh), so a choice on
- *  any other tool is left out and that part runs on the step's own model.
- *  Nothing for another step, or with neither key set. */
+/** The independently chosen model for an implement's review and defect
+ *  verification. A per-spec choice wins over Settings; no resolved choice
+ *  leaves that part Off. */
 export function reviewModelArgs(
   step: string,
   _tool: string,

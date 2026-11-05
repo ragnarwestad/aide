@@ -14,7 +14,7 @@ import { providerKeyFrom, providerModelError } from "../../queue/providers/parse
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { SETTINGS_STEPS, type ToolCheck, type ToolModels } from "../../render";
 import { providerLoginEnv } from "../../queue/providers/index.ts";
-import { SIDE_PARTS, sideToolRefusal, sideTools } from "../../queue/providers/side-tools.ts";
+import { SIDE_PARTS } from "../../queue/providers/side-tools.ts";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded } from "../serve-helpers";
 import { checkTool, recordCheck } from "../tool-check.ts";
 import { readModels, recordModels } from "../tool-models";
@@ -118,7 +118,7 @@ export async function handleQueueAdminRoutes(
       }
       next[step] = listed.name;
     }
-    const sideModels: Record<string, string | null> = {}, implementTool = ctx.queue.defaults.modelChoices?.[next.implement]?.tool ?? "claude";
+    const sideModels: Record<string, string | null> = {};
     for (const part of SIDE_PARTS) {
       const value = table[part];
       if (value === undefined) continue;
@@ -126,8 +126,6 @@ export async function handleQueueAdminRoutes(
       if (!value) { sideModels[part] = null; continue; }
       const listed = listedModelName(Object.keys(ctx.queue.defaults.modelChoices ?? {}), value);
       if ("candidates" in listed) return refuse(`unknown or not-allowed model for ${part}: ${value}`);
-      const sideTool = ctx.queue.defaults.modelChoices?.[listed.name]?.tool ?? "claude";
-      if (!sideTools(implementTool).includes(sideTool)) return refuse(sideToolRefusal(part, sideTool, implementTool));
       sideModels[part] = listed.name;
     }
 

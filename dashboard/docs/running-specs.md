@@ -156,8 +156,9 @@ ceiling. A file still carrying the old flat `"timeoutSec": 1200` is ignored and 
 `model` takes two keys besides the steps, read for an implement only: `review` names the choice implement's review runs
 on, and `verify` the choice that checks each defect the review finds. Settings writes these keys; a spec's own Review
 and Verify lines win over them
-([The runner](the-runner.md#what-counts-as-a-step-having-run)). Either may be a Codex choice beside a Claude step.
-Without `review` the review runs on the step's own model, and without `verify` nothing checks it.
+([The runner](the-runner.md#what-counts-as-a-step-having-run)). Each may name any configured Claude Code, Codex or
+OpenCode model, independently of Implement's AI. Without a resolved choice that part is Off. If the chosen model cannot
+start or complete, Implement stops with Review or Verify, the model and the reason in its result; it never falls back.
 
 `resumeAnalysis: true` lets an implement continue its analysis's own AI session. It applies only when both steps run
 with the same AI (the model may differ) and the analysis ended within the hour, and the two providers share sessions:
@@ -308,7 +309,7 @@ its phase file as a `- **Effort:**` line, and shown on the job's page beside its
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step, on its AI tab under Models per phase. A step with no provider saved there runs on the first provider that runs its model, which is the provider its row shows. Review and Verify sit directly under Implement, without timeouts. Review's first choice, Same as Implement, uses Implement's model; Verify's first choice, Off, runs no verification. Their AI and model lists contain the implement's own AI and Codex. The same two lines on a spec override these defaults for that spec; their first choices inherit the Settings values. The other rows are the
+`/settings` holds the default AI and model per step, on its AI tab under Models per phase. A step with no provider saved there runs on the first provider that runs its model, which is the provider its row shows. Review and Verify sit directly under Implement, without timeouts. Each list starts with Off and then contains every configured model, independently of Implement's AI. The same two lines on a spec override these defaults for that spec; Off on the spec's line means no override, so the Settings choice is inherited. When neither place has a choice, that part does not run. If its chosen model cannot run, Implement stops and does not fall back to another model. The other rows are the
 six that act on a spec (Create, Analyze, Implement, Archive, Close and Reopen) and Schedule. A step nothing has been saved
 for runs on Claude Code's Opus, and its row shows that; a `model.default` in the config file is a saved choice for every
 step without one of its own. On a host whose choices hold no Opus, the row shows the first listed choice while the runner
