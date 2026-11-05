@@ -285,6 +285,41 @@ def test_defects_found_in_codex_resumes_the_implement_thread_never_the_reviews_o
     assert REVIEW_THREAD_ID not in calls[2], calls[2]
 
 
+def test_a_red_suite_after_a_codex_review_fix_resumes_the_thread_once_more_with_one_prompt(
+    runner, workspace, fake_codex
+):
+    """The review's defects went back to the implement thread, and the
+    suite is red after that fix: the red-suite turn is one more plain
+    `exec resume <thread> -`, never a resume of the already-resumed call."""
+    with_status(workspace, ["create", "analyze"])
+    manifest = workspace["project"] / ".aide" / "project.yaml"
+    manifest.write_text(manifest.read_text().replace("AIDE_TEST_CMD: true", "AIDE_TEST_CMD: test -f green.txt"))
+    ok = emits(CODEX_STREAM_OK).replace("cat > /dev/null; ", "")
+    codex = fake_codex(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
+        "  " + emits(_codex_review_stream("review: 1 defect(s) found" + chr(10) + "1. Something is off")).replace(
+            "cat > /dev/null; ", ""
+        ) + "\n"
+        "elif printf '%s' \"$prompt\" | grep -q 'test suite is red'; then\n"
+        "  printf 'green\\n' > green.txt && git add -A && git commit -q -m 'the test fix'\n"
+        f"  {ok}\n"
+        f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
+        "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
+        f"  {ok}\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"  {ok}\n"
+        "fi\n"
+    )
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
+    assert out["terminalReason"] == "completed", out
+    calls = fake_codex.calls.read_text().splitlines()
+    assert len(calls) == 4, calls
+    assert calls[3].startswith("exec resume ") and calls[3].endswith(f" {CODEX_THREAD_ID} -"), calls[3]
+    assert calls[3].split().count("resume") == 1 and calls[3].split().count("-") == 1, calls[3]
+
+
 def _with_out_of_scope_section(workspace):
     """The spec's description gains an `## Out of scope` section, committed
     in the specs repo where the review reads it."""

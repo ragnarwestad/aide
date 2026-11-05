@@ -91,11 +91,11 @@ grade, and the runner does not check it.
 
 1. The runner starts one new session with `aide-implement`, which writes the code and its tests. With
    [`resumeAnalysis`](#settings) on, it continues the analysis's own session instead.
-2. **The review.** The runner starts a second, new session (`run-spec/turn/review.sh`), on the model the queue
-   config's `model.review` names, Codex included, else the step's own. It reads the description, finds the branch's
+2. **The review.** The runner starts a second, new session (`run-spec/turn/review.sh`), on the spec's Review choice,
+   then the Models per phase choice, Codex included, else the step's own. It reads the description, finds the branch's
    whole change against where it left the default branch with `git diff` itself, and reports defects against the
    description. It changes nothing.
-3. **The verification**, when `model.verify` names a model. A third new session traces each defect in the code and
+3. **The verification**, when the spec's or Models per phase's Verify choice names a model. A third new session traces each defect in the code and
    keeps or drops it. Only the kept ones go on.
 4. Defects found go back to the implement session as one more turn, which fixes them, or turns down one it shows is
    not a defect. The review does not run again.
@@ -139,8 +139,8 @@ Every loop that sends work back goes to the session that did the work, and every
   the same AI and the analysis ended within the hour. Off unless set
   ([running specs](../dashboard/docs/running-specs.md)).
 - **`AIDE_TEST_FIX_ROUNDS`**: how many more turns red tests get. 2 unless set.
-- **The AI, model and effort for each step**, chosen per spec. The review in Implement and its verification use
-  `model.review` and `model.verify` from the queue config, and the step's own when those are not set.
+- **The AI, model and effort for each step**, chosen per spec. Review and Verify can also be chosen per spec; otherwise
+  they use Models per phase, with Implement's own model and no verification as their final defaults.
 
 ## What Aide does not do
 

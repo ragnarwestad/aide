@@ -9,11 +9,12 @@ import type { QueueRowView } from "../../ui/job-state";
 import type { SpecsPageOptions } from "./";
 import { RUN_STEPS, groupKey, isArchivedRow, lockedAsArchived, type SpecGroup } from "./data-model";
 import { costCell, phaseDurationCell, phaseWordCell, specTotalCell } from "./cell-helpers.ts";
-import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells } from "./model-picker.ts";
+import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull, lockedDuration, modelPicker, phaseAiModel, phaseCaptionCells, sidePickers } from "./model-picker.ts";
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
 import { dependsOnLine } from "./depends-on";
+import { SIDE_PARTS } from "../../../queue/providers/side-tools.ts";
 
 /** The archive gates' own refusals: nothing was tried, so nothing is
  *  counted as an attempt. Hand-paired with run-spec/record/outcome.sh. */
@@ -303,6 +304,21 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       });
       // The model's own messages, unfolded under the line.
       lines.push(...phaseMessagesRow(g, p, opts, ran, now));
+      if (p.step === "implement" && (opts.modelChoices ?? []).length) {
+        const implementTool = phaseAiModel(
+          g, opts, "implement", g.lead?.stepModels?.implement, undefined, undefined, g.lead?.stepProviders?.implement,
+        )?.tool ?? "claude";
+        for (const part of SIDE_PARTS) {
+          const label = t(opts.lang ?? "en", `settings.side.${part}`);
+          const first = t(opts.lang ?? "en", `settings.side.${part}First`);
+          lines.push({
+            tag: `<tr class="subrow" data-side="${part}">`,
+            cells: `<td class="phasecell" colspan="2"><span class="phasefold">${esc(label)}</span></td>` +
+              `<td class="modelcell"><span class="row">${sidePickers(g, opts, part, implementTool, locked || (busy && !editable.has("implement")), first)}</span></td>` +
+              `<td data-col="state"></td><td data-col="started"></td><td class="num" data-col="cost"></td>`,
+          });
+        }
+      }
     });
   // No switch like the New-spec page's on a row of its own here: the
   // choice lives on the spec page's own banner and is recorded on the spec itself,

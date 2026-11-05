@@ -43,14 +43,16 @@ side_argv_for() {  # <tool> <model> <name>
 
 # Run <prompt-file> through $side_argv as <tool>, and put the step's own
 # globals back afterwards.
-side_turn() {  # <tool> <prompt-file>
+side_turn() {  # <tool> <prompt-file> <claude-config-dir> <codex-home>
   local saved_tool="$tool" saved_session="$session_out" saved_subtype="$subtype" \
     saved_cost="$cost" saved_measured="$cost_measured" saved_reason="$terminal_reason" \
     saved_error="$error_msg" saved_limit="${provider_limit_out:-}" saved_capacity="${at_capacity_out:-}" \
     saved_provider_error="${provider_error_out:-}" saved_time_limit="${time_limit_json:-}" \
-    saved_tokens="${tokens_json:-}" saved_model_id="${model_id_out:-}" saved_exit="${exit_code:-0}"
+    saved_tokens="${tokens_json:-}" saved_model_id="${model_id_out:-}" saved_exit="${exit_code:-0}" \
+    saved_claude_dir="${claude_config_dir:-}" saved_codex_home="${CODEX_HOME:-}"
   local -a saved_argv=("${argv[@]}")
-  tool="$1"; argv=("${side_argv[@]}")
+  tool="$1"; argv=("${side_argv[@]}"); claude_config_dir="$3"
+  if [ -n "$4" ]; then export CODEX_HOME="$4"; else unset CODEX_HOME; fi
   # A session of its own: how full its window got is not the step's.
   context_use_skip="yes"
   run_model_turn "$2"
@@ -61,4 +63,6 @@ side_turn() {  # <tool> <prompt-file>
   terminal_reason="$saved_reason"; error_msg="$saved_error"; provider_limit_out="$saved_limit"
   at_capacity_out="$saved_capacity"; provider_error_out="$saved_provider_error"; time_limit_json="$saved_time_limit"
   tokens_json="$saved_tokens"; model_id_out="$saved_model_id"; exit_code="$saved_exit"
+  claude_config_dir="$saved_claude_dir"
+  if [ -n "$saved_codex_home" ]; then export CODEX_HOME="$saved_codex_home"; else unset CODEX_HOME; fi
 }

@@ -69,6 +69,7 @@ kill_grace_sec="30"; do_pull="no"; dry_run="no"
 # all the git handling never learn there is a second tool.
 tool="claude"
 review_tool=""; review_model=""; verify_tool=""; verify_model=""
+review_claude_config_dir=""; review_codex_home=""; verify_claude_config_dir=""; verify_codex_home=""
 # What a `create` step is FOR. Every other step names a folder
 # that is already on disk; this one makes it, so the two things
 # /aide-create needs come in as arguments instead. Required for a create
@@ -183,8 +184,12 @@ while [ $# -gt 0 ]; do
     --codex-home) codex_home_arg="${2:-}"; shift 2 ;;
     --review-tool) review_tool="${2:-}"; shift 2 ;;
     --review-model) review_model="${2:-}"; shift 2 ;;
+    --review-claude-config-dir) review_claude_config_dir="${2:-}"; shift 2 ;;
+    --review-codex-home) review_codex_home="${2:-}"; shift 2 ;;
     --verify-tool) verify_tool="${2:-}"; shift 2 ;;
     --verify-model) verify_model="${2:-}"; shift 2 ;;
+    --verify-claude-config-dir) verify_claude_config_dir="${2:-}"; shift 2 ;;
+    --verify-codex-home) verify_codex_home="${2:-}"; shift 2 ;;
     --session-id) session_id="${2:-}"; shift 2 ;;
     --resume-session) resume_session="${2:-}"; shift 2 ;;
     --stream-file) stream_file="${2:-}"; shift 2 ;;
@@ -275,6 +280,9 @@ if [ -n "$codex_home_arg" ]; then
   [ -d "$codex_home_arg" ] || refuse "the Codex folder $codex_home_arg is not there on the serving host"
   export CODEX_HOME="$codex_home_arg"
 fi
+for side_dir in "$review_claude_config_dir" "$review_codex_home" "$verify_claude_config_dir" "$verify_codex_home"; do
+  [ -z "$side_dir" ] || [ -d "$side_dir" ] || refuse "the Review or Verify account directory $side_dir is not there on the serving host"
+done
 
 # Refused rather than dropped: a job that asked for the browser and ran
 # without it would only fail later, saying less about why.
@@ -314,10 +322,10 @@ esac
 
 # Implement's review and its verification run on the step's own tool, or
 # on codex read-only beside it (run-spec/turn/side-turn.sh).
-for side_tool_arg in "$review_tool" "$verify_tool"; do
-  [ -z "$side_tool_arg" ] || [ "$side_tool_arg" = "$tool" ] || [ "$side_tool_arg" = "codex" ] \
-    || refuse "invalid --review-tool or --verify-tool: $side_tool_arg (the step's own tool, $tool, or codex)"
-done
+[ -z "$review_tool" ] || [ "$review_tool" = "$tool" ] || [ "$review_tool" = "codex" ] \
+  || refuse "the review is set to run on $review_tool, which cannot run beside an implement on $tool — pick $tool or codex for Review on the spec's line or under Settings → AI → Models per phase"
+[ -z "$verify_tool" ] || [ "$verify_tool" = "$tool" ] || [ "$verify_tool" = "codex" ] \
+  || refuse "the verification is set to run on $verify_tool, which cannot run beside an implement on $tool — pick $tool or codex for Verify on the spec's line or under Settings → AI → Models per phase"
 
 if [ -n "$effort" ]; then
   case " $EFFORT_LEVELS " in

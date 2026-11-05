@@ -134,13 +134,13 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
   stage "reviewing what the step changed"
   side_reason="unavailable"
   if side_argv_for "$review_on" "$review_model" "${session_project:-} ${spec_id:-} review"; then
-    side_turn "$review_on" "$work_dir/prompt-review"
+    side_turn "$review_on" "$work_dir/prompt-review" "${review_claude_config_dir:-$claude_config_dir}" "${review_codex_home:-$codex_home_arg}"
     running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
   fi
   if [ "$side_reason" != "completed" ] && [ "$review_on" != "$tool" ]; then
     stage_error "the review on $review_on did not complete (${side_reason}) — the step's own model reviews instead"
     side_argv_for "$tool" "" "${session_project:-} ${spec_id:-} review"
-    side_turn "$tool" "$work_dir/prompt-review"
+    side_turn "$tool" "$work_dir/prompt-review" "$claude_config_dir" "$codex_home_arg"
     running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
   fi
   cost="$running_cost"
@@ -180,7 +180,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
       stage "verifying the review's defect(s)"
       side_reason="unavailable"
       if side_argv_for "$verify_on" "$verify_model" "${session_project:-} ${spec_id:-} verify"; then
-        side_turn "$verify_on" "$work_dir/prompt-verify"
+        side_turn "$verify_on" "$work_dir/prompt-verify" "${verify_claude_config_dir:-$claude_config_dir}" "${verify_codex_home:-$codex_home_arg}"
         running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
         cost="$running_cost"
       fi

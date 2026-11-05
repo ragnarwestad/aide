@@ -27,6 +27,24 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 describe("QueueStore.setPendingModel()", () => {
+  test("records and clears Review and Verify choices across a restart (AC-9, AC-11)", () => {
+    const pendingModelsPath = join(dir, "pending-models.json");
+    const defaults = { ...DEFAULTS, modelChoices: { ...DEFAULTS.modelChoices, codex: { tool: "codex" as const } } };
+    const first = new QueueStore({ defaults, resolve, pendingModelsPath });
+    expect(first.setPendingModel("aide", "81-queue-and-runner", "review", "codex").ok).toBe(true);
+    expect(first.setPendingModel("aide", "81-queue-and-runner", "verify", "codex").ok).toBe(true);
+    expect(new QueueStore({ defaults, resolve, pendingModelsPath }).pendingModels["aide/81-queue-and-runner"]).toEqual({ review: "codex", verify: "codex" });
+    expect(first.setPendingModel("aide", "81-queue-and-runner", "review", "").ok).toBe(true);
+    expect(new QueueStore({ defaults, resolve, pendingModelsPath }).pendingModels["aide/81-queue-and-runner"]).toEqual({ verify: "codex" });
+  });
+
+  test("refuses a Review choice on another tool (AC-13)", () => {
+    const defaults = { ...DEFAULTS, modelChoices: { ...DEFAULTS.modelChoices, pickle: { tool: "opencode" as const } } };
+    const result = new QueueStore({ defaults, resolve }).setPendingModel("aide", "81-queue-and-runner", "review", "pickle");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("cannot run beside an implement on claude");
+  });
+
   test("records a valid pick", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     const result = store.setPendingModel("aide", "81-queue-and-runner", "analyze", "fable");

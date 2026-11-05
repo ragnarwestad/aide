@@ -175,7 +175,8 @@ restart of the board keeps it.
 
 - A provider is held while one of its steps is stopped on `provider-limit` with a `usageLimitWait`, or while the step
   sent ahead of the others is running. Every `queued` job whose step runs on that provider waits with `held-back`;
-  jobs on other providers start as before. A job whose own landing is in flight is not held.
+  jobs on other providers start as before. A job whose own landing is in flight is not held, and neither is a deploy,
+  which runs no AI.
 - A hold belongs to one provider, by its key: a step on another provider of the same tool is held only by that
   provider's own wait.
 - At the provider's time (the latest `until` among its stopped steps) `limit-reset` moves the stopped steps to `queued`,

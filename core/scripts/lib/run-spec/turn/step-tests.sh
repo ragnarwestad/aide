@@ -379,3 +379,10 @@ $step_tests_failing"
     fi
   fi
 fi
+
+# `ok` was decided on an implement's first turn. A later turn of the same
+# step (the review's fix, a red suite's fix) that did not end completed is
+# the step's outcome, so the step is not ok.
+if [ "$command_name" = "implement" ] && [ "$ok" = "true" ] && [ "$terminal_reason" != "completed" ]; then
+  ok="false"
+fi

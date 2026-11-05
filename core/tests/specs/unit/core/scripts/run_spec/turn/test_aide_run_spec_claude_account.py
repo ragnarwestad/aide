@@ -76,6 +76,23 @@ def test_a_codex_review_beside_the_step_is_not_given_the_directory(
     assert _config_dirs(fake_claude.env_log) == [account]
 
 
+def test_a_codex_review_uses_its_own_account_directory(
+    runner, workspace, fake_claude, fake_codex, tmp_path
+):
+    with_status(workspace, ["create", "analyze"])
+    codex_home = tmp_path / "codex-b"
+    codex_home.mkdir()
+    codex_env = tmp_path / "codex-review-env.txt"
+    codex = fake_codex(f"env > {codex_env}\n" + emits(_codex_says("review: no defects found")))
+    rc, out, _ = run(
+        runner, workspace, _claude(fake_claude, "review: no defects found"), codex=codex,
+        command="implement", review_tool="codex", review_model="gpt-6.1-sol",
+        review_codex_home=str(codex_home),
+    )
+    assert out["terminalReason"] == "completed", out
+    assert f"CODEX_HOME={codex_home}" in codex_env.read_text()
+
+
 def test_a_directory_that_is_not_there_is_refused_before_any_turn_starts(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     missing = str(tmp_path / "gone")
