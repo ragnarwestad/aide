@@ -20,7 +20,7 @@
 // inline CSS, no external references.
 
 export {
-  NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody,
+  NEW_SPEC_ROUTE, PROJECTS_ROUTE, projectListBody,
   navEntries,
   // `/projects/<name>` — the project's own page, served, so
   // what it says about the config file is true when it is read rather
@@ -77,7 +77,7 @@ export {
   scheduleTabPath, renderProposalsPanel, renderSchedulePromptPage,
 } from "./pages/schedule-page";
 export type {
-  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, SchedulePromptPageOptions, ScheduleTab,
+  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, SchedulePromptPageOptions,
 } from "./pages/schedule-page";
 
 // The eight answers that make the dashboard an app you install.
@@ -133,7 +133,6 @@ export {
   documentTabScript,
   renderSpecDetail,
   renderSpecStepsFollowParts,
-  renderSpecPageHead,
   renderSpecPageFailedRest,
   listViewIn,
   specDetailPath,

@@ -9,8 +9,6 @@ export {
   type SummarizeOptions,
 } from "./shared.ts";
 export {
-  summarizeClaudeStream,
-  summarizeCodexStream,
   summarizeEntries,
   summarizeOpencodeStream,
   summarizeStream,

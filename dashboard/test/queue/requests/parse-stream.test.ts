@@ -120,7 +120,7 @@ const codexCommand = (command: string) =>
     item: { id: "i1", item_type: "command_execution", command, exit_code: 0, status: "completed" },
   });
 
-describe("summarizeCodexStream", () => {
+describe("summarizeStream on a Codex transcript", () => {
   test("a Codex turn and an equivalent Claude turn read the same", () => {
     const claude = [
       line({ type: "system", subtype: "init", cwd: "/x" }),

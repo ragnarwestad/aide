@@ -51,10 +51,6 @@ def run(script, *args):
     return proc.returncode, json.loads(line)
 
 
-def status_lines(text):
-    return text.splitlines()
-
-
 def test_moves_the_folder_and_keeps_files_zero_to_three_byte_for_byte(script, tmp_path):
     add_archived(tmp_path)
     rc, out = run(script, "--specs-root", str(tmp_path), "--spec", "82", "--boundary", "abc1234")
