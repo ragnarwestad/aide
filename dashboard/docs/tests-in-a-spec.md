@@ -82,11 +82,10 @@ name, and none for a criterion an existing test already proves — that test get
 
   The whole output is kept beside the step's run log as `<job id>.<step>.tests.log`. A run the AI makes itself
   shows in the Log only when it has ended.
-- **Implement red:** the step has failed, and the spec's row names the failing tests, how many of how many failed,
-  and what that points to. Failing tests in files the change touched, the same on every run, point to the change:
-  press Implement again. When none is in a file the change touched, or the runs failed different tests, the row says
-  it points to unstable tests or a busy machine: press Implement again, or fix those tests on their own. The test
-  output is behind the (?).
+- **Implement red:** the step has failed, and the spec's row names the tests that still fail. When the project has
+  `AIDE_TEST_FILES_CMD`, every red file is run once more alone before the verdict. A test is described as possibly
+  unstable only when that check passes; otherwise the row makes no claim about the cause. The test output is behind
+  the (?).
 - **Implement tests not started:** the server the tests need could not start, so no test ran, and no AI turn is spent
   on it. The row names the cause: a port in use and the spec or process holding it, a server that did not answer in
   time, or one that stopped. Put that right, then press Implement again.

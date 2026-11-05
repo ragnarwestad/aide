@@ -107,6 +107,53 @@ run_step_tests_within_time() {
   return "$rc"
 }
 
+# Run every still-red file once, alone, using the project's configured
+# file command. The check stays inside the step's deadline and `child`
+# points at it so Cancel stops it too. $1 is failing_tests JSON, $2 output.
+run_red_files_again() {
+  local named="$1" out="$2" cmd deadline file pid rc log rows
+  cmd="$(printf '%s' "$step_tests_resolved" | jq -r '.filesCommand // empty')"
+  rows="$work_dir/red-files-again.ndjson"
+  : > "$rows"
+  if [ -z "$cmd" ]; then
+    stage "no AIDE_TEST_FILES_CMD — the red test files are not run again"
+    printf '[]\n' > "$out"
+    return 0
+  fi
+  deadline=$(( started_at + ${timeout_sec%.*} ))
+  while IFS= read -r file; do
+    [ "$(date +%s)" -lt "$deadline" ] || { stage "no time left to run the remaining red test files again"; break; }
+    log="$work_dir/red-again-$(wc -l < "$rows" | tr -d ' ').log"
+    stage "running $file again alone"
+    set -m
+    ( cd "$project_wt" && export AIDE_TEST_WORKERS="${AIDE_TEST_WORKERS:-1}" && \
+      exec bash -c "$cmd \"\$@\"" aide-test-files "$file" ) > "$log" 2>&1 &
+    pid=$!
+    set +m
+    child="$pid"
+    while kill -0 "$pid" 2>/dev/null; do
+      if [ "$(date +%s)" -ge "$deadline" ]; then
+        kill -TERM "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+        sleep 2
+        kill -KILL "-$pid" 2>/dev/null || true
+        break
+      fi
+      sleep 1
+    done
+    wait "$pid" 2>/dev/null; rc=$?
+    child=""
+    if [ -n "${stream_file:-}" ]; then
+      printf '\n--- %s, run again alone:\n' "$file" >> "${stream_file%.stream.jsonl}.tests.log"
+      cat "$log" >> "${stream_file%.stream.jsonl}.tests.log"
+    fi
+    results="$(test_results "$log")"
+    jq -cn --arg file "$file" --argjson passed "$([ "$rc" -eq 0 ] && echo true || echo false)" \
+      --argjson results "$results" '{file:$file, passed:$passed} + $results' >> "$rows"
+    stage "$file $([ "$rc" -eq 0 ] && echo passed || echo failed) when run again alone"
+  done < <(failing_tests_files "$named")
+  jq -s '.' "$rows" > "$out"
+}
+
 # The recorder's own failure, as one JSON object, when the run's result
 # says no test ran: aide-record-test-run refused (`ok:false`), or ended
 # without a result at all. Kind `spec-folder-missing` (with `folder`) for
@@ -185,10 +232,8 @@ EOF_CMDS
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
       step_fix_round=0
       step_cost_total="$cost"
-      # The tests each red run named (run-spec/turn/failing-tests.sh), and
-      # whether a later run failed one an earlier run did not.
+      # The tests each red run named (run-spec/turn/failing-tests.sh).
       step_tests_runs=0
-      step_tests_varied=false
       # The lines of each task a monorepo runner's summary names as failed
       # that say error or fail, without their colour codes, at most eight.
       failed_task_lines() {
@@ -242,10 +287,6 @@ EOF_CMDS
         step_tests_runs=$((step_tests_runs + 1))
         step_tests_named="$work_dir/failing-tests-$step_tests_runs.json"
         failing_tests "$work_dir/step-test-run.log" > "$step_tests_named"
-        if [ "$step_tests_runs" -gt 1 ] && \
-           failing_tests_varied "$work_dir/failing-tests-$((step_tests_runs - 1)).json" "$step_tests_named"; then
-          step_tests_varied=true
-        fi
         # The suite never started — its server could not start (run-spec/turn/test-start.sh).
         # No session can free a port or start a machine's service, so this
         # ends the step at once, with the cause and, for a port, who holds it.
@@ -275,10 +316,10 @@ port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(
           suffix=" (stopped: tests-red)"
           error_msg="the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's. Press $step_button again for this step.
 $step_tests_failing"
-          # The tests by name, for the board's sentence: whether any is in a
-          # file the change touched, and whether the runs failed different ones.
-          failing_tests_changed_files "$project_wt" "$step_tests_base" > "$work_dir/changed-files"
-          tests_red_json="$(failing_tests_summary "$step_tests_named" "$work_dir/changed-files" "$step_tests_varied")"
+          # No session turn occurs between the last suite run and this
+          # isolated check of every red file.
+          run_red_files_again "$step_tests_named" "$work_dir/red-again.json"
+          tests_red_json="$(failing_tests_summary "$step_tests_named" "$work_dir/red-again.json")"
           break
         fi
         step_fix_round=$((step_fix_round + 1))

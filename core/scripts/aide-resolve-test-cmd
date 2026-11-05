@@ -66,6 +66,7 @@ declare -f aide_manifest_root >/dev/null 2>&1 \
 manifest_dir="$(aide_manifest_root "$project_dir")"
 
 cmd="$(aide_manifest_get AIDE_TEST_CMD "$manifest_dir")"
+files_cmd="$(aide_manifest_get AIDE_TEST_FILES_CMD "$manifest_dir")"
 
 # Every file the checkout holds beyond its merge base with $1, one per
 # line; nothing when git cannot say. `.aide/` is the project's settings,
@@ -97,7 +98,8 @@ if [ -n "$cmd" ] && [ -n "$changed_from" ]; then
   fi
 fi
 if [ -n "$cmd" ]; then
-  jq -cn --arg c "$cmd" '{ok:true, commands:[$c]}'
+  jq -cn --arg c "$cmd" --arg f "$files_cmd" \
+    '{ok:true, commands:[$c]} + (if $f == "" then {} else {filesCommand:$f} end)'
 else
   jq -cn '{ok:true, commands:[]}'
 fi
