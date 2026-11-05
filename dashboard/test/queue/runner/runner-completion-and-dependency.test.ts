@@ -723,8 +723,30 @@ describe("a test run that never started", () => {
     expect(said({ kind: "server-exited" })).toEqual({ key: "runner.testsNotStartedExited", values: { button: "Implement" } });
   });
 
+  test("a spec folder the recorder could not find says the tests were not run, for that reason", () => {
+    expect(said({ kind: "spec-folder-missing", folder: "81-queue" })).toEqual({
+      key: "runner.testsNotStartedNoSpecFolder",
+      values: { folder: "81-queue", button: "Implement" },
+    });
+  });
+
+  test("a recorder that failed says the tests were not run, with its own words", () => {
+    expect(said({ kind: "recorder-failed", error: "missing --folder" })).toEqual({
+      key: "runner.testsNotStartedRecorder",
+      values: { reason: "missing --folder", button: "Implement" },
+    });
+  });
+
   test("a cause the result does not carry, or cannot be read, says only that the tests did not start", () => {
-    for (const raw of [undefined, null, "port", { kind: "port-in-use", port: "8806" }, { kind: "something-else" }]) {
+    for (const raw of [
+      undefined,
+      null,
+      "port",
+      { kind: "port-in-use", port: "8806" },
+      { kind: "something-else" },
+      { kind: "spec-folder-missing" },
+      { kind: "recorder-failed", error: "" },
+    ]) {
       expect(said(raw)).toEqual({ key: "runner.testsNotStarted", values: { button: "Implement" } });
     }
   });

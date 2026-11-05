@@ -176,6 +176,14 @@ their default branch before the worktrees are made and never leave it, so severa
   committed. One inside the project that is tracked, or not committed yet, is part of the branch and committed with the
   step. A `.aide/config` naming the specs root by absolute path is pointed at the worktree's copy.
 
+**An analyze or implement puts back a folder an unlanded archive moved.** An archive moves the spec's folder into
+`archive/` on the spec's specs branch, and only its landing brings that to the default branch. When the branch has the
+folder under `archive/` while the default branch has it open, the run moves it back before the session starts, with
+whatever was written into the archived copy, and commits that on the spec's branch
+(`run-spec/checkout/unlanded-archive.sh`). The move is `aide-reopen-spec`'s keep-the-files reopen: `archive` leaves the
+steps line and the state file, and a round boundary makes the archive's stamp and commit history, so a later Archive
+runs as on any implemented spec. A merge left open in that worktree is left alone.
+
 **A run reaches the project and its specs root, and under the specs root only its own spec's folder.** A step that
 writes another spec's folder ends `scope-violation`, with those changes discarded before the commit. There is no flag
 to name a third repo.
@@ -284,7 +292,10 @@ evidence that the phase happened:
     limit. Still red ends the step `tests-red` with the failing lines as its detail, and Implement is the button to
     press again. A run that never started, because its server could not start or a port it needs is held
     (`run-spec/turn/test-start.sh`), goes back to no session: it ends `tests-not-started` at once, with the cause and,
-    for a port, the spec or process holding it in the result's `testsNotStarted`. A project without `AIDE_TEST_CMD` passes. A record the session wrote through `aide-record-test-run`
+    for a port, the spec or process holding it in the result's `testsNotStarted`. A run `aide-record-test-run` did not
+    make ends the same way at once, read from the recorder's own result and never from its exit code alone: the spec's
+    folder not found on the spec's branch (`spec-folder-missing`), or the recorder refusing or ending without a result
+    (`recorder-failed`, with its own words). A project without `AIDE_TEST_CMD` passes. A record the session wrote through `aide-record-test-run`
     on exactly the delivered tree, green and naming the same commands, is accepted as that run.
 - `archive` runs no suite of its own, merged with main or not: its landing runs the project's tests once, on
   exactly what the default branch is about to become, and that is the one run an archive gets
