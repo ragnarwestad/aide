@@ -3,7 +3,7 @@
 // every form on this page repeats.
 
 import { t, type Language } from "../../../i18n";
-import { CLOSED_STATE, type Phase, type SpecGroup } from "./data-model";
+import { CLOSED_STATE, NOT_VERIFIED_KEY, isFinishedGroup, type Phase, type SpecGroup, type SpecsFilter } from "./data-model";
 
 /** The mark a row carries — live or archived — when its code is on a
  *  branch waiting on a pull request: the same word
@@ -58,12 +58,19 @@ export const prErrorSentence = (lang: Language): string => t(lang, "list.prError
 export const prErrorOf = (p: Phase): string | undefined =>
   (p.attempts[0]?.results ?? []).find((r) => r.step === p.step)?.prError;
 
+/** How many Not verified rows the row's line counts. Before the archive
+ *  every criterion of a spec that needs no ticking stands Not verified, so
+ *  the count says nothing yet: it is shown on an archived spec, and on any
+ *  spec when the reader chose the Not verified filter. */
+export const notVerifiedShown = (g: SpecGroup, f: SpecsFilter): number =>
+  isFinishedGroup(g) || f.state === NOT_VERIFIED_KEY ? (g.notVerified ?? 0) : 0;
+
 /** Whether the row draws the info line with its ›: a spec with a
- *  criterion still waiting for a check after deploy, or one that failed.
- *  A closed spec has none. Rows that cannot be read still get the line:
- *  its panel says so and links to the Status tab. */
-export const drawsChecksLine = (g: SpecGroup): boolean =>
-  g.state !== CLOSED_STATE && (g.notVerified ?? 0) + (g.failed ?? 0) > 0;
+ *  Not verified count to show, or a criterion that failed. A closed spec
+ *  has none. Rows that cannot be read still get the line: its panel says
+ *  so and links to the Status tab. */
+export const drawsChecksLine = (g: SpecGroup, f: SpecsFilter): boolean =>
+  g.state !== CLOSED_STATE && notVerifiedShown(g, f) + (g.failed ?? 0) > 0;
 
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count

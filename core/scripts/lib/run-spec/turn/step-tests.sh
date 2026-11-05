@@ -26,6 +26,11 @@
 # is left of the step's time limit. The record on the branch is always
 # the runner's last run.
 #
+# A run whose tests never started — the server they need could not
+# start (run-spec/turn/test-start.sh) — ends `tests-not-started` at once,
+# with the cause in the result's `testsNotStarted`: a session cannot free
+# a port another process holds, so no turn is spent on it.
+#
 # An `archive` runs nothing here, merged or not: its landing runs the
 # suite once on exactly what main is about to become, and a run here too
 # was the same suite two and three times per archive (2026-09-19).
@@ -181,7 +186,26 @@ EOF_CMDS
         # package task, "Failed:    @x/email#test"; the cause is in that
         # task's own lines further up, each prefixed "@x/email:test:".
         [ -n "$step_tests_failing" ] || step_tests_failing="$(failed_task_lines "$work_dir/step-test-run.log")"
-        [ -n "$step_tests_failing" ] || step_tests_failing="$(tail -c 600 "$work_dir/step-test-run.log" 2>/dev/null)"
+        [ -n "$step_tests_failing" ] || step_tests_failing="$(log_tail "$work_dir/step-test-run.log" 600)"
+        # The suite never started — its server could not start (run-spec/turn/test-start.sh).
+        # No session can free a port or start a machine's service, so this
+        # ends the step at once, with the cause and, for a port, who holds it.
+        step_tests_start="$(test_start_failure "$work_dir/step-test-run.log")"
+        if [ -n "$step_tests_start" ]; then
+          step_tests_port="$(printf '%s' "$step_tests_start" | jq -r '.port // empty')"
+          step_tests_holder=""
+          [ -n "$step_tests_port" ] && step_tests_holder="$(port_holder "$step_tests_port")"
+          tests_not_started_json="$(jq -c --argjson holder "${step_tests_holder:-null}" \
+            'del(.line) + (if $holder == null then {} else {holder:$holder} end)' <<<"$step_tests_start")"
+          terminal_reason="tests-not-started"
+          ok="false"
+          suffix=" (stopped: tests-not-started)"
+          error_msg="the step reported success, but the project's tests did not start — the server the tests need could not start, so no test ran. Press $step_button again for this step once that is put right.
+$(printf '%s' "$step_tests_start" | jq -r '.line')"
+          [ -n "$step_tests_holder" ] && error_msg="$error_msg
+port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(.command // "a process") (pid \(.pid))" + (if .spec then ", spec \(.spec)" else "" end)')"
+          break
+        fi
         # Another turn, or the end: the cap, a session the runner cannot
         # resume, and what the step has left of its time.
         step_time_left=$(( started_at + ${timeout_sec%.*} - $(date +%s) ))

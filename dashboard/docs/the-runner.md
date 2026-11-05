@@ -282,7 +282,9 @@ evidence that the phase happened:
   - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red goes back
     to the same session as a follow-up turn, at most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time
     limit. Still red ends the step `tests-red` with the failing lines as its detail, and Implement is the button to
-    press again. A project without `AIDE_TEST_CMD` passes. A record the session wrote through `aide-record-test-run`
+    press again. A run that never started, because its server could not start or a port it needs is held
+    (`run-spec/turn/test-start.sh`), goes back to no session: it ends `tests-not-started` at once, with the cause and,
+    for a port, the spec or process holding it in the result's `testsNotStarted`. A project without `AIDE_TEST_CMD` passes. A record the session wrote through `aide-record-test-run`
     on exactly the delivered tree, green and naming the same commands, is accepted as that run.
 - `archive` runs no suite of its own, merged with main or not: its landing runs the project's tests once, on
   exactly what the default branch is about to become, and that is the one run an archive gets

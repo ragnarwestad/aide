@@ -15,6 +15,7 @@ export const FAILED_STOPS: readonly string[] = [
   "scope-violation",
   "merge-unfinished",
   "tests-red",
+  "tests-not-started",
   "unpushed",
   "short-analysis-over-limit",
   "sent-back-refused",

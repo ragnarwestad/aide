@@ -226,6 +226,7 @@ line="$(jq -cn \
   --argjson testedGreen "${tested_green_json:-null}" \
   --argjson criteriaFaults "${criteria_faults_json:-null}" \
   --argjson sharedFiles "${shared_files_json:-null}" \
+  --argjson testsNotStarted "${tests_not_started_json:-null}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -271,4 +272,8 @@ line="$(jq -cn \
    + (if $criteriaFaults == null then {} else {criteriaFaults:$criteriaFaults} end)
    # And for the specs an analyze stopped on because they change the same
    # files (run-spec/record/shared-files-check.sh), each with those files.
-   + (if $sharedFiles == null then {} else {sharedFiles:$sharedFiles} end)')"
+   + (if $sharedFiles == null then {} else {sharedFiles:$sharedFiles} end)
+   # And for what stopped the test run of an implement before any test ran
+   # (run-spec/turn/test-start.sh): the kind, the port or the wait, and
+   # who held the port when the runner could tell.
+   + (if $testsNotStarted == null then {} else {testsNotStarted:$testsNotStarted} end)')"
