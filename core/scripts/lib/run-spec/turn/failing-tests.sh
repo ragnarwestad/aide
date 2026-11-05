@@ -17,15 +17,18 @@
 # A turbo task stands for its tests only when no test was named.
 
 # The awk that reads a log (cleaned: no escape codes, no carriage returns)
-# and prints one "T<TAB>test<TAB>file" per failing test, in order, then
+# and prints one "T<TAB>test<TAB>file<TAB>error" per failing test, in order, then
 # "F<TAB>n" and "N<TAB>n" for the failed and total counts when the output
 # printed them.
 FAILING_TESTS_AWK='
 function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
-function add(kind, test, file) {
-  if (test == "" || (test SUBSEP file) in seen) return
-  seen[test SUBSEP file] = 1
-  n++; tests[n] = test; files[n] = file; kinds[n] = kind; named[kind]++
+function is_error_line(s) { return s ~ /^([A-Za-z]*Error: |Test timeout of .* exceeded\.$)/ }
+function add(kind, test, file, error,   key) {
+  key = test SUBSEP file
+  if (test == "") return
+  if (key in seen) { last = seen[key]; return }
+  n++; seen[key] = n; last = n
+  tests[n] = test; files[n] = file; errors[n] = error; kinds[n] = kind; named[kind]++
 }
 function num(s, word,   t) {
   # the number in front of " <word>" in s, or -1
@@ -35,6 +38,24 @@ function num(s, word,   t) {
 {
   raw = $0
   line = trim(raw)
+  # Playwright: numbered failure blocks precede the final failed-test list.
+  if (match(line, /^[0-9]+\) /)) {
+    s = substr(line, RSTART + RLENGTH)
+    if (match(s, /\[[^]]*\] › /)) s = substr(s, RSTART + RLENGTH)
+    sub(/ ─+$/, "", s)
+    if (match(s, /:[0-9]+:[0-9]+ › /)) {
+      file = substr(s, 1, RSTART - 1)
+      at = substr(s, RSTART + 1, RLENGTH - 1); sub(/:.*/, "", at)
+      title = substr(s, RSTART + RLENGTH)
+      pw_error_test = file ":" at " › " trim(title)
+    }
+    next
+  }
+  if (pw_error_test != "" && is_error_line(line)) {
+    if (!(pw_error_test in pw_errors)) pw_errors[pw_error_test] = line
+    pw_error_test = ""
+    next
+  }
   # Playwright: the list under "N failed", one test per line, until a
   # line that is not one.
   if (pw_list) {
@@ -45,7 +66,8 @@ function num(s, word,   t) {
       at = substr(s, RSTART + 1, RLENGTH - 1); sub(/:.*/, "", at)
       title = substr(s, RSTART + RLENGTH)
       sub(/ \(retry #[0-9]+\)$/, "", title)
-      add("playwright", file ":" at " › " trim(title), file)
+      test = file ":" at " › " trim(title)
+      add("playwright", test, file, pw_errors[test])
       next
     }
     pw_list = 0
@@ -59,7 +81,15 @@ function num(s, word,   t) {
     file = s; sub(/ > .*/, "", file)
     i = index(s, " > ")
     if (i > 0) s = substr(s, 1, i - 1) " › " substr(s, i + 3)
-    add("vitest", s, file)
+    add("vitest", s, file, "")
+    vitest_pending[last] = 1
+    next
+  }
+  if (is_error_line(line)) {
+    for (i in vitest_pending) {
+      if (errors[i] == "") errors[i] = line
+      delete vitest_pending[i]
+    }
     next
   }
   if (line ~ /^Tests +[0-9]/) {
@@ -70,10 +100,15 @@ function num(s, word,   t) {
   }
   # bun: the heading names the file of the (fail) lines under it
   if (raw ~ /^[^ ].*\.(test|spec)\.[cm]?[jt]sx?:$/) { bun_file = substr(raw, 1, length(raw) - 1); next }
+  if (line ~ /^error: / || line ~ /^expect\(/) {
+    if (bun_error == "") bun_error = line
+    next
+  }
   if (line ~ /^\(fail\) /) {
     s = substr(line, 8); sub(/ \[[0-9.]+m?s\]$/, "", s)
-    if (bun_file == "") { bare[s] = 1; next }
-    add("bun", bun_file " › " s, bun_file)
+    if (bun_file == "") { bare[s] = bun_error; bun_error = ""; next }
+    add("bun", bun_file " › " s, bun_file, bun_error)
+    bun_error = ""
     with_file[s] = 1
     next
   }
@@ -82,9 +117,10 @@ function num(s, word,   t) {
   # pytest
   if (line ~ /^(FAILED|ERROR) [^ ]+::/) {
     s = substr(line, index(line, " ") + 1)
-    i = index(s, " - "); if (i > 0) s = substr(s, 1, i - 1)
+    error = ""; i = index(s, " - ")
+    if (i > 0) { error = substr(s, i + 3); s = substr(s, 1, i - 1) }
     file = s; sub(/::.*/, "", file)
-    add("pytest", trim(s), file)
+    add("pytest", trim(s), file, trim(error))
     next
   }
   if (line ~ /[0-9]+ (failed|passed|errors?)/ && line ~ / in [0-9.]+s/) {
@@ -99,9 +135,9 @@ function num(s, word,   t) {
 END {
   # A (fail) bun printed before any heading is the same test said again
   # under its file further down; one with no file anywhere is still named.
-  for (s in bare) if (!(s in with_file)) add("bun", s, "")
-  if (n == 0) for (i = 1; i <= tasks; i++) add("turbo", task[i], "")
-  for (i = 1; i <= n; i++) print "T\t" tests[i] "\t" files[i]
+  for (s in bare) if (!(s in with_file)) add("bun", s, "", bare[s])
+  if (n == 0) for (i = 1; i <= tasks; i++) add("turbo", task[i], "", "")
+  for (i = 1; i <= n; i++) print "T\t" tests[i] "\t" files[i] "\t" errors[i]
   bun_seen = (bun_pass_lines == 1 && bun_fail_lines == 1)
   # The counts each runner printed. A runner that named a test and printed
   # no count of its own leaves the total unknown.
@@ -125,7 +161,7 @@ END {
 }
 '
 
-# $1 = a test run's log. Prints {tests, files, failed, total}: every
+# $1 = a test run's log. Prints {tests, files, errors, failed, total}: every
 # failing test it names, once, in the order it named them; the file each
 # is in ("" when the output does not say); and the failed and total
 # counts — `failed` whenever a test is named, `total` only when every
@@ -133,7 +169,7 @@ END {
 failing_tests() {
   local log="$1" input
   if [ ! -f "$log" ]; then
-    printf '%s\n' '{"tests":[],"files":[]}'
+    printf '%s\n' '{"tests":[],"files":[],"errors":[]}'
     return 0
   fi
   input="$(sed $'s/\033\\[[0-9;?]*[A-Za-z]//g; s/\r//g' "$log")"
@@ -145,7 +181,8 @@ failing_tests() {
   printf '%s\n' "$input" | awk "$FAILING_TESTS_AWK" | jq -Rn '
     [inputs | split("\t")] as $rows
     | {tests: [$rows[] | select(.[0] == "T") | .[1]],
-       files: [$rows[] | select(.[0] == "T") | (.[2] // "")]}
+       files: [$rows[] | select(.[0] == "T") | (.[2] // "")],
+       errors: [$rows[] | select(.[0] == "T") | (.[3] // "")]}
     + ([$rows[] | select(.[0] == "F") | {failed: (.[1] | tonumber)}] | add // {})
     + ([$rows[] | select(.[0] == "N") | {total: (.[1] | tonumber)}] | add // {})'
 }
@@ -190,7 +227,7 @@ failing_tests_summary() {
     . as $last
     | ($again[0] // []) as $runs
     | [range(0; .tests | length) as $i
-       | {test:.tests[$i], file:.files[$i]}
+       | {test:.tests[$i], file:.files[$i], error:(.errors[$i] // "")}
        | . as $entry
        | . + {passed:(.file != "" and any($runs[];
            .file == $entry.file and
@@ -198,12 +235,14 @@ failing_tests_summary() {
             ((.passedTests // []) | index($entry.test)) != null and
             ((.failedTests // []) | index($entry.test)) == null)))}] as $all
     | [$all[] | select(.passed) | .test] as $passed
+    | [$all[] | select(.passed) | .error] as $passedErrors
     | [$all[] | select(.passed | not) | .test] as $failedTests
+    | [$all[] | select(.passed | not) | .error] as $failedErrors
     | if ($all | length) == 0 then empty else
-        {tests:$failedTests[:8], failed:($failedTests | length)}
+        {tests:$failedTests[:8], errors:$failedErrors[:8], failed:($failedTests | length)}
         + (if .total == null then {} else {total} end)
-        + (if ($passed | length) == 0 then {passedAlone:[], passedAloneCount:0}
-           else {passedAlone:$passed[:8], passedAloneCount:($passed | length)} end)
+        + (if ($passed | length) == 0 then {passedAlone:[], passedAloneErrors:[], passedAloneCount:0}
+           else {passedAlone:$passed[:8], passedAloneErrors:$passedErrors[:8], passedAloneCount:($passed | length)} end)
       end' "$1"
 }
 

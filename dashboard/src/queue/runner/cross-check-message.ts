@@ -24,6 +24,8 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   }
   if (outcome.terminalReason === "tests-not-started") return testsNotStartedMessage(step, outcome);
   if (outcome.terminalReason === "tests-red" && step === "archive") {
+    const red = testsRed(outcome.testsRed);
+    if (red) return { key: "runner.testsRedArchiveNamed", values: { tests: testList(red.tests, red.errors, red.failed), button: stepButton(step) } };
     return { key: "runner.testsRedArchive", values: { button: stepButton(step) } };
   }
   if (outcome.terminalReason === "merge-unfinished" && step === "archive") {
@@ -57,9 +59,7 @@ export function testsRedMessage(step: WorkflowStep, outcome: Partial<StepOutcome
   const button = stepButton(step);
   const red = testsRed(outcome.testsRed);
   if (!red) return { key: "runner.testsRedImplement", values: { button } };
-  const list = (names: string[], count: number): string =>
-    [...names, ...(count > names.length ? ["…"] : [])].join("; ");
-  const tests = list(red.tests, red.failed);
+  const tests = testList(red.tests, red.errors, red.failed);
   const counted = red.total !== undefined;
   const n = String(red.failed);
   const values = { tests, button, ...(counted ? { n, total: String(red.total) } : {}) };
@@ -67,12 +67,17 @@ export function testsRedMessage(step: WorkflowStep, outcome: Partial<StepOutcome
     return { key: counted ? "runner.testsRedFailing" : "runner.testsRedFailingUncounted", values };
   }
   const k = String(red.passedAloneCount);
-  const passed = list(red.passedAlone, red.passedAloneCount);
+  const passed = testList(red.passedAlone, red.passedAloneErrors, red.passedAloneCount);
   if (red.failed === 0) return { key: "runner.testsRedPassedAlone", values: { k, passed, button } };
   return {
     key: counted ? "runner.testsRedFailingPassedAlone" : "runner.testsRedFailingPassedAloneUncounted",
     values: { ...values, k, passed },
   };
+}
+
+function testList(names: string[], errors: string[], count: number): string {
+  const shown = names.map((name, index) => errors[index] ? `${name} — ${errors[index]}` : name);
+  return [...shown, ...(count > names.length ? ["…"] : [])].join("; ");
 }
 
 /** A test run that never started, as the board's sentence naming what

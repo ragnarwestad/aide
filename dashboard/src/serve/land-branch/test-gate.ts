@@ -19,7 +19,7 @@ import { NO_GIT_HOOKS } from "../../integrations/no-git-hooks.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
 import { runLogPath } from "../../queue/runner/run-log-path.ts";
 import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
-import { failingTests, variedBetween } from "../../format/failing-tests.ts";
+import { failingTests, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { Sentence } from "../../i18n/message.ts";
 
@@ -62,8 +62,9 @@ export function failingLines(stdout: string, stderr: string, budget = 600): stri
 
 /** The failing tests a run named, as one list for a sentence: at most
  *  eight, and "…" when there were more. */
-function namedTests(tests: readonly string[]): string {
-  return tests.slice(0, 8).join("; ") + (tests.length > 8 ? "; …" : "");
+function namedTests(result: Pick<FailingTests, "tests" | "errors">): string {
+  const shown = result.tests.slice(0, 8).map((test, index) => result.errors[index] ? `${test} — ${result.errors[index]}` : test);
+  return shown.join("; ") + (result.tests.length > 8 ? "; …" : "");
 }
 
 /** `retriedAfter`: green only on the second run, and these are the
@@ -361,7 +362,7 @@ async function runSuiteIn(
     stepLogLine(job, `the landing runs the project's tests on the merge (${commands.length} command(s))`);
     const button = stepButton("archive");
     let gate = await runOnce("");
-    const firstTests = failingTests(`${gate.stdout}\n${gate.stderr}`).tests;
+    const firstResult = failingTests(`${gate.stdout}\n${gate.stderr}`);
     // A red run gets the WHOLE command once more: a test that lost to a
     // busy host passes the second time, and a real failure fails twice.
     // A run that timed out is not retried — a second one would hold the
@@ -399,14 +400,25 @@ async function runSuiteIn(
       // test output rides in `detail`, on hover and on the job's own page.
       // Where the work IS rides in the sentence itself: the origin check
       // after the merge loop adds nothing beside a red suite.
-      const lastTests = failingTests(`${gate.stdout}\n${gate.stderr}`).tests;
+      const lastResult = failingTests(`${gate.stdout}\n${gate.stderr}`);
+      const firstTests = firstResult.tests;
+      const lastTests = lastResult.tests;
       const detail = failingLines(gate.stdout, gate.stderr);
       if (firstTests.length && lastTests.length && (variedBetween(firstTests, lastTests) || variedBetween(lastTests, firstTests))) {
-        const both = [...new Set([...firstTests, ...lastTests])];
-        return { ok: false, error: { key: "landing.testsRedOnMergeVaried", values: { tests: namedTests(both), branch, button } }, detail };
+        const combined = new Map<string, string>();
+        firstTests.forEach((test, index) => combined.set(test, firstResult.errors[index] ?? ""));
+        lastTests.forEach((test, index) => combined.set(test, lastResult.errors[index] ?? ""));
+        return {
+          ok: false,
+          error: {
+            key: "landing.testsRedOnMergeVaried",
+            values: { tests: namedTests({ tests: [...combined.keys()], errors: [...combined.values()] }), branch, button },
+          },
+          detail,
+        };
       }
       if (lastTests.length) {
-        return { ok: false, error: { key: "landing.testsRedOnMerge", values: { tests: namedTests(lastTests), branch, button } }, detail };
+        return { ok: false, error: { key: "landing.testsRedOnMerge", values: { tests: namedTests(lastResult), branch, button } }, detail };
       }
       return { ok: false, error: { key: "landing.testsRedOnMergeUnnamed", values: { branch, button } }, detail };
     }
