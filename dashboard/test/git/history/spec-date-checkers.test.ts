@@ -197,6 +197,41 @@ describe("SpecCreatedAtChecker.createdAtForArchived", () => {
   // A genuine "cannot date" answer keeps the ordinary, short TTL — a
   // spec missing 0-README.md today might have it restored, and the
   // long cache above must not lock that in as permanent.
+  // The sweep asks every archived spec at once. Run all at once, each
+  // `git log --follow` slowed past the runner's timeout and was cached
+  // as undatable, so most archived rows lost their Created date.
+  test("only a few archived lookups run at the same time, however many are asked", async () => {
+    let inFlight = 0;
+    let most = 0;
+    const run = async () => {
+      inFlight++;
+      most = Math.max(most, inFlight);
+      await new Promise((r) => setTimeout(r, 2));
+      inFlight--;
+      return { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
+    };
+    const checker = new SpecCreatedAtChecker({ run });
+    const answers = await Promise.all(
+      Array.from({ length: 40 }, (_, i) => checker.createdAtForArchived(`/specs/aide/archive/${i}-x`, `${i}-x`)),
+    );
+    expect(answers.every((a) => a === "2026-08-17T09:00:00+02:00")).toBe(true);
+    expect(most).toBeLessThanOrEqual(SpecCreatedAtChecker.ARCHIVED_LOOKUPS_AT_ONCE);
+  });
+
+  // A dated spec asked again after the long TTL, at a moment git fails,
+  // keeps its date: an archived spec's beginning cannot have gone away.
+  test("a failed re-ask keeps the date already found", async () => {
+    let fail = false;
+    const run = async () =>
+      fail ? { code: 1, stdout: "" } : { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
+    let clock = 1000;
+    const checker = new SpecCreatedAtChecker({ run, ttlMs: 30_000, now: () => clock });
+    await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER);
+    fail = true;
+    clock += 25 * 60 * 60 * 1000;
+    expect(await checker.createdAtForArchived(ARCHIVE_DIR, FOLDER)).toBe("2026-08-17T09:00:00+02:00");
+  });
+
   test("an undatable answer is retried on the ordinary schedule, not the long one", async () => {
     const git = fakeGit({});
     let clock = 1000;

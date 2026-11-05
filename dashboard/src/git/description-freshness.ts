@@ -368,6 +368,26 @@ export class SpecCreatedAtChecker {
   // carry both.
   private readonly archivedCache = new Map<string, { at: number; createdAt: string | null }>();
 
+  /** How many archived lookups run at once. The sweep asks every
+   *  archived spec in one go, and hundreds of `git log --follow` side by
+   *  side each run past the runner's timeout, which reads as undatable. */
+  static readonly ARCHIVED_LOOKUPS_AT_ONCE = 4;
+  private archivedInFlight = 0;
+  private readonly archivedWaiting: (() => void)[] = [];
+
+  private async archivedSlot<T>(work: () => Promise<T>): Promise<T> {
+    if (this.archivedInFlight >= SpecCreatedAtChecker.ARCHIVED_LOOKUPS_AT_ONCE) {
+      await new Promise<void>((resolve) => this.archivedWaiting.push(resolve));
+    }
+    this.archivedInFlight++;
+    try {
+      return await work();
+    } finally {
+      this.archivedInFlight--;
+      this.archivedWaiting.shift()?.();
+    }
+  }
+
   /** The archived-row counterpart to `createdAt`: the spec's
    *  true beginning, from before `aide-archive-spec`'s `git mv`, off a
    *  file that survives that move unedited AND holds content unique to
@@ -385,10 +405,13 @@ export class SpecCreatedAtChecker {
 
     let createdAt: string | null = null;
     try {
-      createdAt = await firstCommitAtFollowingRenames(this.run, dir, "1-description.md");
+      createdAt = await this.archivedSlot(() => firstCommitAtFollowingRenames(this.run, dir, "1-description.md"));
     } catch {
       createdAt = null;
     }
+    // A date already found stands: an archived spec's first commit
+    // cannot disappear, so a failed re-ask says nothing new about it.
+    createdAt ??= hit?.createdAt ?? null;
 
     this.archivedCache.set(key, { at, createdAt });
     return createdAt;
