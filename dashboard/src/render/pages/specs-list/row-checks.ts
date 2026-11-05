@@ -12,7 +12,7 @@ import { specTabPath } from "../spec-page";
 import { groupKey, isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { specBusy } from "./row-state.ts";
 import { queuePath } from "./filter-bar.ts";
-import { drawsChecksLine } from "./row-shared.ts";
+import { drawsChecksLine, notVerifiedShown } from "./row-shared.ts";
 import { listReopenDialog } from "./row-controls.ts";
 
 /** The keys named in `?checks=`: the specs whose criteria are unfolded. */
@@ -100,9 +100,10 @@ export function checksPanel(g: SpecGroup, f: SpecsFilter, lang: Language): strin
  *  has: the choice "under ›" belongs on every row a criterion is decided
  *  on. A closed spec has none, and nothing is drawn without rows to show. */
 export function checksRow(g: SpecGroup, f: SpecsFilter, lang: Language, columns: number, fold = true, path?: string): string {
-  if (!drawsChecksLine(g)) return "";
+  if (!drawsChecksLine(g, f)) return "";
+  const notVerified = notVerifiedShown(g, f);
   const parts = [
-    ...((g.notVerified ?? 0) > 0 ? [t(lang, "list.notVerifiedMark", { n: g.notVerified! })] : []),
+    ...(notVerified > 0 ? [t(lang, "list.notVerifiedMark", { n: notVerified })] : []),
     ...((g.failed ?? 0) > 0 ? [t(lang, "list.failedMark", { n: g.failed! })] : []),
   ];
   return (

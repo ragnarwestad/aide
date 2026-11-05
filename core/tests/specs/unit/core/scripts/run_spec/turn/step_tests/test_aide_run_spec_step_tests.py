@@ -8,8 +8,8 @@ import os
 import re
 import shlex
 import subprocess
-from ...conftest import READ_SPECS, git, run, stand_in
-from ..run_spec_results import (
+from ....conftest import READ_SPECS, git, run, stand_in
+from ...run_spec_results import (
     CODEX_STREAM_AT_CAPACITY,
     CODEX_STREAM_AT_CAPACITY_NO_TURN,
     CODEX_STREAM_OK,
@@ -18,7 +18,7 @@ from ..run_spec_results import (
     RESULT_OVERLOADED,
     emits,
 )
-from ..run_spec_status_files import with_status
+from ...run_spec_status_files import with_status
 
 BRANCH = "aide/81-queue-and-runner"
 REVIEW_MARKER = "Read this spec's own description"
@@ -690,3 +690,64 @@ def test_a_monorepo_run_shows_the_failing_packages_own_error_not_its_summary(run
     assert out["terminalReason"] == "tests-red", out
     assert "address already in use" in out["error"], out["error"]
     assert "outside the domain" not in out["error"], out["error"]
+
+
+def test_a_suite_whose_server_could_not_start_ends_tests_not_started_with_no_fix_round(
+    runner, workspace, fake_claude, tmp_path, monkeypatch
+):
+    """Playwright could not start its server: another spec's test server
+    holds the port. No session can free it, so the step ends at once
+    `tests-not-started`, naming the port and the spec that holds it, with
+    no turn handed back."""
+    with_status(workspace, ["create", "analyze"])
+    suite = tmp_path / "suite.sh"
+    stand_in(
+        suite,
+        "#!/bin/sh\n"
+        "echo 'Error: http://localhost:8806/health/ready is already used, make sure that nothing is running "
+        "on the port/url or set reuseExistingServer:true in config.webServer.'\n"
+        "echo 'ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL'\n"
+        "exit 1\n"
+    )
+    _project_with_test_cmd(workspace, str(suite))
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    stand_in(
+        bin_dir / "lsof",
+        "#!/bin/sh\n"
+        'case "$*" in\n'
+        "  *-t*) echo 4242 ;;\n"
+        "  *-Fcn*) printf 'p4242\\ncnode\\nfcwd\\nn/h/.aide/dashboard/worktrees/skjera/58-sign-up/code/packages/server\\n' ;;\n"
+        "esac\n",
+    )
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+    rc, out, _ = run(runner, workspace, _fixing_claude(fake_claude, fix_on_retry=False), command="implement")
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "tests-not-started", out
+    assert out["testsNotStarted"]["kind"] == "port-in-use", out
+    assert out["testsNotStarted"]["port"] == 8806, out
+    assert out["testsNotStarted"]["holder"]["spec"] == "58-sign-up", out
+    calls = fake_claude.calls.read_text().splitlines()
+    # implement and its review; no fix turn.
+    assert len(calls) == 2, calls
+    assert not any("--resume" in c for c in calls), calls
+
+
+def test_the_tail_of_a_red_log_starts_at_a_line_not_inside_a_word(runner, workspace, fake_claude, tmp_path):
+    """A red run with no failure markers shows the end of its log, and that
+    end begins at a line: a cut through "make sure" read "Ure"."""
+    with_status(workspace, ["create", "analyze"])
+    suite = tmp_path / "suite.sh"
+    stand_in(
+        suite,
+        "#!/bin/sh\n"
+        "i=0; while [ $i -lt 40 ]; do echo \"noise line number $i of the package manager\"; i=$((i+1)); done\n"
+        "echo 'make sure the database is reachable'\n"
+        "exit 1\n"
+    )
+    _project_with_test_cmd(workspace, str(suite))
+    rc, out, _ = run(runner, workspace, _fixing_claude(fake_claude, fix_on_retry=False), command="implement")
+    assert out["terminalReason"] == "tests-red", out
+    shown = out["error"].split("\n", 1)[1]
+    assert shown.startswith("noise line number "), shown[:40]
+    assert "\nmake sure the database is reachable\n" in shown, shown

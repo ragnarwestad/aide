@@ -80,17 +80,23 @@ export interface NoticePart {
 
 /** What a step's raw detail adds to the sentence on its row. A detail
  *  the sentence already carries word for word adds nothing, and gets no
- *  (?). A red run's board message restates the script's own first line
- *  in the board's words, so only the failing lines after it are new. */
+ *  (?). A red run's board message, and a run that never started, restate
+ *  the script's own first line in the board's words, so only the lines
+ *  after it are new. */
 export function detailBeyond(text: string, error: unknown, detail: string | undefined): string | undefined {
   if (!detail?.trim()) return undefined;
   const lines = detail.trim().split("\n");
-  const rest = (isStepTestsRed(error) ? lines.slice(1) : lines).join("\n").trim();
+  const rest = (isStepTestsRed(error) || isTestsNotStarted(error) ? lines.slice(1) : lines).join("\n").trim();
   return rest && !text.includes(rest) ? rest : undefined;
 }
 
 const isStepTestsRed = (error: unknown): boolean =>
   typeof error === "object" && error !== null && String((error as { key?: unknown }).key ?? "").startsWith("runner.testsRed");
+
+/** A step whose tests never started: its sentence names the cause, and the
+ *  log line it was read from stays behind the (?). */
+const isTestsNotStarted = (error: unknown): boolean =>
+  typeof error === "object" && error !== null && String((error as { key?: unknown }).key ?? "").startsWith("runner.testsNotStarted");
 
 /** The sentence for a spec whose analyze stands stopped on files other open
  *  specs change: its lead job stopped so, or the analyze phase's own history

@@ -10,6 +10,7 @@ import { renderSentence } from "../../../src/i18n/message.ts";
 import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
 import { specStateChip, wordPhase } from "../../../src/render/ui/job-state";
+import { testsNotStartedMessage } from "../../../src/queue/runner/cross-check-message.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
@@ -240,6 +241,31 @@ describe("the completion hook and the landing window", () => {
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
     expect(after?.error).toEqual({ key: "runner.testsRedImplement", values: { button: "Implement" } });
+    expect(after?.errorDetail).toBe(bash);
+  });
+
+  test("an implement whose tests never started is stored as the sentence naming what holds the port, not as red tests", () => {
+    const bash =
+      "the step reported success, but the project's tests did not start — the server the tests need could not start, so no test ran. Press Implement again for this step once that is put right.\n" +
+      "Error: http://localhost:8806/health/ready is already used, make sure that nothing is running on the port/url";
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({
+      readResult: () =>
+        outcome({
+          ok: false,
+          terminalReason: "tests-not-started",
+          error: bash,
+          testsNotStarted: { kind: "port-in-use", port: 8806, holder: { pid: 4242, command: "node", spec: "58-sign-up" } },
+        }),
+    });
+    runner.tick();
+    runner.poll();
+    const after = store.get(job.id);
+    expect(after?.state).toBe("failed");
+    expect(after?.error).toEqual({
+      key: "runner.testsNotStartedPortSpec",
+      values: { port: "8806", spec: "58", button: "Implement" },
+    });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -658,5 +684,48 @@ describe("the queue records when each STEP started", () => {
     // Neither the hold-back check (11:00) nor the first step's own end
     // (10:05) leaked into the recorded start.
     expect(results[1]?.startedAt).not.toBe(results[0]?.at);
+  });
+});
+
+// An implement whose own test run never started gets the board's sentence
+// for what stopped it, read from the result's `testsNotStarted`.
+const said = (testsNotStarted: unknown) => testsNotStartedMessage("implement", { terminalReason: "tests-not-started", testsNotStarted });
+
+describe("a test run that never started", () => {
+  test("a port another spec's test server holds names that spec by its number", () => {
+    expect(
+      said({ kind: "port-in-use", port: 8806, holder: { pid: 4242, command: "node", spec: "58-sign-up-flow" } }),
+    ).toEqual({ key: "runner.testsNotStartedPortSpec", values: { port: "8806", spec: "58", button: "Implement" } });
+  });
+
+  test("a port another process holds names its command and pid", () => {
+    expect(said({ kind: "port-in-use", port: 5432, holder: { pid: 777, command: "postgres" } })).toEqual({
+      key: "runner.testsNotStartedPortProcess",
+      values: { port: "5432", command: "postgres", pid: "777", button: "Implement" },
+    });
+  });
+
+  test("a port whose holder the runner could not find names the port alone", () => {
+    expect(said({ kind: "port-in-use", port: 8806 })).toEqual({
+      key: "runner.testsNotStartedPort",
+      values: { port: "8806", button: "Implement" },
+    });
+  });
+
+  test("a server that did not answer in time says how long was waited, in seconds", () => {
+    expect(said({ kind: "server-timeout", ms: 60000 })).toEqual({
+      key: "runner.testsNotStartedTimeout",
+      values: { seconds: "60", button: "Implement" },
+    });
+  });
+
+  test("a server that exited says so", () => {
+    expect(said({ kind: "server-exited" })).toEqual({ key: "runner.testsNotStartedExited", values: { button: "Implement" } });
+  });
+
+  test("a cause the result does not carry, or cannot be read, says only that the tests did not start", () => {
+    for (const raw of [undefined, null, "port", { kind: "port-in-use", port: "8806" }, { kind: "something-else" }]) {
+      expect(said(raw)).toEqual({ key: "runner.testsNotStarted", values: { button: "Implement" } });
+    }
   });
 });
