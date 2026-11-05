@@ -12,7 +12,7 @@ from ...conftest import run
 from ..run_spec_results import emits
 from ..run_spec_status_files import with_status
 from .test_aide_run_spec_review_models import TWO_DEFECTS, _claude, _codex_says
-from .test_aide_run_spec_step_tests import _fixing_claude, _project_with_test_cmd
+from .step_tests.test_aide_run_spec_step_tests import _fixing_claude, _project_with_test_cmd
 
 SESSION = "analysis-session-1"
 

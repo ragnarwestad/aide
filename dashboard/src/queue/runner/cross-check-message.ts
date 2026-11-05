@@ -1,7 +1,8 @@
 import type { BoardMessage, Sentence } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { WorkflowStep } from "../queue.ts";
-import { sharedFiles, type StepOutcome } from "./types.ts";
+import { specNumber } from "../../project/spec-folder.ts";
+import { sharedFiles, testsNotStarted, type StepOutcome } from "./types.ts";
 
 /** The bash cross-check's verdicts (run-spec/record/status-line.sh,
  *  run-spec/turn/step-tests.sh) — a step that made `no-progress`, an
@@ -20,6 +21,7 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   if (outcome.terminalReason === "tests-red" && step === "implement") {
     return { key: "runner.testsRedImplement", values: { button: stepButton(step) } };
   }
+  if (outcome.terminalReason === "tests-not-started") return testsNotStartedMessage(step, outcome);
   if (outcome.terminalReason === "tests-red" && step === "archive") {
     return { key: "runner.testsRedArchive", values: { button: stepButton(step) } };
   }
@@ -33,6 +35,33 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   if (step === "archive") return { key: "runner.noProgressArchive", values: { button: stepButton(step) } };
   if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
   return undefined;
+}
+
+/** A test run that never started, as the board's sentence naming what
+ *  stopped it: a port and who holds it, a server that did not answer in
+ *  time, or one that exited. A cause the result does not carry gets the
+ *  sentence that says only that the tests did not start. */
+export function testsNotStartedMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): Sentence {
+  const button = stepButton(step);
+  const cause = testsNotStarted(outcome.testsNotStarted);
+  if (cause?.kind === "port-in-use") {
+    const port = String(cause.port);
+    if (cause.holder?.spec) {
+      return { key: "runner.testsNotStartedPortSpec", values: { port, spec: specNumber(cause.holder.spec), button } };
+    }
+    if (cause.holder) {
+      return {
+        key: "runner.testsNotStartedPortProcess",
+        values: { port, command: cause.holder.command ?? "?", pid: String(cause.holder.pid), button },
+      };
+    }
+    return { key: "runner.testsNotStartedPort", values: { port, button } };
+  }
+  if (cause?.kind === "server-timeout" && cause.ms !== undefined) {
+    return { key: "runner.testsNotStartedTimeout", values: { seconds: String(Math.round(cause.ms / 1000)), button } };
+  }
+  if (cause?.kind === "server-exited") return { key: "runner.testsNotStartedExited", values: { button } };
+  return { key: "runner.testsNotStarted", values: { button } };
 }
 
 /** The outcome as the failure's detail should see it. A `no-progress`

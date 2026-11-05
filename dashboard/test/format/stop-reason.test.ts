@@ -19,11 +19,11 @@ const NOT_FAILURES = [
 ];
 
 describe("isFailedStop", () => {
-  test("names the nine reasons a step ends failed for", () => {
+  test("names the ten reasons a step ends failed for", () => {
     expect([...FAILED_STOPS].sort()).toEqual(
       [
         "cli-error", "merge-unfinished", "model-refused", "no-progress", "scope-violation", "sent-back-refused",
-        "short-analysis-over-limit", "tests-red", "unpushed",
+        "short-analysis-over-limit", "tests-not-started", "tests-red", "unpushed",
       ],
     );
   });

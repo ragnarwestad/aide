@@ -87,6 +87,9 @@ export interface StepOutcome {
   /** The open specs an analyze stopped on `shared-files` named, with the
    *  files each shares; read by `sharedFiles()` below. */
   sharedFiles?: unknown;
+  /** What stopped an implement's test run before any test ran, and who
+   *  held the port it needed; read by `testsNotStarted()` below. */
+  testsNotStarted?: unknown;
   error?: string;
   /** A deploy's failure in the board's own words, which the English `error`
    *  beside it restates: the job's row reads this, and `error` is its
@@ -270,6 +273,36 @@ export function sharedFiles(raw: unknown): SharedFiles[] | undefined {
     return typeof r.spec === "string" && r.spec !== "" && files.length ? [{ spec: r.spec, files }] : [];
   });
   return specs.length ? specs : undefined;
+}
+
+/** Why a test run never started, as `run-spec/turn/test-start.sh` sorts it. */
+export type TestsNotStarted =
+  | { kind: "port-in-use"; port: number; holder?: { pid: number; command?: string; spec?: string } }
+  | { kind: "server-timeout"; ms?: number }
+  | { kind: "server-exited" };
+
+/** `outcome.testsNotStarted`, read as defensively as `sharedFiles`: a
+ *  kind the runner does not write, or a port that is not a number, is
+ *  nothing at all. */
+export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+  const text = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+  if (r.kind === "port-in-use") {
+    const port = num(r.port);
+    if (port === undefined) return undefined;
+    const h = r.holder !== null && typeof r.holder === "object" ? (r.holder as Record<string, unknown>) : undefined;
+    const pid = num(h?.pid);
+    const holder =
+      pid === undefined
+        ? undefined
+        : { pid, ...(text(h?.command) ? { command: text(h?.command) } : {}), ...(text(h?.spec) ? { spec: text(h?.spec) } : {}) };
+    return { kind: "port-in-use", port, ...(holder ? { holder } : {}) };
+  }
+  if (r.kind === "server-timeout") return { kind: "server-timeout", ...(num(r.ms) !== undefined ? { ms: num(r.ms) } : {}) };
+  if (r.kind === "server-exited") return { kind: "server-exited" };
+  return undefined;
 }
 
 /** The model id a result file names — a non-empty string, or nothing. Another

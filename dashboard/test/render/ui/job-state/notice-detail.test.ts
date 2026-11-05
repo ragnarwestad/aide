@@ -49,4 +49,17 @@ describe("a notice's detail", () => {
     expect(notice?.parts?.map((p) => p.text)).toContain("(fail) a-test-that-stays-red: the fact is on the list [0.20ms]");
     expect(notice?.text).not.toContain("the run and its record");
   });
+
+  test("a run that never started keeps its log line behind the (?), not its restated sentence", () => {
+    const line = "Error: http://localhost:8806/health/ready is already used, make sure that nothing is running on the port/url";
+    const notice = specNotice(
+      lead({
+        error: { key: "runner.testsNotStartedPortSpec", values: { port: "8806", spec: "58", button: "Implement" } },
+        errorDetail:
+          "the step reported success, but the project's tests did not start — the server the tests need could not start, so no test ran. Press Implement again for this step once that is put right.\n" +
+          line,
+      }),
+    );
+    expect(notice?.title).toBe(line);
+  });
 });

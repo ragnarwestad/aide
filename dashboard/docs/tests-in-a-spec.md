@@ -83,6 +83,9 @@ name, and none for a criterion an existing test already proves — that test get
   The whole output is kept beside the step's run log as `<job id>.<step>.tests.log`. A run the AI makes itself
   shows in the Log only when it has ended.
 - **Implement red:** the step has failed, and the failing test lines are on the spec's row. Press Implement again.
+- **Implement tests not started:** the server the tests need could not start, so no test ran, and no AI turn is spent
+  on it. The row names the cause: a port in use and the spec or process holding it, a server that did not answer in
+  time, or one that stopped. Put that right, then press Implement again.
 - **Landing red:** an amber message, not a red one — the change was built and merged locally, and what is missing is
   a green suite. The failing lines are on the row. The usual cause is another spec that landed in the meantime; run
   Implement again, then Archive.

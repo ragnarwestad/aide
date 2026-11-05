@@ -13,9 +13,9 @@ import subprocess
 import pytest
 
 CASES = json.loads(
-    (pathlib.Path(__file__).resolve().parents[6] / "fixtures" / "test-workers.json").read_text()
+    (pathlib.Path(__file__).resolve().parents[7] / "fixtures" / "test-workers.json").read_text()
 )["cases"]
-PART = pathlib.Path(__file__).resolve().parents[8] / "core" / "scripts" / "lib" / "run-spec" / "turn" / "test-workers.sh"
+PART = pathlib.Path(__file__).resolve().parents[9] / "core" / "scripts" / "lib" / "run-spec" / "turn" / "test-workers.sh"
 
 
 def _bash(snippet, env=None):
