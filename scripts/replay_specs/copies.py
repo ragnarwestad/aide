@@ -9,8 +9,6 @@ from pathlib import Path
 
 from gitutil import git
 
-IDENTITY = ("-c", "user.name=replay", "-c", "user.email=replay@localhost", "-c", "commit.gpgsign=false")
-DEFAULT_RULES = "llm-discipline git testing spec-structure communication"
 LOCAL_IDENTITY = {"user.name": "replay", "user.email": "replay@localhost", "commit.gpgsign": "false"}
 
 
