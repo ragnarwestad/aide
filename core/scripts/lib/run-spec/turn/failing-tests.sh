@@ -86,10 +86,13 @@ function num(s, word,   t) {
     next
   }
   if (is_error_line(line)) {
+    pending = 0
     for (i in vitest_pending) {
+      pending = 1
       if (errors[i] == "") errors[i] = line
       delete vitest_pending[i]
     }
+    if (!pending && bun_error == "") bun_error = line
     next
   }
   if (line ~ /^Tests +[0-9]/) {

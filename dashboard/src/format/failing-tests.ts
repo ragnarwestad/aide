@@ -123,8 +123,12 @@ export function failingTests(output: string): FailingTests {
       continue;
     }
     if (ERROR_LINE.test(line)) {
-      for (const index of pendingVitest) if (!errors[index]) errors[index] = line;
-      pendingVitest.clear();
+      if (pendingVitest.size) {
+        for (const index of pendingVitest) if (!errors[index]) errors[index] = line;
+        pendingVitest.clear();
+      } else if (!bunError) {
+        bunError = line;
+      }
       continue;
     }
     if (/^Tests +[0-9]/.test(line)) {

@@ -89,7 +89,7 @@
       "name": "bun: the file is the heading above the (fail) line, and the timing is dropped",
       "log": [
         "test/a.test.ts:",
-        "error: expected 3, received 0",
+        "TypeError: Cannot read properties of undefined",
         "error: later diagnostic detail",
         "(pass) a > works [0.20ms]",
         "(fail) a > breaks [5.00ms]",
@@ -111,7 +111,7 @@
         "test/b.test.ts"
       ],
       "errors": [
-        "error: expected 3, received 0",
+        "TypeError: Cannot read properties of undefined",
         "error: element was not found"
       ],
       "failed": 2,
