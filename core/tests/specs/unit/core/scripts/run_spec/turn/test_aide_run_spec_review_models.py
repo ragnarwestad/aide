@@ -149,7 +149,8 @@ def test_a_review_tool_that_is_neither_the_steps_nor_codex_is_refused(runner, wo
     with_status(workspace, ["create", "analyze"])
     rc, out, _ = run(runner, workspace, fake_claude("exit 0"), command="implement", review_tool="opencode")
     assert rc != 0
-    assert "--review-tool" in json.dumps(out), out
+    error = json.dumps(out)
+    assert "review" in error and "opencode" in error and "claude" in error, out
 
 
 def test_a_wrapped_defect_reaches_the_fix_turn_whole(runner, workspace, fake_claude, tmp_path):

@@ -14,6 +14,7 @@ import { providerKeyFrom, providerModelError } from "../../queue/providers/parse
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { SETTINGS_STEPS, type ToolCheck, type ToolModels } from "../../render";
 import { providerLoginEnv } from "../../queue/providers/index.ts";
+import { SIDE_PARTS, sideToolRefusal, sideTools } from "../../queue/providers/side-tools.ts";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded } from "../serve-helpers";
 import { checkTool, recordCheck } from "../tool-check.ts";
 import { readModels, recordModels } from "../tool-models";
@@ -102,7 +103,8 @@ export async function handleQueueAdminRoutes(
     if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
     if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
     const table = models as Record<string, unknown>;
-    const unknown = Object.keys(table).find((step) => !(SETTINGS_STEPS as readonly string[]).includes(step));
+    const knownSettings = [...SETTINGS_STEPS, ...SIDE_PARTS] as readonly string[];
+    const unknown = Object.keys(table).find((step) => !knownSettings.includes(step));
     if (unknown) return refuse(`unknown workflow step: ${unknown}`);
     const next: Record<string, string> = {};
     for (const step of SETTINGS_STEPS) {
@@ -116,6 +118,18 @@ export async function handleQueueAdminRoutes(
       }
       next[step] = listed.name;
     }
+    const sideModels: Record<string, string | null> = {}, implementTool = ctx.queue.defaults.modelChoices?.[next.implement]?.tool ?? "claude";
+    for (const part of SIDE_PARTS) {
+      const value = table[part];
+      if (value === undefined) continue;
+      if (Array.isArray(value) || typeof value !== "string") return refuse(`invalid model for ${part}`);
+      if (!value) { sideModels[part] = null; continue; }
+      const listed = listedModelName(Object.keys(ctx.queue.defaults.modelChoices ?? {}), value);
+      if ("candidates" in listed) return refuse(`unknown or not-allowed model for ${part}: ${value}`);
+      const sideTool = ctx.queue.defaults.modelChoices?.[listed.name]?.tool ?? "claude";
+      if (!sideTools(implementTool).includes(sideTool)) return refuse(sideToolRefusal(part, sideTool, implementTool));
+      sideModels[part] = listed.name;
+    }
 
     // The provider each phase runs on, posted as `provider.<step>` beside
     // the model; a save that posts none leaves the defaults' providers as
@@ -126,11 +140,13 @@ export async function handleQueueAdminRoutes(
       return refuse("provider defaults are malformed");
     }
     for (const [step, value] of Object.entries((providers ?? {}) as Record<string, unknown>)) {
-      if (!(SETTINGS_STEPS as readonly string[]).includes(step)) return refuse(`unknown workflow step: ${step}`);
+      if (!knownSettings.includes(step)) return refuse(`unknown workflow step: ${step}`);
       if (value === "" || value === undefined) continue;
       const found = providerKeyFrom(ctx.queue.defaults, value, ` for ${step}`);
       if ("error" in found) return refuse(found.error);
-      const refusal = providerModelError(ctx.queue.defaults, found.key, next[step]);
+      const selectedModel = next[step] ?? sideModels[step];
+      if (!selectedModel) continue;
+      const refusal = providerModelError(ctx.queue.defaults, found.key, selectedModel);
       if (refusal) return refuse(refusal);
       nextProvider[step] = found.key;
     }
@@ -160,8 +176,14 @@ export async function handleQueueAdminRoutes(
       timeoutSec[step] = minutes * 60;
     }
 
+    const modelUpdate = { ...next, ...sideModels };
     const merged = { ...ctx.queue.defaults.model, ...next };
-    const error = persistQueueSettings(ctx.opts.queueConfigFile, { model: next, timeoutSec, provider: nextProvider });
+    for (const part of SIDE_PARTS) {
+      const value = sideModels[part];
+      if (value === null) delete merged[part];
+      else if (value) merged[part] = value;
+    }
+    const error = persistQueueSettings(ctx.opts.queueConfigFile, { model: modelUpdate, timeoutSec, provider: nextProvider });
     if (error) return refuse(error);
     ctx.queue.defaults.model = merged;
     if (Object.keys(nextProvider).length) ctx.queue.defaults.provider = { ...ctx.queue.defaults.provider, ...nextProvider };

@@ -167,7 +167,7 @@ export function parsePendingModels(raw: unknown): Record<string, Record<string, 
     if (steps === null || typeof steps !== "object" || Array.isArray(steps)) continue;
     const perStep: Record<string, string> = {};
     for (const [step, model] of Object.entries(steps as Record<string, unknown>)) {
-      if (typeof model === "string" && model && (WORKFLOW_STEPS as readonly string[]).includes(step)) {
+      if (typeof model === "string" && model && ([...WORKFLOW_STEPS, "review", "verify"] as readonly string[]).includes(step)) {
         perStep[step] = model;
       }
     }
@@ -240,7 +240,7 @@ export function persistPendingSteps(file: string, table: Record<string, string[]
 
 /** Each part optional: a save writes only what it names. */
 export interface QueueSettingsUpdate {
-  model?: Record<string, string>;
+  model?: Record<string, string | null>;
   timeoutSec?: Record<string, number>;
   /** The top-level `concurrency`: how many steps may run at once. */
   concurrency?: number;
@@ -267,7 +267,7 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
     }
     const opts = { formattingOptions: { insertSpaces: true, tabSize: 2 } };
     for (const [step, model] of Object.entries(next.model ?? {})) {
-      source = applyEdits(source, modify(source, ["model", step], model, opts));
+      source = applyEdits(source, modify(source, ["model", step], model ?? undefined, opts));
     }
     for (const [step, sec] of Object.entries(next.timeoutSec ?? {})) {
       source = applyEdits(source, modify(source, ["timeoutSec", step], sec, opts));

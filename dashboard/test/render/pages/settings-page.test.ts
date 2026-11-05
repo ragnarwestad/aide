@@ -20,6 +20,26 @@ const MODELS = [
 const TIMEOUT_SEC = { default: 1200, implement: 5400 };
 
 describe("Settings page", () => {
+  test("Review and Verify have AI and model choices but no timeout (AC-1, AC-2, AC-3, AC-4, AC-12)", () => {
+    const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
+      modelChoices: [...MODELS, { name: "pickle", tool: "opencode" as const }],
+      providerChoices: [
+        { key: "Claude", name: "Claude", tool: "claude" },
+        { key: "Codex", name: "Codex", tool: "codex" },
+        { key: "OpenCode", name: "OpenCode", tool: "opencode" },
+      ],
+      defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+    });
+    for (const part of ["review", "verify"]) {
+      expect(html).toContain(`name="provider.${part}"`);
+      expect(html).toContain(`name="model.${part}"`);
+      expect(html).not.toContain(`name="timeoutSec.${part}"`);
+    }
+    expect(html).toContain('<option value="">Same as Implement</option>');
+    expect(html).toContain('<option value="">Off</option>');
+    expect(html.match(/<tr data-side="review">[\s\S]*?<\/tr>/)?.[0]).toContain('value="pickle" data-tool="opencode" hidden disabled');
+  });
+
   // The rows still come FROM the canonical step list rather than a
   // hand-picked copy of it — but now through two groups plus a named
   // set of steps that deliberately get no row, so a step added to

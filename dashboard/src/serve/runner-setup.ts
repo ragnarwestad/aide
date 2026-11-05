@@ -253,6 +253,8 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             timeoutSec: ctx.store.defaults.timeoutSec,
             permissionMode: ctx.store.defaults.permissionMode,
             model: ctx.store.defaults.model,
+            sidePicks: ctx.store.pendingModels[`${job.project}/${job.specFolder}`],
+            sideProviders: ctx.store.pendingProviders[`${job.project}/${job.specFolder}`],
             providers: ctx.store.defaults.providers,
             provider: ctx.store.defaults.provider,
             acceptanceNotRequiredForAnalyze:

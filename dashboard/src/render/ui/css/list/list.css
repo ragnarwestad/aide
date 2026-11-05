@@ -81,6 +81,7 @@ table.speclist { width: 100%; box-sizing: border-box; table-layout: fixed; }
    reads as "Timeout is far to the right" rather than beside its
    neighbours. Auto layout sizes the table to its own columns instead. */
 table.settingstable { width: auto; }
+table.settingstable tr[data-side] th { padding-left: 2rem; }
 /* The Providers table's rows open the provider's page, outside the link
    in the name (`followScheduleRow`, specs-client/schedule-actions.ts). */
 table.settingstable tr[data-row-href] { cursor: pointer; }

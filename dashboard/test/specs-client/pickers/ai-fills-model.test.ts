@@ -5,6 +5,26 @@ import {
   harness,
   flush,
 } from "../fixtures.ts";
+import { Window } from "happy-dom";
+import { syncSidePickers } from "../../../src/specs-client/ai-sync.ts";
+
+test("Review and Verify choices follow a changed Implement tool (AC-12)", () => {
+  const window = new Window();
+  window.document.body.innerHTML = `<form id="f"></form>
+    <select name="model.implement" form="f"><option value="sonnet" data-tool="claude">sonnet</option><option value="pickle" data-tool="opencode">pickle</option></select>
+    <select name="model.review" form="f" data-side-picker><option value=""></option><option value="sonnet" data-tool="claude">sonnet</option><option value="codex" data-tool="codex">codex</option><option value="pickle" data-tool="opencode">pickle</option></select>`;
+  const implement = window.document.querySelector('select[name="model.implement"]') as unknown as HTMLSelectElement;
+  const review = window.document.querySelector('select[name="model.review"]') as unknown as HTMLSelectElement;
+  const option = (value: string) => Array.from(review.options).find((entry) => entry.value === value)!;
+
+  syncSidePickers(window.document as unknown as ParentNode);
+  expect(option("pickle").disabled).toBe(true);
+  implement.value = "pickle";
+  syncSidePickers(window.document as unknown as ParentNode, "f");
+  expect(option("sonnet").disabled).toBe(true);
+  expect(option("pickle").disabled).toBe(false);
+  expect(option("codex").disabled).toBe(false);
+});
 
 // --- One action sets every phase still ahead ----------------------
 

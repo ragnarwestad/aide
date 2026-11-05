@@ -38,6 +38,31 @@ export function offerEachToItsTool(root: ParentNode): void {
     const tool = model.selectedOptions[0]?.dataset.tool;
     if (tool) offerOnly(model, tool);
   }
+  syncSidePickers(root);
+}
+
+/** Review and Verify may use Implement's tool or Codex. All configured
+ * options stay in the DOM so changing Implement can reveal the new set. */
+export function syncSidePickers(root: ParentNode, formId?: string): void {
+  for (const el of root.querySelectorAll("select[data-side-picker]")) {
+    const select = el as HTMLSelectElement;
+    const form = select.getAttribute("form") ?? "";
+    if (formId && form !== formId) continue;
+    const implement = root.querySelector(`select[name="model.implement"][form="${form}"]`) as HTMLSelectElement | null;
+    const tool = implement ? Array.from(implement.options).find((option) => option.value === implement.value)?.dataset.tool : undefined;
+    if (!tool) continue;
+    const allowed = new Set(tool === "codex" ? ["codex"] : [tool, "codex"]);
+    const groups = new Map<HTMLOptGroupElement, boolean>();
+    for (const option of Array.from(select.options)) {
+      const offered = option.value === "" || allowed.has(option.dataset.tool ?? "");
+      option.hidden = !offered;
+      option.disabled = !offered;
+      const group = option.parentElement as HTMLOptGroupElement | null;
+      if (group?.tagName === "OPTGROUP") groups.set(group, (groups.get(group) ?? true) && !offered);
+    }
+    for (const [group, empty] of groups) group.hidden = empty;
+    if (select.selectedOptions[0]?.disabled) select.value = "";
+  }
 }
 
 export function offerOnly(model: HTMLSelectElement, tool: string): void {
@@ -47,7 +72,7 @@ export function offerOnly(model: HTMLSelectElement, tool: string): void {
   // which asks the select for nothing but its option list.
   const emptied = new Map<HTMLOptGroupElement, boolean>();
   for (const option of Array.from(model.options)) {
-    const mine = option.dataset.tool === tool;
+    const mine = option.value === "" || option.dataset.tool === tool;
     option.hidden = !mine;
     option.disabled = !mine;
     const group = option.parentElement as HTMLOptGroupElement | null;
@@ -86,6 +111,13 @@ export function applyAiPick(select: HTMLSelectElement): void {
   if (!model) return;
   chosen.set(selectKey(select), select.value);
   const tool = option.dataset.tool;
+  if (!tool && option.value === "") {
+    model.value = "";
+    chosen.set(selectKey(model), "");
+    const step = model.name.startsWith("model.") ? model.name.slice("model.".length) : "";
+    if (step) void postPendingModel(model, step, "", "");
+    return;
+  }
   if (tool) offerOnly(model, tool);
   const want = option.dataset.default;
   if (tool && model.selectedOptions[0]?.dataset.tool !== tool && want) {
@@ -95,6 +127,7 @@ export function applyAiPick(select: HTMLSelectElement): void {
       chosen.set(selectKey(model), want);
     }
   }
+  if (name === "model.implement") syncSidePickers(document, form);
   // On a LIVE line nothing else would carry this to the server: the write
   // above fires no `change` event, so the running job would go on using
   // the provider and model the row has stopped showing. Called with the
