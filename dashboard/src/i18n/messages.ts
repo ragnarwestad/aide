@@ -204,6 +204,86 @@ export const MESSAGES = {
     fr: "L'étape a échoué sur {tool} : {cause}. — Cliquez de nouveau sur {button} ; si elle échoue de la même façon, ouvrez Réglages, l'onglet {tool}, puis Installation, et cliquez sur Vérifier.",
     resolve: "Press {button} again; if it fails the same way, open Settings, the {tool} tab, then Installation, and press Check.",
   },
+  // A step whose work did not reach origin (`unpushed`), one sentence per
+  // repo whose push failed: the repo and the branch, then why as the inner
+  // sentence, one of the `git.push*` below (`src/queue/runner/git-failure.ts`).
+  "runner.notPushedCode": {
+    en: "{branch} did not reach origin from the code repo: {message}",
+    nb: "{branch} kom ikke fram til origin fra kode-repoet: {message}",
+    es: "{branch} no llegó a origin desde el repo de código: {message}",
+    de: "{branch} ist aus dem Code-Repo nicht bei origin angekommen: {message}",
+    fr: "{branch} n'est pas arrivé sur origin depuis le repo de code : {message}",
+    exempt: "the resolution is the message it carries",
+  },
+  "runner.notPushedSpecs": {
+    en: "{branch} did not reach origin from the specs repo: {message}",
+    nb: "{branch} kom ikke fram til origin fra spec-repoet: {message}",
+    es: "{branch} no llegó a origin desde el repo de specs: {message}",
+    de: "{branch} ist aus dem Spec-Repo nicht bei origin angekommen: {message}",
+    fr: "{branch} n'est pas arrivé sur origin depuis le repo de specs : {message}",
+    exempt: "the resolution is the message it carries",
+  },
+  // Why a push failed, sorted from git's own words (`lib/git-error.sh`,
+  // `src/format/git-error.ts`): read inside a sentence that names the repo
+  // and the branch, for a step and for a merge alike.
+  "git.pushAuth": {
+    en: "GitHub does not accept the SSH key of the machine that runs Aide — add that machine's SSH key to GitHub, then try again",
+    nb: "GitHub godtar ikke SSH-nøkkelen til maskinen som kjører Aide — legg inn SSH-nøkkelen til den maskinen på GitHub, og prøv igjen",
+    es: "GitHub no acepta la clave SSH de la máquina que ejecuta Aide — añade la clave SSH de esa máquina en GitHub y vuelve a intentarlo",
+    de: "GitHub akzeptiert den SSH-Schlüssel des Rechners, auf dem Aide läuft, nicht — füge den SSH-Schlüssel dieses Rechners auf GitHub hinzu und versuche es erneut",
+    fr: "GitHub n'accepte pas la clé SSH de la machine qui exécute Aide — ajoutez la clé SSH de cette machine sur GitHub, puis réessayez",
+    resolve: "add that machine's SSH key to GitHub, then try again",
+  },
+  "git.pushGitHub": {
+    en: "GitHub had an error — try again in a little while",
+    nb: "GitHub hadde en feil — prøv igjen om litt",
+    es: "GitHub tuvo un error — inténtalo de nuevo dentro de un rato",
+    de: "GitHub hatte einen Fehler — versuche es gleich noch einmal",
+    fr: "GitHub a rencontré une erreur — réessayez dans un moment",
+    resolve: "try again in a little while",
+  },
+  "git.pushRefused": {
+    en: "origin refused the push: {cause} — settle that on GitHub or in the checkout on the serving host, then try again",
+    nb: "origin avviste pushen: {cause} — ordne det på GitHub eller i det lokale repoet på serveren, og prøv igjen",
+    es: "origin rechazó el push: {cause} — resuélvelo en GitHub o en el checkout del servidor y vuelve a intentarlo",
+    de: "origin hat den Push abgelehnt: {cause} — kläre das auf GitHub oder im Checkout auf dem Server und versuche es erneut",
+    fr: "origin a refusé le push : {cause} — réglez cela sur GitHub ou dans le checkout sur le serveur, puis réessayez",
+    resolve: "settle that on GitHub or in the checkout on the serving host, then try again",
+  },
+  "git.pushOther": {
+    en: "git said: {cause} — try again; if it fails the same way, push the branch by hand from the checkout on the serving host",
+    nb: "git sa: {cause} — prøv igjen; feiler det på samme måte, push grenen for hånd fra det lokale repoet på serveren",
+    es: "git dijo: {cause} — inténtalo de nuevo; si falla igual, haz push de la rama a mano desde el checkout del servidor",
+    de: "git meldete: {cause} — versuche es erneut; scheitert es genauso, pushe den Branch von Hand aus dem Checkout auf dem Server",
+    fr: "git a dit : {cause} — réessayez ; si cela échoue de la même façon, poussez la branche à la main depuis le checkout sur le serveur",
+    resolve: "try again; if it fails the same way, push the branch by hand from the checkout on the serving host",
+  },
+  "git.pushNoText": {
+    en: "git gave no error text — try again; if it fails the same way, push the branch by hand from the checkout on the serving host",
+    nb: "git ga ingen feiltekst — prøv igjen; feiler det på samme måte, push grenen for hånd fra det lokale repoet på serveren",
+    es: "git no dio ningún texto de error — inténtalo de nuevo; si falla igual, haz push de la rama a mano desde el checkout del servidor",
+    de: "git hat keinen Fehlertext ausgegeben — versuche es erneut; scheitert es genauso, pushe den Branch von Hand aus dem Checkout auf dem Server",
+    fr: "git n'a donné aucun texte d'erreur — réessayez ; si cela échoue de la même façon, poussez la branche à la main depuis le checkout sur le serveur",
+    resolve: "try again; if it fails the same way, push the branch by hand from the checkout on the serving host",
+  },
+  // A step refused because its branch conflicts with the base, naming the
+  // files in conflict (`{files}`: `a.ts, b.ts (+3)`).
+  "runner.conflictCode": {
+    en: "cannot bring {branch} up to date with {base} in the code repo: conflict in {files} — merge it by hand, in the checkout on the serving host",
+    nb: "klarer ikke å oppdatere {branch} med {base} i kode-repoet: konflikt i {files} — merge den for hånd, i det lokale repoet på serveren",
+    es: "no se puede poner {branch} al día con {base} en el repo de código: conflicto en {files} — mergéalo a mano, en el checkout del servidor",
+    de: "kann {branch} im Code-Repo nicht auf den Stand von {base} bringen: Konflikt in {files} — merge es von Hand, im Checkout auf dem Server",
+    fr: "impossible de mettre {branch} à jour avec {base} dans le repo de code : conflit dans {files} — mergez-le à la main, dans le checkout sur le serveur",
+    resolve: "merge it by hand",
+  },
+  "runner.conflictSpecs": {
+    en: "cannot bring {branch} up to date with {base} in the specs repo: conflict in {files} — merge it by hand, in the checkout on the serving host",
+    nb: "klarer ikke å oppdatere {branch} med {base} i spec-repoet: konflikt i {files} — merge den for hånd, i det lokale repoet på serveren",
+    es: "no se puede poner {branch} al día con {base} en el repo de specs: conflicto en {files} — mergéalo a mano, en el checkout del servidor",
+    de: "kann {branch} im Spec-Repo nicht auf den Stand von {base} bringen: Konflikt in {files} — merge es von Hand, im Checkout auf dem Server",
+    fr: "impossible de mettre {branch} à jour avec {base} dans le repo de specs : conflit dans {files} — mergez-le à la main, dans le checkout sur le serveur",
+    resolve: "merge it by hand",
+  },
   // An analyze stopped at the spec's `criteriaChecks: stop`, with one
   // inner sentence per kind of fault the plan review named.
   "runner.criteriaStopped": {
@@ -691,6 +771,8 @@ export const MESSAGES = {
     fr: "impossible de merger dans {base} — conflit, mergez-le à la main, dans le checkout sur le serveur ({ref} dans {root})",
     resolve: "merge it by hand",
   },
+  // Rows stored before a push's cause was sorted (`landing.pushFailedTo`)
+  // still name this key.
   "landing.pushFailed": {
     en: "merged locally, but the push of {base} failed: {pushError} ({ref} in {root})",
     nb: "merget lokalt, men push av {base} feilet: {pushError} ({ref} i {root})",
@@ -698,6 +780,24 @@ export const MESSAGES = {
     de: "lokal gemergt, aber der Push von {base} ist fehlgeschlagen: {pushError} ({ref} in {root})",
     fr: "mergé localement, mais le push de {base} a échoué : {pushError} ({ref} dans {root})",
     exempt: "the branch is already merged locally; git's own error names the failure and there is no further move",
+  },
+  // The push of a merge failed, with why as the inner sentence (one of the
+  // `git.push*` above); git's own lines are the detail.
+  "landing.pushFailedTo": {
+    en: "merged locally, but the push of {base} failed: {message} ({ref} in {root})",
+    nb: "merget lokalt, men push av {base} feilet: {message} ({ref} i {root})",
+    es: "mergeado en local, pero el push de {base} falló: {message} ({ref} en {root})",
+    de: "lokal gemergt, aber der Push von {base} ist fehlgeschlagen: {message} ({ref} in {root})",
+    fr: "mergé localement, mais le push de {base} a échoué : {message} ({ref} dans {root})",
+    exempt: "the resolution is the message it carries",
+  },
+  "landing.mergeConflictIn": {
+    en: "cannot merge into {base}: conflict in {files} — merge it by hand, in the checkout on the serving host ({ref} in {root})",
+    nb: "klarer ikke å merge med {base}: konflikt i {files} — merge den for hånd, i det lokale repoet på serveren ({ref} i {root})",
+    es: "no se puede mergear en {base}: conflicto en {files} — mergéalo a mano, en el checkout del servidor ({ref} en {root})",
+    de: "kann nicht in {base} mergen: Konflikt in {files} — merge es von Hand, im Checkout auf dem Server ({ref} in {root})",
+    fr: "impossible de merger dans {base} : conflit dans {files} — mergez-le à la main, dans le checkout sur le serveur ({ref} dans {root})",
+    resolve: "merge it by hand",
   },
   "landing.baseMovedTwice": {
     en: "{base} moved on origin under this merge twice — nothing was pushed; run the step again " +

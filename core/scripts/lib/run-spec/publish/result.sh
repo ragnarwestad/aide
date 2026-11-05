@@ -27,6 +27,7 @@ if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
   terminal_reason="unpushed"
   suffix=" (stopped: unpushed)"
   error_msg="the step's own work did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
+  note_unpushed_without_failure
 elif [ -n "$status_file" ]; then
   completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
   # Nothing derived leaves the file alone: an empty line says less than
@@ -112,7 +113,8 @@ elif [ -n "$status_file" ]; then
     ok="false"
     terminal_reason="unpushed"
     suffix=" (stopped: unpushed)"
-    error_msg="the workflow-steps line did not reach origin: $unpushed_roots"
+    error_msg="the workflow-steps line did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
+    note_unpushed_without_failure
   fi
 fi
 
@@ -229,6 +231,7 @@ line="$(jq -cn \
   --argjson testsNotStarted "${tests_not_started_json:-null}" \
   --argjson testsRed "${tests_red_json:-null}" \
   --argjson providerError "${provider_error_out:-null}" \
+  --argjson pushFailures "${push_failures_json:-[]}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -284,4 +287,7 @@ line="$(jq -cn \
    + (if $testsRed == null then {} else {testsRed:$testsRed} end)
    # And for the error the provider gave on a step that ended cli-error
    # (run-spec/turn/provider-error.sh): its kind and its first line.
-   + (if $providerError == null then {} else {providerError:$providerError} end)')"
+   + (if $providerError == null then {} else {providerError:$providerError} end)
+   # And for the repos whose push failed, each with what git said, sorted
+   # (lib/git-error.sh): present only when one failed or was left unpushed.
+   + (if $pushFailures == [] then {} else {pushFailures:$pushFailures} end)')"

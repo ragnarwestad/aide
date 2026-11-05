@@ -29,6 +29,7 @@
 
 import { specNumber } from "../../project/spec-folder.ts";
 import { cliErrorMessage, noProgressMessage, runStopMessage, withoutRestatedError } from "./cross-check-message.ts";
+import { gitFailureMessage } from "./git-failure.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
@@ -427,7 +428,7 @@ export class Runner {
     }
     if (!outcome.ok) {
       const failure = stepFailure(
-        noProgressMessage(step, outcome) ?? cliErrorMessage(step, outcome),
+        noProgressMessage(step, outcome) ?? cliErrorMessage(step, outcome) ?? gitFailureMessage(outcome),
         withoutRestatedError(outcome),
         job.model[step] ?? job.modelChoice,
       );

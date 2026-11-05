@@ -348,8 +348,18 @@ update_branch_to_base() {
       open_merge_count=$((open_merge_count + 1))
       return 0
     fi
+    # The files in conflict, read before the abort clears them: the board
+    # names them (`conflict` in the result), five at most and how many more.
+    local files_json="" files_words=""
+    files_json="$(git -C "$wt" diff --name-only --diff-filter=U 2>/dev/null | jq -Rsc 'split("\n") | map(select(length > 0))')"
+    [ -n "$files_json" ] || files_json="[]"
+    files_words="$(jq -r '.[0:5] | join(", ")' <<<"$files_json")"
+    [ "$(jq 'length' <<<"$files_json")" -le 5 ] || files_words="$files_words (+$(jq 'length - 5' <<<"$files_json"))"
     git -C "$wt" merge --abort >/dev/null 2>&1 || true
-    refuse "cannot bring $branch up to date with $ref in $root — conflict, merge it by hand, in the checkout on the serving host" "conflict"
+    refuse "cannot bring $branch up to date with $ref in $root — conflict${files_words:+ in $files_words}, merge it by hand, in the checkout on the serving host" "conflict" \
+      "$(jq -cn --arg repo "$([ "$root" = "$project_root" ] && echo code || echo specs)" --arg branch "$branch" \
+        --arg base "${ref#origin/}" --argjson files "$files_json" \
+        '{conflict: {repo: $repo, branch: $branch, base: $base, files: $files[0:5], more: ([($files | length) - 5, 0] | max)}}')"
   fi
   return 0
 }

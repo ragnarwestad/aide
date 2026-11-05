@@ -23,6 +23,8 @@ set -u
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/git-error.sh" ] && source "$SCRIPT_DIR/lib/git-error.sh"
 
 # How long to wait for the board: the connection, then its answer, which
 # comes after the board has asked origin again.
@@ -48,6 +50,7 @@ while [ $# -gt 0 ]; do
 done
 
 type aide_specs_root >/dev/null 2>&1 || fail "_aide-spec-lib.sh is missing beside aide-push-specs — reinstall aide"
+type git_error_json >/dev/null 2>&1 || fail "lib/git-error.sh is missing beside aide-push-specs — reinstall aide"
 
 project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 [ -n "$specs_root" ] || specs_root="$(aide_specs_root "$project_root")"
@@ -62,26 +65,38 @@ branch="$(git -C "$repo" symbolic-ref --short HEAD 2>/dev/null)" \
 # lib/run-spec/publish/publish.sh, which reads a run's own variables and
 # cannot be sourced on its own.
 err=""
+probe=""
 try_push() {
   err="$(git -C "$repo" push -q origin "$branch" 2>&1)"
 }
-first_line() {
-  printf '%s\n' "$1" | grep -m1 . | sed 's/^remote: //'
+# Why, in a few words, from git's own (lib/git-error.sh): an SSH key
+# GitHub does not take and an error at GitHub are said as such, anything
+# else is origin's own first line.
+why() {
+  local said
+  said="$(git_error_json "$1")"
+  case "$(jq -r .kind <<<"$said")" in
+    auth) echo "GitHub does not accept this machine's SSH key or login — add it on GitHub, then push again" ;;
+    github) echo "GitHub had an error, or the network is down — push again in a little while" ;;
+    none) echo "git gave no error text" ;;
+    *) jq -r .message <<<"$said" ;;
+  esac
 }
 
 if ! try_push; then
-  if ! git -C "$repo" ls-remote origin >/dev/null 2>&1; then
-    fail "cannot reach origin to push $branch in $repo: $(first_line "$err")"
+  # An SSH key GitHub does not take fails this question too.
+  if ! probe="$(git -C "$repo" ls-remote origin 2>&1 >/dev/null)"; then
+    fail "cannot push $branch in $repo: $(why "${err:-$probe}")"
   fi
   # Origin answers now but may have been away for the push itself.
   if ! try_push; then
     if ! git -C "$repo" ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
-      fail "origin refused the push of $branch in $repo: $(first_line "$err")"
+      fail "origin refused the push of $branch in $repo: $(why "$err")"
     fi
     # Origin answered and holds the branch: the push was rejected because
     # something else landed on it since this repository last looked.
     if git -C "$repo" pull -q --rebase origin "$branch" >/dev/null 2>&1; then
-      try_push || fail "cannot push $branch in $repo after a rebase: $(first_line "$err")"
+      try_push || fail "cannot push $branch in $repo after a rebase: $(why "$err")"
     else
       git -C "$repo" rebase --abort >/dev/null 2>&1 || true
       ours="$(git -C "$repo" log --oneline "origin/$branch..$branch" 2>/dev/null | tr '\n' ';')"

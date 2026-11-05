@@ -21,11 +21,12 @@
 //     spot this whole spec exists to remove.
 
 
-import type { Sentence } from "../../i18n/message.ts";
+import type { BoardMessage, Sentence } from "../../i18n/message.ts";
+import { conflictFiles, gitErrorDetail } from "../../format/git-error.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "../branch-status.ts";
 import { finalizeCreateOnAttempt, type CreateFinalizer } from "../create-finalizer.ts";
 import type { MergeHooks } from "../merge-hooks.ts";
-import { refuse, type RepoMergeResult } from "./result.ts";
+import { pushRefusal, refuse, type RepoMergeResult } from "./result.ts";
 import { GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, pushWithRetry, sleep, type Wait } from "./retry.ts";
 
 /** Where a landing does its merging: a worktree of the repo it is
@@ -170,6 +171,7 @@ export async function mergeBranchIntoDefault(
       // used to be reported as a conflict, which it is not.
       let merged = false;
       let lastStderr = "";
+      let conflicted: string[] = [];
       for (let n = 0; !merged && n <= LOCK_RETRIES; n++) {
         if (n > 0) await wait(LOCK_WAIT_MS);
         const ff = await run(work, ["merge", "-q", "--ff-only", ref]);
@@ -182,20 +184,19 @@ export async function mergeBranchIntoDefault(
           merged = true;
           break;
         }
+        // The files in conflict, read before the abort clears them.
+        const unmerged = await run(work, ["diff", "--name-only", "--diff-filter=U"]);
+        conflicted = unmerged.code === 0 ? unmerged.stdout.split("\n").filter(Boolean) : [];
         await run(work, ["merge", "--abort"]);
-        lastStderr = (real.stderr ?? "").trim();
+        // git names a conflict on stdout and a lock it lost on stderr.
+        lastStderr = `${real.stdout ?? ""}\n${real.stderr ?? ""}`.trim();
         if (!GIT_LOCKED.test(lastStderr)) break;
       }
       if (!merged) {
-        return {
-          ...refuse(
-            root,
-            branch,
-            { key: "landing.mergeConflict", values: { base } },
-            lastStderr.slice(-300) || undefined,
-          ),
-          reason: "conflict",
-        };
+        const why: BoardMessage = conflicted.length
+          ? { key: "landing.mergeConflictIn", values: { base, files: conflictFiles(conflicted.slice(0, 5), conflicted.length - 5) } }
+          : { key: "landing.mergeConflict", values: { base } };
+        return { ...refuse(root, branch, why, gitErrorDetail(lastStderr) || undefined), reason: "conflict" };
       }
       // A create job's folder is renumbered here, before the gate, on
       // every attempt (create-finalizer.ts says why).
@@ -258,12 +259,7 @@ export async function mergeBranchIntoDefault(
       if (failed) return failed;
       const pushResult = await pushWithRetry(run, work, base, wait);
       if (pushResult.ok) break;
-      if (!pushResult.moved) {
-        return refuse(root, branch, {
-          key: "landing.pushFailed",
-          values: { base, pushError: pushResult.error ?? "" },
-        });
-      }
+      if (!pushResult.moved) return pushRefusal(root, branch, base, pushResult);
       await run(work, ["fetch", "--quiet", "origin", base]);
       await run(work, ["reset", "-q", "--hard", `origin/${base}`]);
       if (attempt >= 1) {

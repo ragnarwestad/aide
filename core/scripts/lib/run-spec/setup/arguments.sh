@@ -200,12 +200,14 @@ done
 # --- refusal ----------------------------------------------------------------
 # One place, one shape: a refusal is still a JSON line, so a caller never
 # has to parse two formats.
+# refuse <sentence> [<errorReason>] [<JSON object of fields to add>]
 refuse() {
-  local msg="$1" reason="${2:-}"
+  local msg="$1" reason="${2:-}" extra="${3:-}"
   local line
-  line="$(jq -cn --arg e "$msg" --arg r "$reason" \
+  [ -n "$extra" ] || extra="{}"
+  line="$(jq -cn --arg e "$msg" --arg r "$reason" --argjson x "$extra" \
     '{ok:false, exitCode:2, terminalReason:"refused", costUsd:0, costMeasured:false, error:$e}
-     + (if $r == "" then {} else {errorReason:$r} end)')"
+     + (if $r == "" then {} else {errorReason:$r} end) + $x')"
   stage_error "$msg"
   aide_part_close "stopped: refused"
   printf '%s\n' "$line"

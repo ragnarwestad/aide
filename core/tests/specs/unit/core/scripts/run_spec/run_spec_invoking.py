@@ -46,6 +46,10 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
     (tmp_path / "lib" / "translation-files.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "translation-files.sh").read_bytes()
     )
+    # git-error.sh too: a failed push and a conflict are sorted with it.
+    (tmp_path / "lib" / "git-error.sh").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "git-error.sh").read_bytes()
+    )
     # tracking-info.sh too: the script sources it by path before any phase.
     (tmp_path / "lib" / "tracking-info.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "tracking-info.sh").read_bytes()

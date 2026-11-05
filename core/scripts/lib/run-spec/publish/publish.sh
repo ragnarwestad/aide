@@ -31,6 +31,9 @@ for root in "${roots[@]}"; do
 done
 repos_json="[]"
 push_error=""; branch_url=""; pr_url=""; pr_error=""
+# What git said for each repo whose push failed, sorted (lib/git-error.sh):
+# the result's `pushFailures`, which the board words in the reader's language.
+push_failures_json="[]"
 branch_urls_json="[]"
 
 # The compare page is the diff view a reviewer opens; it only exists for
@@ -48,6 +51,29 @@ github_web_url() {
 
 note_push_error() {
   [ -z "$push_error" ] && push_error="$1" || push_error="$push_error; $1"
+}
+
+# note_push_failure <root> <what git said>: the root's failure, sorted, on
+# `pushFailures`, naming the repo (`code` or `specs`) and the branch.
+note_push_failure() {
+  local repo="specs"
+  [ "$1" = "$project_root" ] && repo="code"
+  push_failures_json="$(jq -c --argjson one "$(git_error_json "$2" "$repo" "$branch")" \
+    '. + [$one]' <<<"$push_failures_json")"
+}
+
+# A root left unpushed that no push failure names — the push was never
+# tried, or git said nothing — is on `pushFailures` too, as `none`, so the
+# board says so instead of naming nothing.
+note_unpushed_without_failure() {
+  local root repo
+  for root in "${roots[@]}"; do
+    case ", $unpushed_roots, " in *", $root, "*) ;; *) continue ;; esac
+    repo="specs"
+    [ "$root" = "$project_root" ] && repo="code"
+    jq -e --arg repo "$repo" 'any(.[]; .repo == $repo)' <<<"$push_failures_json" >/dev/null 2>&1 && continue
+    note_push_failure "$root" ""
+  done
 }
 
 # Shared by both push paths below (a plain push and the retried
@@ -87,12 +113,13 @@ PUSH_RETRY_WAITS=(1 2)
 # means the branch moved under us, which `pull --rebase` can settle on
 # its own — unless the rebase itself conflicts, which is a
 # person's call and never the script's. Sets $push_retry_error
-# on failure and $push_retry_new_head when a rebase moved local HEAD —
+# on failure, with git's own words in $push_retry_said, and
+# $push_retry_new_head when a rebase moved local HEAD —
 # the caller folds that into $head_after_per_root itself, since this
 # helper has no run-wide accumulator of its own to write into.
 push_with_retry() {
-  local root="$1" wt="$2" amended_sha="$3" err=""
-  push_retry_error=""; push_retry_new_head=""
+  local root="$1" wt="$2" amended_sha="$3" err="" probe=""
+  push_retry_error=""; push_retry_said=""; push_retry_new_head=""
 
   try_push() {
     if err="$(git -C "$wt" push -q -u origin "$branch" 2>&1)"; then return 0; fi
@@ -102,14 +129,17 @@ push_with_retry() {
 
   try_push && return 0
 
-  if ! git -C "$wt" ls-remote origin >/dev/null 2>&1; then
+  # An SSH key GitHub does not take fails this question too, so git's own
+  # words, not the failed answer, say why (lib/git-error.sh).
+  if ! probe="$(git -C "$wt" ls-remote origin 2>&1 >/dev/null)"; then
     # Origin itself did not answer — retry the push, not a rebase.
     local wait_s
     for wait_s in "${PUSH_RETRY_WAITS[@]}"; do
       sleep "$wait_s"
       try_push && return 0
     done
-    push_retry_error="cannot reach origin for $branch in $root: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
+    push_retry_said="${err:-$probe}"
+    push_retry_error="cannot push $branch in $root, and origin did not answer: $(git_error_detail "$push_retry_said")"
     return 1
   fi
 
@@ -123,7 +153,8 @@ push_with_retry() {
   # protected name). Its own words say why; a rebase would only fail and
   # read as a diverged branch with nothing on either side.
   if ! git -C "$wt" ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
-    push_retry_error="origin refused the push of $branch in $root: $(printf '%s\n' "$err" | grep -m1 . | sed 's/^remote: //')"
+    push_retry_said="$err"
+    push_retry_error="origin refused the push of $branch in $root: $(git_error_detail "$err")"
     return 1
   fi
 
@@ -133,7 +164,8 @@ push_with_retry() {
   if git -C "$wt" pull -q --rebase origin "$branch" >/dev/null 2>&1; then
     push_retry_new_head="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
     try_push && return 0
-    push_retry_error="cannot push $branch in $root after a rebase: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
+    push_retry_said="$err"
+    push_retry_error="cannot push $branch in $root after a rebase: $(git_error_detail "$err")"
     return 1
   fi
 
@@ -144,6 +176,7 @@ push_with_retry() {
   local ours theirs
   ours="$(git -C "$wt" log --oneline "origin/$branch..$branch" 2>/dev/null | tr '\n' '; ')"
   theirs="$(git -C "$wt" log --oneline "$branch..origin/$branch" 2>/dev/null | tr '\n' '; ')"
+  push_retry_said="$err"
   push_retry_error="$branch has diverged from origin's copy in $root — this run has: ${ours:-(nothing)}; origin has: ${theirs:-(nothing)} — reconcile by hand"
   return 1
 }
@@ -321,12 +354,14 @@ EXCLUDES_EOF
       commit_already_on_origin "$root" "$head_is" && continue
       if ! git -C "$root" remote get-url origin >/dev/null 2>&1; then
         note_push_error "no origin remote in $root"
+        note_push_failure "$root" "no origin remote"
         continue
       fi
       if push_with_retry "$root" "$wt" "$amended_sha"; then
         record_branch_url "$root"
       else
         note_push_error "$push_retry_error"
+        note_push_failure "$root" "$push_retry_said"
       fi
       if [ -n "$push_retry_new_head" ]; then
         # A rebase can move local HEAD whether or not the retried

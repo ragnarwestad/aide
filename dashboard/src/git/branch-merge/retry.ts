@@ -1,6 +1,7 @@
 // Waiting out a lost race for a git lock, and retrying a push.
 
 import type { GitRunner } from "../branch-status.ts";
+import { gitError, gitErrorDetail, type GitError } from "../../format/git-error.ts";
 
 /** git's own words when another process is holding the index. A run
  *  starting in the same second pulls the same checkout as a courtesy,
@@ -29,9 +30,17 @@ export type Wait = (ms: number) => Promise<void>;
  *  network blip takes longer to clear than a lock held by a
  *  sibling git process on the same machine. */
 const PUSH_RETRY_WAITS_MS = [1000, 2000];
+/** A push and the question to origin that follows a failed one get a
+ *  minute, not the runner's four-second default: a push to GitHub over
+ *  SSH takes longer than that, and a killed one says nothing at all. */
+const PUSH_TIMEOUT_MS = 60_000;
 
 interface PushRetryResult {
   ok: boolean;
+  /** What git said, sorted (`src/format/git-error.ts`): the board's
+   *  sentence is made from it. */
+  cause?: GitError;
+  /** git's own lines, whole, for the (?) detail. */
   error?: string;
   /** Origin answered and still refused: `base` moved under the landing. */
   moved?: boolean;
@@ -51,16 +60,20 @@ interface PushRetryResult {
  *  function's. */
 export async function pushWithRetry(run: GitRunner, root: string, base: string, wait: Wait): Promise<PushRetryResult> {
   const refspec = `HEAD:refs/heads/${base}`;
-  let pushed = await run(root, ["push", "-q", "origin", refspec]);
+  const push = () => run(root, ["push", "-q", "origin", refspec], PUSH_TIMEOUT_MS);
+  let pushed = await push();
   if (pushed.code === 0) return { ok: true };
-  const reachable = await run(root, ["ls-remote", "origin"]);
+  // An SSH key GitHub does not take fails this question too, so git's own
+  // words, not the failed answer, say why.
+  const reachable = await run(root, ["ls-remote", "origin"], PUSH_TIMEOUT_MS);
   if (reachable.code !== 0) {
     for (const ms of PUSH_RETRY_WAITS_MS) {
       await wait(ms);
-      pushed = await run(root, ["push", "-q", "origin", refspec]);
+      pushed = await push();
       if (pushed.code === 0) return { ok: true };
     }
-    return { ok: false, error: `cannot reach origin — ${(pushed.stderr ?? "").trim().slice(-200)}` };
+    const said = (pushed.stderr ?? "").trim() || (reachable.stderr ?? "");
+    return { ok: false, cause: gitError(said), error: gitErrorDetail(said) };
   }
   // Reachable, still rejected: base moved on origin under this landing.
   // Not settled here with `pull --rebase` any more — a rebase of a
@@ -68,5 +81,5 @@ export async function pushWithRetry(run: GitRunner, root: string, base: string, 
   // 2026-09-03) and left the checkout ahead of origin, which then
   // refused every later landing in that root. The caller drops the
   // local merge and merges again onto the base that moved.
-  return { ok: false, moved: true, error: (pushed.stderr ?? "").trim().slice(-200) };
+  return { ok: false, moved: true, error: gitErrorDetail(pushed.stderr ?? "") };
 }
