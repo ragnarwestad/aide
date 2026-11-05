@@ -198,12 +198,17 @@ styling later is not a reason to convert it into a class.
 
 ## The length count under a bounded text field
 
-Every text input and textarea that carries `maxlength`, and any that carries `data-maxlength` (a bound the server holds
-but the browser is not to apply, such as the Close reason), gets two spans from `specs-client/limits` after it:
+Every text input and textarea that carries `maxlength`, any that carries `data-maxlength` (a bound the server holds
+but the browser is not to apply, such as the Close reason), and any textarea that carries `data-bound` (a bound that is
+counted and never cut), gets two spans from `specs-client/limits` after it:
 
-- `data-limit="ok|near"` — the count, marked `near` from 90% of the bound.
+- `data-limit="ok|near|over"` — the count, marked `near` from 90% of the bound. `over` is only for a field carrying
+  `data-bound`, which is counted and never cut (the New spec page's Description, and the count under the Description
+  tab's editor): past its bound the count turns `over`, the field gets `aria-invalid="true"` and an invalid state that
+  holds its form back from submitting.
 - `data-limit-note` — a `role="status"` line that names how many characters a paste or a drop lost, and is empty
-  otherwise.
+  otherwise. On a `data-bound` field nothing is lost; the line says how many characters too many the field holds and
+  carries `data-over`.
 
 The server draws neither, so a page with
 script off is unchanged. A bounded field added later is covered by the selector alone only if it is a `textarea` or an

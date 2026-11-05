@@ -38,8 +38,17 @@ A spec starts on the New spec page, which has two tabs. Create sits above them a
 required field on the Spec tab is empty, the page switches to that tab and shows the field's error there.
 
 **The Spec tab** holds what every spec needs: the project, a title, the description, and Depends on, the specs this
-one builds on. A spec that depends on another waits for it to land before its analyze starts. The description holds
-up to 5000 characters.
+one builds on. A spec that depends on another waits for it to land before its analyze starts.
+
+**The description holds at most 10,000 characters**, when the spec is created and when its description is edited on the
+spec page's Description tab. Past that the text is refused, never cut: on the New spec page the field keeps everything
+typed or pasted, shows how many of the 10,000 are used, and past them is marked as over, says under it how many
+characters too many it holds, and Create does not submit. The Description tab says the same and does not save. The
+server refuses a create or a save over the bound with a sentence that names it, so a page with script off is held to it
+too. In `1-description.md` the description is the text between the `## Description` line and the closing line the create
+step writes (or the template's closing note), acceptance criteria and all; a file with no `## Description` heading is
+not bounded. The create step may add acceptance criteria inside that part, so a description created close to the bound
+can come out over it and has to be shortened before its next Save. The Close reason keeps its own bound of 5000.
 
 **The description** says what is wrong and what should be true afterwards. It is markdown: `##` starts a heading and
 `**` makes bold, as in the parts below. Three parts of it are read by the runs that follow; everything else, headings

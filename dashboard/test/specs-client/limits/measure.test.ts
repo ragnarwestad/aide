@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { countText, discarded, ended, limitState } from "../../../src/specs-client/limits/measure.ts";
+import { countText, discarded, ended, limitState, overText } from "../../../src/specs-client/limits/measure.ts";
 
 describe("the count", () => {
   test("reads how many of how many, and nothing more while there is room", () => {
@@ -17,6 +17,23 @@ describe("the count", () => {
   test("the warning starts at 4,500 of 5,000", () => {
     expect(limitState(4499, 5000)).toBe("ok");
     expect(limitState(4500, 5000)).toBe("near");
+  });
+});
+
+describe("a field that is counted and never cut", () => {
+  test("is over only above the bound; at the bound it is near (AC-4)", () => {
+    expect(limitState(10000, 10000)).toBe("near");
+    expect(limitState(10001, 10000)).toBe("over");
+  });
+
+  test("the count reads against the bound (AC-3)", () => {
+    expect(countText(37, 10000)).toBe("37 of 10000 characters");
+  });
+
+  test("the sentence says how many characters too many, and the bound (AC-4)", () => {
+    expect(overText(120, 10000)).toContain("120 characters too many");
+    expect(overText(120, 10000)).toContain("10000");
+    expect(overText(1, 10000)).toContain("1 character too many");
   });
 });
 

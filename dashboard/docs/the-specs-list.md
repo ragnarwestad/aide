@@ -555,7 +555,9 @@ from the list. Its Description tab is read-only with no box to tick anywhere: th
 **The Description tab** is `1-description.md` in a textarea with its own Save. It is the one of the four files a
 user owns: the other three are written by a step, and a hand edit there is overwritten the next time that step
 runs. Its text and its stamp are the branch's, where the spec has
-one, so a Save shows at once and a second Save from the page starts from the first.
+one, so a Save shows at once and a second Save from the page starts from the first. A description over 10,000
+characters is counted under the editor, with how many are too many, and a Save is refused until it is shortened — the
+bound and what counts as the description are in [Writing a spec](spec-lifecycle.md#writing-a-spec).
 
 **The checks on the Status tab** are `4-status.md`'s Tasks rows, every one of them — a list that only ever shrinks says
 nothing about how far the spec got. The ones that are BOXES are the open rows of the CURRENT phase alone (the first

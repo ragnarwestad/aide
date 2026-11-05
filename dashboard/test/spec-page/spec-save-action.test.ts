@@ -12,7 +12,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import { SPEC, SAVE, DESCRIPTION_TAB, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, archivedDescriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
+import { SPEC, SAVE, DESCRIPTION_TAB, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, fillAnalysisAndSolution, specFilePath, descriptionPath, archivedDescriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 
 const { harness, start, startArchived } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -167,6 +167,40 @@ describe("the size of a real description", () => {
       body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"], note: "x".repeat(5000) }),
     });
     expect(res.status).toBe(413);
+  });
+});
+
+// --- A description holds at most 10,000 characters -----------------
+
+describe("the description's bound", () => {
+  const withDescription = (length: number) =>
+    `# Queue and runner - Description\n\n## Description\n\n${"x".repeat(length)}\n\n*This description can be edited before /aide-analyze runs.*\n`;
+
+  test("a description of 10,000 characters is saved (AC-1)", async () => {
+    const { base, dir } = start(savable("/host"));
+    const text = withDescription(10_000);
+    const { status, body } = await answer(await post(base, { text, baseSha: FILE_SHA }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(text);
+  });
+
+  test("one of 10,001 is refused with a sentence naming 10000, and the file is unchanged (AC-1, AC-6)", async () => {
+    const { base, dir } = start(savable("/host"));
+    const { status, body } = await answer(await post(base, { text: withDescription(10_001), baseSha: FILE_SHA }));
+    expect(status).toBe(400);
+    expect(body.error).toContain("10000");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
+  });
+
+  test("only 1-description.md is bounded: an analysis over 10,000 characters is written (AC-6)", async () => {
+    const { base, dir } = start(savable("/host"));
+    fillAnalysisAndSolution(dir);
+    const text = `# Q - Analysis\n\n## Description\n\n${"x".repeat(10_500)}\n`;
+    const { status, body } = await answer(await post(base, { text, baseSha: FILE_SHA, file: "2-analysis.md" }));
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(readFileSync(specFilePath(dir, "2-analysis.md"), "utf-8")).toBe(text);
   });
 });
 

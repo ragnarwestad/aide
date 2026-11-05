@@ -174,3 +174,7 @@ table.list tr.subrow[data-depends-line] > td { padding-top: var(--sp-4); }
 [data-limit="near"] { color: var(--warn); }
 [data-limit-note]:not(:empty) { color: var(--warn); }
 [data-limit-note]:empty { display: none; }
+/* A field counted and never cut (data-bound) past its bound: the count, the
+   line and the field's border all say so, not colour on the count alone. */
+[data-limit="over"], [data-limit-note][data-over]:not(:empty) { color: var(--danger); }
+.field textarea[aria-invalid="true"] { border-color: var(--danger); }

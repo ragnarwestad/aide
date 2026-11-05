@@ -6,7 +6,7 @@
 // (`submitProgress`).
 
 import { t, type Language } from "../../../i18n";
-import { DESCRIPTION_MAX } from "../../../queue/parse-request.ts";
+import { CLOSE_REASON_MAX } from "../../../queue/parse-request.ts";
 import { field, labelledCheckbox, progressDialog } from "../../ui/components";
 import { specPagePath } from "./tabs.ts";
 
@@ -46,7 +46,7 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
       control: (formId) =>
         field(
           "Reason",
-          `<textarea name="reason" form="${formId}" rows="4" required data-maxlength="${DESCRIPTION_MAX}"></textarea>`,
+          `<textarea name="reason" form="${formId}" rows="4" required data-maxlength="${CLOSE_REASON_MAX}"></textarea>`,
         ),
       ok: { variant: "danger", pending: t(lang, "dialog.closing") },
       post: { action: `/api/queue${specPagePath(project, specFolder)}/close` },
