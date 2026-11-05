@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-05](#2026-11-05)
   - [2026-11-04](#2026-11-04)
   - [2026-11-03](#2026-11-03)
   - [2026-11-02](#2026-11-02)
@@ -119,6 +120,80 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-05
+
+Nov 4 – Nov 5. Not read: the Copilot releases page past its first 39,000 characters (v1.0.105's notes among them), the
+Codex changelog page past its first part, the OpenAI developer blog (no dates shown; the five newest posts show none
+either, so none could be dated), the Anthropic news page (a "November 5, 2026" label with no post under it),
+Artificial Analysis (the harness comparison there is still "Coming soon"), the notes of Claude Code v2.1.318 past what
+the earlier review already holds. Of the watched pages, `agents.md` changed in star counts only.
+
+**Claude Code (v2.1.318, no newer release):**
+
+| Date  | Version | News                                                                                                                                                                            | Source                                                                                      |
+|-------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| —     | —       | No release after v2.1.318 of Nov 4                                                                                                                                              | [Releases](https://github.com/anthropics/claude-code/releases)                              |
+| Nov 4 | —       | Claude blog: new partner agents and products on Claude Marketplace (security, developer infrastructure, creative, productivity); enterprise customers can apply committed spend | [Article](https://claude.com/resources/articles/new-agents-and-products-claude-marketplace) |
+
+**GitHub Copilot CLI (v1.0.105 stable; v1.0.106-9 the newest pre-release):**
+
+| Date  | Version    | News                                                                                                                                                                                                                                                                                                                                                                                            | Source                                                                                                           |
+|-------|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| Nov 4 | v1.0.106-9 | A top-level `SKILL.md` in a skills directory gives a warning in `/skills` (subdirectories are resources, not separate skills); a skill call says when model invocation is disabled instead of "not found"; `copilot config` warns when a wrongly typed value makes `settings.json` ignored; ACP `session/cancel` stops only the active turn; long conversations recover from oversized requests | [Releases](https://github.com/github/copilot-cli/releases)                                                       |
+| Nov 4 | —          | Changelog: Copilot is available in Xcode's coding assistant (public preview, Xcode 27.3 beta)                                                                                                                                                                                                                                                                                                   | [Changelog](https://github.blog/changelog/2026-11-04-github-copilot-is-now-available-in-xcodes-coding-assistant) |
+
+**OpenAI Codex CLI (v0.166.0 stable; v0.168.0-alpha.3 pre-release):**
+
+| Date  | Version                    | News                                                                                       | Source                                               |
+|-------|----------------------------|--------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Nov 5 | v0.168.0-alpha.2, -alpha.3 | Pre-releases with no notes ("Release 0.168.0-alpha.3"); stable is still v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.5, no newer release):**
+
+| Date | Version | News                              | Source                                                     |
+|------|---------|-----------------------------------|------------------------------------------------------------|
+| —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⭐ X list, @ClaudeDevs, Nov 4: background subagents in Claude Code use less of the usage limit, because the status line
+  (updated every 30 s) is written by Haiku 5.5 from short notes instead of re-reading the conversation; about 5x less
+  limit in sessions with background subagents. Aide's headless steps start subagents, so the cost per run may fall.
+  The version carrying it is not in the changelog yet; `docs/AGENTS_AND_LOOPS.md` and the dashboard's usage numbers
+  may assume the old cost. [Post](https://x.com/ClaudeDevs/status/2118063143167693011)
+- ⚠️ X list, @OpenAI, Nov 4: an autonomous pipeline validated and patched 948 Linux local privilege escalation bugs in
+  one run with an upcoming cyber model. Agents on a host can be assumed to find kernel-level ways out of a sandbox over
+  time. Check the sandbox assumptions in `dashboard/docs/the-runner.md` and keep the host OS patched.
+  [Post](https://x.com/OpenAI/status/2118119451401048497)
+- ✅ Watched page `code.claude.com/docs/en/best-practices`: for `claude -p` scripts, hooks passed with `--settings` do not
+  run under `--bare`, so `--bare` is wrong for a run that needs them. Aide's runner does not call `--bare`.
+  [Page](https://code.claude.com/docs/en/best-practices)
+- ✅ Copilot CLI v1.0.106-9: a top-level `SKILL.md` in a skills directory now gives a warning, and a skill call with model
+  invocation disabled says so. Both touch how Aide lays out `~/.agents/skills`. Pre-release; stable is still v1.0.105.
+  [Releases](https://github.com/github/copilot-cli/releases)
+- ✅ X list, @Voxyz_ai, Nov 4: when Claude Code says a page does not mention something, it may never have seen the page,
+  because WebFetch summarised it; the fix is to read the page with curl. Matches what this review saw: fetch summaries
+  that contradicted the verbatim page text. [Post](https://x.com/Voxyz_ai/status/2118085886936314116)
+- ✅ X list, @Voxyz_ai, Nov 4: demand proof when the agent says "done" (commands run and their output); "an unrun check
+  is not a pass". Aide's implement step already reports what was not run.
+  [Post](https://x.com/Voxyz_ai/status/2117965095406063781)
+- ✅ X list, @GitHubNext, Nov 4: write-up on the PDD Kit, verification of agent-written code beyond tests. Touches the
+  verify phase of `/aide-implement`. [Post](https://x.com/GitHubNext/status/2118105391707967967)
+- ✅ X list, @mattpocockuk, Nov 4: considers publishing skills to registries so they can be pinned to a version. Aide
+  installs skills by copying from `core/`, with no pinning. [Post](https://x.com/mattpocockuk/status/2117948553381515721)
+- ✅ X list, @shengzheyao, Nov 4: Antigravity's `agy` CLI has `--settings` and an ACP server (`agy acp`). A possible fifth
+  tool; unknown whether it reads `~/.agents/skills` and `AGENTS.md`.
+  [Post](https://x.com/shengzheyao/status/2117899282733044063)
+- ✅ X list, @omarsar0, Nov 4: NVIDIA paper finds frequent context compaction costs frontier models little accuracy.
+  Aide runs each step as a fresh session, so compaction is not a lever there.
+  [Post](https://x.com/omarsar0/status/2117956281910829083)
+- ℹ X list, Nov 4: Cat Wu, who led Claude Code product, is joining OpenAI (@theo); Conductor is joining Meta (@theo);
+  Addy Osmani on "cognitive surrender" (@techNmak); a Codex desktop memory fix (@ajambrosino); a weekly roundup
+  (@AgenticAIFdn).
+- ℹ Copilot in Xcode (public preview), Claude Marketplace partner agents, Codex v0.168.0-alpha.2 and -alpha.3 with no
+  notes; no OpenCode release after v2.2.5.
+- ℹ Anthropic news shows nothing newer than Oct 28; the Copilot blog nothing newer than Oct 20.
 
 ### 2026-11-04
 
