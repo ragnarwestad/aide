@@ -4,7 +4,7 @@ is at most 500 lines and a test file at most 800, and a folder holds at
 most 15 of them directly. The rules are written down in
 .claude/rules/development.md, "Code health". Markdown is left out: a page
 is as long as what it says."""
-import subprocess
+from .repo_files import repo_files
 from pathlib import Path
 
 SOURCE_LIMIT = 500
@@ -35,8 +35,7 @@ FLAT_BY_PATTERN = {"core/scripts"}
 
 
 def _tracked(root):
-    out = subprocess.run(["git", "-C", str(root), "ls-files"], capture_output=True, text=True, check=True)
-    return [p for p in out.stdout.splitlines() if not p.startswith("dashboard/")]
+    return [p for p in repo_files(root) if not p.startswith("dashboard/")]
 
 
 def _is_source(root, rel):
