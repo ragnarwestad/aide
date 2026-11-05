@@ -90,6 +90,9 @@ export interface StepOutcome {
   /** What stopped an implement's test run before any test ran, and who
    *  held the port it needed; read by `testsNotStarted()` below. */
   testsNotStarted?: unknown;
+  /** The failing tests a red implement run named, and what they point at;
+   *  read by `testsRed()` below. */
+  testsRed?: unknown;
   error?: string;
   /** A deploy's failure in the board's own words, which the English `error`
    *  beside it restates: the job's row reads this, and `error` is its
@@ -310,6 +313,39 @@ export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
   const error = text(r.error);
   if (r.kind === "recorder-failed" && error) return { kind: "recorder-failed", error };
   return undefined;
+}
+
+/** The failing tests a red implement run named (`run-spec/turn/failing-tests.sh`):
+ *  at most eight, how many failed and of how many when the run said, whether
+ *  any is in a file the change touched, how many are not, and whether the
+ *  runner's runs failed different tests. */
+export interface TestsRed {
+  tests: string[];
+  failed: number;
+  total?: number;
+  touched: boolean;
+  untouched: number;
+  variedBetweenRuns: boolean;
+}
+
+/** `outcome.testsRed`, read as defensively as `testsNotStarted`: no test
+ *  named, or a count that is not a number, is nothing at all. */
+export function testsRed(raw: unknown): TestsRed | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+  const tests = Array.isArray(r.tests) ? r.tests.filter((t): t is string => typeof t === "string" && t !== "") : [];
+  const failed = num(r.failed);
+  if (!tests.length || failed === undefined) return undefined;
+  const total = num(r.total);
+  return {
+    tests,
+    failed,
+    ...(total !== undefined ? { total } : {}),
+    touched: r.touched === true,
+    untouched: num(r.untouched) ?? 0,
+    variedBetweenRuns: r.variedBetweenRuns === true,
+  };
 }
 
 /** The model id a result file names — a non-empty string, or nothing. Another

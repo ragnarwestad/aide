@@ -1,5 +1,5 @@
 // The (?) under a row's message holds only what the message does not
-// already say. A step's red run says its failing tests on the row.
+// already say. An implement's red run names its failing tests in the sentence.
 import { describe, expect, test } from "bun:test";
 import { specNotice } from "../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../src/render";
@@ -34,20 +34,19 @@ describe("a notice's detail", () => {
     expect(notice?.title).toBe("ENOENT: no such file or directory");
   });
 
-  test("a red run's failing tests are on the row, and its restated sentence is not", () => {
+  test("an implement's red run keeps its log lines behind the (?), not on the row or restated", () => {
     const notice = specNotice(
       lead({
         specFolder: "06-a-test-that-stays-red",
-        error: { key: "runner.testsRedImplement", values: { button: "Implement" } },
+        error: { key: "runner.testsRedInChange", values: { n: "1", total: "9", tests: "a.spec.ts:3 › works", button: "Implement" } },
         errorReason: "tests-red" as QueueRowView["errorReason"],
         errorDetail:
           "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's. Press Implement again for this step.\n" +
-          "(fail) a-test-that-stays-red: the fact is on the list [0.20ms]",
+          "Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL",
       }),
     );
-    expect(notice?.title).toBeUndefined();
-    expect(notice?.parts?.map((p) => p.text)).toContain("(fail) a-test-that-stays-red: the fact is on the list [0.20ms]");
-    expect(notice?.text).not.toContain("the run and its record");
+    expect(notice?.title).toBe("Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL");
+    expect(notice?.parts).toHaveLength(1);
   });
 
   test("a run that never started keeps its log line behind the (?), not its restated sentence", () => {

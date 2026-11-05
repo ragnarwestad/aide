@@ -19,6 +19,9 @@ import { NO_GIT_HOOKS } from "../../integrations/no-git-hooks.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
 import { runLogPath } from "../../queue/runner/run-log-path.ts";
 import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
+import { failingTests, variedBetween } from "../../format/failing-tests.ts";
+import { stepButton } from "../../format/step-label.ts";
+import type { Sentence } from "../../i18n/message.ts";
 
 /** Resolve the command(s) the merged change calls for, run them through
  *  aide-record-test-run (which keeps the run's output), and say green
@@ -39,23 +42,35 @@ import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
  *  reported still has to say something, and its last words are all
  *  there are. */
 export function failingLines(stdout: string, stderr: string, budget = 600): string {
-  const lines = `${stdout}\n${stderr}`.split("\n");
-  const named = lines.filter((l) => /^\(fail\)|^\s*\d+ fail\b|^error(:| TS)/.test(l.trim()) || /^\s*\d+ fail\b/.test(l));
+  // The recorder's own JSON answer is not something the tests said.
+  const lines = `${stdout}\n${stderr}`.split("\n").filter((l) => !/^\{"ok":/.test(l.trim()));
+  const named = lines.filter(
+    (l) => /^\(fail\)|^\s*\d+ fail\b|^error(:| TS)|^(FAILED|ERROR) \S+::/.test(l.trim()) || /^\s*\d+ fail\b/.test(l),
+  );
   // Once each: the dashboard's runner prints a failing test as it fails
   // and again in the red worker's full output.
   const picked = named.length ? [...new Set(named)] : lines;
   const out = picked.join("\n").trim();
   // The END of the picked lines, not the start: a suite with many
   // failures ends with the summary, and the summary is the line that
-  // says how many there were.
-  return out.length <= budget ? out : out.slice(-budget);
+  // says how many there were. Cut at a line, never inside a word.
+  if (out.length <= budget) return out;
+  const tail = out.slice(-budget);
+  const at = tail.indexOf("\n");
+  return at >= 0 && at < tail.length - 1 ? tail.slice(at + 1) : tail;
+}
+
+/** The failing tests a run named, as one list for a sentence: at most
+ *  eight, and "…" when there were more. */
+function namedTests(tests: readonly string[]): string {
+  return tests.slice(0, 8).join("; ") + (tests.length > 8 ? "; …" : "");
 }
 
 /** `retriedAfter`: green only on the second run, and these are the
  *  lines the first run failed on. */
 export interface GateVerdict {
   ok: boolean;
-  error?: string;
+  error?: Sentence;
   detail?: string;
   retriedAfter?: string;
 }
@@ -344,7 +359,9 @@ async function runSuiteIn(
       return out;
     };
     stepLogLine(job, `the landing runs the project's tests on the merge (${commands.length} command(s))`);
+    const button = stepButton("archive");
     let gate = await runOnce("");
+    const firstTests = failingTests(`${gate.stdout}\n${gate.stderr}`).tests;
     // A red run gets the WHOLE command once more: a test that lost to a
     // busy host passes the second time, and a real failure fails twice.
     // A run that timed out is not retried — a second one would hold the
@@ -359,53 +376,39 @@ async function runSuiteIn(
       }
       stepLogLine(job, "the landing's tests are red again", true);
     }
+    const minutes = Math.round(LANDING_GATE_TIMEOUT_MS / 60_000);
     if (gate.timedOut) {
-      stepLogLine(job, `the landing's tests did not finish within ${Math.round(LANDING_GATE_TIMEOUT_MS / 60_000)} minutes`, true);
-      return {
-        ok: false,
-        error: `the project's tests did not finish within ${Math.round(LANDING_GATE_TIMEOUT_MS / 60_000)} minutes on the merge — nothing was pushed; the archive step's own log has what they managed to say`,
-        detail: failingLines(gate.stdout, gate.stderr),
-      };
+      stepLogLine(job, `the landing's tests did not finish within ${minutes} minutes`, true);
+      return { ok: false, error: { key: "landing.testsTimedOut", values: { minutes, button } }, detail: failingLines(gate.stdout, gate.stderr) };
     }
     if (gate.code !== 0) stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
     if (gate.code !== 0 && (await redOnDefaultBranch(liveRoot, recorder, argv.slice(3), opts.jobs))) {
       stepLogLine(job, "the tests are red on main as well — the failure is main's, not this spec's", true);
       return {
         ok: false,
-        error:
-          `the project's tests are red on main as well, without this spec's change — nothing was pushed, and the work is still on ${branch}. ` +
-          "Once main is green again, archive merges the work.",
+        error: { key: "landing.testsRedOnMainToo", values: { branch, button } },
         detail: failingLines(gate.stdout, gate.stderr),
       };
     }
     if (gate.code !== 0) {
       stepLogLine(job, "the tests are green on main alone — the failure is this merge's", true);
-      return {
-        ok: false,
-        // One sentence on the row: what happened, and the one move that
-        // resolves it. The log's path and the caveat about a timing test
-        // that lost to a busy host are for whoever goes looking, so they
-        // ride in `detail` — on hover, and on the job's own page — with
-        // the test output that actually names the failure.
-        // No "run implement again": nothing here knows that a second
-        // implement run would make the suite green. It would start from
-        // the same description and the same plan, and it is never told
-        // which test failed. What IS known is where the failure is
-        // written down, and which press lands the work once the code
-        // passes — the row offers that one and no other.
-        // Where the work IS rides in the sentence itself: the origin
-        // check after the merge loop adds nothing beside a red suite,
-        // so this is the row's one sentence (one message per failure).
-        error:
-          `the project's tests are red on this merge, so nothing was pushed — the work is still on ${branch}. ` +
-          "The archive step's own log names the tests that failed; archive merges the work once they pass.",
-        detail: [
-          "A timing test that lost to a busy host passes on a re-run: run the step again when the host is quieter.",
-          failingLines(gate.stdout, gate.stderr),
-        ]
-          .filter(Boolean)
-          .join("\n"),
-      };
+      // One sentence on the row: the tests that failed when the output
+      // named them, and what the two runs on the merge say about them —
+      // the same tests twice is the merge's doing; different ones point at
+      // unstable tests or a busy machine, and only then is that said. The
+      // test output rides in `detail`, on hover and on the job's own page.
+      // Where the work IS rides in the sentence itself: the origin check
+      // after the merge loop adds nothing beside a red suite.
+      const lastTests = failingTests(`${gate.stdout}\n${gate.stderr}`).tests;
+      const detail = failingLines(gate.stdout, gate.stderr);
+      if (firstTests.length && lastTests.length && (variedBetween(firstTests, lastTests) || variedBetween(lastTests, firstTests))) {
+        const both = [...new Set([...firstTests, ...lastTests])];
+        return { ok: false, error: { key: "landing.testsRedOnMergeVaried", values: { tests: namedTests(both), branch, button } }, detail };
+      }
+      if (lastTests.length) {
+        return { ok: false, error: { key: "landing.testsRedOnMerge", values: { tests: namedTests(lastTests), branch, button } }, detail };
+      }
+      return { ok: false, error: { key: "landing.testsRedOnMergeUnnamed", values: { branch, button } }, detail };
     }
     stepLogLine(job, "the landing's tests are green");
     return { ok: true };

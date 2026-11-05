@@ -115,12 +115,11 @@ describe("the landing's test gate", () => {
     expect(lines[2]).toBe("config=AIDE_TEST_CMD=true");
   });
 
-  // What the row shows is one sentence: what happened, and the one move
-  // that resolves it. The log's path, the caveat about a timing test
-  // that lost to a busy host, and the test output are for whoever goes
-  // looking, so they belong in the detail the row shows on hover — a row
-  // that carries all four reads as four different instructions.
-  test("a red suite says one thing on the row and keeps the rest in the detail", async () => {
+  // What the row shows is one sentence: what happened, the tests that
+  // failed, and the one move that resolves it. The test output is for
+  // whoever goes looking, so it belongs in the detail the row shows on
+  // hover.
+  test("a red suite names its failing tests on the row and keeps the output in the detail", async () => {
     const root = project();
     const record = join(root, "..", `gate-red-${Date.now()}.txt`);
     dirs.push(record);
@@ -131,33 +130,25 @@ describe("the landing's test gate", () => {
     dirs.push(runs);
     writeFileSync(
       process.env.AIDE_RECORD_TEST_RUN_BIN!,
-      `#!/bin/sh\necho run >> ${runs}\n[ $(wc -l < ${runs}) -gt 2 ] && exit 0\necho 'FAILED test_x'\nexit 1\n`,
+      `#!/bin/sh\necho run >> ${runs}\n[ $(wc -l < ${runs}) -gt 2 ] && exit 0\necho 'FAILED tests/test_x.py::test_x - assert 1 == 2'\nexit 1\n`,
       { mode: 0o755 },
     );
 
     const verdict = await runProjectSuiteBeforePush(root, { project: "aide", specFolder: "81-x" }, "aide/81-x");
 
     expect(verdict.ok).toBe(false);
-    expect(sentence(verdict.error)).toBe(
-      "the project's tests are red on this merge, so nothing was pushed — the work is still on aide/81-x. " +
-        "The archive step's own log names the tests that failed; archive merges the work once they pass.",
-    );
-    // Nothing here knows that a second implement run would turn the
-    // suite green: it starts from the same description and plan, and is
-    // never told which test failed. The sentence says what is known.
-    expect(sentence(verdict.error)).not.toContain("run implement again");
+    expect(verdict.error).toEqual({
+      key: "landing.testsRedOnMerge",
+      values: { tests: "tests/test_x.py::test_x", branch: "aide/81-x", button: "Archive" },
+    });
+    // The same test failed on both runs and passes on main alone: nothing
+    // supports a busy machine, so nothing says so.
     expect(sentence(verdict.error)).not.toContain("quieter");
-    // No path to a file on the host, in the sentence or the detail: a
-    // message that names a log names one this dashboard shows, and the
-    // failing lines are right here in the detail the step's own row
-    // draws.
+    expect(verdict.detail).not.toContain("quieter");
+    // No path to a file on the host, in the sentence or the detail.
     expect(sentence(verdict.error)).not.toContain(".log");
     expect(verdict.detail).not.toContain(".log");
-    expect(verdict.detail).toContain("quieter");
-    // The lines that name the failure, not the command that started the
-    // run: the recorder above printed one and bun's own banner the
-    // other, and a blind tail of the two streams caught the wrong end.
-    expect(verdict.detail).toContain("FAILED test_x");
+    expect(verdict.detail).toContain("FAILED tests/test_x.py::test_x");
   });
 
   // A test that lost to a busy host passes the second time; a real

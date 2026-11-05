@@ -93,6 +93,9 @@ export function detailBeyond(text: string, error: unknown, detail: string | unde
 const isStepTestsRed = (error: unknown): boolean =>
   typeof error === "object" && error !== null && String((error as { key?: unknown }).key ?? "").startsWith("runner.testsRed");
 
+const isArchiveTestsRed = (error: unknown): boolean =>
+  typeof error === "object" && error !== null && (error as { key?: unknown }).key === "runner.testsRedArchive";
+
 /** A step whose tests never started: its sentence names the cause, and the
  *  log line it was read from stays behind the (?). */
 const isTestsNotStarted = (error: unknown): boolean =>
@@ -274,9 +277,10 @@ export function specNotice(
             lead.stopReason === "model-at-capacity"));
       const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
       const extra = detailBeyond(text, lead.error, lead.errorDetail);
-      // A step's own red run: the failing tests are what the reader came
-      // for, so they are said on the row, not behind a (?).
-      if (extra && isStepTestsRed(lead.error)) {
+      // An archive's own red run lists its failing lines on the row. An
+      // implement's sentence names its failing tests itself, so the log's
+      // own lines stay behind the (?).
+      if (extra && isArchiveTestsRed(lead.error)) {
         parts.push({ variant, text }, { variant, text: extra.split("\n").join(" · ") });
       } else {
         parts.push({ variant, text, title: extra });

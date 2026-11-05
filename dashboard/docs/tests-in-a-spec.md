@@ -23,7 +23,7 @@ Both can run the tests.
 | Phase           | The AI                                                                                   | Aide itself                                                                                                                                          | When it is red                                                                                                                                                                                              |
 |-----------------|------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | create, analyze | none                                                                                     | none                                                                                                                                                 | —                                                                                                                                                                                                           |
-| implement       | the test files it wrote and the ones covering the files it changed; never the full suite | the full suite once, after the AI is done; a green run ticks the spec's "Run the full test suite" row                                                | the failing lines go back to the same AI, which fixes them, and Aide runs the suite again: at most two such rounds, within the step's time limit. Still red: the step fails, and Implement is offered again |
+| implement       | the test files it wrote and the ones covering the files it changed; never the full suite | the full suite once, after the AI is done; a green run ticks the spec's "Run the full test suite" row                                                | the failing tests go back to the same AI, which fixes them, and Aide runs the suite again: at most two such rounds, within the step's time limit. Still red: the step fails, and Implement is offered again |
 | archive         | only the tests covering files it touched while resolving a merge conflict                | the full suite once, in the landing, on exactly what the default branch is about to become — not when implement's green run covers exactly that code | the whole suite runs once more (not after a timeout). Green then: it lands, marked "merged after a retry". Red twice: nothing reaches the default branch, the spec's branch is kept, and the job stops      |
 | close, reopen   | none                                                                                     | none                                                                                                                                                 | —                                                                                                                                                                                                           |
 
@@ -82,13 +82,18 @@ name, and none for a criterion an existing test already proves — that test get
 
   The whole output is kept beside the step's run log as `<job id>.<step>.tests.log`. A run the AI makes itself
   shows in the Log only when it has ended.
-- **Implement red:** the step has failed, and the failing test lines are on the spec's row. Press Implement again.
+- **Implement red:** the step has failed, and the spec's row names the failing tests, how many of how many failed,
+  and what that points to. Failing tests in files the change touched, the same on every run, point to the change:
+  press Implement again. When none is in a file the change touched, or the runs failed different tests, the row says
+  it points to unstable tests or a busy machine: press Implement again, or fix those tests on their own. The test
+  output is behind the (?).
 - **Implement tests not started:** the server the tests need could not start, so no test ran, and no AI turn is spent
   on it. The row names the cause: a port in use and the spec or process holding it, a server that did not answer in
   time, or one that stopped. Put that right, then press Implement again.
 - **Landing red:** an amber message, not a red one — the change was built and merged locally, and what is missing is
-  a green suite. The failing lines are on the row. The usual cause is another spec that landed in the meantime; run
-  Implement again, then Archive.
+  a green suite. The row names the failing tests. The same tests failing on both runs, and passing on main alone, is
+  the merge breaking them: make them pass on the branch, then Archive. Different tests on the two runs point to
+  unstable tests or a busy machine, and the row says so: press Archive again when the machine is quieter.
 - **Red on main as well:** the landing ran the same tests on the default branch without the spec, and they were red
   there too. The failure is main's; nothing about the spec needs changing. Press Archive again once main is green.
 - **Merged after a retry:** the landing's first run was red and the second green. The job keeps the lines that

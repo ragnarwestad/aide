@@ -120,7 +120,7 @@ is the whole set:
 | stopped: no-progress                  | The step said it succeeded but changed nothing in the project                      | Press the same button again                                                |
 | stopped: merge-unfinished             | The step dropped the merge with the default branch it was handed open              | Press the same button again                                                |
 | stopped: scope-violation              | The step wrote outside its own spec folder, or claimed a step it did not run       | Press the same button again                                                |
-| stopped: tests-red                    | The project's suite is red, after the runner gave the session two more turns at it | Make the suite green, then press Implement                                 |
+| stopped: tests-red                    | The project's suite is red, after the runner gave the session two more turns at it | Fix the tests the row names, then press Implement                          |
 | stopped: tests-not-started            | No test ran: its server could not start, a port was in use, or it was not recorded | Free the port or fix what the row names, then press Implement              |
 | stopped: timeout                      | The step reached its own time limit                                                | Press the same button again; the work it committed is on the branch        |
 | stopped: shared-files                 | Analyze found files another open spec also changes, and stopped before the plan    | Add those specs to Depends on and save, or press Analyze again to go on    |

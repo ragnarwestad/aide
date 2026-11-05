@@ -2,7 +2,7 @@ import type { BoardMessage, Sentence } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { WorkflowStep } from "../queue.ts";
 import { specNumber } from "../../project/spec-folder.ts";
-import { sharedFiles, testsNotStarted, type StepOutcome } from "./types.ts";
+import { sharedFiles, testsNotStarted, testsRed, type StepOutcome } from "./types.ts";
 
 /** The bash cross-check's verdicts (run-spec/record/status-line.sh,
  *  run-spec/turn/step-tests.sh) — a step that made `no-progress`, an
@@ -19,7 +19,7 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
     return { key: "runner.modelRefused", values: { button: stepButton(step) } };
   }
   if (outcome.terminalReason === "tests-red" && step === "implement") {
-    return { key: "runner.testsRedImplement", values: { button: stepButton(step) } };
+    return testsRedMessage(step, outcome);
   }
   if (outcome.terminalReason === "tests-not-started") return testsNotStartedMessage(step, outcome);
   if (outcome.terminalReason === "tests-red" && step === "archive") {
@@ -35,6 +35,33 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   if (step === "archive") return { key: "runner.noProgressArchive", values: { button: stepButton(step) } };
   if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
   return undefined;
+}
+
+/** A red implement run, as the board's sentence naming the failing tests
+ *  and what they point at: the change, when one is in a file it touched and
+ *  no run failed a test the run before it passed; otherwise unstable tests
+ *  or a busy machine, saying which of the two reasons hold. A run that
+ *  named no test gets the sentence that says only that the tests are red. */
+export function testsRedMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage {
+  const button = stepButton(step);
+  const red = testsRed(outcome.testsRed);
+  if (!red) return { key: "runner.testsRedImplement", values: { button } };
+  const n = String(red.failed);
+  const tests = red.tests.join("; ") + (red.failed > red.tests.length ? "; …" : "");
+  const counted = red.total !== undefined;
+  const values = { tests, button, ...(counted ? { n, total: String(red.total) } : {}) };
+  const elsewhere = red.untouched > 0 && !red.touched;
+  if (!red.variedBetweenRuns && !elsewhere) {
+    return { key: counted ? "runner.testsRedInChange" : "runner.testsRedInChangeUncounted", values };
+  }
+  const k = String(red.untouched);
+  const inner: BoardMessage =
+    red.variedBetweenRuns && red.untouched > 0
+      ? { key: "runner.testsRedVariedUntouched", values: { k, n } }
+      : red.variedBetweenRuns
+        ? { key: "runner.testsRedVaried" }
+        : { key: "runner.testsRedUntouched", values: { k, n } };
+  return { key: counted ? "runner.testsRedUnsteady" : "runner.testsRedUnsteadyUncounted", values, inner };
 }
 
 /** A test run that never started, as the board's sentence naming what
