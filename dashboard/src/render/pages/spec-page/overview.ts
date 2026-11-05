@@ -306,7 +306,8 @@ export function testServerStatus(view: SpecPageView): string {
   if (view.testServer.status === "failed") {
     return (
       `<p class="desc"><span class="muted">The test server could not be started` +
-      `${view.testServer.error ? `: ${esc(view.testServer.error)}` : ""}.</span></p>`
+      `${view.testServer.error ? `: ${esc(view.testServer.error)}` : ""}.</span>` +
+      `${view.testServer.detail ? helpPopover("what it printed", esc(view.testServer.detail)) : ""}</p>`
     );
   }
   // The link carries a name, not the address itself: the address is a

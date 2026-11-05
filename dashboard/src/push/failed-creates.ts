@@ -19,6 +19,8 @@ export interface FailedCreate {
   description: string;
   /** Worded at render time, in the reader's language. */
   reason: Sentence | Sentence[];
+  /** The raw output behind the reason, shown behind the message's (?). */
+  detail?: string;
   failedAt: string;
   /** Set once dismissed; the record stays retrievable by id. */
   dismissedAt?: string;
@@ -28,12 +30,15 @@ export interface FailedCreate {
 const KEEP_DISMISSED = 50;
 
 export function failedCreateFrom(job: Job): FailedCreate {
+  // The detail that belongs to the reason: the landing's when its record won.
+  const detail = job.landingError !== undefined ? job.landingErrorDetail : job.error !== undefined ? job.errorDetail : undefined;
   return {
     id: job.id,
     project: job.project,
     title: job.createTitle ?? "",
     description: job.createDescription ?? "",
     reason: createFailureReason(job),
+    ...(detail?.trim() ? { detail } : {}),
     failedAt: job.finishedAt ?? new Date().toISOString(),
   };
 }

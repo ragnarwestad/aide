@@ -83,8 +83,14 @@ for root in "${roots[@]}"; do
     update_branch_to_base "$wt" "$base_ref" "$root"
   else
     if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
+      # Sorted like a failed push (lib/git-error.sh): the board names the
+      # repo, the base and the cause as `fetchFailure`, and git's own
+      # lines, whole, stay the (?) detail.
       fetch_base_with_retry "$root" "$base" \
-        || refuse "cannot fetch $base from origin in $root ($fetch_retry_error) — refusing rather than cutting $branch from this checkout's own tip"
+        || refuse "cannot fetch $base from origin in $root — refusing rather than cutting $branch from this checkout's own tip
+$(git_error_detail "$fetch_retry_said")" "" \
+          "$(jq -cn --argjson e "$(git_error_json "$fetch_retry_said" \
+              "$([ "$root" = "$project_root" ] && echo code || echo specs)" "$base")" '{fetchFailure: $e}')"
       base_ref_for "$root" "$base"
     fi
     wt_error="$(git -C "$root" worktree add -q -b "$branch" "$wt" "$base_ref" 2>&1)" \

@@ -18,6 +18,7 @@ import type { RoutesContext } from "../routes";
 import { DEPLOY_RESTART_WAIT_MS } from "../serve-helpers";
 import { deployMark, type DeployMark, type DeployStep } from "./plan.ts";
 import { writeDeployDone, writeDeployFailed } from "./result.ts";
+import type { DeployFailure } from "../state.ts";
 
 /** What a deploy run is given: the queue it is a job in, the checkout's git,
  *  and the hooks the landing code already offers the Deploy button. */
@@ -35,7 +36,7 @@ export interface DeployRunDeps {
   restartRegistered: () => Promise<boolean>;
   restartWhenSettled: (o: { onWait: (landings: string[]) => void; beforeFire: () => void }) => Promise<boolean>;
   readServing: RoutesContext["readServing"];
-  setFailure: (project: string, failure: { step: string; error: string } | null) => void;
+  setFailure: (project: string, failure: DeployFailure | null) => void;
   setFault: (fault: Sentence | null) => void;
   /** When this process booted: who fired the restart. */
   startedAt: string;
@@ -74,10 +75,10 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
     deps.queue.update(jobId, on ? { error: HOLD, errorReason: "held-back" } : { error: undefined, errorReason: undefined });
   };
 
-  const fail = (sentence: Sentence): void => {
-    const error = writeDeployFailed(resultFile, sentence);
-    mark(step, `stopped: ${error}`);
-    deps.setFailure(project, { step, error });
+  const fail = (sentence: Sentence, detail?: string): void => {
+    const error = writeDeployFailed(resultFile, sentence, detail);
+    mark(step, `stopped: ${error.split("\n")[0]}`);
+    deps.setFailure(project, { step, sentence, ...(detail ? { detail } : {}) });
     hold(false);
   };
   const succeed = (): void => {
@@ -99,9 +100,9 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
       hold(false);
     }
     const base = await deps.branchStatus.defaultBranch(root);
-    if (!base) return fail(`cannot work out the default branch in ${root}`);
+    if (!base) return fail({ key: "landing.deployNoDefaultBranch", values: { root } });
     const pulled = await deps.mergeLock.run(root, () => fastForwardToOrigin(deps.gitRun, root, base));
-    if (!pulled.ok) return fail(pulled.error ?? `cannot bring ${root} up to date`);
+    if (!pulled.ok) return fail(pulled.error ?? `cannot bring ${root} up to date`, pulled.detail);
     const head = await deps.gitRun(root, ["rev-parse", "HEAD"]);
     const commit = head.code === 0 ? head.stdout.trim() : undefined;
     deps.queue.update(jobId, { deploy: { root, ...(commit ? { commit } : {}) } });
@@ -116,7 +117,7 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
     if (installed.installError) {
       const older = await servedOlder(deps, root);
       if (typeof older === "object") deps.setFault({ key: "landing.deployServiceOlder", values: older });
-      return fail(installed.installError);
+      return fail(installed.installError, installed.installDetail);
     }
     mark("install", "done");
 
@@ -160,6 +161,6 @@ export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: 
     mark("check", "done");
     succeed();
   } catch (err) {
-    fail(err instanceof Error ? err.message : String(err));
+    fail({ key: "landing.deployBroke" }, err instanceof Error ? (err.stack ?? err.message) : String(err));
   }
 }

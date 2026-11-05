@@ -171,3 +171,16 @@ def test_one_line_longer_than_the_limit_is_cut_rather_than_dropped(tmp_path):
     log = tmp_path / "tests.log"
     log.write_text("w" * 900)
     assert _bash(f'log_tail "{log}" 600').stdout == "w" * 600
+
+
+PORT_CASES = json.loads(
+    (pathlib.Path(__file__).resolve().parents[7] / "fixtures" / "port-in-use.json").read_text()
+)["cases"]
+
+
+@pytest.mark.parametrize("case", PORT_CASES, ids=[c["name"] for c in PORT_CASES])
+def test_the_port_a_log_says_was_taken_is_read_as_the_board_reads_it(tmp_path, case):
+    """The same fixture pins portInUse in dashboard/src/format/port-in-use.ts."""
+    cause = _failure(tmp_path, case["log"])
+    got = cause["port"] if cause and cause["kind"] == "port-in-use" else None
+    assert got == case["port"]

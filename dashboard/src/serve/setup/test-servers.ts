@@ -13,7 +13,7 @@ import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { TestServerStore } from "../test-servers/store.ts";
 import { findFreePort, type TestServersContext, type PortProbe, type Spawner } from "../test-servers/lifecycle.ts";
-import { testServerOnPort } from "../test-servers/port-owner.ts";
+import { portHolder, testServerOnPort } from "../test-servers/port-owner.ts";
 import { portExposed } from "../test-servers/tailscale-exposure.ts";
 import { resolvePreviewCmd, resolvePreviewFrom } from "../../project/discover";
 import type { ServerState } from "../state.ts";
@@ -123,6 +123,7 @@ export function setupTestServers(state: ServerState, inputs: TestServersSetupInp
           return false;
         }
       }),
+    portHolder,
     now: () => new Date().toISOString(),
     makeWorkDir: () => mkdtempSync(join(tmpdir(), "aide-board-")),
     // The served board's own port, plus every OTHER tracked

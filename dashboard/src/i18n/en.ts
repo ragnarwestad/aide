@@ -311,6 +311,8 @@ export const en = {
   "list.captionModel": "Model",
   "list.captionSelect": "Select",
   "list.createFailed": "Creating “{title}” in {project} failed: {reason}",
+  "list.createFailedAction": "Press {tryAgain} to open the form with what you typed, then press {create}.",
+  "list.createFailedBridge": "{tryAgain} opens the form with what you typed.",
   "list.createTryAgain": "Try again",
   "list.createDismiss": "Dismiss",
   "wordPhase.badgeHeldBack": "Held back",

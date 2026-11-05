@@ -248,7 +248,9 @@ The job waits for a merge into the same checkout to finish, and its row says it 
 new `startedAt`, and the wait runs from then until a new `startedAt` answers. The last step counts the checkout
 against origin on the process that will serve the page, so the page that loads next never says the check has not been
 made. A failed step ends the job. The failure is drawn first on the Deploy tab, in the usual message layout, naming
-the step and the reason; the server keeps it until the next deploy starts (a restart of the dashboard loses it), so a
+the step and the reason in the reader's language, with what the failed command printed behind the (?) — the install's
+last lines, git's lines for a fetch, or the error itself when the deploy broke on something its steps did not
+foresee; the server keeps it until the next deploy starts (a restart of the dashboard loses it), so a
 reload or another tab shows it too.
 
 A restart held back by a landing in flight waits for that landing, with no time limit, and the row says it is held

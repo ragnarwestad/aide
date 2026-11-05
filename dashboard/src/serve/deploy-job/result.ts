@@ -16,9 +16,10 @@ export const writeDeployDone = (file: string): void =>
   write(file, { ok: true, tool: "none", costMeasured: false, terminalReason: "completed" });
 
 /** A failed deploy: `sentence` is what the row reads in the reader's language,
- *  `error` the same in English, which the row keeps as hover detail. */
-export function writeDeployFailed(file: string, sentence: Sentence): string {
-  const error = renderSentence("en", sentence) ?? "";
+ *  `error` the same in English with what the failed command printed
+ *  under it, which the row keeps as hover detail. */
+export function writeDeployFailed(file: string, sentence: Sentence, detail?: string): string {
+  const error = [renderSentence("en", sentence) ?? "", detail ?? ""].filter(Boolean).join("\n");
   write(file, { ok: false, tool: "none", costMeasured: false, terminalReason: "deploy-failed", error, sentence });
   return error;
 }

@@ -59,10 +59,11 @@ const RELOAD_SCRIPT =
  *
  *  No way back to the spec on either: this tab was opened from the spec
  *  page, which is still standing in the one behind it. */
-export function testServerFailedPage(specFolder: string, why?: string, retryHref?: string): Response {
+export function testServerFailedPage(specFolder: string, why?: string, retryHref?: string, detail?: string): Response {
   return htmlPage(
     `Could not start a test server for "${esc(specFolder)}"`,
     (why ? `<p>${esc(why)}</p>` : "<p>The round did not report an address.</p>") +
+      (detail ? `<pre>${esc(detail)}</pre>` : "") +
       (retryHref ? `<p>${btnLink({ href: retryHref, label: "Try again" })}</p>` : ""),
     { refresh: false },
   );
@@ -107,6 +108,7 @@ function htmlPage(heading: string, body: string, o: { refresh: boolean }): Respo
   .box { text-align: center; max-width: 30rem; padding: 2rem; }
   h1 { font-size: 1.1rem; margin: 0 0 .5rem; }
   p { margin: 0 0 .5rem; opacity: .75; }
+  pre { margin: 0 0 .5rem; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; opacity: .75; }
   .spin { width: 28px; height: 28px; margin: 0 auto 1.25rem; border-radius: 50%;
     border: 3px solid currentColor; border-top-color: transparent; opacity: .5;
     animation: turn 1s linear infinite; }

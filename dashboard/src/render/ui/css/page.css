@@ -11,7 +11,8 @@
    shared with a sidebar, or a short page stops painting the background where
    its content ends. */
 body { font: var(--fs-m)/var(--lh) var(--sans); margin: 0; min-height: 100vh;
-  background: var(--bg); color: var(--text); }
+  background: var(--bg); color: var(--text);
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 /* A link is blue, and only a link: the accent is for action and
    activity (the primary button, the running pip and badge), --danger for
    a failure, and a page of spec titles in the accent read as a page of

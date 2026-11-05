@@ -396,7 +396,10 @@ the sum over the four phases, so a step outside them adds nothing to it.
 A create that ended without a spec (`failed`, `stopped`, `interrupted`, or its own merge failed, still under its
 provisional key, with no merge under way) is not a row in any project: it has no number and nothing to open. The top of
 the list shows one message for it instead: the project, the title and the reason in the reader's language, with **Try
-again** and **Dismiss**. Each failed create has its own message, newest first, and dismissing one leaves the others.
+again** and **Dismiss**. A reason with no advice of its own is followed by what to press: **Try again**, then the
+form's **Create**. A reason that says to press Create names the form's own button and says that **Try again** opens
+the form; a reason with other advice, such as merging a spec that was made but not merged, gets nothing added. The
+step's or the merge's raw output is kept on the record and shown behind the message's (?). Each failed create has its own message, newest first, and dismissing one leaves the others.
 
 **Try again** opens New spec (`/new?retry=<job id>`) with the project, title and description filled in; the phases,
 models and "Depends on" come up at the form's defaults. A project that is no longer offered is left unselected.

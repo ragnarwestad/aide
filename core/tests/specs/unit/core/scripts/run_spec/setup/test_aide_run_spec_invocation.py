@@ -266,6 +266,8 @@ def test_a_run_stopped_at_its_time_limit_keeps_the_model_id_but_no_tokens(runner
     assert out["terminalReason"] == "timeout"
     assert out["modelId"] == "claude-opus-5-5"
     assert "tokens" not in out
+    # The limit, for the board's own sentence: it ran out in the session.
+    assert out["timeLimit"] == {"seconds": int(STOP_DEADLINE_SEC), "during": "session"}
 
 def test_a_fake_claude_step_reports_no_model_id_even_when_its_stream_names_one(runner, workspace, fake_claude):
     """A scripted stand-in names no real model."""

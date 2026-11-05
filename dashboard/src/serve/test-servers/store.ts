@@ -35,7 +35,11 @@ export interface TestServer {
   workDir: string;
   logPath: string;
   status: TestServerStatus;
+  /** What was run to start it, as one line. */
+  command?: string;
   error?: string;
+  /** What the start printed last, in whole lines, behind the failure. */
+  detail?: string;
   startedAt: string;
 }
 
@@ -68,7 +72,9 @@ function parseTestServers(raw: unknown): Record<string, TestServer> {
       workDir: v.workDir,
       logPath: v.logPath,
       status: v.status,
+      command: typeof v.command === "string" ? v.command : undefined,
       error: typeof v.error === "string" ? v.error : undefined,
+      detail: typeof v.detail === "string" ? v.detail : undefined,
       startedAt: v.startedAt,
     };
   }

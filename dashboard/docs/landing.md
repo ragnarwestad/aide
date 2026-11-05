@@ -96,7 +96,9 @@ A landing merges the spec branch into each repo's default branch and pushes, one
   by name.
 - **A code merge can install.** The command is `AIDE_INSTALL_CMD` in the project's `.aide/config`, run in that
   checkout after its code merges, stopped after 120 seconds, and reported beside the merge. With it unset nothing
-  runs, and the result says deploying is still a hand step.
+  runs, and the result says deploying is still a hand step. A failed install names the command and its exit code (or
+  the time limit, or that it could not be started), and keeps the last eight lines it printed — stderr, else stdout —
+  as the detail behind the (?).
 - **The report is per repo, never one collective "ok".** One repo can succeed while another fails.
 
 A landed folder becomes visible on the board when the shared checkout fast-forwards. When the landing is over, the

@@ -100,7 +100,7 @@ export async function specPageRoutes(
       // front of a reader who can do nothing about it is worse than
       // naming what happened and leaving the tab to them.
       if (already?.status === "failed" && !retry) {
-        return testServerFailedPage(specFolder!, already.error, retryHref);
+        return testServerFailedPage(specFolder!, already.error, retryHref, already.detail);
       }
       // Otherwise it has to be started, and that takes minutes — so the
       // tab the reader opened WAITS here rather than being sent back to

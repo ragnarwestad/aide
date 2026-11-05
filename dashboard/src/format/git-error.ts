@@ -89,6 +89,22 @@ export function gitErrorSentence(error: GitError): BoardMessage {
   }
 }
 
+/** Why a fetch of the base failed: the same sentence as a push for a key
+ *  GitHub does not take or an error at GitHub, and otherwise git's words
+ *  with the advice to fetch by hand rather than to push. */
+export function gitFetchSentence(error: GitError): BoardMessage {
+  switch (error.kind) {
+    case "auth":
+    case "github":
+      return gitErrorSentence(error);
+    case "refused":
+    case "other":
+      return { key: "git.fetchOther", values: { cause: error.message } };
+    case "none":
+      return { key: "git.fetchNoText" };
+  }
+}
+
 /** The files a conflict named, as one value every language reads alike:
  *  `a.ts, b.ts (+3)`. */
 export const conflictFiles = (files: string[], more: number): string =>

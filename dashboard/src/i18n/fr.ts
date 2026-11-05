@@ -301,6 +301,8 @@ export const fr: Record<TranslationKey, string> = {
   "list.captionModel": "Modèle",
   "list.captionSelect": "Sélectionner",
   "list.createFailed": "La création de « {title} » dans {project} a échoué : {reason}",
+  "list.createFailedAction": "Cliquez sur {tryAgain} pour ouvrir le formulaire avec ce que vous avez saisi, puis sur {create}.",
+  "list.createFailedBridge": "{tryAgain} ouvre le formulaire avec ce que vous avez saisi.",
   "list.createTryAgain": "Réessayer",
   "list.createDismiss": "Ignorer",
   "wordPhase.badgeHeldBack": "Retenu",

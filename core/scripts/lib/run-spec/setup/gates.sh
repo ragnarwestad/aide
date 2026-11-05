@@ -190,16 +190,17 @@ FETCH_RETRY_WAITS=(1 2 4)
 
 # fetch_base_with_retry <root> <base>: `git fetch origin <base>` in
 # <root>, retried on FETCH_RETRY_WAITS. On failure sets
-# $fetch_retry_error to the last stderr, one line, and returns 1.
+# $fetch_retry_said to the last stderr, whole, and $fetch_retry_error to
+# its first line, and returns 1.
 fetch_base_with_retry() {
   local root="$1" base="$2" wait_s
-  fetch_retry_error=""
-  if fetch_retry_error="$(git -C "$root" fetch -q origin "$base" 2>&1)"; then return 0; fi
+  fetch_retry_error=""; fetch_retry_said=""
+  if fetch_retry_said="$(git -C "$root" fetch -q origin "$base" 2>&1)"; then return 0; fi
   for wait_s in "${FETCH_RETRY_WAITS[@]}"; do
     sleep "$wait_s"
-    if fetch_retry_error="$(git -C "$root" fetch -q origin "$base" 2>&1)"; then return 0; fi
+    if fetch_retry_said="$(git -C "$root" fetch -q origin "$base" 2>&1)"; then return 0; fi
   done
-  fetch_retry_error="$(printf '%s\n' "$fetch_retry_error" | grep -m1 . | sed -e 's/^error: //' | head -c 200)"
+  fetch_retry_error="$(printf '%s\n' "$fetch_retry_said" | grep -m1 . | sed -e 's/^error: //' | head -c 200)"
   return 1
 }
 

@@ -416,12 +416,16 @@ export class Runner {
     // who cannot tell it from a broken agent will ignore both.
     if (isRunStop(outcome.terminalReason)) {
       const stoppedAt = this.o.now();
+      const worded = runStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model));
       const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
         stopReason: outcome.terminalReason,
         ...usageLimitWait(outcome, stoppedAt),
         finishedAt: stoppedAt,
-        error: runStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model)) ?? outcome.error,
+        error: worded ?? outcome.error,
+        // The runner's own sentence, when the board worded the stop: the
+        // reason a sent-back gave, or the limit in the runner's words.
+        errorDetail: worded && typeof outcome.error === "string" ? outcome.error : undefined,
       });
       this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
       return;
@@ -429,7 +433,7 @@ export class Runner {
     if (!outcome.ok) {
       const failure = stepFailure(
         noProgressMessage(step, outcome) ?? cliErrorMessage(step, outcome) ?? gitFailureMessage(outcome),
-        withoutRestatedError(outcome),
+        withoutRestatedError(outcome, step),
         job.model[step] ?? job.modelChoice,
       );
       const result = this.o.store.transition(job.id, "step-failed", {

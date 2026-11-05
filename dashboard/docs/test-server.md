@@ -70,7 +70,11 @@ The moment the server answers, that same tab is carried straight to it — that 
 test run has finished: the specs on it are created one by one, and you watch the list fill.
 
 If it failed to start, the tab says so with the reason it gave, and offers **Try again**, which
-clears the failed attempt and starts a fresh server. Having closed that tab, click the same link on
+clears the failed attempt and starts a fresh server. The reason names the command that was run and its
+last line, with its last eight lines under it (behind the (?) on the spec page). When its log says a
+port was already in use, the reason names that port and, when `lsof` can tell, the process holding it
+and its pid, and says to stop it on the serving host; the port is read from the log as the runner reads
+a test run's log ([bash-typescript-decisions.md](bash-typescript-decisions.md)). Having closed that tab, click the same link on
 the spec's row again: it brings the failure and its **Try again** back. The spec page's own banner
 states the failure but carries no button.
 

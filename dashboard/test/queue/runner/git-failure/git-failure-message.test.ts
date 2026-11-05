@@ -102,3 +102,32 @@ describe("a step whose push GitHub did not take the key for", () => {
     expect(text).toContain("GitHub godtar ikke SSH-nøkkelen til maskinen som kjører Aide");
   });
 });
+
+describe("a step refused because main could not be fetched", () => {
+  const refused = (fetchFailure: unknown) => ({ ok: false, terminalReason: "refused", fetchFailure });
+
+  test("names the repo and the base, with why sorted like a failed push", () => {
+    expect(gitFailureMessage(refused({ repo: "code", branch: "main", kind: "auth" }))).toEqual({
+      key: "runner.notFetchedCode",
+      values: { base: "main" },
+      inner: { key: "git.pushAuth" },
+    });
+  });
+
+  test("git's own first line, or no text, says to fetch by hand rather than to push", () => {
+    expect(gitFailureMessage(refused({ repo: "specs", branch: "main", kind: "other", message: "bad object" }))).toEqual({
+      key: "runner.notFetchedSpecs",
+      values: { base: "main" },
+      inner: { key: "git.fetchOther", values: { cause: "bad object" } },
+    });
+    expect(gitFailureMessage(refused({ repo: "code", branch: "main", kind: "none" }))).toMatchObject({
+      inner: { key: "git.fetchNoText" },
+    });
+  });
+
+  test("reads in Norwegian as GitHub not taking the key, naming the base", () => {
+    const text = renderSentence("nb", gitFailureMessage(refused({ repo: "code", branch: "main", kind: "auth" })) as Parameters<typeof renderSentence>[1]) ?? "";
+    expect(text).toContain("main");
+    expect(text).toContain("GitHub godtar ikke SSH-nøkkelen");
+  });
+});

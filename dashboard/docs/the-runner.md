@@ -144,6 +144,12 @@ did not complete, when its message says "at capacity", and from Claude Code's cl
 status 529 or a message saying overloaded or at capacity. A used-up limit and the step's own time limit win over it.
 opencode has no reader.
 
+**A step stopped at its own time limit** ends `timeout`, and the result carries `timeLimit`: the limit in `seconds`,
+and `during`, `session` when it ran out in the AI tool's turn or `tests` when it ran out in the runner's own run of the
+project's tests. The work so far is committed to the branch either way. The board's sentence names the limit (in whole
+minutes, else seconds) and says to press the step again — to carry on, or to test what is there — or to raise the step's
+time limit under Settings; the runner's own sentence stays behind the (?).
+
 ## The dashboard's own checkouts
 
 **The checkout a run is cut from is not the one a user edits.** The dashboard keeps clones of its own under
@@ -244,6 +250,13 @@ the board's (`gitFailureMessage`, `src/queue/runner/git-failure.ts`): one per re
 with why in the reader's language: `auth` says GitHub does not accept the SSH key of the machine that runs Aide;
 `github` says GitHub had an error, to try again in a little while; `refused` and `other` give the message; `none` says
 git gave no error text.
+
+**A fetch of the base that fails is sorted the same way.** Before it cuts a new branch, the runner fetches the base
+from origin (`fetch_base_with_retry`, `run-spec/setup/gates.sh`, three retries) and refuses when it still fails, rather
+than cut the branch from the checkout's own tip. The result carries the cause as `fetchFailure`, shaped as one entry
+of `pushFailures` with the base as `branch`, and `error` keeps git's lines whole for the (?). The row names the repo and
+the base: `auth` and `github` read as for a push; `other`, `refused` and `none` give git's first line, or say git gave
+no text, and say to run `git fetch` by hand in the checkout on the serving host if trying again fails the same way.
 
 **A branch that conflicts with the base names the files.** A step other than `archive` and `implement` refuses with
 `errorReason: "conflict"` ([Branches and landing](landing.md#archive-and-implement-resolve-the-conflict-themselves)),
@@ -384,6 +397,12 @@ evidence that the phase happened:
   and did its work on the old base ends `merge-unfinished`.
 - `analyze` is refused as `scope-violation` if it changed the project, advanced a status row, or wrote a step onto the
   line that it did not run.
+
+A `scope-violation` carries `scopeViolation`: `specs` when the step wrote outside its own spec folder (those changes
+are undone), `analyze` when an analyze changed what it may not. The board words these, and a `short-analysis-over-limit`,
+a `sent-back`, a `sent-back-refused` and a `create` that made no folder, in the reader's language with what to press
+(`src/queue/runner/cross-check-message.ts`); the runner's own sentence, with the paths, the limits crossed or the
+reason given, stays behind the (?).
 
 **A stamp counts only while nothing cancels it.** An `**Archived:**` or `**Closed:**` line is in effect until a
 later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark follows it, and every reader applies that same

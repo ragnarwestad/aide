@@ -129,3 +129,25 @@ describe("failedCreateFrom", () => {
     expect(r.description).toBe("");
   });
 });
+
+describe("the detail behind a failed create", () => {
+  test("keeps the step's raw detail, or the landing's when the landing failed", () => {
+    const step = failedCreateFrom({
+      id: "j3", project: "aide", error: { key: "runner.serverRestarted", values: { button: "Create" } },
+      errorDetail: "git@github.com: Permission denied (publickey).",
+    } as never);
+    expect(step.detail).toBe("git@github.com: Permission denied (publickey).");
+    const landing = failedCreateFrom({
+      id: "j4", project: "aide", error: "held back", errorDetail: "the held-back line",
+      landingError: { key: "landing.createNothingToLand" }, landingErrorDetail: "the merge's own words",
+    } as never);
+    expect(landing.detail).toBe("the merge's own words");
+  });
+
+  test("a record written without a detail still loads", () => {
+    tmp = tempDir();
+    const path = join(tmp.dir, "f.json");
+    writeFileSync(path, JSON.stringify([rec(1)]));
+    expect(createFailedCreates(path).list()[0]?.detail).toBeUndefined();
+  });
+});

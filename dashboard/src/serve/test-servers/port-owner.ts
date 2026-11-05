@@ -36,3 +36,16 @@ export async function testServerOnPort(port: number): Promise<{ pid: number; wor
   const workDir = workDirOf(output(["ps", "-ww", "-o", "command=", "-p", String(pid)]));
   return workDir ? { pid, workDir } : undefined;
 }
+
+/** Whatever process listens on `port`: its pid and the command's name,
+ *  as `port_holder` in core/scripts/lib/run-spec/turn/test-start.sh asks
+ *  `lsof`. Undefined when nothing listens, or lsof is not there to ask. */
+export function portHolder(port: number): { pid: number; command?: string } | undefined {
+  const pid = Number(output(["lsof", "-nP", "-t", `-iTCP:${port}`, "-sTCP:LISTEN"]).trim().split("\n")[0]);
+  if (!pid) return undefined;
+  const command = output(["lsof", "-a", "-p", String(pid), "-d", "cwd", "-Fc"])
+    .split("\n")
+    .find((l) => l.startsWith("c"))
+    ?.slice(1);
+  return command ? { pid, command } : { pid };
+}

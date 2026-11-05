@@ -303,6 +303,8 @@ export const nb: Record<TranslationKey, string> = {
   "list.captionModel": "Modell",
   "list.captionSelect": "Velg",
   "list.createFailed": "Å opprette «{title}» i {project} feilet: {reason}",
+  "list.createFailedAction": "Trykk {tryAgain} for å åpne skjemaet med det du skrev, og trykk så {create}.",
+  "list.createFailedBridge": "{tryAgain} åpner skjemaet med det du skrev.",
   "list.createTryAgain": "Prøv igjen",
   "list.createDismiss": "Lukk",
   "wordPhase.badgeHeldBack": "Holdt tilbake",

@@ -65,18 +65,33 @@ describe("the board log says what a start did", () => {
       },
     });
     const result = await startTestServer(ctx, "aide", "spec-1");
-    expect(result).toEqual({ ok: false, error: "could not start the board: EACCES" });
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error).toContain("could not run /checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep: EACCES");
     expect(lines[0]).toContain("boards: could not start aide/spec-1 @ abc1234 on :8801 — EACCES");
     expect(lines[0]).toContain("/checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep");
   });
 
-  test("a round that died before reporting an address is logged with its last line", async () => {
+  test("a round that died before reporting an address names its command, with its last lines as the detail", async () => {
     const ctx = makeCtx();
     await startTestServer(ctx, "aide", "spec-1");
-    writeFileSync(join(dir, "board.log"), "cannot check out aide/spec-1 in a worktree\n");
+    const printed = Array.from({ length: 10 }, (_, i) => `step ${i + 1}`).concat("cannot check out aide/spec-1 in a worktree");
+    writeFileSync(join(dir, "board.log"), `${printed.join("\n")}\n`);
     const after = refreshTestServerStatus(ctx, "aide", "spec-1");
     expect(after?.status).toBe("failed");
-    expect(lines[1]).toContain("boards: aide/spec-1 did not come up on :8801 — cannot check out aide/spec-1 in a worktree");
+    expect(after?.error).toContain("/checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep");
+    expect(after?.detail).toBe(printed.slice(-8).join("\n"));
+    expect(lines[1]).toContain("boards: aide/spec-1 did not come up on :8801");
+  });
+
+  test("a start whose port was taken names the port and the process holding it", async () => {
+    const asked: number[] = [];
+    const ctx = makeCtx({ portHolder: (port) => (asked.push(port), { pid: 777, command: "postgres" }) });
+    await startTestServer(ctx, "aide", "spec-1");
+    writeFileSync(join(dir, "board.log"), "Error: listen EADDRINUSE: address already in use 127.0.0.1:5432\n");
+    const after = refreshTestServerStatus(ctx, "aide", "spec-1");
+    expect(asked).toEqual([5432]);
+    expect(after?.error).toContain("5432");
+    expect(after?.error).toContain("postgres (pid 777)");
   });
 
   test("a context without a log still works", async () => {
