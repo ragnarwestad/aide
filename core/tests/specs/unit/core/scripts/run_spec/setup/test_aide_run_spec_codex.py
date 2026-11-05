@@ -390,3 +390,55 @@ def test_the_dry_run_shows_the_codex_argv(runner, workspace, fake_codex):
     assert out["argv"][0] == str(codex)
     assert out["argv"][1] == "exec"
     assert not fake_codex.calls.exists()
+
+
+def _codex_env(fake_codex, tmp_path, stream):
+    """A stand-in `codex` that also records the CODEX_HOME it was started with."""
+    log = tmp_path / "codex-env.txt"
+    return fake_codex(f'printf "%s\\n" "${{CODEX_HOME-unset}}" >> {log}; ' + emits(stream)), log
+
+
+def test_every_codex_turn_runs_with_the_providers_codex_home(runner, workspace, fake_codex, tmp_path, monkeypatch):
+    """`--codex-home` is the folder the step's provider logs in under, and
+    the runner exports it as CODEX_HOME for the whole run."""
+    monkeypatch.delenv("CODEX_HOME", raising=False)
+    home = tmp_path / "codex-2"
+    home.mkdir()
+    codex, log = _codex_env(fake_codex, tmp_path, CODEX_STREAM_OK)
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, codex_home=str(home))
+    assert rc == 0, out
+    assert log.read_text().splitlines() == [str(home)]
+
+
+def test_a_codex_step_with_no_codex_home_flag_sets_no_codex_home(runner, workspace, fake_codex, tmp_path, monkeypatch):
+    monkeypatch.delenv("CODEX_HOME", raising=False)
+    codex, log = _codex_env(fake_codex, tmp_path, CODEX_STREAM_OK)
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert rc == 0, out
+    assert log.read_text().splitlines() == ["unset"]
+
+
+def test_the_limit_is_read_from_the_session_file_through_a_linked_sessions_folder(
+        runner, workspace, fake_codex, tmp_path, monkeypatch):
+    """A shadow home reaches the shared sessions through a link; `find` does
+    not go into a link given without a trailing slash."""
+    monkeypatch.delenv("CODEX_HOME", raising=False)
+    shared = tmp_path / "codex-shared"
+    _codex_session(shared, {
+        "primary": {"used_percent": 100.0, "window_minutes": 300, "resets_at": 1789639800},
+        "plan_type": "plus", "rate_limit_reached_type": None})
+    shadow = tmp_path / "codex-shadow"
+    shadow.mkdir()
+    (shadow / "sessions").symlink_to(shared / "sessions")
+    codex = fake_codex(emits(CODEX_STREAM_FAILED))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, codex_home=str(shadow))
+    assert out["terminalReason"] == "provider-limit", out
+    assert out["providerLimit"]["window"] == "five_hour"
+
+
+def test_a_codex_home_that_is_not_there_is_refused_before_any_turn_starts(runner, workspace, fake_codex, tmp_path):
+    missing = str(tmp_path / "gone")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=fake_codex(emits(CODEX_STREAM_OK)), codex_home=missing)
+    assert rc != 0, out
+    assert missing in out["error"] and "not there" in out["error"], out["error"]
+    assert not fake_codex.calls.exists()

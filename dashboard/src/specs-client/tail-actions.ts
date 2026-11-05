@@ -92,7 +92,7 @@ export async function postTailStep(box: HTMLInputElement): Promise<void> {
  *
  *  The step is the select's own `name` — `model.<step>`, the field it
  *  posts under on a row that is not busy. */
-export async function postTailModel(select: HTMLSelectElement, model: string): Promise<void> {
+export async function postTailModel(select: HTMLSelectElement, model: string, provider?: string): Promise<void> {
   const to = select.getAttribute("data-post-to") ?? "";
   const step = select.name.startsWith("model.") ? select.name.slice("model.".length) : "";
   if (!to || !step) return;
@@ -111,6 +111,7 @@ export async function postTailModel(select: HTMLSelectElement, model: string): P
     const body = new URLSearchParams();
     body.append("step", step);
     body.append("model", model);
+    if (provider) body.append("provider", provider);
     const res = await fetch(url.toString(), {
       method: "POST",
       headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },

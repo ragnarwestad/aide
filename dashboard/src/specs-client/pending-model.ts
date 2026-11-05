@@ -26,7 +26,7 @@ function specFromFormId(formId: string): { project: string; specFolder: string }
  *  action, and disabling every select on the row for each pick would be
  *  a worse interaction than the one being fixed, since a reader may try
  *  several models in a row before settling on one. */
-export async function postPendingModel(select: HTMLSelectElement, step: string, model: string): Promise<void> {
+export async function postPendingModel(select: HTMLSelectElement, step: string, model: string, provider?: string): Promise<void> {
   const formId = select.getAttribute("form") ?? "";
   const spec = specFromFormId(formId);
   if (!spec) return;
@@ -34,6 +34,7 @@ export async function postPendingModel(select: HTMLSelectElement, step: string, 
   const body = new URLSearchParams();
   body.append("step", step);
   body.append("model", model);
+  if (provider) body.append("provider", provider);
   try {
     const res = await fetch(url.toString(), {
       method: "POST",

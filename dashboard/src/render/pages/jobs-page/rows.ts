@@ -12,7 +12,7 @@ import { t, type Language, type TranslationKey } from "../../../i18n";
 import { renderSentence } from "../../../i18n/message.ts";
 import { waitsForPerson } from "../../../queue/steps.ts";
 import { heldBackResolvesOnItsOwn, inFlight, type QueueRowView } from "../../ui/job-state";
-import { onAccount, usageLimitText } from "../../ui/job-state/provider-limit.ts";
+import { usageLimitText } from "../../ui/job-state/provider-limit.ts";
 import type { SpecGroup } from "../specs-list";
 
 /** What a job and its row view have in common, and all the rules read. */
@@ -165,7 +165,7 @@ export interface JobMessage {
 /** What the line reads: the row view's fields, with `steps` as `JobLike` has
  *  them, so the tests' plain jobs fit as `StateRow`'s do. */
 type MessageRow = Pick<QueueRowView, "id" | "state" | "error" | "errorReason" | "stepIndex"> &
-  Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait" | "results" | "stepModels" | "model" | "claudeAccount" | "runOnAccounts">> & {
+  Partial<Pick<QueueRowView, "stopReason" | "usageLimitWait" | "results" | "stepModels" | "model" | "provider">> & {
     steps: readonly string[];
   };
 
@@ -175,22 +175,20 @@ const ENDED: Partial<Record<QueueRowView["state"], TranslationKey>> = {
   interrupted: "jobs.endedInterrupted",
 };
 
-/** The sentence naming the account a job's step ran on, from the newest
- *  step result that names one; none when every step ran on the default. */
+/** The sentence naming the provider a job's step ran on, from the newest
+ *  step result that names one; none when no step ran on an AI. */
 function ranOnSentence(row: MessageRow, lang: Language): string | undefined {
-  const result = [...(row.results ?? [])].reverse().find((r) => r.claudeAccount);
-  if (!result?.claudeAccount) return undefined;
-  return t(lang, "notice.accountRan", { step: stepLabel(result.step ?? row.steps[row.stepIndex] ?? "", lang), who: onAccount("Claude", result.claudeAccount, lang) });
+  const result = [...(row.results ?? [])].reverse().find((r) => r.provider);
+  if (!result?.provider) return undefined;
+  return t(lang, "notice.providerRan", { step: stepLabel(result.step ?? row.steps[row.stepIndex] ?? "", lang), who: result.provider.name });
 }
 
 export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefined {
   const ended = ENDED[row.state];
   if (ended) {
-    // A step moved between Claude accounts is told in the usage-limit
-    // sentence, which names the account the stop was on.
-    const limitText = row.state === "stopped" && (row.claudeAccount || row.runOnAccounts?.length)
-      ? usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now())
-      : undefined;
+    // A usage-limit stop is told in its own sentence, which names the
+    // provider the stop was on.
+    const limitText = row.state === "stopped" ? usageLimitText({ ...row, steps: [...row.steps] }, lang, Date.now()) : undefined;
     const own = limitText ?? (renderSentence(lang, row.error) || t(lang, ended));
     const ranOn = limitText === undefined ? ranOnSentence(row, lang) : undefined;
     return {
@@ -204,17 +202,15 @@ export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefi
     const text = renderSentence(lang, row.error);
     if (text) return { variant: heldBackResolvesOnItsOwn(row) ? "info" : "waiting", text };
   }
-  // A job on another Claude account says so while it runs, as the Specs
-  // list's row does.
-  if (row.claudeAccount && row.state !== "done" && row.state !== "cancelled") {
+  // A job names the provider its step runs on while it runs.
+  if (row.provider && row.state !== "done" && row.state !== "cancelled") {
     const step = row.steps[row.stepIndex] ?? row.steps[row.steps.length - 1] ?? "";
     return {
       variant: "info",
-      text: t(lang, "notice.accountRuns", { step: stepLabel(step, lang), who: onAccount("Claude", row.claudeAccount, lang) }),
+      text: t(lang, "notice.providerRuns", { step: stepLabel(step, lang), who: row.provider }),
     };
   }
-  // A finished job says which account its step ran on, when it was not the
-  // default one.
+  // A finished job says which provider its step ran on.
   if (row.state === "done" || row.state === "cancelled") {
     const text = ranOnSentence(row, lang);
     if (text) return { variant: "info", text };

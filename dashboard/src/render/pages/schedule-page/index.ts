@@ -86,6 +86,8 @@ export interface ScheduleDetailPageOptions {
   editing?: boolean;
   modelChoices?: ScheduleSettingsOptions["modelChoices"];
   defaultModels?: ScheduleSettingsOptions["defaultModels"];
+  providerChoices?: ScheduleSettingsOptions["providerChoices"];
+  defaultProviders?: ScheduleSettingsOptions["defaultProviders"];
   /** Where Settings' Delete goes once it has gone through. */
   deleteDone?: string;
 }
@@ -104,7 +106,8 @@ export function renderScheduleDetailPage(
     tab === "settings"
       ? renderScheduleSettings({
           project: opts.project, entry: opts.entry, editing: opts.editing, modelChoices: opts.modelChoices,
-          defaultModels: opts.defaultModels, deleteDone: opts.deleteDone, lang: opts.lang ?? "en",
+          defaultModels: opts.defaultModels, providerChoices: opts.providerChoices,
+          defaultProviders: opts.defaultProviders, deleteDone: opts.deleteDone, lang: opts.lang ?? "en",
         })
       : (opts.reportPanel ?? "") +
         renderScheduleRuns({

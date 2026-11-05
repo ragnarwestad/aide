@@ -14,21 +14,15 @@ import {
 
 // --- An AI and a model on every phase line -------------------------
 //
-// The row's one "set all" control is gone, and every phase line carries
-// an AI select of its own beside its model select instead. Choosing an
-// AI for a phase fills in the model for that same phase, and nothing
-// else on the row moves.
+// Every phase line carries a provider select of its own beside its model
+// select. Choosing a provider for a phase fills in the model for that same
+// phase, and nothing else on the row moves. The select posts
+// `provider.<step>` beside `model.<step>`.
 //
-// The AI select posts NOTHING and states nothing the job does not
-// already hold: what a phase runs on stays one value on the job — the
-// `model.<step>` field — and the tool is derived from it. So the
-// select is READ on change, to fill the model in, and WRITTEN on
-// redraw, to reflect it. Never the reverse, and never a second field.
-//
-// Which model an AI stands for is answered HERE, where the
+// Which model a provider stands for is answered HERE, where the
 // configuration is, and carried into the markup on each option's
-// `data-default`: the step's configured default when that default
-// belongs to the tool, else the first entry `modelChoices` lists for
+// `data-default`: the step's configured default when that default runs
+// under the provider's tool, else the first entry `modelChoices` lists for
 // it. The browser copies a value; it never chooses one.
 describe("an AI and a model on every phase line", () => {
   const target = (specFolder = "179-ai-per-phase"): SpecTarget => ({ project: "aide", specFolder });
@@ -60,12 +54,16 @@ describe("an AI and a model on every phase line", () => {
         runnerAvailable: true,
         targets,
         modelChoices: BOTH,
+        providerChoices: [CLAUDE, CODEX],
         filter: { open: openKeys(list, targets) },
         ...opts,
       },
       Date.parse("2026-08-21T12:00:00Z"),
     );
 
+  const CLAUDE = { key: "Claude", name: "Claude", tool: "claude" as const };
+  const CAPRA = { key: "capra", name: "Claude-Capra", tool: "claude" as const };
+  const CODEX = { key: "Codex", name: "Codex", tool: "codex" as const };
   const STEPS = ["create", "analyze", "implement", "archive"];
   const aiSelect = (html: string, step: string) =>
     html.match(new RegExp(`<select[^>]*data-ai="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";
@@ -74,34 +72,33 @@ describe("an AI and a model on every phase line", () => {
 
   // --- One AI per phase, beside that phase's model ------------
 
-  test("a tool with no model configured is not offered as an AI", () => {
-    // The count that decides WHAT is offered is TOOLS, not models: one
-    // configured tool draws one option, and a tool nothing is
-    // configured for draws none. The control itself is drawn either
-    // way — a heading with no control under it, or a model select under
-    // a heading that says AI, is what hiding it produced.
-    const html = rows([], { modelChoices: ONE_TOOL });
+  test("the select lists the providers it is given by name, and posts its key under provider.<step> (AC-9)", () => {
+    const html = rows([], { modelChoices: ONE_TOOL, providerChoices: [CLAUDE, CAPRA] });
     for (const step of STEPS) {
-      expect([step, aiSelect(html, step).includes(">Claude Code<")]).toEqual([step, true]);
-      expect([step, aiSelect(html, step).includes(">Codex<")]).toEqual([step, false]);
+      const select = aiSelect(html, step);
+      expect([step, select.includes(`name="provider.${step}"`)]).toEqual([step, true]);
+      expect([step, select.includes('<option value="capra"')]).toEqual([step, true]);
+      expect([step, select.includes(">Claude-Capra<")]).toEqual([step, true]);
+      expect([step, select.includes(">Codex<")]).toEqual([step, false]);
     }
     // And the model selects beside it are untouched by any of it.
     expect(html).toContain('<select name="model.analyze"');
   });
 
-  test("no model configured at all draws no AI select either", () => {
+  test("no model configured at all, or no provider to list, draws no AI select either", () => {
     expect(rows([], { modelChoices: undefined })).not.toContain('data-ai="');
+    expect(rows([], { providerChoices: [] })).not.toContain('data-ai="');
   });
 
   // --- The model an AI fills in is worked out here ------------
 
-  test("each option carries the model its tool fills in", () => {
+  test("each option carries the model its provider's tool fills in", () => {
     const select = aiSelect(rows(), "analyze");
     // The first entry `modelChoices` lists for that tool, in
     // configuration order — `fable` is a Claude model too and does not
     // lead.
-    expect(select).toMatch(/<option value="claude" data-default="sonnet"/);
-    expect(select).toMatch(/<option value="codex" data-default="gpt-fast"/);
+    expect(select).toMatch(/<option value="Claude" data-tool="claude" data-default="sonnet"/);
+    expect(select).toMatch(/<option value="Codex" data-tool="codex" data-default="gpt-fast"/);
   });
 
   test("a step's configured default is what its own tool fills in", () => {
@@ -109,19 +106,19 @@ describe("an AI and a model on every phase line", () => {
     // Configuration named a model for this step, and it is a Claude
     // one — so picking Claude Code gives it back rather than the
     // tool's first entry.
-    expect(aiSelect(html, "analyze")).toMatch(/<option value="claude" data-default="fable"/);
+    expect(aiSelect(html, "analyze")).toMatch(/<option value="Claude" data-tool="claude" data-default="fable"/);
     // The other tool has no configured opinion, so it falls through.
-    expect(aiSelect(html, "analyze")).toMatch(/<option value="codex" data-default="gpt-fast"/);
+    expect(aiSelect(html, "analyze")).toMatch(/<option value="Codex" data-tool="codex" data-default="gpt-fast"/);
     // And it is the STEP's default, not the row's: implement was not
     // named, so it keeps the tool's first entry.
-    expect(aiSelect(html, "implement")).toMatch(/<option value="claude" data-default="sonnet"/);
+    expect(aiSelect(html, "implement")).toMatch(/<option value="Claude" data-tool="claude" data-default="sonnet"/);
   });
 
   test("a configured default belonging to the other tool is left to that tool", () => {
     const html = rows([], { defaultModels: { default: "gpt-fast" } });
     const select = aiSelect(html, "analyze");
-    expect(select).toMatch(/<option value="codex" data-default="gpt-fast"/);
-    expect(select).toMatch(/<option value="claude" data-default="sonnet"/);
+    expect(select).toMatch(/<option value="Codex" data-tool="codex" data-default="gpt-fast"/);
+    expect(select).toMatch(/<option value="Claude" data-tool="claude" data-default="sonnet"/);
   });
 
   // --- the server half: the AI shown is the model's own ---------------------
@@ -131,14 +128,14 @@ describe("an AI and a model on every phase line", () => {
     // Nothing configured and nothing run: the model select falls back
     // to the first entry, and the AI select says whose it is.
     for (const step of STEPS) {
-      expect([step, /<option value="claude"[^>]*selected/.test(aiSelect(html, step))]).toEqual([step, true]);
-      expect([step, /<option value="codex"[^>]*selected/.test(aiSelect(html, step))]).toEqual([step, false]);
+      expect([step, /<option value="Claude"[^>]*selected/.test(aiSelect(html, step))]).toEqual([step, true]);
+      expect([step, /<option value="Codex"[^>]*selected/.test(aiSelect(html, step))]).toEqual([step, false]);
     }
     // Move the model, and the AI moves with it — the same fallback
     // decides both, so the two cannot disagree.
     const codexFirst = rows([], { modelChoices: CODEX_FIRST });
     expect(phaseSelect(codexFirst, "analyze")).toMatch(/<option value="gpt-fast"[^>]*selected/);
-    expect(aiSelect(codexFirst, "analyze")).toMatch(/<option value="codex"[^>]*selected/);
+    expect(aiSelect(codexFirst, "analyze")).toMatch(/<option value="Codex"[^>]*selected/);
   });
 
   test("a phase that ran on the other tool says so, and its neighbours do not", () => {
@@ -148,8 +145,8 @@ describe("an AI and a model on every phase line", () => {
         stepIndex: 0, state: "done", model: "gpt-fast",
       }),
     ]);
-    expect(aiSelect(html, "implement")).toMatch(/<option value="codex"[^>]*selected/);
-    expect(aiSelect(html, "analyze")).toMatch(/<option value="claude"[^>]*selected/);
+    expect(aiSelect(html, "implement")).toMatch(/<option value="Codex"[^>]*selected/);
+    expect(aiSelect(html, "analyze")).toMatch(/<option value="Claude"[^>]*selected/);
   });
 
   // --- Nothing new is posted ---------------------------------

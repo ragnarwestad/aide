@@ -22,8 +22,8 @@ export interface JobStepResultView {
   terminalReason: string;
   /** Present only on a step a provider's usage limit stopped. */
   providerLimit?: ProviderLimit;
-  /** The Claude account this step ran on, when it was not the default. */
-  claudeAccount?: string;
+  /** The provider this step ran on, as it was named then. */
+  provider?: { key: string; name: string };
   subtype?: string;
   sessionId?: string;
   /** Absent while this step's own work is still landing — see

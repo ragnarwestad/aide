@@ -3,7 +3,7 @@
 
 import { drawLimits } from "./limits";
 import { applyRefusal } from "./row-refusal";
-import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
+import { offerEachToItsTool } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
 import { syncApproachCancels } from "./approach-choice";
 import { syncDependsOnForms } from "./depends-on";
@@ -96,6 +96,16 @@ export function restoreChosen(body: Element): void {
   // holds a change.
   syncDependsOnForms(body);
   if (!chosen.size && !chosenSteps.size) return;
+  // The provider first, then the model: the fresh markup drew both for what
+  // the server chose, and a hand-made pick is put back over each.
+  for (const el of body.querySelectorAll('select[name^="provider."]')) {
+    const provider = el as HTMLSelectElement;
+    const want = chosen.get(selectKey(provider));
+    if (want === undefined) continue;
+    for (const option of provider.options) {
+      if (option.value === want) provider.value = want;
+    }
+  }
   for (const el of body.querySelectorAll('select[name^="model."]')) {
     const model = el as HTMLSelectElement;
     const want = chosen.get(selectKey(model));
@@ -103,11 +113,6 @@ export function restoreChosen(body: Element): void {
     for (const option of model.options) {
       if (option.value === want) model.value = want;
     }
-    // The AI select this swap just redrew was drawn for the model the
-    // SERVER chose, and the line above has put another one back over
-    // it. It carries no memory of its own — it is set from the model,
-    // every time, which is what stops the two disagreeing.
-    syncAiToModel(model);
   }
   for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"]')) {
     const box = el as HTMLInputElement;

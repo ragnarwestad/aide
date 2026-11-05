@@ -378,7 +378,7 @@ export class Runner {
     // could make ambiguous.
     const resultIndex = job.results.length;
     const measures = { cost, tokens, modelId, at: landingWork ? undefined : this.o.now() };
-    const results = [...job.results, stepResultEntry(job, step, outcome, measures)];
+    const results = [...job.results, stepResultEntry(job, step, outcome, measures, this.o.store.defaults)];
     // Against the choice the step ran on: what the pickers say an alias gives today.
     if (modelId) this.o.store.recordModelId(resolveStepModel(job, step, this.o.store.defaults.model), modelId);
     if (landingWork) {

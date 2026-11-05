@@ -62,6 +62,8 @@ function newSpecPhaseTable(opts: NewSpecPageOptions, formId: string): string {
   const pickerOpts: PickerOptions = {
     modelChoices: opts.modelChoices,
     defaultModels: opts.defaultModels,
+    providerChoices: opts.providerChoices,
+    defaultProviders: opts.defaultProviders,
     // No `pendingModels`: a spec that does not exist yet has no
     // `specFolder` to key a pending pick on — the `pending`
     // tier of `resolveChosenModel` then falls through to `configured`

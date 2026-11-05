@@ -107,11 +107,16 @@ choose_approach_arg=""
 # templates. Without it a reopen keeps every file and runs no model.
 reset_files="no"
 resume_session=""
-# `--claude-config-dir`: the Claude account a step of a job moved to another
-# login runs on, as the directory Claude Code keeps that login in. Empty means
+# `--claude-config-dir`: the folder a Claude Code step's provider keeps its
+# login in, as the directory Claude Code keeps that login in. Empty means
 # Claude's own default (`~/.claude`). Set as CLAUDE_CONFIG_DIR for every
 # Claude turn (turn/model-turn.sh).
 claude_config_dir=""
+# `--codex-home`: the folder a Codex step's provider keeps its login in (its
+# shadow home when it has one). Empty means Codex's own default. Exported as
+# CODEX_HOME for the whole run, so every Codex turn and the runner's own read
+# of Codex's session file use it.
+codex_home_arg=""
 # The file whose contents become the prompt VERBATIM, for `--command
 # schedule` alone. A schedule entry names no aide skill and
 # no spec folder — its whole "job" is the text at this path, read from
@@ -175,6 +180,7 @@ while [ $# -gt 0 ]; do
     --effort) effort="${2:-}"; shift 2 ;;
     --tool) tool="${2:-}"; shift 2 ;;
     --claude-config-dir) claude_config_dir="${2:-}"; shift 2 ;;
+    --codex-home) codex_home_arg="${2:-}"; shift 2 ;;
     --review-tool) review_tool="${2:-}"; shift 2 ;;
     --review-model) review_model="${2:-}"; shift 2 ;;
     --verify-tool) verify_tool="${2:-}"; shift 2 ;;
@@ -262,6 +268,10 @@ fi
 # one, logged out, and say less about why.
 if [ -n "$claude_config_dir" ] && [ ! -d "$claude_config_dir" ]; then
   refuse "the Claude account's directory $claude_config_dir is not there on the serving host"
+fi
+if [ -n "$codex_home_arg" ]; then
+  [ -d "$codex_home_arg" ] || refuse "the Codex folder $codex_home_arg is not there on the serving host"
+  export CODEX_HOME="$codex_home_arg"
 fi
 
 # Refused rather than dropped: a job that asked for the browser and ran

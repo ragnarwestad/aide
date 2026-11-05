@@ -12,7 +12,7 @@
 - [Running a job on a schedule](#running-a-job-on-a-schedule)
 - [How many run at once](#how-many-run-at-once)
 - [When an AI's usage limit is used up](#when-an-ais-usage-limit-is-used-up)
-- [Running a step on another Claude account](#running-a-step-on-another-claude-account)
+- [Providers](#providers)
 - [Notifications](#notifications)
     - [Push notifications on a phone or laptop](#push-notifications-on-a-phone-or-laptop)
 - [The Running tab](#the-running-tab)
@@ -159,11 +159,12 @@ on, and `verify` the choice that checks each defect the review finds
 Without `review` the review runs on the step's own model, and without `verify` nothing checks it.
 
 `resumeAnalysis: true` lets an implement continue its analysis's own AI session. It applies only when both steps run
-with the same AI (the model may differ) and the analysis ended within the hour. Off unless set.
+with the same AI (the model may differ) and the analysis ended within the hour, and the two providers share sessions:
+the same provider, or two Codex providers with one `CODEX_HOME`. Off unless set.
 
 The server WRITES some of that file's keys as well as reading them, each from one page: `projects` from the Add and
 Remove buttons on `/projects`, `schedules` from a project's Schedule tab, and `model`, `timeoutSec`, `concurrency`,
-`modelChoices` and `claudeAccounts` from Settings. A write keeps the file's comments and every other key. Where the file
+`modelChoices`, `providers` and `provider` from Settings. A write keeps the file's comments and every other key. Where the file
 has a `projects` array, it wins over the `--queue-projects` flag, which seeds a first install. A malformed file is
 ignored and the flag is kept.
 
@@ -432,8 +433,8 @@ in `git worktree` checkouts of its own.
 A step that stops because its AI's usage limit is used up (`provider-limit`: Claude Code or Codex) is started again by
 the board itself once the limit has reset. Nobody presses anything.
 
-- **The hold.** From the stop until the reset time the stop recorded, the board starts no queued step on that AI.
-  Those jobs stay `queued` and say so on their row and on their job page. Steps on other AIs start as before, and
+- **The hold.** From the stop until the reset time the stop recorded, the board starts no queued step on that provider.
+  Those jobs stay `queued` and say so on their row and on their job page. Steps on other providers start as before, and
   OpenCode and Copilot, which report no usage limit, behave as always.
 - **Starting again.** At the reset time the stopped step is queued again — the same job, in its place in the queue —
   and the steps held behind it start as the slots allow. A step that hits the limit again is held and started again
@@ -441,61 +442,85 @@ the board itself once the limit has reset. Nobody presses anything.
 - **No reset time.** When the AI did not say when its limit resets, the board waits one hour. Then it starts one
   step, the oldest stopped one. If that step runs, the rest follow; if it hits the limit again, the board waits again,
   until the new reset time when the stop gives one and one hour when it does not.
-- **A press starts at once.** Pressing a stopped job's step button (Implement, Analyze and so on) queues the step as
-  today, and it starts at once, past the hold. A held job's row offers Cancel; once it is cancelled the step button
+- **A press starts at once.** Choosing another provider in the phase's AI choice and pressing a stopped job's step
+  button (Implement, Analyze and so on) queues the step on that provider, and it starts at once, past the hold. The row
+  offers no button of its own for this. A held job's row offers Cancel; once it is cancelled the step button
   starts the step at once. When the stopped job's own time comes it is not started a second time.
-- **A scheduled run** whose AI is held waits like any other step and starts when that AI's steps start again.
+- **A scheduled run** whose AI is held waits like any other step and starts when that provider's steps start again.
 - **A restart of the board.** The hold and the time to start again are stored on the jobs, so a restart keeps them.
   A stop recorded before the wait existed has no time and is never started by the board.
 
-The stopped job's row and page say which AI's limit is used up, which window (five-hour or weekly) when the AI named
+The stopped job's row and page say which provider's limit is used up, which window (five-hour or weekly) when the AI named
 one, that the step starts again by itself, and the time. With no reset time they say that the AI did not say when its
-limit resets, and the time the board tries again. A held job says that it waits for that AI's usage limit and the
+limit resets, and the time the board tries again. A held job says that it waits for that provider's usage limit and the
 time it starts; while the step sent ahead is running, it says when the board tried again and that it starts once that
 step has run. [A job's states](job-states.md) has the fields and the transition behind it.
 
-## Running a step on another Claude account
+## Providers
 
-The serving host can have a second Claude login with quota left. Claude Code keeps one login and keychain entry for
-each `CLAUDE_CONFIG_DIR`, so a second login is a directory of its own, such as `~/.claude-2`.
+A provider is one named AI login: a tool (Claude Code, Codex or OpenCode) and the folders that tool keeps its login in.
+Every AI choice on the board lists providers by name ("Claude", "Claude-Capra", "Codex"), with the model choice under
+the provider. A provider's name has letters, digits, `.`, `_` and `-`, at most 64.
 
-- **The accounts.** Settings → AI → Claude Code → Accounts lists the logins the board may use. **Default** is the
-  login the board uses today (`~/.claude`); it is always there and is neither renamed nor removed. Add takes a name and
-  the directory, written from `/` or `~/`, which has to exist on the serving host; each added account has Rename and
-  Remove. They are the `claudeAccounts` key of `queue-config.json`
-  (`"claudeAccounts": { "Work": { "configDir": "~/.claude-2" } }`), which the board writes and reads back.
-- **The button.** A Claude step stopped on a usage limit offers one button for each other account: "Run on Work",
-  and "Run on Default" once it is on another account. It is on the row's notice on the Specs list and the Running tab,
-  on a job's row on the Jobs tab, and under the state on the job's page. Pressing it queues the step again at once on
-  that account, without waiting for the limit to reset. No button is offered while no account besides Default
-  is configured.
-- **Nobody presses.** A stopped step behaves as in [When an AI's usage limit is used up](#when-an-ais-usage-limit-is-used-up):
-  it is queued again by itself when the limit resets, on the account it ran on. The hold is per login: a step on Work
-  waits for Work's limit only, and the login a step was moved off stays held until its old reset time.
-- **What runs on the account.** The account goes onto the job from the press on, so its later Claude steps run there
-  too. Every Claude turn of such a step runs with that account's directory, the review and its verification included.
-  A step that continues an earlier session of the spec (an implement continuing its analysis, a fix after a review or
-  red tests) finds it under the account's `projects`, which is linked to `~/.claude`'s.
-- **Where it shows.** The job's row and its page name the account when it was not Default ("Claude (Opus) on Work"),
-  and the page's Overview and each step's facts have an Account line. On the Jobs tab a row names it while the job
-  runs and after it has ended: a done or cancelled job gets a line "Implement ran on Claude on Work", and a failed or
-  interrupted one gets that sentence after its own. A job moved to an account and cancelled before a step ran there
-  names none.
-- **The sandbox.** The step may not write the account's `.claude.json`, settings, hooks, skills, agents, rules or
-  plugins, as for `~/.claude` ([What a step can reach](the-runner.md#what-a-step-can-reach)).
+- **The list.** Settings → AI → Providers lists every provider with its tool and folders, and has **Add**, and **Edit**,
+  **Rename** and **Remove** for each. Add opens a page of its own: the tool first, then that tool's fields. Edit keeps
+  the tool; to change the tool, add a provider. No provider is special: the one the board has always used can be
+  renamed and removed like the rest.
+- **The fields.** Claude Code: a config folder, handed over as `CLAUDE_CONFIG_DIR`; empty means Claude Code's own
+  `~/.claude`. Codex: a `CODEX_HOME` folder, empty meaning `~/.codex`, and an optional shadow home. OpenCode: none. A
+  folder is written from `/` or `~/`. The config folder and the `CODEX_HOME` have to exist on the serving host.
+- **One login each.** Save refuses a provider whose login another provider of the same tool already uses: the same
+  Claude config folder, the same Codex folder (the shadow home when there is one), or a second OpenCode provider.
+- **Stored under a key.** The `providers` table of `queue-config.json` holds each provider under a key that never
+  changes, with its `name`, `tool` and fields; the `provider` table gives each phase's default provider by key. A
+  rename changes the name alone, so jobs, schedules and phase defaults need no rewriting. A finished step keeps the
+  name it ran under.
+- **The first start.** On the first start with no `providers` key, the board makes `Claude`, `Codex` and `OpenCode` for
+  the tools' own logins and one provider for each entry that was under `claudeAccounts`, points every phase default,
+  schedule entry and job at the provider that is the same login, and removes `claudeAccounts`.
+- **Remove.** A provider that a phase default, a schedule entry or a job that will still run (queued, running, or
+  stopped waiting for a reset) uses is not removed; the refusal names what uses it.
+- **Choosing.** The AI choice on a phase line, on the Settings phases table, on New spec and on the Schedule form lists
+  the providers that run at least one model choice. Choosing a provider narrows the model choice to the models its tool
+  runs. A job, a pending pick and a schedule entry store the provider beside the model.
+- **Where it shows.** The phase line names the provider ("Claude-Capra · opus"). The job's page has a Provider line on
+  its Overview and on each step, and the Jobs tab names it while the job runs and once it has ended ("Implement ran
+  on Claude-Capra").
+- **The hold.** A usage limit holds one provider: a step on Claude-Capra waits for Claude-Capra's limit only. The
+  stopped step names the provider and the reset time, and is queued again on the same provider when it resets.
+  See [When an AI's usage limit is used up](#when-an-ais-usage-limit-is-used-up).
+- **What runs on the provider.** Every Claude turn of the step, the review and its verification included, runs with
+  the provider's config folder as `CLAUDE_CONFIG_DIR`. Every Codex turn runs with the provider's shadow home, else its
+  `CODEX_HOME`, as `CODEX_HOME`. A step that continues an earlier session of the spec (an implement continuing its
+  analysis) does so only when both ran on providers that share sessions.
+- **The sandbox.** A Claude step may not write the settings, hooks, skills, agents, rules or plugins in any provider's
+  Claude folder, nor anything in a Codex folder, nor read a Codex folder's `auth.json`
+  ([What a step can reach](the-runner.md#what-a-step-can-reach)).
 
-**Setting up a second login on the serving host** is done by hand, once:
+In this page "provider" means this login. It is not the `provider-limit` stop, and not the `provider/model` an OpenCode
+model name starts with.
+
+**Setting up a second Claude login on the serving host** is done by hand, once, in a terminal:
 
 1. Make the directory: `mkdir ~/.claude-2`.
 2. Link what the two logins share from `~/.claude`: `settings.json`, `CLAUDE.md`, `hooks`, `skills`, `agents`,
    `rules`, `plugins` and `projects`. For each, `ln -s ~/.claude/<name> ~/.claude-2/<name>`. Without `projects` a
-   step on the account cannot continue a session another account made, and without the rest it runs without the
-   skills.
-3. Log in as the second account: `CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login`.
-4. Add it under Settings → AI → Claude Code → Accounts, with the name to show and `~/.claude-2`.
+   step cannot continue a session another login made, and without the rest it runs without the skills.
+3. Log in: `CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login`.
+4. Add it under Settings → AI → Providers, with the name to show and `~/.claude-2`.
 
-The board's login check and the Usage tab read the default account only. A step on an account that is not logged in
-ends with Claude's own error.
+**Setting up a second Codex login** is a folder of its own, with its own login, in one of two ways. With a `CODEX_HOME`
+of its own and no shadow home the provider keeps its sessions apart. With a shadow home the provider shares its
+`CODEX_HOME`'s sessions and settings and keeps its own login, so one provider can continue a session another started:
+
+1. Make an empty folder, such as `~/.codex-personal`, and log in there: `CODEX_HOME=~/.codex-personal codex login`.
+2. Add the provider under Settings → AI → Providers with the shared folder as `CODEX_HOME` and the new folder as the
+   shadow home. Save links everything in the `CODEX_HOME` except `auth.json` into the shadow home, and again before each
+   Codex step, so an entry added since is linked. A shadow home that already has a `sessions` folder or a `config.toml`
+   of its own is refused; start from an empty folder and log in there again.
+
+The board's login check and the Usage tab read the tools' own logins only. A step on a provider that is not logged in
+ends with the tool's own error.
 
 ## Notifications
 

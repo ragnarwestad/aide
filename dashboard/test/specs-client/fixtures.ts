@@ -285,7 +285,9 @@ export function harness(
     },
     querySelector: (sel: string) => (sel.includes("tablewrap") ? wrap : null),
     querySelectorAll: (sel: string) =>
-      sel.includes("model.")
+      sel.includes("provider.")
+        ? aiSelects
+        : sel.includes("model.")
         ? [...modelSelects, otherRowSelect]
         : sel.includes('name="steps"')
           ? sel.includes('name="tick"')

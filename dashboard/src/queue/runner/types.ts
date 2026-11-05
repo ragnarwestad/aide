@@ -311,8 +311,3 @@ export function modelIdOf(raw: unknown): string | undefined {
   return typeof raw === "string" && raw ? raw : undefined;
 }
 
-/** The name of the Claude account a finished step ran on, when the job is
- *  on one and the step ran on Claude (a result naming no tool is Claude's). */
-export function claudeAccountOf(job: Job, tool: unknown): string | undefined {
-  return job.claudeAccount && (tool === undefined || tool === "claude") ? job.claudeAccount.name : undefined;
-}

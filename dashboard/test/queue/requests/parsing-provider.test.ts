@@ -24,43 +24,43 @@ const create = (extra: object) =>
     { allow: () => true, defaults: DEFAULTS },
   );
 
-describe("a job request's provider (AC-9, AC-12)", () => {
-  test("a per-step pick is stored beside the model, for the steps the job runs", () => {
+describe("a job request's provider", () => {
+  test("a per-step pick is stored beside the model, for the steps the job runs (AC-9, AC-12)", () => {
     const r = parse({ model: { implement: "gpt-6" }, provider: { analyze: "Claude-Capra", implement: "Codex", archive: "Codex" } });
     expect(r.ok && r.job.provider).toEqual({ analyze: "Claude-Capra", implement: "Codex" });
   });
 
-  test("a whole-job pick applies to every step", () => {
+  test("a whole-job pick applies to every step (AC-9, AC-12)", () => {
     const r = parse({ provider: "Claude-Capra" });
     expect(r.ok && r.job.provider).toEqual({ analyze: "Claude-Capra", implement: "Claude-Capra" });
   });
 
-  test("a request with no provider stores none, and a blank entry is skipped", () => {
+  test("a request with no provider stores none, and a blank entry is skipped (AC-9, AC-12)", () => {
     const none = parse({});
     expect(none.ok && none.job.provider).toBeUndefined();
     const blank = parse({ provider: { analyze: "" } });
     expect(blank.ok && blank.job.provider).toBeUndefined();
   });
 
-  test("a key that is not configured is refused", () => {
+  test("a key that is not configured is refused (AC-9, AC-12)", () => {
     const r = parse({ provider: { analyze: "Gone" } });
     expect(!r.ok && r.error).toContain("unknown or not-allowed provider: Gone");
   });
 
-  test("a model the provider cannot run is refused, naming both tools", () => {
+  test("a model the provider cannot run is refused, naming both tools (AC-9, AC-12)", () => {
     const r = parse({ model: { analyze: "gpt-6" }, provider: { analyze: "Claude-Capra" } });
     expect(!r.ok && r.error).toContain("gpt-6 is a Codex model and Claude-Capra is a Claude Code provider — pick a model under it");
   });
 });
 
-describe("a create request's provider (AC-9)", () => {
-  test("the running step's provider is stored and a later phase's is banked as pending", () => {
+describe("a create request's provider", () => {
+  test("the running step's provider is stored and a later phase's is banked as pending (AC-9)", () => {
     const r = create({ model: { implement: "gpt-6" }, provider: { analyze: "Claude-Capra", implement: "Codex" } });
     expect(r.ok && r.job.provider).toEqual({ analyze: "Claude-Capra" });
     expect(r.pendingStepProviders).toEqual({ implement: "Codex" });
   });
 
-  test("a pending provider that cannot run the pending model is refused", () => {
+  test("a pending provider that cannot run the pending model is refused (AC-9)", () => {
     const r = create({ model: { implement: "gpt-6" }, provider: { implement: "Claude" } });
     expect(!r.ok && r.error).toContain("gpt-6 is a Codex model and Claude is a Claude Code provider");
   });

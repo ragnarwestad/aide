@@ -6,6 +6,7 @@
 import { readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
+import { expandDir, type Provider } from "../../queue/providers/index.ts";
 import { tailFile } from "../serve-helpers";
 
 const THREAD = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){4}[0-9a-f]{8}$/;
@@ -29,4 +30,17 @@ export function readCodexSession(thread: string, home: string = codexHome()): st
   } catch {
     return undefined;
   }
+}
+
+/** Reads a step's session file under the folder its provider runs Codex
+ *  with: the shadow home when it has one, else its `CODEX_HOME`, else the
+ *  usual one. */
+export function codexSessionReader(
+  providerKey: string | undefined,
+  providers: Record<string, Provider> | undefined,
+): (thread: string) => string | undefined {
+  const provider = providerKey ? providers?.[providerKey] : undefined;
+  const folder = provider?.tool === "codex" ? provider.shadowHome || provider.codexHome : undefined;
+  const home = folder ? expandDir(folder, homedir()) : undefined;
+  return (thread) => readCodexSession(thread, home);
 }

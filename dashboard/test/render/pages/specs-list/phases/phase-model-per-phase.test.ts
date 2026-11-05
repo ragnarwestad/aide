@@ -56,6 +56,10 @@ describe("one picker per phase", () => {
         runnerAvailable: true,
         targets,
         modelChoices: BOTH,
+        providerChoices: [
+          { key: "Claude", name: "Claude", tool: "claude" as const },
+          { key: "Codex", name: "Codex", tool: "codex" as const },
+        ],
         filter: { open: openKeys(list, targets) },
         ...opts,
       },

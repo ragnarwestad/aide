@@ -8,7 +8,7 @@ import type { MessageKey } from "../../../i18n/messages.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 import { currentStep, inFlight } from "./format.ts";
-import { onAccount, providerLimitSentence, usageLimitText } from "./provider-limit.ts";
+import { providerLimitSentence, usageLimitText } from "./provider-limit.ts";
 import type { QueueRowView } from "./types.ts";
 
 /** The four held-back reasons that resolve on their own — the queue
@@ -75,7 +75,7 @@ export interface NoticePart {
   href?: string;
   variant?: MessageVariant;
   own?: boolean;
-  kind?: "acceptance-hold" | "branch-left-behind" | "approach-choice" | "run-on-account";
+  kind?: "acceptance-hold" | "branch-left-behind" | "approach-choice";
 }
 
 /** What a step's raw detail adds to the sentence on its row. A detail
@@ -245,7 +245,7 @@ export function specNotice(
           lang,
           Date.now(),
           undefined,
-          lead.claudeAccount,
+          limited.provider?.name ?? lead.provider,
         )
       : lead.errorReason === "held-back"
         ? `${stepLabel(currentStep(lead), lang)} ${renderSentence(lang, lead.error)!}`
@@ -279,22 +279,9 @@ export function specNotice(
       if (extra && isStepTestsRed(lead.error)) {
         parts.push({ variant, text }, { variant, text: extra.split("\n").join(" · ") });
       } else {
-        // The buttons that move the step to another Claude account follow the
-        // sentence a usage-limit stop is told in.
-        const runOn = usageText !== undefined && lead.state === "stopped" && !!lead.runOnAccounts?.length;
-        parts.push({ variant, text, title: extra, ...(runOn ? { kind: "run-on-account" as const } : {}) });
+        parts.push({ variant, text, title: extra });
       }
     }
-  }
-  // A job on another Claude account says so, while it runs and once it has
-  // run; a stopped step's own sentence already names it.
-  if (lead?.claudeAccount && !parts.some((p) => p.kind === "run-on-account") && !(lead.state === "stopped" && lead.usageLimitWait)) {
-    const who = onAccount("Claude", lead.claudeAccount, lang);
-    const running = lead.state === "queued" || lead.state === "running";
-    parts.push({
-      variant: "info",
-      text: t(lang, running ? "notice.accountRuns" : "notice.accountRan", { step: stepLabel(currentStep(lead), lang), who }),
-    });
   }
   parts.push(...marks);
   if (parts.length) {

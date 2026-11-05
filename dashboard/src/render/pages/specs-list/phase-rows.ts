@@ -251,7 +251,8 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
         // the effort a step runs at is a configuration answer, not a
         // per-row pick.
         aiModel(g, opts, p.step, busy, live, latest?.model, recordedModel, alreadyRun,
-          latest?.results?.find((x) => x.step === p.step)?.tool, p.attempts[0]?.modelId ?? p.modelId) +
+          latest?.results?.find((x) => x.step === p.step)?.tool, p.attempts[0]?.modelId ?? p.modelId,
+          latest?.stepProviders?.[p.step] ?? latest?.results?.find((x) => x.step === p.step)?.provider?.key) +
         `${box}</span></td>`;
       // Does this phase's own file say it ran at all (the
       // fallback in `phasesFor`), even with no Cost line recorded? Used
@@ -337,16 +338,17 @@ function aiModel(
   alreadyRun = false,
   usedTool?: string,
   ranModelId?: string,
+  usedProvider?: string,
 ): string {
   const lang = opts.lang ?? "en";
-  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, usedTool);
+  const ai = aiPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, usedProvider);
   const model = modelPicker(g, opts, step, busy, live, used, recordedModel, undefined, alreadyRun, ranModelId);
   const locked = lockedAsArchived(g, step) || (busy && !live) || alreadyRun;
   // No "(?)" on a phase line: the State column already says what is
   // running, and an archived or already-run phase needs no sentence to
   // say it cannot run again. The column has no room for a mark.
   if (!model) return `<span class="aimodel">${ai}</span>`;
-  const on = phaseAiModel(g, opts, step, used, recordedModel, usedTool);
+  const on = phaseAiModel(g, opts, step, used, recordedModel, usedTool, usedProvider);
   // Two candidate strings, always both rendered: the
   // SHORT one exactly as before, and a FULL one, always tool-prefixed.
   // Which of the two spans shows is a `narrow.css` media query's own

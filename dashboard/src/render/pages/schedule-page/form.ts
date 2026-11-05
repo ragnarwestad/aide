@@ -9,14 +9,14 @@ import { nextFireTime, scheduleNotifyOf, type ScheduleNotify } from "../../../qu
 import { btn, btnLink, field, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type SpecsPageOptions } from "../specs-list";
+import { defaultModelForTool, modelOptions, resolveChosenModel, resolveProvider, type SpecsPageOptions } from "../specs-list";
 
 export interface ScheduleFormOptions {
   /** Present when editing; absent when creating — decides the submit
    *  label and nothing else, since both cases post to their own
    *  `action`. */
   entryName?: string;
-  entry?: { name: string; cron: string; prompt: string; model?: string; notify?: ScheduleNotify; chrome?: boolean; sandbox?: false };
+  entry?: { name: string; cron: string; prompt: string; model?: string; provider?: string; notify?: ScheduleNotify; chrome?: boolean; sandbox?: false };
   action: string;
   /** Every allowed project: draws a `<select name="project">`
    *  the same way the New-spec form's own Project field is
@@ -44,6 +44,9 @@ export interface ScheduleFormOptions {
    *  entry (or the table's `default`) can matter here: a scheduled job
    *  runs that one step. */
   defaultModels?: SpecsPageOptions["defaultModels"];
+  /** The providers the AI choice lists, and the configured one per step. */
+  providerChoices?: SpecsPageOptions["providerChoices"];
+  defaultProviders?: SpecsPageOptions["defaultProviders"];
   /** Draws Cancel beside Save, back to this address: the Settings tab
    *  the form was opened on. */
   cancelHref?: string;
@@ -73,17 +76,21 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
   if (!models.length) return "";
   const configured = opts.defaultModels?.schedule ?? opts.defaultModels?.default;
   const chosen = resolveChosenModel(models, configured, opts.entry?.model);
-  const tools = Object.keys(TOOL_NAMES).filter((tool) => models.some((m) => (m.tool ?? "claude") === tool));
-  const restingTool = models.find((m) => m.name === chosen)?.tool ?? "claude";
+  const providers = opts.providerChoices ?? [];
+  const resting = resolveProvider(
+    { modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders },
+    "schedule", chosen, [opts.entry?.provider],
+  );
+  // Drawn only where there is more than one provider to choose between.
   const aiSelect =
-    tools.length > 1
-      ? `<select data-ai="model" form="${SCHEDULE_FORM_ID}">` +
-        tools
+    providers.length > 1
+      ? `<select name="provider" data-ai="model" form="${SCHEDULE_FORM_ID}">` +
+        providers
           .map(
-            (tool) =>
-              `<option value="${esc(tool)}"` +
-              ` data-default="${esc(defaultModelForTool(models, tool, configured) ?? "")}"` +
-              `${tool === restingTool ? " selected" : ""}>${esc(TOOL_NAMES[tool]!)}</option>`,
+            (p) =>
+              `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}"` +
+              ` data-default="${esc(defaultModelForTool(models, p.tool, configured) ?? "")}"` +
+              `${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
           )
           .join("") +
         `</select>`

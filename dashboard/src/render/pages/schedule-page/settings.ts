@@ -19,6 +19,8 @@ export interface ScheduleSettingsOptions {
   editing?: boolean;
   modelChoices?: ScheduleFormOptions["modelChoices"];
   defaultModels?: ScheduleFormOptions["defaultModels"];
+  providerChoices?: ScheduleFormOptions["providerChoices"];
+  defaultProviders?: ScheduleFormOptions["defaultProviders"];
   /** Where Delete goes once it has gone through: this page is gone with
    *  the entry. Handed in by the route, which knows the project's page. */
   deleteDone?: string;
@@ -40,6 +42,8 @@ export function renderScheduleSettings(opts: ScheduleSettingsOptions): string {
         cancelHref: here,
         modelChoices: opts.modelChoices,
         defaultModels: opts.defaultModels,
+        providerChoices: opts.providerChoices,
+        defaultProviders: opts.defaultProviders,
       },
       lang,
     );
@@ -56,6 +60,9 @@ export function renderScheduleSettings(opts: ScheduleSettingsOptions): string {
       value: `<a href="${esc(schedulePromptPath(project, entry.name))}">${esc(entry.prompt)}</a>`,
     },
     { label: esc(t(lang, "schedule.model")), value: model ? esc(model) : `<span class="muted">–</span>` },
+    ...(entry.provider
+      ? [{ label: esc(t(lang, "job.provider")), value: esc(opts.providerChoices?.find((p) => p.key === entry.provider)?.name ?? entry.provider) }]
+      : []),
     { label: esc(t(lang, "schedule.notify")), value: esc(t(lang, notify)) },
     { label: esc(t(lang, "schedule.browser")), value: esc(t(lang, entry.chrome ? "schedule.browserChrome" : "schedule.browserNone")) },
     { label: esc(t(lang, "schedule.sandbox")), value: esc(t(lang, entry.sandbox === false ? "schedule.sandboxOff" : "schedule.sandboxOn")) },

@@ -38,8 +38,7 @@ A job is an ordered list of steps with a `stepIndex`; its `state` says where the
 Only `queued` and `running` own their work (`UNFINISHED`), and the duplicate guard is built on that set alone. A
 second guard refuses a NEW job of any step for a spec whose own job reads `done` with a landing still in flight; once
 the landing settles, the same step may be queued again as a new job. A finished job is never resumed, except a step
-its AI's usage limit stopped: the board queues it again as the same job (`limit-reset`), or a person moves it to
-another Claude account (`run-on-account`).
+its provider's usage limit stopped: the board queues it again as the same job (`limit-reset`).
 
 ## The transitions
 
@@ -56,7 +55,7 @@ stateDiagram-v2
     done --> failed: landing did not finish
     done --> stopped: the landing's suite went red
     done --> cancelled: Cancel pressed while it merged
-    stopped --> queued: the AI's usage limit has reset, or a person moves the step to another Claude account
+    stopped --> queued: the provider's usage limit has reset
     queued --> cancelled: Cancel
     running --> cancelled: Cancel
 ```
@@ -96,12 +95,10 @@ A held-back job keeps its state; the reason is on the row and clears on a later 
   [landing.md](landing.md#branches-and-merging-them); a landing that does run leaves the job's `error` in place.
 - A `provider-limit` stop also writes `usageLimitWait`: when the board queues the step again. It is the reset time
   the tool named when that is later than the stop, and an hour after the stop otherwise (`resetKnown` says which).
-  The board starts no other queued step on that AI until then, and at that time `limit-reset` moves the job from
+  The board starts no other queued step on that provider until then, and at that time `limit-reset` moves the job from
   `stopped` back to `queued` with no press. A stop recorded without a wait is never started again by the board.
-- A Claude step stopped on a usage limit can be moved to another Claude account (`run-on-account`, also `stopped` to
-  `queued`) with "Run on <account>" on its row and its page. The job's later Claude steps run on that account too.
-  The wait it clears stays on the job as `usageLimitLeft`, so the account it was moved off stays held until its old
-  time.
+- A step stopped on a usage limit can be run on another provider by choosing it in the phase's AI choice and pressing
+  the step's button: that makes a new job on the chosen provider, which the stopped provider's wait does not hold.
 - `model-at-capacity` gives `stopped`: the provider had no room for the model, so there is no reset to wait for. The
   job's `error` names the step's button and the model and says to press the button again or choose another model.
   It lands nothing, and the step is offered again. [How the runner tells](the-runner.md#when-a-provider-limit-ends-a-step).
@@ -156,10 +153,11 @@ the last of them.
   landing is work that is not green yet, and an analyze stopped on its acceptance criteria waits for the description
   to be put right. An implement sent back to a full analysis is stopped too: the board queues Analyze and Implement
   for the spec by itself.
-- **`usageLimitWait`**, **`usageLimitProbe`**, **`usageLimitLeft`**, **`claudeAccount`** and **`pressed`**
-  (`src/queue/types.ts`) belong to the usage-limit wait below. `claudeAccount` is `{ name, configDir }`, the account a
-  person moved the job to, copied onto the job; absent means the default account. `usageLimitLeft` is
-  `{ hold, until, resetKnown, since }`: the wait a move left on the login it was made from. `usageLimitWait` is
+- **`provider`** (`src/queue/types.ts`) is the provider each step runs on, as a key out of the config's `providers`,
+  resolved when the job is made. A result carries `provider: { key, name }`: the provider the step ran on, under the
+  name it had then.
+- **`usageLimitWait`**, **`usageLimitProbe`** and **`pressed`**
+  (`src/queue/types.ts`) belong to the usage-limit wait below. `usageLimitWait` is
   `{ until, resetKnown }` on a stopped job, cleared when the job is queued again. `usageLimitProbe` is
   `{ results, at, since }` on the one step sent ahead of the others. `pressed` is set on a job a person queued, and
   never on one the board queued by itself.
@@ -175,18 +173,17 @@ the last of them.
 **A usage limit's wait** (`src/queue/runner/usage-limit.ts`) is worked out from the queue on every tick, so a
 restart of the board keeps it.
 
-- An AI is held while one of its steps is stopped on `provider-limit` with a `usageLimitWait`, or while the step sent
-  ahead of the others is running. Every `queued` job whose step runs on that AI waits with `held-back`; jobs on other
-  AIs start as before. A job whose own landing is in flight is not held.
-- A hold belongs to one login. For Claude it is the AI plus the account's directory: a step on another account is
-  held only by that account's own wait. A `usageLimitLeft` holds its login's queued steps, is never queued again,
-  and is dropped at its time.
-- At the AI's time (the latest `until` among its stopped steps) `limit-reset` moves the stopped steps to `queued`,
+- A provider is held while one of its steps is stopped on `provider-limit` with a `usageLimitWait`, or while the step
+  sent ahead of the others is running. Every `queued` job whose step runs on that provider waits with `held-back`;
+  jobs on other providers start as before. A job whose own landing is in flight is not held.
+- A hold belongs to one provider, by its key: a step on another provider of the same tool is held only by that
+  provider's own wait.
+- At the provider's time (the latest `until` among its stopped steps) `limit-reset` moves the stopped steps to `queued`,
   clearing `usageLimitWait`, `stopReason`, `finishedAt` and `error`. A step that stops on the limit again gets a new
   wait, with no limit on how many times.
 - With no reset time (`resetKnown: false`) only the oldest stopped step is queued again, as the probe; the others
-  wait another hour. The AI stays held until the probe's step has ended. When it ends without a usage-limit stop,
-  every step that stopped before it is queued again at once; when it stops on the limit, the AI waits for the new
+  wait another hour. The provider stays held until the probe's step has ended. When it ends without a usage-limit stop,
+  every step that stopped before it is queued again at once; when it stops on the limit, the provider waits for the new
   stop's time.
 - A person's press queues a new job with `pressed`, which a stop made before it does not hold. A stopped step whose
   spec has had a job queued since the stop is not started again at its time.

@@ -270,3 +270,22 @@ def test_each_claude_account_directory_has_its_named_entries_denied_and_not_the_
             assert f"Edit({directory}/{name})" in rules, (directory, name)
         assert directory not in denied, directory
         assert f"Edit({directory}/**)" not in rules, directory
+
+
+def test_every_codex_folder_is_denied_for_writing_and_its_login_for_reading(workspace_root, tmp_path):
+    """The board hands over every Codex provider's CODEX_HOME and shadow home
+    (AIDE_CODEX_HOMES): a Claude step writes nothing in them, as it writes
+    nothing in ~/.codex, and cannot read the login each keeps."""
+    home = tmp_path / "home"
+    script = workspace_root / "core/scripts/lib/run-spec/setup/sandbox.sh"
+    listed = f"{home}/.codex-personal\n/opt/codex-shadow"
+    out = subprocess.run(["bash", "-c", f'source "{script}"; sandbox_settings_json'],
+                         capture_output=True, text=True, check=True,
+                         env={**os.environ, "HOME": str(home), "AIDE_CODEX_HOMES": listed}).stdout
+    settings = json.loads(out)
+    filesystem = settings["sandbox"]["filesystem"]
+    rules = settings["permissions"]["deny"]
+    for directory in ("~/.codex-personal", "//opt/codex-shadow"):
+        assert directory in filesystem["denyWrite"], directory
+        assert f"Edit({directory}/**)" in rules, directory
+        assert f"{directory}/auth.json" in filesystem["denyRead"], directory

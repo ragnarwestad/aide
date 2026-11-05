@@ -29,6 +29,7 @@
 // one function that has to know about both a filtered/sorted list AND
 // a single row's markup.
 
+import type { ProviderOption } from "./model-picker.ts";
 import { esc } from "../../ui/html.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
 import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
@@ -47,6 +48,8 @@ export {
   defaultModelForTool,
   modelOptions,
   resolveChosenModel,
+  resolveProvider,
+  type ProviderOption,
 } from "./model-picker.ts";
 import {
   ACTIVE_FILTER_KEY,
@@ -150,6 +153,12 @@ export interface SpecsPageOptions {
    *  an entry means nobody has picked one yet, which falls through to
    *  the configured default exactly as before this existed. */
   pendingModels?: Record<string, Record<string, string>>;
+  /** The providers a phase line's AI choice lists, in config order. */
+  providerChoices?: ProviderOption[];
+  /** The configured provider per step (plus a "default" key), by key. */
+  defaultProviders?: Record<string, string>;
+  /** A provider picked beside a pending model, in the same shape. */
+  pendingProviders?: Record<string, Record<string, string>>;
   /** Which phases a reader chose — at create time, or at a later Run —
    *  keyed by `project/specFolder`: what `chosenSteps()` and
    *  `actionState()` read the row's ticks and its action button from,

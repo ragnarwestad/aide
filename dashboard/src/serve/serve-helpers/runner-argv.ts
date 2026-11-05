@@ -4,6 +4,8 @@
 
 import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
+import { expandDir, resolveStepProvider, sharesSessions, type Provider } from "../../queue/providers/index.ts";
+import { homedir } from "node:os";
 import type { CheckableTool } from "../../render";
 
 /** This step's wall clock. The field is a per-step table,
@@ -79,14 +81,17 @@ export const RESUME_ANALYSIS_WITHIN_MS = 60 * 60_000;
 
 /** The session an implement continues: the latest finished analysis of the
  *  same spec, when it ran with the same AI the implement will and ended
- *  within the hour. Undefined means the implement starts afresh. */
+ *  within the hour. When both name a provider, the two must share sessions:
+ *  the same provider, or two Codex providers on one `CODEX_HOME`. Undefined
+ *  means the implement starts afresh. */
 export function analysisSessionToResume(
   job: Job,
   jobs: readonly Job[],
   tool: string,
   now: number,
+  provider?: { key: string | undefined; providers: Record<string, Provider> | undefined },
 ): string | undefined {
-  let latest: { sessionId?: string; tool?: string; at?: string } | undefined;
+  let latest: { sessionId?: string; tool?: string; at?: string; provider?: { key: string } } | undefined;
   for (const j of jobs) {
     if (j.project !== job.project || j.specFolder !== job.specFolder) continue;
     for (const r of j.results) {
@@ -95,6 +100,9 @@ export function analysisSessionToResume(
     }
   }
   if (!latest?.sessionId || (latest.tool ?? "claude") !== tool) return undefined;
+  if (provider?.key && latest.provider && !sharesSessions(latest.provider.key, provider.key, provider.providers)) {
+    return undefined;
+  }
   return now - Date.parse(latest.at!) <= RESUME_ANALYSIS_WITHIN_MS ? latest.sessionId : undefined;
 }
 
@@ -154,6 +162,12 @@ export function runnerArgv(
     timeoutSec?: Record<string, number>;
     permissionMode?: Record<string, string>;
     model?: Record<string, string>;
+    /** The configured providers and the phase defaults' provider table: the
+     *  folder a step's provider keeps its login in is looked up here. */
+    providers?: Record<string, Provider>;
+    provider?: Record<string, string>;
+    /** The home directory `~/` is read against; the user's own by default. */
+    home?: string;
     /** Whether `analyze`'s own invocation should be told acceptance
      *  ticking is not required — resolved by the caller from
      *  a fresh read of the spec's own record, never from `job` itself.
@@ -234,11 +248,11 @@ export function runnerArgv(
     // the argv it produced before this flag existed — the same shape
     // `--model` itself has had all along.
     ...(tool !== "claude" ? ["--tool", tool] : []),
-    // Only a Claude step of a job a person moved to another account: a job
-    // on the default account keeps byte-for-byte the argv it had. A Codex
-    // step has no Claude turn, and a Claude review beside it is left out
-    // (`reviewModelArgs`).
-    ...(tool === "claude" && job.claudeAccount ? ["--claude-config-dir", job.claudeAccount.configDir] : []),
+    // The folder the step's provider keeps its login in, when it has one:
+    // a provider on the tool's normal folder keeps byte-for-byte the argv
+    // it had. A Codex step has no Claude turn, and a Claude review beside it
+    // is left out (`reviewModelArgs`).
+    ...providerFolderArgs(job, step, tool, o),
     ...reviewModelArgs(step, tool, o),
     // Chosen by the runner BEFORE the spawn, so the queue can watch the
     // session while the step runs instead of learning it from a result
@@ -246,4 +260,25 @@ export function runnerArgv(
     ...(sessionId ? ["--session-id", sessionId] : []),
     ...(streamFile ? ["--stream-file", streamFile] : []),
   ];
+}
+
+/** `--claude-config-dir` for a Claude Code step whose provider has a config
+ *  folder; `--codex-home` for a Codex step, the provider's shadow home when
+ *  it has one, else its `CODEX_HOME`. Nothing for a provider on the tool's
+ *  normal folder, or for a step with no provider. */
+function providerFolderArgs(
+  job: Job,
+  step: string,
+  tool: string,
+  o: Pick<Parameters<typeof runnerArgv>[3], "model" | "modelChoices" | "providers" | "provider" | "home">,
+): string[] {
+  const key = resolveStepProvider(job, step, { model: o.model ?? {}, modelChoices: o.modelChoices, providers: o.providers, provider: o.provider });
+  const provider = key ? o.providers?.[key] : undefined;
+  if (!provider) return [];
+  const home = o.home ?? homedir();
+  if (tool === "claude" && provider.tool === "claude" && provider.configDir) {
+    return ["--claude-config-dir", expandDir(provider.configDir, home)];
+  }
+  const folder = provider.shadowHome || provider.codexHome;
+  return tool === "codex" && provider.tool === "codex" && folder ? ["--codex-home", expandDir(folder, home)] : [];
 }

@@ -39,11 +39,11 @@ function modelSelect(step: string, chosen: string) {
 
 function aiSelect(step: string, tool: string) {
   const options = [
-    { value: "claude", dataset: { default: "sonnet" }, selected: tool === "claude" },
-    { value: "codex", dataset: { default: "codex-fast" }, selected: tool === "codex" },
+    { value: "claude", dataset: { default: "sonnet", tool: "claude" }, selected: tool === "claude" },
+    { value: "codex", dataset: { default: "codex-fast", tool: "codex" }, selected: tool === "codex" },
   ];
   return {
-    name: "",
+    name: `provider.${step}`,
     options,
     tagName: "SELECT",
     getAttribute: (n: string) => (n === "form" ? FORM : n === "data-ai" ? `model.${step}` : null),

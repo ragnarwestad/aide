@@ -26,6 +26,8 @@ export interface ScheduleNewPageOptions {
   backHref: string;
   modelChoices?: ScheduleFormOptions["modelChoices"];
   defaultModels?: ScheduleFormOptions["defaultModels"];
+  providerChoices?: ScheduleFormOptions["providerChoices"];
+  defaultProviders?: ScheduleFormOptions["defaultProviders"];
   script?: string;
   lang?: Language;
   currentUrl?: string;
@@ -44,6 +46,8 @@ export function renderScheduleNewPage(nav: NavEntry[], generatedAt: string, opts
         back: opts.backHref,
         modelChoices: opts.modelChoices,
         defaultModels: opts.defaultModels,
+        providerChoices: opts.providerChoices,
+        defaultProviders: opts.defaultProviders,
       },
       lang,
     );

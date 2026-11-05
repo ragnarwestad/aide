@@ -96,9 +96,9 @@ describe("the Settings tabs", () => {
     expect(SETTINGS_GROUPS.map(tabLabel)).toEqual(["AI", "Process", "Notifications"]);
   });
 
-  test("AI's row is the models table, then one tab per AI", () => {
-    expect([...AI_TABS]).toEqual(["phases", "claude", "codex", "copilot", "opencode"]);
-    expect(AI_TABS.map(tabLabel)).toEqual(["Models per phase", "Claude Code", "Codex", "Copilot", "OpenCode"]);
+  test("AI's row is the models table, the providers, then one tab per AI", () => {
+    expect([...AI_TABS]).toEqual(["phases", "providers", "claude", "codex", "copilot", "opencode"]);
+    expect(AI_TABS.map(tabLabel)).toEqual(["Models per phase", "Providers", "Claude Code", "Codex", "Copilot", "OpenCode"]);
   });
 
   test("AI opens on Models per phase, as does no tab or an unknown one", () => {
@@ -139,9 +139,9 @@ describe("the tabs inside an AI's tab", () => {
       label: m[2],
     }));
 
-  test("they are Models, Usage and Installation, in that order, each a link of its own, and Claude Code has Accounts after them", () => {
+  test("they are Models, Usage and Installation, in that order, each a link of its own, ", () => {
     expect([...TOOL_PARTS]).toEqual(["models", "subscription", "installation"]);
-    expect(toolParts("claude")).toEqual([...TOOL_PARTS, "accounts"]);
+    expect(toolParts("claude")).toEqual([...TOOL_PARTS]);
     for (const tool of ["claude", "codex", "copilot", "opencode"] as const) {
       expect(innerTabs(toolPanel(tool, undefined))).toEqual(toolParts(tool).map((part) => ({
         href: `/settings?tab=${tool}&aitab=${part}`,
@@ -159,9 +159,8 @@ describe("the tabs inside an AI's tab", () => {
     expect(toolPart("subscription")).toBe("subscription");
   });
 
-  test("Accounts opens on Claude Code alone", () => {
-    expect(toolPart("accounts", "claude")).toBe("accounts");
-    expect(toolPart("accounts", "codex")).toBe("models");
+  test("Accounts is no inner tab of any AI any more", () => {
+    expect(toolPart("accounts", "claude")).toBe("models");
   });
 });
 

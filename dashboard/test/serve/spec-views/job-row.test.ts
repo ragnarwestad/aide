@@ -2,7 +2,6 @@
 // queuePriorityOrder() the runner picks from.
 
 import { describe, expect, test } from "bun:test";
-import { homedir } from "node:os";
 import { QueueStore, queuePriorityOrder } from "../../../src/queue/queue.ts";
 import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
 import { jobRow } from "../../../src/serve/job-row.ts";
@@ -10,14 +9,14 @@ import { jobRow } from "../../../src/serve/job-row.ts";
 const resolve = (project: string) =>
   project === "aide" ? { specFolders: ["a", "b", "c", "d"] } : null;
 
-function makeStore(claudeAccounts?: Record<string, { configDir: string }>): QueueStore {
+function makeStore(providers?: Record<string, { name: string; tool: "claude" | "codex" | "opencode" }>): QueueStore {
   return new QueueStore({
     mirrorPath: undefined,
     defaults: {
       timeoutSec: { default: 1200 },
       permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
       model: { implement: "opus", default: "sonnet" },
-      ...(claudeAccounts ? { claudeAccounts } : {}),
+      ...(providers ? { providers, modelChoices: { opus: {}, sonnet: {}, codex: { tool: "codex" } } } : {}),
     },
     resolve,
   });
@@ -142,28 +141,28 @@ describe("jobRow()'s step results", () => {
   });
 });
 
-// The accounts a stopped Claude step can be moved to, and the one it ran
-// on, are worked out once here and handed to every surface as data.
-describe("jobRow()'s Claude account", () => {
-  const stopOnLimit = (store: QueueStore, id: string, extra: Record<string, unknown> = {}) =>
-    store.update(id, { state: "stopped", stopReason: "provider-limit", ...extra })!;
-
-  test("a job on Work stopped on its limit carries Work and offers Default and Spare (AC-8)", async () => {
-    const store = makeStore({ Work: { configDir: "~/.claude-2" }, Spare: { configDir: "/opt/claude-3" } });
-    const made = store.enqueue({ project: "aide", specFolder: "a", steps: ["implement"] });
+// The provider a step runs on is worked out once here and handed to every
+// surface as data: its name as it is now, and each result's as it was then.
+describe("jobRow()'s provider", () => {
+  test("the row names the current step's provider by its present name, and each result its own (AC-10)", async () => {
+    const store = makeStore({ capra: { name: "Claude-Capra", tool: "claude" }, codex: { name: "Codex", tool: "codex" } });
+    const made = store.enqueue({ project: "aide", specFolder: "a", steps: ["analyze", "implement"] });
     if (!made.ok) throw new Error("enqueue failed");
-    const job = stopOnLimit(store, made.job.id, { claudeAccount: { name: "Work", configDir: `${homedir()}/.claude-2` } });
-    const row = await jobRow({ queue: store, store: new AideRunStore() }, job);
-    expect(row.claudeAccount).toBe("Work");
-    expect(row.runOnAccounts).toEqual(["Default", "Spare"]);
+    store.update(made.job.id, {
+      provider: { analyze: "codex", implement: "capra" },
+      results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", provider: { key: "codex", name: "Old-Codex" } }],
+      stepIndex: 1,
+    });
+    const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(made.job.id)!);
+    expect(row.provider).toBe("Claude-Capra");
+    expect(row.results?.[0]?.provider).toEqual({ key: "codex", name: "Old-Codex" });
   });
 
-  test("with no account configured a job on the default account carries none and offers none (AC-9)", async () => {
+  test("a store with no provider names none, and neither does a deploy (AC-10)", async () => {
     const store = makeStore();
     const made = store.enqueue({ project: "aide", specFolder: "a", steps: ["implement"] });
     if (!made.ok) throw new Error("enqueue failed");
-    const row = await jobRow({ queue: store, store: new AideRunStore() }, stopOnLimit(store, made.job.id));
-    expect(row.claudeAccount).toBeUndefined();
-    expect(row.runOnAccounts ?? []).toEqual([]);
+    const row = await jobRow({ queue: store, store: new AideRunStore() }, store.get(made.job.id)!);
+    expect(row.provider).toBeUndefined();
   });
 });

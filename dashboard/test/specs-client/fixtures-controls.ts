@@ -133,27 +133,23 @@ export const modelSelect = (formId: string, step: string, chosen: string, ran = 
   return self;
 };
 
-// One AI select per phase line, paired with that phase's
+// One provider select per phase line, paired with that phase's
 // model select by `data-ai` and the shared form id. The model it
-// fills in per tool is worked out by the SERVER and carried on each
-// option's `data-default` — the browser copies that value and never
-// decides one, which is what these fixtures stand for.
+// fills in is worked out by the SERVER and carried on each option's
+// `data-default`, with the tool it runs on `data-tool` — the browser copies
+// them and never decides one, which is what these fixtures stand for.
 export const AI_DEFAULT: Record<string, string> = { claude: "sonnet", codex: "codex-fast" };
 
 export const aiSelect = (formId: string, step: string, tool: string) => {
   const options = ["claude", "codex"].map((t) => ({
     value: t,
-    dataset: { default: AI_DEFAULT[t]! },
+    dataset: { default: AI_DEFAULT[t]!, tool: t },
     hidden: false,
     selected: t === tool,
   }));
   const self = {
-    // No `name`: the control posts nothing (`specs-list.ts`). It is
-    // still what the DOM reports — an empty string, not undefined —
-    // and the key a kept choice would be filed under is built from
-    // it, which is why the handler must intercept it BEFORE the
-    // branch that remembers every other select.
-    name: "",
+    // Posts `provider.<step>` beside the model it is paired with.
+    name: `provider.${step}`,
     options,
     dataset: { ai: `model.${step}` },
     tagName: "SELECT",
@@ -174,7 +170,7 @@ export const aiSelect = (formId: string, step: string, tool: string) => {
     set value(v: string) {
       for (const o of options) o.selected = o.value === v;
     },
-    /** What the SERVER drew: the tool of the model the phase is
+    /** What the SERVER drew: the provider of the model the phase is
      *  actually on, which is where a swap puts this select back. */
     redraw: () => {
       for (const o of options) o.selected = o.value === tool;

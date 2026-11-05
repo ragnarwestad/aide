@@ -1,5 +1,6 @@
 // The page that makes a schedule entry, as a response to its own GET.
 // Also where a save goes back to afterwards.
+import { providerPickerOptions } from "../../providers/options.ts";
 import { isBoardPath } from "../../../format/board-path.ts";
 import type { ScheduleEntry } from "../../../queue/schedule.ts";
 import { projectScheduleTab, renderScheduleNewPage, schedulePagePath } from "../../../render";
@@ -41,6 +42,7 @@ export async function scheduleNewPageResponse(
     backHref: page.back,
     modelChoices: modelChoiceOptions(ctx.queue),
     defaultModels: ctx.queue.defaults.model,
+    ...providerPickerOptions(ctx.queue),
     script: await specsClientScript(),
     lang: langResult.lang,
     currentUrl: langResult.currentUrl,

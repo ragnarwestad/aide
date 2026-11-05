@@ -10,7 +10,8 @@
 // construction time would be.
 
 import { resumeCutLandings } from "../queue/runner/cut-landing.ts";
-import { configDirsList } from "../queue/runner/claude-accounts.ts";
+import { NORMAL_CODEX_HOME, expandDir, providerFolders, resolveStepProvider } from "../queue/providers/index.ts";
+import { prepareShadowHome } from "./providers/shadow-home.ts";
 import { dirname, join } from "node:path";
 import { spawnEnv } from "./tool-path.ts";
 import { scriptArgv } from "../integrations/script-argv.ts";
@@ -189,10 +190,18 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         ...(ctx.dashboardCheckoutRoot ? { AIDE_CHECKOUT_ROOT: ctx.dashboardCheckoutRoot } : {}),
         ...(ctx.queueMirrorPath ? { AIDE_QUEUE_MIRROR: ctx.queueMirrorPath } : {}),
       };
-      // Every Claude login the board may run a step on, so the runner's
-      // sandbox keeps a step from writing to any of their settings.
-      const accountDirs = configDirsList(ctx.store.defaults.claudeAccounts, homedir());
-      if (accountDirs) env.AIDE_CLAUDE_CONFIG_DIRS = accountDirs;
+      // Every folder a provider keeps a login in, so the runner's sandbox
+      // keeps a step from writing to any of their settings.
+      const folders = providerFolders(ctx.store.defaults.providers, homedir());
+      if (folders.claude.length) env.AIDE_CLAUDE_CONFIG_DIRS = folders.claude.join("\n");
+      if (folders.codex.length) env.AIDE_CODEX_HOMES = folders.codex.join("\n");
+      // A Codex step on a provider with a shadow home links in whatever the
+      // shared CODEX_HOME gained since it was saved. A conflict is left: the
+      // step runs on its login without the shared sessions.
+      const provider = ctx.store.defaults.providers?.[resolveStepProvider(job, step, ctx.store.defaults) ?? ""];
+      if (provider?.tool === "codex" && provider.shadowHome) {
+        prepareShadowHome(expandDir(provider.codexHome || NORMAL_CODEX_HOME, homedir()), expandDir(provider.shadowHome, homedir()));
+      }
       // Only a `schedule` step's own spawn gets this: the
       // directory THIS run's prompt writes its output to, made
       // ahead of time so a prompt with no `mkdir -p` of its own still
@@ -244,11 +253,16 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
             timeoutSec: ctx.store.defaults.timeoutSec,
             permissionMode: ctx.store.defaults.permissionMode,
             model: ctx.store.defaults.model,
+            providers: ctx.store.defaults.providers,
+            provider: ctx.store.defaults.provider,
             acceptanceNotRequiredForAnalyze:
               step === "analyze" ? acceptanceNotRequiredForAnalyze(ctx, job) : false,
             resumeSession:
               step === "implement" && ctx.store.defaults.resumeAnalysis
-                ? analysisSessionToResume(job, ctx.store.list(), stepTool(job, step, ctx.store.defaults), Date.now())
+                ? analysisSessionToResume(job, ctx.store.list(), stepTool(job, step, ctx.store.defaults), Date.now(), {
+                    key: resolveStepProvider(job, step, ctx.store.defaults),
+                    providers: ctx.store.defaults.providers,
+                  })
                 : undefined,
           },
           sessionId,

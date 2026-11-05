@@ -5,6 +5,7 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
+import { providerPickerOptions } from "../../providers/options.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, readScheduleRunReport, scheduleTrackingKey } from "../../../queue/schedule.ts";
 import { readProposalsRecord } from "../../../queue/spec-proposals.ts";
 import {
@@ -157,6 +158,7 @@ export async function schedulePages(
       editing: tab === "settings" && url.searchParams.get("edit") === "1",
       modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
+      ...providerPickerOptions(ctx.queue),
       deleteDone: projectScheduleTab(project),
       runs: jobs,
       shownRun: shown?.id,

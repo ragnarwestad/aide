@@ -145,18 +145,6 @@ describe("an AI picked on a phase line fills that phase's model", () => {
     expect(values(h)).toEqual(["sonnet", "sonnet", "codex-fast", "sonnet"]);
   });
 
-  // The tool is DERIVED from the model, in both directions of travel:
-  // a reader who goes straight to the model select, ignoring the AI
-  // picker beside it, must not be left with a line that says Claude
-  // Code over a Codex model until the next swap comes to fix it.
-  test("changing the model by hand moves its own AI select at once", () => {
-    const h = harness(() => ({ ok: true, body: { ok: true } }));
-    h.changeModel(0, "codex-fast");
-    expect(tools(h)).toEqual(["codex", "claude", "codex", "claude"]);
-    h.changeModel(2, "fable");
-    expect(tools(h)).toEqual(["codex", "claude", "claude", "claude"]);
-  });
-
   test("a swap nobody has touched a select on is left to the server", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     h.document.visibilityState = "visible";
@@ -169,21 +157,31 @@ describe("an AI picked on a phase line fills that phase's model", () => {
     expect(tools(h)).toEqual(["claude", "claude", "codex", "claude"]);
   });
 
-  // The AI select has no `name`, so the generic "remember every select"
-  // branch would file every one of them under the same key — the form
-  // id and an empty string — and the last one touched would decide the
-  // lot. It is intercepted before that branch, and nothing about it is
-  // remembered at all.
-  test("the AI select is not filed in the map the model selects use", async () => {
+  // The provider picked is filed under its own name (`provider.<step>`)
+  // next to the model, so the swap puts back the provider of the line that
+  // was touched and no other.
+  test("the provider picked is remembered for its own line only", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     await h.changeAi(1, "codex");
     h.document.visibilityState = "visible";
     h.tick();
     await flush();
 
-    // Only analyze moved. Had the AI select been remembered under the
-    // shared key, the restore would have written it across the row.
     expect(values(h)).toEqual(["sonnet", "codex-fast", "codex-fast", "sonnet"]);
+    expect(tools(h)).toEqual(["claude", "codex", "codex", "claude"]);
+  });
+
+  // Two providers of one tool run the same models: switching between
+  // them keeps the model the line is on and posts the provider alone.
+  test("switching between two providers of one tool keeps the model, and posts the provider (AC-9)", async () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    const analyze = h.aiSelects[1]!;
+    analyze.options.push({ value: "claude-2", dataset: { default: "sonnet", tool: "claude" }, hidden: false, selected: false });
+    await h.changeAi(1, "claude-2");
+    expect(values(h)[1]).toBe("fable");
+    const posted = h.requests.filter((r) => r.url.includes("/api/queue/specs/"))[0]!;
+    expect(String(posted.init.body)).toContain("provider=claude-2");
+    expect(String(posted.init.body)).toContain("model=fable");
   });
 });
 
@@ -223,6 +221,7 @@ describe("a non-live pick posts itself to the spec-scoped route", () => {
     expect(posted.url).toContain("/api/queue/specs/aide/127-one-ai/model");
     expect(String(posted.init.body)).toContain("step=analyze");
     expect(String(posted.init.body)).toContain("model=codex-fast");
+    expect(String(posted.init.body)).toContain("provider=codex");
   });
 
   // The live phase (`archive`, index 3) keeps posting to the running

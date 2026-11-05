@@ -64,78 +64,46 @@ export function offerOnly(model: HTMLSelectElement, tool: string): void {
 // them. `data-ai` carries the paired select's `name` — the same name it
 // posts under.
 //
-// The value written is the one the SERVER worked out and put on the
-// option. Which model an AI stands for is a configuration fact
-// (`defaultModelForTool`, `specs-list.ts`), so the browser copies it
-// and never chooses between a tool's models itself.
+// The provider picked decides which models the line offers: the ones its
+// tool starts. The model stays when it already runs under that tool; else
+// it becomes the one the SERVER put on the option (`data-default`): which
+// model a provider stands for is a configuration fact, so the browser
+// copies it and never chooses between a tool's models itself.
 //
-// The write is recorded in `chosen` as well. Setting `.value` from
-// script fires no `change` event, so the delegated listener that
-// normally remembers a hand-made choice never sees this one — and
-// without the record the five-second swap would put the server's markup
-// back over the phase this just set, with a press afterwards starting
-// the step on a model nobody chose.
-//
-// Nothing is done to the AI select itself: the browser has already left
-// it on the option the reader picked, and a swap puts it back from the
-// model select rather than from a memory of its own (`syncAiToModel`).
+// Both picks are recorded in `chosen`. Setting `.value` from script fires
+// no `change` event, so the delegated listener that normally remembers a
+// hand-made choice never sees the model this writes — and without the
+// record the five-second swap would put the server's markup back over the
+// phase, with a press afterwards starting the step on a model nobody chose.
 export function applyAiPick(select: HTMLSelectElement): void {
   const form = select.getAttribute("form");
   const name = select.getAttribute("data-ai");
-  const want = select.selectedOptions[0]?.dataset.default;
-  if (!form || !name || !want) return;
+  const option = select.selectedOptions[0];
+  if (!form || !name || !option) return;
   const model = document.querySelectorAll(
     `select[name="${name}"][form="${form}"]`,
   )[0] as HTMLSelectElement | undefined;
   if (!model) return;
-  offerOnly(model, select.value);
-  for (const option of model.options) {
-    if (option.value !== want) continue;
-    model.value = want;
-    chosen.set(selectKey(model), want);
+  chosen.set(selectKey(select), select.value);
+  const tool = option.dataset.tool;
+  if (tool) offerOnly(model, tool);
+  const want = option.dataset.default;
+  if (tool && model.selectedOptions[0]?.dataset.tool !== tool && want) {
+    for (const o of model.options) {
+      if (o.value !== want) continue;
+      model.value = want;
+      chosen.set(selectKey(model), want);
+    }
   }
-  // On a LIVE line nothing else would carry this to the
-  // server. The write above fires no `change` event — deliberately, for
-  // the reason the comment on this function gives — so the delegated
-  // listener never sees it, and the running job would go on using the
-  // model the row has stopped showing. Called with the value already
-  // resolved, never by dispatching a synthetic event.
-  if (model.getAttribute("data-post-to")) return void postTailModel(model, want);
-  // The same gap on a phase that has NOT run yet. The write
-  // above fires no `change` event either way, so without this the pick
-  // would live only in `chosen` — gone the moment the tab closes — and
-  // a reader returning to the spec would find the picker back on the
-  // default with nothing said about it.
+  // On a LIVE line nothing else would carry this to the server: the write
+  // above fires no `change` event, so the running job would go on using
+  // the provider and model the row has stopped showing. Called with the
+  // value already resolved, never by dispatching a synthetic event.
+  if (model.getAttribute("data-post-to")) return void postTailModel(model, model.value, select.value);
+  // The same gap on a phase that has NOT run yet: without this the pick
+  // would live only in `chosen` — gone the moment the tab closes.
   const step = model.name.startsWith("model.") ? model.name.slice("model.".length) : "";
-  if (step) void postPendingModel(model, step, want);
-}
-
-// The other direction, and the only one the AI select is ever written
-// in: what a phase runs on is one value on the job, and the
-// tool is DERIVED from it.
-//
-// Called from two places, for the two ways a model select can end up on
-// something the AI select beside it does not say. After a swap, because
-// `restoreChosen` puts a hand-picked model back over the server's fresh
-// markup and the AI select in that markup was drawn for the model the
-// server chose. And on a live change, because a reader may go straight
-// to the model select and ignore the picker beside it — leaving the
-// line reading "Claude Code" over a Codex model until the next swap
-// came round to fix it.
-//
-// The tool is read off the model option's own `data-tool`, which is the
-// only place that fact lives in the browser.
-export function syncAiToModel(model: HTMLSelectElement): void {
-  const form = model.getAttribute("form");
-  const tool = model.selectedOptions[0]?.dataset.tool;
-  if (!form || !tool) return;
-  const ai = document.querySelectorAll(
-    `select[data-ai="${model.name}"][form="${form}"]`,
-  )[0] as HTMLSelectElement | undefined;
-  if (!ai) return;
-  for (const option of ai.options) {
-    if (option.value === tool) ai.value = tool;
-  }
+  if (step) void postPendingModel(model, step, model.value, select.value);
 }
 
 /** The compact picker's own box, kept saying what the line is ON (the pair shown on

@@ -82,10 +82,43 @@ export function defaultModelForTool(
   tool: string,
   configured: string | undefined,
 ): string | undefined {
-  if (configured && models.some((m) => m.name === configured && (m.tool ?? "claude") === tool)) {
+  if (configured && models.some((m) => m.name === configured && providerToolOf(m.tool) === tool)) {
     return configured;
   }
-  return models.find((m) => (m.tool ?? "claude") === tool)?.name;
+  return models.find((m) => providerToolOf(m.tool) === tool)?.name;
+}
+
+/** The tool a provider needs to run a model choice: its own, with a
+ *  choice that names none or the scripted stand-in run by Claude Code. */
+export const providerToolOf = (tool: string | undefined): string => (tool === undefined || tool === "fake-claude" ? "claude" : tool);
+
+/** A provider as a picker offers it: its key (the value posted), its name
+ *  and the tool whose models it runs. */
+export interface ProviderOption {
+  key: string;
+  name: string;
+  tool: "claude" | "codex" | "opencode";
+}
+
+/** The provider a phase line is on. The first of `picks` (a job's own
+ *  provider for the step, then a pending pick) that is offered and runs the
+ *  model's tool; else the configured one for the step when it does; else the
+ *  first offered provider that does. */
+export function resolveProvider(
+  opts: Pick<SpecsPageOptions, "modelChoices" | "providerChoices" | "defaultProviders">,
+  step: string,
+  model: string | undefined,
+  picks: readonly (string | undefined)[],
+): ProviderOption | undefined {
+  const providers = opts.providerChoices ?? [];
+  const tool = providerToolOf(opts.modelChoices?.find((m) => m.name === model)?.tool);
+  const runs = (p: ProviderOption | undefined): p is ProviderOption => p !== undefined && p.tool === tool;
+  for (const key of picks) {
+    const found = providers.find((p) => p.key === key);
+    if (runs(found)) return found;
+  }
+  const wanted = providers.find((p) => p.key === (opts.defaultProviders?.[step] ?? opts.defaultProviders?.default));
+  return runs(wanted) ? wanted : providers.find(runs);
 }
 
 /** The three fields any of `modelPicker`/`aiPicker`/`phaseCaptionCells`
@@ -97,7 +130,7 @@ export function defaultModelForTool(
  *  satisfies this structurally, so none of them change. */
 export type PickerOptions = Pick<
   SpecsPageOptions,
-  "modelChoices" | "defaultModels" | "pendingModels"
+  "modelChoices" | "defaultModels" | "pendingModels" | "providerChoices" | "defaultProviders" | "pendingProviders"
 >;
 
 /** Why a phase that has already run will not take a pick. The same
@@ -146,7 +179,9 @@ export function phaseAiModel(
   /** The CLI the phase's own result names — what stands in for the
    *  tool when the model's choice name is no longer configured. */
   usedTool?: string,
-): { model: string; tool: string } | undefined {
+  /** The provider the phase's job, or its result, names. */
+  usedProvider?: string,
+): { model: string; tool: string; provider?: string } | undefined {
   const models = opts.modelChoices ?? [];
   if (!models.length) return undefined;
   const archived = isArchivedRow(g);
@@ -155,7 +190,12 @@ export function phaseAiModel(
   const model = archived
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending, recordedModel);
-  return { model, tool: models.find((m) => m.name === model)?.tool ?? usedTool ?? "claude" };
+  const tool = models.find((m) => m.name === model)?.tool ?? usedTool ?? "claude";
+  const provider = resolveProvider(
+    opts, step, model,
+    [usedProvider, archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step]],
+  );
+  return { model, tool, ...(provider ? { provider: provider.name } : {}) };
 }
 
 /** The compact button's own text: the model's
@@ -173,11 +213,11 @@ export function phaseAiModel(
  *  be kept applying the same rule by hand. */
 export function compactModelLabel(
   models: NonNullable<SpecsPageOptions["modelChoices"]>,
-  on: { model: string; tool: string } | undefined,
+  on: { model: string; tool: string; provider?: string } | undefined,
 ): string {
   if (!on) return "";
   const collides = models.filter((m) => m.name === on.model).length > 1;
-  return collides ? `${SHORT_TOOL_NAMES[on.tool] ?? on.tool} · ${on.model}` : on.model;
+  return collides ? `${on.provider ?? SHORT_TOOL_NAMES[on.tool] ?? on.tool} · ${on.model}` : on.model;
 }
 
 /** The FULL text the growing button shows once there is room for it
@@ -188,8 +228,8 @@ export function compactModelLabel(
  *  same hand-paired arrangement `compactModelLabel()` itself is in. */
 export function compactModelLabelFull(
   _models: NonNullable<SpecsPageOptions["modelChoices"]>,
-  on: { model: string; tool: string } | undefined,
+  on: { model: string; tool: string; provider?: string } | undefined,
 ): string {
   if (!on) return "";
-  return `${SHORT_TOOL_NAMES[on.tool] ?? on.tool} · ${on.model}`;
+  return `${on.provider ?? SHORT_TOOL_NAMES[on.tool] ?? on.tool} · ${on.model}`;
 }

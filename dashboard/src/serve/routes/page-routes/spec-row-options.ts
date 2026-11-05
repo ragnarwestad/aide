@@ -2,6 +2,7 @@
 // the Jobs tab both draw a spec's row with the list's row builder, so both
 // take these options from here and add what is their own.
 
+import { providerPickerOptions } from "../../providers/options.ts";
 import type { Language } from "../../../i18n";
 import { closeOrReopenStep, isDeployJob } from "../../../queue/queue.ts";
 import { jobsShown, type SpecsPageOptions } from "../../../render";
@@ -21,10 +22,12 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     lang,
     modelChoices: modelChoiceOptions(ctx.queue),
     defaultModels: ctx.queue.defaults.model,
+    ...providerPickerOptions(ctx.queue),
     // A model picked for a phase before any job exists, and which phases a
     // reader chose: what a fresh render shows instead of re-deriving them
     // from history alone.
     pendingModels: ctx.queue.pendingModels,
+    pendingProviders: ctx.queue.pendingProviders,
     pendingSteps: ctx.queue.pendingSteps,
     // Called only for the open row of a Close, Reopen, deploy or scheduled job.
     closeOrReopenSteps: (jobId: string, step: string) => {

@@ -24,6 +24,8 @@ export const isQueuePath = (path: string) =>
   // reason: it carries a real form.
   path === NEW_SPEC_ROUTE ||
   path === SETTINGS_ROUTE ||
+  // The Add and Edit pages of a provider carry real forms, as Settings does.
+  path.startsWith(`${SETTINGS_ROUTE}/providers/`) ||
   // The board-wide overview carries a live Stop
   // control and every project's branch names — guarded exactly like
   // Settings beside it.

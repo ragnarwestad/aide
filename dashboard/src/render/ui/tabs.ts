@@ -46,7 +46,7 @@ const TAB_LABELS: Record<string, string> = {
  *  key gives by capitalising it, or a word it cannot ("Logs", "AI",
  *  "Models per phase"). */
 const CATALOGUE_TABS = new Set([
-  "steps", "ai", "phases", "process", "notifications", "deploy", "config", "schedule", "report", "settings",
+  "steps", "ai", "phases", "providers", "process", "notifications", "deploy", "config", "schedule", "report", "settings",
 ]);
 
 /** The word a tab key shows, in the reader's language. */

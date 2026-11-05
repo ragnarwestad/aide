@@ -10,7 +10,8 @@ import type { QueueStore } from "../../queue/queue.ts";
 import { stepLog, stepMarks, stepTokens } from "../../queue/parse-stream";
 import type { PhaseMessages } from "../../render";
 import { tailFileAt } from "../serve-helpers";
-import { readCodexSession } from "./codex-sessions.ts";
+import { codexSessionReader } from "./codex-sessions.ts";
+import { resolveStepProvider } from "../../queue/providers/index.ts";
 import { readRunLog } from "./job-detail.ts";
 import { stepLinesOf } from "./job-marks.ts";
 import { stepKey, workRoundJobs } from "./work-round.ts";
@@ -19,7 +20,7 @@ import { stepKey, workRoundJobs } from "./work-round.ts";
  *  running) the step is the one read. A newer job only queued for the step
  *  has nothing to read and hides nothing. */
 export function phaseMessagesFor(
-  queue: Pick<QueueStore, "get" | "list">,
+  queue: Pick<QueueStore, "get" | "list" | "defaults">,
   attemptIds: string[],
   step: string,
 ): PhaseMessages | undefined {
@@ -36,7 +37,7 @@ export function phaseMessagesFor(
     // landing, so the merge step and its test run show here as they go.
     const transcript = file ? tailFileAt(file, Infinity) : { text: "", start: 0 };
     const runLog = file ? readRunLog(file) : undefined;
-    const { logs } = stepLog(transcript, runLog, { tool: result?.tool, final: !running, codexSession: readCodexSession });
+    const { logs } = stepLog(transcript, runLog, { tool: result?.tool, final: !running, codexSession: codexSessionReader(result?.provider?.key ?? resolveStepProvider(job, step, queue.defaults), queue.defaults.providers) });
     // The steps the log marked, each with its time and the tokens it used, listed above the Log.
     const marks = stepMarks(logs, stepTokens(transcript.text, result?.tool));
     return {

@@ -101,11 +101,14 @@ export function resolveStepProvider(
   return Object.entries(providers).find(([, p]) => runsModel(p, choice))?.[0];
 }
 
+/** The phases the Settings table sets a provider for. */
+const SETTINGS_PHASES = ["create", "analyze", "implement", "archive", "close", "reopen", "schedule"];
+
 const capitalised = (step: string): string => step.charAt(0).toUpperCase() + step.slice(1);
 
 /** Whether a job will still run: queued, running, or stopped waiting for a
  *  usage-limit reset. */
-const willRun = (job: Job): boolean =>
+export const willRun = (job: Job): boolean =>
   job.state === "queued" || job.state === "running" || (job.state === "stopped" && job.usageLimitWait !== undefined);
 
 /** What uses the provider, one phrase each: the phase defaults that name it,
@@ -118,7 +121,11 @@ export function providerUses(
   jobs: Job[],
 ): string[] {
   const uses: string[] = [];
+  // The `default` entry has no row on Settings: it is a use only while some
+  // phase that Settings sets has no provider of its own.
+  const unset = SETTINGS_PHASES.some((step) => !defaults.provider?.[step]);
   for (const [step, chosen] of Object.entries(defaults.provider ?? {})) {
+    if (step === "default" && !unset) continue;
     if (chosen === key) uses.push(step === "default" ? "the default" : `the ${capitalised(step)} default`);
   }
   for (const [project, entries] of Object.entries(schedules)) {

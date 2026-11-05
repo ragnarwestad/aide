@@ -106,6 +106,8 @@ of it (the wait, the restart) is in [A job's states](job-states.md#beside-the-st
   other windows' figures, and the plan or refused credit.
 - **Codex**: the session file Codex keeps for the thread. A turn is a `provider-limit` when that file shows a full
   window, or when Codex's own error says the usage limit is hit; the error's "try again at" time is then the reset.
+  The file is read under the `CODEX_HOME` the step ran with (`--codex-home`: the provider's shadow home, else its
+  `CODEX_HOME`), through a `sessions` that is a link when the provider has a shadow home.
 - **opencode**: no reader. A step on opencode never ends `provider-limit`.
 
 The same readers decide `model-at-capacity`, which has no reset to wait for. It is read from the turn that just ended
@@ -184,7 +186,7 @@ to name a third repo.
 
 **A Claude step runs in Claude Code's own sandbox, with a fixed list of paths it may not read or write.** The list is
 the credentials on the serving host and the board's own secrets: `~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.config/gh`, the
-macOS keychains, Docker's, npm's and netrc's credentials, the Codex and OpenCode logins, and the board's tokens and
+macOS keychains, Docker's, npm's and netrc's credentials, the Codex and OpenCode logins (every Codex provider's `auth.json` too), and the board's tokens and
 push key. It lives in `run-spec/setup/sandbox.sh`, and no project setting changes it.
 
 **A second list may be read but not written**: what something outside the sandbox later runs or reads as its settings.
@@ -193,8 +195,9 @@ push key. It lives in `run-spec/setup/sandbox.sh`, and no project setting change
 - `~/Library/LaunchAgents`, `~/.local/bin` and mise's tools and settings;
 - git's own settings (`~/.gitconfig`, `~/.config/git`);
 - the AI tools' settings, hooks, skills, agents and rules (`~/.claude.json`, and those under `~/.claude`, `~/.agents`,
-  `~/.codex`, `~/.config/opencode`), and the same files under the directory of every Claude account the board has
-  configured; the directory itself stays writable, since Claude Code keeps its sessions there;
+  `~/.codex`, `~/.config/opencode`), and the same files under the config folder of every Claude Code provider the board
+  has configured; the folder itself stays writable, since Claude Code keeps its sessions there;
+- every Codex provider's `CODEX_HOME` and shadow home, whole, as `~/.codex` is;
 - the board's `queue-config.json`, where a scheduled job may turn the sandbox off;
 - the `.git/hooks` and `.git/config` of the step's own main checkouts and of every checkout under
   `~/.aide/dashboard/checkouts`, and each of those checkouts' `settings.yaml`, which holds the project's test command.

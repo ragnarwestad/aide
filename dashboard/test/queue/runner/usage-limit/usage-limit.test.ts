@@ -6,7 +6,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore, type Job } from "../../../../src/queue/queue.ts";
-import { holdKey } from "../../../../src/queue/runner/claude-accounts.ts";
 import { restartAfterUsageLimit, usageLimitHolds, usageLimitWait } from "../../../../src/queue/runner/usage-limit.ts";
 import { cleanupHarness, DEFAULTS, dir, enqueue, resetHarness, store } from "../runner-fixtures.ts";
 
@@ -16,7 +15,7 @@ afterEach(cleanupHarness);
 const at = (hhmm: string): number => Date.parse(`2026-08-16T${hhmm}:00Z`);
 const iso = (hhmm: string): string => new Date(at(hhmm)).toISOString();
 
-/** The AI each job runs on, by job id; claude unless a test says otherwise. */
+/** The provider each job runs on, by job id; claude unless a test says otherwise. */
 const tools = new Map<string, string>();
 const toolOf = (job: Job): string => tools.get(job.id) ?? "claude";
 beforeEach(() => tools.clear());
@@ -79,14 +78,14 @@ describe("the hold on an AI's queued steps", () => {
     stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     const queued = job({ steps: ["analyze"] });
     const held = usageLimitHolds(store.list(), toolOf);
-    expect(held.get(queued.id)).toEqual({ key: "runner.usageLimitHeld", values: { tool: "claude", at: iso("14:00") } });
+    expect(held.get(queued.id)).toEqual({ key: "runner.usageLimitHeld", values: { provider: "claude", at: iso("14:00") } });
   });
 
   test("a stop the board has no reset time for is held with the no-reset sentence (AC-5)", () => {
     stopped(job({ steps: ["implement"] }), "10:00", { until: "11:00", resetKnown: false });
     const queued = job({ steps: ["analyze"] });
     expect(usageLimitHolds(store.list(), toolOf).get(queued.id)).toEqual({
-      key: "runner.usageLimitHeldNoReset", values: { tool: "claude", at: iso("11:00") },
+      key: "runner.usageLimitHeldNoReset", values: { provider: "claude", at: iso("11:00") },
     });
   });
 
@@ -188,7 +187,7 @@ describe("a stop with no reset time sends one step ahead", () => {
     expect(store.get(b.id)?.state).toBe("stopped");
     expect(store.get(b.id)?.usageLimitWait).toEqual({ until: iso("12:02"), resetKnown: false });
     expect(usageLimitHolds(store.list(), toolOf).get(c.id)).toEqual({
-      key: "runner.usageLimitHeldProbe", values: { tool: "claude", at: iso("11:02") },
+      key: "runner.usageLimitHeldProbe", values: { provider: "claude", at: iso("11:02") },
     });
     expect(usageLimitHolds(store.list(), toolOf).has(a.id)).toBe(false);
   });
@@ -234,7 +233,7 @@ describe("a stop with no reset time sends one step ahead", () => {
     restartAfterUsageLimit(store, toolOf, at("11:20"));
     expect(store.get(b.id)?.state).toBe("stopped");
     expect(usageLimitHolds(store.list(), toolOf).get(c.id)).toEqual({
-      key: "runner.usageLimitHeld", values: { tool: "claude", at: iso("15:00") },
+      key: "runner.usageLimitHeld", values: { provider: "claude", at: iso("15:00") },
     });
   });
 });
@@ -251,7 +250,7 @@ describe("a probe that stops again with a reset time", () => {
       results: [...probe.results, { step: "implement", ok: false, terminalReason: "provider-limit" } as never],
       usageLimitWait: { until: iso("11:30"), resetKnown: true },
     });
-    expect(usageLimitHolds(store.list(), toolOf).get(c.id)?.values).toEqual({ tool: "claude", at: iso("11:30") });
+    expect(usageLimitHolds(store.list(), toolOf).get(c.id)?.values).toEqual({ provider: "claude", at: iso("11:30") });
     restartAfterUsageLimit(store, toolOf, at("11:30"));
     expect(store.get(a.id)?.state).toBe("queued");
     expect(store.get(b.id)?.state).toBe("queued");
@@ -272,7 +271,7 @@ describe("a restarted step that hits the limit again is held again", () => {
       ...usageLimitWait({ terminalReason: "provider-limit", providerLimit: { tool: "claude", window: "five_hour", resetsAt: iso("19:00") } }, iso("14:05")),
     });
     expect(usageLimitHolds(store.list(), toolOf).get(queued.id)).toEqual({
-      key: "runner.usageLimitHeld", values: { tool: "claude", at: iso("19:00") },
+      key: "runner.usageLimitHeld", values: { provider: "claude", at: iso("19:00") },
     });
     restartAfterUsageLimit(store, toolOf, at("18:59"));
     expect(store.get(made.id)?.state).toBe("stopped");
@@ -328,7 +327,7 @@ describe("a restart of the board", () => {
       resolve: () => ({ specFolders: ["81-queue-and-runner", "91-parallel-spec-runs"] }),
     });
     expect(reread.get(made.id)?.usageLimitWait).toEqual({ until: iso("14:00"), resetKnown: true });
-    expect(usageLimitHolds(reread.list(), toolOf).get(queued.id)?.values).toEqual({ tool: "claude", at: iso("14:00") });
+    expect(usageLimitHolds(reread.list(), toolOf).get(queued.id)?.values).toEqual({ provider: "claude", at: iso("14:00") });
     restartAfterUsageLimit(reread, toolOf, at("03:00"));
     expect(reread.get(made.id)?.state).toBe("stopped");
     restartAfterUsageLimit(reread, toolOf, at("14:00"));
@@ -336,80 +335,33 @@ describe("a restart of the board", () => {
   });
 });
 
-describe("two logins of Claude side by side", () => {
-  const WORK = { name: "Work", configDir: "/home/ragnar/.claude-2" };
-  const byLogin = (made: Job): string => holdKey(made, toolOf(made));
+describe("two providers of Claude side by side", () => {
+  const names = (key: string): string => (key === "capra" ? "Claude-Capra" : key);
 
-  /** What a press writes on the job it moves: the new login and the wait
-   *  it leaves behind on the old one. */
-  const movedToWork = (made: Job, left: { until: string; resetKnown: boolean }) =>
-    store.update(made.id, {
-      state: "queued", stopReason: undefined, usageLimitWait: undefined, finishedAt: undefined, pressed: true,
-      claudeAccount: WORK,
-      usageLimitLeft: { hold: "claude", until: iso(left.until), resetKnown: left.resetKnown, since: iso("10:00") },
-    })!;
-
-  test("a step moved to Work is not held by the default login's wait (AC-3)", () => {
-    const moved = movedToWork(stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true }), { until: "14:00", resetKnown: true });
-    stopped(job({ steps: ["implement"] }), "10:05", { until: "14:00", resetKnown: true });
-    expect(usageLimitHolds(store.list(), byLogin).has(moved.id)).toBe(false);
+  test("a step queued on one provider is not held by the other's wait, and the held sentence names its own (AC-13)", () => {
+    stopped(job({ steps: ["implement"] }, "capra"), "10:00", { until: "15:00", resetKnown: true });
+    const onCapra = job({ steps: ["analyze"] }, "capra");
+    const onClaude = job({ steps: ["analyze"] }, "claude");
+    const held = usageLimitHolds(store.list(), toolOf, names);
+    expect(held.has(onClaude.id)).toBe(false);
+    expect(held.get(onCapra.id)).toEqual({ key: "runner.usageLimitHeld", values: { provider: "Claude-Capra", at: iso("15:00") } });
   });
 
-  test("the login a step was moved off stays held for the steps nobody pressed, until its old reset time (AC-4)", () => {
-    const moved = movedToWork(stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true }), { until: "14:00", resetKnown: true });
-    const queued = job({ steps: ["analyze"] });
-    expect(store.get(moved.id)?.state).toBe("queued");
-    expect(usageLimitHolds(store.list(), byLogin).get(queued.id)).toEqual({
-      key: "runner.usageLimitHeld", values: { tool: "claude", at: iso("14:00") },
-    });
-    restartAfterUsageLimit(store, byLogin, at("13:59"));
-    expect(store.get(moved.id)?.usageLimitLeft).toBeDefined();
-    restartAfterUsageLimit(store, byLogin, at("14:00"));
-    expect(store.get(moved.id)?.usageLimitLeft).toBeUndefined();
-    expect(store.get(moved.id)?.state).toBe("queued");
-    expect(usageLimitHolds(store.list(), byLogin).size).toBe(0);
+  test("a step stopped on one provider's limit starts again on the same provider at its reset time (AC-13)", () => {
+    const onCapra = stopped(job({ steps: ["implement"] }, "capra"), "10:00", { until: "15:00", resetKnown: true });
+    store.update(onCapra.id, { provider: { implement: "capra" } });
+    const onClaude = stopped(job({ steps: ["implement"] }, "claude"), "10:00", { until: "12:00", resetKnown: true });
+    restartAfterUsageLimit(store, toolOf, at("12:00"));
+    expect(store.get(onClaude.id)?.state).toBe("queued");
+    expect(store.get(onCapra.id)?.state).toBe("stopped");
+    restartAfterUsageLimit(store, toolOf, at("15:00"));
+    expect(store.get(onCapra.id)?.state).toBe("queued");
+    expect(store.get(onCapra.id)?.provider).toEqual({ implement: "capra" });
   });
 
-  test("a left wait whose time is not known holds with the no-reset sentence (AC-4)", () => {
-    movedToWork(stopped(job({ steps: ["implement"] }), "10:00", { until: "11:00", resetKnown: false }), { until: "11:00", resetKnown: false });
-    const queued = job({ steps: ["analyze"] });
-    expect(usageLimitHolds(store.list(), byLogin).get(queued.id)?.key).toBe("runner.usageLimitHeldNoReset");
-  });
-
-  test("a step stopped on Work's own limit starts again on Work at Work's reset time, and holds no default step (AC-4)", () => {
-    const onWork = stopped(job({ steps: ["implement"] }), "10:00", { until: "15:00", resetKnown: true });
-    store.update(onWork.id, { claudeAccount: WORK });
-    const onDefault = job({ steps: ["analyze"] });
-    expect(usageLimitHolds(store.list(), byLogin).has(onDefault.id)).toBe(false);
-    restartAfterUsageLimit(store, byLogin, at("14:59"));
-    expect(store.get(onWork.id)?.state).toBe("stopped");
-    restartAfterUsageLimit(store, byLogin, at("15:00"));
-    expect(store.get(onWork.id)?.state).toBe("queued");
-    expect(store.get(onWork.id)?.claudeAccount).toEqual(WORK);
-  });
-
-  test("a step queued for Work is held by Work's wait, and the held sentence names the account (AC-4)", () => {
-    const stoppedOnWork = stopped(job({ steps: ["implement"] }), "10:00", { until: "15:00", resetKnown: true });
-    store.update(stoppedOnWork.id, { claudeAccount: WORK });
-    const queued = job({ steps: ["analyze"] });
-    store.update(queued.id, { claudeAccount: WORK });
-    expect(usageLimitHolds(store.list(), byLogin).get(queued.id)).toEqual({
-      key: "runner.usageLimitHeld", values: { tool: "claude", at: iso("15:00"), account: "Work" },
-    });
-  });
-
-  test("a step moved twice leaves both logins' waits, each ending at its own time (AC-4)", () => {
-    const moved = movedToWork(stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true }), { until: "14:00", resetKnown: true });
-    store.update(moved.id, {
-      usageLimitLeft: { hold: `claude:${WORK.configDir}`, until: iso("12:00"), resetKnown: true, since: iso("11:00") },
-      usageLimitLeftBefore: [{ hold: "claude", until: iso("14:00"), resetKnown: true, since: iso("10:00") }],
-      claudeAccount: { name: "Spare", configDir: "/opt/claude-3" },
-    });
-    const queued = job({ steps: ["analyze"] });
-    expect(usageLimitHolds(store.list(), byLogin).get(queued.id)?.values).toEqual({ tool: "claude", at: iso("14:00") });
-    restartAfterUsageLimit(store, byLogin, at("12:30"));
-    expect(store.get(moved.id)?.usageLimitLeft?.hold).toBe("claude");
-    expect(store.get(moved.id)?.usageLimitLeftBefore).toBeUndefined();
-    expect(usageLimitHolds(store.list(), byLogin).has(queued.id)).toBe(true);
+  test("a job pressed on another provider after the stop is not held by the wait (AC-12)", () => {
+    stopped(job({ steps: ["implement"] }, "capra"), "10:00", { until: "15:00", resetKnown: true });
+    const pressed = job({ steps: ["implement"] }, "claude");
+    expect(usageLimitHolds(store.list(), toolOf).has(pressed.id)).toBe(false);
   });
 });

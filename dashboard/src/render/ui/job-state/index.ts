@@ -19,7 +19,6 @@ export { restingChip, specStateChip } from "./resting.ts";
 export type { RowNotice } from "./notice.ts";
 export { heldBackResolvesOnItsOwn, sharedFilesSentence, specNotice } from "./notice.ts";
 
-export { runOnAccountButtons } from "./run-on-account.ts";
 
 export { completedThirds } from "./tdd.ts";
 

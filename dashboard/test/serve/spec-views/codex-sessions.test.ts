@@ -2,11 +2,11 @@
 // the home folder, as `codex_provider_limit` in bash finds it. The two are
 // edited by hand together, so this reads the bash side's own text.
 
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { codexHome, readCodexSession } from "../../../src/serve/spec-views/codex-sessions.ts";
+import { codexHome, codexSessionReader, readCodexSession } from "../../../src/serve/spec-views/codex-sessions.ts";
 import { feasibility, lines, S, sessionPath, T, writeSessions } from "../../helpers/codex-fixtures.ts";
 
 const tempHome = () => mkdtempSync(join(tmpdir(), "codex-home-"));
@@ -18,6 +18,30 @@ describe("readCodexSession", () => {
 
     expect(readCodexSession(S, home)).toBe(lines(feasibility.child));
     expect(readCodexSession(T, home)).toBeUndefined();
+  });
+
+  test("a sessions folder that is a link is followed, as a shadow home reaches the shared sessions (AC-15)", () => {
+    const shared = tempHome();
+    const shadow = tempHome();
+    writeSessions(shared, { [S]: feasibility.child });
+    symlinkSync(join(shared, "sessions"), join(shadow, "sessions"));
+
+    expect(readCodexSession(S, shadow)).toBe(lines(feasibility.child));
+  });
+
+  test("a step's session is read under its provider's shadow home, else its CODEX_HOME (AC-15)", () => {
+    const own = tempHome();
+    const shadow = tempHome();
+    writeSessions(own, { [S]: feasibility.child });
+    writeSessions(shadow, { [T]: feasibility.child });
+    const providers = {
+      a: { name: "a", tool: "codex", codexHome: own },
+      b: { name: "b", tool: "codex", codexHome: own, shadowHome: shadow },
+    } as const;
+
+    expect(codexSessionReader("a", providers)(S)).toBe(lines(feasibility.child));
+    expect(codexSessionReader("b", providers)(T)).toBe(lines(feasibility.child));
+    expect(codexSessionReader("b", providers)(S)).toBeUndefined();
   });
 
   test("the home is CODEX_HOME, else .codex in the home folder", () => {
@@ -42,7 +66,7 @@ describe("readCodexSession", () => {
   test("the rule is provider-limit.sh's: the same home, folder and file name", async () => {
     const bash = await Bun.file(new URL("../../../../core/scripts/lib/run-spec/turn/provider-limit.sh", import.meta.url)).text();
     const fallback = /home="\$\{CODEX_HOME:-\$HOME\/([^}]+)\}"/.exec(bash)?.[1];
-    const folder = /\$home\/(\w+)"/.exec(bash)?.[1];
+    const folder = /\$home\/(\w+)\/"/.exec(bash)?.[1];
     const name = /-name "(rollout-\*-)\$thread(\.jsonl)"/.exec(bash);
 
     expect(fallback).toBe(".codex");

@@ -45,13 +45,6 @@ export function parseStoredJob(raw: unknown): Job | null {
     // Anything but a string here would be handed to a fetch and to a
     // file read. Dropped, like every other malformed field.
     sessionId: typeof r.sessionId === "string" ? r.sessionId : undefined,
-    // Handed to the runner's command line and to the sandbox's deny list,
-    // so a malformed one is dropped like the session id above.
-    claudeAccount: claudeAccountOf(r.claudeAccount),
-    usageLimitLeft: usageLimitLeftOf(r.usageLimitLeft),
-    usageLimitLeftBefore: Array.isArray(r.usageLimitLeftBefore)
-      ? r.usageLimitLeftBefore.flatMap((l) => usageLimitLeftOf(l) ?? [])
-      : undefined,
     streamFile: typeof r.streamFile === "string" ? r.streamFile : undefined,
     // Each `root` here becomes a git working directory on the merge
     // path, so a malformed entry is dropped rather than carried — the
@@ -66,18 +59,6 @@ export function parseStoredJob(raw: unknown): Job | null {
     landingCut: r.landing || r.landingCut ? true : undefined,
   };
 }
-
-const claudeAccountOf = (raw: unknown): Job["claudeAccount"] => {
-  const a = raw as Record<string, unknown> | null;
-  return a && typeof a.name === "string" && typeof a.configDir === "string" ? { name: a.name, configDir: a.configDir } : undefined;
-};
-
-const usageLimitLeftOf = (raw: unknown): Job["usageLimitLeft"] => {
-  const l = raw as Record<string, unknown> | null;
-  return l && typeof l.hold === "string" && typeof l.until === "string" && typeof l.resetKnown === "boolean" && typeof l.since === "string"
-    ? { hold: l.hold, until: l.until, resetKnown: l.resetKnown, since: l.since }
-    : undefined;
-};
 
 /** A step whose landing was still in flight when the process stopped
  *  never had its `at` stamped, and nothing after a restart would stamp it:
@@ -265,12 +246,12 @@ export interface QueueSettingsUpdate {
   concurrency?: number;
   /** `modelChoices` entries to write, each by its key; `null` removes one. */
   modelChoices?: Record<string, ModelChoice | null>;
-  /** `claudeAccounts` entries to write, each by its name; `null` removes one. */
-  claudeAccounts?: Record<string, { configDir: string } | null>;
   /** `providers` entries to write, each by its key; `null` removes one. */
   providers?: Record<string, Provider | null>;
   /** The phase defaults' providers, per step, by key. */
   provider?: Record<string, string>;
+  /** Top-level keys to remove whole. */
+  removeKeys?: string[];
 }
 
 /** Atomically replace the dashboard-owned workflow defaults while leaving
@@ -299,14 +280,14 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
     for (const [name, choice] of Object.entries(next.modelChoices ?? {})) {
       source = applyEdits(source, modify(source, ["modelChoices", name], choice ?? undefined, opts));
     }
-    for (const [name, account] of Object.entries(next.claudeAccounts ?? {})) {
-      source = applyEdits(source, modify(source, ["claudeAccounts", name], account ?? undefined, opts));
-    }
     for (const [key, provider] of Object.entries(next.providers ?? {})) {
       source = applyEdits(source, modify(source, ["providers", key], provider ?? undefined, opts));
     }
     for (const [step, key] of Object.entries(next.provider ?? {})) {
       source = applyEdits(source, modify(source, ["provider", step], key, opts));
+    }
+    for (const key of next.removeKeys ?? []) {
+      source = applyEdits(source, modify(source, [key], undefined, opts));
     }
     mkdirSync(dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;
@@ -365,21 +346,6 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     return Object.keys(out).length > 0 ? out : undefined;
   };
 
-  // A Claude account is a name and a directory; an entry missing either, a
-  // second one for the same directory, and the default account's own name
-  // are dropped, the way a malformed model choice is.
-  const accounts = (v: unknown): QueueDefaults["claudeAccounts"] => {
-    if (v === null || typeof v !== "object" || Array.isArray(v)) return base.claudeAccounts;
-    const out: NonNullable<QueueDefaults["claudeAccounts"]> = {};
-    for (const [name, entry] of Object.entries(v as Record<string, unknown>)) {
-      if (!NAME_RE.test(name) || name.toLowerCase() === "default") continue;
-      const dir = (entry as Record<string, unknown> | null)?.configDir;
-      if (typeof dir !== "string" || !dir || Object.values(out).some((a) => a.configDir === dir)) continue;
-      out[name] = { configDir: dir };
-    }
-    return Object.keys(out).length > 0 ? out : undefined;
-  };
-
   // The built-in `opus` means whichever choice this host lists under
   // that name in any case; the file's own names are left as written.
   const modelChoices = choices(r.modelChoices);
@@ -397,7 +363,6 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
       ? { providers: parseProviders(r.providers) }
       : base.providers ? { providers: base.providers } : {}),
     ...(r.provider !== undefined || base.provider ? { provider: table(r.provider, base.provider ?? {}) } : {}),
-    ...(accounts(r.claudeAccounts) ? { claudeAccounts: accounts(r.claudeAccounts) } : {}),
     ...(r.resumeAnalysis === true || (r.resumeAnalysis === undefined && base.resumeAnalysis) ? { resumeAnalysis: true } : {}),
   };
 }

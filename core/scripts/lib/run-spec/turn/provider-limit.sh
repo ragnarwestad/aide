@@ -39,7 +39,9 @@ claude_provider_limit() {   # $1: the event, as JSON
 codex_session_file() {   # $1: the thread id
   local thread="$1" home="${CODEX_HOME:-$HOME/.codex}"
   [ -n "$thread" ] && [ -d "$home/sessions" ] || return 0
-  find "$home/sessions" -type f -name "rollout-*-$thread.jsonl" 2>/dev/null | head -n 1
+  # With the slash, so `find` goes into a `sessions` that is a link (a shadow
+  # home reaches the shared sessions through one).
+  find "$home/sessions/" -type f -name "rollout-*-$thread.jsonl" 2>/dev/null | head -n 1
 }
 
 # Codex: `codex exec --json` says nothing about limits. Its own session

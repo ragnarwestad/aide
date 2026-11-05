@@ -5,13 +5,15 @@ import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { notificationsPanel } from "./notifications.ts";
 import { processPanel, type ProcessSettings } from "./process.ts";
 import { TOOL_TABS, toolPanel, toolPart } from "./tools.ts";
+import { providersBlock } from "./providers.ts";
+import type { Provider } from "../../../queue/providers/index.ts";
 import type { CheckableTool, ToolCheck } from "./tools.ts";
 import type { ToolUsage } from "./usage.ts";
 import type { ToolModels } from "./models.ts";
 import type { ModelChoice } from "../../../queue/types.ts";
 import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
-import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES } from "../specs-list";
+import { defaultModelForTool, modelOptions, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
 
 export const SETTINGS_ROUTE = "/settings";
@@ -21,10 +23,10 @@ export const SETTINGS_ROUTE = "/settings";
 export const SETTINGS_GROUPS = ["ai", "process", "notifications"] as const;
 export type SettingsGroup = (typeof SETTINGS_GROUPS)[number];
 
-/** AI's own row: the models-per-phase table, then one tab per AI. The
- *  table keeps the key it had as the page's first tab, so `?tab=phases`
- *  still opens it. */
-export const AI_TABS = ["phases", ...TOOL_TABS] as const;
+/** AI's own row: the models-per-phase table, the providers, then one tab
+ *  per AI. The table keeps the key it had as the page's first tab, so
+ *  `?tab=phases` still opens it. */
+export const AI_TABS = ["phases", "providers", ...TOOL_TABS] as const;
 
 /** Every value `?tab=` can name: a group, or a tab inside AI. The tool
  *  keys, `phases` and `notifications` are the page's old tabs, so a link
@@ -83,6 +85,9 @@ export const SETTINGS_STEPS = [...SPEC_STEPS, ...OTHER_STEPS] as const;
 export interface SettingsPageOptions {
   modelChoices: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude"; ranAs?: string; named?: { id: string; name: string } }[];
   defaultModels: Record<string, string>;
+  /** The providers an AI choice lists, and the configured one per step. */
+  providerChoices?: ProviderOption[];
+  defaultProviders?: Record<string, string>;
   timeoutSec: Record<string, number>;
   script?: string;
   /** Where "← Back" goes — resolved by `serve.ts` from the
@@ -115,9 +120,8 @@ export interface SettingsPageOptions {
   /** The live model choices, with the model each hands its command line:
    *  what an AI's tab sets the reading against. */
   choices?: Record<string, ModelChoice>;
-  /** The Claude accounts besides the default one, for Claude Code's
-   *  Accounts tab. */
-  claudeAccounts?: Record<string, { configDir: string }>;
+  /** The providers the Providers tab lists, by key. */
+  providers?: Record<string, Provider>;
   /** The server's public key for push, which the Notifications tab's
    *  script subscribes a device with. */
   pushPublicKey?: string;
@@ -179,19 +183,15 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>${timeoutCell}</tr>`;
     }
     const configured = opts.defaultModels[step] ?? opts.defaultModels.default;
-    const { model: chosen, tool } = settingsRowChoice(models, opts.defaultModels, step);
-    const tools = [...new Set(models.map((model) => model.tool ?? "claude"))];
-    const ai = tools.map((name) => {
-      // `TOOL_NAMES` is where a tool's own name lives. This line used to
-      // spell two of them out — `codex ? "Codex" : "Claude Code"` — so a
-      // third tool arrived on this page under Claude Code's name, which
-      // is exactly what Fake-Claude exists not to be mistaken for.
-      const label = TOOL_NAMES[name] ?? name;
-      const preferred = defaultModelForTool(models, name, configured);
-      return `<option value="${name}" data-default="${esc(preferred ?? "")}"${name === tool ? " selected" : ""}>${label}</option>`;
+    const { model: chosen } = settingsRowChoice(models, opts.defaultModels, step);
+    const providers = opts.providerChoices ?? [];
+    const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, step, chosen, []);
+    const ai = providers.map((p) => {
+      const preferred = defaultModelForTool(models, p.tool, configured);
+      return `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(preferred ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`;
     }).join("");
     return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>` +
-      `<td><select aria-label="${esc(t(lang, "settings.row.aiAria", { step: stepLabel(step, lang) }))}" form="settings-form" data-ai="model.${step}">${ai}</select></td>` +
+      `<td>${providers.length ? `<select aria-label="${esc(t(lang, "settings.row.aiAria", { step: stepLabel(step, lang) }))}" form="settings-form" name="provider.${step}" data-ai="model.${step}">${ai}</select>` : ""}</td>` +
       `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: stepLabel(step, lang) }))}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
       `${timeoutCell}</tr>`;
   };
@@ -223,13 +223,15 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const aiRow = openGroup === "ai" ? tabBar(AI_TABS, SETTINGS_ROUTE, open as (typeof AI_TABS)[number], {}, "", { lang }) : "";
   const panel = open === "phases"
     ? phasesPanel
-    : open === "notifications"
+    : open === "providers"
+      ? providersBlock(opts.providers, lang)
+      : open === "notifications"
       ? notificationsPanel(opts.pushPublicKey, lang)
       : open === "process"
         ? (opts.process ? processPanel(opts.process, lang) : "")
         : toolPanel(open, opts.checks?.[open], opts.usage?.[open], Date.parse(generatedAt), {
           reading: opts.models?.[open], choices: opts.choices, options: models,
-        }, lang, toolPart(opts.aiTab, open), opts.claudeAccounts);
+        }, lang, toolPart(opts.aiTab, open));
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. Both rows sit directly in it, so page.css's
   // Settings rule centres them, and the panel after them, as it did one row.

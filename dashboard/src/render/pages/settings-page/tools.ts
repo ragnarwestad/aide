@@ -18,7 +18,6 @@ import { INSTALL_TARGETS, placesOf } from "./places.ts";
 import { usageView, type ToolUsage } from "./usage.ts";
 import { modelsBlock, type ModelsPanel } from "./models.ts";
 import { installationBlock } from "./installation.ts";
-import { accountsBlock } from "./accounts.ts";
 
 export const TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
@@ -79,12 +78,10 @@ export function toolWhere(lang: Language, tool: CheckableTool, places: Record<st
  *  The one Check above them reads all three. */
 export const TOOL_PARTS = ["models", "subscription", "installation"] as const;
 
-/** Claude Code has a fourth: the logins the board may run a step on. */
-const CLAUDE_PARTS = [...TOOL_PARTS, "accounts"] as const;
-export type ToolPart = (typeof CLAUDE_PARTS)[number];
+export type ToolPart = (typeof TOOL_PARTS)[number];
 
 /** The tabs inside one AI's tab. */
-export const toolParts = (tool: CheckableTool): readonly ToolPart[] => (tool === "claude" ? CLAUDE_PARTS : TOOL_PARTS);
+export const toolParts = (_tool: CheckableTool): readonly ToolPart[] => TOOL_PARTS;
 
 /** The open tab inside an AI's tab, off `?aitab=`: Models when none, or one
  *  the AI has not got, is named. */
@@ -140,14 +137,13 @@ function usageBlock(usage: ToolUsage | undefined, now: number, lang: Language): 
 function partBody(
   part: ToolPart,
   tool: CheckableTool,
-  readings: { check?: ToolCheck; usage?: ToolUsage; models: ModelsPanel; accounts?: Record<string, { configDir: string }> },
+  readings: { check?: ToolCheck; usage?: ToolUsage; models: ModelsPanel },
   now: number,
   lang: Language,
 ): string {
   const { check, usage, models } = readings;
   if (part === "installation") return installationBlock(check, check ? stamp(check.at) : "", lang);
   if (part === "subscription") return usageBlock(usage, now, lang);
-  if (part === "accounts") return accountsBlock(readings.accounts, lang);
   return modelsBlock(tool, models, models.reading ? stamp(models.reading.at) : "", lang, TOOL_TAB_LABELS[tool]);
 }
 
@@ -166,7 +162,6 @@ export function toolPanel(
   models: ModelsPanel = {},
   lang: Language = "en",
   part: ToolPart = "models",
-  accounts?: Record<string, { configDir: string }>,
 ): string {
   const id = `check-${tool}`;
   return (
@@ -188,7 +183,7 @@ export function toolPanel(
       label: (p) => t(lang, `settings.part.${p}`),
       data: { aitabs: "" },
     }) +
-    partBody(part, tool, { check, usage, models, accounts }, now, lang) +
+    partBody(part, tool, { check, usage, models }, now, lang) +
     `</section>`
   );
 }

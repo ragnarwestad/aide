@@ -212,6 +212,10 @@ describe("a spec's row runs its own phases", () => {
   // server's own answer, the same one the box reads, so a picker and
   // the box on its own line can never disagree about where the tail
   // starts.
+  const PROVIDERS_225 = [
+    { key: "Claude", name: "Claude", tool: "claude" as const },
+    { key: "Codex", name: "Codex", tool: "codex" as const },
+  ];
   const CHOICES_225 = [
     { name: "sonnet" },
     { name: "codex-fast",  tool: "codex" as const },
@@ -221,7 +225,7 @@ describe("a spec's row runs its own phases", () => {
   const pickers = (html: string, step: string) => {
     const line = subRow(html, step);
     return {
-      ai: line.match(new RegExp(`<select data-ai="model\\.${step}"[^>]*>`))?.[0] ?? "",
+      ai: line.match(new RegExp(`<select name="provider\\.${step}"[^>]*>`))?.[0] ?? "",
       model: line.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ?? "",
     };
   };
@@ -236,7 +240,7 @@ describe("a spec's row runs its own phases", () => {
         }),
       ],
       [target("94-row-runs-it")],
-      { modelChoices: CHOICES_225 },
+      { modelChoices: CHOICES_225, providerChoices: PROVIDERS_225 },
     );
     for (const step of ["implement", "archive"]) {
       const p = pickers(html, step);
@@ -256,7 +260,7 @@ describe("a spec's row runs its own phases", () => {
     const html = rows(
       [job("j1", "analyze", { state: "running", editableSteps: ["implement", "archive"] })],
       [target("94-row-runs-it")],
-      { modelChoices: CHOICES_225 },
+      { modelChoices: CHOICES_225, providerChoices: PROVIDERS_225 },
     );
     for (const step of ["implement", "archive"]) {
       const p = pickers(html, step);
@@ -277,7 +281,7 @@ describe("a spec's row runs its own phases", () => {
         }),
       ],
       [target("94-row-runs-it")],
-      { modelChoices: CHOICES_225 },
+      { modelChoices: CHOICES_225, providerChoices: PROVIDERS_225 },
     );
     for (const step of ["analyze", "implement"]) {
       const p = pickers(html, step);
@@ -299,7 +303,7 @@ describe("a spec's row runs its own phases", () => {
     const html = rows(
       [job("j1", "analyze", { state: "queued" })],
       [target("94-row-runs-it")],
-      { modelChoices: CHOICES_225 },
+      { modelChoices: CHOICES_225, providerChoices: PROVIDERS_225 },
     );
     for (const step of ["analyze", "implement", "archive"]) {
       const p = pickers(html, step);
@@ -389,6 +393,10 @@ describe("a phase whose box is locked has its AI and model locked too", () => {
         runnerAvailable: true,
         targets: [{ project: "aide", specFolder: "413-locked-pickers", done }],
         modelChoices: TOOLS,
+        providerChoices: [
+          { key: "Claude", name: "Claude", tool: "claude" as const },
+          { key: "Codex", name: "Codex", tool: "codex" as const },
+        ],
         filter: { open: openKeys([], [{ project: "aide", specFolder: "413-locked-pickers" }]) },
       },
       Date.parse("2026-09-09T12:00:00Z"),
@@ -396,7 +404,7 @@ describe("a phase whose box is locked has its AI and model locked too", () => {
   const line = (html: string, step: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0] ?? "";
   const select = (html: string, attr: string, step: string) =>
-    html.match(new RegExp(`<select ${attr}="model\\.${step}"[^>]*>`))?.[0] ?? "";
+    html.match(new RegExp(attr === "data-ai" ? `<select name="provider\\.${step}"[^>]*>` : `<select ${attr}="model\\.${step}"[^>]*>`))?.[0] ?? "";
 
   test("a phase this row has run keeps both picks, for the next run of it", () => {
     const analyze = line(render(["analyze"]), "analyze");

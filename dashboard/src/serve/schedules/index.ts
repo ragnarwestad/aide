@@ -24,7 +24,7 @@ import {
 } from "../../project/discover";
 import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { Job, QueueStore } from "../../queue/queue.ts";
-import { holdKey } from "../../queue/runner/claude-accounts.ts";
+import { resolveStepProvider } from "../../queue/providers/index.ts";
 import { restartAfterUsageLimit, usageLimitHolds } from "../../queue/runner/usage-limit.ts";
 import type { Runner } from "../../queue/runner";
 import type { CheckableTool, SpecTarget } from "../../render";
@@ -412,10 +412,14 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
 export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   const runner = ctx.readRunner();
   if (!runner) return;
-  // First, so a stopped step whose AI's usage limit has reset is queued
+  // First, so a stopped step whose provider's usage limit has reset is queued
   // again before the checkout refresh and the tool recheck, and gets both.
-  const toolOf = (job: Job): string => holdKey(job, stepTool(job, job.steps[job.stepIndex] ?? "", ctx.queue.defaults));
-  restartAfterUsageLimit(ctx.queue, toolOf, (ctx.now ?? Date.now)());
+  const providerOf = (job: Job): string => {
+    const step = job.steps[job.stepIndex] ?? "";
+    return resolveStepProvider(job, step, ctx.queue.defaults) ?? stepTool(job, step, ctx.queue.defaults);
+  };
+  const nameOf = (key: string): string => ctx.queue.defaults.providers?.[key]?.name ?? key;
+  restartAfterUsageLimit(ctx.queue, providerOf, (ctx.now ?? Date.now)());
   // Nothing may be STARTED in a checkout that is not there.
   // Every project with a job waiting, and only those — a clone is
   // made once and the call is a map lookup ever after, so this costs
@@ -438,6 +442,6 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
     await blockedDependencies(ctx),
     fixedSentenceHolds(ctx),
     archiveWithOpenAcceptance(ctx),
-    usageLimitHolds(ctx.queue.list(), toolOf),
+    usageLimitHolds(ctx.queue.list(), providerOf, nameOf),
   );
 }

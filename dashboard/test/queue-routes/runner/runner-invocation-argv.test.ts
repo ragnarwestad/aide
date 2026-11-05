@@ -452,6 +452,17 @@ describe("the analysis session an implement continues", () => {
     expect(analysisSessionToResume(now, [earlier, other, now], "claude", NOW)).toBe("s-new");
   });
 
+  test("it is continued across two Codex providers that share a CODEX_HOME, not across two that do not (AC-16)", () => {
+    const providers = {
+      A: { name: "A", tool: "codex", codexHome: "/shared", shadowHome: "/shadow-a" },
+      B: { name: "B", tool: "codex", codexHome: "/shared", shadowHome: "/shadow-b" },
+      C: { name: "C", tool: "codex", codexHome: "/own" },
+    } as never;
+    const j = job([analysis("2026-09-26T13:30:00Z", { tool: "codex", provider: { key: "A", name: "A" } })]);
+    expect(analysisSessionToResume(j, [j], "codex", NOW, { key: "B", providers })).toBe("s-analyze");
+    expect(analysisSessionToResume(j, [j], "codex", NOW, { key: "C", providers })).toBeUndefined();
+  });
+
   test("only an implement is handed the session", () => {
     const argvFor = (step: string): string[] =>
       runnerArgv(
@@ -466,39 +477,53 @@ describe("the analysis session an implement continues", () => {
   });
 });
 
-// A job a person moved to another Claude account runs its Claude step with
-// that account's directory; nothing else changes its argv.
-describe("--claude-config-dir", () => {
-  const WORK = { name: "Work", configDir: "/home/ragnar/.claude-2" };
-  const argvFor = (extra: Record<string, unknown>, choices?: Record<string, { tool?: "codex" }>): string[] =>
+// A step runs with the folder its provider keeps its login in; nothing else
+// changes its argv.
+describe("--claude-config-dir and --codex-home", () => {
+  const providers = {
+    Claude: { name: "Claude", tool: "claude" },
+    Capra: { name: "Capra", tool: "claude", configDir: "~/.claude-2" },
+    Codex: { name: "Codex", tool: "codex" },
+    "Codex-own": { name: "Codex-own", tool: "codex", codexHome: "/opt/codex-own" },
+    "Codex-shadow": { name: "Codex-shadow", tool: "codex", codexHome: "/opt/codex-shared", shadowHome: "~/.codex-shadow" },
+  } as const;
+  const choices = { opus: {}, gpt: { tool: "codex" } } as never;
+  const argvFor = (provider: string, model = "opus"): string[] =>
     runnerArgv(
       {
         id: "j1", project: "aide", specFolder: "700-x", steps: ["implement"], stepIndex: 0,
-        model: choices ? { implement: "gpt" } : {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [], ...extra,
+        model: { implement: model }, provider: { implement: provider }, timeoutSec: {}, permissionMode: {},
+        state: "queued", createdAt: "", results: [],
       } as unknown as Parameters<typeof runnerArgv>[0],
-      "implement", "/tmp/r.json", { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", modelChoices: choices },
+      "implement", "/tmp/r.json",
+      { runnerBin: "/bin/aide-run-spec", projectDir: "/p", push: "branch", modelChoices: choices, providers, home: "/home/ragnar" } as never,
     );
+  const after = (argv: string[], flag: string) => argv[argv.indexOf(flag) + 1];
 
-  test("a Claude step of a job on another account is handed the account's directory (AC-5)", () => {
-    const argv = argvFor({ claudeAccount: WORK });
-    expect(argv.slice(argv.indexOf("--claude-config-dir"), argv.indexOf("--claude-config-dir") + 2)).toEqual([
-      "--claude-config-dir", "/home/ragnar/.claude-2",
-    ]);
+  test("a Claude Code provider with a config folder hands it over expanded (AC-14)", () => {
+    expect(after(argvFor("Capra"), "--claude-config-dir")).toBe("/home/ragnar/.claude-2");
   });
 
-  test("a job on the default account, and a Codex step of a job on another, are handed none (AC-5)", () => {
-    expect(argvFor({})).not.toContain("--claude-config-dir");
-    expect(argvFor({ claudeAccount: WORK }, { gpt: { tool: "codex" } })).not.toContain("--claude-config-dir");
+  test("a Claude Code provider with no folder, and a Codex step, are handed no config folder (AC-14)", () => {
+    expect(argvFor("Claude")).not.toContain("--claude-config-dir");
+    expect(argvFor("Codex-own", "gpt")).not.toContain("--claude-config-dir");
+  });
+
+  test("a Codex provider hands over its shadow home, else its CODEX_HOME, else nothing (AC-15)", () => {
+    expect(after(argvFor("Codex-shadow", "gpt"), "--codex-home")).toBe("/home/ragnar/.codex-shadow");
+    expect(after(argvFor("Codex-own", "gpt"), "--codex-home")).toBe("/opt/codex-own");
+    expect(argvFor("Codex", "gpt")).not.toContain("--codex-home");
+    expect(argvFor("Capra")).not.toContain("--codex-home");
   });
 });
 
-describe("the account directories handed to the runner's environment", () => {
+describe("the provider folders handed to the runner's environment", () => {
   async function envListFor(queueDefaults: Record<string, unknown>): Promise<string> {
     const dir = mkdtempSync(join(tmpdir(), "aide-queue-account-dirs-"));
     ownDirs.push(dir);
     const envFile = join(dir, "runner-env.txt");
     const bin = join(dir, "fake-run-spec");
-    writeFileSync(bin, `#!/usr/bin/env bash\nprintf '<%s>\\n' "\${AIDE_CLAUDE_CONFIG_DIRS-unset}" > ${envFile}\n`, { mode: 0o755 });
+    writeFileSync(bin, `#!/usr/bin/env bash\nprintf '<%s>\\n<%s>\\n' "\${AIDE_CLAUDE_CONFIG_DIRS-unset}" "\${AIDE_CODEX_HOMES-unset}" > ${envFile}\n`, { mode: 0o755 });
     const { base } = start({ queueRunnerBin: bin, queueResultDir: join(dir, "jobs"), queuePush: "branch", queueDefaults } as never);
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
@@ -512,14 +537,21 @@ describe("the account directories handed to the runner's environment", () => {
     timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { implement: "opus", default: "sonnet" },
   };
 
-  test("every configured account's directory, expanded, one per line (AC-7)", async () => {
+  test("every provider's folders, expanded, one list per tool, the normal ones left out (AC-17)", async () => {
     const env = await envListFor({
-      ...BASE, claudeAccounts: { Work: { configDir: "~/.claude-2" }, Spare: { configDir: "/opt/claude-3" } },
+      ...BASE,
+      providers: {
+        Claude: { name: "Claude", tool: "claude" },
+        Work: { name: "Work", tool: "claude", configDir: "~/.claude-2" },
+        Spare: { name: "Spare", tool: "claude", configDir: "/opt/claude-3" },
+        Codex: { name: "Codex", tool: "codex" },
+        Shadow: { name: "Shadow", tool: "codex", codexHome: "~/.codex", shadowHome: "~/.codex-shadow" },
+      },
     });
-    expect(env).toBe(`<${homedir()}/.claude-2\n/opt/claude-3>`);
+    expect(env).toBe(`<${homedir()}/.claude-2\n/opt/claude-3>\n<${homedir()}/.codex-shadow>`);
   });
 
-  test("not set when no account is configured (AC-7)", async () => {
-    expect(await envListFor(BASE)).toBe("<unset>");
+  test("neither list is set when no provider has a folder of its own (AC-17)", async () => {
+    expect(await envListFor(BASE)).toBe("<unset>\n<unset>");
   });
 });

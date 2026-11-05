@@ -97,6 +97,11 @@ sandbox_runtime_write_denied() {
     for name in "${sandbox_account_write_denied[@]}"; do printf '%s\n' "$dir/$name"; done
   done <<< "${AIDE_CLAUDE_CONFIG_DIRS:-}
 ${claude_config_dir:-}"
+  # Every Codex folder a provider keeps a login in (one per line), whole: a
+  # Claude step never writes in one, as it writes nothing in `~/.codex`.
+  while IFS= read -r dir; do
+    [ -n "$dir" ] && printf '%s\n' "$dir"
+  done <<< "${AIDE_CODEX_HOMES:-}"
   for dir in "${project_root:-}" "${specs_repo:-}" "$checkouts"/*/code "$checkouts"/*/specs; do
     [ -n "$dir" ] && [ -d "$dir/.git" ] || continue
     printf '%s\n' "$dir/.git/hooks" "$dir/.git/config"
@@ -105,6 +110,15 @@ ${claude_config_dir:-}"
     [ -d "$dir" ] && printf '%s\n' "${dir%/}/settings.yaml"
   done | sort -u
 } 2>/dev/null
+# What a step may not read besides the fixed list: each Codex folder's
+# `auth.json`, the credential of that provider's login, as `~/.codex/auth.json`
+# is above. Written the way sandbox_runtime_write_denied is.
+sandbox_runtime_read_denied() {
+  local dir
+  while IFS= read -r dir; do
+    [ -n "$dir" ] && printf '%s\n' "$dir/auth.json"
+  done <<< "${AIDE_CODEX_HOMES:-}"
+}
 sandbox_rule_path() {
   # shellcheck disable=SC2088  # a literal `~/`, as above
   case "$1" in
@@ -140,7 +154,10 @@ sandbox_rule_path() {
 sandbox_settings_json() {
   local paths writes runtime path
   # shellcheck disable=SC2088  # a literal `~/`: the rules must say it, not $HOME
-  paths="$(printf '~/%s\n' "${sandbox_denied[@]}" | jq -R . | jq -sc .)"
+  paths="$({ printf '~/%s\n' "${sandbox_denied[@]}"
+             while IFS= read -r path; do
+               [ -n "$path" ] && sandbox_rule_path "$path"
+             done <<< "$(sandbox_runtime_read_denied)"; } | jq -R . | jq -sc .)"
   runtime="$(sandbox_runtime_write_denied)"
   # shellcheck disable=SC2088
   writes="$({ printf '~/%s\n' "${sandbox_write_denied[@]}"

@@ -6,7 +6,6 @@
 import { describe, expect, test } from "bun:test";
 import { specNotice } from "../../../../src/render/ui/job-state";
 import { usageLimitText } from "../../../../src/render/ui/job-state/provider-limit.ts";
-import { runOnAccountButtons } from "../../../../src/render/ui/job-state/run-on-account.ts";
 import { renderJobFollowParts } from "../../../../src/render/pages/job-page";
 import type { QueueRowView } from "../../../../src/render";
 import { row } from "../../pages/fixtures.ts";
@@ -77,21 +76,21 @@ describe("the stopped job", () => {
 
 describe("a job held behind it", () => {
   test("says it waits for the AI's usage limit and when it starts (AC-8)", () => {
-    const text = usageLimitText(heldView("runner.usageLimitHeld", { tool: "claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!;
+    const text = usageLimitText(heldView("runner.usageLimitHeld", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!;
     expect(text).toContain("Claude");
     expect(text).toContain("05:00");
     expect(text).not.toContain("2026-08-16T");
   });
 
   test("with no reset time says the AI did not say, and when the board tries again (AC-9)", () => {
-    const text = usageLimitText(heldView("runner.usageLimitHeldNoReset", { tool: "codex", at: "2026-08-16T02:10:00.000Z" }), "en", NOW, TZ)!;
+    const text = usageLimitText(heldView("runner.usageLimitHeldNoReset", { provider: "Codex", at: "2026-08-16T02:10:00.000Z" }), "en", NOW, TZ)!;
     expect(text).toContain("Codex");
     expect(text).toContain("did not say");
     expect(text).toContain("02:10");
   });
 
   test("while the probe runs says when the board tried again (AC-9)", () => {
-    const text = usageLimitText(heldView("runner.usageLimitHeldProbe", { tool: "claude", at: "2026-08-16T02:10:00.000Z" }), "en", NOW, TZ)!;
+    const text = usageLimitText(heldView("runner.usageLimitHeldProbe", { provider: "Claude", at: "2026-08-16T02:10:00.000Z" }), "en", NOW, TZ)!;
     expect(text).toContain("did not say");
     expect(text).toContain("02:10");
   });
@@ -106,9 +105,9 @@ describe("the sentences ask for no press", () => {
     const all = [
       usageLimitText(stoppedView(), "en", NOW, TZ)!,
       usageLimitText(stoppedView({ usageLimitWait: { until: "2026-08-16T02:10:00.000Z", resetKnown: false } }), "en", NOW, TZ)!,
-      usageLimitText(heldView("runner.usageLimitHeld", { tool: "claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
-      usageLimitText(heldView("runner.usageLimitHeldNoReset", { tool: "claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
-      usageLimitText(heldView("runner.usageLimitHeldProbe", { tool: "claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
+      usageLimitText(heldView("runner.usageLimitHeld", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
+      usageLimitText(heldView("runner.usageLimitHeldNoReset", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
+      usageLimitText(heldView("runner.usageLimitHeldProbe", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" }), "en", NOW, TZ)!,
     ];
     for (const text of all) expect(text.toLowerCase()).not.toContain("press");
   });
@@ -124,14 +123,14 @@ describe("where the sentence is drawn", () => {
 
   test("a held job's row reads as information, not as a warning", () => {
     const at = new Date(Date.now() + 3_600_000).toISOString();
-    const notice = specNotice(heldView("runner.usageLimitHeld", { tool: "claude", at }));
+    const notice = specNotice(heldView("runner.usageLimitHeld", { provider: "Claude", at }));
     expect(notice?.variant).toBe("info");
-    expect(notice?.text).toContain(usageLimitText(heldView("runner.usageLimitHeld", { tool: "claude", at }), "en", Date.now())!);
+    expect(notice?.text).toContain(usageLimitText(heldView("runner.usageLimitHeld", { provider: "Claude", at }), "en", Date.now())!);
   });
 
   test("the job page's banner shows the same sentence, for a stopped job and for a held one", () => {
     const stopped = stoppedView();
-    const held = heldView("runner.usageLimitHeld", { tool: "claude", at: "2026-08-16T05:00:00.000Z" });
+    const held = heldView("runner.usageLimitHeld", { provider: "Claude", at: "2026-08-16T05:00:00.000Z" });
     for (const view of [stopped, held]) {
       const html = renderJobFollowParts({ ...view, results: view.results ?? [] } as never, { now: NOW, lang: "en" });
       const unescaped = html.replace(/&#39;|&#x27;/g, "'");
@@ -140,53 +139,41 @@ describe("where the sentence is drawn", () => {
   });
 });
 
-describe("a step that ran on another Claude account", () => {
-  const onWork = (over: Partial<QueueRowView> = {}): QueueRowView =>
-    stoppedView({ claudeAccount: "Work", runOnAccounts: ["Default", "Spare"], ...over });
+describe("a step that ran on a provider of its own", () => {
+  const onCapra = (over: Partial<QueueRowView> = {}): QueueRowView =>
+    stoppedView({
+      provider: "Claude-Capra",
+      results: [{
+        step: "implement", ok: false, costUsd: 0, costMeasured: true, terminalReason: "provider-limit",
+        provider: { key: "capra", name: "Claude-Capra" },
+        providerLimit: { tool: "claude", window: "five_hour", resetsAt: "2026-08-16T05:00:00.000Z" },
+      }],
+      ...over,
+    });
 
-  test("the stopped sentence names the account after the model (AC-8)", () => {
-    expect(usageLimitText(onWork(), "en", NOW, TZ)).toContain("Claude (opus) on Work");
+  test("the stopped sentence names the provider and the model in the tool's place, and when it starts again (AC-11)", () => {
+    const text = usageLimitText(onCapra(), "en", NOW, TZ)!;
+    expect(text).toContain("Claude-Capra (opus)");
+    expect(text).toContain("05:00");
+    expect(text).not.toContain("Claude (opus)");
   });
 
-  test("the held sentence names the account the hold is for (AC-8)", () => {
-    const held = heldView("runner.usageLimitHeld", { tool: "claude", at: "2026-08-16T05:00:00.000Z", account: "Work" });
-    expect(usageLimitText(held, "en", NOW, TZ)).toContain("Claude on Work");
+  test("the held sentence names the provider the hold is for (AC-13)", () => {
+    const held = heldView("runner.usageLimitHeld", { provider: "Claude-Capra", at: "2026-08-16T05:00:00.000Z" });
+    expect(usageLimitText(held, "en", NOW, TZ)).toContain("Claude-Capra's usage limit");
   });
 
-  test("the default account is not named (AC-8)", () => {
-    expect(usageLimitText(stoppedView(), "en", NOW, TZ)).not.toContain(" on ");
-    const held = heldView("runner.usageLimitHeld", { tool: "claude", at: "2026-08-16T05:00:00.000Z" });
-    expect(usageLimitText(held, "en", NOW, TZ)).not.toContain("Claude on");
+  test("a limit with no reset time names the provider and the hour the board tries again (AC-11)", () => {
+    const view = onCapra({ usageLimitWait: { until: "2026-08-16T02:10:00.000Z", resetKnown: false } });
+    const text = usageLimitText(view, "en", NOW, TZ)!;
+    expect(text).toContain("Claude-Capra");
+    expect(text).toContain("02:10");
   });
 
-  test("the row's notice marks the usage-limit sentence as the one the buttons follow (AC-2)", () => {
-    const view = onWork({ usageLimitWait: { until: new Date(Date.now() + 3_600_000).toISOString(), resetKnown: true } });
+  test("the row's notice carries the sentence and no part of its own that offers a button (AC-11)", () => {
+    const view = onCapra({ usageLimitWait: { until: new Date(Date.now() + 3_600_000).toISOString(), resetKnown: true } });
     const parts = specNotice(view)?.parts ?? [];
-    expect(parts.find((p) => p.kind === "run-on-account")?.text).toContain("Claude (opus) on Work");
-  });
-
-  test("one button per account to move to, each posting its name to the job's run-on route (AC-2)", () => {
-    const html = runOnAccountButtons(onWork(), "en");
-    expect(html).toContain("Run on Default");
-    expect(html).toContain("Run on Spare");
-    expect(html).toContain(`/api/queue/${onWork().id}/run-on`);
-    expect(html).toContain("Spare");
-  });
-
-  test("a row with no other account to move to has no buttons and no such part (AC-9)", () => {
-    const view = onWork({ runOnAccounts: [], usageLimitWait: { until: new Date(Date.now() + 3_600_000).toISOString(), resetKnown: true } });
-    expect(runOnAccountButtons(view, "en")).toBe("");
-    expect((specNotice(view)?.parts ?? []).some((p) => p.kind === "run-on-account")).toBe(false);
-  });
-
-  test("a job that is running on Work says so on the row's notice (AC-8)", () => {
-    const running = row({ steps: ["implement"], state: "running", claudeAccount: "Work" });
-    expect(specNotice(running)?.text).toContain("Implement runs on Claude on Work");
-    const done = row({ steps: ["implement"], state: "done", claudeAccount: "Work" });
-    expect(specNotice(done)?.text).toContain("Implement ran on Claude on Work");
-  });
-
-  test("a job on the default account says nothing of the kind (AC-8)", () => {
-    expect(specNotice(row({ steps: ["implement"], state: "running" }))).toBeUndefined();
+    expect(parts.some((p) => "kind" in p && p.kind !== undefined)).toBe(false);
+    expect(specNotice(view)?.text).toContain("Claude-Capra (opus)");
   });
 });

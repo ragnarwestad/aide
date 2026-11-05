@@ -60,12 +60,8 @@ export interface QueueRowView {
    *  the render-side mirror of `Job.usageLimitWait`. Absent once it has
    *  started, or for a stop that has no restart. */
   usageLimitWait?: { until: string; resetKnown: boolean };
-  /** The name of the Claude account the job runs on, when a person moved it
-   *  off the default one and its step runs on Claude. */
-  claudeAccount?: string;
-  /** The accounts a step stopped on Claude's usage limit can be moved to:
-   *  one "Run on <account>" button each. Empty or absent offers none. */
-  runOnAccounts?: string[];
+  /** The name of the provider the current step runs, or ran, on. */
+  provider?: string;
   /** The pull request a `pr`-mode run opened for this job's code branch
    *  Stored on the job rather than derived at render time —
    *  only the run that called `gh` knows the URL, and there is nothing
@@ -103,6 +99,8 @@ export interface QueueRowView {
    *  step can carry THAT step's model rather than the row's (which is
    *  the running or last step's). */
   stepModels?: Record<string, string>;
+  /** The provider each step runs on, as a key. */
+  stepProviders?: Record<string, string>;
   /** The effort level this step ran at, when one was chosen.
    *  Absent means none was — a real, valid resting state, unlike
    *  `model`, which a job always carries a real value for. */
@@ -157,8 +155,8 @@ export interface StepResultView {
   /** The usage limit that stopped this step, as the tool reported it —
    *  present only on such a step. */
   providerLimit?: ProviderLimit;
-  /** The Claude account this step ran on, when it was not the default. */
-  claudeAccount?: string;
+  /** The provider this step ran on, as it was named then. */
+  provider?: { key: string; name: string };
   /** Whether `costUsd` was READ off the tool's own output or stood in
    *  for it. A killed step reports 0, because a SIGKILLed run prints no
    *  usage and there is nothing to measure it from.

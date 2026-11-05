@@ -73,30 +73,20 @@ describe("the completion hook and the landing window", () => {
     expect(store.get(bareJob.id)?.results[0]?.tool).toBe("claude");
   });
 
-  // A job a person moved to another Claude account says so on the result
-  // of each Claude step it runs there.
-  test("a Claude step of a job on another account records the account on its result, a Codex step and the default do not (AC-8)", () => {
-    const work = { name: "Work", configDir: "/home/ragnar/.claude-2" };
-    const onWork = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
-    store.update(onWork.id, { claudeAccount: work });
-    const onCodex = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
-    store.update(onCodex.id, { claudeAccount: work });
-    const byTool = new Map([[onWork.id, "claude"], [onCodex.id, "codex"]]);
+  test("a step records the provider it ran on by key, with the name it had then, and a step that ran no AI none (AC-10)", () => {
+    store.defaults.providers = { "Claude-Capra": { name: "Claude-Capra", tool: "claude" } };
+    const job = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    store.update(job.id, { provider: { analyze: "Claude-Capra" } });
+    const noAi = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
     const runner = makeRunner({
-      readResult: (path) => outcome({ tool: byTool.get([...byTool.keys()].find((id) => path.includes(id)) ?? "") }),
+      readResult: (path) => outcome(path.includes(noAi.id) ? { tool: "none" } : {}),
     });
     runner.tick();
     runner.poll();
-    expect(store.get(onWork.id)?.results[0]?.claudeAccount).toBe("Work");
-    expect(store.get(onCodex.id)?.results[0]?.claudeAccount).toBeUndefined();
-  });
-
-  test("a job on the default account records none (AC-8)", () => {
-    const job = enqueue({ steps: ["analyze"] });
-    const runner = makeRunner({ readResult: () => outcome() });
-    runner.tick();
-    runner.poll();
-    expect(store.get(job.id)?.results[0]?.claudeAccount).toBeUndefined();
+    // A rename afterwards leaves the finished step as it was named then.
+    store.defaults.providers = { "Claude-Capra": { name: "Capra", tool: "claude" } };
+    expect(store.get(job.id)?.results[0]?.provider).toEqual({ key: "Claude-Capra", name: "Claude-Capra" });
+    expect(store.get(noAi.id)?.results[0]?.provider).toBeUndefined();
   });
 
   // The narrowing used to name the tools it kept, so a third one was

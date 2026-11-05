@@ -3,9 +3,10 @@
 // follows. Both are read from the result file another process left, so
 // every field of `outcome` is a question rather than a promise.
 
-import { mergeBranchRefs, type Job, type StepResult, type TokenUsage, type WorkflowStep } from "../queue.ts";
+import { mergeBranchRefs, type Job, type QueueDefaults, type StepResult, type TokenUsage, type WorkflowStep } from "../queue.ts";
 import { asResultTool } from "../steps.ts";
-import { claudeAccountOf, contextUse, providerLimit, sharedFiles, stepRepoRanges, testedGreen, type StepOutcome } from "./types.ts";
+import { resolveStepProvider } from "../providers/index.ts";
+import { contextUse, providerLimit, sharedFiles, stepRepoRanges, testedGreen, type StepOutcome } from "./types.ts";
 
 export interface StepMeasures {
   cost: number;
@@ -16,7 +17,28 @@ export interface StepMeasures {
   at: string | undefined;
 }
 
-export function stepResultEntry(job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>, m: StepMeasures): StepResult {
+/** The provider a step ran on as it is named now: its key and name, or
+ *  nothing for a step that ran no AI or a store with no provider for it. A
+ *  key the config no longer holds keeps itself as its name. */
+function providerOfResult(
+  job: Job,
+  step: WorkflowStep,
+  tool: StepResult["tool"],
+  defaults: QueueDefaults,
+): StepResult["provider"] {
+  if (tool === "none") return undefined;
+  const key = resolveStepProvider(job, step, defaults);
+  return key ? { key, name: defaults.providers?.[key]?.name ?? key } : undefined;
+}
+
+export function stepResultEntry(
+  job: Job,
+  step: WorkflowStep,
+  outcome: Partial<StepOutcome>,
+  m: StepMeasures,
+  defaults: QueueDefaults,
+): StepResult {
+  const tool = asResultTool(outcome.tool) ?? "claude";
   return {
     step,
     ok: !!outcome.ok,
@@ -27,8 +49,9 @@ export function stepResultEntry(job: Job, step: WorkflowStep, outcome: Partial<S
     // `aide-run-spec` actually writes, alongside "codex" — and must not be
     // silently collapsed into "claude". Checked against the one list
     // rather than a copy of it.
-    tool: asResultTool(outcome.tool) ?? "claude",
-    tokens: m.tokens, modelId: m.modelId, context: contextUse(outcome.context), providerLimit: providerLimit(outcome.providerLimit), claudeAccount: claudeAccountOf(job, outcome.tool), testedGreen: testedGreen(outcome.testedGreen),
+    tool,
+    provider: providerOfResult(job, step, tool, defaults),
+    tokens: m.tokens, modelId: m.modelId, context: contextUse(outcome.context), providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
     costMeasured: outcome.costMeasured !== false,
     terminalReason: outcome.terminalReason ?? "no reason recorded",
     subtype: outcome.subtype, sharedFiles: sharedFiles(outcome.sharedFiles),

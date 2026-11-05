@@ -47,7 +47,11 @@ export type { SettingsGroup, SettingsPageOptions, SettingsPanel } from "./pages/
 export {
   CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, TOOL_TABS, toolPanel, toolPart, toolParts,
 } from "./pages/settings-page/tools.ts";
-export { ACCOUNTS_ADD_ROUTE, ACCOUNTS_REMOVE_ROUTE, ACCOUNTS_RENAME_ROUTE } from "./pages/settings-page/accounts.ts";
+export {
+  PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_RENAME_ROUTE,
+  PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, providerEditPath, providerNewPath,
+} from "./pages/settings-page/providers.ts";
+export { renderProviderPage } from "./pages/settings-page/provider-page.ts";
 export type { CheckableTool, ExtraCheck, ToolCheck, ToolPart } from "./pages/settings-page/tools.ts";
 export { usageView } from "./pages/settings-page/usage.ts";
 export type { ToolUsage, UsageView, UsageWindow } from "./pages/settings-page/usage.ts";

@@ -26,7 +26,7 @@
 
 import { bindAddProjectForm } from "./add-project";
 import { keepBack } from "./back-link";
-import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, refreshAiModelBox, syncAiToModel } from "./ai-sync.ts";
+import { applyAiPick, offerEachToItsTool, refreshAiModelBox } from "./ai-sync.ts";
 import { openAsk } from "./ask.ts";
 import {
   bindOneLineFields,
@@ -93,8 +93,6 @@ settingsForm?.addEventListener("change", ((event: Event) => {
   const target = event.target as Element | null;
   const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
   if (ai) return applyAiPick(ai);
-  const model = target?.closest?.('select[name^="model."]') as HTMLSelectElement | null;
-  if (model) syncAiToModel(model);
 }) as EventListener);
 settingsForm?.addEventListener("submit", (async (event: Event) => {
   if (event.defaultPrevented) return;
@@ -161,10 +159,7 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // first, so the line does not sit showing a tool the model it posted
   // does not belong to.
   const liveModel = target?.closest?.("select[data-post-to]") as HTMLSelectElement | null;
-  if (liveModel) {
-    syncAiToModel(liveModel);
-    return postTailModel(liveModel, liveModel.value);
-  }
+  if (liveModel) return postTailModel(liveModel, liveModel.value);
   const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
   if (ai) return applyAiPick(ai);
   // Every other select on the rows IS remembered: they are swapped
@@ -173,10 +168,7 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   const select = target?.closest?.("select") as HTMLSelectElement | null;
   if (select) {
     chosen.set(selectKey(select), select.value);
-    // A model moved by hand, without the picker beside it: the AI that
-    // line shows has to follow it now, not at the next swap.
     if (select.name?.startsWith("model.")) {
-      syncAiToModel(select);
       // Recorded on the server the instant it is made, not
       // only in `chosen` — which is a fresh, empty map on every page
       // load and cannot survive leaving the page.
@@ -223,8 +215,6 @@ newSpec?.addEventListener("change", ((event: Event) => {
   const target = event.target as Element | null;
   const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
   if (ai) return applyAiPick(ai);
-  const model = target?.closest?.('select[name^="model."]') as HTMLSelectElement | null;
-  if (model) syncAiToModel(model);
 }) as EventListener);
 // Spec and Options, switched in place, and Spec brought forward when the
 // browser finds one of its required fields empty.
@@ -298,8 +288,6 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
     const target2 = event.target as Element | null;
     const ai = target2?.closest?.("select[data-ai]") as HTMLSelectElement | null;
     if (ai) return applyAiPick(ai);
-    const model = target2?.closest?.(MODEL_SELECTS) as HTMLSelectElement | null;
-    if (model) syncAiToModel(model);
   }) as EventListener);
 }
 // A schedule row is one big link to what its name links to, outside its

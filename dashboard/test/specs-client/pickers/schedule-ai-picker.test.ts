@@ -5,13 +5,13 @@
 // this select silently unpaired, the AI picker writing nothing and the
 // list never narrowing to its tool.
 //
-// `applyAiPick` and `syncAiToModel` read the global `document`, so this
+// `applyAiPick` reads the global `document`, so this
 // suite stands one up: two selects and a `querySelectorAll` that answers
 // the two attribute selectors those functions build. Hand-built for the
 // same reason `schedule-actions.test.ts` is — nothing on this page lives
 // inside `#jobrows`, so the row-swap harness has nothing to offer here.
 import { afterEach, describe, expect, test } from "bun:test";
-import { applyAiPick, offerEachToItsTool, syncAiToModel } from "../../../src/specs-client/ai-sync.ts";
+import { applyAiPick, offerEachToItsTool } from "../../../src/specs-client/ai-sync.ts";
 
 const FORM = "schedule-form";
 const MODELS: [string, string][] = [
@@ -51,11 +51,12 @@ function modelSelect(chosen: string) {
 function aiSelect(tool: string) {
   const options = ["claude", "codex"].map((t) => ({
     value: t,
-    dataset: { default: AI_DEFAULT[t]! },
+    dataset: { default: AI_DEFAULT[t]!, tool: t },
     selected: t === tool,
   }));
   return {
-    name: "",
+    // The schedule form's provider posts a bare `provider`.
+    name: "provider",
     options,
     tagName: "SELECT",
     getAttribute: (n: string) => (n === "form" ? FORM : n === "data-ai" ? "model" : null),
@@ -71,9 +72,7 @@ function aiSelect(tool: string) {
   };
 }
 
-/** The document the two functions query: `select[name="model"][form=…]`
- *  from `applyAiPick`, and `select[data-ai="model"][form=…]` from
- *  `syncAiToModel`. */
+/** The document `applyAiPick` queries: `select[name="model"][form=…]`. */
 function standUpDocument(model: unknown, ai: unknown): void {
   (globalThis as { document?: unknown }).document = {
     querySelectorAll: (sel: string) => (sel.startsWith("select[data-ai=") ? [ai] : [model]),
@@ -102,14 +101,6 @@ describe("the schedule form's AI picker (one model for the whole entry)", () => 
     applyAiPick(ai as unknown as HTMLSelectElement);
     expect(model.options.filter((o) => !o.hidden).map((o) => o.value)).toEqual(["codex-fast"]);
     expect(model.options.find((o) => o.value === "claude-opus-5")?.disabled).toBe(true);
-  });
-
-  test("a model picked by hand pulls the AI select after it", () => {
-    const model = modelSelect("codex-fast");
-    const ai = aiSelect("claude");
-    standUpDocument(model, ai);
-    syncAiToModel(model as unknown as HTMLSelectElement);
-    expect(ai.value).toBe("codex");
   });
 
   test("the first paint narrows the bare `model` select too", () => {

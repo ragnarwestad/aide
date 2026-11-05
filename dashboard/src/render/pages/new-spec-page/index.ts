@@ -54,6 +54,8 @@ export interface NewSpecPageOptions {
    *  (or the table's `default`) can matter here: a create job runs that
    *  one step. */
   defaultModels?: SpecsPageOptions["defaultModels"];
+  providerChoices?: SpecsPageOptions["providerChoices"];
+  defaultProviders?: SpecsPageOptions["defaultProviders"];
   /** Where "← Back" goes — resolved by `serve.ts` from the
    *  request's own `Referer`, same-origin only. Absent falls back to
    *  `/`, today's exact hardcoded destination. */

@@ -6,10 +6,11 @@ import type { SpecsPageOptions } from "./";
 import { groupKey, lockedAsArchived, type SpecGroup } from "./data-model";
 import { runFormId } from "./cells.ts";
 import {
-  SHORT_TOOL_NAMES,
   TOOL_NAMES,
   defaultModelForTool,
+  providerToolOf,
   resolveChosenModel,
+  resolveProvider,
   resolveRecordedModel,
   type PickerOptions,
 } from "./model-resolve.ts";
@@ -22,9 +23,12 @@ export {
   compactModelLabelFull,
   defaultModelForTool,
   phaseAiModel,
+  providerToolOf,
   resolveChosenModel,
+  resolveProvider,
   resolveRecordedModel,
   type PickerOptions,
+  type ProviderOption,
 } from "./model-resolve.ts";
 
 // The picker a phase line carries, and the caption above the list that
@@ -181,7 +185,7 @@ export function modelOptions(
         group
           .map(
             (m) =>
-              `<option value="${esc(m.name)}" data-tool="${esc(tool)}"` +
+              `<option value="${esc(m.name)}" data-tool="${esc(providerToolOf(tool))}"` +
               // The option's own label is the model's name
               // alone — a per-step dollar figure would read as a price,
               // so the config does not carry one.
@@ -305,39 +309,23 @@ function pendingPick(
   return (live ? g.lead?.stepModels?.[step] : undefined) ?? opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
 }
 
-// The AI a phase will run on, beside the model it will run.
+// The provider a phase will run on, beside the model it will run.
 // One per phase line, in the column between the phase's name and its
-// model — not a row-wide AI select or a set-all control.
+// model — not a row-wide select or a set-all control. A phase is where
+// the choice lives: the runner reads the job's provider and model per
+// step and derives `--tool` from the model, so every line gets its own
+// picker and is set the same way as every other.
 //
-// One control for the whole row would be wrong. A row-wide AI select
-// that hid the other tool's models from the five phase selects would
-// stop anyone discovering that a row can run analyze on one CLI and
-// implement on another, and a set-all control is a bulk action and not
-// a statement about any line. A phase is where the choice actually lives:
-// the runner reads `job.model[step]` per step and derives `--tool` from
-// it, so every line gets its own picker and every line is set the same
-// way as every other.
+// It POSTS `provider.<step>` beside the `model.<step>` it is paired with,
+// and a pick made on it reaches the server through the browser, which also
+// narrows the model select to the models the provider's tool runs and
+// fills in the model the option carries.
 //
-// It POSTS NOTHING — no `name` — so a press still sends the same five
-// `model.<step>` fields it always did. What a phase runs on stays ONE
-// value on the job, and the tool is derived from it; this select is
-// that derivation shown, never a second fact the job could disagree
-// with. It is READ on change, to fill the model select in, and WRITTEN
-// on redraw, to reflect whatever that select ended up on. Never the
-// reverse.
-//
-// Drawn only when there are two TOOLS to choose between. The control it
-// replaced counted MODELS instead — two Claude entries and no Codex one
-// was still a row worth setting in one action — and that is the other
-// question: an AI picker offering one AI has nothing to offer. A
-// single-tool deployment with several models therefore loses the
-// one-action bulk set it had, which is what "'Set all' shall be removed"
-// asks for.
-//
-// Each option carries the model that AI fills in, worked out by
-// `defaultModelForTool` HERE rather than in the browser: which model an
-// AI stands for is a configuration fact, and the page is where
-// configuration is read, not where it is decided.
+// Each option carries the tool whose models it runs (`data-tool`, `claude`
+// for a stand-in), the model it fills in (`data-default`, worked out by
+// `defaultModelForTool` HERE rather than in the browser: which model a
+// provider stands for is a configuration fact) and the word the compact
+// button shows (`data-short`, the provider's name).
 //
 // `data-ai` names the model select this one writes — the same `name`
 // that select posts under. That plus the shared `form` id is the whole
@@ -355,59 +343,49 @@ export function aiPicker(
   formIdOverride?: string,
   /** Same flag, same reason, as `modelPicker`'s own. */
   alreadyRun = false,
-  /** The CLI the phase's own result names — the tool to select when
-   *  the model's choice name is no longer configured. */
-  usedTool?: string,
+  /** The provider the phase's job, or its result, names. */
+  usedProvider?: string,
 ): string {
   const models = opts.modelChoices ?? [];
-  // `TOOL_NAMES`'s own key order, like the option groups in
-  // `modelOptions`: which AI comes first is a fact about the page, not
-  // about whichever tool an admin happened to list first.
-  const tools = Object.keys(TOOL_NAMES).filter((t) => models.some((m) => (m.tool ?? "claude") === t));
-  // Drawn for a single tool too. Hiding it left the row's first select
-  // holding a MODEL under a heading a reader takes for the AI, and a
-  // project running a stand-in could not see that it was running one.
-  // One entry is a statement rather than a choice, which is what the
-  // column is for.
-  if (tools.length === 0) return "";
+  const providers = opts.providerChoices ?? [];
+  // Drawn for a single provider too: one entry is a statement rather than
+  // a choice, which is what the column is for.
+  if (providers.length === 0 || models.length === 0) return "";
   // Drawn, disabled, on an archived row too — same reasoning
   // as `modelPicker`'s own archived branch, since this select says which
-  // AI the model BESIDE it belongs to, and that model is drawn now
+  // provider the model BESIDE it belongs to, and that model is drawn now
   // whether or not the row is locked.
   const archived = lockedAsArchived(g, step);
   // And the same `live` the model select beside it takes.
-  // This one carries no `data-post-to`: it posts nothing itself, and a
-  // pick made on it reaches the server through the model select it
-  // writes into.
   const locked = archived || (busy && !live) || alreadyRun;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // The same pending pick `modelPicker` reads, so the two
   // controls cannot disagree about it either.
   const pending = archived ? undefined : pendingPick(g, opts, step, live);
-  // The same answer `modelPicker` pre-fills its select with, from the
-  // same helper: the AI shown is the tool of the model this line is on,
-  // so the two controls cannot disagree about it.
+  // The provider shown is one that runs the model this line is on, so the
+  // two controls cannot disagree.
   const on = archived
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending, recordedModel);
-  const restingTool = models.find((m) => m.name === on)?.tool ?? usedTool ?? "claude";
+  const picks = [
+    live ? g.lead?.stepProviders?.[step] : undefined,
+    usedProvider,
+    archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step],
+  ];
+  const resting = resolveProvider(opts, step, on, picks);
   return (
-    `<select data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
+    `<select name="provider.${esc(step)}" data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
     // Why it is locked, when it is, is said once for the whole phase
     // line now — not repeated on this select's own `title`.
     (locked ? " disabled" : "") +
     `>` +
-    tools
+    providers
       .map(
-        (t) =>
-          `<option value="${esc(t)}"` +
-          ` data-default="${esc(defaultModelForTool(models, t, configured) ?? "")}"` +
-          // The word the compact button shows. Written here because
-          // which word stands for which tool is a fact about the page,
-          // the same way `TOOL_NAMES` itself is — the browser copies it
-          // when a pick changes the button's text.
-          ` data-short="${esc(SHORT_TOOL_NAMES[t] ?? t)}"` +
-          `${t === restingTool ? " selected" : ""}>${esc(TOOL_NAMES[t]!)}</option>`,
+        (p) =>
+          `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}"` +
+          ` data-default="${esc(defaultModelForTool(models, p.tool, configured) ?? "")}"` +
+          ` data-short="${esc(p.name)}"` +
+          `${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
       )
       .join("") +
     `</select>`

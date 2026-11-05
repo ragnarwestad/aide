@@ -5,6 +5,7 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
+import { providerPickerOptions } from "../../providers/options.ts";
 import { NEW_SPEC_ROUTE, renderNewSpecPage, renderSpecsPage, resolveBackHref, specPagePath } from "../../../render";
 import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
 import { listHeaders, specsListParts, specsRowsAnswer } from "./specs-list-view.ts";
@@ -67,6 +68,7 @@ export async function specsPages(
       script: await specsClientScript(),
       modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
+      ...providerPickerOptions(ctx.queue),
       // "Try again" on a failed create's message: what was typed.
       prefill: prefillFor(ctx, url.searchParams.get("retry")),
       tab: url.searchParams.get("tab") ?? undefined,

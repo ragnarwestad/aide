@@ -9,7 +9,8 @@ import type { Job } from "../../queue/queue.ts";
 import { existsSync, readdirSync } from "node:fs";
 import { resolveStepModel, tailFile, tailFileAt } from "../serve-helpers";
 import { stepLog } from "../../queue/parse-stream";
-import { readCodexSession } from "./codex-sessions.ts";
+import { codexSessionReader } from "./codex-sessions.ts";
+import { resolveStepProvider } from "../../queue/providers/index.ts";
 import { RUN_LOG_MAX_BYTES, runLogPath, screenshotsDir } from "../../queue/runner/run-log-path.ts";
 import { diffStatBetween } from "../../git/diff-stat.ts";
 import type { SpecViewsContext } from "./";
@@ -71,7 +72,7 @@ export async function jobDetailView(
   const liveRunLog = running && step && job.streamFile ? readRunLog(job.streamFile) : undefined; // before the transcript
   const live =
     running && step && job.streamFile
-      ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false, codexSession: readCodexSession })
+      ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false, codexSession: codexSessionReader(step ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined, ctx.queue.defaults.providers) })
       : undefined;
   return {
     ...(await ctx.jobRow(job)),
@@ -100,7 +101,7 @@ export async function jobDetailView(
               )
             ).flat()
           : undefined;
-        const shown = tail ? stepLog(tail, runLog, { tool, final: true, codexSession: readCodexSession }) : undefined;
+        const shown = tail ? stepLog(tail, runLog, { tool, final: true, codexSession: codexSessionReader(r.provider?.key ?? resolveStepProvider(job, r.step, ctx.queue.defaults), ctx.queue.defaults.providers) }) : undefined;
         return {
           ...r,
           tokens: r.tokens?.total,

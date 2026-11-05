@@ -19,7 +19,7 @@ import { renderSentence } from "../../../i18n/message.ts";
 import { usageLimitText } from "../../ui/job-state/provider-limit.ts";
 import { t, type Language } from "../../../i18n";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
-import { completedThirds, runOnAccountButtons, stateChip } from "../../ui/job-state";
+import { completedThirds, stateChip } from "../../ui/job-state";
 import { facts, pips, stepLabel, type PipKind } from "../../ui/components";
 import { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 import { followMarker, followPart } from "./follow.ts";
@@ -109,7 +109,6 @@ function jobBanner(job: JobDetailView, lang: Language, now: number): string {
     `<p class="pagehead">${stateChip(job, lang)}` +
     (sentence ? ` <span class="muted small">${esc(capitalizeFirst(sentence))}</span>` : "") +
     `</p>` +
-    (job.state === "stopped" && job.runOnAccounts?.length ? `<p>${runOnAccountButtons(job, lang)}</p>` : "") +
     progress +
     (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "")
   );
@@ -183,7 +182,7 @@ export function renderJobDetailPage(
       // plan review so this page does not show Model with no Effort
       // beside it for a step that ran with one.
       { label: t(lang, "job.effort"), value: esc(job.effort ?? "not set") },
-      ...(job.claudeAccount ? [{ label: t(lang, "job.account"), value: esc(job.claudeAccount) }] : []),
+      ...(job.provider ? [{ label: t(lang, "job.provider"), value: esc(job.provider) }] : []),
     ]) +
     // And what this phase MADE. A reader opens a phase's page to find
     // out what that phase did, and it used to show the same

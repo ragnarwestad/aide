@@ -426,43 +426,43 @@ describe("the line under a job row's state", () => {
     }
   });
 
-  describe("the account a step ran on", () => {
+  describe("the provider a step ran on", () => {
     const ranOn = (step: string, who: string): string =>
-      t("en", "notice.accountRan", { step: stepLabel(step, "en"), who: t("en", "account.on", { who: "Claude", account: who }) });
+      t("en", "notice.providerRan", { step: stepLabel(step, "en"), who });
     const onWork = [
       { step: "analyze", ok: true },
-      { step: "implement", ok: true, claudeAccount: "Work" },
+      { step: "implement", ok: true, provider: { key: "Work", name: "Work" } },
     ];
 
-    test("a done job whose newest result ran on another account says so in the info colour, with no log (AC-8)", () => {
+    test("a done job whose newest result ran on a provider says so in the info colour, with no log (AC-10)", () => {
       expect(message(schedule({ state: "done", results: onWork } as never))).toEqual({ variant: "info", text: ranOn("implement", "Work") });
     });
 
-    test("a failed job names the account after its own sentence and keeps its log (AC-8)", () => {
+    test("a failed job names the provider after its own sentence and keeps its log (AC-10)", () => {
       const row = schedule({ id: "f2", state: "failed", error: said, results: onWork } as never);
       expect(message(row)).toEqual({
         variant: "failed", text: `${sentenceOf} · ${ranOn("implement", "Work")}`, log: "/jobs/f2?tab=steps",
       });
     });
 
-    test("a job moved to another account and cancelled before any step ran there names none (AC-8)", () => {
-      const row = schedule({ state: "cancelled", claudeAccount: "Work", results: [{ step: "analyze", ok: true }] } as never);
+    test("a cancelled job names no ran-on sentence, since no step ran on a provider (AC-10)", () => {
+      const row = schedule({ state: "cancelled", provider: "Work", results: [{ step: "analyze", ok: true }] } as never);
       expect(message(row)).toBeUndefined();
     });
 
-    test("a done job whose steps all ran on the default account names none (AC-8)", () => {
+    test("a done job whose steps ran on no provider names none (AC-10)", () => {
       expect(message(schedule({ state: "done", results: [{ step: "implement", ok: true }] } as never))).toBeUndefined();
     });
 
-    test("a job stopped on a usage limit keeps the usage-limit sentence alone, which names the account once (AC-8)", () => {
+    test("a job stopped on a usage limit keeps the usage-limit sentence alone, which names the provider once (AC-10)", () => {
       const until = new Date(Date.now() + 3_600_000).toISOString();
       const row = schedule({
-        id: "u1", state: "stopped", stopReason: "provider-limit", claudeAccount: "Work",
+        id: "u1", state: "stopped", stopReason: "provider-limit", provider: "Work",
         usageLimitWait: { until, resetKnown: true },
-        results: [{ step: "implement", ok: false, claudeAccount: "Work", providerLimit: { tool: "claude", window: "five-hour" } }],
+        results: [{ step: "implement", ok: false, provider: { key: "Work", name: "Work" }, providerLimit: { tool: "claude", window: "five-hour" } }],
       } as never);
       const m = message(row);
-      expect(m?.text.split("on Work").length).toBe(2);
+      expect(m?.text.split("Work").length).toBe(2);
       expect(m?.text).not.toContain(ranOn("implement", "Work"));
       expect(m?.log).toBe("/jobs/u1?tab=steps");
     });
@@ -482,8 +482,8 @@ describe("the key the event stream listens on for a job row's key", () => {
   });
 });
 
-test("a scheduled job running on another Claude account says so on its row (AC-8)", () => {
-  const m = jobMessage({ id: "j", state: "running", steps: ["schedule"], stepIndex: 0, claudeAccount: "Work" } as never, "en");
-  expect(m?.text).toContain("on Work");
+test("a scheduled job running on a provider names it on its row (AC-10)", () => {
+  const m = jobMessage({ id: "j", state: "running", steps: ["schedule"], stepIndex: 0, provider: "Work" } as never, "en");
+  expect(m?.text).toContain("runs on Work");
   expect(jobMessage({ id: "j", state: "running", steps: ["schedule"], stepIndex: 0 } as never, "en")).toBeUndefined();
 });

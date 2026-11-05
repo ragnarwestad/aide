@@ -5,6 +5,7 @@
 // Every check is the one it was, in the order it was in, and answers
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
+import { providerPickerOptions } from "../../providers/options.ts";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
@@ -34,6 +35,7 @@ export async function projectPages(
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
       modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
+      ...providerPickerOptions(ctx.queue),
       timeoutSec: ctx.queue.defaults.timeoutSec,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
       script: await specsClientScript(),
@@ -47,7 +49,7 @@ export async function projectPages(
       usage: lastUsage(),
       models: lastModels(),
       choices: ctx.queue.defaults.modelChoices,
-      claudeAccounts: ctx.queue.defaults.claudeAccounts,
+      providers: ctx.queue.defaults.providers,
       pushPublicKey: await ctx.push.publicKey(),
       process: processSettings(ctx.runner, ctx.opts.queueConcurrency),
     });

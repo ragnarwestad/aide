@@ -27,8 +27,8 @@ function runningJob(q: QueueStore, extra: object = {}): string {
   return made.job.id;
 }
 
-describe("a tail pick's provider (AC-9, AC-12)", () => {
-  test("the provider is stored on the step beside its model", () => {
+describe("a tail pick's provider", () => {
+  test("the provider is stored on the step beside its model (AC-9, AC-12)", () => {
     const q = store();
     const id = runningJob(q);
     const r = q.editTailModel(id, "implement", "gpt-6", "Codex");
@@ -36,7 +36,7 @@ describe("a tail pick's provider (AC-9, AC-12)", () => {
     expect(r.ok && r.job.model.implement).toBe("gpt-6");
   });
 
-  test("a provider that cannot run the model is refused and the job is left as it was", () => {
+  test("a provider that cannot run the model is refused and the job is left as it was (AC-9, AC-12)", () => {
     const q = store();
     const id = runningJob(q);
     const r = q.editTailModel(id, "implement", "gpt-6", "Claude");
@@ -44,7 +44,7 @@ describe("a tail pick's provider (AC-9, AC-12)", () => {
     expect(q.get(id)?.provider).toBeUndefined();
   });
 
-  test("a model alone drops the step's own provider when that provider cannot run it", () => {
+  test("a model alone drops the step's own provider when that provider cannot run it (AC-9, AC-12)", () => {
     const q = store();
     const id = runningJob(q, { provider: { implement: "Claude-Capra" } });
     const r = q.editTailModel(id, "implement", "gpt-6");
@@ -52,8 +52,8 @@ describe("a tail pick's provider (AC-9, AC-12)", () => {
   });
 });
 
-describe("a pending pick's provider (AC-9)", () => {
-  test("it is kept beside the model and carried to the folder landing assigns", () => {
+describe("a pending pick's provider", () => {
+  test("it is kept beside the model and carried to the folder landing assigns (AC-9)", () => {
     const q = store();
     expect(q.setPendingModel("aide", "new-1", "implement", "gpt-6", "Codex")).toEqual({ ok: true });
     expect(q.pendingProviders["aide/new-1"]).toEqual({ implement: "Codex" });
@@ -63,7 +63,7 @@ describe("a pending pick's provider (AC-9)", () => {
     expect(q.pendingModels["aide/81-queue"]).toEqual({ implement: "gpt-6" });
   });
 
-  test("an unknown provider is refused and nothing is kept", () => {
+  test("an unknown provider is refused and nothing is kept (AC-9)", () => {
     const q = store();
     const r = q.setPendingModel("aide", "81-queue", "implement", "Opus", "Gone");
     expect(!r.ok && r.error).toContain("unknown or not-allowed provider: Gone");
