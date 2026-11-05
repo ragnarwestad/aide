@@ -43,8 +43,7 @@ const STEP_LABEL_TABLES: Partial<Record<Language, Record<string, string>>> = {
 export const stepLabel = (step: string, lang: Language = "en"): string =>
   STEP_LABEL_TABLES[lang]?.[step] ?? STEP_LABELS[step] ?? step;
 
-/** The word on the row's own button for a step — an alias for
- *  `stepLabel`, in English whatever the language, because the button
- *  is. A message that tells the reader to press it names it with this,
- *  so the message and the button cannot drift apart. */
-export const stepButton = (step: string): string => stepLabel(step);
+/** The word on the row's own button for a step, in English whatever the
+ *  language, because the button is. A scheduled job starts with Run now;
+ *  every spec step uses its phase label. */
+export const stepButton = (step: string): string => step === "schedule" ? "Run now" : stepLabel(step);

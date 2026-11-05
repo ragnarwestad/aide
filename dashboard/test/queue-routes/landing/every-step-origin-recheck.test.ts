@@ -71,7 +71,7 @@ describe("an archive landing asks origin whether anything stayed open", () => {
     // The state is half the sentence — the other half is
     // the move. The row's own button already offers it; the message
     // has to say so.
-    expect(sentence(failed.error).toLowerCase()).toContain("run archive again");
+    expect(sentence(failed.error).toLowerCase()).toContain("press archive again");
   }, 20000);
 
   // The happy path is the one this whole change must not

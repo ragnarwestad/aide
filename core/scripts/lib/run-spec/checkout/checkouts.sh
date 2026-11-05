@@ -21,7 +21,7 @@ refuse_base_inside_a_root() {
 # known: a symlinked base could resolve into a root the literal path did
 # not name.
 refuse_base_inside_a_root "$worktree_base"
-mkdir -p "$worktree_base" 2>/dev/null || refuse "cannot create the worktree base at $worktree_base"
+mkdir -p "$worktree_base" 2>/dev/null || refuse "cannot create the worktree base at $worktree_base — fix its parent directory on the serving host"
 worktree_base="$(cd "$worktree_base" && pwd -P)" || refuse "cannot resolve the worktree base"
 refuse_base_inside_a_root "$worktree_base"
 # Keyed by project AND spec: two projects can share one specs repo, and a

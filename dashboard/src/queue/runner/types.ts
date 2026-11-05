@@ -105,6 +105,8 @@ export interface StepOutcome {
    *  spec folder, or `analyze`, a change an analysis may not make
    *  (`run-spec/record/specs-guard.sh`, `status-line.sh`). */
   scopeViolation?: "specs" | "analyze";
+  /** The analyze checks that tripped, including project paths when code changed. */
+  scopeAnalyze?: unknown;
   /** Each repo whose push failed, with what git said, sorted by the runner
    *  (`lib/git-error.sh`); read by `pushFailures()` in `git-failure.ts`. */
   pushFailures?: unknown;

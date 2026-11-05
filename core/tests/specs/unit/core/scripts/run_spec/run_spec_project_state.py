@@ -274,12 +274,22 @@ BASH_ERROR_REGISTRY: list[dict] = [
     {
         "name": "an analyze wrote a short analysis for a spec over a limit",
         "pattern": r"\$step_button wrote a short analysis for a spec that may not have one: .*",
-        "resolve": "when $step_button runs again",
+        "resolve": "Analyze runs again",
     },
     {
-        "name": "a step stopped at its own time limit",
-        "pattern": r"stopped at its own \$\(time_limit_words \"\$timeout_sec\"\) time limit for this step.*",
-        "exempt": "a time-limited step resumes on its own next run — nothing to resolve by hand",
+        "name": "a test run stopped at the step's own time limit",
+        "pattern": r"stopped at its own \$\(time_limit_words \"\$timeout_sec\"\) time limit for this step while the project's tests were running.*",
+        "resolve": "press $step_button again",
+    },
+    {
+        "name": "a sent-back request was refused",
+        "pattern": r"\$step_button asked to send the spec back to a full analysis, but .*",
+        "resolve": "Press Analyze again",
+    },
+    {
+        "name": "other specs plan to change the same files",
+        "pattern": r"\$step_button stopped: other open specs plan to change the same files as this spec.*",
+        "resolve": "press $step_button again",
     },
     {
         "name": "a provider rate/usage limit was reached",

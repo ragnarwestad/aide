@@ -13,9 +13,19 @@ afterEach(cleanupHarness);
 const ended = (terminalReason: string, more: Record<string, unknown> = {}) => ({ ok: false, terminalReason, error: "the runner's own words", ...more });
 
 describe("noProgressMessage", () => {
-  test("a scope violation says which check it tripped", () => {
+  test("a scope violation says which check it tripped and names its files (AC-4)", () => {
     expect(noProgressMessage("implement", ended("scope-violation", { scopeViolation: "specs" }))).toMatchObject({ key: "runner.scopeSpecs" });
-    expect(noProgressMessage("analyze", ended("scope-violation", { scopeViolation: "analyze" }))).toMatchObject({ key: "runner.scopeAnalyze" });
+    expect(noProgressMessage("analyze", ended("scope-violation", {
+      scopeViolation: "analyze",
+      scopeAnalyze: { project: { committed: ["src/a.ts"], uncommitted: ["src/b.ts"] }, phaseRows: true, workflowSteps: true },
+    }))).toEqual({
+      key: "runner.scopeAnalyze",
+      values: { button: "Analyze", checks: "project code (committed: src/a.ts; uncommitted: src/b.ts); Phase-table rows; Workflow steps completed" },
+    });
+    expect(noProgressMessage("analyze", ended("scope-violation", { scopeViolation: "analyze" }))).toEqual({
+      key: "runner.scopeAnalyzeLegacy",
+      values: { button: "Analyze" },
+    });
     expect(noProgressMessage("analyze", ended("scope-violation"))).toBeUndefined();
   });
 

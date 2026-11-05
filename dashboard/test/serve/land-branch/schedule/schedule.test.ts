@@ -160,7 +160,7 @@ describe("landScheduleRun", () => {
     expect(git.calls.some((c) => c.args[0] === "push")).toBe(false);
   });
 
-  test("a thrown exception is reported through landing.scheduleLandingFailed", async () => {
+  test("a thrown exception puts its first line in the visible sentence and keeps full detail (AC-3)", async () => {
     const code = "/repos/aide-code";
     let transitioned: { id: string; state: string; patch: Record<string, unknown> } | undefined;
     const { ctx } = landCtx(landingGit().run, {
@@ -168,7 +168,7 @@ describe("landScheduleRun", () => {
       machinerySpecsRoot: () => undefined,
       mergeLock: {
         run: async () => {
-          throw new Error("boom");
+          throw new Error("boom\nmore detail");
         },
       },
       queue: {
@@ -188,6 +188,10 @@ describe("landScheduleRun", () => {
       { branch: BRANCH, branchUrls: [{ root: code, url: "" }] },
     );
     expect(transitioned?.state).toBe("landing-failed");
-    expect((transitioned?.patch.error as { key: string }).key).toBe("landing.scheduleLandingFailed");
+    expect(transitioned?.patch.error).toEqual({
+      key: "landing.scheduleLandingFailed",
+      values: { why: "boom", button: "Run now" },
+    });
+    expect(transitioned?.patch.errorDetail).toBe("boom\nmore detail");
   });
 });

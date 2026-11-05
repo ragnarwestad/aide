@@ -12,10 +12,13 @@ describe("renderMessage", () => {
     );
   });
 
-  test("renders a message with no values unchanged", () => {
+  test("renders a message with no values unchanged (AC-1)", () => {
     expect(renderMessage("en", { key: "runner.notAnalyzed" })).toBe(
-      "held back: not analyzed yet — run /aide-analyze first",
+      "held back: not analyzed yet — press Analyze first",
     );
+    expect(renderMessage("es", { key: "runner.notAnalyzed" })).toContain("Analizar");
+    expect(renderMessage("de", { key: "runner.notAnalyzed" })).toContain("Analysieren");
+    expect(renderMessage("fr", { key: "runner.notAnalyzed" })).toContain("Analyser");
   });
 });
 

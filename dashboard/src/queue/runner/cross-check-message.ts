@@ -38,7 +38,10 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
     return { key: "runner.scopeSpecs", values: { button: stepButton(step) } };
   }
   if (outcome.terminalReason === "scope-violation" && outcome.scopeViolation === "analyze") {
-    return { key: "runner.scopeAnalyze", values: { button: stepButton(step) } };
+    const checks = scopeAnalyzeChecks(outcome.scopeAnalyze);
+    return checks
+      ? { key: "runner.scopeAnalyze", values: { button: stepButton(step), checks } }
+      : { key: "runner.scopeAnalyzeLegacy", values: { button: stepButton(step) } };
   }
   if (outcome.terminalReason === "short-analysis-over-limit") {
     return { key: "runner.shortAnalysisOverLimit", values: { button: stepButton(step) } };
@@ -51,6 +54,25 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
   if (step === "create") return { key: "runner.noProgressCreate", values: { button: stepButton(step) } };
   return undefined;
+}
+
+function scopeAnalyzeChecks(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const detail = value as { project?: unknown; phaseRows?: unknown; workflowSteps?: unknown };
+  const checks: string[] = [];
+  if (detail.project && typeof detail.project === "object") {
+    const project = detail.project as { committed?: unknown; uncommitted?: unknown };
+    const committed = Array.isArray(project.committed) ? project.committed.filter((v): v is string => typeof v === "string") : [];
+    const uncommitted = Array.isArray(project.uncommitted) ? project.uncommitted.filter((v): v is string => typeof v === "string") : [];
+    const paths = [
+      ...(committed.length ? [`committed: ${committed.join(", ")}`] : []),
+      ...(uncommitted.length ? [`uncommitted: ${uncommitted.join(", ")}`] : []),
+    ];
+    checks.push(`project code${paths.length ? ` (${paths.join("; ")})` : ""}`);
+  }
+  if (detail.phaseRows === true) checks.push("Phase-table rows");
+  if (detail.workflowSteps === true) checks.push("Workflow steps completed");
+  return checks.length ? checks.join("; ") : undefined;
 }
 
 /** A red implement run names tests that remain red separately from tests

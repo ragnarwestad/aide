@@ -26,7 +26,7 @@ if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
   ok="false"
   terminal_reason="unpushed"
   suffix=" (stopped: unpushed)"
-  error_msg="the step's own work did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
+  error_msg="the step's own work did not reach origin: $unpushed_roots${push_error:+ — $push_error} — fix the branch in the checkout on the serving host"
   note_unpushed_without_failure
 elif [ -n "$status_file" ]; then
   completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
@@ -113,7 +113,7 @@ elif [ -n "$status_file" ]; then
     ok="false"
     terminal_reason="unpushed"
     suffix=" (stopped: unpushed)"
-    error_msg="the workflow-steps line did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
+    error_msg="the workflow-steps line did not reach origin: $unpushed_roots${push_error:+ — $push_error} — fix the branch in the checkout on the serving host"
     note_unpushed_without_failure
   fi
 fi
@@ -233,6 +233,7 @@ line="$(jq -cn \
   --argjson providerError "${provider_error_out:-null}" \
   --argjson timeLimit "${time_limit_json:-null}" \
   --arg scopeViolation "${scope_violation:-}" \
+  --argjson scopeAnalyze "${scope_analyze_json:-null}" \
   --argjson pushFailures "${push_failures_json:-[]}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
@@ -297,6 +298,7 @@ line="$(jq -cn \
    # outside the spec folder (run-spec/record/specs-guard.sh), or `analyze`,
    # a change outside what an analysis may change (run-spec/record/status-line.sh).
    + (if $scopeViolation == "" then {} else {scopeViolation:$scopeViolation} end)
+   + (if $scopeAnalyze == null then {} else {scopeAnalyze:$scopeAnalyze} end)
    # And for the repos whose push failed, each with what git said, sorted
    # (lib/git-error.sh): present only when one failed or was left unpushed.
    + (if $pushFailures == [] then {} else {pushFailures:$pushFailures} end)')"

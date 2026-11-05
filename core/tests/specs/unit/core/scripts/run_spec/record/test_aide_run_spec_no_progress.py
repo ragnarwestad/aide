@@ -255,7 +255,27 @@ def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded(
     assert out["ok"] is False, out
     assert out["terminalReason"] == "scope-violation", out
     assert out["scopeViolation"] == "analyze", out
+    assert out["scopeAnalyze"] == {
+        "project": {"committed": [], "uncommitted": ["new-code.txt"]},
+        "phaseRows": False,
+        "workflowSteps": False,
+    }, out
     assert recorded_line(workspace) == "create"
+
+def test_analyze_scope_keeps_a_changed_path_with_spaces_whole(
+    runner, workspace, fake_claude
+):
+    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + 'mkdir -p "$PWD/src"\n'
+        + 'echo "written by the step" > "$PWD/src/my file.ts"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["scopeAnalyze"]["project"]["uncommitted"] == ["src/my file.ts"], out
 
 @pytest.mark.parametrize("mark", ["✅", "🔄", "❌", "⚠️"])
 def test_an_analyze_claim_that_advances_a_phase_row_is_downgraded(

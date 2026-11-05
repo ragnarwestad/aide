@@ -95,7 +95,7 @@ describe("an archived spec's non-create job is not a row either", () => {
   test("the same spec unarchived keeps its row, contradiction and all", () => {
     const html = opened("129-x", []);
     expect(html).toContain('data-folder="129-x"');
-    expect(html).toContain("last run reported done, but nothing reached the files — run it again");
+    expect(html).toContain("last run reported done, but nothing reached the files — press its button again");
   });
 });
 

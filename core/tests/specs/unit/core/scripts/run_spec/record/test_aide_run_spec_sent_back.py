@@ -133,13 +133,14 @@ def test_an_earlier_line_is_replaced_not_added_to(runner, workspace, fake_claude
     assert _recorded(workspace) == [f"{LABEL} {SENTENCE}"]
 
 
-def test_a_sentence_on_a_full_analysis_is_refused_and_the_description_is_left_alone(runner, workspace, fake_claude):
+def test_a_sentence_on_a_full_analysis_is_refused_and_names_analyze_ac_1_ac_2(runner, workspace, fake_claude):
     _spec(workspace, analysis="- **Analysis:** full")
     before = _description(workspace, "main")
     out = _implement(runner, workspace, _claude(fake_claude))
     assert out["ok"] is False, out
     assert out["terminalReason"] == "sent-back-refused", out
     assert "its analysis is already full" in out["error"], out["error"]
+    assert "Press Analyze again" in out["error"], out["error"]
     assert _description(workspace) == before
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: sent-back-refused)"), subject

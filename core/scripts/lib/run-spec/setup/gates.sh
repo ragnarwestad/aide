@@ -277,7 +277,7 @@ for root in "${roots[@]}"; do
   [ -n "$base" ] || refuse "cannot work out the default branch in $root"
   if [ "$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)" != "$base" ]; then
     switch_error="$(git -C "$root" switch -q "$base" 2>&1)" \
-      || refuse "cannot switch to $base in $root ($(printf '%s\n' "$switch_error" | grep -m1 . | head -c 200))"
+      || refuse "cannot switch to $base in $root ($(printf '%s\n' "$switch_error" | grep -m1 . | head -c 200)) — fix the checkout on the serving host"
   fi
   if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
     stage "fetching $base from origin in $root"

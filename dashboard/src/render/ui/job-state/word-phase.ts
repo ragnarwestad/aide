@@ -33,9 +33,9 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
   "sent-back-refused": "wordPhase.stopSentBackRefused",
 };
 
-export const stopSentence = (reason: string, lang: Language = "en"): string => {
+export const stopSentence = (reason: string, lang: Language = "en", step?: string): string => {
   const key = STOP_SENTENCES[reason];
-  return key ? renderMessage(lang, { key }) : reason;
+  return key ? renderMessage(lang, { key, values: { button: step ? stepButton(step) : "its button" } }) : reason;
 };
 
 /** What one phase reads as, in the three parts a row and a job page
@@ -78,7 +78,7 @@ const filesDisagreeSentence = (lang: Language, step: string | undefined): string
  *  is the clearest sign no shared convention exists. */
 const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
   attempt.errorReason === "unlanded"
-    ? renderMessage(lang, { key: "wordPhase.attemptQualifierUnlanded" })
+    ? renderMessage(lang, { key: "wordPhase.attemptQualifierUnlanded", values: { button: stepButton("archive") } })
     : t(lang, "list.lastRerun").replace("{state}", stateWord(attempt, lang));
 
 /** The one rule, applied by everything that words a phase.
@@ -262,7 +262,7 @@ function decidePhase(
       // (the State column says where a spec stands, errors go
       // in the error line).
       badge: { variant: failed ? BADGE_VARIANT.failed : "waiting", label: capitalizeFirst(word) },
-      qualifier: `${word}: ${stopSentence(history.stopped, lang)}`,
+      qualifier: `${word}: ${stopSentence(history.stopped, lang, history.step)}`,
     };
   }
   // The queue has no job for this phase, and the git-verified history
@@ -306,6 +306,7 @@ function decidePhase(
       badge: { variant: history.historyDone ? "done" : "waiting", label: capitalizeFirst(stateWord(attempt, lang)) },
       qualifier: renderMessage(lang, {
         key: history.historyDone ? "wordPhase.lastRunDisagreesUnlanded" : "wordPhase.lastRunDisagreesUnwritten",
+        values: { button: history.step ? stepButton(history.step) : "its button" },
       }),
     };
   }

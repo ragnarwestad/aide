@@ -72,12 +72,14 @@ def _on_branch(workspace, name):
     return phase_file_text(workspace, f"{workspace['folder']}/{name}")
 
 
-def test_a_spec_sharing_a_file_ends_the_analysis_stopped(runner, workspace, fake_claude):
+def test_a_spec_sharing_a_file_ends_the_analysis_stopped_ac_1_ac_2_ac_6(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts", "theirs.ts"])
     out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts", "mine.ts"])
     assert out["ok"] is False, out
     assert out["terminalReason"] == "shared-files", out
     assert OTHER in out["error"] and "shared.ts" in out["error"], out["error"]
+    assert "plan to change the same files" in out["error"], out["error"]
+    assert "press Analyze again" in out["error"], out["error"]
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: shared-files)"), subject
 

@@ -8,6 +8,7 @@ import { stopTestServer } from "../test-servers/lifecycle.ts";
 import { landBranch, sameRoot } from "./merge.ts";
 import { stepLogLine } from "./test-gate.ts";
 import { renderSentence } from "../../i18n/message.ts";
+import { stepButton } from "../../format/step-label.ts";
 import type { LandContext } from "./types.ts";
 
 /** Put a newly created spec where the page can see it.
@@ -32,10 +33,9 @@ export async function landNewSpec(ctx: LandContext, job: Job, outcome: Partial<S
     // once that step reports it, off `outcome.specFolder`, which is now
     // always just the provisional key.
     nothingToLand: { key: "landing.createNothingToLand" },
-    // `why` is not this function's to show: it is the
-    // raw text of whatever exception `landBranch` caught, and it never
-    // becomes part of the sentence — the caller keeps it as `errorDetail`.
-    failedNote: () => ({ key: "landing.createLandingFailed" }),
+    // The first line of `why` belongs in the visible sentence; the caller
+    // keeps the complete exception as `errorDetail`.
+    failedNote: (why) => ({ key: "landing.createLandingFailed", values: { why: firstLine(why), button: stepButton("create") } }),
   }));
 }
 
@@ -71,9 +71,8 @@ export async function landStepBranch(
   return asMergeStep(ctx, job, step, (onMerged) => landBranch(ctx, job, outcome, {
     step,
     repos: specsRootsOnly(ctx, job, outcome),
-    // `why` stays out of the sentence — see landNewSpec's
-    // own note above.
-    failedNote: () => ({ key: "landing.stepLandingFailed", values: { step } }),
+    // The full `why` remains the detail — see landNewSpec above.
+    failedNote: (why) => ({ key: "landing.stepLandingFailed", values: { step, why: firstLine(why), button: stepButton(step) } }),
     onLanded: async () => onMerged(),
   }));
 }
@@ -112,9 +111,8 @@ export async function landStoppedStepBranch(
 ): Promise<void> {
   return landBranch(ctx, job, outcome, {
     step,
-    // `why` stays out of the sentence — see landNewSpec's
-    // own note above.
-    failedNote: () => ({ key: "landing.stoppedStepLandingFailed", values: { step } }),
+    // The full `why` remains the detail — see landNewSpec above.
+    failedNote: (why) => ({ key: "landing.stoppedStepLandingFailed", values: { step, why: firstLine(why), button: stepButton(step) } }),
   });
 }
 
@@ -157,9 +155,8 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // spec already held back for the same reason writes no commit, and
     // an error there would report a problem that is not one.
     //
-    // `why` stays out of the sentence — see landNewSpec's
-    // own note above.
-    failedNote: () => ({ key: "landing.archiveLandingFailed" }),
+    // The full `why` remains the detail — see landNewSpec above.
+    failedNote: (why) => ({ key: "landing.archiveLandingFailed", values: { why: firstLine(why), button: stepButton("archive") } }),
     // A board is a running process against this
     // spec's own code branch, and once that branch is archived there is
     // nothing left for it to serve. Only fires once the merge has
@@ -190,9 +187,8 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
   return asMergeStep(ctx, job, "close", (onMerged) => landBranch(ctx, job, outcome, {
     step: "close",
     repos: mergeBranchRefs(ctx.queue.branchesFor(job.project, job.specFolder), outcome.branchUrls ?? []),
-    // `why` stays out of the sentence — see landNewSpec's
-    // own note above.
-    failedNote: () => ({ key: "landing.closeLandingFailed" }),
+    // The full `why` remains the detail — see landNewSpec above.
+    failedNote: (why) => ({ key: "landing.closeLandingFailed", values: { why: firstLine(why), button: stepButton("close") } }),
     // A board running this spec's code
     // branch has nothing left to serve once that branch is gone.
     onLanded: async () => {
@@ -215,11 +211,12 @@ export async function landClosedSpec(ctx: LandContext, job: Job, outcome: Partia
 export async function landScheduleRun(ctx: LandContext, job: Job, outcome: Partial<StepOutcome>): Promise<void> {
   return landBranch(ctx, job, outcome, {
     step: "schedule",
-    // `why` stays out of the sentence — see landNewSpec's
-    // own note above.
-    failedNote: () => ({ key: "landing.scheduleLandingFailed" }),
+    // The full `why` remains the detail — see landNewSpec above.
+    failedNote: (why) => ({ key: "landing.scheduleLandingFailed", values: { why: firstLine(why), button: stepButton("schedule") } }),
   });
 }
+
+const firstLine = (text: string): string => text.split(/\r?\n/, 1)[0] ?? text;
 
 /** The merge into the default branch is the last step of every skill
  *  whose work lands, and the phase is finished only when the merge is:

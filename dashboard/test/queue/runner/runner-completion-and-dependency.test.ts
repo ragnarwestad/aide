@@ -509,7 +509,7 @@ describe("parked on its own missing analyze step", () => {
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
-    expect(sentence(stored?.error)).toBe("held back: not analyzed yet — run /aide-analyze first");
+    expect(sentence(stored?.error)).toBe("held back: not analyzed yet — press Analyze first");
   });
 
   test("the same job starts once the holds no longer name it", () => {
@@ -529,7 +529,7 @@ describe("parked on its own missing analyze step", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]), new Map([[job.id, { key: "runner.notAnalyzed" }]]));
     expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toBe("held back: not analyzed yet — run /aide-analyze first");
+    expect(sentence(store.get(job.id)?.error)).toBe("held back: not analyzed yet — press Analyze first");
   });
 
   test("no set at all is exactly today's behaviour", () => {

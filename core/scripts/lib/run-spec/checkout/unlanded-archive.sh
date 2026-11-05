@@ -39,14 +39,14 @@ restore_unlanded_archive() {
   ! git -C "$top" cat-file -e "$base_ref_here:${prefix}archive/$spec_folder" 2>/dev/null || return 0
   # A commit now would finish the merge the session is to resolve.
   if git -C "$top" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
-    stage_error "$spec_folder is under archive/ on its branch from an archive that never landed, but a merge is open there — left where it is"
+    stage_error "$spec_folder is under archive/ on its branch from an archive that never merged, but a merge is open there — finish the merge in the specs checkout on the serving host"
     return 0
   fi
   result="$("$SCRIPT_DIR/aide-reopen-spec" --specs-root "$specs_root_wt" --spec "$spec_folder" \
     --boundary "$(git -C "$top" rev-parse --short HEAD 2>/dev/null)" 2>/dev/null)"
   [ "$(jq -r '.ok // false' <<<"$result" 2>/dev/null)" = "true" ] \
-    || refuse "$spec_folder is under archive/ on its branch from an archive that never landed on $base, and could not be moved back ($(jq -r '.error // "no answer"' <<<"$result" 2>/dev/null))"
-  git -C "$top" commit -q -m "Move $spec_folder back out of archive/ — its archive never landed on $base" >/dev/null 2>&1 \
+    || refuse "$spec_folder is under archive/ on its branch from an archive that never merged into $base, and could not be moved back ($(jq -r '.error // "no answer"' <<<"$result" 2>/dev/null)) — fix the specs checkout on the serving host"
+  git -C "$top" commit -q -m "Move $spec_folder back out of archive/ — its archive never merged into $base" >/dev/null 2>&1 \
     || refuse "$spec_folder was moved back out of archive/ on its branch, but the move could not be committed"
-  stage "$spec_folder was under archive/ on its branch from an archive that never landed — moved back where $base has it"
+  stage "$spec_folder was under archive/ on its branch from an archive that never merged — moved back where $base has it"
 }

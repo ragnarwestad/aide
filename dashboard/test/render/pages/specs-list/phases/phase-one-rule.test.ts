@@ -207,7 +207,7 @@ describe("one rule per phase", () => {
     expect(implement).not.toContain("b-done");
     expect(implement).not.toContain("run it again");
     expect(panel(html)).toContain(
-      "Implement last run reported done, but nothing reached the files — run it again",
+      "Implement last run reported done, but nothing reached the files — press its button again",
     );
   });
 

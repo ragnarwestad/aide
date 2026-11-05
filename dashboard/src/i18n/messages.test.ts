@@ -63,3 +63,33 @@ describe("the sentences about a used-up usage limit ask for no press", () => {
     expect(entry.resolve, key).toBeUndefined();
   });
 });
+
+describe("registered error sentences name their resolution", () => {
+  test("every entry carries a resolution or says why none exists (AC-2)", () => {
+    for (const [key, entry] of Object.entries(MESSAGES)) {
+      const registered = entry as MessageEntry & { resolve?: string; exempt?: string };
+      expect(registered.resolve ?? registered.exempt, key).toBeTruthy();
+    }
+  });
+
+  test("repeat instructions name a button instead of a generic run (AC-1)", () => {
+    for (const [key, entry] of Object.entries(MESSAGES)) {
+      const resolution = (entry as MessageEntry & { resolve?: string }).resolve ?? "";
+      if (!resolution.includes("{button}")) {
+        expect(resolution, key).not.toMatch(/\b(?:run|running|try running|step) (?:it |the step )?again\b/i);
+        expect(resolution, key).not.toMatch(/\brun \/aide-/i);
+      }
+    }
+  });
+
+  test("no language uses the catalog's forbidden words (AC-5)", () => {
+    const keys = [
+      "readiness.specsRoot.missingConfigured", "readiness.specsRoot.missingFallback",
+      "readiness.specsRepo.none", "readiness.specsRepo.own", "readiness.specsRepo.other",
+    ] as const;
+    for (const key of keys) {
+      const entry = MESSAGES[key];
+      expect(entry.nb, key).not.toMatch(/\b(?:spesifikasjon(?:en|er|ene)?|sammensl(?:å|åing))\b/i);
+    }
+  });
+});
