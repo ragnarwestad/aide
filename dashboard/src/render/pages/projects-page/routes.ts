@@ -28,15 +28,6 @@ export function navEntries(): NavEntry[] {
   ];
 }
 
-/** The address people bookmarked before the overview became a served
- *  route. `core-routes.ts` answers `/projects.html` with a
- *  redirect to `PROJECTS_ROUTE`, in server code, with no file behind it
- *  the literal there, not this constant, since the route
- *  scanner behind `docs/http-routes.md`'s guard test reads a `path ===`
- *  check by its own literal or a plain constant name, not a
- *  concatenation. */
-export const OVERVIEW_PAGE = "projects.html";
-
 /** Where the overview actually lives: a served route, so the
  *  Add and Remove controls on it have a server to post to. */
 export const PROJECTS_ROUTE = "/projects";
