@@ -162,7 +162,7 @@ export function createServer(opts: ServerOptions) {
     specsRoot: resolution.specsRoot,
     // Behind the same one flag as the check at start-up: a server nobody
     // asked to check anything never spawns a CLI to do it.
-    recheckTools: opts.checkToolsOnStart ? toolRechecker() : undefined,
+    recheckTools: opts.checkToolsOnStart ? toolRechecker({ providers: () => queue.defaults.providers }) : undefined,
   });
   resolution.attachBranchFileSteps(schedules.branchFileSteps);
 
@@ -440,7 +440,7 @@ export function createServer(opts: ServerOptions) {
   setModelChoices(() => queue.defaults.modelChoices);
   if (opts.checkToolsOnStart) {
     setConfiguredTools(configuredTools);
-    void checkAllTools().catch(() => {
+    void checkAllTools({ providers: () => queue.defaults.providers }).catch(() => {
       // Same best effort: a check that could not run leaves the tab
       // reading "not checked yet", which is true.
     });

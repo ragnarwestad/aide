@@ -221,8 +221,10 @@ shows the text as it came. OpenCode and Copilot report no usage windows.
 
 **The Installation tab shows what `aide-preflight` printed**: whether the command line is installed and which version,
 where each piece of aide lands, whether the installed files match the repository, every command the check ran, and
-whether the AI is logged in, as one sentence ("Logged in with claude.ai as …", or "Not logged in — run claude auth
-login"). Copilot's command line cannot say whether it is logged in, and the tab says so.
+whether the AI is logged in, as one sentence per provider of that AI, each starting with the provider's name
+("Claude-2: Logged in with claude.ai as …", or "Claude-2: Not logged in — run CLAUDE_CONFIG_DIR=~/.claude-2 claude
+auth login"). An AI with no provider has one sentence for its own login. Copilot's command line cannot say whether it
+is logged in, and the tab says so.
 
 **The Models tab lists the models under three headings.** "Currently supported by Aide" is every model choice of that
 AI. "Available" is the models the AI offers that are not choices, each with Add. "No longer available" is the choices it
@@ -288,7 +290,8 @@ which is how a project points its runs at a stand-in binary; a value written the
 
 The tool checks run when the board starts, when Check is pressed, and for the tool a queued job's next step will run on,
 at most once a minute per tool. A check that finds something wrong puts a line at the top of every page, but only for a
-tool some model is configured for. A Claude Code login that names one account with an organization plan it cannot have is
+tool some model is configured for. The login check reads every provider of the tool, each with its own folder, so the
+line names the provider whose login is wrong ("Claude Code: Claude-2 not logged in"). A Claude Code login that names one account with an organization plan it cannot have is
 reported as the login in use being another account's. All of this happens only on a board started with
 `checkToolsOnStart`.
 
@@ -469,6 +472,17 @@ the provider. A provider's name has letters, digits, `.`, `_` and `-`, at most 6
 - **The fields.** Claude Code: a config folder, handed over as `CLAUDE_CONFIG_DIR`; empty means Claude Code's own
   `~/.claude`. Codex: a `CODEX_HOME` folder, empty meaning `~/.codex`, and an optional shadow home. OpenCode: none. A
   folder is written from `/` or `~/`. The config folder and the `CODEX_HOME` have to exist on the serving host.
+- **The status.** Each provider on the list shows whether its tool is installed and its version, the account it is
+  logged in as (the e-mail and the plan where the tool reports them) or that it is not logged in, and, where the tool
+  reports it, the date the login ends (Claude Code does). For a provider that is not logged in the row gives the
+  command that logs it in, with its folder filled in (`CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login`,
+  `CODEX_HOME=~/.codex-p codex login`, `opencode auth login`). A login that could not be read says so and asks to open
+  the tab again; it is never shown as not logged in.
+- **Read as a step would meet it.** The status is read when Settings opens on its Providers tab, and no other tab
+  reads anything. The board's own process reads it, with the provider's folder in the environment, so it is what a
+  step on that provider would meet, which a terminal's own login need not be: a login kept in the macOS keychain can be
+  readable from a terminal and not from the board's service. The login check at start, on Check and before a waiting
+  job reads every provider the same way.
 - **One login each.** Save refuses a provider whose login another provider of the same tool already uses: the same
   Claude config folder, the same Codex folder (the shadow home when there is one), or a second OpenCode provider.
 - **Stored under a key.** The `providers` table of `queue-config.json` holds each provider under a key that never

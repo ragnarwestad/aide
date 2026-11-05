@@ -6,6 +6,7 @@
 // `null` for a path that is not its own — which is what lets the
 // three be asked one after another exactly as the chain read before.
 import { providerPickerOptions } from "../../providers/options.ts";
+import { readProviderStatus } from "../../providers/status.ts";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
@@ -16,12 +17,19 @@ import { lastUsage } from "../../tool-usage";
 import { lastModels } from "../../tool-models";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
 import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
-import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, specPagePath, type TestServerRow } from "../../../render";
+import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, resolveSettingsTab, specPagePath, type ProviderStatus, type TestServerRow } from "../../../render";
 import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
 import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
 import { languageChoice, modelChoiceOptions, processSettings, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
+
+/** Every provider's status, read side by side. */
+async function readProviderStatuses(ctx: RoutesContext): Promise<Record<string, ProviderStatus>> {
+  const read = ctx.opts.providerProbe ?? readProviderStatus;
+  const providers = Object.entries(ctx.queue.defaults.providers ?? {});
+  return Object.fromEntries(await Promise.all(providers.map(async ([key, provider]) => [key, await read(key, provider)] as const)));
+}
 
 export async function projectPages(
   ctx: RoutesContext,
@@ -32,6 +40,13 @@ export async function projectPages(
   if (path === SETTINGS_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const langResult = languageChoice(url, req);
+    // The one tab that shows a provider's status reads it as it opens, and
+    // no other tab reads anything: a read can hold the page for as long as
+    // its timeout.
+    const tab = url.searchParams.get("tab") ?? undefined;
+    const providerStatuses = resolveSettingsTab(tab).panel === "providers"
+      ? await readProviderStatuses(ctx)
+      : undefined;
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
       modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
@@ -41,7 +56,8 @@ export async function projectPages(
       script: await specsClientScript(),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
-      tab: url.searchParams.get("tab") ?? undefined,
+      tab,
+      providerStatuses,
       aiTab: url.searchParams.get("aitab") ?? undefined,
       // What the last press of Check found, never a check run because
       // this page was opened.

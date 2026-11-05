@@ -7,6 +7,8 @@ import {
   providerChoices,
   providerFields,
   providerFolders,
+  providerLoginCommand,
+  providerLoginEnv,
   providerNameError,
   providerUses,
   resolveStepProvider,
@@ -162,5 +164,46 @@ describe("the default provider as a use", () => {
     const all = Object.fromEntries(steps.map((s) => [s, "Codex"]));
     expect(providerUses("Claude", { provider: { default: "Claude", ...all } }, {}, [])).toEqual([]);
     expect(providerUses("Claude", { provider: { default: "Claude" } }, {}, [])).toEqual(["the default"]);
+  });
+});
+
+describe("what a provider's login commands run with", () => {
+  test("a Claude provider with a folder gets CLAUDE_CONFIG_DIR, expanded; a Codex one the shadow home, else its home (AC-5)", () => {
+    expect(providerLoginEnv(PROVIDERS["Claude-Capra"]!, "/home/r")).toEqual({ CLAUDE_CONFIG_DIR: "/home/r/.claude-capra" });
+    expect(providerLoginEnv(PROVIDERS["Codex-a"]!, "/home/r")).toEqual({ CODEX_HOME: "/home/r/.codex-a" });
+    expect(providerLoginEnv(PROVIDERS["Codex-own"]!, "/home/r")).toEqual({ CODEX_HOME: "/home/r/.codex-own" });
+    expect(providerLoginEnv({ name: "Codex-away", tool: "codex", codexHome: "/srv/codex" }, "/home/r")).toEqual({ CODEX_HOME: "/srv/codex" });
+  });
+
+  test("a provider on its tool's own folder, and an OpenCode one, set no variable (AC-5)", () => {
+    expect(providerLoginEnv(PROVIDERS.Claude!, "/home/r")).toEqual({});
+    expect(providerLoginEnv(PROVIDERS.Codex!, "/home/r")).toEqual({});
+    expect(providerLoginEnv(PROVIDERS.OpenCode!, "/home/r")).toEqual({});
+  });
+});
+
+describe("the command that logs a provider in", () => {
+  test("it carries the folder as written, the shadow home first (AC-4)", () => {
+    expect(providerLoginCommand(PROVIDERS["Claude-Capra"]!)).toBe("CLAUDE_CONFIG_DIR=~/.claude-capra claude auth login");
+    expect(providerLoginCommand({ name: "Codex-p", tool: "codex", codexHome: "~/.codex", shadowHome: "~/.codex-p" })).toBe(
+      "CODEX_HOME=~/.codex-p codex login",
+    );
+    expect(providerLoginCommand(PROVIDERS["Codex-own"]!)).toBe("CODEX_HOME=~/.codex-own codex login");
+  });
+
+  test("a folder with a space or a quote is quoted so the shell reads it as one word (AC-4)", () => {
+    expect(providerLoginCommand({ name: "A", tool: "claude", configDir: "/srv/AI accounts/claude" })).toBe(
+      "CLAUDE_CONFIG_DIR='/srv/AI accounts/claude' claude auth login",
+    );
+    expect(providerLoginCommand({ name: "B", tool: "codex", codexHome: "~/my codex" })).toBe("CODEX_HOME=~/'my codex' codex login");
+    expect(providerLoginCommand({ name: "C", tool: "claude", configDir: "/srv/it's" })).toBe(
+      "CLAUDE_CONFIG_DIR='/srv/it'\\''s' claude auth login",
+    );
+  });
+
+  test("a provider on its tool's own folder logs in with the plain command (AC-4)", () => {
+    expect(providerLoginCommand(PROVIDERS.Claude!)).toBe("claude auth login");
+    expect(providerLoginCommand(PROVIDERS.Codex!)).toBe("codex login");
+    expect(providerLoginCommand(PROVIDERS.OpenCode!)).toBe("opencode auth login");
   });
 });

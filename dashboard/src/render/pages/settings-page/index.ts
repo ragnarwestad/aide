@@ -5,7 +5,7 @@ import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { notificationsPanel } from "./notifications.ts";
 import { processPanel, type ProcessSettings } from "./process.ts";
 import { TOOL_TABS, toolPanel, toolPart } from "./tools.ts";
-import { providersBlock } from "./providers.ts";
+import { providersBlock, type ProviderStatus } from "./providers.ts";
 import type { Provider } from "../../../queue/providers/index.ts";
 import type { CheckableTool, ToolCheck } from "./tools.ts";
 import type { ToolUsage } from "./usage.ts";
@@ -122,6 +122,8 @@ export interface SettingsPageOptions {
   choices?: Record<string, ModelChoice>;
   /** The providers the Providers tab lists, by key. */
   providers?: Record<string, Provider>;
+  /** What was read of each provider when the Providers tab opened, by key. */
+  providerStatuses?: Record<string, ProviderStatus>;
   /** The server's public key for push, which the Notifications tab's
    *  script subscribes a device with. */
   pushPublicKey?: string;
@@ -224,7 +226,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const panel = open === "phases"
     ? phasesPanel
     : open === "providers"
-      ? providersBlock(opts.providers, lang)
+      ? providersBlock(opts.providers, lang, opts.providerStatuses)
       : open === "notifications"
       ? notificationsPanel(opts.pushPublicKey, lang)
       : open === "process"

@@ -41,6 +41,11 @@ export interface ExtraCheck {
    *  Installation tab draws the entry as this sentence alone, with
    *  `detail` after it when there is one: no mark and no question. */
   answer?: BoardMessage;
+  /** The provider this answer is for, when the check asked a provider's
+   *  login rather than the tool's own. */
+  provider?: string;
+  /** When the login ends, as an ISO time, where the tool says. */
+  ends?: string;
 }
 
 export interface ToolCheck {
@@ -101,7 +106,7 @@ export function checkHelp(lang: Language, tool: CheckableTool): string {
  *  stamp is the moment it was obtained, never the moment the page was
  *  drawn: a check is a measurement, and it stops being true as soon as
  *  anything is installed. */
-function stamp(at: string): string {
+export function stamp(at: string): string {
   const when = new Date(at);
   return Number.isNaN(when.getTime()) ? at : when.toISOString().replace("T", " ").slice(0, 19) + " UTC";
 }

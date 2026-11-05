@@ -17,13 +17,15 @@ const ESC = String.fromCharCode(27);
 /** A stand-in for `runScript`, answering by the command it was given. */
 function fakeRun(answers: Record<string, Partial<RunResult>>) {
   const calls: string[][] = [];
-  const run = async (argv: string[]): Promise<RunResult> => {
+  const envs: Record<string, string>[] = [];
+  const run = async (argv: string[], _cwd?: string, _timeout?: number, _owner?: string, extraEnv?: Record<string, string>): Promise<RunResult> => {
     calls.push(argv);
+    envs.push(extraEnv ?? {});
     const key = Object.keys(answers).find((k) => argv.join(" ").includes(k));
     const answer = key ? answers[key]! : {};
     return { code: 0, stdout: "", stderr: "", timedOut: false, ...answer };
   };
-  return Object.assign(run as never as typeof import("../../../src/serve/land-branch/run-script.ts").runScript, { calls });
+  return Object.assign(run as never as typeof import("../../../src/serve/land-branch/run-script.ts").runScript, { calls, envs });
 }
 
 const opts = (run: ReturnType<typeof fakeRun>, extra: Record<string, unknown> = {}) => ({
@@ -85,6 +87,77 @@ describe("checkTool", () => {
     expect(check.found).toBe(false);
     expect(check.extra).toEqual([]);
     expect(run.calls.length).toBe(1);
+  });
+});
+
+describe("whether a provider is logged in", () => {
+  const preflight = { "aide-preflight": { stdout: "found\n" } };
+  const PROVIDERS = {
+    Claude: { name: "Claude", tool: "claude" as const },
+    "Claude-2": { name: "Claude-2", tool: "claude" as const, configDir: "~/.claude-2" },
+    Codex: { name: "Codex", tool: "codex" as const },
+  };
+  const withProviders = (run: ReturnType<typeof fakeRun>) => opts(run, { providers: () => PROVIDERS, home: "/home/x" });
+  const statusIn = (ok: boolean) => JSON.stringify(ok ? { loggedIn: true, authMethod: "claude.ai", email: "a@b.no", subscriptionType: "max" } : { loggedIn: false });
+
+  test("each provider of the tool is asked once, with its own folder, and its entry names it (AC-7, AC-5)", async () => {
+    const run = fakeRun({ ...preflight, "auth status": { stdout: statusIn(true) } });
+    const check = await checkTool("claude", withProviders(run));
+    const asked = run.calls.map((c, i) => ({ argv: c.join(" "), env: run.envs[i] })).filter((c) => c.argv.includes("auth status"));
+    expect(asked).toEqual([
+      { argv: "claude auth status", env: {} },
+      { argv: "claude auth status", env: { CLAUDE_CONFIG_DIR: "/home/x/.claude-2" } },
+    ]);
+    expect(check.extra.map((e) => e.provider)).toEqual(["Claude", "Claude-2"]);
+    expect(check.commands).toContain("CLAUDE_CONFIG_DIR=/home/x/.claude-2 claude auth status");
+  });
+
+  test("a provider that is not logged in is a fault that names it, and says its own command (AC-7, AC-4)", async () => {
+    forgetChecks();
+    const run = fakeRun({ ...preflight, "auth status": { stdout: statusIn(false) } });
+    const check = await checkTool("claude", opts(run, { providers: () => ({ "Claude-2": PROVIDERS["Claude-2"] }), home: "/home/x" }));
+    expect(check.extra[0]!.answer).toEqual({ key: "login.out", values: { command: "CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login" } });
+    recordCheck(check);
+    expect(toolsWithFaults()).toEqual([{ tool: "claude", problems: ["Claude-2 not logged in"] }]);
+    forgetChecks();
+  });
+
+  test("a tool with no provider is asked about its own login, with no variable, as before (AC-7)", async () => {
+    const run = fakeRun({ ...preflight, "login status": { stdout: "Logged in using ChatGPT\n" } });
+    const check = await checkTool("codex", opts(run, { providers: () => ({ Claude: PROVIDERS.Claude }) }));
+    const asked = run.calls.findIndex((c) => c.join(" ").includes("login status"));
+    expect(run.envs[asked]).toEqual({});
+    expect(check.extra).toHaveLength(1);
+    expect(check.extra[0]!.provider).toBeUndefined();
+  });
+
+  test("the check before a waiting job asks every provider of that tool (AC-7)", async () => {
+    forgetChecks();
+    const run = fakeRun({ ...preflight, "auth status": { stdout: statusIn(true) } });
+    const recheck = toolRechecker({ ...withProviders(run) });
+    await recheck(["claude"]);
+    expect(run.calls.filter((c) => c.join(" ").includes("auth status"))).toHaveLength(2);
+    forgetChecks();
+  });
+
+  test("a login end date is kept as an ISO time, from a time string or a number (AC-3)", async () => {
+    const ends = async (value: unknown) => {
+      const run = fakeRun({ ...preflight, "auth status": { stdout: JSON.stringify({ loggedIn: true, loginExpiresAt: value }) } });
+      return (await checkTool("claude", opts(run))).extra[0]!.ends;
+    };
+    expect(await ends("2026-12-01T09:00:00Z")).toBe("2026-12-01T09:00:00.000Z");
+    expect(await ends(Date.parse("2026-12-01T09:00:00Z"))).toBe("2026-12-01T09:00:00.000Z");
+    expect(await ends(Date.parse("2026-12-01T09:00:00Z") / 1000)).toBe("2026-12-01T09:00:00.000Z");
+  });
+
+  test("an answer with no end date, or one that is not a time, shows none (AC-3)", async () => {
+    const ends = async (status: Record<string, unknown>) => {
+      const run = fakeRun({ ...preflight, "auth status": { stdout: JSON.stringify({ loggedIn: true, ...status }) } });
+      return (await checkTool("claude", opts(run))).extra[0]!.ends;
+    };
+    expect(await ends({})).toBeUndefined();
+    expect(await ends({ loginExpiresAt: "someday" })).toBeUndefined();
+    expect(await ends({ loginExpiresAt: { at: 1 } })).toBeUndefined();
   });
 });
 

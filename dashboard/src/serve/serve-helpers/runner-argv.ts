@@ -4,7 +4,7 @@
 
 import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
-import { expandDir, resolveStepProvider, sharesSessions, type Provider } from "../../queue/providers/index.ts";
+import { providerLoginEnv, resolveStepProvider, sharesSessions, type Provider } from "../../queue/providers/index.ts";
 import { homedir } from "node:os";
 import type { CheckableTool } from "../../render";
 
@@ -275,10 +275,7 @@ function providerFolderArgs(
   const key = resolveStepProvider(job, step, { model: o.model ?? {}, modelChoices: o.modelChoices, providers: o.providers, provider: o.provider });
   const provider = key ? o.providers?.[key] : undefined;
   if (!provider) return [];
-  const home = o.home ?? homedir();
-  if (tool === "claude" && provider.tool === "claude" && provider.configDir) {
-    return ["--claude-config-dir", expandDir(provider.configDir, home)];
-  }
-  const folder = provider.shadowHome || provider.codexHome;
-  return tool === "codex" && provider.tool === "codex" && folder ? ["--codex-home", expandDir(folder, home)] : [];
+  const env = providerLoginEnv(provider, o.home ?? homedir());
+  if (tool === "claude" && provider.tool === "claude" && env.CLAUDE_CONFIG_DIR) return ["--claude-config-dir", env.CLAUDE_CONFIG_DIR];
+  return tool === "codex" && provider.tool === "codex" && env.CODEX_HOME ? ["--codex-home", env.CODEX_HOME] : [];
 }

@@ -14,7 +14,9 @@
 // Check alone (`tool-models/`), never by this check, which also runs at
 // start and before waiting jobs.
 
+import { homedir } from "node:os";
 import { runScript, scriptFor } from "./land-branch/run-script.ts";
+import { providerLoginCommand, providerLoginEnv, type Provider } from "../queue/providers/index.ts";
 import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults } from "../render/ui/tool-checks.ts";
 
 // The store lives in the render layer, which is where both readers are
@@ -51,6 +53,12 @@ export interface CheckOptions {
   /** Test seam: where to find the scripts. */
   scriptPath?: (name: string) => string;
   now?: () => Date;
+  /** The providers whose logins are asked, live: a tool's check asks the
+   *  login of each provider of that tool, and its own login when it has
+   *  none. */
+  providers?: () => Record<string, Provider> | undefined;
+  /** Test seam: the home directory a provider's folder is expanded against. */
+  home?: string;
 }
 
 const LOGIN_QUESTION = "Is it logged in?";
@@ -89,13 +97,14 @@ const NO_CREDENTIALS = /\b0 credentials\b|No authenticated integrations/;
 async function opencodeProviderCheck(
   run: typeof runScript,
   bin: string,
+  command: string,
 ): Promise<ExtraCheck> {
   const providers = await run([bin, "auth", "list"], process.cwd(), CHECK_TIMEOUT_MS);
   if (providers.timedOut) return loginUnknown("timedOut", "opencode auth list");
   if (providers.code !== 0) return loginUnknown("unreadable", "opencode auth list");
   // The CLI's own wording for none configured: "0 credentials" before
   // version 2, "No authenticated integrations" from it.
-  if (NO_CREDENTIALS.test(stripAnsi(providers.stdout))) return loginOut("opencode auth login");
+  if (NO_CREDENTIALS.test(stripAnsi(providers.stdout))) return loginOut(command);
   return { question: LOGIN_QUESTION, ok: true, detail: "", answer: loggedIn(undefined, undefined) };
 }
 
@@ -151,6 +160,8 @@ async function loginCheck(
   tool: CheckableTool,
   run: typeof runScript,
   bin: string,
+  command: string,
+  env: Record<string, string>,
 ): Promise<ExtraCheck> {
   if (tool === "copilot") {
     return {
@@ -160,9 +171,9 @@ async function loginCheck(
   }
 
   const args = tool === "claude" ? ["auth", "status"] : ["login", "status"];
-  const command = [tool, ...args].join(" ");
-  const result = await run([bin, ...args], process.cwd(), CHECK_TIMEOUT_MS);
-  if (result.timedOut) return loginUnknown("timedOut", command);
+  const asked = [tool, ...args].join(" ");
+  const result = await run([bin, ...args], process.cwd(), CHECK_TIMEOUT_MS, undefined, env);
+  if (result.timedOut) return loginUnknown("timedOut", asked);
   const text = stripAnsi(`${result.stdout}\n${result.stderr}`).trim();
 
   if (tool === "claude") {
@@ -170,8 +181,9 @@ async function loginCheck(
     try {
       const parsed = JSON.parse(text) as Record<string, unknown>;
       if (typeof parsed.loggedIn === "boolean") {
-        if (!parsed.loggedIn) return loginOut("claude auth login");
+        if (!parsed.loggedIn) return loginOut(command);
         const mixed = mixedLogins(parsed);
+        const ends = loginEnds(parsed.loginExpiresAt);
         return {
           question: LOGIN_QUESTION,
           ok: !mixed,
@@ -179,19 +191,57 @@ async function loginCheck(
           detail: mixed ?? "",
           answer: loggedIn(str(parsed.authMethod), claudeAccount(parsed)),
           ...(mixed ? { problem: "the login in use is another account's" } : {}),
+          ...(ends ? { ends } : {}),
         };
       }
     } catch {
       // Falls through: a version that stops printing JSON is not a
       // version this can claim an answer from.
     }
-    return loginUnknown("unreadable", command);
+    return loginUnknown("unreadable", asked);
   }
 
   // Codex: one line, "Logged in using <how>", and an exit code that says it.
-  if (result.code !== 0) return loginOut("codex login");
+  if (result.code !== 0) return loginOut(command);
   const how = /^Logged in using (.+)$/m.exec(text)?.[1]?.trim();
   return { question: LOGIN_QUESTION, ok: true, detail: "", answer: loggedIn(how, undefined) };
+}
+
+/** The time a login ends, as an ISO time, from what `claude auth status`
+ *  prints as `loginExpiresAt`: a time string, or a number of milliseconds
+ *  (one under 10^12 is read as seconds). Anything else is no answer. */
+function loginEnds(value: unknown): string | undefined {
+  let ms: number | undefined;
+  if (typeof value === "string") ms = Date.parse(value);
+  else if (typeof value === "number" && Number.isFinite(value)) ms = value < 1e12 ? value * 1000 : value;
+  if (ms === undefined || Number.isNaN(ms)) return undefined;
+  const when = new Date(ms);
+  return Number.isNaN(when.getTime()) ? undefined : when.toISOString();
+}
+
+/** One login question for a tool: its own, or — given a provider — the one
+ *  a step on that provider would meet, asked with the provider's folder in
+ *  the environment, answered with the provider's own login command, and
+ *  carrying the provider's name. */
+export async function askLogin(
+  tool: CheckableTool,
+  run: typeof runScript,
+  bin: string,
+  provider?: Provider,
+  home: string = homedir(),
+): Promise<ExtraCheck> {
+  const env = provider ? providerLoginEnv(provider, home) : {};
+  const command = provider
+    ? providerLoginCommand(provider)
+    : tool === "claude" ? "claude auth login" : tool === "codex" ? "codex login" : "opencode auth login";
+  const answer = tool === "opencode"
+    ? await opencodeProviderCheck((argv, cwd, ms) => run(argv, cwd, ms, undefined, env), bin, command)
+    : await loginCheck(tool, run, bin, command, env);
+  if (!provider) return answer;
+  const problem = answer.ok === false
+    ? answer.problem === "not logged in" ? `${provider.name} not logged in` : `${provider.name}: ${answer.problem ?? "login"}`
+    : undefined;
+  return { ...answer, provider: provider.name, ...(problem ? { problem } : {}) };
 }
 
 export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): Promise<ToolCheck> {
@@ -203,9 +253,11 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
   // asked.
   const commands: string[] = [];
   const base = opts.run ?? runScript;
-  const run: typeof runScript = (argv, cwd, timeoutMs) => {
-    commands.push(argv.join(" "));
-    return base(argv, cwd, timeoutMs);
+  const run: typeof runScript = (argv, cwd, timeoutMs, owner, extraEnv) => {
+    // With the variable in front, as a reader would type the same line.
+    const vars = Object.entries(extraEnv ?? {}).map(([k, v]) => `${k}=${v} `).join("");
+    commands.push(vars + argv.join(" "));
+    return base(argv, cwd, timeoutMs, owner, extraEnv);
   };
 
   const result = await run([path("aide-preflight"), tool], process.cwd(), CHECK_TIMEOUT_MS);
@@ -223,11 +275,9 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
   // report "not logged in" for what is really "not installed".
   const extra: ExtraCheck[] = [];
   if (found) {
-    extra.push(
-      tool === "opencode"
-        ? await opencodeProviderCheck(run, path("opencode"))
-        : await loginCheck(tool, run, path(tool)),
-    );
+    const own = Object.values(opts.providers?.() ?? {}).filter((p) => p.tool === tool);
+    if (own.length === 0) extra.push(await askLogin(tool, run, path(tool)));
+    for (const provider of own) extra.push(await askLogin(tool, run, path(tool), provider, opts.home));
   }
   return { tool, at, found, lines: printed, extra, commands };
 }
@@ -265,11 +315,11 @@ export const RECHECK_MS = 60_000;
  *  login changed under a running board is how seven runs were spent on
  *  the wrong account. */
 export function toolRechecker(
-  opts: { now?: () => Date; check?: (tool: CheckableTool) => Promise<ToolCheck> } = {},
+  opts: CheckOptions & { check?: (tool: CheckableTool) => Promise<ToolCheck> } = {},
 ): (tools: CheckableTool[]) => Promise<void> {
   const inFlight = new Set<CheckableTool>();
   const now = opts.now ?? (() => new Date());
-  const check = opts.check ?? ((tool: CheckableTool) => checkTool(tool));
+  const check = opts.check ?? ((tool: CheckableTool) => checkTool(tool, opts));
   return async (tools) => {
     await Promise.all([...new Set(tools)].map(async (tool) => {
       const last = lastChecks()[tool];

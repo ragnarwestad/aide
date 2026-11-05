@@ -7,7 +7,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse } from "jsonc-parser";
+import type { Provider } from "../../../src/queue/providers/index.ts";
 import type { QueueDefaults } from "../../../src/queue/types.ts";
+import type { ProviderStatus } from "../../../src/render";
 import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
 import { JSON_HEADERS, defaultsOf, ownFiles, post } from "../settings-models/fixtures.ts";
 
@@ -35,7 +37,11 @@ function folder(): string {
   return dir;
 }
 
-function serve(extra: Partial<QueueDefaults> = {}, config = CONFIG) {
+/** What a read of a provider answers here, so no test starts a real CLI. */
+const stubProbe = async (key: string, _provider?: Provider): Promise<ProviderStatus> =>
+  ({ key, at: "2026-11-05T09:00:00.000Z", installed: true, version: `9.9.9 (${key})` });
+
+function serve(extra: Partial<QueueDefaults> = {}, config = CONFIG, providerProbe: (key: string, provider: Provider) => Promise<ProviderStatus> = stubProbe) {
   const { file, modelIdsPath } = ownFiles(config, ownDirs);
   const queueDefaults = {
     ...defaultsOf({ Opus: {}, "gpt-6": { tool: "codex" } }, { default: "Opus" }),
@@ -43,7 +49,7 @@ function serve(extra: Partial<QueueDefaults> = {}, config = CONFIG) {
     provider: { default: "Claude" },
     ...extra,
   } as QueueDefaults;
-  const { base } = start({ queueDefaults, queueConfigFile: file, modelIdsPath });
+  const { base } = start({ queueDefaults, queueConfigFile: file, modelIdsPath, providerProbe });
   return { base, file, queueDefaults };
 }
 
@@ -238,5 +244,29 @@ describe("the pages that add and edit a provider", () => {
     expect(html).toContain(RENAME);
     expect(html).toContain(REMOVE);
     expect(html).toContain("/settings/providers/new");
+  });
+});
+
+describe("reading every provider's status when Settings opens", () => {
+  const counting = () => {
+    const asked: string[] = [];
+    return { asked, probe: async (key: string, provider: Provider) => { asked.push(key); return stubProbe(key, provider); } };
+  };
+
+  test("the Providers tab reads each provider once before it answers, and shows what each read found (AC-6)", async () => {
+    const { asked, probe } = counting();
+    const { base } = serve({}, CONFIG, probe);
+    const html = await (await fetch(`${base}/settings?tab=providers`)).text();
+    expect(asked.sort()).toEqual(["Claude", "Codex"]);
+    expect(html).toContain("9.9.9 (Claude)");
+    expect(html).toContain("9.9.9 (Codex)");
+  });
+
+  test("another tab reads nothing, since only the Providers tab shows a provider's status (AC-6)", async () => {
+    const { asked, probe } = counting();
+    const { base } = serve({}, CONFIG, probe);
+    await fetch(`${base}/settings`);
+    await fetch(`${base}/settings?tab=claude`);
+    expect(asked).toEqual([]);
   });
 });

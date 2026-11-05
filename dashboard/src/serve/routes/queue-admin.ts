@@ -69,7 +69,7 @@ export async function handleQueueAdminRoutes(
     const at = new Date().toISOString();
     const failed = (err: unknown) => (err instanceof Error ? err.message : String(err));
     const [check, usage, models] = await Promise.allSettled([
-      probe ? probe.check(tool) : checkTool(tool),
+      probe ? probe.check(tool) : checkTool(tool, { providers: () => ctx.queue.defaults.providers }),
       probe ? probe.usage(tool) : readUsage(tool),
       probe ? probe.models(tool, { configured }) : readModels(tool, { configured }),
     ]);

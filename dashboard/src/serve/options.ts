@@ -2,7 +2,8 @@
 // closure state, so moving it carries no risk the rest of that file's
 // wiring does.
 
-import type { CheckableTool, NavEntry, ToolCheck, ToolModels, ToolUsage } from "../render";
+import type { CheckableTool, NavEntry, ProviderStatus, ToolCheck, ToolModels, ToolUsage } from "../render";
+import type { Provider } from "../queue/providers/index.ts";
 import type { Sentence } from "../i18n/message.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/branch-status.ts";
@@ -123,6 +124,9 @@ export interface ServerOptions {
     usage: (tool: CheckableTool) => Promise<ToolUsage>;
     models: (tool: CheckableTool, opts: { configured: string[] }) => Promise<ToolModels>;
   };
+  /** What opening Settings on its Providers tab runs in place of the real
+   *  read of a provider's tool and login. A test seam. */
+  providerProbe?: (key: string, provider: Provider) => Promise<ProviderStatus>;
   restartPollMs?: number;
   restartDeferTimeoutMs?: number;
   /** The checkout the running dashboard was started from. Only a landing

@@ -22,7 +22,8 @@ const markClass = (ok: boolean | null): string =>
  *  mark and a question in front of it would say it twice. */
 function entryLine(e: ExtraCheck, lang: Language): string {
   if (e.answer) {
-    return `<li>${esc(capitalizeFirst(renderSentence(lang, e.detail ? [e.answer, e.detail] : e.answer) ?? ""))}</li>`;
+    const sentence = capitalizeFirst(renderSentence(lang, e.detail ? [e.answer, e.detail] : e.answer) ?? "");
+    return `<li>${esc(e.provider ? `${e.provider}: ${sentence}` : sentence)}</li>`;
   }
   return `<li><span class="${markClass(e.ok)}">${esc(mark(e.ok, lang))}</span> ${esc(e.question)} ${esc(e.detail)}</li>`;
 }
