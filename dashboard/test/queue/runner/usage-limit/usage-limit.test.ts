@@ -104,6 +104,12 @@ describe("the hold on an AI's queued steps", () => {
     expect(usageLimitHolds(store.list(), toolOf).has(run.id)).toBe(true);
   });
 
+  test("a deploy runs no AI, so a used-up limit never holds it", () => {
+    stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
+    const deploy = enqueue({ specFolder: "deploy", steps: ["deploy"] });
+    expect(usageLimitHolds(store.list(), toolOf).has(deploy.id)).toBe(false);
+  });
+
   test("a job whose own landing is in flight is never held", () => {
     stopped(job({ steps: ["implement"] }), "10:00", { until: "14:00", resetKnown: true });
     const landing = job({ steps: ["analyze"] });

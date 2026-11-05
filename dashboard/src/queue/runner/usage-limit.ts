@@ -13,7 +13,7 @@
 // wait and is never held by one made on another AI.
 
 import type { BoardMessage } from "../../i18n/message.ts";
-import type { Job, QueueStore } from "../queue.ts";
+import { BOARD_STEPS, type Job, type QueueStore } from "../queue.ts";
 import { providerLimit } from "./types.ts";
 
 /** What the board waits when the AI named no reset time, and between two
@@ -106,8 +106,8 @@ function heldAis(jobs: readonly Job[], providerOf: ProviderOf): Map<string, AiHo
 
 /** Every queued job a used-up usage limit holds, by id, with the sentence
  *  it is held with. Never held: the step sent ahead of the others, a job
- *  a person pressed after the hold began, and a job whose own landing is
- *  in flight. */
+ *  a person pressed after the hold began, a job whose own landing is in
+ *  flight, and a step the board runs itself (a deploy), which uses no AI. */
 export function usageLimitHolds(
   jobs: readonly Job[],
   providerOf: ProviderOf,
@@ -118,6 +118,7 @@ export function usageLimitHolds(
   if (holds.size === 0) return held;
   for (const job of jobs) {
     if (job.state !== "queued" || job.landing) continue;
+    if ((BOARD_STEPS as readonly string[]).includes(job.steps[job.stepIndex] ?? "")) continue;
     const key = providerOf(job);
     const hold = holds.get(key);
     if (!hold || hold.probe?.id === job.id) continue;
