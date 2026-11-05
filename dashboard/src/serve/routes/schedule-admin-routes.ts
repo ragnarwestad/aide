@@ -17,6 +17,7 @@ const str = (v: unknown): string => (typeof v === "string" ? v : "");
  *  validated against, so a name the queue would refuse at fire time is
  *  refused here instead, while a person is looking at the form. */
 const knownModels = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.modelChoices ?? {});
+const knownProviders = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.providers ?? {});
 
 async function readJsonBody(req: Request): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
   const sent = await readBounded(req);
@@ -80,6 +81,7 @@ export async function handleScheduleAdminRoutes(
     const result = ctx.queue.enqueue({
       project, specFolder: scheduleTrackingKey(name), steps: ["schedule"],
       ...(entry?.model ? { model: entry.model } : {}),
+      ...(entry?.provider ? { provider: entry.provider } : {}),
     });
     if (!result.ok) {
       logRefusal("run now", `${project}/${name}`, result.error);
@@ -115,8 +117,8 @@ export async function handleScheduleAdminRoutes(
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const result = updateScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), name, {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
-    }, knownModels(ctx));
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
+    }, knownModels(ctx), knownProviders(ctx));
     if (!result.ok) return json({ error: result.error }, 400);
     const back = scheduleBackPath(body.back, projectScheduleTab(project));
     return json({ ok: true, location: renamedBack(back, project, name, str(body.name) || name) });
@@ -135,8 +137,8 @@ export async function handleScheduleAdminRoutes(
     const project = str(body.project);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     const result = createScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
-    }, knownModels(ctx));
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
+    }, knownModels(ctx), knownProviders(ctx));
     if (!result.ok) return json({ error: result.error }, 400);
     return json({ ok: true, location: scheduleBackPath(body.back, projectScheduleTab(project)) });
   }

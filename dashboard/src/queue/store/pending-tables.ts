@@ -3,6 +3,7 @@
 // leaves the table empty; one that cannot be written keeps it in memory.
 
 import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { parsePendingModels, parsePendingSteps, persistPendingModels, persistPendingSteps } from "../persist.ts";
 
 function loadTable<T extends object>(path: string | undefined, parse: (raw: unknown) => T | null | undefined, into: T): void {
@@ -28,3 +29,9 @@ export function savePendingModels(path: string | undefined, table: Record<string
 export function savePendingSteps(path: string | undefined, table: Record<string, string[]>): void {
   if (path) persistPendingSteps(path, table);
 }
+
+/** Where the providers picked beside the pending models are kept: a file of
+ *  its own beside `pending-models.json`, so nothing that hands the store
+ *  its paths has to know about it. */
+export const pendingProvidersPath = (modelsPath: string | undefined): string | undefined =>
+  modelsPath ? join(dirname(modelsPath), "pending-providers.json") : undefined;

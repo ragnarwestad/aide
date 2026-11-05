@@ -12,6 +12,7 @@
 import { errorSentence } from "../format/error-sentence.ts";
 import { parseCreateChoices } from "./create-choices.ts";
 import { listedModelName } from "./model-name.ts";
+import { parseProviderPick } from "./providers/parse.ts";
 import { ARCHIVE_ONLY_STEP, DEPLOY_KEY, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 
@@ -201,6 +202,12 @@ export function parseJobRequest(
     }
   }
 
+  const jobModel: Record<string, string> = modelChoice
+    ? Object.fromEntries(steps.map((s) => [s, modelChoice]))
+    : { ...perStep(steps, defaults.model), ...stepModels };
+  const picked = parseProviderPick(r.provider, steps, jobModel, defaults);
+  if ("error" in picked) return { ok: false, error: picked.error };
+
   // The effort level a step runs at, per step — the same
   // per-step shape `stepModels` above takes, but with no whole-job
   // pick and no config lookup: the value IS the level, checked directly
@@ -277,9 +284,8 @@ export function parseJobRequest(
       // model for the heavy job" is a decision about the job. A
       // per-step map overrides only the steps it names, and every
       // other step keeps the config's own choice.
-      model: modelChoice
-        ? Object.fromEntries(steps.map((s) => [s, modelChoice]))
-        : { ...perStep(steps, defaults.model), ...stepModels },
+      model: jobModel,
+      ...(Object.keys(picked.provider).length ? { provider: picked.provider } : {}),
       // Left unset for a per-step map: it means "one model for the
       // whole job", which is no longer true once the steps may differ.
       modelChoice,
@@ -344,7 +350,10 @@ const provisionalKey = (): string =>
  *  `ParseResult`: the picks banked for a phase this create job does not
  *  run are consumed by its one caller, `enqueueCreate()`, not
  *  carried on the job itself. */
-export type CreateParseResult = ParseResult & { pendingStepModels?: Record<string, string> };
+export type CreateParseResult = ParseResult & {
+  pendingStepModels?: Record<string, string>;
+  pendingStepProviders?: Record<string, string>;
+};
 
 export function parseCreateRequest(
   raw: unknown,
@@ -448,6 +457,10 @@ export function parseCreateRequest(
     }
   }
 
+  const createModel = { ...perStep(steps, defaults.model), ...stepModels };
+  const picked = parseProviderPick(r.provider, steps, createModel, defaults, pendingStepModels);
+  if ("error" in picked) return { ok: false, error: picked.error };
+
   // The form's choices about the spec beyond its text (create-choices.ts).
   const choices = parseCreateChoices(r);
   if ("error" in choices) return { ok: false, error: invalidRequest(choices.error) };
@@ -465,7 +478,8 @@ export function parseCreateRequest(
       permissionMode: perStep(steps, defaults.permissionMode),
       // The config's own default for every step this job runs,
       // overridden per step by whatever was actually posted.
-      model: { ...perStep(steps, defaults.model), ...stepModels },
+      model: createModel,
+      ...(Object.keys(picked.provider).length ? { provider: picked.provider } : {}),
       createTitle: title,
       createDescription: description,
       // Omitted entirely when nothing was chosen: "nothing chosen means
@@ -477,5 +491,6 @@ export function parseCreateRequest(
       spentUsd: 0,
     },
     ...(Object.keys(pendingStepModels).length ? { pendingStepModels } : {}),
+    ...(Object.keys(picked.pending).length ? { pendingStepProviders: picked.pending } : {}),
   };
 }

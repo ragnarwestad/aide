@@ -312,3 +312,39 @@ describe("POST /api/queue/specs/:project/:folder/model", () => {
 // The spec-scoped sibling of the model pending-pick route above, mirrored
 // on the same terms: a pick made before any job exists, persisted the
 // same way. No tail-edit counterpart (scope decision, 3-solution.md).
+
+// The provider picked beside the model for a phase that has no job yet.
+describe("POST /api/queue/specs/:project/:folder/model with a provider", () => {
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
+  const DEFAULTS = {
+    timeoutSec: { default: 1200 },
+    permissionMode: { default: "acceptEdits" },
+    model: { default: "sonnet" },
+    modelChoices: { sonnet: {}, "gpt-6": { tool: "codex" as const } },
+    providers: {
+      Claude: { name: "Claude", tool: "claude" as const },
+      Codex: { name: "Codex", tool: "codex" as const },
+    },
+  };
+  const pick = (base: string, body: object) =>
+    fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/model`, {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ step: "implement", ...body }),
+    });
+
+  test("the provider is kept beside the model, in a file of its own (AC-9)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-pending-"));
+    const { base } = harness.start({ extra: { queueDefaults: DEFAULTS, pendingModelsPath: join(dir, "pending-models.json") } });
+    expect((await pick(base, { model: "gpt-6", provider: "Codex" })).status).toBe(200);
+    const kept = JSON.parse(readFileSync(join(dir, "pending-providers.json"), "utf-8")) as Record<string, Record<string, string>>;
+    expect(Object.values(kept)).toEqual([{ implement: "Codex" }]);
+  });
+
+  test("a provider that cannot run the model is refused, and nothing is kept (AC-9)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-pending-"));
+    const { base } = harness.start({ extra: { queueDefaults: DEFAULTS, pendingModelsPath: join(dir, "pending-models.json") } });
+    const res = await pick(base, { model: "gpt-6", provider: "Claude" });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("gpt-6 is a Codex model and Claude is a Claude Code provider");
+    expect(existsSync(join(dir, "pending-providers.json"))).toBe(false);
+  });
+});

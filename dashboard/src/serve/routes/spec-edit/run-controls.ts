@@ -36,7 +36,8 @@ export async function runControlRoutes(
     }
     const step = typeof body.step === "string" ? body.step : "";
     const model = typeof body.model === "string" ? body.model : "";
-    const result = ctx.queue.setPendingModel(project!, specFolder!, step, model);
+    const provider = typeof body.provider === "string" && body.provider ? body.provider : undefined;
+    const result = ctx.queue.setPendingModel(project!, specFolder!, step, model, provider);
     if (!result.ok) {
       logRefusal("model", spec, result.error);
       return json({ error: result.error, spec }, 400);

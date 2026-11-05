@@ -119,6 +119,23 @@ describe("createScheduleEntry", () => {
     expect(stored()[0]!.model).toBe("Sonnet");
   });
 
+  test("the picked provider is stored on the entry, and one the dashboard does not offer is refused (AC-9)", () => {
+    const { dir, store, stored } = setup();
+    expect(createScheduleEntry(store, PROJECT, dir, req({ provider: "Codex" }), undefined, ["Claude", "Codex"])).toEqual({ ok: true });
+    expect(stored()[0]!.provider).toBe("Codex");
+    const refused = createScheduleEntry(store, PROJECT, dir, req({ name: "other", provider: "Gone" }), undefined, ["Claude", "Codex"]);
+    expect(refused.ok).toBe(false);
+    expect(stored().map((e) => e.name)).toEqual(["nightly"]);
+  });
+
+  test("an edit that posts no provider keeps the entry's own", () => {
+    const { dir, store, stored } = setup([{ name: "nightly", provider: "Capra" }]);
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req({ cron: "0 4 * * *" }))).toEqual({ ok: true });
+    expect(stored()[0]!.provider).toBe("Capra");
+    expect(updateScheduleEntry(store, PROJECT, dir, "nightly", req({ provider: "Codex" }))).toEqual({ ok: true });
+    expect(stored()[0]!.provider).toBe("Codex");
+  });
+
   test("a model the dashboard does not offer is refused and nothing is written", () => {
     const { dir, file, store } = setup();
     const result = createScheduleEntry(store, PROJECT, dir, req({ model: "Haiku" }), ["Sonnet"]);

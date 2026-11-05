@@ -285,7 +285,8 @@ export async function handleJobActionRoutes(
     const step = typeof body.step === "string" ? body.step : "";
     const model = typeof body.model === "string" ? body.model : "";
     const spec = `${job.project}/${job.specFolder}`;
-    const result = ctx.queue.editTailModel(id!, step, model);
+    const provider = typeof body.provider === "string" && body.provider ? body.provider : undefined;
+    const result = ctx.queue.editTailModel(id!, step, model, provider);
     if (!result.ok) {
       logRefusal("model", spec, result.error);
       return json({ error: result.error, spec }, 400);
@@ -293,7 +294,7 @@ export async function handleJobActionRoutes(
     // A step this job was not queued with is a choice about a job still
     // to come: kept on this job alone, it went when the job ended, and
     // the next run of the step was back on the default.
-    if (!(job.steps as string[]).includes(step)) ctx.queue.setPendingModel(job.project, job.specFolder, step, model);
+    if (!(job.steps as string[]).includes(step)) ctx.queue.setPendingModel(job.project, job.specFolder, step, model, provider);
     return json({ ok: true, job: result.job });
   }
 

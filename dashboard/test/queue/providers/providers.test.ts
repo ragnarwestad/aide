@@ -1,0 +1,157 @@
+// The rules about providers, all pure: which fields a tool has, the name
+// rule, which models a provider runs, which providers a picker offers, which
+// provider a step runs on, what uses one, and which folders it owns.
+
+import { describe, expect, test } from "bun:test";
+import {
+  providerChoices,
+  providerFields,
+  providerFolders,
+  providerNameError,
+  providerUses,
+  resolveStepProvider,
+  runsModel,
+  sharesSessions,
+  type Provider,
+} from "../../../src/queue/providers/index.ts";
+import type { Job, QueueDefaults } from "../../../src/queue/queue.ts";
+
+const PROVIDERS: Record<string, Provider> = {
+  Claude: { name: "Claude", tool: "claude" },
+  "Claude-Capra": { name: "Claude-Capra", tool: "claude", configDir: "~/.claude-capra" },
+  Codex: { name: "Codex", tool: "codex" },
+  "Codex-a": { name: "Codex-a", tool: "codex", codexHome: "~/.codex-shared", shadowHome: "~/.codex-a" },
+  "Codex-b": { name: "Codex-b", tool: "codex", codexHome: "~/.codex-shared", shadowHome: "~/.codex-b" },
+  "Codex-own": { name: "Codex-own", tool: "codex", codexHome: "~/.codex-own" },
+  OpenCode: { name: "OpenCode", tool: "opencode" },
+};
+
+const defaults = (over: Partial<QueueDefaults> = {}): QueueDefaults => ({
+  timeoutSec: { default: 1200 },
+  permissionMode: { default: "acceptEdits" },
+  model: { default: "Opus", implement: "gpt-6" },
+  modelChoices: { Opus: {}, "gpt-6": { tool: "codex" }, script: { tool: "fake-claude" } },
+  providers: PROVIDERS,
+  provider: { default: "Claude", implement: "Codex" },
+  ...over,
+});
+
+const job = (over: Record<string, unknown> = {}): Job =>
+  ({ id: "j", project: "aide", specFolder: "703-x", steps: ["implement"], state: "queued", model: {}, ...over }) as unknown as Job;
+
+describe("the fields a tool has (AC-1)", () => {
+  test("Claude Code has a config folder, Codex a home and a shadow home, OpenCode none", () => {
+    expect(providerFields("claude")).toEqual(["configDir"]);
+    expect(providerFields("codex")).toEqual(["codexHome", "shadowHome"]);
+    expect(providerFields("opencode")).toEqual([]);
+  });
+});
+
+describe("the name rule (AC-2)", () => {
+  test("a space, a slash and 65 characters are refused with the sentence naming the characters", () => {
+    for (const bad of ["two words", "a/b", "x".repeat(65), ""]) {
+      const refusal = providerNameError(bad);
+      expect(refusal).toContain("letters, digits");
+      expect(refusal).toContain('"."');
+      expect(refusal).toContain("64");
+    }
+  });
+
+  test("64 letters, digits, dots, underscores and hyphens pass, and no name is reserved (AC-5)", () => {
+    expect(providerNameError("a1._-".repeat(12) + "abcd")).toBeNull();
+    expect(providerNameError("Default")).toBeNull();
+  });
+});
+
+describe("which models a provider runs", () => {
+  test("a Claude Code provider runs claude and fake-claude choices, the others only their own tool", () => {
+    const claude = PROVIDERS.Claude!;
+    expect(runsModel(claude, {})).toBe(true);
+    expect(runsModel(claude, { tool: "fake-claude" })).toBe(true);
+    expect(runsModel(claude, { tool: "codex" })).toBe(false);
+    expect(runsModel(PROVIDERS.Codex!, { tool: "codex" })).toBe(true);
+    expect(runsModel(PROVIDERS.Codex!, {})).toBe(false);
+    expect(runsModel(PROVIDERS.OpenCode!, { tool: "opencode" })).toBe(true);
+  });
+});
+
+describe("which providers a picker offers (AC-9)", () => {
+  test("every provider that runs at least one model choice, in config order", () => {
+    const keys = providerChoices(PROVIDERS, defaults().modelChoices).map((c) => c.key);
+    expect(keys).toEqual(["Claude", "Claude-Capra", "Codex", "Codex-a", "Codex-b", "Codex-own"]);
+  });
+
+  test("a Codex provider is left out when no Codex model is listed", () => {
+    const keys = providerChoices(PROVIDERS, { Opus: {} }).map((c) => c.key);
+    expect(keys).toEqual(["Claude", "Claude-Capra"]);
+  });
+});
+
+describe("which provider a step runs on", () => {
+  test("the job's own pick wins, then the phase default, then the default", () => {
+    const d = defaults();
+    expect(resolveStepProvider(job({ provider: { implement: "Claude-Capra" } }), "implement", d)).toBe("Claude-Capra");
+    expect(resolveStepProvider(job(), "implement", d)).toBe("Codex");
+    expect(resolveStepProvider(job({ model: { analyze: "Opus" } }), "analyze", d)).toBe("Claude");
+  });
+
+  test("a default that does not run the step's model gives way to the first provider that does", () => {
+    const d = defaults({ provider: { default: "Codex" } });
+    expect(resolveStepProvider(job({ model: { analyze: "Opus" } }), "analyze", d)).toBe("Claude");
+  });
+
+  test("a stand-in model runs under a Claude Code provider", () => {
+    const d = defaults({ model: { default: "script" }, provider: {} });
+    expect(resolveStepProvider(job(), "analyze", d)).toBe("Claude");
+  });
+
+  test("a store with no provider at all answers none", () => {
+    expect(resolveStepProvider(job(), "analyze", defaults({ providers: undefined, provider: undefined }))).toBeUndefined();
+  });
+});
+
+describe("what uses a provider (AC-6)", () => {
+  const schedules = { aide: [{ name: "nightly", provider: "Claude-Capra" }, { name: "weekly" }] };
+
+  test("a phase default, a schedule entry and a queued job are all named", () => {
+    const d = defaults({ provider: { default: "Claude", implement: "Claude-Capra" } });
+    const jobs = [job({ id: "q", state: "queued", steps: ["analyze"], provider: { analyze: "Claude-Capra" } })];
+    const uses = providerUses("Claude-Capra", d, schedules, jobs);
+    expect(uses).toHaveLength(3);
+    expect(uses.join(" | ")).toContain("Implement default");
+    expect(uses.join(" | ")).toContain("schedule nightly in aide");
+    expect(uses.join(" | ")).toContain("aide/703-x");
+  });
+
+  test("a job stopped waiting for a usage-limit reset counts; a finished one does not", () => {
+    const waiting = job({ state: "stopped", stopReason: "provider-limit", usageLimitWait: { until: "x", resetKnown: true }, provider: { implement: "Codex" } });
+    const done = job({ state: "done", provider: { implement: "Codex" } });
+    const stoppedForGood = job({ state: "stopped", stopReason: "cap", provider: { implement: "Codex" } });
+    const d = defaults({ provider: { default: "Claude" } });
+    expect(providerUses("Codex", d, {}, [waiting])).toHaveLength(1);
+    expect(providerUses("Codex", d, {}, [done, stoppedForGood])).toEqual([]);
+  });
+});
+
+describe("whether two providers share sessions (AC-16)", () => {
+  test("one provider shares with itself; two Codex providers share on one CODEX_HOME", () => {
+    expect(sharesSessions("Claude", "Claude", PROVIDERS)).toBe(true);
+    expect(sharesSessions("Codex-a", "Codex-b", PROVIDERS)).toBe(true);
+    expect(sharesSessions("Codex-a", "Codex-own", PROVIDERS)).toBe(false);
+    expect(sharesSessions("Claude", "Claude-Capra", PROVIDERS)).toBe(false);
+    expect(sharesSessions("Claude", "Codex", PROVIDERS)).toBe(false);
+  });
+
+  test("a provider no longer configured shares with nothing", () => {
+    expect(sharesSessions("Gone", "Codex", PROVIDERS)).toBe(false);
+    expect(sharesSessions(undefined, "Codex", PROVIDERS)).toBe(false);
+  });
+});
+
+describe("the folders a provider owns (AC-17)", () => {
+  test("every Claude config folder and every Codex home and shadow home, expanded, the normal ones left out", () => {
+    const folders = providerFolders(PROVIDERS, "/home/r");
+    expect(folders.claude).toEqual(["/home/r/.claude-capra"]);
+    expect(folders.codex).toEqual(["/home/r/.codex-shared", "/home/r/.codex-a", "/home/r/.codex-b", "/home/r/.codex-own"]);
+  });
+});

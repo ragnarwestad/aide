@@ -33,6 +33,10 @@ export interface ScheduleEntry {
    *  and the configuration's own `schedule` default decides, which is
    *  what every entry written before this field did. */
   model?: string;
+  /** Which provider every fire runs on, as a key out of the queue config's
+   *  `providers`. Absent means the entry never picked one and the phase
+   *  default decides. */
+  provider?: string;
   /** When the entry was created or last edited from the dashboard's own
    *  Schedule forms — an ISO timestamp `isDue` treats as
    *  already-used ground, the same way it treats a tracked job's own

@@ -52,6 +52,7 @@ export function parseScheduleEntries(raw: unknown): ScheduleEntry[] {
     entries.push({
       name, cron, prompt: promptPath(prompt), enabled: e.enabled !== false,
       ...(model && SCHEDULE_NAME_RE.test(model) ? { model } : {}),
+      ...(str(e.provider) && SCHEDULE_NAME_RE.test(str(e.provider)!) ? { provider: str(e.provider)! } : {}),
       ...(since && !isNaN(Date.parse(since)) ? { since } : {}),
       ...(isScheduleNotify(notify) ? { notify } : {}),
       ...(e.chrome === true ? { chrome: true } : {}),
@@ -73,6 +74,7 @@ function serialize(entry: ScheduleEntry): Record<string, unknown> {
   return {
     name: entry.name, cron: entry.cron, prompt: promptPath(entry.prompt),
     ...(entry.model ? { model: entry.model } : {}),
+    ...(entry.provider ? { provider: entry.provider } : {}),
     ...(entry.since ? { since: entry.since } : {}),
     ...(entry.notify ? { notify: entry.notify } : {}),
     ...(entry.chrome ? { chrome: true } : {}),

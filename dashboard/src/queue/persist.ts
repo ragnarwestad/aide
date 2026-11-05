@@ -10,6 +10,7 @@ import { JOB_STATES, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import { mergeBranchRefs, type BranchRef, type Job, type ModelChoice, type QueueDefaults, type StepResult } from "./types.ts";
 import { FOLDER_RE, NAME_RE } from "./parse-request.ts";
 import { listedModelName } from "./model-name.ts";
+import { parseProviders, type Provider } from "./providers/index.ts";
 
 // A job read back from the mirror. Looser than a request (it carries
 // id/state/results), but still validated: a corrupt row is dropped, not
@@ -266,6 +267,10 @@ export interface QueueSettingsUpdate {
   modelChoices?: Record<string, ModelChoice | null>;
   /** `claudeAccounts` entries to write, each by its name; `null` removes one. */
   claudeAccounts?: Record<string, { configDir: string } | null>;
+  /** `providers` entries to write, each by its key; `null` removes one. */
+  providers?: Record<string, Provider | null>;
+  /** The phase defaults' providers, per step, by key. */
+  provider?: Record<string, string>;
 }
 
 /** Atomically replace the dashboard-owned workflow defaults while leaving
@@ -296,6 +301,12 @@ export function persistQueueSettings(file: string, next: QueueSettingsUpdate): s
     }
     for (const [name, account] of Object.entries(next.claudeAccounts ?? {})) {
       source = applyEdits(source, modify(source, ["claudeAccounts", name], account ?? undefined, opts));
+    }
+    for (const [key, provider] of Object.entries(next.providers ?? {})) {
+      source = applyEdits(source, modify(source, ["providers", key], provider ?? undefined, opts));
+    }
+    for (const [step, key] of Object.entries(next.provider ?? {})) {
+      source = applyEdits(source, modify(source, ["provider", step], key, opts));
     }
     mkdirSync(dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;
@@ -382,6 +393,10 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     permissionMode: table(r.permissionMode, base.permissionMode),
     model: table(r.model, builtIn),
     modelChoices,
+    ...(r.providers !== undefined && parseProviders(r.providers)
+      ? { providers: parseProviders(r.providers) }
+      : base.providers ? { providers: base.providers } : {}),
+    ...(r.provider !== undefined || base.provider ? { provider: table(r.provider, base.provider ?? {}) } : {}),
     ...(accounts(r.claudeAccounts) ? { claudeAccounts: accounts(r.claudeAccounts) } : {}),
     ...(r.resumeAnalysis === true || (r.resumeAnalysis === undefined && base.resumeAnalysis) ? { resumeAnalysis: true } : {}),
   };

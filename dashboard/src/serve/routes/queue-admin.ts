@@ -9,6 +9,7 @@ import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../
 import { testServerFailedPage } from "./spec-edit/test-server-waiting.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
+import { providerKeyFrom, providerModelError } from "../../queue/providers/parse.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
 import { SETTINGS_STEPS, type ToolCheck, type ToolModels, type ToolUsage } from "../../render";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded } from "../serve-helpers";
@@ -115,6 +116,24 @@ export async function handleQueueAdminRoutes(
       next[step] = listed.name;
     }
 
+    // The provider each phase runs on, posted as `provider.<step>` beside
+    // the model; a save that posts none leaves the defaults' providers as
+    // they are. Each must be configured and run the model saved with it.
+    const providers = asked?.provider;
+    const nextProvider: Record<string, string> = {};
+    if (providers !== undefined && (providers === null || typeof providers !== "object" || Array.isArray(providers))) {
+      return refuse("provider defaults are malformed");
+    }
+    for (const [step, value] of Object.entries((providers ?? {}) as Record<string, unknown>)) {
+      if (!(SETTINGS_STEPS as readonly string[]).includes(step)) return refuse(`unknown workflow step: ${step}`);
+      if (value === "" || value === undefined) continue;
+      const found = providerKeyFrom(ctx.queue.defaults, value, ` for ${step}`);
+      if ("error" in found) return refuse(found.error);
+      const refusal = providerModelError(ctx.queue.defaults, found.key, next[step]);
+      if (refusal) return refuse(refusal);
+      nextProvider[step] = found.key;
+    }
+
     // timeoutSec: the ceiling a per-job request can only tighten
     // (`tighten()` above), never loosen — this range catches an
     // operator's typo.
@@ -141,9 +160,10 @@ export async function handleQueueAdminRoutes(
     }
 
     const merged = { ...ctx.queue.defaults.model, ...next };
-    const error = persistQueueSettings(ctx.opts.queueConfigFile, { model: next, timeoutSec });
+    const error = persistQueueSettings(ctx.opts.queueConfigFile, { model: next, timeoutSec, provider: nextProvider });
     if (error) return refuse(error);
     ctx.queue.defaults.model = merged;
+    if (Object.keys(nextProvider).length) ctx.queue.defaults.provider = { ...ctx.queue.defaults.provider, ...nextProvider };
     ctx.queue.defaults.timeoutSec = { ...ctx.queue.defaults.timeoutSec, ...timeoutSec };
     return json({ ok: true, model: next, timeoutSec });
   }

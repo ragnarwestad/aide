@@ -439,6 +439,28 @@ describe("POST /api/queue/create", () => {
     expect(bad.status).toBe(400);
   });
 
+  // The provider is posted beside the model as `provider.<step>`, and
+  // `bodyToObject` folds it into the per-step shape the parser reads.
+  test("a provider picked on the form reaches the stored job (AC-9)", async () => {
+    const { base } = start({
+      queueDefaults: {
+        timeoutSec: { default: 1200 },
+        permissionMode: { default: "acceptEdits" },
+        model: { default: "sonnet" },
+        modelChoices: { sonnet: {} },
+        providers: { Claude: { name: "Claude", tool: "claude" }, Capra: { name: "Claude-Capra", tool: "claude", configDir: "~/.claude-capra" } },
+      },
+    });
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+      body: new URLSearchParams({ ...CREATE, "model.create": "sonnet", "provider.create": "Capra" }).toString(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { provider: Record<string, string> } };
+    expect(body.job.provider).toEqual({ create: "Capra" });
+  });
+
   test("the form offers every allowlisted project, spec or no spec", async () => {
     const { base } = start({ queueProjects: ["aide", "brandnew"] });
     const html = await (await fetch(`${base}/new`, )).text();

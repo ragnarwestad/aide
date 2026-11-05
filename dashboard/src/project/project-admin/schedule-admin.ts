@@ -26,7 +26,7 @@ function saveEntries(store: ScheduleStore, project: string, entries: readonly Sc
  *  is never mistaken for a collision with itself. */
 export function scheduleEntryError(
   projectDir: string,
-  req: { name?: string; cron?: string; prompt?: string; model?: string; notify?: string; chrome?: string; sandbox?: string },
+  req: { name?: string; cron?: string; prompt?: string; model?: string; provider?: string; notify?: string; chrome?: string; sandbox?: string },
   existing: readonly ScheduleEntry[],
   excludeName?: string,
   /** Every model name the queue config lists. Passed by the
@@ -36,6 +36,8 @@ export function scheduleEntryError(
    *  the form — stored unchecked it would refuse every fire from then
    *  on, at a time nobody is watching. */
   knownModels?: readonly string[],
+  /** Every provider key the queue config lists, as `knownModels` is. */
+  knownProviders?: readonly string[],
 ): string | null {
   const name = req.name?.trim();
   if (!name) return "a name is required";
@@ -72,6 +74,12 @@ export function scheduleEntryError(
           : `"${model}" is not a model this dashboard offers`;
       }
     }
+  }
+  // Empty means the phase default decides.
+  const provider = req.provider?.trim();
+  if (provider) {
+    if (!SCHEDULE_NAME_RE.test(provider)) return `"${provider}" is not a usable provider key`;
+    if (knownProviders && !knownProviders.includes(provider)) return `"${provider}" is not a provider this dashboard offers`;
   }
   // Empty means "keep what the entry has" (an edit) or "none" (a create).
   const notify = req.notify?.trim();
@@ -120,11 +128,12 @@ export function createScheduleEntry(
   store: ScheduleStore,
   project: string,
   projectDir: string,
-  req: { name: string; cron: string; prompt: string; model?: string; notify?: string; chrome?: string; sandbox?: string },
+  req: { name: string; cron: string; prompt: string; model?: string; provider?: string; notify?: string; chrome?: string; sandbox?: string },
   knownModels?: readonly string[],
+  knownProviders?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
-  const error = scheduleEntryError(projectDir, req, existing, undefined, knownModels);
+  const error = scheduleEntryError(projectDir, req, existing, undefined, knownModels, knownProviders);
   if (error) return { ok: false, error };
   const model = storedModel(req.model, knownModels);
   const notify = postedNotify(req.notify);
@@ -135,6 +144,7 @@ export function createScheduleEntry(
     // after the save, not whatever the cron's most recent fire already was.
     since: new Date().toISOString(),
     ...(model ? { model } : {}),
+    ...(req.provider?.trim() ? { provider: req.provider.trim() } : {}),
     ...(notify ? { notify } : {}),
     ...(postedChrome(req.chrome) ? { chrome: true } : {}),
     ...(postedSandbox(req.sandbox) === false ? { sandbox: false as const } : {}),
@@ -150,13 +160,14 @@ export function updateScheduleEntry(
   project: string,
   projectDir: string,
   currentName: string,
-  req: { name: string; cron: string; prompt: string; model?: string; notify?: string; chrome?: string; sandbox?: string },
+  req: { name: string; cron: string; prompt: string; model?: string; provider?: string; notify?: string; chrome?: string; sandbox?: string },
   knownModels?: readonly string[],
+  knownProviders?: readonly string[],
 ): ScheduleAdminResult {
   const existing = store.list(project);
   const current = existing.find((e) => e.name === currentName);
   if (!current) return { ok: false, error: `no schedule entry named "${currentName}"` };
-  const error = scheduleEntryError(projectDir, req, existing, currentName, knownModels);
+  const error = scheduleEntryError(projectDir, req, existing, currentName, knownModels, knownProviders);
   if (error) return { ok: false, error };
   const model = storedModel(req.model, knownModels);
   const posted = postedNotify(req.notify);
@@ -173,6 +184,10 @@ export function updateScheduleEntry(
           // models configured), and pinning one there is a promise the
           // page is not making.
           ...(model ? { model } : {}),
+          // Kept like the notify choice when the edit posts none: the form
+          // that draws a provider select always posts it, so an absent field
+          // is a form drawn without one.
+          ...((req.provider?.trim() || e.provider) ? { provider: (req.provider?.trim() || e.provider)! } : {}),
           // Unlike the model, an edit that posts no choice KEEPS the
           // entry's own: a form drawn without the field is not asking
           // for the default.

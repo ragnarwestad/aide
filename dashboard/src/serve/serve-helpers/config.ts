@@ -45,6 +45,13 @@ export const QUEUE_DEFAULTS: QueueDefaults = {
   // Every step runs on Claude Code's Opus until Settings saves another
   // choice for it.
   model: { default: "opus" },
+  // One provider for each tool, each on that tool's normal login.
+  providers: {
+    Claude: { name: "Claude", tool: "claude" },
+    Codex: { name: "Codex", tool: "codex" },
+    OpenCode: { name: "OpenCode", tool: "opencode" },
+  },
+  provider: { default: "Claude" },
 };
 
 /** One repo, one merge at a time. Pressing Merge on two specs a few

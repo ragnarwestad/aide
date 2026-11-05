@@ -231,6 +231,19 @@ export function bodyToObject(text: string, contentType: string | null): unknown 
       }
       if (Object.keys(picked).length) out.model = picked;
     }
+    // The provider chosen beside each model: `provider.<step>` folds to
+    // `{ provider: { step: key } }` the way `model.<step>` does; the
+    // schedule form's bare `provider` stays a whole-job string.
+    const providerKeys = [...new Set(params.keys())].filter((k) => k.startsWith("provider."));
+    if (providerKeys.length) {
+      const picked: Record<string, string> = {};
+      for (const key of providerKeys) {
+        const value = params.getAll(key).filter(Boolean)[0];
+        if (value) picked[key.slice("provider.".length)] = value;
+        delete out[key];
+      }
+      if (Object.keys(picked).length) out.provider = picked;
+    }
     // The settings form's per-step timeout column, folded the same way
     // `model.<step>` is just above — a `timeoutSec.<step>` field per
     // row rather than the flat, seconds-denominated `timeoutSec` the

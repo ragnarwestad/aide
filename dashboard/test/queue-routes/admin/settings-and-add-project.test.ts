@@ -259,6 +259,31 @@ describe("Settings routes", () => {
     expect(saved.model.analyze).toBe("codex-fast");
   });
 
+  // The provider of each phase is saved beside its model, and has to run it.
+  test("the providers of the phases are saved beside the models, and one that cannot run its model is refused (AC-9)", async () => {
+    const providers = {
+      Claude: { name: "Claude", tool: "claude" as const },
+      Codex: { name: "Codex", tool: "codex" as const },
+    };
+    const file = ownConfig({ model: { default: "sonnet" } });
+    const defaults = { ...DEFAULTS, providers };
+    const { base } = start({ queueDefaults: defaults, queueConfigFile: file });
+    const body = (analyze: string) => JSON.stringify({
+      ...validBody,
+      model: { ...validModel, analyze: "codex-fast" },
+      provider: { analyze },
+    });
+    const refused = await fetch(`${base}/api/queue/settings`, { method: "POST", headers: AUTH, body: body("Claude") });
+    expect(refused.status).toBe(400);
+    expect(((await refused.json()) as { error: string }).error).toContain("codex-fast is a Codex model and Claude is a Claude Code provider");
+    expect(JSON.parse(readFileSync(file, "utf-8")).provider).toBeUndefined();
+    const saved = await fetch(`${base}/api/queue/settings`, { method: "POST", headers: AUTH, body: body("Codex") });
+    expect(saved.status).toBe(200);
+    expect(JSON.parse(readFileSync(file, "utf-8")).provider).toEqual({ analyze: "Codex" });
+    const unknown = await fetch(`${base}/api/queue/settings`, { method: "POST", headers: AUTH, body: body("Gone") });
+    expect(unknown.status).toBe(400);
+  });
+
   test("several case-only matches are refused, naming both, and nothing is written", async () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const defaults = { ...DEFAULTS, modelChoices: { Sonnet: {}, SONNET: {} } };

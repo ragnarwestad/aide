@@ -9,7 +9,6 @@ import {
   PHASE_STEPS,
   TRANSITIONS,
   UNFINISHED,
-  WORKFLOW_STEPS,
   type TransitionEvent,
   type WorkflowStep,
 } from "../steps.ts";
@@ -17,9 +16,7 @@ import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "
 import type { Sentence } from "../../i18n/message.ts";
 import { mergeBranchRefs, type BranchRef } from "../types.ts";
 import {
-  NAME_RE,
   invalidRequest,
-  lookUpModel,
   parseCreateRequest,
   parseJobRequest,
   type CreateParseResult,
@@ -30,7 +27,8 @@ import { gerund, landingStepIndex } from "../../format/gerund.ts";
 
 import { loadJobs, writeJobs } from "./mirror.ts";
 import { loadModelIds, recordModelId } from "./model-ids.ts";
-import { loadPendingModels, loadPendingSteps, savePendingModels, savePendingSteps } from "./pending-tables.ts";
+import { loadPendingModels, loadPendingSteps, pendingProvidersPath, savePendingModels, savePendingSteps } from "./pending-tables.ts";
+import { editTailModel, renamePendingModel, setPendingModel, writePendingModel, type PickContext } from "./picks.ts";
 import { tailEditStep, withTailStep } from "./tail-edits.ts";
 import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 
@@ -48,6 +46,10 @@ export class QueueStore {
    *  like `defaults`: the render side reads it straight off, and only
    *  `setPendingModel()` is allowed to write it. */
   readonly pendingModels: Record<string, Record<string, string>> = {};
+  /** The provider picked beside each pending model, in the same shape,
+   *  kept in a file of its own beside `pending-models.json`. */
+  readonly pendingProviders: Record<string, Record<string, string>> = {};
+  private readonly pendingProvidersPath?: string;
   /** The phase choice a reader made — at create time, or at a later Run
    *  — recorded so it outlives the one job that made it: the
    *  same `project/specFolder` key as `pendingModels`,
@@ -66,6 +68,7 @@ export class QueueStore {
     this.cap = opts.cap ?? 200;
     this.mirrorPath = opts.mirrorPath;
     this.pendingModelsPath = opts.pendingModelsPath;
+    this.pendingProvidersPath = pendingProvidersPath(opts.pendingModelsPath);
     this.modelIdsPath = opts.modelIdsPath;
     this.pendingStepsPath = opts.pendingStepsPath;
     this.defaults = opts.defaults;
@@ -77,6 +80,7 @@ export class QueueStore {
     // store finding out what it already was.
     loadJobs(this.mirrorPath, this.jobs);
     loadPendingModels(this.pendingModelsPath, this.pendingModels);
+    loadPendingModels(this.pendingProvidersPath, this.pendingProviders);
     loadModelIds(this.modelIdsPath, this.modelIds);
     loadPendingSteps(this.pendingStepsPath, this.pendingSteps);
   }
@@ -127,7 +131,7 @@ export class QueueStore {
       // `setPendingModel`, for the same one-announcement-per-request
       // reason as `recordPendingSteps` above.
       for (const [step, model] of Object.entries(parsed.pendingStepModels ?? {})) {
-        this.writePendingModel(result.job.project, result.job.specFolder, step, model);
+        writePendingModel(this.picks(), result.job.project, result.job.specFolder, step, model, parsed.pendingStepProviders?.[step]);
       }
     }
     return result;
@@ -317,84 +321,34 @@ export class QueueStore {
     return { ok: true, job: next };
   }
 
-  /** Change the model a RUNNING job will use for a step it has not
-   *  reached yet — the AI and model selects beside the
-   *  boxes a running job leaves editable.
-   *
-   *  Guarded by the SAME `tailEdits()` the box's own route asks, so a
-   *  select drawn live and the store that takes its pick can never
-   *  disagree about where the tail starts. It answers for both kinds
-   *  of step that function names without a branch between them: one
-   *  already in the job's tail, and one the job does not have at all —
-   *  `Job.model` is a per-step table, and an entry for a step nobody
-   *  has ticked is inert until the step is added and reached.
-   *
-   *  Read, checked and written in ONE synchronous call, nothing awaited
-   *  in between, exactly as `editTailStep` above: that is what makes a
-   *  pick arriving after its step has started find it outside
-   *  `tailEdits()` and be refused by name, rather than land too late
-   *  and silently.
-   *
-   *  The name is checked by the SAME `lookUpModel` `parseJobRequest`
-   *  reads at job creation, and the job stores the listed spelling. */
-  editTailModel(id: string, step: string, model: string): ParseResult {
-    const job = this.jobs.get(id);
-    if (!job) return { ok: false, error: invalidRequest("no such job") };
-    const editable = tailEditStep(job, step);
-    if ("error" in editable) return { ok: false, error: editable.error };
-    const wanted = editable.step;
-    if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
-    const found = lookUpModel(this.defaults, model);
-    if ("error" in found) return { ok: false, error: found.error };
-    const next = { ...job, model: { ...job.model, [wanted]: found.name } };
-    this.jobs.set(id, next);
-    this.mirror();
-    this.changed();
-    return { ok: true, job: next };
+  /** Change the model — and the provider — a RUNNING job will use for a
+   *  step it has not reached yet; see `picks.ts`. */
+  editTailModel(id: string, step: string, model: string, provider?: string): ParseResult {
+    return editTailModel(this.picks(), id, step, model, provider);
   }
 
-  /** Record a model picked for a phase that has no job yet —
-   *  the pre-job sibling of `editTailModel()` above, and checked the
-   *  same way: the step against `WORKFLOW_STEPS`, the model against the
-   *  configured allowlist. There is no `job.state` to gate on, since
-   *  there is no job at all; the ONLY question is whether the step and
-   *  the model are real. */
-  /** The write `setPendingModel()` and `enqueueCreate()`'s own seeding
-   *  share, without either one's own `changed()` call — the same split
-   *  `recordPendingSteps()` is to `setPendingSteps()`:
-   *  `enqueueCreate()` folds this into the ONE insert-and-seed operation
-   *  a create request is, and `insert()` has already announced that. */
-  private writePendingModel(project: string, specFolder: string, step: string, model: string): void {
-    const key = `${project}/${specFolder}`;
-    this.pendingModels[key] = { ...this.pendingModels[key], [step]: model };
-    this.persistPendingModels();
+  /** Record a model, and the provider, picked for a phase that has no job
+   *  yet; see `picks.ts`. */
+  setPendingModel(project: string, specFolder: string, step: string, model: string, provider?: string): PendingModelResult {
+    return setPendingModel(this.picks(), project, specFolder, step, model, provider);
   }
 
-  setPendingModel(project: string, specFolder: string, step: string, model: string): PendingModelResult {
-    const wanted = WORKFLOW_STEPS.find((s) => s === step);
-    if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
-    if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
-    const found = lookUpModel(this.defaults, model);
-    if ("error" in found) return { ok: false, error: found.error };
-    this.writePendingModel(project, specFolder, wanted, found.name);
-    this.changed();
-    return { ok: true };
-  }
-
-  /** Carries a create job's pending picks from its provisional key to
-   *  the real folder landing assigns it — the `pendingModels`
-   *  sibling of the `specFolder` rename `update()` already makes on the
-   *  job itself. A no-op when nothing is recorded under the
-   *  provisional key, which is the common case: most picks are for a
-   *  phase the create job DOES run and never touch this table. */
+  /** Carries a create job's pending picks from its provisional key to the
+   *  real folder landing assigns it. */
   renamePendingModel(project: string, fromFolder: string, toFolder: string): void {
-    const fromKey = `${project}/${fromFolder}`;
-    const picks = this.pendingModels[fromKey];
-    if (!picks) return;
-    delete this.pendingModels[fromKey];
-    this.pendingModels[`${project}/${toFolder}`] = picks;
-    this.persistPendingModels();
-    this.changed();
+    renamePendingModel(this.picks(), project, fromFolder, toFolder);
+  }
+
+  private picks(): PickContext {
+    return {
+      jobs: this.jobs,
+      defaults: this.defaults,
+      pendingModels: this.pendingModels,
+      pendingProviders: this.pendingProviders,
+      persist: () => this.persistPendingModels(),
+      mirror: () => this.mirror(),
+      changed: () => this.changed(),
+    };
   }
 
   /** The write `setPendingSteps()` and `enqueueCreate()`'s own hook
@@ -477,6 +431,7 @@ export class QueueStore {
 
   private persistPendingModels(): void {
     savePendingModels(this.pendingModelsPath, this.pendingModels);
+    savePendingModels(this.pendingProvidersPath, this.pendingProviders);
   }
 
   private persistPendingStepsTable(): void {

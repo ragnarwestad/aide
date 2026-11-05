@@ -116,6 +116,23 @@ describe("refreshSchedules", () => {
   // The whole point of the entry's own model field: a fire that ignored
   // it would run every night on whatever the configuration says, with
   // nobody watching to notice.
+  test("a due entry fires on the provider it names (AC-9)", async () => {
+    const { base } = harness.start({
+      extra: { queueConfigFile: cfg,
+        driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30,
+        queueDefaults: {
+          timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+          model: { default: "sonnet" },
+          modelChoices: { sonnet: {}, "codex-fast": { tool: "codex" as const } },
+          providers: { Claude: { name: "Claude", tool: "claude" as const }, Codex: { name: "Codex", tool: "codex" as const } },
+        },
+      },
+    });
+    writeSchedule("aide", [{ ...NIGHTLY, model: "codex-fast", provider: "Codex" } as Entry]);
+    const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
+    expect((list.find((j) => j.specFolder === "schedule-nightly-report") as { provider?: unknown } | undefined)?.provider).toEqual({ schedule: "Codex" });
+  });
+
   test("a due entry fires on the model it names", async () => {
     const { base } = harness.start({
       extra: { queueConfigFile: cfg,

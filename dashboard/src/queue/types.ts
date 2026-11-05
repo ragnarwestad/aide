@@ -4,6 +4,7 @@
 import type { Sentence } from "../i18n/message.ts";
 import type { JobState, StopReason, WorkflowStep } from "./steps.ts";
 import type { CriteriaChecks } from "../project/discover";
+import type { Provider } from "./providers/index.ts";
 
 /** What one step actually metered, as `aide-run-spec` read it out of
  *  claude's own result event. `total` is the sum of the other
@@ -355,6 +356,9 @@ export interface Job {
   /** The Claude account a person moved this job to, with its directory as
    *  it was when pressed. Absent means the default account. */
   claudeAccount?: ClaudeAccount;
+  /** The provider each step runs on, as a key, resolved at creation like
+   *  `model`. A step with none runs on the phase default. */
+  provider?: Record<string, string>;
   /** The usage-limit wait a press left behind on the login the job was
    *  moved off, so the steps nobody pressed stay held until that login's
    *  reset time. `hold` is the key the login is held under
@@ -445,6 +449,12 @@ export interface QueueDefaults {
    *  directory Claude Code keeps its login in. `~/` in a directory is the
    *  serving host's home. Absent means the default account alone. */
   claudeAccounts?: Record<string, { configDir: string }>;
+  /** The AI logins, each under a key that never changes (a rename changes
+   *  the provider's `name` only), in the order a picker lists them. */
+  providers?: Record<string, Provider>;
+  /** The provider each step runs on by default, as a key, with a `default`
+   *  fallback — the same shape as `model`. */
+  provider?: Record<string, string>;
   /** An implement continues its analysis's own AI session when both ran
    *  with the same AI and the analysis ended within the hour
    *  (`analysisSessionToResume`). Off unless the host's config says so. */

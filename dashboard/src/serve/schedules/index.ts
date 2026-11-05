@@ -391,6 +391,7 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
       const result = ctx.queue.enqueue({
         project, specFolder: key, steps: ["schedule"],
         ...(entry.model ? { model: entry.model } : {}),
+        ...(entry.provider ? { provider: entry.provider } : {}),
       });
       if (result.ok) {
         refused.delete(memoKey);
