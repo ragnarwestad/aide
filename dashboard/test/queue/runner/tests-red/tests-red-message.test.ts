@@ -1,6 +1,5 @@
-// A red implement run's sentence names its failing tests and says what
-// they point at: the change, or unstable tests and a busy machine, read
-// from the step result's `testsRed` (run-spec/turn/failing-tests.sh).
+// A red implement run's sentence names tests that still fail separately
+// from tests proven to pass when their files were run again alone.
 
 import { describe, expect, test } from "bun:test";
 import { testsRedMessage } from "../../../../src/queue/runner/cross-check-message.ts";
@@ -11,47 +10,36 @@ const red = (over: Record<string, unknown> = {}) => ({
   tests: ["e2e/a.spec.ts:5 › a works", "e2e/b.spec.ts:9 › b works"],
   failed: 2,
   total: 155,
-  touched: true,
-  untouched: 0,
-  variedBetweenRuns: false,
+  passedAlone: [],
+  passedAloneCount: 0,
   ...over,
 });
 
 describe("testsRedMessage", () => {
-  test("tests in files the change touched, failing the same each run, point at the change", () => {
+  test("tests that still fail are stated without an unstable-test claim (AC-4, AC-6)", () => {
     expect(said(red())).toEqual({
-      key: "runner.testsRedInChange",
+      key: "runner.testsRedFailing",
       values: { n: "2", total: "155", tests: "e2e/a.spec.ts:5 › a works; e2e/b.spec.ts:9 › b works", button: "Implement" },
     });
   });
 
-  test("a failing test in a touched file beside others outside it still points at the change", () => {
-    expect(said(red({ untouched: 1 })).key).toBe("runner.testsRedInChange");
-  });
-
-  test("none in a touched file points away from the change, saying how many are outside it", () => {
-    expect(said(red({ touched: false, untouched: 2 }))).toEqual({
-      key: "runner.testsRedUnsteady",
-      values: { n: "2", total: "155", tests: "e2e/a.spec.ts:5 › a works; e2e/b.spec.ts:9 › b works", button: "Implement" },
-      inner: { key: "runner.testsRedUntouched", values: { k: "2", n: "2" } },
+  test("a test that passed alone is the only kind called possibly unstable (AC-5)", () => {
+    expect(said(red({ passedAlone: ["e2e/c.spec.ts:3 › c works"], passedAloneCount: 1 }))).toEqual({
+      key: "runner.testsRedFailingPassedAlone",
+      values: { n: "2", total: "155", tests: "e2e/a.spec.ts:5 › a works; e2e/b.spec.ts:9 › b works", k: "1", passed: "e2e/c.spec.ts:3 › c works", button: "Implement" },
     });
   });
 
-  test("runs that failed different tests point away from the change, and say only what is true", () => {
-    expect(said(red({ variedBetweenRuns: true })).inner).toEqual({ key: "runner.testsRedVaried" });
-    expect(said(red({ variedBetweenRuns: true, untouched: 1 })).inner).toEqual({
-      key: "runner.testsRedVariedUntouched",
-      values: { k: "1", n: "2" },
+  test("when every red test passed alone, only those tests are named (AC-5)", () => {
+    expect(said(red({ tests: [], failed: 0, passedAlone: ["e2e/a.spec.ts:5 › a works"], passedAloneCount: 1 }))).toEqual({
+      key: "runner.testsRedPassedAlone",
+      values: { k: "1", passed: "e2e/a.spec.ts:5 › a works", button: "Implement" },
     });
-  });
-
-  test("tests with no file to compare and the same each run point at the change", () => {
-    expect(said(red({ touched: false, untouched: 0 })).key).toBe("runner.testsRedInChange");
   });
 
   test("a run that printed no total names the tests without one", () => {
     const m = said(red({ total: undefined }));
-    expect(m.key).toBe("runner.testsRedInChangeUncounted");
+    expect(m.key).toBe("runner.testsRedFailingUncounted");
     expect(m.values).toEqual({ tests: "e2e/a.spec.ts:5 › a works; e2e/b.spec.ts:9 › b works", button: "Implement" });
   });
 
@@ -67,7 +55,7 @@ describe("testsRedMessage", () => {
   );
 
   test("the reasons that hold fill the sentence, with no blank left", () => {
-    const text = renderMessage("nb", said(red({ touched: false, untouched: 2, variedBetweenRuns: true })));
+    const text = renderMessage("nb", said(red({ passedAlone: ["e2e/c.spec.ts:3 › c works"], passedAloneCount: 1 })));
     expect(text).not.toMatch(/\{\w+\}/);
     expect(text).toContain("e2e/a.spec.ts:5 › a works; e2e/b.spec.ts:9 › b works");
   });

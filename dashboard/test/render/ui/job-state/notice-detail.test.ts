@@ -38,7 +38,7 @@ describe("a notice's detail", () => {
     const notice = specNotice(
       lead({
         specFolder: "06-a-test-that-stays-red",
-        error: { key: "runner.testsRedInChange", values: { n: "1", total: "9", tests: "a.spec.ts:3 › works", button: "Implement" } },
+        error: { key: "runner.testsRedFailing", values: { n: "1", total: "9", tests: "a.spec.ts:3 › works", button: "Implement" } },
         errorReason: "tests-red" as QueueRowView["errorReason"],
         errorDetail:
           "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's. Press Implement again for this step.\n" +

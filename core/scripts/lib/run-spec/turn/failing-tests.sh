@@ -150,54 +150,61 @@ failing_tests() {
     + ([$rows[] | select(.[0] == "N") | {total: (.[1] | tonumber)}] | add // {})'
 }
 
-# $1 = failing_tests's answer (a file), $2 = the files the change touched,
-# one per line. Prints {touched, untouched}: whether any failing test is in
-# a file the change touched, and how many are in a file it did not. A
-# file matches by the end of its path — Playwright names it from its own
-# config's folder, git from the repository's root. A test with no file
-# counts as neither.
-failing_tests_against_change() {
-  jq -c --rawfile changed "$2" '
-    ($changed | split("\n") | map(select(. != ""))) as $c
-    | [.files[] | select(. != "") | . as $f | any($c[]; . == $f or endswith("/" + $f))] as $hits
-    | {touched: any($hits[]; .), untouched: ($hits | map(select(. | not)) | length)}' "$1"
+# $1 = failing_tests's answer. Prints its distinct nonempty files in order.
+failing_tests_files() {
+  jq -r '.files[] | select(. != "")' "$1" | awk '!seen[$0]++'
 }
 
-# $1, $2 = failing_tests's answers for two runs in turn. True when the
-# second failed a test the first did not: a fix round that mended some
-# tests and left the rest is the change, not tests that fail at random.
-failing_tests_varied() {
-  jq -e -n --slurpfile a "$1" --slurpfile b "$2" \
-    '$a[0].tests as $before | any($b[0].tests[]; . as $t | any($before[]; . == $t) | not)' >/dev/null
+# $1 = one isolated file run's output. Print explicit passing and failing
+# identities for Bun and verbose pytest; silence never proves a pass.
+test_results() {
+  sed $'s/\033\\[[0-9;?]*[A-Za-z]//g; s/\r//g' "$1" | awk '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    /^[^ ].*\.(test|spec)\.[cm]?[jt]sx?:$/ { file=substr($0,1,length($0)-1); next }
+    /^\((pass|fail)\) / && file {
+      kind=substr($0,2,4); s=substr($0,8); sub(/ \[[0-9.]+m?s\]$/, "", s)
+      print (kind == "pass" ? "P" : "F") "\t" file " › " s
+      next
+    }
+    /::/ && /(^| )(PASSED|FAILED|ERROR)( |$)/ {
+      s=$0
+      sub(/^\[gw[0-9]+\] +\[[^]]+\] +/, "", s)
+      if (s ~ /^(PASSED|FAILED|ERROR) +/) {
+        status=s; sub(/ .*/, "", status)
+        sub(/^(PASSED|FAILED|ERROR) +/, "", s)
+      } else {
+        status=(s ~ / PASSED( |$)/ ? "PASSED" : (s ~ / FAILED( |$)/ ? "FAILED" : "ERROR"))
+        sub(/ +(PASSED|FAILED|ERROR).*$/, "", s)
+      }
+      print (status == "PASSED" ? "P" : "F") "\t" trim(s)
+    }' | jq -Rn '[inputs | split("\t")] | {
+      passedTests:[.[] | select(.[0] == "P") | .[1]],
+      failedTests:[.[] | select(.[0] == "F") | .[1]]}'
 }
 
-# $1 = a worktree, $2 = the ref the change is measured from. The files the
-# change touched, one per line: committed since the two parted, changed in
-# the working tree, and new — the session's work is not always committed
-# when its tests run.
-failing_tests_changed_files() {
-  local wt="$1" base="$2" fork
-  fork="$(git -C "$wt" merge-base "$base" HEAD 2>/dev/null)" || fork=""
-  {
-    [ -n "$fork" ] && git -C "$wt" diff --name-only "$fork" 2>/dev/null
-    git -C "$wt" ls-files --others --exclude-standard 2>/dev/null
-  } | sort -u
-}
-
-# $1 = failing_tests's answer for the last run, $2 = the touched files
-# (failing_tests_changed_files), $3 = `true` when the failing tests varied
-# between the step's runs. Prints the step result's `testsRed`: at most
-# eight tests, the counts, whether a failing test is in a touched file and
-# how many are not, and whether the runs varied. Nothing when no test is
-# named.
+# $1 = failing_tests's answer for the last run, $2 = a JSON array whose
+# entries say whether each file passed when run again alone. Tests in a
+# green file are separated from tests that remain red.
 failing_tests_summary() {
-  local against
-  against="$(failing_tests_against_change "$1" "$2")"
-  jq -c --argjson against "$against" --argjson varied "$3" '
-    if (.tests | length) == 0 then empty else
-      {tests: .tests[:8], failed} + (if .total == null then {} else {total} end)
-      + $against + {variedBetweenRuns: $varied}
-    end' "$1"
+  jq -c --slurpfile again "$2" '
+    . as $last
+    | ($again[0] // []) as $runs
+    | [range(0; .tests | length) as $i
+       | {test:.tests[$i], file:.files[$i]}
+       | . as $entry
+       | . + {passed:(.file != "" and any($runs[];
+           .file == $entry.file and
+           (.passed == true or
+            ((.passedTests // []) | index($entry.test)) != null and
+            ((.failedTests // []) | index($entry.test)) == null)))}] as $all
+    | [$all[] | select(.passed) | .test] as $passed
+    | [$all[] | select(.passed | not) | .test] as $failedTests
+    | if ($all | length) == 0 then empty else
+        {tests:$failedTests[:8], failed:($failedTests | length)}
+        + (if .total == null then {} else {total} end)
+        + (if ($passed | length) == 0 then {passedAlone:[], passedAloneCount:0}
+           else {passedAlone:$passed[:8], passedAloneCount:($passed | length)} end)
+      end' "$1"
 }
 
 # $1 = failing_tests's answer. The tests as lines for a fix round's prompt:

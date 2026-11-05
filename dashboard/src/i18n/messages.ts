@@ -520,11 +520,49 @@ export const MESSAGES = {
     fr: "implement a signalé un succès, mais les tests du projet sont au rouge sur ce résultat — le runner les a lancés lui-même, et ce qui a échoué est affiché ci-dessous. — Si le défaut est dans le code, cliquez de nouveau sur {button} ; si quelque chose sur la machine a arrêté les tests, comme un port occupé ou un service arrêté, corrigez-le d'abord.",
     resolve: "If the fault is in the code, press {button} again; if something on the machine stopped the tests, fix that first.",
   },
-  // An implement whose own test run named its failing tests
-  // (run-spec/turn/failing-tests.sh): the tests, and what they point at —
-  // the change, when a failing test is in a file it touched and every run
-  // failed the same ones; otherwise unstable tests or a busy machine, with
-  // the reasons that hold as the inner sentences below.
+  // A red implement names tests that still fail separately from tests
+  // proven to pass when their files were run again alone.
+  "runner.testsRedFailing": {
+    en: "implement is done, but {n} of {total} tests fail on its result: {tests}. — Press {button} again.",
+    nb: "implementering er ferdig, men {n} av {total} tester feiler på resultatet: {tests}. — Trykk {button} igjen.",
+    es: "implement terminó, pero {n} de {total} tests fallan: {tests}. — Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber {n} von {total} Tests schlagen fehl: {tests}. — Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais {n} tests sur {total} échouent : {tests}. — Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedFailingUncounted": {
+    en: "implement is done, but these tests fail on its result: {tests}. — Press {button} again.",
+    nb: "implementering er ferdig, men disse testene feiler på resultatet: {tests}. — Trykk {button} igjen.",
+    es: "implement terminó, pero estos tests fallan: {tests}. — Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber diese Tests schlagen fehl: {tests}. — Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais ces tests échouent : {tests}. — Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedFailingPassedAlone": {
+    en: "implement is done, but {n} of {total} tests fail on its result: {tests}. {k} more failed in the suite and passed when their files were run again alone, so they may be unstable: {passed}. — Press {button} again.",
+    nb: "implementering er ferdig, men {n} av {total} tester feiler på resultatet: {tests}. {k} andre feilet i testkjøringen og besto da filene ble kjørt alene på nytt, så de kan være ustabile: {passed}. — Trykk {button} igjen.",
+    es: "implement terminó, pero {n} de {total} tests fallan: {tests}. Otros {k} pasaron al ejecutar sus archivos de nuevo por separado y pueden ser inestables: {passed}. — Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber {n} von {total} Tests schlagen fehl: {tests}. Weitere {k} bestanden beim erneuten Einzellauf ihrer Dateien und könnten instabil sein: {passed}. — Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais {n} tests sur {total} échouent : {tests}. {k} autres ont réussi lors d'un nouveau lancement isolé et peuvent être instables : {passed}. — Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedFailingPassedAloneUncounted": {
+    en: "implement is done, but these tests fail on its result: {tests}. {k} more passed when their files were run again alone, so they may be unstable: {passed}. — Press {button} again.",
+    nb: "implementering er ferdig, men disse testene feiler på resultatet: {tests}. {k} andre besto da filene ble kjørt alene på nytt, så de kan være ustabile: {passed}. — Trykk {button} igjen.",
+    es: "implement terminó, pero estos tests fallan: {tests}. Otros {k} pasaron por separado y pueden ser inestables: {passed}. — Pulsa {button} de nuevo.",
+    de: "Implement ist fertig, aber diese Tests schlagen fehl: {tests}. Weitere {k} bestanden einzeln und könnten instabil sein: {passed}. — Klicke erneut auf {button}.",
+    fr: "implement est terminé, mais ces tests échouent : {tests}. {k} autres ont réussi seuls et peuvent être instables : {passed}. — Cliquez de nouveau sur {button}.",
+    resolve: "Press {button} again.",
+  },
+  "runner.testsRedPassedAlone": {
+    en: "implement is done, but its tests were red: {k} failed in the suite and passed when their files were run again alone, so they may be unstable: {passed}. — Press {button} again, or fix those tests on their own.",
+    nb: "implementering er ferdig, men testene var røde: {k} feilet i testkjøringen og besto da filene ble kjørt alene på nytt, så de kan være ustabile: {passed}. — Trykk {button} igjen, eller rett testene for seg.",
+    es: "implement terminó, pero sus tests estaban en rojo: {k} pasaron por separado y pueden ser inestables: {passed}. — Pulsa {button} de nuevo o corrige esos tests.",
+    de: "Implement ist fertig, aber die Tests waren rot: {k} bestanden einzeln und könnten instabil sein: {passed}. — Klicke erneut auf {button} oder repariere diese Tests.",
+    fr: "implement est terminé, mais ses tests étaient au rouge : {k} ont réussi seuls et peuvent être instables : {passed}. — Cliquez de nouveau sur {button} ou corrigez ces tests.",
+    resolve: "Press {button} again, or fix those tests on their own.",
+  },
+  // Stored rows may still name the old verdict keys below. New rows do not.
   "runner.testsRedInChange": {
     en: "implement is done, but {n} of {total} tests fail on its result: {tests}. The fault is likely in the change. — Press {button} again.",
     nb: "implementering er ferdig, men {n} av {total} tester feiler på resultatet: {tests}. Feilen er trolig i endringen. — Trykk {button} igjen.",

@@ -6,6 +6,9 @@ description: Configuration and tooling for AI-assisted development — skills, r
 # The project's test command: the whole suite, run by a step, the landing
 # and /aide-implement. Read here and nowhere else.
 AIDE_TEST_CMD: export PATH="$HOME/.local/share/mise/shims:$PATH"; scripts/test-python && cd dashboard && make test && make test-e2e
+# The project's command for running the named test files once, used by
+# Implement's final isolated check of red files.
+AIDE_TEST_FILES_CMD: export PATH="$HOME/.local/share/mise/shims:$PATH"; scripts/test-files
 deployment:
   # A branch of this repository is tried by a board the dashboard starts
   # on its own machine (the Test server).

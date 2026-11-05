@@ -46,6 +46,10 @@ One command that runs the project's whole suite — a step, the landing and
 no test command, and the dashboard says so on the project's page. Say so
 too, rather than detecting one.
 
+`AIDE_TEST_FILES_CMD` is the optional companion command for running named
+test files once. Implement appends each red file and uses the result only to
+say whether that file passed alone; without the key it makes no instability claim.
+
 **Lint and build:** `AIDE_LINT_CMD` / `AIDE_BUILD_CMD` in `.aide/config`
 when set; otherwise detect them from what the project ships — never assume
 a toolchain:
@@ -124,7 +128,7 @@ Everything is optional. Shell scripts read the file via `aide_config_get KEY <pr
 
 **The project manifest is the config's team-owned sibling:**
 `.aide/project.yaml` holds the settings a run and the board read
-(`name`, `description`, `AIDE_TEST_CMD`, `acPrefix`, `worktreeLinks`, `previewCmd`,
+(`name`, `description`, `AIDE_TEST_CMD`, `AIDE_TEST_FILES_CMD`, `acPrefix`, `worktreeLinks`, `previewCmd`,
 `codeLanding`, `deployment.previewFrom`, `translationFiles`) and belongs in git. Only
 `.aide/config` is personal and gitignored — never ignore the whole
 `.aide/` directory.

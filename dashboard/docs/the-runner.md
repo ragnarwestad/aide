@@ -385,12 +385,10 @@ evidence that the phase happened:
     limit. Each red run's failing tests are read from its output (`run-spec/turn/failing-tests.sh`: Playwright,
     vitest, bun, pytest and turbo, without colour codes, never pnpm's error box or the recorder's JSON line), and a
     fix round's prompt names them; the log's own failing lines go only when no test is named, or no name carries a
-    file. Still red ends the step `tests-red` with the failing lines as its detail and the named tests in the result's
-    `testsRed`: at most eight, the failed and total counts when the output printed them, `touched` (a failing test's
-    file is among the files the change touched, committed or not, matched by the end of its path), `untouched` (how
-    many are not) and `variedBetweenRuns` (a run failed a test the run before it did not). The board's sentence names
-    the tests and says the fault is likely in the change, or, when none is in a touched file or the runs varied, that
-    it points to unstable tests or a busy machine. Implement is the button to press again. A run that never started, because its server could not start or a port it needs is held
+    file. Before a still-red step ends, each named red file is run once more alone when the project has an
+    `AIDE_TEST_FILES_CMD`. The result's `testsRed` separates tests that still fail from tests whose files passed that
+    check. Only the latter are described as possibly unstable; without the command or enough time, the board states
+    only the last observed failures. Implement is the button to press again. A run that never started, because its server could not start or a port it needs is held
     (`run-spec/turn/test-start.sh`), goes back to no session: it ends `tests-not-started` at once, with the cause and,
     for a port, the spec or process holding it in the result's `testsNotStarted`. A run `aide-record-test-run` did not
     make ends the same way at once, read from the recorder's own result and never from its exit code alone: the spec's

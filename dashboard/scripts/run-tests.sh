@@ -147,7 +147,7 @@ while :; do
   done
   fails=$(grep -ch '^(fail)' "$OUT"/out.* 2>/dev/null | paste -sd+ - | bc)
   if [ "${fails:-0}" -gt "$said_fails" ]; then
-    grep -h '^(fail)' "$OUT"/out.* 2>/dev/null | tail -n "$(( fails - said_fails ))"
+    grep -h '^(fail)' "$OUT"/out.* 2>/dev/null | tail -n "$(( fails - said_fails ))" | sed 's/^/[live] /'
     said_fails=$fails
   fi
   [ "$left" -le 0 ] && break
@@ -170,7 +170,7 @@ for p in $pids; do
   w=${p##*:}
   wait "${p%%:*}"; rc=$?
   [ "$rc" -eq 0 ] && continue
-  if [ "$rc" -gt 128 ] && ! grep -q '^(fail)' "$OUT/out.$w"; then
+  if [ -z "${AIDE_TEST_ONCE:-}" ] && [ "$rc" -gt 128 ] && ! grep -q '^(fail)' "$OUT/out.$w"; then
     echo "--- worker $w was killed (signal $(( rc - 128 ))) without a failing test; running its files again"
     # shellcheck disable=SC2046  # the list is our own, one path per line
     if ( bun test --timeout "$LIMIT" $(cat "$OUT/list.$w") ) > "$OUT/out.$w" 2>&1; then
@@ -184,7 +184,7 @@ for p in $pids; do
   # lost to a busy host passes there, and only a second failure counts.
   # bun heads each file's output with its path, so the file is the last
   # heading above its `(fail)` line.
-  if grep -q '^(fail)' "$OUT/out.$w"; then
+  if [ -z "${AIDE_TEST_ONCE:-}" ] && grep -q '^(fail)' "$OUT/out.$w"; then
     again=$(awk '/^[^ ].*\.test\.ts:$/ { file = substr($0, 1, length($0) - 1) } /^\(fail\)/ && file { print file }' "$OUT/out.$w" | sort -u)
     if [ -n "$again" ]; then
       echo "--- worker $w: running its failing file(s) again alone: $(tr '\n' ' ' <<<"$again")"
@@ -193,7 +193,7 @@ for p in $pids; do
         echo "--- worker $w, run again alone: $(grep -E '^Ran [0-9]+ tests' "$OUT/again.$w" | tail -1)"
         continue
       fi
-      cat "$OUT/again.$w" >> "$OUT/out.$w"
+      mv "$OUT/again.$w" "$OUT/out.$w"
     fi
   fi
   failed="$failed $w"

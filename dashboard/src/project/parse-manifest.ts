@@ -61,6 +61,9 @@ export interface ManifestData {
    *  landing and `/aide-implement` (`aide-resolve-test-cmd`). Read here
    *  and nowhere else, so every checkout runs the same command. */
   AIDE_TEST_CMD?: string;
+  /** The command for running named test files once, used to check red
+   *  files alone before a step calls a test unstable. */
+  AIDE_TEST_FILES_CMD?: string;
   /** How to start this project so a person can LOOK at a spec's branch
    *  before its checks are ticked (spec: previews beyond aide). The
    *  dashboard runs it in a worktree of that branch, on a port from its
@@ -107,6 +110,7 @@ export function parseManifest(text: string): ManifestResult {
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
   if (r.translationFiles != null) data.translationFiles = toStr(r.translationFiles);
   if (r.AIDE_TEST_CMD != null) data.AIDE_TEST_CMD = toStr(r.AIDE_TEST_CMD);
+  if (r.AIDE_TEST_FILES_CMD != null) data.AIDE_TEST_FILES_CMD = toStr(r.AIDE_TEST_FILES_CMD);
   if (r.previewCmd != null) data.previewCmd = toStr(r.previewCmd);
   if (r.acPrefix != null) data.acPrefix = toStr(r.acPrefix);
   // The one field here that is VALIDATED rather than normalized: it is a

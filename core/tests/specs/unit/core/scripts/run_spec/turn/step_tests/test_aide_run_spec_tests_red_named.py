@@ -1,7 +1,5 @@
-"""A red implement run names its failing tests (run-spec/turn/step-tests.sh,
-run-spec/turn/failing-tests.sh): in the step result's `testsRed`, with
-whether any is in a file the change touched and whether the runner's runs
-failed different tests, and by name in each fix round's prompt.
+"""A red implement run names persistent failures separately from files
+that pass when run again alone, and names failures in each fix prompt.
 """
 
 import json
@@ -58,7 +56,9 @@ def _claude(fake_claude, tmp_path, work="printf 'real work\\n' > implemented.txt
     ), seen
 
 
-def test_tests_in_files_the_change_never_touched_are_named_and_counted(runner, workspace, fake_claude, tmp_path):
+def test_red_tests_are_named_without_a_cause_when_no_files_command_is_set_ac_4_ac_6(
+    runner, workspace, fake_claude, tmp_path
+):
     with_status(workspace, ["create", "analyze"])
     suite = _playwright_suite(tmp_path, ["e2e/a.spec.ts:5:1 › a works", "e2e/b.spec.ts:9:1 › b works"])
     _project_with_test_cmd(workspace, str(suite))
@@ -69,13 +69,12 @@ def test_tests_in_files_the_change_never_touched_are_named_and_counted(runner, w
         "tests": ["e2e/a.spec.ts:5 › a works", "e2e/b.spec.ts:9 › b works"],
         "failed": 2,
         "total": 22,
-        "touched": False,
-        "untouched": 2,
-        "variedBetweenRuns": False,
+        "passedAlone": [],
+        "passedAloneCount": 0,
     }, out
 
 
-def test_a_failing_test_in_a_file_the_session_changed_and_left_uncommitted_is_touched(
+def test_whether_the_session_changed_a_failing_file_is_not_a_verdict_ac_6(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
@@ -84,18 +83,18 @@ def test_a_failing_test_in_a_file_the_session_changed_and_left_uncommitted_is_to
     claude, _ = _claude(fake_claude, tmp_path, work="mkdir -p web/e2e && printf 'x\\n' > web/e2e/a.spec.ts")
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "tests-red", out
-    assert out["testsRed"]["touched"] is True, out
-    assert out["testsRed"]["untouched"] == 0, out
+    assert "touched" not in out["testsRed"], out
+    assert "untouched" not in out["testsRed"], out
 
 
-def test_a_run_that_fails_a_test_the_run_before_did_not_is_a_varied_run(runner, workspace, fake_claude, tmp_path):
+def test_different_prior_failures_are_not_used_as_a_verdict_ac_6(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     suite = _playwright_suite(tmp_path, ["e2e/a.spec.ts:5:1 › a works"], ["e2e/c.spec.ts:3:1 › c works"])
     _project_with_test_cmd(workspace, str(suite))
     claude, _ = _claude(fake_claude, tmp_path)
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "tests-red", out
-    assert out["testsRed"]["variedBetweenRuns"] is True, out
+    assert "variedBetweenRuns" not in out["testsRed"], out
     assert out["testsRed"]["tests"] == ["e2e/c.spec.ts:3 › c works"], out
 
 
