@@ -107,23 +107,10 @@ done
 # error instead of the one-JSON-line contract every caller relies on.
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
-refuse() {
-  local msg="$1" line
-  line="$(jq -cn --arg e "$msg" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}')"
-  printf '%s\n' "$line"
-  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
-  exit 2
-}
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-result.sh"
 
-emit_ok() {
-  local extra="$1" line
-  line="$(jq -cn --argjson extra "$extra" '{ok:true, exitCode:0} + $extra')"
-  printf '%s\n' "$line"
-  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
-  exit 0
-}
-
-[ -n "$specs_root" ] || refuse "missing --specs-root"
+[ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
 
 if [ "$stamp_outcome" = "yes" ]; then
   # Patches an already-created 1-description.md's Tracking info with this
@@ -131,21 +118,21 @@ if [ "$stamp_outcome" = "yes" ]; then
   # aide-run-spec's own "outcome record" block, which only
   # ever runs for a headless create. See core/skills/aide-create/SKILL.md
   # Step 5.
-  [ -n "$folder" ] || refuse "missing --folder"
-  [[ "$start_epoch" =~ ^[0-9]+$ ]] || refuse "missing or invalid --start-epoch"
+  [ -n "$folder" ] || aide_spec_refuse "missing --folder"
+  [[ "$start_epoch" =~ ^[0-9]+$ ]] || aide_spec_refuse "missing or invalid --start-epoch"
 
   target=""
   for candidate in "$specs_root/$folder/1-description.md" \
                    "$specs_root/archive/$folder/1-description.md"; do
     [ -f "$candidate" ] && { target="$candidate"; break; }
   done
-  [ -n "$target" ] || refuse "spec file not found: $folder/1-description.md"
-  grep -q '^## Tracking info' "$target" || refuse "no Tracking info heading in $target"
+  [ -n "$target" ] || aide_spec_refuse "spec file not found: $folder/1-description.md"
+  grep -q '^## Tracking info' "$target" || aide_spec_refuse "no Tracking info heading in $target"
 
   # AIDE_NOW_EPOCH: the clock a test hands in, so a span is exact rather
   # than one second either way on a busy host.
   elapsed=$(( ${AIDE_NOW_EPOCH:-$(date +%s)} - start_epoch ))
-  [ "$elapsed" -ge 0 ] || refuse "--start-epoch is in the future"
+  [ "$elapsed" -ge 0 ] || aide_spec_refuse "--start-epoch is in the future"
   time_spent="$(printf '%dm%02ds' $(( elapsed / 60 )) $(( elapsed % 60 )))"
 
   block_file="$(mktemp)"
@@ -182,7 +169,7 @@ if [ "$stamp_outcome" = "yes" ]; then
   ' "$target" > "$target.stamp-tmp" && mv "$target.stamp-tmp" "$target"
   rm -f "$block_file"
 
-  emit_ok "$(jq -cn --arg f "$folder" '{terminalReason:"stamped", specFolder:$f}')"
+  aide_spec_emit_ok "$(jq -cn --arg f "$folder" '{terminalReason:"stamped", specFolder:$f}')"
 fi
 
 if [ "$assign_number" = "yes" ]; then
@@ -194,23 +181,23 @@ if [ "$assign_number" = "yes" ]; then
   # aide_next_spec_number/aide_slug_from_title, the same two functions
   # every other caller in this file already shares (the invariant:
   # one rule, one place) — never a second, hand-rolled count.
-  [ -n "$folder" ] || refuse "missing --folder"
+  [ -n "$folder" ] || aide_spec_refuse "missing --folder"
   src="$specs_root/$folder"
-  [ -d "$src" ] || refuse "no such spec folder: $src"
+  [ -d "$src" ] || aide_spec_refuse "no such spec folder: $src"
   desc_file="$src/1-description.md"
-  [ -f "$desc_file" ] || refuse "missing $desc_file"
+  [ -f "$desc_file" ] || aide_spec_refuse "missing $desc_file"
   title_line="$(head -1 "$desc_file")"
   case "$title_line" in
     "# "*" - Description") title="${title_line#\# }"; title="${title% - Description}" ;;
-    *) refuse "cannot read a title from $desc_file's first line: $title_line" ;;
+    *) aide_spec_refuse "cannot read a title from $desc_file's first line: $title_line" ;;
   esac
   declare -f aide_next_spec_number >/dev/null 2>&1 \
-    || refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide"
+    || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide"
   number="$(aide_next_spec_number "$specs_root")"
   slug="$(aide_slug_from_title "$title")"
   new_folder="${number}-${slug}"
   dest="$specs_root/$new_folder"
-  [ -d "$dest" ] && refuse "spec folder already exists: $dest"
+  [ -d "$dest" ] && aide_spec_refuse "spec folder already exists: $dest"
 
   # Refuse loudly rather than leave a stale Task: line behind (the risk
   # a hand-edited Tracking info section would otherwise create): every
@@ -222,10 +209,10 @@ if [ "$assign_number" = "yes" ]; then
     f="$src/$name"
     [ -f "$f" ] || continue
     grep -qF -- "$old_task_line" "$f" \
-      || refuse "no '$old_task_line' line in $f — refusing rather than leave a stale Task: line after the rename"
+      || aide_spec_refuse "no '$old_task_line' line in $f — refusing rather than leave a stale Task: line after the rename"
   done
 
-  git -C "$specs_root" mv "$folder" "$new_folder" || refuse "could not git mv $folder to $new_folder"
+  git -C "$specs_root" mv "$folder" "$new_folder" || aide_spec_refuse "could not git mv $folder to $new_folder"
 
   for name in 1-description.md 2-analysis.md 3-solution.md 4-status.md; do
     f="$dest/$name"
@@ -239,10 +226,10 @@ if [ "$assign_number" = "yes" ]; then
   # rewrites above, which are not.
   if ! { git -C "$specs_root" add -- "$new_folder" \
       && git -C "$specs_root" commit -q -m "Assign $new_folder its number"; }; then
-    refuse "could not commit the rename of $folder to $new_folder"
+    aide_spec_refuse "could not commit the rename of $folder to $new_folder"
   fi
 
-  emit_ok "$(jq -cn --arg f "$new_folder" '{terminalReason:"assigned", specFolder:$f}')"
+  aide_spec_emit_ok "$(jq -cn --arg f "$new_folder" '{terminalReason:"assigned", specFolder:$f}')"
 fi
 
 # --number is OPTIONAL: given, it is used as stated; omitted, this
@@ -257,9 +244,9 @@ fi
 # has a unique name (the job's own provisional key), so there is
 # nothing to race over and no lock to take — `--number`'s validation
 # and the auto-pick lock below are both skipped entirely.
-[ -n "$folder_name" ] || [ -n "$slug" ] || refuse "missing --slug"
-[ -n "$title" ] || refuse "missing --title"
-[ -n "$description" ] || refuse "missing --description"
+[ -n "$folder_name" ] || [ -n "$slug" ] || aide_spec_refuse "missing --slug"
+[ -n "$title" ] || aide_spec_refuse "missing --title"
+[ -n "$description" ] || aide_spec_refuse "missing --description"
 
 # The rule's own definition of an acceptance-criteria line
 # (core/rules/spec-structure.md § 1-description) is
@@ -279,7 +266,7 @@ while IFS= read -r ac_line; do
     "- AC-"[0-9]*":"*)
       case "$ac_line" in
         "- **AC-"[0-9]*":**"*) : ;;
-        *) refuse "Acceptance criteria line does not match the required '- **AC-n:** ...' format: \"$ac_line\"" ;;
+        *) aide_spec_refuse "Acceptance criteria line does not match the required '- **AC-n:** ...' format: \"$ac_line\"" ;;
       esac
       ;;
   esac
@@ -309,20 +296,20 @@ if [ "$given_set" = "yes" ]; then
   written_ids="$(while IFS= read -r l; do [ -n "$l" ] && ac_id "$l"; done <<<"$written_lines" | sort -n)"
   for twice in $(uniq -d <<<"$written_ids"); do
     [ "$(grep -cx -- "$twice" <<<"$written_ids")" -gt "$(grep -cx -- "$twice" <<<"$given_id_list")" ] \
-      && refuse "AC-$twice appears twice: every criterion keeps an id of its own"
+      && aide_spec_refuse "AC-$twice appears twice: every criterion keeps an id of its own"
   done
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     id="$(ac_id "$line")"
-    grep -qx -- "$id" <<<"$written_ids" || refuse "AC-$id is missing: every criterion the description gave must stay in it"
-    grep -qxF -- "$line" <<<"$written_lines" || refuse "AC-$id must stay word for word as the description gave it: \"$line\""
+    grep -qx -- "$id" <<<"$written_ids" || aide_spec_refuse "AC-$id is missing: every criterion the description gave must stay in it"
+    grep -qxF -- "$line" <<<"$written_lines" || aide_spec_refuse "AC-$id must stay word for word as the description gave it: \"$line\""
   done <<<"$(ac_lines "$given_description")"
   next=$((given_highest + 1))
   for id in $written_ids; do
     case "$given_ids" in *" $id "*) continue ;; esac
     if [ "$id" -ne "$next" ]; then
-      [ "$given_highest" -eq 0 ] && [ "$next" -eq 1 ] && refuse "AC-$id is not the next id: the first criterion takes AC-1"
-      refuse "AC-$id is not the next id: a criterion added after AC-$((next - 1)) takes AC-$next"
+      [ "$given_highest" -eq 0 ] && [ "$next" -eq 1 ] && aide_spec_refuse "AC-$id is not the next id: the first criterion takes AC-1"
+      aide_spec_refuse "AC-$id is not the next id: a criterion added after AC-$((next - 1)) takes AC-$next"
     fi
     next=$((next + 1))
   done
@@ -338,18 +325,18 @@ if [ "$given_set" = "yes" ]; then
     given_scope="$(aide_out_of_scope_section "$(printf '%s\n' "$given_description" | sed -E "$AC_BOLD")")"
     written_scope="$(aide_out_of_scope_section "$(without_added "$description")")"
     if [ -n "$given_scope" ] && [ "$given_scope" != "$written_scope" ]; then
-      refuse "the ## Out of scope section must stay word for word as the description gave it"
+      aide_spec_refuse "the ## Out of scope section must stay word for word as the description gave it"
     elif [ -z "$given_scope" ] && [ -n "$written_scope" ]; then
-      refuse "the description gave no ## Out of scope section: only its author writes one"
+      aide_spec_refuse "the description gave no ## Out of scope section: only its author writes one"
     fi
   fi
 fi
 
 if [ -n "$folder_name" ]; then
-  [[ "$folder_name" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --folder-name: $folder_name"
+  [[ "$folder_name" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || aide_spec_refuse "invalid --folder-name: $folder_name"
   folder="$folder_name"
   dest="$specs_root/$folder"
-  [ -d "$dest" ] && refuse "spec folder already exists: $dest"
+  [ -d "$dest" ] && aide_spec_refuse "spec folder already exists: $dest"
 elif [ -n "$number" ]; then
   # A number handed in must lie above every number already there — a
   # spec number is never reused, and a caller
@@ -362,15 +349,15 @@ elif [ -n "$number" ]; then
     expected="$(aide_next_spec_number "$specs_root")"
     highest="$(( 10#$expected - 1 ))"
     if [ "$((10#$number))" -le "$highest" ]; then
-      refuse "spec number $number is already taken — the highest under $specs_root (and its archive/) is $highest, so the next is $expected"
+      aide_spec_refuse "spec number $number is already taken — the highest under $specs_root (and its archive/) is $highest, so the next is $expected"
     fi
   fi
   folder="${number}-${slug}"
   dest="$specs_root/$folder"
-  [ -d "$dest" ] && refuse "spec folder already exists: $dest"
+  [ -d "$dest" ] && aide_spec_refuse "spec folder already exists: $dest"
 else
   declare -f aide_next_spec_number >/dev/null 2>&1 \
-    || refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide, or pass --number"
+    || aide_spec_refuse "_aide-spec-lib.sh is missing beside aide-create-spec — reinstall aide, or pass --number"
   # The lock has to be on the NUMBER, not on the folder: two creates
   # with different slugs make different directories at the same number,
   # so `mkdir "$dest"` locks nothing. `mkdir` of one shared name does —
@@ -389,9 +376,9 @@ else
       dest="$specs_root/$folder"
       if [ -d "$dest" ]; then
         rmdir "$lock" 2>/dev/null
-        refuse "spec folder already exists: $dest"
+        aide_spec_refuse "spec folder already exists: $dest"
       fi
-      mkdir "$dest" 2>/dev/null || { rmdir "$lock" 2>/dev/null; refuse "could not create $dest"; }
+      mkdir "$dest" 2>/dev/null || { rmdir "$lock" 2>/dev/null; aide_spec_refuse "could not create $dest"; }
       rmdir "$lock" 2>/dev/null
       claimed="yes"
       break
@@ -402,7 +389,7 @@ else
     fi
     sleep 0.1
   done
-  [ -n "$claimed" ] || refuse "could not claim a spec number under $specs_root — $lock is held"
+  [ -n "$claimed" ] || aide_spec_refuse "could not claim a spec number under $specs_root — $lock is held"
 fi
 
 today="$(date -u +%Y-%m-%d)"
@@ -425,7 +412,7 @@ accept_line=""
 
 # Already made above when this run claimed its own number; `-p` is what
 # makes that case a no-op rather than a second, failing create.
-mkdir -p "$dest" || refuse "could not create $dest"
+mkdir -p "$dest" || aide_spec_refuse "could not create $dest"
 
 # The heredoc delimiter below is deliberately unquoted (<<AIDE_EOF, not
 # <<'AIDE_EOF') so ${title}/${folder}/${today}/${depends_line}/
@@ -477,5 +464,5 @@ AIDE_EOF
 
 aide_write_placeholder_files "$dest" "$title" "$folder"
 
-emit_ok "$(jq -cn --arg f "$folder" --argjson files '["0-README.md","1-description.md","2-analysis.md","3-solution.md","4-status.md"]' \
+aide_spec_emit_ok "$(jq -cn --arg f "$folder" --argjson files '["0-README.md","1-description.md","2-analysis.md","3-solution.md","4-status.md"]' \
   '{terminalReason:"created", specFolder:$f, files:$files}')"

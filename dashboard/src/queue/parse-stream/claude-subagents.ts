@@ -5,10 +5,8 @@
 // itself made.
 import { claudeBlockEntries, failedToolUses, parentCall } from "./entries.ts";
 import { withoutRepeat } from "./final-message.ts";
-import { blocksOf, esc, events } from "./shared.ts";
+import { blocksOf, esc, isObject, events } from "./shared.ts";
 import type { SubagentPart } from "./step-log.ts";
-
-const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
 
 /** The text of a tool result's `content`: a string, or the text blocks of a list. */
 function textOf(content: unknown): string {

@@ -398,16 +398,11 @@ export class Runner {
         patched[resultIndex] = { ...entry, at: this.o.now() };
         this.o.store.update(job.id, { results: patched });
       };
-      void Promise.resolve(landingWork).then(
-        () => {
-          settleDuration();
-          this.o.store.update(job.id, { landing: undefined });
-        },
-        () => {
-          settleDuration();
-          this.o.store.update(job.id, { landing: undefined });
-        },
-      );
+      const settled = () => {
+        settleDuration();
+        this.o.store.update(job.id, { landing: undefined });
+      };
+      void Promise.resolve(landingWork).then(settled, settled);
     }
     const base = afterStep(job, outcome, results, landing, measures);
 
@@ -469,4 +464,3 @@ export class Runner {
     this.o.store.transition(job.id, "step-succeeded", { ...base, stepIndex: nextIndex });
   }
 }
-

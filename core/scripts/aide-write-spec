@@ -50,26 +50,13 @@ done
 # relies on.
 command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
 
-refuse() {
-  local msg="$1" line
-  line="$(jq -cn --arg e "$msg" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}')"
-  printf '%s\n' "$line"
-  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
-  exit 2
-}
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-result.sh"
 
-emit_ok() {
-  local extra="$1" line
-  line="$(jq -cn --argjson extra "$extra" '{ok:true, exitCode:0} + $extra')"
-  printf '%s\n' "$line"
-  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
-  exit 0
-}
-
-[ -n "$specs_root" ] || refuse "missing --specs-root"
-[ -n "$folder" ] || refuse "missing --folder"
-[ -n "$file" ] || refuse "missing --file"
-[[ " $ALLOWED_FILES " == *" $file "* ]] || refuse "unknown --file: $file"
+[ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
+[ -n "$folder" ] || aide_spec_refuse "missing --folder"
+[ -n "$file" ] || aide_spec_refuse "missing --file"
+[[ " $ALLOWED_FILES " == *" $file "* ]] || aide_spec_refuse "unknown --file: $file"
 
 # Dual-location resolution — mirrors aide-create-spec's --stamp-outcome,
 # needed because aide-archive's Step 2 writes 4-status.md AFTER
@@ -78,11 +65,11 @@ target=""
 for candidate in "$specs_root/$folder/$file" "$specs_root/archive/$folder/$file"; do
   [ -f "$candidate" ] && { target="$candidate"; break; }
 done
-[ -n "$target" ] || refuse "spec file not found: $folder/$file"
+[ -n "$target" ] || aide_spec_refuse "spec file not found: $folder/$file"
 
 content_tmp="$(mktemp)"
 cat > "$content_tmp"
-[ -s "$content_tmp" ] || { rm -f "$content_tmp"; refuse "no content on stdin"; }
+[ -s "$content_tmp" ] || { rm -f "$content_tmp"; aide_spec_refuse "no content on stdin"; }
 mv "$content_tmp" "$target"
 
 # Landing 4-status.md is the moment its machine-read state is
@@ -99,8 +86,8 @@ if [ "$file" = "4-status.md" ] && declare -f write_spec_state >/dev/null 2>&1; t
 fi
 
 if [ -n "$state_json" ]; then
-  emit_ok "$(jq -cn --arg f "$folder" --arg file "$file" --argjson s "$state_json" \
+  aide_spec_emit_ok "$(jq -cn --arg f "$folder" --arg file "$file" --argjson s "$state_json" \
     '{terminalReason:"written", specFolder:$f, file:$file, stateJson:($s | tostring)}')"
 else
-  emit_ok "$(jq -cn --arg f "$folder" --arg file "$file" '{terminalReason:"written", specFolder:$f, file:$file}')"
+  aide_spec_emit_ok "$(jq -cn --arg f "$folder" --arg file "$file" '{terminalReason:"written", specFolder:$f, file:$file}')"
 fi

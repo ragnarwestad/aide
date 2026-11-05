@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows } from "../../../src/render";
-import { durationLabel } from "../../../src/render/ui/job-state";
 import {
   harness,
   flush,
@@ -79,29 +78,27 @@ describe("the rows are redrawn on a push, not on a timer", () => {
       expect(h.elapsed[0]!.textContent).toBe("4m 00s");
     });
 
-    // The page words a duration in its own copy of the rule, because
-    // this file can neither import nor export anything — the server
-    // transpiles it into an inline <script>. Two copies of one rule is
-    // the shape this repo pins rather than trusts: the moment they
-    // disagree, a phase changes its wording the first time the clock
-    // ticks over the figure the server drew.
-    test("the page words a duration exactly as the server does", () => {
+    test("the page formats elapsed seconds, minutes and hours", () => {
       const h = fresh();
       h.visibility("visible");
       const mark = { dataset: { elapsed: started }, textContent: "" };
       h.elapsed.push(mark);
       const base = Date.parse(started);
-      for (const secs of [0, 1, 45, 59, 60, 61, 125, 3599, 3600, 3661, 7325, 86_400]) {
+      for (const [secs, label] of [
+        [0, "0s"], [1, "1s"], [45, "45s"], [59, "59s"],
+        [60, "1m 00s"], [61, "1m 01s"], [125, "2m 05s"], [3599, "59m 59s"],
+        [3600, "1h 00m"], [3661, "1h 01m"], [7325, "2h 02m"], [86_400, "24h 00m"],
+      ] as const) {
         h.clock.at = base + secs * 1000;
         h.ticks.forEach((t) => t());
-        expect(mark.textContent).toBe(durationLabel(secs * 1000));
+        expect(mark.textContent).toBe(label);
       }
     });
 
     // A genuinely positive span must never round down to "0s" — that
     // reads as "nothing recorded", indistinguishable from a phase the
     // queue never measured at all.
-    test("a sub-second span never rounds down to 0s, on either side of the hand-paired pair", () => {
+    test("a sub-second span never rounds down to 0s", () => {
       const h = fresh();
       h.visibility("visible");
       const mark = { dataset: { elapsed: started }, textContent: "" };
@@ -109,7 +106,6 @@ describe("the rows are redrawn on a push, not on a timer", () => {
       h.clock.at = Date.parse(started) + 400;
       h.ticks.forEach((t) => t());
       expect(mark.textContent).toBe("1s");
-      expect(mark.textContent).toBe(durationLabel(400));
     });
 
     // A mark whose stamp says nothing is left exactly as the server

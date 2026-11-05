@@ -7,6 +7,7 @@
 // A model is added only when the last press of the Models tab's Check
 // read it among what the AI offers.
 
+import { trimmedText as text } from "../serve-helpers/http.ts";
 import { persistQueueSettings, type QueueStore } from "../../queue/queue.ts";
 import type { ModelChoice } from "../../queue/types.ts";
 import { NAME_RE } from "../../queue/parse-request.ts";
@@ -18,7 +19,7 @@ import {
   choiceModel, choiceOf, MODELS_ADD_ROUTE, MODELS_REMOVE_ROUTE, sameModel, TOOL_TAB_LABELS, type ToolModels,
 } from "../../render";
 import { isClaudeFamily, lastModels } from "../tool-models";
-import { bodyToObject, json, readBounded } from "../serve-helpers";
+import { json, parseBody } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
 type ModelTool = "claude" | "codex" | "opencode";
@@ -55,18 +56,6 @@ function keyFor(tool: ModelTool, model: string, taken: string[]): string | undef
         : [model];
   return candidates.map(clean).find(free);
 }
-
-async function parseBody(req: Request): Promise<Record<string, unknown> | Response> {
-  const body = await readBounded(req);
-  if ("refusal" in body) return body.refusal;
-  try {
-    return (bodyToObject(body.text, req.headers.get("content-type")) ?? {}) as Record<string, unknown>;
-  } catch {
-    return json({ error: "malformed body" }, 400);
-  }
-}
-
-const text = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 async function addModel(ctx: RoutesContext, asked: Record<string, unknown>): Promise<Response> {
   const refuse = (error: string) => json({ error }, 400);

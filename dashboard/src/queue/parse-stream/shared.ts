@@ -15,16 +15,11 @@
 //     while it is still being written, so a truncated final line is the
 //     normal case, not the exception.
 
+import { esc } from "../../format/html.ts";
+export { esc };
+
 /** Longest single entry. Past this a tool input is a file, not a label. */
 const MAX_ENTRY = 160;
-
-export function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 /** A shell command as one line that still shows where its lines broke:
  *  `cd x ⏎ sed …`, not `cd x sed …`. A line ending in `\` continues onto
@@ -253,3 +248,5 @@ export function codexKind(item: Record<string, unknown>): string {
   const str = (k: string) => (typeof item[k] === "string" ? (item[k] as string) : "");
   return str("item_type") || str("type");
 }
+
+export const isObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
