@@ -35,6 +35,9 @@ export async function readProviderStatus(
   let printed: string | undefined;
   try {
     const result = await run([bin, "--version"], process.cwd(), CHECK_TIMEOUT_MS, undefined, env);
+    // A shim left behind by a version manager runs and exits 127 for a tool
+    // it no longer has.
+    if (result.code === 127) return { key, at, installed: false };
     printed = stripAnsi(result.stdout).split("\n").map((l) => l.trim()).find((l) => l !== "");
   } catch {
     return { key, at, installed: false };

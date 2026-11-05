@@ -2,6 +2,9 @@
 // form on the provider's page, hidden until the reader opens it. Only a real browser opens a
 // `<details>` on a press.
 import { afterAll, beforeAll, expect, test } from "bun:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
@@ -17,6 +20,8 @@ const KEYS = {
   codex: { name: "Codex", tool: "codex" as const },
   opencode: { name: "OpenCode", tool: "opencode" as const },
 };
+/** The providers as the queue config keeps them: by name. */
+const PROVIDERS = Object.fromEntries(Object.values(KEYS).map((p) => [p.name, p]));
 /** What opening a provider's page reads, so the page never starts a real CLI. */
 const STUB_READS = {
   providerProbe: async (key: string) => ({ key, at: "2026-11-05T09:00:00.000Z", installed: true }),
@@ -29,13 +34,17 @@ let page: Page;
 let base: string;
 
 beforeAll(async () => {
+  const scratch = mkdtempSync(join(tmpdir(), "aide-e2e-check-help-config-"));
+  const file = join(scratch, "queue-config.json");
+  writeFileSync(file, JSON.stringify({ providers: PROVIDERS }, null, 2));
   browser = await withBrowser(chromium.launch(), "chromium.launch()");
   page = await browser.newPage();
   base = harness.start({
     extra: {
+      queueConfigFile: file,
       queueDefaults: {
         timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" },
-        providers: KEYS,
+        providers: structuredClone(PROVIDERS),
       },
       ...STUB_READS,
     },

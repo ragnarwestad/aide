@@ -34,6 +34,9 @@ export interface ToolModels {
   error?: string;
   /** The name of the provider whose folders the reading was made with. */
   provider?: string;
+  /** The key of that provider: a rename keeps it, a new provider that takes
+   *  the old name does not. */
+  providerKey?: string;
 }
 
 /** What the tab is handed beside the reading: the live choices and the

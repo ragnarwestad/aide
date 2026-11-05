@@ -32,7 +32,7 @@ export async function handleProviderPages(
   // The reading is kept per tool; it is this page's only when it was read with
   // this provider's folders.
   const last = provider ? lastModels()[provider.tool] : undefined;
-  const reading = last && provider && last.provider === provider.name ? last : undefined;
+  const reading = last && provider && last.providerKey === key ? last : undefined;
   const html = renderProviderPage(ctx.nav(), new Date().toISOString(), {
     tool: asProviderTool(url.searchParams.get("tool")),
     edit: path === PROVIDER_EDIT_PATH && provider ? { key, provider } : undefined,

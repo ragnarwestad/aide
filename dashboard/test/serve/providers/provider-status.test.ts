@@ -45,6 +45,13 @@ describe("reading a provider's status", () => {
     expect(run.calls).toHaveLength(1);
   });
 
+  test("a tool whose shim exits 127 is not installed, and no login command is run (AC-16)", async () => {
+    const run = fakeRun({ "--version": { code: 127, stderr: "codex: command not found" } });
+    const status = await readProviderStatus("Claude-2", CLAUDE_2, base(run));
+    expect(status.installed).toBe(false);
+    expect(run.calls).toHaveLength(1);
+  });
+
   test("the version and the login both run with the provider's folder in the environment (AC-5)", async () => {
     const run = fakeRun({ "--version": { stdout: "2.1.318\n" }, "auth status": { stdout: '{"loggedIn":false}' } });
     const status = await readProviderStatus("Claude-2", CLAUDE_2, base(run));

@@ -43,8 +43,8 @@ describe("a press of a provider's Check reads its tool's models", () => {
     const res = await pressCheck(base, "Claude");
     expect(res.status).toBe(200);
     const body = (await res.json()) as { models: ToolModels };
-    expect(body.models).toEqual({ ...CLAUDE_READING, provider: "Claude" });
-    expect(lastModels().claude).toEqual({ ...CLAUDE_READING, provider: "Claude" });
+    expect(body.models).toEqual({ ...CLAUDE_READING, provider: "Claude", providerKey: "Claude" });
+    expect(lastModels().claude).toEqual({ ...CLAUDE_READING, provider: "Claude", providerKey: "Claude" });
     expect(toolProbe.modelReads).toEqual([{ tool: "claude", configured: ["opus", "fable"], env: {} }]);
   });
 

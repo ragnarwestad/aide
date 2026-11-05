@@ -343,12 +343,23 @@ describe("the pages that add and edit a provider", () => {
     const { base } = serve();
     const { recordModels, forgetChecks } = await import("../../../src/render/ui/tool-checks.ts");
     forgetChecks();
-    recordModels({ tool: "claude", at: "2026-11-05T09:00:00.000Z", offered: [{ model: "only-from-a" }], provider: "Claude" });
+    recordModels({ tool: "claude", at: "2026-11-05T09:00:00.000Z", offered: [{ model: "only-from-a" }], provider: "Claude", providerKey: "Claude" });
     const own = await (await fetch(`${base}/settings/providers/edit?key=Claude&aitab=models`)).text();
     expect(own).toContain("only-from-a");
     await post(base, ADD, { tool: "claude", name: "Claude-B", configDir: folder() });
     const other = await (await fetch(`${base}/settings/providers/edit?key=Claude-B&aitab=models`)).text();
     expect(other).not.toContain("only-from-a");
+    forgetChecks();
+  });
+
+  test("a reading made for a provider that was renamed is not shown on a new provider that took its old name (AC-4)", async () => {
+    const { base } = serve();
+    const { recordModels, forgetChecks } = await import("../../../src/render/ui/tool-checks.ts");
+    forgetChecks();
+    recordModels({ tool: "claude", at: "2026-11-05T09:00:00.000Z", offered: [{ model: "only-from-old" }], provider: "Claude-B", providerKey: "Claude" });
+    await post(base, ADD, { tool: "claude", name: "Claude-B", configDir: folder() });
+    const other = await (await fetch(`${base}/settings/providers/edit?key=Claude-B&aitab=models`)).text();
+    expect(other).not.toContain("only-from-old");
     forgetChecks();
   });
 

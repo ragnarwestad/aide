@@ -79,8 +79,8 @@ export async function handleQueueAdminRoutes(
     ]);
     const checked: ToolCheck = check.status === "fulfilled" ? check.value
       : { tool, at, found: false, lines: [], extra: [], error: `The check could not be run: ${failed(check.reason)}` };
-    const read: ToolModels = models.status === "fulfilled" ? { ...models.value, provider: provider.name }
-      : { tool, at, offered: [], error: failed(models.reason), provider: provider.name };
+    const read: ToolModels = models.status === "fulfilled" ? { ...models.value, provider: provider.name, providerKey: key }
+      : { tool, at, offered: [], error: failed(models.reason), provider: provider.name, providerKey: key };
     recordCheck(checked);
     recordModels(read);
     recordClaudeVersions(ctx.queue, read, ctx.opts.modelIdsPath);
