@@ -402,21 +402,20 @@ export function sidePickers(
   g: SpecGroup,
   opts: PickerOptions,
   part: SidePart,
-  _implementTool: string,
   locked: boolean,
-  firstLabel: string,
 ): string {
   const models = opts.modelChoices ?? [];
   const choices = models;
   const providers = opts.providerChoices ?? [];
   const key = groupKey(g.project, g.specFolder);
   const saved = opts.pendingModels?.[key]?.[part] ?? "";
-  const chosen = choices.some((choice) => choice.name === saved) ? saved : "";
+  const configured = opts.defaultModels?.[part] ?? opts.defaultModels?.default;
+  const chosen = resolveChosenModel(choices, configured, undefined, saved);
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
-  const resting = chosen ? resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]) : undefined;
+  const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]);
   const disabled = locked ? " disabled" : "";
   const ai = providers.length === 0 || models.length === 0 ? "" : `<select name="provider.${part}" data-ai="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
-    `<option value="">${esc(firstLabel)}</option>` + providers.map((p) =>
+    providers.map((p) =>
       `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
     ).join("") + `</select>`;
   const options = models.map((choice) => {
@@ -424,6 +423,6 @@ export function sidePickers(
     return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
   }).join("");
   const model = `<select name="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
-    `<option value="">${esc(firstLabel)}</option>${options}</select>`;
+    `${options}</select>`;
   return `${ai}${model}`;
 }

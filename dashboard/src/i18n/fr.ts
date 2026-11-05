@@ -409,8 +409,6 @@ export const fr: Record<TranslationKey, string> = {
   "settings.row.timeoutAria": "Délai maximal en minutes pour {step}",
   "settings.side.review": "Relire",
   "settings.side.verify": "Vérifier",
-  "settings.side.reviewFirst": "Désactivé",
-  "settings.side.verifyFirst": "Désactivé",
   "settings.row.aiAria": "IA pour {step}",
   "settings.row.modelAria": "Modèle pour {step}",
   "settings.group.onSpec": "Sur une spec",

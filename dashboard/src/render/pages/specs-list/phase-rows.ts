@@ -305,16 +305,12 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       // The model's own messages, unfolded under the line.
       lines.push(...phaseMessagesRow(g, p, opts, ran, now));
       if (p.step === "implement" && (opts.modelChoices ?? []).length) {
-        const implementTool = phaseAiModel(
-          g, opts, "implement", g.lead?.stepModels?.implement, undefined, undefined, g.lead?.stepProviders?.implement,
-        )?.tool ?? "claude";
         for (const part of SIDE_PARTS) {
           const label = t(opts.lang ?? "en", `settings.side.${part}`);
-          const first = t(opts.lang ?? "en", `settings.side.${part}First`);
           lines.push({
             tag: `<tr class="subrow" data-side="${part}">`,
             cells: `<td class="phasecell" colspan="2"><span class="phasefold">${esc(label)}</span></td>` +
-              `<td class="modelcell"><span class="row">${sidePickers(g, opts, part, implementTool, locked || (busy && !editable.has("implement")), first)}</span></td>` +
+              `<td class="modelcell"><span class="row">${sidePickers(g, opts, part, locked || (busy && !editable.has("implement")))}</span></td>` +
               `<td data-col="state"></td><td data-col="started"></td><td class="num" data-col="cost"></td>`,
           });
         }

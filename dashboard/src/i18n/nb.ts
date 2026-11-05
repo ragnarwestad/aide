@@ -412,8 +412,6 @@ export const nb: Record<TranslationKey, string> = {
   "settings.row.timeoutAria": "Tidsgrense i minutter for {step}",
   "settings.side.review": "Gjennomgå",
   "settings.side.verify": "Bekreft",
-  "settings.side.reviewFirst": "Av",
-  "settings.side.verifyFirst": "Av",
   "settings.row.aiAria": "AI for {step}",
   "settings.row.modelAria": "Modell for {step}",
   "settings.group.onSpec": "På en spesifikasjon",

@@ -4,7 +4,7 @@
 
 import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
-import { providerLoginEnv, resolveStepProvider, sharesSessions, type Provider } from "../../queue/providers/index.ts";
+import { providerLoginEnv, resolveStepProvider, runsModel, sharesSessions, type Provider } from "../../queue/providers/index.ts";
 import { homedir } from "node:os";
 import type { CheckableTool } from "../../render";
 import { resolveSidePick, SIDE_PARTS } from "../../queue/providers/side-tools.ts";
@@ -66,11 +66,17 @@ export function reviewModelArgs(
 ): string[] {
   if (step !== "implement") return [];
   return SIDE_PARTS.flatMap((part) => {
-    const name = resolveSidePick(part, o.sidePicks, o.model ?? {});
+    const name = resolveSidePick(part, o.sidePicks, o.model ?? {}, Object.keys(o.modelChoices ?? {}));
     if (!name) return [];
     const choice = o.modelChoices?.[name];
     const sideTool = choice?.tool ?? "claude";
-    const providerKey = o.sideProviders?.[part] ?? o.provider?.[part];
+    const ownProvider = o.sideProviders?.[part];
+    const configuredProvider = o.provider?.[part];
+    const providerKey = ownProvider ?? (
+      configuredProvider && o.providers?.[configuredProvider] && runsModel(o.providers[configuredProvider], choice)
+        ? configuredProvider
+        : Object.entries(o.providers ?? {}).find(([, provider]) => runsModel(provider, choice))?.[0]
+    );
     const provider = providerKey ? o.providers?.[providerKey] : undefined;
     const env = provider ? providerLoginEnv(provider, o.home ?? homedir()) : undefined;
     const account = sideTool === "claude" && env?.CLAUDE_CONFIG_DIR
