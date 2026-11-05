@@ -68,7 +68,7 @@ export function failingTests(output: string): FailingTests {
   let pwList = false;
   let bunFile = "";
   let bunError = "";
-  const pendingVitest = new Set<number>();
+  let pendingVitest: number | undefined;
   const playwrightErrors = new Map<string, string>();
   let playwrightTest = "";
   for (const raw of lines) {
@@ -119,13 +119,13 @@ export function failingTests(output: string): FailingTests {
       const s = line.replace(/^FAIL +/, "").replace(/ \[ .* \]$/, "");
       const i = s.indexOf(" > ");
       const index = add("vitest", i < 0 ? s : `${s.slice(0, i)} › ${s.slice(i + 3)}`, i < 0 ? s : s.slice(0, i));
-      if (index !== undefined) pendingVitest.add(index);
+      pendingVitest = index;
       continue;
     }
     if (ERROR_LINE.test(line)) {
-      if (pendingVitest.size) {
-        for (const index of pendingVitest) if (!errors[index]) errors[index] = line;
-        pendingVitest.clear();
+      if (pendingVitest !== undefined) {
+        if (!errors[pendingVitest]) errors[pendingVitest] = line;
+        pendingVitest = undefined;
       } else if (!bunError) {
         bunError = line;
       }

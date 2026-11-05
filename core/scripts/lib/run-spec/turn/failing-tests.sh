@@ -83,17 +83,14 @@ function num(s, word,   t) {
     i = index(s, " > ")
     if (i > 0) s = substr(s, 1, i - 1) " › " substr(s, i + 3)
     add("vitest", s, file, "")
-    vitest_pending[last] = 1
+    vitest_pending = last
     next
   }
   if (is_error_line(line)) {
-    pending = 0
-    for (i in vitest_pending) {
-      pending = 1
-      if (errors[i] == "") errors[i] = line
-      delete vitest_pending[i]
-    }
-    if (!pending && bun_error == "") bun_error = line
+    if (vitest_pending) {
+      if (errors[vitest_pending] == "") errors[vitest_pending] = line
+      vitest_pending = 0
+    } else if (bun_error == "") bun_error = line
     next
   }
   if (line ~ /^Tests +[0-9]/) {

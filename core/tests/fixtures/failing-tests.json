@@ -79,7 +79,7 @@
         "test/x.test.ts"
       ],
       "errors": [
-        "TypeError: Cannot read properties of undefined",
+        "",
         "TypeError: Cannot read properties of undefined"
       ],
       "failed": 2,

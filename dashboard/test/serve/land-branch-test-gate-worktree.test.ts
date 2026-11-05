@@ -139,7 +139,7 @@ describe("the landing's test gate", () => {
     expect(verdict.ok).toBe(false);
     expect(verdict.error).toEqual({
       key: "landing.testsRedOnMerge",
-      values: { tests: "tests/test_x.py::test_x", branch: "aide/81-x", button: "Archive" },
+      values: { tests: "tests/test_x.py::test_x — assert 1 == 2", branch: "aide/81-x", button: "Archive" },
     });
     // The same test failed on both runs and passes on main alone: nothing
     // supports a busy machine, so nothing says so.
