@@ -36,7 +36,10 @@ const nameTaken = (providers: Record<string, Provider>, name: string, except?: s
 function freeKey(providers: Record<string, Provider>, name: string): string {
   const held = new Set(Object.keys(providers).map((k) => k.toLowerCase()));
   let key = name;
-  for (let n = 2; held.has(key.toLowerCase()); n++) key = `${name}-${n}`;
+  for (let n = 2; held.has(key.toLowerCase()); n++) {
+    const suffix = `-${n}`;
+    key = `${name.slice(0, 64 - suffix.length)}${suffix}`;
+  }
   return key;
 }
 

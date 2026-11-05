@@ -372,13 +372,18 @@ export function aiPicker(
     usedProvider,
     archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step],
   ];
-  const resting = resolveProvider(opts, step, on, picks);
+  // A provider the step ran on that has since been removed is still the
+  // one it ran on: it stays shown, by its key, rather than being replaced
+  // by another provider of the same tool.
+  const gone = usedProvider !== undefined && !providers.some((p) => p.key === usedProvider);
+  const resting = gone ? undefined : resolveProvider(opts, step, on, picks);
   return (
     `<select name="provider.${esc(step)}" data-ai="model.${esc(step)}" form="${esc(formIdOverride ?? runFormId(g))}"` +
     // Why it is locked, when it is, is said once for the whole phase
     // line now — not repeated on this select's own `title`.
     (locked ? " disabled" : "") +
     `>` +
+    (gone ? `<option value="${esc(usedProvider)}" selected>${esc(usedProvider)}</option>` : "") +
     providers
       .map(
         (p) =>

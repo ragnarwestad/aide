@@ -191,11 +191,14 @@ export function phaseAiModel(
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending, recordedModel);
   const tool = models.find((m) => m.name === model)?.tool ?? usedTool ?? "claude";
-  const provider = resolveProvider(
-    opts, step, model,
-    [usedProvider, archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step]],
-  );
-  return { model, tool, ...(provider ? { provider: provider.name } : {}) };
+  const gone = usedProvider !== undefined && !(opts.providerChoices ?? []).some((p) => p.key === usedProvider);
+  const provider = gone
+    ? undefined
+    : resolveProvider(
+        opts, step, model,
+        [usedProvider, archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step]],
+      );
+  return { model, tool, ...(gone ? { provider: usedProvider } : provider ? { provider: provider.name } : {}) };
 }
 
 /** The compact button's own text: the model's

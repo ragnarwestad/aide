@@ -149,5 +149,12 @@ describe("an AI and a model on every phase line", () => {
     expect(aiSelect(html, "analyze")).toMatch(/<option value="Claude"[^>]*selected/);
   });
 
+  test("a provider the step ran on that was removed stays shown, not replaced by another of its tool (AC-10)", () => {
+    const list = [row({ specFolder: "179-ai-per-phase", state: "done", stepProviders: { analyze: "removed-one" } })];
+    const select = aiSelect(rows(list), "analyze");
+    expect(select).toMatch(/<option value="removed-one"[^>]*selected>removed-one</);
+    expect(select).not.toMatch(/<option value="Claude"[^>]*selected/);
+  });
+
   // --- Nothing new is posted ---------------------------------
 });

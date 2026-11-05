@@ -13,12 +13,14 @@ const harness = queueHarness("aide-e2e-new-spec-tabs-");
 let browser: Browser;
 let base: string;
 
-// Model choices, so the phase table draws its AI and model pickers.
+// Model choices and a provider, so the phase table draws its AI and model pickers.
 const QUEUE_DEFAULTS = {
   timeoutSec: { default: 1200 },
   permissionMode: { default: "acceptEdits" },
   model: { default: "sonnet" },
   modelChoices: { sonnet: {}, fable: {} },
+  providers: { Claude: { name: "Claude", tool: "claude" as const } },
+  provider: { default: "Claude" },
 };
 
 beforeAll(async () => {

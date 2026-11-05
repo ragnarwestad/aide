@@ -81,6 +81,17 @@ describe("adding, editing, renaming and removing a provider", () => {
     expect(queueDefaults.providers?.Capra?.name).toBe("Other");
   });
 
+  test("a key made for a taken 64-character name stays within 64 characters (AC-2)", async () => {
+    const { base, queueDefaults } = serve();
+    const long = "x".repeat(64);
+    await post(base, ADD, { tool: "claude", name: long, configDir: folder() });
+    await post(base, RENAME, { key: long, newName: "Other" });
+    expect((await post(base, ADD, { tool: "claude", name: long, configDir: folder() })).status).toBe(200);
+    const keys = Object.keys(queueDefaults.providers!);
+    expect(keys.every((k) => k.length <= 64)).toBe(true);
+    expect(keys).toHaveLength(4);
+  });
+
   test("a name with a character a provider cannot have is refused with the sentence, the file as it was (AC-2)", async () => {
     const { base, file } = serve();
     const before = readFileSync(file, "utf-8");
