@@ -137,11 +137,20 @@ worktree_project_key() {
 # suite's fix turn and for an implement that continues its analysis.
 # Claude's `--name` goes too, with its value: a session is named once, by the
 # turn that starts it, and a name in a resumed turn's argv would rename it.
+# A Codex argv that already resumes a thread is resumed afresh: its
+# `resume` and its trailing `<thread> -` are dropped before they are
+# added again.
 resume_argv() {
-  local session="$1" arg skip="no" resumes="no"
+  local session="$1" arg skip="no" resumes="no" prev="" source_argv=("${argv[@]}")
+  local n=${#source_argv[@]}
+  if [ "$tool" = "codex" ] && [ "$n" -ge 2 ] && [ "${source_argv[$((n - 1))]}" = "-" ]; then
+    source_argv=("${source_argv[@]:0:$((n - 2))}")
+  fi
   resumed_argv=()
-  for arg in "${argv[@]}"; do
-    if [ "$skip" = "yes" ]; then skip="no"; continue; fi
+  for arg in "${source_argv[@]}"; do
+    if [ "$skip" = "yes" ]; then skip="no"; prev="$arg"; continue; fi
+    if [ "$prev" = "exec" ] && [ "$arg" = "resume" ]; then prev="$arg"; continue; fi
+    prev="$arg"
     case "$arg" in
       --session-id|--resume) resumed_argv+=(--resume "$session"); resumes="yes"; skip="yes" ;;
       --sandbox|--add-dir|--name) skip="yes" ;;

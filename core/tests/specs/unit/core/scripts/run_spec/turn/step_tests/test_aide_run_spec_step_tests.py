@@ -268,6 +268,7 @@ def test_a_codex_fix_turn_that_prints_nothing_does_not_read_the_reviews_capacity
     codex = _three_turns(fake_codex, CODEX_OK, review, SILENT_EXIT)
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
     assert out["terminalReason"] == "cli-error", out
+    assert out["ok"] is False, out
 
 
 def test_a_claude_fix_turn_that_prints_nothing_does_not_read_the_reviews_capacity_result(
