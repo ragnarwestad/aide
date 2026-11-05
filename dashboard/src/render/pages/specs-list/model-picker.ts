@@ -418,7 +418,7 @@ export function sidePickers(
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
   const resting = chosen ? resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]) : undefined;
   const disabled = locked ? " disabled" : "";
-  const ai = `<select name="provider.${part}" data-ai="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
+  const ai = providers.length === 0 || models.length === 0 ? "" : `<select name="provider.${part}" data-ai="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
     `<option value="">${esc(firstLabel)}</option>` + providers.map((p) =>
       `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}${sideTools(implementTool).includes(p.tool) ? "" : " hidden disabled"}>${esc(p.name)}</option>`,
     ).join("") + `</select>`;

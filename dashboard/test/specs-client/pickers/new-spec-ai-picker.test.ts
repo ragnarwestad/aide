@@ -70,11 +70,15 @@ function aiSelect(step: string, tool: string) {
 function standUpDocument(elements: Record<string, string>[]): void {
   const getAttr = (el: Record<string, unknown>, attr: string): string | null =>
     attr === "name" ? ((el.name as string) ?? null) : (el.getAttribute as (n: string) => string | null)(attr);
+  const querySelectorAll = (sel: string) => {
+    const conditions = [...sel.matchAll(/\[([\w-]+)(?:="([^"]*)")?\]/g)].map((m) => [m[1]!, m[2]] as const);
+    return elements.filter((el) => conditions.every(([attr, value]) =>
+      value === undefined ? getAttr(el, attr) !== null : getAttr(el, attr) === value,
+    ));
+  };
   (globalThis as { document?: unknown }).document = {
-    querySelectorAll: (sel: string) => {
-      const conditions = [...sel.matchAll(/\[([\w-]+)="([^"]*)"\]/g)].map((m) => [m[1]!, m[2]!] as const);
-      return elements.filter((el) => conditions.every(([attr, value]) => getAttr(el, attr) === value));
-    },
+    querySelectorAll,
+    querySelector: (sel: string) => querySelectorAll(sel)[0] ?? null,
   };
 }
 
