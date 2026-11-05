@@ -6,6 +6,7 @@ tests were red (run-spec/turn/step-tests.sh).
 """
 
 import json
+import shutil
 
 from ....conftest import READ_SPECS, stand_in
 from ....conftest import run
@@ -13,6 +14,30 @@ from ...run_spec_results import RESULT_OK
 from ...run_spec_status_files import with_status
 
 FOLDER = "81-queue-and-runner"
+
+
+def test_an_unresolved_test_command_says_no_test_ran_and_names_the_manifest_fix_ac_1(
+    runner, workspace, fake_claude, tmp_path
+):
+    """A resolver failure is infrastructure, not a red test suite."""
+    with_status(workspace, ["create", "analyze"])
+    scripts = tmp_path / "scripts"
+    shutil.copytree(runner.parent, scripts, symlinks=True)
+    stand_in(
+        scripts / "aide-resolve-test-cmd",
+        "#!/bin/sh\necho '{\"ok\":false,\"error\":\"broken manifest\"}'\n",
+    )
+    claude = fake_claude(
+        "printf 'real work\\n' > implemented.txt\n"
+        "git add -A && git commit -q -m 'the step' >/dev/null 2>&1 || true\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement", runner_path=scripts / "aide-run-spec")
+    assert out["terminalReason"] == "tests-not-started", out
+    assert out["testsNotStarted"] == {"kind": "test-command-unresolved"}, out
+    assert "no test ran" in out["error"], out["error"]
+    assert "AIDE_TEST_CMD" in out["error"] and ".aide/project.yaml" in out["error"], out["error"]
+    assert "tests are red" not in out["error"], out["error"]
 
 
 def _claude_moving_the_folder_away(fake_claude, tmp_path):
@@ -45,7 +70,7 @@ def test_a_spec_folder_the_recorder_cannot_find_ends_tests_not_started_without_a
     assert "test suite is red" not in prompts.read_text(), "no fix round for tests that never ran"
 
 
-def test_a_recorder_that_ends_without_a_result_is_not_red_tests(
+def test_a_recorder_that_ends_without_a_result_is_not_red_tests_ac_3(
     runner, workspace, fake_claude, tmp_path, monkeypatch
 ):
     """The recorder is a stand-in that dies before writing its result: the
@@ -56,9 +81,8 @@ def test_a_recorder_that_ends_without_a_result_is_not_red_tests(
     copied = scripts / "aide-run-spec"
     # The runner finds the recorder beside itself, so a copy of the
     # scripts folder with a broken recorder is the runner the test runs.
-    import shutil
     shutil.copytree(runner.parent, scripts, dirs_exist_ok=True, symlinks=True)
-    stand_in(scripts / "aide-record-test-run", "#!/bin/sh\necho 'something broke' >&2\nexit 2\n")
+    stand_in(scripts / "aide-record-test-run", "#!/bin/sh\necho 'red: worker(s) 1' >&2\nexit 2\n")
     prompts = tmp_path / "prompts.txt"
     claude = fake_claude(
         f'cat >> {prompts}\n'
@@ -69,4 +93,6 @@ def test_a_recorder_that_ends_without_a_result_is_not_red_tests(
     rc, out, _ = run(runner, workspace, claude, command="implement", runner_path=copied)
     assert out["terminalReason"] == "tests-not-started", out
     assert out["testsNotStarted"]["kind"] == "recorder-failed", out
+    assert "red: worker(s) 1" not in out["error"], out["error"]
+    assert "did not write a readable result" in out["error"], out["error"]
     assert "test suite is red" not in prompts.read_text()

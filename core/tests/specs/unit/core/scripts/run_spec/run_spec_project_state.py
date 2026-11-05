@@ -217,6 +217,26 @@ def configure_sent_back(workspace, case):
 # every caller that reaches the board is registered below instead.
 BASH_ERROR_REGISTRY: list[dict] = [
     {
+        "name": "an implement could not resolve the project's test command",
+        "pattern": r"the step reported success, but no test ran because the runner could not work out the project's test command.*",
+        "resolve": "Fix AIDE_TEST_CMD in the project's .aide/project.yaml",
+    },
+    {
+        "name": "the test recorder wrote no readable result",
+        "pattern": r"the step reported success, but the project's tests were not run — the test recorder did not write a readable result.*",
+        "resolve": "once the recorder is working",
+    },
+    {
+        "name": "a test server did not start",
+        "pattern": r"the step reported success, but the project's tests stopped when the server needed by .*",
+        "resolve": "once that server can start",
+    },
+    {
+        "name": "a checkout lock timed out",
+        "pattern": r"timed out waiting for the worktree lock at \$lock on the serving host.*",
+        "resolve": "safe to remove that lock only after confirming that no aide-run-spec process is using that checkout",
+    },
+    {
         "name": "a local branch has diverged from origin's copy (sync_branch_with_origin)",
         "pattern": r"\$br has diverged from origin's copy.*",
         "resolve": "in the checkout on the serving host",

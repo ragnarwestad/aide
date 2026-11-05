@@ -240,7 +240,7 @@ worktree_lock=""
 acquire_worktree_lock() {
   local root="$1" lock deadline owner_pid
   lock="$root/.git/aide-run-spec-worktree.lock"
-  deadline=$(( $(date +%s) + 120 ))
+  deadline=$(( $(date +%s) + ${AIDE_WORKTREE_LOCK_WAIT_SECONDS:-120} ))
   while ! mkdir "$lock" 2>/dev/null; do
     owner_pid="$(cat "$lock/pid" 2>/dev/null || true)"
     if [ -n "$owner_pid" ] && ! kill -0 "$owner_pid" 2>/dev/null; then
@@ -249,7 +249,7 @@ acquire_worktree_lock() {
     fi
     if [ "$(date +%s)" -ge "$deadline" ]; then
       worktree_lock=""
-      refuse "timed out waiting for the worktree lock on $root (pid ${owner_pid:-unknown} may be stuck)"
+      refuse "timed out waiting for the worktree lock at $lock on the serving host. It is safe to remove that lock only after confirming that no aide-run-spec process is using that checkout."
     fi
     sleep 0.2
   done

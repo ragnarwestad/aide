@@ -305,12 +305,17 @@ async function runSuiteIn(
     if (!parsed.ok) {
       return {
         ok: false,
-        error: `the landing could not work out the test command in ${root} — ${parsed.error ?? "unknown"}`,
+        error: { key: "testGate.cannotResolveCommand", values: { root } },
+        detail: String(parsed.error ?? "unknown"),
       };
     }
     commands = Array.isArray(parsed.commands) ? parsed.commands : [];
   } catch {
-    return { ok: false, error: `the landing could not read aide-resolve-test-cmd's answer in ${root}`, detail: resolved.stderr.slice(-400) };
+    return {
+      ok: false,
+      error: { key: "testGate.cannotReadResolverAnswer", values: { root } },
+      detail: resolved.stderr.slice(-400),
+    };
   }
   if (commands.length === 0) {
     // No AIDE_TEST_CMD: nothing to run is not red. The project's page

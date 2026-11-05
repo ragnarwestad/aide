@@ -7,6 +7,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 from ....conftest import READ_SPECS, git, run, stand_in
 from ...run_spec_results import (
@@ -731,6 +732,32 @@ def test_a_suite_whose_server_could_not_start_ends_tests_not_started_with_no_fix
     # implement and its review; no fix turn.
     assert len(calls) == 2, calls
     assert not any("--resume" in c for c in calls), calls
+
+
+def test_a_server_start_failure_names_each_failed_command_and_the_captured_line_ac_4(
+    runner, workspace, fake_claude, tmp_path
+):
+    """A command chain can partly run before its test server stops."""
+    with_status(workspace, ["create", "analyze"])
+    scripts = tmp_path / "scripts"
+    shutil.copytree(runner.parent, scripts, symlinks=True)
+    stand_in(
+        scripts / "aide-resolve-test-cmd",
+        "#!/bin/sh\nprintf '%s\\n' '{\"ok\":true,\"commands\":[\"echo setup complete\",\"echo first failed; exit 1\",\"echo \\\"Error: Process from config.webServer was not able to start. Exit code: 1\\\"; exit 2\"]}'\n",
+    )
+    rc, out, _ = run(
+        runner,
+        workspace,
+        _implementing_claude(fake_claude),
+        command="implement",
+        runner_path=scripts / "aide-run-spec",
+    )
+    assert out["terminalReason"] == "tests-not-started", out
+    assert "echo first failed; exit 1" not in out["error"], out["error"]
+    assert out["testsNotStarted"]["command"].startswith('echo "Error: Process'), out
+    assert out["testsNotStarted"]["line"] == "Error: Process from config.webServer was not able to start. Exit code: 1", out
+    assert "config.webServer was not able to start" in out["error"], out["error"]
+    assert "echo setup complete" not in out["error"], out["error"]
 
 
 def test_the_tail_of_a_red_log_starts_at_a_line_not_inside_a_word(runner, workspace, fake_claude, tmp_path):

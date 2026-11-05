@@ -303,9 +303,10 @@ export function sharedFiles(raw: unknown): SharedFiles[] | undefined {
 /** Why a test run never started, as `run-spec/turn/test-start.sh` sorts it, or
  *  why the runner's test recorder did not run it (`run-spec/turn/step-tests.sh`). */
 export type TestsNotStarted =
-  | { kind: "port-in-use"; port: number; holder?: { pid: number; command?: string; spec?: string } }
-  | { kind: "server-timeout"; ms?: number }
-  | { kind: "server-exited" }
+  | { kind: "test-command-unresolved" }
+  | { kind: "port-in-use"; port: number; command?: string; line?: string; holder?: { pid: number; command?: string; spec?: string } }
+  | { kind: "server-timeout"; ms?: number; command?: string; line?: string }
+  | { kind: "server-exited"; command?: string; line?: string }
   | { kind: "spec-folder-missing"; folder: string }
   | { kind: "recorder-failed"; error: string };
 
@@ -317,6 +318,7 @@ export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
   const r = raw as Record<string, unknown>;
   const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
   const text = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+  if (r.kind === "test-command-unresolved") return { kind: "test-command-unresolved" };
   if (r.kind === "port-in-use") {
     const port = num(r.port);
     if (port === undefined) return undefined;
@@ -326,10 +328,10 @@ export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
       pid === undefined
         ? undefined
         : { pid, ...(text(h?.command) ? { command: text(h?.command) } : {}), ...(text(h?.spec) ? { spec: text(h?.spec) } : {}) };
-    return { kind: "port-in-use", port, ...(holder ? { holder } : {}) };
+    return { kind: "port-in-use", port, ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}), ...(holder ? { holder } : {}) };
   }
-  if (r.kind === "server-timeout") return { kind: "server-timeout", ...(num(r.ms) !== undefined ? { ms: num(r.ms) } : {}) };
-  if (r.kind === "server-exited") return { kind: "server-exited" };
+  if (r.kind === "server-timeout") return { kind: "server-timeout", ...(num(r.ms) !== undefined ? { ms: num(r.ms) } : {}), ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}) };
+  if (r.kind === "server-exited") return { kind: "server-exited", ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}) };
   const folder = text(r.folder);
   if (r.kind === "spec-folder-missing" && folder) return { kind: "spec-folder-missing", folder };
   const error = text(r.error);
