@@ -75,12 +75,19 @@ never fatal: it is reported beside the merge.
 
 A landing merges the spec branch into each repo's default branch and pushes, one repo at a time:
 
-- **A conflict refuses and names the repo.** The failed merge is aborted, so no half-merged tree is left behind.
+- **A conflict refuses and names the repo and the files.** The files in conflict are read before the failed merge is
+  aborted, so no half-merged tree is left behind; the sentence names five at most and how many more, and git's own
+  lines are the detail.
 - **A dirty tree decides nothing.** A file that genuinely collides raises git's own error.
 - **A lost lock is not a conflict.** When git's stderr names a lock (`index.lock`, `packed-refs.lock`, a ref lock),
   the pull and the merge are retried up to five times, 400 ms apart.
 - **A failed merge is tried again twice**, 700 ms and then 1400 ms after the first. A red test gate is not retried
   this way. Git's own words are kept as the row's detail.
+- **A push that fails says why.** The push and the question to origin that follows a failed one get a minute each,
+  not the four seconds every other git command gets, since a push killed at four seconds leaves no words at all. What
+  git said is sorted as a run's own push is ([When a push fails or the base conflicts](the-runner.md#when-a-push-fails-or-the-base-conflicts),
+  `gitError` in `src/format/git-error.ts`), and the refusal says it in the reader's language, with git's own lines,
+  whole, as the detail.
 - **Main moving under a landing is not a refusal.** When origin rejects the push because the default branch got
   commits while the tests ran, the branch is merged again onto the new base, the tests run again, and the push is
   made once more. A second rejection refuses, with the checkout level with origin.

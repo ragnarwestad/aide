@@ -9,6 +9,7 @@
 - [When a provider limit ends a step](#when-a-provider-limit-ends-a-step)
 - [The dashboard's own checkouts](#the-dashboards-own-checkouts)
 - [How a run touches the repositories](#how-a-run-touches-the-repositories)
+- [When a push fails or the base conflicts](#when-a-push-fails-or-the-base-conflicts)
 - [What a step can reach](#what-a-step-can-reach)
 - [What counts as a step having run](#what-counts-as-a-step-having-run)
 - [What a finished step publishes](#what-a-finished-step-publishes)
@@ -216,6 +217,42 @@ runs as on any implemented spec. A merge left open in that worktree is left alon
 **A run reaches the project and its specs root, and under the specs root only its own spec's folder.** A step that
 writes another spec's folder ends `scope-violation`, with those changes discarded before the commit. There is no flag
 to name a third repo.
+
+## When a push fails or the base conflicts
+
+**A push that fails is sorted from git's own words**, by `git_error_json` in `core/scripts/lib/git-error.sh`, and the
+result carries one entry per repo whose push failed as `pushFailures`: `repo` (`code` or `specs`), `branch`, `kind`
+and, for two kinds, `message`. A root the run left unpushed with no failure to show for it is listed too, as `none`.
+
+| `kind`    | When                                                                                                    |
+|-----------|---------------------------------------------------------------------------------------------------------|
+| `auth`    | GitHub does not take the machine's SSH key or login: `Permission denied (publickey)`, a 401 or 403       |
+| `github`  | GitHub had an error (a 5xx, `Internal Server Error`), or the network failed (a host that does not resolve, a timeout) |
+| `refused` | Origin turned the push down: a protected branch, a hook, a non-fast-forward; `message` is origin's own first line |
+| `other`   | Anything else; `message` is git's own first line                                                        |
+| `none`    | git said nothing                                                                                        |
+
+The kinds are tried in that order: an SSH key fault is followed by "Could not read from remote repository", which a
+network failure prints too, and GitHub's 500 arrives on a `[remote rejected]` line. A failed push is followed by a
+question to origin, and when origin does not answer, the push's own words decide, else the question's: an SSH key
+GitHub does not take fails both. `message` leaves out the `To <url>` and `hint:` lines and the sentences git adds to
+every failure, and is cut at a word after 160 characters.
+
+The job's `error` and `pushError` keep git's text in whole lines, eight at most, without colour codes, carriage
+returns or blank lines (`git_error_detail`), and the board shows it behind the row's (?). The row's own sentence is
+the board's (`gitFailureMessage`, `src/queue/runner/git-failure.ts`): one per repo, naming the repo and the branch,
+with why in the reader's language: `auth` says GitHub does not accept the SSH key of the machine that runs Aide;
+`github` says GitHub had an error, to try again in a little while; `refused` and `other` give the message; `none` says
+git gave no error text.
+
+**A branch that conflicts with the base names the files.** A step other than `archive` and `implement` refuses with
+`errorReason: "conflict"` ([Branches and landing](landing.md#archive-and-implement-resolve-the-conflict-themselves)),
+and `update_branch_to_base` (`run-spec/checkout/worktree.sh`) reads the files in conflict before it undoes the
+merge. The result carries them as `conflict`: `repo`, `branch`, `base`, `files` (five at most) and `more` (how many
+besides). The row's sentence names the repo, the branch, the base and the files, as `a.ts, b.ts (+3)`, and says to
+merge it by hand in the checkout on the serving host.
+
+`aide-push-specs` sorts its own push the same way and prints the cause in English.
 
 ## What a step can reach
 

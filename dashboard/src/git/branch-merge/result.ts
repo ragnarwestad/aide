@@ -1,6 +1,7 @@
 // What one repo's landing reports, and the one way a refusal is worded.
 
 import type { BoardMessage, Sentence } from "../../i18n/message.ts";
+import { gitErrorSentence, type GitError } from "../../format/git-error.ts";
 
 export interface RepoMergeResult {
   root: string;
@@ -72,6 +73,22 @@ export interface RepoMergeResult {
 export const refuse = (root: string, ref: string, why: BoardMessage, detail?: string): RepoMergeResult => ({
   root,
   ok: false,
-  error: { key: why.key, values: { ...why.values, ref, root } },
+  error: { key: why.key, values: { ...why.values, ref, root }, ...(why.inner !== undefined ? { inner: why.inner } : {}) },
   ...(detail ? { detail } : {}),
 });
+
+/** A merge whose push failed for a reason other than a base that moved:
+ *  why, sorted from git's own words, as the inner sentence, and those
+ *  words, whole lines, as the detail. */
+export const pushRefusal = (
+  root: string,
+  ref: string,
+  base: string,
+  pushed: { cause?: GitError; error?: string },
+): RepoMergeResult =>
+  refuse(
+    root,
+    ref,
+    { key: "landing.pushFailedTo", values: { base }, inner: gitErrorSentence(pushed.cause ?? { kind: "none" }) },
+    pushed.error || undefined,
+  );

@@ -345,6 +345,10 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     (tmp_path / "lib" / "translation-files.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "translation-files.sh").read_bytes()
     )
+    # git-error.sh too: a failed push and a conflict are sorted with it.
+    (tmp_path / "lib" / "git-error.sh").write_bytes(
+        (pathlib.Path(runner).parent / "lib" / "git-error.sh").read_bytes()
+    )
     (tmp_path / "lib" / "tracking-info.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "tracking-info.sh").read_bytes()
     )

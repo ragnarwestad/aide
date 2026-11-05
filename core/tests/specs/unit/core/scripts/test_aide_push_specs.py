@@ -245,3 +245,36 @@ def test_a_board_that_answers_no_is_one_line_and_the_push_stands_AC_6(
     assert origin_head(origin) == pushed
     assert len(lines(result.stdout)) == 1
     assert board.url in result.stdout
+
+
+def test_an_ssh_key_github_does_not_take_is_said_as_such(pusher, tmp_path, monkeypatch):
+    """The key fault fails the reachability question too, so it was
+    reported as an origin that could not be reached."""
+    origin = init_origin(tmp_path)
+    machine = Machine(tmp_path, origin)
+    git(machine.specs, "remote", "set-url", "origin", "git@github.com:x/specs.git")
+    ssh = tmp_path / "ssh"
+    ssh.write_text("#!/bin/sh\nprintf 'git@github.com: Permission denied (publickey).\\r\\n' >&2\nexit 255\n")
+    ssh.chmod(0o755)
+    monkeypatch.setenv("GIT_SSH_COMMAND", str(ssh))
+    commit_file(machine.specs, "new.md", "x\n")
+
+    result = machine.run(pusher)
+
+    assert result.returncode != 0
+    assert "GitHub does not accept this machine's SSH key" in result.stderr, result.stderr
+    assert "\r" not in result.stderr
+
+
+def test_a_refusal_is_origin_s_own_first_line(pusher, tmp_path):
+    origin = init_origin(tmp_path)
+    hook = origin / "hooks" / "pre-receive"
+    hook.write_text("#!/bin/sh\necho 'error: GH006: Protected branch update failed for refs/heads/main.' >&2\nexit 1\n")
+    hook.chmod(0o755)
+    machine = Machine(tmp_path, origin)
+    commit_file(machine.specs, "new.md", "x\n")
+
+    result = machine.run(pusher)
+
+    assert result.returncode != 0
+    assert result.stderr.rstrip().endswith(": GH006: Protected branch update failed for refs/heads/main"), result.stderr

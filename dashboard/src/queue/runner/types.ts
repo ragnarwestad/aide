@@ -97,6 +97,12 @@ export interface StepOutcome {
    *  the runner (`run-spec/turn/provider-error.sh`); read by
    *  `providerError()` below. */
   providerError?: unknown;
+  /** Each repo whose push failed, with what git said, sorted by the runner
+   *  (`lib/git-error.sh`); read by `pushFailures()` in `git-failure.ts`. */
+  pushFailures?: unknown;
+  /** The files a conflict with the base named, on a refusal whose
+   *  `errorReason` is `"conflict"`; read by `conflictOf()` in `git-failure.ts`. */
+  conflict?: unknown;
   error?: string;
   /** A deploy's failure in the board's own words, which the English `error`
    *  beside it restates: the job's row reads this, and `error` is its

@@ -1,0 +1,87 @@
+{
+  "_about": "What git said when a push failed, and how it is sorted: the kind, origin's own first line where the board shows it, and the cleaned text behind the (?). Pins core/scripts/lib/git-error.sh and dashboard/src/format/git-error.ts to the same answers.",
+  "cases": [
+    {
+      "name": "SSH key the host does not accept, with git's carriage return (a real push from the serving host)",
+      "said": "git@github.com: Permission denied (publickey).\r\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n",
+      "kind": "auth",
+      "detail": "git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.\nPlease make sure you have the correct access rights\nand the repository exists."
+    },
+    {
+      "name": "HTTPS credentials refused",
+      "said": "remote: Invalid username or password.\nfatal: Authentication failed for 'https://github.com/x/y.git/'\n",
+      "kind": "auth",
+      "detail": "remote: Invalid username or password.\nfatal: Authentication failed for 'https://github.com/x/y.git/'"
+    },
+    {
+      "name": "A 403 over HTTPS",
+      "said": "remote: Permission to x/y.git denied to someone.\nfatal: unable to access 'https://github.com/x/y.git/': The requested URL returned error: 403\n",
+      "kind": "auth",
+      "detail": "remote: Permission to x/y.git denied to someone.\nfatal: unable to access 'https://github.com/x/y.git/': The requested URL returned error: 403"
+    },
+    {
+      "name": "GitHub's Internal Server Error on a remote rejected line (a real push from the serving host)",
+      "said": "To github.com:ragnarwestad/aide-specs.git\n ! [remote rejected]   aide/new-e1110633 -> aide/new-e1110633 (Internal Server Error)\nerror: failed to push some refs to 'github.com:ragnarwestad/aide-specs.git'\n",
+      "kind": "github",
+      "detail": "To github.com:ragnarwestad/aide-specs.git\n! [remote rejected]   aide/new-e1110633 -> aide/new-e1110633 (Internal Server Error)\nerror: failed to push some refs to 'github.com:ragnarwestad/aide-specs.git'"
+    },
+    {
+      "name": "A 502 over HTTPS",
+      "said": "error: RPC failed; HTTP 502 curl 22 The requested URL returned error: 502\nfatal: the remote end hung up unexpectedly\n",
+      "kind": "github",
+      "detail": "error: RPC failed; HTTP 502 curl 22 The requested URL returned error: 502\nfatal: the remote end hung up unexpectedly"
+    },
+    {
+      "name": "No network: the host name does not resolve",
+      "said": "ssh: Could not resolve hostname github.com: nodename nor servname provided, or not known\r\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n",
+      "kind": "github",
+      "detail": "ssh: Could not resolve hostname github.com: nodename nor servname provided, or not known\nfatal: Could not read from remote repository.\nPlease make sure you have the correct access rights\nand the repository exists."
+    },
+    {
+      "name": "No network: the connection times out",
+      "said": "ssh: connect to host github.com port 22: Operation timed out\r\nfatal: Could not read from remote repository.\n",
+      "kind": "github",
+      "detail": "ssh: connect to host github.com port 22: Operation timed out\nfatal: Could not read from remote repository."
+    },
+    {
+      "name": "A protected branch: origin's own first line, without remote: and error:",
+      "said": "remote: error: GH006: Protected branch update failed for refs/heads/main.\nremote: error: Changes must be made through a pull request.\nTo github.com:x/y.git\n ! [remote rejected] main -> main (protected branch hook declined)\nerror: failed to push some refs to 'github.com:x/y.git'\n",
+      "kind": "refused",
+      "message": "GH006: Protected branch update failed for refs/heads/main",
+      "detail": "remote: error: GH006: Protected branch update failed for refs/heads/main.\nremote: error: Changes must be made through a pull request.\nTo github.com:x/y.git\n! [remote rejected] main -> main (protected branch hook declined)\nerror: failed to push some refs to 'github.com:x/y.git'"
+    },
+    {
+      "name": "A non-fast-forward: the rejected line, not the To line or the hints",
+      "said": "To github.com:x/y.git\n ! [rejected]        aide/49-an-organiser-can-crop-the-cover-image -> aide/49-an-organiser-can-crop-the-cover-image (non-fast-forward)\nerror: failed to push some refs to 'github.com:x/y.git'\nhint: Updates were rejected because the tip of your current branch is behind\nhint: its remote counterpart.\n",
+      "kind": "refused",
+      "message": "[rejected] aide/49-an-organiser-can-crop-the-cover-image -> aide/49-an-organiser-can-crop-the-cover-image (non-fast-forward)",
+      "detail": "To github.com:x/y.git\n! [rejected]        aide/49-an-organiser-can-crop-the-cover-image -> aide/49-an-organiser-can-crop-the-cover-image (non-fast-forward)\nerror: failed to push some refs to 'github.com:x/y.git'\nhint: Updates were rejected because the tip of your current branch is behind\nhint: its remote counterpart."
+    },
+    {
+      "name": "Anything else: its own first line, cleaned",
+      "said": "\u001b[31mfatal: 'origin' does not appear to be a git repository\u001b[0m\nfatal: Could not read from remote repository.\n",
+      "kind": "other",
+      "message": "'origin' does not appear to be a git repository",
+      "detail": "fatal: 'origin' does not appear to be a git repository\nfatal: Could not read from remote repository."
+    },
+    {
+      "name": "No error text at all",
+      "said": "",
+      "kind": "none",
+      "detail": ""
+    },
+    {
+      "name": "Only blank lines and carriage returns",
+      "said": "\r\n  \n\r",
+      "kind": "none",
+      "detail": ""
+    },
+    {
+      "name": "A long first line is cut at a word, and the detail keeps eight lines at most",
+      "said": "fatal: word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\n",
+      "kind": "other",
+      "message": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word…",
+      "detail": "fatal: word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8"
+    }
+  ]
+}

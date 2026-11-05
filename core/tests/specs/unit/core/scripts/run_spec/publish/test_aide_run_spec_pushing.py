@@ -307,6 +307,13 @@ def test_an_unpushed_step_never_lands_on_the_workflow_steps_line(
     branch = "aide/81-queue-and-runner"
     line = workflow_steps_line(workspace["specs"], branch, workspace["folder"])
     assert line == "- **Workflow steps completed:** analyze", line
+    # Each repo's refusal, sorted, with origin's own words for the board.
+    assert [(f["repo"], f["branch"], f["kind"]) for f in out["pushFailures"]] == [
+        ("code", branch, "refused"), ("specs", branch, "refused")
+    ], out["pushFailures"]
+    assert "pre-receive hook declined" in out["pushFailures"][0]["message"]
+    # Behind the (?): git's lines whole, not cut at a byte count.
+    assert "\n" in out["pushError"] and "\r" not in out["pushError"]
 
 def test_a_re_run_after_unpushed_reaches_origin_and_lands_on_the_line(
     runner, workspace, fake_claude, rejecting_origin
@@ -368,6 +375,8 @@ def test_the_second_pass_alone_can_fail_unpushed(
     assert out["ok"] is False
     assert out["terminalReason"] == "unpushed"
     assert out["pushError"]
+    assert out["pushError"] in out["error"], "the line's own push says why it failed"
+    assert [(f["repo"], f["kind"]) for f in out["pushFailures"]] == [("specs", "refused")]
     branch = "aide/81-queue-and-runner"
     # Origin's own copy is exactly pass 1's content — the line's own
     # commit never reached it.

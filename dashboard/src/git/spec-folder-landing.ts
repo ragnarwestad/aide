@@ -11,7 +11,7 @@
 // — unless the landing is a `close`, where it is deleted.
 
 import {
-  GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, mergeWorktreePath, pushWithRetry, refuse, sleep,
+  GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, mergeWorktreePath, pushRefusal, pushWithRetry, refuse, sleep,
   type RepoMergeResult, type Wait,
 } from "./branch-merge/index.ts";
 import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
@@ -68,7 +68,7 @@ export async function landSpecFolderOnly(
       const pushed = await pushWithRetry(run, work, base, wait);
       if (pushed.ok) break;
       if (!pushed.moved) {
-        return refuse(root, branch, { key: "landing.pushFailed", values: { base, pushError: pushed.error ?? "" } });
+        return pushRefusal(root, branch, base, pushed);
       }
       if (attempt >= 1) return refuse(root, branch, { key: "landing.baseMovedTwice", values: { base } }, pushed.error);
       await run(work, ["fetch", "--quiet", "origin", base]);

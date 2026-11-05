@@ -521,6 +521,10 @@ def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, wor
     # conflict found here is the same step as the way out of one found
     # by a landing.
     assert out["errorReason"] == "conflict"
+    # And it names the files in conflict, read before the merge was undone.
+    assert out["conflict"] == {"repo": "code", "branch": branch, "base": "main",
+                               "files": ["contested.txt"], "more": 0}, out
+    assert "contested.txt" in out["error"]
     # And the tree is left clean, not mid-merge.
     assert git(project, "status", "--porcelain") == ""
 
