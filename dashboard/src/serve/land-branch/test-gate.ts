@@ -177,27 +177,41 @@ async function defaultBranchRef(root: string): Promise<string | null> {
   return null;
 }
 
-/** Whether the same commands are red on the default branch alone — run
- *  after a landing's own run and its retry were both red, so the row can
- *  say a failure main already had is not the spec's. `recorder` and
- *  `argTail` are the landing's own run, less its `--project-dir <root>`. Anything that stops
- *  the question being answered reads as "no": the ordinary sentence. */
-async function redOnDefaultBranch(
+type DefaultBranchResult =
+  | { status: "green" }
+  | { status: "red"; failures: FailingTests }
+  | { status: "not-checked"; reason: string };
+
+/** The same commands on the default branch alone, after both merge runs
+ *  were red. Anything that prevents the check stays distinct from green. */
+async function resultOnDefaultBranch(
   liveRoot: string,
   recorder: string,
   argTail: string[],
   jobs: GateOpts["jobs"],
-): Promise<boolean> {
+): Promise<DefaultBranchResult> {
   const ref = await defaultBranchRef(liveRoot);
-  if (!ref) return false;
+  if (!ref) return { status: "not-checked", reason: "the default branch was not found" };
   const tree = await checkoutForGate(liveRoot, ref);
-  if (tree.dir === liveRoot) return false;
+  if (tree.dir === liveRoot) return { status: "not-checked", reason: "the default branch could not be checked out" };
   try {
     const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS, undefined, testWorkers(jobs));
-    return out.code !== 0 && !out.timedOut;
+    if (out.timedOut) return { status: "not-checked", reason: "the tests on the default branch did not finish" };
+    if (out.code === 0) return { status: "green" };
+    return { status: "red", failures: failingTests(`${out.stdout}\n${out.stderr}`) };
   } finally {
     await tree.remove();
   }
+}
+
+/** A timed-out merge names the last test heading the captured output saw. */
+export function timeoutVerdict(output: string, minutes: number, button: string): GateVerdict {
+  const test = output.split("\n").map((line) => line.trim()).flatMap((line) => {
+    if (/^--- .+/.test(line)) return [line.replace(/^--- /, "")];
+    const heading = line.match(/^(.+\.(?:test|spec)\.[cm]?[jt]sx?):$/);
+    return heading?.[1] ? [heading[1]] : [];
+  }).at(-1) ?? "the last test shown in the log";
+  return { ok: false, error: { key: "landing.testsTimedOut", values: { minutes, test, button } }, detail: failingLines(output, "") };
 }
 
 /** The host's cores divided among the steps and landings running as this
@@ -385,19 +399,11 @@ async function runSuiteIn(
     const minutes = Math.round(LANDING_GATE_TIMEOUT_MS / 60_000);
     if (gate.timedOut) {
       stepLogLine(job, `the landing's tests did not finish within ${minutes} minutes`, true);
-      return { ok: false, error: { key: "landing.testsTimedOut", values: { minutes, button } }, detail: failingLines(gate.stdout, gate.stderr) };
+      return timeoutVerdict(`${gate.stdout}\n${gate.stderr}`, minutes, button);
     }
     if (gate.code !== 0) stepLogLine(job, "the landing runs the same tests on main alone, without this spec");
-    if (gate.code !== 0 && (await redOnDefaultBranch(liveRoot, recorder, argv.slice(3), opts.jobs))) {
-      stepLogLine(job, "the tests are red on main as well — the failure is main's, not this spec's", true);
-      return {
-        ok: false,
-        error: { key: "landing.testsRedOnMainToo", values: { branch, button } },
-        detail: failingLines(gate.stdout, gate.stderr),
-      };
-    }
     if (gate.code !== 0) {
-      stepLogLine(job, "the tests are green on main alone — the failure is this merge's", true);
+      const main = await resultOnDefaultBranch(liveRoot, recorder, argv.slice(3), opts.jobs);
       // One sentence on the row: the tests that failed when the output
       // named them, and what the two runs on the merge say about them —
       // the same tests twice is the merge's doing; different ones point at
@@ -409,7 +415,39 @@ async function runSuiteIn(
       const firstTests = firstResult.tests;
       const lastTests = lastResult.tests;
       const detail = failingLines(gate.stdout, gate.stderr);
-      if (firstTests.length && lastTests.length && (variedBetween(firstTests, lastTests) || variedBetween(lastTests, firstTests))) {
+      if (main.status === "not-checked") {
+        stepLogLine(job, `the tests on main were not checked: ${main.reason}`, true);
+        return { ok: false, error: { key: "landing.testsMainNotChecked", values: { reason: main.reason, branch, button } }, detail };
+      }
+      if (main.status === "red") {
+        if (!main.failures.tests.length) {
+          stepLogLine(job, "the tests are red on main, but its output named no failing test", true);
+          return { ok: false, error: { key: "landing.testsRedOnMainUnnamed", values: { branch, button } }, detail };
+        }
+        const onMain = new Set(main.failures.tests);
+        const mergeOnly = lastTests.map((test, index) => ({ test, error: lastResult.errors[index] ?? "" })).filter(({ test }) => !onMain.has(test));
+        if (!mergeOnly.length) {
+          stepLogLine(job, "the same tests are red on main as well", true);
+          return { ok: false, error: { key: "landing.testsRedOnMainToo", values: { branch, button } }, detail };
+        }
+        return {
+          ok: false,
+          error: { key: "landing.testsRedOnMergeToo", values: { tests: namedTests({ tests: mergeOnly.map(({ test }) => test), errors: mergeOnly.map(({ error }) => error) }), branch, button } },
+          detail,
+        };
+      }
+      stepLogLine(job, "the tests are green on main alone — the failure is this merge's", true);
+      if (!firstTests.length) return { ok: false, error: { key: "landing.testsRedOnMergeUnnamed", values: { branch, button } }, detail };
+      const firstSet = new Set(firstTests);
+      const repeated = lastTests.map((test, index) => ({ test, error: lastResult.errors[index] ?? "" })).filter(({ test }) => firstSet.has(test));
+      if (repeated.length) {
+        return {
+          ok: false,
+          error: { key: "landing.testsRedOnMerge", values: { tests: namedTests({ tests: repeated.map(({ test }) => test), errors: repeated.map(({ error }) => error) }), branch, button } },
+          detail,
+        };
+      }
+      if (lastTests.length && variedBetween(firstTests, lastTests)) {
         const combined = new Map<string, string>();
         firstTests.forEach((test, index) => combined.set(test, firstResult.errors[index] ?? ""));
         lastTests.forEach((test, index) => combined.set(test, lastResult.errors[index] ?? ""));
@@ -421,9 +459,6 @@ async function runSuiteIn(
           },
           detail,
         };
-      }
-      if (lastTests.length) {
-        return { ok: false, error: { key: "landing.testsRedOnMerge", values: { tests: namedTests(lastResult), branch, button } }, detail };
       }
       return { ok: false, error: { key: "landing.testsRedOnMergeUnnamed", values: { branch, button } }, detail };
     }

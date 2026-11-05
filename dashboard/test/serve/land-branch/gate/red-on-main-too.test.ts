@@ -39,12 +39,15 @@ function merged(): string {
 }
 
 /** A recorder red wherever `redWhen` holds for the tree it is run in. */
-function recorder(redWhen: "always" | "with the spec"): void {
+function recorder(redWhen: "always" | "with the spec" | "different" | "main unnamed"): void {
   const bin = mkdtempSync(join(tmpdir(), "aide-red-on-main-bin-"));
   dirs.push(bin);
   writeFileSync(join(bin, "resolve"), `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`, { mode: 0o755 });
-  const test = redWhen === "always" ? "exit 1" : '[ -f "$2/spec-change" ] && exit 1; exit 0';
-  writeFileSync(join(bin, "record"), `#!/bin/sh\necho "(fail) a test"\n${test}\n`, { mode: 0o755 });
+  const test = redWhen === "always" ? 'echo "(fail) a test"; exit 1'
+    : redWhen === "different" ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "(fail) main only"; fi; exit 1'
+    : redWhen === "main unnamed" ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "error: command failed"; fi; exit 1'
+    : '[ -f "$2/spec-change" ] && { echo "(fail) a test"; exit 1; }; exit 0';
+  writeFileSync(join(bin, "record"), `#!/bin/sh\n${test}\n`, { mode: 0o755 });
   process.env.AIDE_RESOLVE_TEST_CMD_BIN = join(bin, "resolve");
   process.env.AIDE_RECORD_TEST_RUN_BIN = join(bin, "record");
   process.env.AIDE_TEST_GATE_LOG = join(bin, "gate.log");
@@ -58,6 +61,35 @@ test("red on main as well: the sentence says the failure is not the spec's", asy
   const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x");
   expect(verdict.ok).toBe(false);
   expect(verdict.error).toEqual({ key: "landing.testsRedOnMainToo", values: { branch: "aide/81-x", button: "Archive" } });
+}, 30_000);
+
+test("main's result records green, red and not checked with its reason (AC-1, AC-2)", async () => {
+  const root = merged();
+  git(root, "branch", "-D", "main");
+  recorder("with the spec");
+  const verdict = await runProjectSuiteBeforePush(root, job, "aide/81-x");
+  expect(verdict.error).toEqual({
+    key: "landing.testsMainNotChecked",
+    values: { reason: "the default branch was not found", branch: "aide/81-x", button: "Archive" },
+  });
+}, 30_000);
+
+test("when main and the merge fail different tests, the merge-only test is named (AC-4)", async () => {
+  recorder("different");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  expect(verdict.error).toEqual({
+    key: "landing.testsRedOnMergeToo",
+    values: { tests: "merge only", branch: "aide/81-x", button: "Archive" },
+  });
+}, 30_000);
+
+test("an unnamed failure on red main does not make a named merge failure unique (AC-4)", async () => {
+  recorder("main unnamed");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  expect(verdict.error).toEqual({
+    key: "landing.testsRedOnMainUnnamed",
+    values: { branch: "aide/81-x", button: "Archive" },
+  });
 }, 30_000);
 
 test("green on main: the sentence is the ordinary one, about this merge", async () => {
