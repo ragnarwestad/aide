@@ -265,7 +265,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpec
     `<span class="frow">` +
     field(
       t(lang, "newSpec.description"),
-      `<textarea name="description" rows="10" maxlength="${DESCRIPTION_MAX}" required ` +
+      `<textarea name="description" rows="20" maxlength="${DESCRIPTION_MAX}" required ` +
         `placeholder="${esc(t(lang, "newSpec.descriptionPlaceholder"))}">${esc(opts.prefill?.description ?? "")}</textarea>`,
       { wide: true },
     ) +
