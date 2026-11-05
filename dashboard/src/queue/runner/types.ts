@@ -343,9 +343,11 @@ export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
  *  run again alone (`run-spec/turn/failing-tests.sh`). */
 export interface TestsRed {
   tests: string[];
+  errors: string[];
   failed: number;
   total?: number;
   passedAlone: string[];
+  passedAloneErrors: string[];
   passedAloneCount: number;
 }
 
@@ -356,17 +358,25 @@ export function testsRed(raw: unknown): TestsRed | undefined {
   const r = raw as Record<string, unknown>;
   const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
   const tests = Array.isArray(r.tests) ? r.tests.filter((t): t is string => typeof t === "string" && t !== "") : [];
+  const aligned = (value: unknown, length: number): string[] =>
+    Array.isArray(value) && value.length === length && value.every((v) => typeof v === "string")
+      ? value as string[]
+      : Array<string>(length).fill("");
+  const errors = aligned(r.errors, tests.length);
   const failed = num(r.failed);
   const passedAlone = Array.isArray(r.passedAlone)
     ? r.passedAlone.filter((t): t is string => typeof t === "string" && t !== "") : [];
   const passedAloneCount = num(r.passedAloneCount) ?? passedAlone.length;
+  const passedAloneErrors = aligned(r.passedAloneErrors, passedAlone.length);
   if ((!tests.length && !passedAlone.length) || failed === undefined) return undefined;
   const total = num(r.total);
   return {
     tests,
+    errors,
     failed,
     ...(total !== undefined ? { total } : {}),
     passedAlone,
+    passedAloneErrors,
     passedAloneCount,
   };
 }

@@ -18,6 +18,7 @@
 export interface FailingTests {
   tests: string[];
   files: string[];
+  errors: string[];
   failed?: number;
   total?: number;
 }
@@ -25,6 +26,7 @@ export interface FailingTests {
 const ESCAPES = /\x1b\[[0-9;?]*[A-Za-z]|\r/g;
 const TURBO_FAILED = /^Failed: +[^ ]+#[^ ]+ *$/;
 const TURBO_PREFIX = /^[@A-Za-z0-9_./-]+:[A-Za-z0-9_.:-]+: /;
+const ERROR_LINE = /^(?:[A-Za-z]*Error: |Test timeout of .* exceeded\.$)/;
 
 /** The number in front of ` <word>` in `s`, or undefined. */
 function count(s: string, word: string): number | undefined {
@@ -40,14 +42,21 @@ export function failingTests(output: string): FailingTests {
   if (lines.some((l) => TURBO_FAILED.test(l))) lines = lines.map((l) => l.replace(TURBO_PREFIX, ""));
   const tests: string[] = [];
   const files: string[] = [];
+  const errors: string[] = [];
   const kinds: Kind[] = [];
-  const seen = new Set<string>();
-  const add = (kind: Kind, test: string, file: string): void => {
-    if (!test || seen.has(`${test}\0${file}`)) return;
-    seen.add(`${test}\0${file}`);
+  const indexes = new Map<string, number>();
+  const add = (kind: Kind, test: string, file: string, error = ""): number | undefined => {
+    const key = `${test}\0${file}`;
+    if (!test) return undefined;
+    const existing = indexes.get(key);
+    if (existing !== undefined) return existing;
     tests.push(test);
     files.push(file);
+    errors.push(error);
     kinds.push(kind);
+    const index = tests.length - 1;
+    indexes.set(key, index);
+    return index;
   };
   const pw = { seen: false, failed: 0, flaky: 0, passed: 0 };
   const vt = { seen: false, failed: 0, passed: 0 };
@@ -58,15 +67,34 @@ export function failingTests(output: string): FailingTests {
   const tasks: string[] = [];
   let pwList = false;
   let bunFile = "";
+  let bunError = "";
+  let pendingVitest: number | undefined;
+  const playwrightErrors = new Map<string, string>();
+  let playwrightTest = "";
   for (const raw of lines) {
     const line = raw.trim();
+    const block = /^[0-9]+\) (.*)$/.exec(line);
+    if (block) {
+      let s = block[1]!;
+      const project = /\[[^\]]*\] › /.exec(s);
+      if (project) s = s.slice(project.index + project[0].length);
+      const match = /^([^ ]+):([0-9]+):[0-9]+ › (.*?)(?: ─+)?$/.exec(s);
+      playwrightTest = match ? `${match[1]}:${match[2]} › ${match[3]!.trim()}` : "";
+      continue;
+    }
+    if (playwrightTest && ERROR_LINE.test(line)) {
+      if (!playwrightErrors.has(playwrightTest)) playwrightErrors.set(playwrightTest, line);
+      playwrightTest = "";
+      continue;
+    }
     if (pwList) {
       let s = line;
       const project = /\[[^\]]*\] › /.exec(s);
       if (project) s = s.slice(project.index + project[0].length);
       const m = /^([^ ]+):([0-9]+):[0-9]+ › (.*)$/.exec(s);
       if (m) {
-        add("playwright", `${m[1]}:${m[2]} › ${m[3]!.replace(/ \(retry #[0-9]+\)$/, "").trim()}`, m[1]!);
+        const test = `${m[1]}:${m[2]} › ${m[3]!.replace(/ \(retry #[0-9]+\)$/, "").trim()}`;
+        add("playwright", test, m[1]!, playwrightErrors.get(test));
         continue;
       }
       pwList = false;
@@ -90,7 +118,17 @@ export function failingTests(output: string): FailingTests {
     if (/^FAIL +[^ ]/.test(line)) {
       const s = line.replace(/^FAIL +/, "").replace(/ \[ .* \]$/, "");
       const i = s.indexOf(" > ");
-      add("vitest", i < 0 ? s : `${s.slice(0, i)} › ${s.slice(i + 3)}`, i < 0 ? s : s.slice(0, i));
+      const index = add("vitest", i < 0 ? s : `${s.slice(0, i)} › ${s.slice(i + 3)}`, i < 0 ? s : s.slice(0, i));
+      pendingVitest = index;
+      continue;
+    }
+    if (ERROR_LINE.test(line)) {
+      if (pendingVitest !== undefined) {
+        if (!errors[pendingVitest]) errors[pendingVitest] = line;
+        pendingVitest = undefined;
+      } else if (!bunError) {
+        bunError = line;
+      }
       continue;
     }
     if (/^Tests +[0-9]/.test(line)) {
@@ -103,13 +141,23 @@ export function failingTests(output: string): FailingTests {
       bunFile = raw.slice(0, -1);
       continue;
     }
+    if (/^error: /.test(line) || /^expect\(/.test(line)) {
+      if (!bunError) bunError = line;
+      continue;
+    }
+    if (line.startsWith("(pass) ")) {
+      bunError = "";
+      continue;
+    }
     if (line.startsWith("(fail) ")) {
       const s = line.slice(7).replace(/ \[[0-9.]+m?s\]$/, "");
       if (!bunFile) {
-        bare.push(s);
+        bare.push(`${s}\0${bunError}`);
+        bunError = "";
         continue;
       }
-      add("bun", `${bunFile} › ${s}`, bunFile);
+      add("bun", `${bunFile} › ${s}`, bunFile, bunError);
+      bunError = "";
       withFile.add(s);
       continue;
     }
@@ -126,8 +174,9 @@ export function failingTests(output: string): FailingTests {
     if (/^(FAILED|ERROR) [^ ]+::/.test(line)) {
       let s = line.slice(line.indexOf(" ") + 1);
       const i = s.indexOf(" - ");
+      const error = i >= 0 ? s.slice(i + 3).trim() : "";
       if (i >= 0) s = s.slice(0, i);
-      add("pytest", s.trim(), s.replace(/::.*/, ""));
+      add("pytest", s.trim(), s.replace(/::.*/, ""), error);
       continue;
     }
     if (/[0-9]+ (failed|passed|errors?)/.test(line) && / in [0-9.]+s/.test(line)) {
@@ -140,9 +189,12 @@ export function failingTests(output: string): FailingTests {
   }
   // A (fail) bun printed before any heading is the same test said again
   // under its file further down; one with no file anywhere is still named.
-  for (const s of new Set(bare)) if (!withFile.has(s)) add("bun", s, "");
+  for (const entry of new Set(bare)) {
+    const [test, error = ""] = entry.split("\0");
+    if (!withFile.has(test!)) add("bun", test!, "", error);
+  }
   if (!tests.length) for (const t of tasks) add("turbo", t, "");
-  if (!tests.length) return { tests, files };
+  if (!tests.length) return { tests, files, errors };
   const bunSeen = bun.passLines === 1 && bun.failLines === 1;
   const counted: Record<Kind, number | undefined> = {
     playwright: pw.seen ? pw.failed : undefined,
@@ -158,13 +210,13 @@ export function failingTests(output: string): FailingTests {
     if (c === undefined) known = false;
     failed += c ?? kinds.filter((k) => k === kind).length;
   }
-  if (!known) return { tests, files, failed };
+  if (!known) return { tests, files, errors, failed };
   const total =
     (pw.seen ? pw.failed + pw.flaky + pw.passed : 0) +
     (vt.seen ? vt.failed + vt.passed : 0) +
     (bunSeen ? bun.failed + bun.passed : 0) +
     (py.seen ? py.failed + py.passed : 0);
-  return { tests, files, failed, total };
+  return { tests, files, errors, failed, total };
 }
 
 /** True when the second run failed a test the first did not. */

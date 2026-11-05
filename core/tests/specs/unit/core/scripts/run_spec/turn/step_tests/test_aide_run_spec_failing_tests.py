@@ -35,16 +35,17 @@ def _read(tmp_path, lines):
 
 
 @pytest.mark.parametrize("case", CASES, ids=[c["name"] for c in CASES])
-def test_the_failing_tests_and_counts_are_read_from_the_output(case, tmp_path):
+def test_the_failing_tests_counts_and_errors_are_read_from_the_output_ac_1_ac_4(case, tmp_path):
     got = _read(tmp_path, case["log"])
     assert got["tests"] == case["tests"]
     assert got["files"] == case["files"]
+    assert got["errors"] == case["errors"]
     assert got.get("failed") == case.get("failed")
     assert got.get("total") == case.get("total")
 
 
-def test_a_missing_log_names_nothing(tmp_path):
-    assert json.loads(_bash(f'failing_tests "{tmp_path}/none.log"')) == {"tests": [], "files": []}
+def test_a_missing_log_names_nothing_ac_1(tmp_path):
+    assert json.loads(_bash(f'failing_tests "{tmp_path}/none.log"')) == {"tests": [], "files": [], "errors": []}
 
 
 def test_failing_files_are_distinct_and_keep_their_order_ac_3(tmp_path):
@@ -53,12 +54,13 @@ def test_failing_files_are_distinct_and_keep_their_order_ac_3(tmp_path):
     assert _bash(f'failing_tests_files "{path}"').splitlines() == ["x.py", "y.py"]
 
 
-def test_summary_separates_tests_proven_to_pass_alone_ac_1_ac_6(tmp_path):
+def test_summary_keeps_each_error_with_its_test_ac_1(tmp_path):
     failing = tmp_path / "failing.json"
     again = tmp_path / "again.json"
     failing.write_text(json.dumps({
         "tests": ["test/a.test.ts › passes", "test/b.test.ts › stays red"],
-        "files": ["test/a.test.ts", "test/b.test.ts"], "failed": 2, "total": 12,
+        "files": ["test/a.test.ts", "test/b.test.ts"],
+        "errors": ["error: passes alone", "error: remains red"], "failed": 2, "total": 12,
     }))
     again.write_text(json.dumps([
         {"file": "test/a.test.ts", "passed": True},
@@ -66,8 +68,8 @@ def test_summary_separates_tests_proven_to_pass_alone_ac_1_ac_6(tmp_path):
     ]))
     got = json.loads(_bash(f'failing_tests_summary "{failing}" "{again}"'))
     assert got == {
-        "tests": ["test/b.test.ts › stays red"], "failed": 1, "total": 12,
-        "passedAlone": ["test/a.test.ts › passes"], "passedAloneCount": 1,
+        "tests": ["test/b.test.ts › stays red"], "errors": ["error: remains red"], "failed": 1, "total": 12,
+        "passedAlone": ["test/a.test.ts › passes"], "passedAloneErrors": ["error: passes alone"], "passedAloneCount": 1,
     }
 
 

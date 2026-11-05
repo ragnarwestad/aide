@@ -48,7 +48,7 @@ function recorder(first: string, second: string): void {
   writeFileSync(
     join(bin, "record"),
     `#!/bin/sh\n[ -f "$2/spec-change" ] || exit 0\necho run >> ${runs}\n` +
-      `if [ "$(wc -l < ${runs})" -eq 1 ]; then echo 'FAILED t/test_a.py::${first} - x'; else echo 'FAILED t/test_a.py::${second} - x'; fi\n` +
+      `if [ "$(wc -l < ${runs})" -eq 1 ]; then ${first ? `echo 'FAILED t/test_a.py::${first} - first error'` : "echo 'error: command stopped before naming a test'"}; else echo 'FAILED t/test_a.py::${second} - second error'; fi\n` +
       `echo '{"ok":true,"exitCode":1,"terminalReason":"recorded"}'\nexit 1\n`,
     { mode: 0o755 },
   );
@@ -59,12 +59,30 @@ function recorder(first: string, second: string): void {
 
 const job = { project: "aide", specFolder: "81-x" };
 
-test("the same test on both runs: the merge broke it, and no busy machine is named", async () => {
+test("the same test on both runs is named with its latest error (AC-2)", async () => {
   recorder("test_one", "test_one");
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMerge",
-    values: { tests: "t/test_a.py::test_one", branch: "aide/81-x", button: "Archive" },
+    values: { tests: "t/test_a.py::test_one — second error", branch: "aide/81-x", button: "Archive" },
+  });
+}, 30_000);
+
+test("a test shared by both runs is the merge's even when the first run named another test (AC-3)", async () => {
+  recorder("test_one - first error'; echo 'FAILED t/test_a.py::test_two", "test_one");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  expect(verdict.error).toEqual({
+    key: "landing.testsRedOnMerge",
+    values: { tests: "t/test_a.py::test_one — second error", branch: "aide/81-x", button: "Archive" },
+  });
+}, 30_000);
+
+test("an unnamed first run does not claim that a named failure repeated (AC-5)", async () => {
+  recorder("", "test_one");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  expect(verdict.error).toEqual({
+    key: "landing.testsRedOnMergeUnnamed",
+    values: { branch: "aide/81-x", button: "Archive" },
   });
 }, 30_000);
 
@@ -73,7 +91,16 @@ test("different tests on the two runs: both named, and the sentence points at a 
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMergeVaried",
-    values: { tests: "t/test_a.py::test_one; t/test_a.py::test_two", branch: "aide/81-x", button: "Archive" },
+    values: { tests: "t/test_a.py::test_one — first error; t/test_a.py::test_two — second error", branch: "aide/81-x", button: "Archive" },
+  });
+}, 30_000);
+
+test("a repeated failure stays the merge's when the retry adds another failure (AC-3)", async () => {
+  recorder("test_one", "test_one - second error'; echo 'FAILED t/test_a.py::test_two");
+  const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
+  expect(verdict.error).toEqual({
+    key: "landing.testsRedOnMerge",
+    values: { tests: "t/test_a.py::test_one — second error", branch: "aide/81-x", button: "Archive" },
   });
 }, 30_000);
 

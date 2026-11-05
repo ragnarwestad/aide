@@ -7,7 +7,9 @@
         "> @skjera/web@0.0.0 test:e2e /x/code/packages/web",
         "\u001b[1A\u001b[2K[150/157] [chromium] › e2e/specs/teams.spec.ts:242:1 › a team's events are searched",
         "  1) [chromium] › e2e/specs/tags.spec.ts:19:1 › events are tagged, and the site groups and filters them ───",
-        "    Error: expect(locator).toBeVisible() failed",
+        "    Test timeout of 30000ms exceeded.",
+        "  2) [chromium] › e2e/specs/teams.spec.ts:242:1 › a team's events are searched by title and tags, and ordered (AC-1, AC-2, AC-4) ───",
+        "    Error: expect(received).toEqual(expected)",
         "  \u001b[31m2 failed\u001b[39m",
         "    \u001b[31m[chromium] › e2e/specs/tags.spec.ts:19:1 › events are tagged, and the site groups and filters them \u001b[39m",
         "    [chromium] › e2e/specs/teams.spec.ts:242:1 › a team's events are searched by title and tags, and ordered (AC-1, AC-2, AC-4) ",
@@ -29,6 +31,10 @@
         "e2e/specs/tags.spec.ts",
         "e2e/specs/teams.spec.ts"
       ],
+      "errors": [
+        "Test timeout of 30000ms exceeded.",
+        "Error: expect(received).toEqual(expected)"
+      ],
       "failed": 2,
       "total": 155
     },
@@ -45,6 +51,9 @@
       "files": [
         "e2e/x.spec.ts"
       ],
+      "errors": [
+        ""
+      ],
       "failed": 1,
       "total": 10
     },
@@ -55,8 +64,8 @@
         "   × suite > first 5ms",
         "\u001b[31m⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯\u001b[39m",
         " \u001b[41m\u001b[1m FAIL \u001b[22m\u001b[49m test/x.test.ts > suite > first",
-        "AssertionError: expected 1 to be 2",
         " FAIL  test/x.test.ts > suite > second",
+        "TypeError: Cannot read properties of undefined",
         " FAIL  test/x.test.ts > suite > first",
         " Test Files  1 failed | 3 passed (4)",
         "      Tests  2 failed | 38 passed | 2 skipped (42)"
@@ -69,6 +78,10 @@
         "test/x.test.ts",
         "test/x.test.ts"
       ],
+      "errors": [
+        "",
+        "TypeError: Cannot read properties of undefined"
+      ],
       "failed": 2,
       "total": 40
     },
@@ -76,10 +89,14 @@
       "name": "bun: the file is the heading above the (fail) line, and the timing is dropped",
       "log": [
         "test/a.test.ts:",
+        "TypeError: Cannot read properties of undefined",
+        "error: later diagnostic detail",
         "(pass) a > works [0.20ms]",
+        "error: actual failure",
         "(fail) a > breaks [5.00ms]",
         "",
         "test/b.test.ts:",
+        "error: element was not found",
         "(fail) b > also breaks [1.10ms]",
         "",
         " 40 pass",
@@ -94,8 +111,33 @@
         "test/a.test.ts",
         "test/b.test.ts"
       ],
+      "errors": [
+        "error: actual failure",
+        "error: element was not found"
+      ],
       "failed": 2,
       "total": 42
+    },
+    {
+      "name": "bun: tabs in an error line are preserved",
+      "log": [
+        "test/tab.test.ts:",
+        "error: expected\t3, received\t0",
+        "(fail) tab > preserves diagnostics [1.00ms]",
+        " 0 pass",
+        " 1 fail"
+      ],
+      "tests": [
+        "test/tab.test.ts › tab > preserves diagnostics"
+      ],
+      "files": [
+        "test/tab.test.ts"
+      ],
+      "errors": [
+        "error: expected\t3, received\t0"
+      ],
+      "failed": 1,
+      "total": 1
     },
     {
       "name": "bun under the dashboard's runner: a failure said live and again in full is one test, and several summaries give no count",
@@ -117,6 +159,9 @@
       "files": [
         "test/a.test.ts"
       ],
+      "errors": [
+        ""
+      ],
       "failed": 1
     },
     {
@@ -135,6 +180,10 @@
       "files": [
         "tests/test_x.py",
         "tests/test_y.py"
+      ],
+      "errors": [
+        "assert 1 == 2",
+        "fixture 'db' not found"
       ],
       "failed": 2,
       "total": 42
@@ -155,6 +204,9 @@
       "files": [
         "test/a.test.ts"
       ],
+      "errors": [
+        ""
+      ],
       "failed": 1,
       "total": 4
     },
@@ -171,6 +223,9 @@
       "files": [
         ""
       ],
+      "errors": [
+        ""
+      ],
       "failed": 1
     },
     {
@@ -182,7 +237,8 @@
         "{\"ok\":true,\"exitCode\":1,\"terminalReason\":\"recorded\"}"
       ],
       "tests": [],
-      "files": []
+      "files": [],
+      "errors": []
     }
   ]
 }

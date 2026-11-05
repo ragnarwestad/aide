@@ -9,6 +9,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { timeoutVerdict } from "../../src/serve/land-branch/test-gate.ts";
 import { runProjectSuiteBeforePush } from "../../src/serve/land-branch/test-gate.ts";
 import { renderSentence } from "../../src/i18n/message.ts";
 
@@ -73,6 +74,23 @@ function fakeScripts(record: string): void {
 }
 
 describe("the landing's test gate", () => {
+  test("a timeout names the last test that was running without blaming the machine (AC-6)", () => {
+    const verdict = timeoutVerdict("running make test\n--- dashboard/test/slow.test.ts\n", 60, "Archive");
+    expect(verdict.error).toEqual({
+      key: "landing.testsTimedOut",
+      values: { minutes: 60, test: "dashboard/test/slow.test.ts", button: "Archive" },
+    });
+    expect(sentence(verdict.error)).not.toContain("quieter");
+  });
+
+  test("a timeout recognises an ordinary runner test heading (AC-6)", () => {
+    const verdict = timeoutVerdict("bun test v1\ndashboard/test/slow.test.ts:\n", 60, "Archive");
+    expect(verdict.error).toEqual({
+      key: "landing.testsTimedOut",
+      values: { minutes: 60, test: "dashboard/test/slow.test.ts", button: "Archive" },
+    });
+  });
+
   test("runs the suite in a worktree of HEAD, with the links and the config, and removes it after", async () => {
     const root = project();
     const record = join(root, "..", `gate-record-${Date.now()}.txt`);
@@ -139,7 +157,7 @@ describe("the landing's test gate", () => {
     expect(verdict.ok).toBe(false);
     expect(verdict.error).toEqual({
       key: "landing.testsRedOnMerge",
-      values: { tests: "tests/test_x.py::test_x", branch: "aide/81-x", button: "Archive" },
+      values: { tests: "tests/test_x.py::test_x — assert 1 == 2", branch: "aide/81-x", button: "Archive" },
     });
     // The same test failed on both runs and passes on main alone: nothing
     // supports a busy machine, so nothing says so.

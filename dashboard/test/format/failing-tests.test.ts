@@ -9,13 +9,14 @@ import { join } from "node:path";
 import { failingTests, variedBetween } from "../../src/format/failing-tests.ts";
 
 const CASES = JSON.parse(readFileSync(join(import.meta.dir, "../../../core/tests/fixtures/failing-tests.json"), "utf-8"))
-  .cases as { name: string; log: string[]; tests: string[]; files: string[]; failed?: number; total?: number }[];
+  .cases as { name: string; log: string[]; tests: string[]; files: string[]; errors: string[]; failed?: number; total?: number }[];
 
 describe("failingTests", () => {
-  test.each(CASES)("$name", ({ log, tests, files, failed, total }) => {
+  test.each(CASES)("$name (AC-1, AC-4)", ({ log, tests, files, errors, failed, total }) => {
     const got = failingTests(`${log.join("\n")}\n`);
     expect(got.tests).toEqual(tests);
     expect(got.files).toEqual(files);
+    expect(got.errors).toEqual(errors);
     expect(got.failed).toBe(failed);
     expect(got.total).toBe(total);
   });
