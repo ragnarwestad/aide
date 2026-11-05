@@ -17,10 +17,11 @@
 # A turbo task stands for its tests only when no test was named.
 
 # The awk that reads a log (cleaned: no escape codes, no carriage returns)
-# and prints one "T<TAB>test<TAB>file<TAB>error" per failing test, in order, then
-# "F<TAB>n" and "N<TAB>n" for the failed and total counts when the output
+# and prints one unit-separator-delimited T/test/file/error row per failing
+# test, in order, then F/count and N/count rows when the output
 # printed them.
 FAILING_TESTS_AWK='
+BEGIN { sep = sprintf("%c", 31) }
 function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
 function is_error_line(s) { return s ~ /^([A-Za-z]*Error: |Test timeout of .* exceeded\.$)/ }
 function add(kind, test, file, error,   key) {
@@ -107,6 +108,7 @@ function num(s, word,   t) {
     if (bun_error == "") bun_error = line
     next
   }
+  if (line ~ /^\(pass\) /) { bun_error = ""; next }
   if (line ~ /^\(fail\) /) {
     s = substr(line, 8); sub(/ \[[0-9.]+m?s\]$/, "", s)
     if (bun_file == "") { bare[s] = bun_error; bun_error = ""; next }
@@ -140,7 +142,7 @@ END {
   # under its file further down; one with no file anywhere is still named.
   for (s in bare) if (!(s in with_file)) add("bun", s, "", bare[s])
   if (n == 0) for (i = 1; i <= tasks; i++) add("turbo", task[i], "", "")
-  for (i = 1; i <= n; i++) print "T\t" tests[i] "\t" files[i] "\t" errors[i]
+  for (i = 1; i <= n; i++) print "T" sep tests[i] sep files[i] sep errors[i]
   bun_seen = (bun_pass_lines == 1 && bun_fail_lines == 1)
   # The counts each runner printed. A runner that named a test and printed
   # no count of its own leaves the total unknown.
@@ -152,14 +154,14 @@ END {
     if (k == "pytest" && py_seen) { failed += py_failed; continue }
     failed += named[k]; known = 0
   }
-  if (n > 0) print "F\t" failed
+  if (n > 0) print "F" sep failed
   if (n > 0 && known) {
     total = 0
     if (pw_seen) total += pw_failed + pw_flaky + pw_passed
     if (vt_seen) total += vt_failed + vt_passed
     if (bun_seen) total += bun_failed + bun_passed
     if (py_seen) total += py_failed + py_passed
-    print "N\t" total
+    print "N" sep total
   }
 }
 '
@@ -182,7 +184,7 @@ failing_tests() {
     input="$(printf '%s\n' "$input" | sed -E 's/^[@A-Za-z0-9_./-]+:[A-Za-z0-9_.:-]+: //')"
   fi
   printf '%s\n' "$input" | awk "$FAILING_TESTS_AWK" | jq -Rn '
-    [inputs | split("\t")] as $rows
+    [inputs | split("\u001f")] as $rows
     | {tests: [$rows[] | select(.[0] == "T") | .[1]],
        files: [$rows[] | select(.[0] == "T") | (.[2] // "")],
        errors: [$rows[] | select(.[0] == "T") | (.[3] // "")]}

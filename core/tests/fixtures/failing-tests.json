@@ -92,6 +92,7 @@
         "TypeError: Cannot read properties of undefined",
         "error: later diagnostic detail",
         "(pass) a > works [0.20ms]",
+        "error: actual failure",
         "(fail) a > breaks [5.00ms]",
         "",
         "test/b.test.ts:",
@@ -111,11 +112,32 @@
         "test/b.test.ts"
       ],
       "errors": [
-        "TypeError: Cannot read properties of undefined",
+        "error: actual failure",
         "error: element was not found"
       ],
       "failed": 2,
       "total": 42
+    },
+    {
+      "name": "bun: tabs in an error line are preserved",
+      "log": [
+        "test/tab.test.ts:",
+        "error: expected\t3, received\t0",
+        "(fail) tab > preserves diagnostics [1.00ms]",
+        " 0 pass",
+        " 1 fail"
+      ],
+      "tests": [
+        "test/tab.test.ts › tab > preserves diagnostics"
+      ],
+      "files": [
+        "test/tab.test.ts"
+      ],
+      "errors": [
+        "error: expected\t3, received\t0"
+      ],
+      "failed": 1,
+      "total": 1
     },
     {
       "name": "bun under the dashboard's runner: a failure said live and again in full is one test, and several summaries give no count",

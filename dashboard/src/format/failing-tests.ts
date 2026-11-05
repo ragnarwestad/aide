@@ -145,6 +145,10 @@ export function failingTests(output: string): FailingTests {
       if (!bunError) bunError = line;
       continue;
     }
+    if (line.startsWith("(pass) ")) {
+      bunError = "";
+      continue;
+    }
     if (line.startsWith("(fail) ")) {
       const s = line.slice(7).replace(/ \[[0-9.]+m?s\]$/, "");
       if (!bunFile) {
