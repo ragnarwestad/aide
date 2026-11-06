@@ -29,10 +29,20 @@ side_argv_for() {  # <tool> <model> <name>
       opencode_safety_flags plan || return 1
       side_argv=("$opencode_bin" run --format json "${safety_flags[@]}")
       ;;
-    claude)
-      [ -n "$claude_bin" ] || claude_bin="$(find_bin "${AIDE_CLAUDE_BIN:-}" claude)"
-      [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || return 1
-      side_argv=("$claude_bin" -p --output-format stream-json --verbose --permission-mode plan)
+    claude|fake-claude)
+      local side_bin="$claude_bin"
+      if [ "$side_tool" = "fake-claude" ]; then
+        # The stand-in by name: without one the turn does not run, so a
+        # turn that says it is scripted never reaches a model.
+        side_bin="${AIDE_CLAUDE_BIN:-}"
+        [ -n "$side_bin" ] || side_bin="$(aide_config_get AIDE_CLAUDE_BIN "$project_root")"
+        [ -n "$side_bin" ] || return 1
+        side_bin="$(find_bin "$side_bin" claude)"
+      fi
+      [ -n "$side_bin" ] || side_bin="$(find_bin "${AIDE_CLAUDE_BIN:-}" claude)"
+      [ -n "$side_bin" ] && [ -x "$side_bin" ] || return 1
+      [ "$side_tool" = "fake-claude" ] || claude_bin="$side_bin"
+      side_argv=("$side_bin" -p --output-format stream-json --verbose --permission-mode plan)
       [ "$sandbox" = "no" ] || side_argv+=(--settings "$(sandbox_settings_json)")
       side_argv+=(--name "$side_name")
       ;;
