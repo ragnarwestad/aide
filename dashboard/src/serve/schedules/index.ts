@@ -26,6 +26,7 @@ import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } f
 import type { Job, QueueStore } from "../../queue/queue.ts";
 import { resolveStepProvider } from "../../queue/providers/index.ts";
 import { restartAfterUsageLimit, usageLimitHolds } from "../../queue/runner/usage-limit.ts";
+import { switchedOffHolds } from "../../queue/runner/switched-off.ts";
 import type { Runner } from "../../queue/runner";
 import type { CheckableTool, SpecTarget } from "../../render";
 import { STATUS_SPEC_FILE } from "../../render";
@@ -442,6 +443,9 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
     await blockedDependencies(ctx),
     fixedSentenceHolds(ctx),
     archiveWithOpenAcceptance(ctx),
-    usageLimitHolds(ctx.queue.list(), providerOf, nameOf),
+    new Map([
+      ...usageLimitHolds(ctx.queue.list(), providerOf, nameOf),
+      ...switchedOffHolds(ctx.queue.list(), providerOf, ctx.queue.defaults.providers),
+    ]),
   );
 }

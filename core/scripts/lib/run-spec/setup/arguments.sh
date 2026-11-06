@@ -70,6 +70,13 @@ kill_grace_sec="30"; do_pull="no"; dry_run="no"
 tool="claude"
 review_tool=""; review_model=""; verify_tool=""; verify_model=""
 review_claude_config_dir=""; review_codex_home=""; verify_claude_config_dir=""; verify_codex_home=""
+# `--bin`: the program the step's tool runs as, when its provider names one
+# (Settings → Providers, Binary path). Wins over AIDE_<TOOL>_BIN and PATH.
+# `--review-bin` / `--verify-bin` are the same for the two side turns.
+bin_arg=""; review_bin=""; verify_bin=""
+# `--autocompact`: Claude Code compacts the conversation once it holds this
+# many tokens. Empty leaves Claude Code's own setting.
+autocompact=""
 # What a `create` step is FOR. Every other step names a folder
 # that is already on disk; this one makes it, so the two things
 # /aide-create needs come in as arguments instead. Required for a create
@@ -182,6 +189,10 @@ while [ $# -gt 0 ]; do
     --tool) tool="${2:-}"; shift 2 ;;
     --claude-config-dir) claude_config_dir="${2:-}"; shift 2 ;;
     --codex-home) codex_home_arg="${2:-}"; shift 2 ;;
+    --bin) bin_arg="${2:-}"; shift 2 ;;
+    --review-bin) review_bin="${2:-}"; shift 2 ;;
+    --verify-bin) verify_bin="${2:-}"; shift 2 ;;
+    --autocompact) autocompact="${2:-}"; shift 2 ;;
     --review-tool) review_tool="${2:-}"; shift 2 ;;
     --review-model) review_model="${2:-}"; shift 2 ;;
     --review-claude-config-dir) review_claude_config_dir="${2:-}"; shift 2 ;;
@@ -291,6 +302,10 @@ fi
 for side_dir in "$review_claude_config_dir" "$review_codex_home" "$verify_claude_config_dir" "$verify_codex_home"; do
   [ -z "$side_dir" ] || [ -d "$side_dir" ] || refuse "the Review or Verify account directory $side_dir is not there on the serving host"
 done
+for given_bin in "$bin_arg" "$review_bin" "$verify_bin"; do
+  [ -z "$given_bin" ] || { [ -f "$given_bin" ] && [ -x "$given_bin" ]; } \
+    || refuse "the provider's binary path $given_bin is not a program on the serving host"
+done
 
 # Refused rather than dropped: a job that asked for the browser and ran
 # without it would only fail later, saying less about why.
@@ -327,6 +342,18 @@ case "$tool" in
   claude|codex|opencode|fake-claude) ;;
   *) refuse "invalid --tool: $tool (claude, codex, opencode or fake-claude)" ;;
 esac
+
+if [ -n "$bin_arg" ] && [ "$tool" = "fake-claude" ]; then
+  refuse "--bin is for a real tool, not fake-claude: the stand-in comes from AIDE_CLAUDE_BIN"
+fi
+if [ -n "$autocompact" ]; then
+  case "$tool" in claude|fake-claude) ;; *) refuse "--autocompact is for Claude Code, not $tool" ;; esac
+  case "$autocompact" in
+    ''|*[!0-9]*) refuse "invalid --autocompact: $autocompact (a number of tokens from 100000 to 1000000)" ;;
+  esac
+  [ "$autocompact" -ge 100000 ] && [ "$autocompact" -le 1000000 ] \
+    || refuse "invalid --autocompact: $autocompact (a number of tokens from 100000 to 1000000)"
+fi
 
 for side_tool in "$review_tool" "$verify_tool"; do
   case "$side_tool" in

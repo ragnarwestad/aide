@@ -6,7 +6,7 @@
 // here as not logged in.
 
 import { homedir } from "node:os";
-import { providerLoginEnv, type Provider } from "../../queue/providers/index.ts";
+import { expandDir, providerLoginEnv, type Provider } from "../../queue/providers/index.ts";
 import { runScript, scriptFor } from "../land-branch/run-script.ts";
 import { askLogin, CHECK_TIMEOUT_MS, stripAnsi, type CheckOptions } from "../tool-check.ts";
 import { readUsage, type UsageOptions } from "../tool-usage";
@@ -27,9 +27,11 @@ export async function readProviderStatus(
   } = {},
 ): Promise<ProviderStatus> {
   const run = opts.run ?? runScript;
-  const bin = (opts.scriptPath ?? ((name: string) => scriptFor(name)))(provider.tool);
-  const at = (opts.now ?? (() => new Date()))().toISOString();
   const home = opts.home ?? homedir();
+  const bin = provider.binary
+    ? expandDir(provider.binary, home)
+    : (opts.scriptPath ?? ((name: string) => scriptFor(name)))(provider.tool);
+  const at = (opts.now ?? (() => new Date()))().toISOString();
   const env = providerLoginEnv(provider, home);
 
   let printed: string | undefined;
@@ -55,5 +57,7 @@ export function readProviderUsage(
   opts: Omit<UsageOptions, "env"> & { home?: string } = {},
 ): Promise<ToolUsage> {
   const { home, ...rest } = opts;
-  return readUsage(provider.tool, { ...rest, env: providerLoginEnv(provider, home ?? homedir()) });
+  const at = home ?? homedir();
+  const own = provider.binary ? { scriptPath: () => expandDir(provider.binary!, at) } : {};
+  return readUsage(provider.tool, { ...rest, ...own, env: providerLoginEnv(provider, at) });
 }

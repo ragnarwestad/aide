@@ -47,7 +47,7 @@ describe("reading the providers", () => {
     const merged = mergeQueueDefaults(BASE, {
       providers: {
         "bad key": { name: "A", tool: "claude" },
-        BadName: { name: "has space", tool: "claude" },
+        BadName: { name: "two\nlines", tool: "claude" },
         One: { name: "Same", tool: "claude" },
         Two: { name: "same", tool: "claude" },
         Odd: { name: "Odd", tool: "gemini" },

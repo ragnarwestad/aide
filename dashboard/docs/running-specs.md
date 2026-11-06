@@ -484,8 +484,22 @@ the provider. A provider's name has letters, digits, `.`, `_` and `-`, at most 6
 - **The fields.** Claude Code: a config folder, handed over as `CLAUDE_CONFIG_DIR`; empty means Claude Code's own
   `~/.claude`. Codex: a `CODEX_HOME` folder, empty meaning `~/.codex`, and an optional shadow home. OpenCode: none. A
   folder is written from `/` or `~/`. A folder that is not there yet is made on save; a path that is a file is refused.
+- **Binary path.** Every provider may name the program its tool runs as, written from `/` or `~/`. Empty means the one
+  found on `PATH`. A path that is not there, is a folder or cannot be run is refused. The status, the login check and
+  every step and Review or Verify turn on the provider use that program.
+- **Auto-compact after.** A Claude Code provider may give a number of tokens, from 100000 to 1000000, after which
+  Claude Code compacts the conversation (`claude --autocompact`). Empty leaves Claude Code's own setting. Review and
+  Verify turns are not given it.
+- **The name and the ID.** The name is what the board shows: one line of up to 64 characters, spaces included. The ID
+  is the key the provider is stored under: letters, digits, `-` or `_`, given on Add or made from the name, and never
+  changed afterwards.
+- **On and off.** A provider can be switched off. A switched-off provider is not offered on any AI choice and is not
+  taken when a phase with no provider of its own falls back to the first one that runs its model. A step whose own
+  provider, or whose phase default, is switched off is held back on the queue with a sentence saying which provider
+  to switch on, and starts once it is on. Review and Verify pass a switched-off provider over for the first one that is
+  on. The login check does not read it.
 - **Adding and saving.** Add and Save run the same rules in this order: the name (empty, invalid or taken in any case
-  is refused with a sentence saying which), the fields, the login not being another provider's, and the tool being
+  is refused with a sentence saying which), the fields, the binary path and auto-compact, the login not being another provider's, and the tool being
   installed on the machine serving the board (refused naming the tool, asked with `--version` alone). A provider that is
   not logged in is saved.
 - **The status.** A provider's page shows whether its tool is installed and its version, the account it is logged in as
@@ -502,7 +516,7 @@ the provider. A provider's name has letters, digits, `.`, `_` and `-`, at most 6
 - **One login each.** Save refuses a provider whose login another provider of the same tool already uses: the same
   Claude config folder, the same Codex folder (the shadow home when there is one), or a second OpenCode provider.
 - **Stored under a key.** The `providers` table of `queue-config.json` holds each provider under a key that never
-  changes, with its `name`, `tool` and fields; the `provider` table gives each phase's provider by key, and has no `default`: a
+  changes, with its `name`, `tool` and fields, and `enabled: false` when it is switched off; the `provider` table gives each phase's provider by key, and has no `default`: a
   phase with no entry runs on the first provider that runs its model. A
   rename changes the name alone, so jobs, schedules and phase defaults need no rewriting. A finished step keeps the
   name it ran under.

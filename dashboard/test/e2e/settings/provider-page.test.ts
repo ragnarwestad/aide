@@ -90,11 +90,11 @@ test("Cancel returns to the Providers tab without saving (AC-12)", async () => {
 
 test("a save the board refuses is written in the form's own line and every field keeps what was typed (AC-18)", async () => {
   await go("/settings/providers/edit?key=Claude");
-  await page.locator('input[name="name"]').fill("two words");
+  await page.locator('input[name="name"]').fill("opencode");
   await page.locator("#providerform-save").click();
-  await page.locator("#provider-refused span", { hasText: /two words/i }).waitFor();
-  expect((await page.locator("#provider-refused").innerText()).toLowerCase()).toContain("two words");
-  expect(await page.locator('input[name="name"]').inputValue()).toBe("two words");
+  await page.locator("#provider-refused span", { hasText: /opencode/i }).waitFor();
+  expect((await page.locator("#provider-refused").innerText()).toLowerCase()).toContain("opencode");
+  expect(await page.locator('input[name="name"]').inputValue()).toBe("opencode");
 });
 
 test("Remove asks first, removes nothing on Cancel, and removes the provider on OK (AC-13)", async () => {

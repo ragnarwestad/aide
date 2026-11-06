@@ -13,24 +13,32 @@
 # The command line for a fresh session of <tool> on <model>, into
 # $side_argv. Every command uses that AI's read-only mode and a fresh
 # session. Fails when the chosen AI is not installed.
-side_argv_for() {  # <tool> <model> <name>
-  local side_tool="$1" side_model="$2" side_name="$3"
+side_argv_for() {  # <tool> <model> <name> [<bin>]
+  local side_tool="$1" side_model="$2" side_name="$3" own_bin="${4:-}" side_bin=""
   side_argv=()
   case "$side_tool" in
     codex)
-      [ -n "$codex_bin" ] || codex_bin="$(find_bin "${AIDE_CODEX_BIN:-}" codex)"
-      [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || return 1
+      side_bin="$own_bin"
+      if [ -z "$side_bin" ]; then
+        [ -n "$codex_bin" ] || codex_bin="$(find_bin "${AIDE_CODEX_BIN:-}" codex)"
+        side_bin="$codex_bin"
+      fi
+      [ -n "$side_bin" ] && [ -x "$side_bin" ] || return 1
       codex_safety_flags plan || return 1
-      side_argv=("$codex_bin" exec --json "${safety_flags[@]}")
+      side_argv=("$side_bin" exec --json "${safety_flags[@]}")
       ;;
     opencode)
-      [ -n "$opencode_bin" ] || opencode_bin="$(find_bin "${AIDE_OPENCODE_BIN:-}" opencode)"
-      [ -n "$opencode_bin" ] && [ -x "$opencode_bin" ] || return 1
+      side_bin="$own_bin"
+      if [ -z "$side_bin" ]; then
+        [ -n "$opencode_bin" ] || opencode_bin="$(find_bin "${AIDE_OPENCODE_BIN:-}" opencode)"
+        side_bin="$opencode_bin"
+      fi
+      [ -n "$side_bin" ] && [ -x "$side_bin" ] || return 1
       opencode_safety_flags plan || return 1
-      side_argv=("$opencode_bin" run --format json "${safety_flags[@]}")
+      side_argv=("$side_bin" run --format json "${safety_flags[@]}")
       ;;
     claude|fake-claude)
-      local side_bin="$claude_bin"
+      side_bin="$claude_bin"
       if [ "$side_tool" = "fake-claude" ]; then
         # The stand-in by name: without one the turn does not run, so a
         # turn that says it is scripted never reaches a model.
@@ -38,10 +46,12 @@ side_argv_for() {  # <tool> <model> <name>
         [ -n "$side_bin" ] || side_bin="$(aide_config_get AIDE_CLAUDE_BIN "$project_root")"
         [ -n "$side_bin" ] || return 1
         side_bin="$(find_bin "$side_bin" claude)"
+      elif [ -n "$own_bin" ]; then
+        side_bin="$own_bin"
       fi
       [ -n "$side_bin" ] || side_bin="$(find_bin "${AIDE_CLAUDE_BIN:-}" claude)"
       [ -n "$side_bin" ] && [ -x "$side_bin" ] || return 1
-      [ "$side_tool" = "fake-claude" ] || claude_bin="$side_bin"
+      [ "$side_tool" = "fake-claude" ] || [ -n "$own_bin" ] || claude_bin="$side_bin"
       side_argv=("$side_bin" -p --output-format stream-json --verbose --permission-mode plan)
       [ "$sandbox" = "no" ] || side_argv+=(--settings "$(sandbox_settings_json)")
       side_argv+=(--name "$side_name")

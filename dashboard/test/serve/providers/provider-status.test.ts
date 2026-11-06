@@ -63,6 +63,14 @@ describe("reading a provider's status", () => {
   });
 });
 
+describe("a provider with a binary path", () => {
+  test("its version and its login are asked of that program, expanded, not the one on PATH", async () => {
+    const run = fakeRun({ "--version": { stdout: "2.1.318\n" }, "auth status": { stdout: '{"loggedIn":false}' } });
+    await readProviderStatus("Claude-2", { ...CLAUDE_2, binary: "~/bin/claude-next" }, base(run));
+    expect(run.calls.map((c) => c.argv)).toEqual(["/home/x/bin/claude-next --version", "/home/x/bin/claude-next auth status"]);
+  });
+});
+
 describe("reading with no login", () => {
   test("{ login: false } asks the version alone and runs no login command (AC-16)", async () => {
     const run = fakeRun({ "--version": { stdout: "2.1.318\n" } });
@@ -84,6 +92,12 @@ describe("reading a provider's usage", () => {
       { CLAUDE_CONFIG_DIR: "/home/x/.claude-2" },
       { CLAUDE_CONFIG_DIR: "/opt/claude-3" },
     ]);
+  });
+
+  test("a provider with a binary path has its usage read through that program", async () => {
+    const run = fakeRun({ "/usage": { stdout: "Current session: 24% used · resets Oct 2\n" } });
+    await readProviderUsage("Claude-2", { ...CLAUDE_2, binary: "/opt/claude-next" }, base(run));
+    expect(run.calls[0]?.argv.startsWith("/opt/claude-next")).toBe(true);
   });
 
   test("a Codex provider's exchange is asked with its shadow home as CODEX_HOME (AC-3)", async () => {

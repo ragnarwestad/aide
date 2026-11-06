@@ -16,9 +16,17 @@ export const PROVIDER_TOOLS = ["claude", "codex", "opencode"] as const;
 export type ProviderTool = (typeof PROVIDER_TOOLS)[number];
 
 export interface Provider {
-  /** What the board shows. Letters, digits, `.`, `_` and `-`, at most 64. */
+  /** What the board shows: free text, one line, at most 64 characters. */
   name: string;
   tool: ProviderTool;
+  /** Stored only as `false`: a switched-off provider is offered by no picker
+   *  and taken by no fallback, and a step that names it is held. */
+  enabled?: false;
+  /** The tool's program, when it is not the one found on PATH. */
+  binary?: string;
+  /** Claude Code: compact the conversation once it holds this many tokens
+   *  (`--autocompact`). Absent means Claude Code's own setting. */
+  autoCompact?: number;
   /** Claude Code: handed over as `CLAUDE_CONFIG_DIR`. Empty or absent means
    *  Claude Code's own folder, and nothing is set. */
   configDir?: string;
@@ -46,12 +54,47 @@ export function providerFields(tool: ProviderTool): ProviderField[] {
 export const asProviderTool = (value: unknown): ProviderTool | undefined =>
   (PROVIDER_TOOLS as readonly unknown[]).includes(value) ? (value as ProviderTool) : undefined;
 
-/** The refusal for a name a provider cannot have, or null when it can. */
+/** The refusal for a name a provider cannot have, or null when it can: one
+ *  line of up to 64 characters, not only spaces. */
 export function providerNameError(name: string): string | null {
-  return NAME_RE.test(name)
-    ? null
-    : `${name || "An empty name"} is not a name a provider can have — use up to 64 letters, digits, ".", "_" or "-"`;
+  if (!name.trim()) return "A provider needs a name";
+  if (name.length > 64 || /[\u0000-\u001f\u007f]/.test(name)) {
+    return `${name.slice(0, 64)} is not a name a provider can have — use one line of up to 64 characters`;
+  }
+  return null;
 }
+
+/** The ID a provider is stored under when none is given: its name in lower
+ *  case, letters and digits kept, every other run of characters one `-`. */
+export function providerKeyFrom(name: string): string {
+  const key = name
+    .toLowerCase()
+    .replaceAll("æ", "ae")
+    .replaceAll("ø", "o")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+  return key || "provider";
+}
+
+/** The range `claude --autocompact` takes, in tokens. */
+export const AUTO_COMPACT_MIN = 100_000;
+export const AUTO_COMPACT_MAX = 1_000_000;
+
+/** The refusal for an auto-compact threshold Claude Code does not take, or
+ *  null when it does. */
+export function autoCompactError(tokens: number): string | null {
+  return Number.isInteger(tokens) && tokens >= AUTO_COMPACT_MIN && tokens <= AUTO_COMPACT_MAX
+    ? null
+    : `Auto-compact takes a whole number of tokens from ${AUTO_COMPACT_MIN} to ${AUTO_COMPACT_MAX} — ${tokens} was given`;
+}
+
+/** Whether the provider stored under `key` is switched off. A key that is
+ *  not a provider is not switched off: the caller finds it gone. */
+export const switchedOff = (key: string | undefined, providers: Record<string, Provider> | undefined): boolean =>
+  key !== undefined && providers?.[key]?.enabled === false;
 
 /** `~/…` read against the home directory; any other path is kept. */
 export function expandDir(dir: string, home: string): string {
@@ -67,23 +110,24 @@ export function runsModel(provider: Provider, choice: ModelChoice | undefined): 
   return provider.tool === "claude" ? tool === "claude" || tool === "fake-claude" : tool === provider.tool;
 }
 
-/** The providers a picker offers: those that run at least one model choice,
- *  in the order the config lists them. */
+/** The providers a picker offers: those switched on that run at least one
+ *  model choice, in the order the config lists them. */
 export function providerChoices(
   providers: Record<string, Provider> | undefined,
   modelChoices: Record<string, ModelChoice> | undefined,
 ): { key: string; provider: Provider }[] {
   const choices = Object.values(modelChoices ?? {});
   return Object.entries(providers ?? {})
-    .filter(([, provider]) => choices.some((c) => runsModel(provider, c)))
+    .filter(([, provider]) => provider.enabled !== false && choices.some((c) => runsModel(provider, c)))
     .map(([key, provider]) => ({ key, provider }));
 }
 
 /** The key of the provider a step runs on: the job's own pick; else the
  *  phase default when it runs the step's model; else the first provider, in
- *  config order, that does; else none — the tool's normal login, as before
- *  providers existed. A job's own pick is returned as stored, even when the
- *  provider has been removed since: the caller finds it gone. */
+ *  config order, that is switched on and does; else none — the tool's normal
+ *  login, as before providers existed. A job's own pick and the phase default
+ *  are returned even when switched off, and the job's pick even when removed
+ *  since: the caller holds the step, or finds the provider gone. */
 export function resolveStepProvider(
   job: Pick<Job, "model"> & { provider?: Record<string, string>; modelChoice?: string },
   step: string,
@@ -98,7 +142,7 @@ export function resolveStepProvider(
   const choice = listed && "name" in listed ? defaults.modelChoices?.[listed.name] : undefined;
   const wanted = defaults.provider?.[step];
   if (wanted && providers[wanted] && runsModel(providers[wanted], choice)) return wanted;
-  return Object.entries(providers).find(([, p]) => runsModel(p, choice))?.[0];
+  return Object.entries(providers).find(([, p]) => p.enabled !== false && runsModel(p, choice))?.[0];
 }
 
 const capitalised = (step: string): string => step.charAt(0).toUpperCase() + step.slice(1);
@@ -215,11 +259,17 @@ export function parseProvider(raw: unknown): Provider | undefined {
   const tool = asProviderTool(e.tool);
   if (!tool || typeof e.name !== "string" || providerNameError(e.name)) return undefined;
   const out: Provider = { name: e.name, tool };
-  for (const field of providerFields(tool)) {
+  if (e.enabled !== undefined && typeof e.enabled !== "boolean") return undefined;
+  if (e.enabled === false) out.enabled = false;
+  for (const field of [...providerFields(tool), "binary"] as const) {
     const value = e[field];
     if (value === undefined) continue;
     if (typeof value !== "string") return undefined;
     if (value) out[field] = value;
+  }
+  if (tool === "claude" && e.autoCompact !== undefined) {
+    if (typeof e.autoCompact !== "number" || autoCompactError(e.autoCompact)) return undefined;
+    out.autoCompact = e.autoCompact;
   }
   return out;
 }

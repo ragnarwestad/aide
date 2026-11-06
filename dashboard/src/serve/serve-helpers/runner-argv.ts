@@ -4,7 +4,7 @@
 
 import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
-import { providerLoginEnv, resolveStepProvider, runsModel, sharesSessions, type Provider } from "../../queue/providers/index.ts";
+import { expandDir, providerLoginEnv, resolveStepProvider, runsModel, sharesSessions, type Provider } from "../../queue/providers/index.ts";
 import { homedir } from "node:os";
 import type { CheckableTool } from "../../render";
 import { resolveSidePick, SIDE_PARTS } from "../../queue/providers/side-tools.ts";
@@ -72,17 +72,23 @@ export function reviewModelArgs(
     const sideTool = choice?.tool ?? "claude";
     const ownProvider = o.sideProviders?.[part];
     const configuredProvider = o.provider?.[part];
-    const providerKey = ownProvider ?? (
-      configuredProvider && o.providers?.[configuredProvider] && runsModel(o.providers[configuredProvider], choice)
+    // A switched-off provider is passed over, as it is for a step's own
+    // fallback: the review is best-effort and holds no step back.
+    const usable = (key: string | undefined): key is string =>
+      key !== undefined && o.providers?.[key] !== undefined && o.providers[key]!.enabled !== false;
+    const providerKey = usable(ownProvider) ? ownProvider : (
+      usable(configuredProvider) && runsModel(o.providers![configuredProvider]!, choice)
         ? configuredProvider
-        : Object.entries(o.providers ?? {}).find(([, provider]) => runsModel(provider, choice))?.[0]
+        : Object.entries(o.providers ?? {}).find(([, provider]) => provider.enabled !== false && runsModel(provider, choice))?.[0]
     );
     const provider = providerKey ? o.providers?.[providerKey] : undefined;
-    const env = provider ? providerLoginEnv(provider, o.home ?? homedir()) : undefined;
+    const home = o.home ?? homedir();
+    const env = provider ? providerLoginEnv(provider, home) : undefined;
     const account = sideTool === "claude" && env?.CLAUDE_CONFIG_DIR
       ? [`--${part}-claude-config-dir`, env.CLAUDE_CONFIG_DIR]
       : sideTool === "codex" && env?.CODEX_HOME ? [`--${part}-codex-home`, env.CODEX_HOME] : [];
-    return [`--${part}-model`, choice?.model ?? name, `--${part}-tool`, sideTool, ...account];
+    const bin = provider?.binary && sideTool !== "fake-claude" ? [`--${part}-bin`, expandDir(provider.binary, home)] : [];
+    return [`--${part}-model`, choice?.model ?? name, `--${part}-tool`, sideTool, ...account, ...bin];
   });
 }
 
@@ -281,7 +287,9 @@ export function runnerArgv(
 /** `--claude-config-dir` for a Claude Code step whose provider has a config
  *  folder; `--codex-home` for a Codex step, the provider's shadow home when
  *  it has one, else its `CODEX_HOME`. Nothing for a provider on the tool's
- *  normal folder, or for a step with no provider. */
+ *  normal folder, or for a step with no provider. Then `--bin` for a
+ *  provider with a binary path, and `--autocompact` for a Claude Code one
+ *  with a threshold. */
 function providerFolderArgs(
   job: Job,
   step: string,
@@ -291,7 +299,16 @@ function providerFolderArgs(
   const key = resolveStepProvider(job, step, { model: o.model ?? {}, modelChoices: o.modelChoices, providers: o.providers, provider: o.provider });
   const provider = key ? o.providers?.[key] : undefined;
   if (!provider) return [];
-  const env = providerLoginEnv(provider, o.home ?? homedir());
-  if (tool === "claude" && provider.tool === "claude" && env.CLAUDE_CONFIG_DIR) return ["--claude-config-dir", env.CLAUDE_CONFIG_DIR];
-  return tool === "codex" && provider.tool === "codex" && env.CODEX_HOME ? ["--codex-home", env.CODEX_HOME] : [];
+  const home = o.home ?? homedir();
+  const env = providerLoginEnv(provider, home);
+  // The stand-in model keeps its own program: a binary path is the real tool's.
+  const runtime = [
+    ...(provider.binary && tool !== "fake-claude" && provider.tool === tool
+      ? ["--bin", expandDir(provider.binary, home)] : []),
+    ...(tool === "claude" && provider.tool === "claude" && provider.autoCompact ? ["--autocompact", String(provider.autoCompact)] : []),
+  ];
+  if (tool === "claude" && provider.tool === "claude" && env.CLAUDE_CONFIG_DIR) {
+    return ["--claude-config-dir", env.CLAUDE_CONFIG_DIR, ...runtime];
+  }
+  return [...(tool === "codex" && provider.tool === "codex" && env.CODEX_HOME ? ["--codex-home", env.CODEX_HOME] : []), ...runtime];
 }

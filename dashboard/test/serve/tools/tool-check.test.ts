@@ -112,6 +112,17 @@ describe("whether a provider is logged in", () => {
     expect(check.commands).toContain("CLAUDE_CONFIG_DIR=/home/x/.claude-2 claude auth status");
   });
 
+  test("a switched-off provider is not asked; one with a binary path is asked through that program", async () => {
+    const run = fakeRun({ ...preflight, "auth status": { stdout: statusIn(true) } });
+    const providers = () => ({
+      Claude: { ...PROVIDERS.Claude, enabled: false as const },
+      "Claude-2": { ...PROVIDERS["Claude-2"], binary: "~/bin/claude-next" },
+    });
+    const check = await checkTool("claude", opts(run, { providers, home: "/home/x" }));
+    expect(run.calls.map((c) => c.join(" ")).filter((c) => c.includes("auth status"))).toEqual(["/home/x/bin/claude-next auth status"]);
+    expect(check.extra.map((e) => e.provider)).toEqual(["Claude-2"]);
+  });
+
   test("a provider that is not logged in is a fault that names it, and says its own command (AC-7, AC-4)", async () => {
     forgetChecks();
     const run = fakeRun({ ...preflight, "auth status": { stdout: statusIn(false) } });

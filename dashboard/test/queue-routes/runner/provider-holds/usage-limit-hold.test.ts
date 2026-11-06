@@ -7,11 +7,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { tickRunner, type ScheduleContext } from "../../../src/serve/schedules";
-import { cleanupHarness, enqueue, makeRunner, resetHarness, setNow, spawns, store } from "../../queue/runner/runner-fixtures.ts";
-import { IMPLEMENTED } from "../../helpers/queue-server.ts";
-import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
-import { setupQueueRoutesHarness } from "../fixtures.ts";
+import { tickRunner, type ScheduleContext } from "../../../../src/serve/schedules";
+import { cleanupHarness, enqueue, makeRunner, resetHarness, setNow, spawns, store } from "../../../queue/runner/runner-fixtures.ts";
+import { IMPLEMENTED } from "../../../helpers/queue-server.ts";
+import { WAITING_RUNNER } from "../../../helpers/waiting-runner.ts";
+import { setupQueueRoutesHarness } from "../../fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness(undefined, IMPLEMENTED);
 const own: string[] = [];

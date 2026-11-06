@@ -24,16 +24,17 @@ find_bin() {
 
 claude_bin=""; codex_bin=""; opencode_bin=""
 if [ "$tool" = "codex" ]; then
-  codex_bin="$(find_bin "${AIDE_CODEX_BIN:-}" codex)"
+  codex_bin="$(find_bin "${bin_arg:-${AIDE_CODEX_BIN:-}}" codex)"
   [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse_fix "cannot find the codex binary" "set AIDE_CODEX_BIN"
 elif [ "$tool" = "opencode" ]; then
-  opencode_bin="$(find_bin "${AIDE_OPENCODE_BIN:-}" opencode)"
+  opencode_bin="$(find_bin "${bin_arg:-${AIDE_OPENCODE_BIN:-}}" opencode)"
   [ -n "$opencode_bin" ] && [ -x "$opencode_bin" ] || refuse_fix "cannot find the opencode binary" "set AIDE_OPENCODE_BIN"
 else
   # The environment wins; the project's own .aide/config is the fallback.
   # A per-machine file is where a project points its runs at a stand-in
   # binary without the whole dashboard following it there.
-  claude_override="${AIDE_CLAUDE_BIN:-}"
+  # A provider's own program (--bin) wins over both.
+  claude_override="${bin_arg:-${AIDE_CLAUDE_BIN:-}}"
   [ -n "$claude_override" ] || claude_override="$(aide_config_get AIDE_CLAUDE_BIN "$project_root")"
   # `--tool fake-claude` asks for the stand-in BY NAME, so a missing
   # override is a refusal rather than a silent fall-through to the real
@@ -375,6 +376,7 @@ else
   [ "$sandbox" = "no" ] || argv+=(--settings "$(sandbox_settings_json)")
   [ -n "$model" ] && argv+=(--model "$model")
   [ -n "$effort" ] && argv+=(--effort "$effort")
+  [ -n "$autocompact" ] && argv+=(--autocompact "$autocompact")
   [ -n "$session_id" ] && argv+=(--session-id "$session_id")
   [ "$chrome" = "yes" ] && argv+=(--chrome)
   # `--name` sets the session's display name: Claude Code writes it into

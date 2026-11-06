@@ -16,7 +16,7 @@
 
 import { homedir } from "node:os";
 import { runScript, scriptFor } from "./land-branch/run-script.ts";
-import { providerLoginCommand, providerLoginEnv, type Provider } from "../queue/providers/index.ts";
+import { expandDir, providerLoginCommand, providerLoginEnv, type Provider } from "../queue/providers/index.ts";
 import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults } from "../render/ui/tool-checks.ts";
 
 // The store lives in the render layer, which is where both readers are
@@ -265,9 +265,13 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
   // report "not logged in" for what is really "not installed".
   const extra: ExtraCheck[] = [];
   if (found) {
-    const own = Object.values(opts.providers?.() ?? {}).filter((p) => p.tool === tool);
+    // A switched-off provider runs nothing, so its login is no fault.
+    const own = Object.values(opts.providers?.() ?? {}).filter((p) => p.tool === tool && p.enabled !== false);
     if (own.length === 0) extra.push(await askLogin(tool, run, path(tool)));
-    for (const provider of own) extra.push(await askLogin(tool, run, path(tool), provider, opts.home));
+    for (const provider of own) {
+      const bin = provider.binary ? expandDir(provider.binary, opts.home ?? homedir()) : path(tool);
+      extra.push(await askLogin(tool, run, bin, provider, opts.home));
+    }
   }
   return { tool, at, found, lines: printed, extra, commands };
 }

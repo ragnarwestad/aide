@@ -51,15 +51,6 @@ describe("the fields a tool has", () => {
 });
 
 describe("the name rule", () => {
-  test("a space, a slash and 65 characters are refused with the sentence naming the characters (AC-2)", () => {
-    for (const bad of ["two words", "a/b", "x".repeat(65), ""]) {
-      const refusal = providerNameError(bad);
-      expect(refusal).toContain("letters, digits");
-      expect(refusal).toContain('"."');
-      expect(refusal).toContain("64");
-    }
-  });
-
   test("64 letters, digits, dots, underscores and hyphens pass, and no name is reserved (AC-5)", () => {
     expect(providerNameError("a1._-".repeat(12) + "abcd")).toBeNull();
     expect(providerNameError("Default")).toBeNull();

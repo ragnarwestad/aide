@@ -48,7 +48,7 @@ export {
   CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, toolPanel, toolPart, toolParts,
 } from "./pages/settings-page/tools.ts";
 export {
-  PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE,
+  PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_SWITCH_ROUTE,
   PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, providerEditPath, providerNewPath,
 } from "./pages/settings-page/providers.ts";
 export type { ProviderStatus } from "./pages/settings-page/providers.ts";

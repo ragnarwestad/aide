@@ -201,3 +201,17 @@ def test_a_review_on_the_stand_in_with_no_stand_in_never_reaches_a_model(runner,
     assert out["terminalReason"] != "completed", out
     assert "Review" in out["error"] and "fake-review" in out["error"], out
     assert len(fake_codex.calls.read_text().splitlines()) == 1
+
+
+def test_a_review_with_its_own_bin_runs_on_that_program(runner, workspace, fake_claude, fake_codex, tmp_path):
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, "review: no defects found")
+    codex = fake_codex(emits(_codex_says("review: no defects found")))
+    decoy = tmp_path / "decoy-codex"
+    decoy.write_text(f"#!/bin/sh\ntouch {tmp_path / 'decoy-ran'}\nexit 9\n")
+    decoy.chmod(0o755)
+    rc, out, _ = run(runner, workspace, claude, codex=decoy, command="implement",
+                     review_tool="codex", review_model="gpt-6.1-sol", review_bin=codex)
+    assert out["terminalReason"] == "completed", out
+    assert fake_codex.calls.read_text().strip(), "the program --review-bin named did not run"
+    assert not (tmp_path / "decoy-ran").exists()

@@ -14,6 +14,7 @@ import { stamp, type ExtraCheck } from "./tools.ts";
 export const PROVIDERS_ADD_ROUTE = "/api/queue/settings/providers/add";
 export const PROVIDERS_EDIT_ROUTE = "/api/queue/settings/providers/edit";
 export const PROVIDERS_REMOVE_ROUTE = "/api/queue/settings/providers/remove";
+export const PROVIDERS_SWITCH_ROUTE = "/api/queue/settings/providers/switch";
 
 export const PROVIDER_NEW_PATH = "/settings/providers/new";
 export const PROVIDER_EDIT_PATH = "/settings/providers/edit";
