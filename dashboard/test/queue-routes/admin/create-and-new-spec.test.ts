@@ -284,18 +284,14 @@ describe("a spec's row says what it depends on", () => {
       "109-expanded-row",
     );
 
-  // By NUMBER since 2026-08-21. It used to name the whole folder, to
-  // match `aide-run-spec`'s dependency refusal word for word; the folder
-  // name made the line longer than the row it sits in, and a number is
-  // what a reader recognises and is unambiguous — a spec number is never
-  // reused. A dependency written as a bare number already reads the same.
-  test("named by number, however the dependency itself was written", () => {
-    expect(row(["105-busy-row"])).toContain("Depends on: 105");
-    expect(row(["105-busy-row", "92-a-spec-can-depend"])).toContain("Depends on: 105, 92");
-    expect(row(["105"])).toContain("Depends on: 105");
+  // Use the project and number, keeping nonnumeric dependency names whole.
+  test("named by project and number, however the dependency itself was written", () => {
+    expect(row(["105-busy-row"])).toContain("Depends on: aide:105");
+    expect(row(["105-busy-row", "92-a-spec-can-depend"])).toContain("Depends on: aide:105, aide:92");
+    expect(row(["105"])).toContain("Depends on: aide:105");
     // Anything that does not open with a number is shown whole rather
     // than silently truncated.
-    expect(row(["a-named-thing"])).toContain("Depends on: a-named-thing");
+    expect(row(["a-named-thing"])).toContain("Depends on: aide:a-named-thing");
   });
 
 });

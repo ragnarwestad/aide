@@ -397,15 +397,14 @@ describe("the completion hook and the landing window", () => {
 
 describe("parked on a dependency", () => {
   test("a job named in the blocked map is not spawned and stays queued with a reason", async () => {
-    const job = enqueue({ steps: ["implement"] });
+    const job = enqueue({ project: "other-project", steps: ["implement"] });
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]));
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
-    // The NUMBER, not the folder: the row already names the folder a
-    // line above, and the sentence beside it says the same fact short.
-    expect(sentence(stored?.error)).toContain("depends on 80,");
+    // Use this job's project to qualify the dependency number.
+    expect(stored?.error).toMatchObject({ values: { dependency: "other-project:80" } });
     expect(stored?.errorReason).toBe("held-back");
     const row = await jobRow({ queue: store, store: new AideRunStore() }, stored!);
     expect(specStateChip(row, "en")).toContain("Held back");
@@ -492,7 +491,7 @@ describe("parked on a dependency", () => {
     expect(store.get(fresh.id)?.state).toBe("queued");
     expect(store.get(chained.id)?.state).toBe("queued");
     expect(sentence(store.get(chained.id)?.error)).toBe(sentence(store.get(fresh.id)?.error));
-    expect(sentence(store.get(chained.id)?.error)).toContain("depends on 80,");
+    expect(sentence(store.get(chained.id)?.error)).toContain("depends on aide:80,");
   });
 });
 
@@ -587,7 +586,7 @@ describe("a step appended to a running job's tail", () => {
     expect(spawns.map((s) => s.step)).toEqual(["analyze"]);
     const after = store.get(job.id)!;
     expect(after.state).toBe("queued");
-    expect(sentence(after.error)).toContain("Held back: depends on 80,");
+    expect(sentence(after.error)).toContain("Held back: depends on aide:80,");
   });
 });
 
@@ -612,7 +611,7 @@ describe("an archive whose acceptance criteria are not all ticked", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]));
     expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toContain("Held back: depends on 80,");
+    expect(sentence(store.get(job.id)?.error)).toContain("Held back: depends on aide:80,");
   });
 });
 

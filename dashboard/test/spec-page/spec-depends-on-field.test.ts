@@ -153,7 +153,7 @@ describe("the Depends on field", () => {
   // reads it as no dependencies.
   test("the empty entry beside the boxes clears the last dependency, and the row's line follows", async () => {
     const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
-    expect(await rowOf(base)).toContain("Depends on: 99");
+    expect(await rowOf(base)).toContain("Depends on: aide:99");
     const { status } = await answer(await track(base, { dependsOn: "", baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
@@ -171,7 +171,7 @@ describe("the Depends on field", () => {
     }));
     expect(status).toBe(200);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
-    expect(await rowOf(base)).toContain("Depends on: 99");
+    expect(await rowOf(base)).toContain("Depends on: aide:99");
   });
 
   test("a dependency since archived is kept when posted with the rest, and dropped when left out", async () => {

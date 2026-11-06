@@ -2,6 +2,7 @@ import type { Language } from "../../../i18n";
 // The spec's own header row: what it is, how far it has got, what it
 // has cost, and the one thing that can be done about it.
 
+import { specReference } from "../../../project/spec-folder.ts";
 import { specPagePath } from "../spec-page";
 import { badge, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
@@ -20,7 +21,7 @@ import {
 } from "./cell-helpers.ts";
 import { foldControl } from "./row-controls.ts";
 import { LIST_COLUMNS } from "./row-shared.ts";
-import { archivingAgain, nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
+import { archivingAgain, nextPhase, rowAnchorId } from "./row-state.ts";
 
 // One line about the spec: what NOTHING ELSE on the row says. It goes
 // blank rather than fall back to "no status recorded yet". No phase
@@ -38,12 +39,7 @@ function specSummary(g: SpecGroup): string {
   // after, never anything between. Two specs on the same day both read
   // "0% done", one with 21 task rows behind it and one with 4. What is
   // left is what neither the pips nor the badge carries.
-  // By NUMBER since 2026-08-21, not by folder. This line used to match
-  // `aide-run-spec`'s dependency refusal word for word, which names the
-  // whole folder; the number is what a reader recognises, it is
-  // unambiguous because a number is never reused, and the folder name
-  // made the line longer than the row it sits in.
-  if (g.dependsOn.length) bits.push(`Depends on: ${g.dependsOn.map((d) => esc(specNumber(d))).join(", ")}`);
+  if (g.dependsOn.length) bits.push(`Depends on: ${g.dependsOn.map((d) => esc(specReference(g.project, d))).join(", ")}`);
   return bits.join(" · ");
 }
 

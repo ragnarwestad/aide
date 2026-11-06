@@ -27,7 +27,7 @@
 // theme); the Runner class itself — the only stateful piece — stays
 // here, re-exporting them for every existing importer.
 
-import { specNumber } from "../../project/spec-folder.ts";
+import { specReference } from "../../project/spec-folder.ts";
 import { cliErrorMessage, noProgressMessage, runnerWords, runStopMessage, withoutRestatedError } from "./cross-check-message.ts";
 import { gitFailureMessage } from "./git-failure.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
@@ -233,13 +233,8 @@ export class Runner {
       const dependency = dependencyHold(blocked, job.id);
       if (dependency === NOT_CHECKED) continue;
       if (dependency !== undefined) {
-        // The NUMBER, not the folder: the row already says "depends on:
-        // 393" a line above this message, from the same helper, and a
-        // sentence that spells the whole folder out beside it is the
-        // same fact twice at four times the width. The folder stays the
-        // spec's address everywhere it IS one -- the branch, the commit
-        // subjects, the spec's own Depends on.
-        hold(job, { key: "runner.dependencyNotArchived", values: { dependency: specNumber(dependency) } });
+        // Include the project so a dependency number is unambiguous across projects.
+        hold(job, { key: "runner.dependencyNotArchived", values: { dependency: specReference(job.project, dependency) } });
         continue;
       }
       this.startOne(job);

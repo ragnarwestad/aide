@@ -15,3 +15,8 @@
 export function specNumber(folder: string): string {
   return /^\d+(?=-|$)/.exec(folder)?.[0] ?? folder;
 }
+
+/** A dependency is identified by its project and short spec number. */
+export function specReference(project: string, folder: string): string {
+  return `${project}:${specNumber(folder)}`;
+}

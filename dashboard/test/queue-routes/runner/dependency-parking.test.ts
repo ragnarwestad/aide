@@ -157,7 +157,7 @@ describe("a job parked on an unmerged dependency", () => {
     expect(listed.jobs[0].state).toBe("queued");
     // The number, not the folder: the row names the folder a line
     // above this message, and the sentence says it short.
-    expect(sentence(listed.jobs[0].error)).toContain("depends on 80,");
+    expect(sentence(listed.jobs[0].error)).toContain("depends on aide:80,");
   });
 
   // A plan made before the dependency lands is a plan for code that is
@@ -182,7 +182,7 @@ describe("a job parked on an unmerged dependency", () => {
       jobs: { state: string; error?: unknown }[];
     };
     expect(listed.jobs[0].state).toBe("queued");
-    expect(sentence(listed.jobs[0].error)).toContain("depends on 80,");
+    expect(sentence(listed.jobs[0].error)).toContain("depends on aide:80,");
   });
 
   test("only the specs root is ever asked — the project root plays no part in this question", async () => {

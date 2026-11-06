@@ -134,7 +134,7 @@ describe("a spec with a branch of its own", () => {
 
     expect(await failed(saved)).toBe(false);
     expect(onOrigin(fx, fx.branch, SPEC, "1-description.md")).toContain(`- **Depends on:** \`${OTHER}\``);
-    expect(await rowLine()).toContain("Depends on: 82");
+    expect(await rowLine()).toContain("Depends on: aide:82");
   });
 });
 
