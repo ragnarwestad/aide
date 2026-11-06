@@ -12,6 +12,7 @@
   --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;
   --danger: #DC2626; --danger-soft: #F1DDD7; --danger-ground: #F1DDD7;
   --pdf: #D0342C;
+  --mark-openai: #000000; --mark-opencode: #211E1E; --mark-opencode-inner: #CFCECD;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
   --fs-s: 12px; --fs-m: 14px; --fs-l: 16px; --fs-xl: 20px; --fs-brand: 26px;
   --lh: 1.45;
@@ -76,6 +77,7 @@
   --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
   --danger: #EB7878; --danger-soft: #3D211B; --danger-ground: #2F292D;
   --pdf: #E0473C;
+  --mark-openai: #FFFFFF; --mark-opencode: #F1ECEC; --mark-opencode-inner: #4B4646;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
 }
@@ -103,6 +105,7 @@
   --warn: #E0A84A; --warn-soft: #3A2F1C; --warn-ground: #2E2D29;
   --danger: #EB7878; --danger-soft: #3D211B; --danger-ground: #2F292D;
   --pdf: #E0473C;
+  --mark-openai: #FFFFFF; --mark-opencode: #F1ECEC; --mark-opencode-inner: #4B4646;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23A1A1AA' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
   color-scheme: dark;
@@ -122,6 +125,7 @@
   --warn: #B45309; --warn-soft: #F8EDD6; --warn-ground: #F8EDD6;
   --danger: #DC2626; --danger-soft: #F1DDD7; --danger-ground: #F1DDD7;
   --pdf: #D0342C;
+  --mark-openai: #000000; --mark-opencode: #211E1E; --mark-opencode-inner: #CFCECD;
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
 /* tokens:end */
   color-scheme: light;
