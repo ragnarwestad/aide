@@ -210,7 +210,7 @@ logged in (`opencode auth login`); the page of an OpenCode provider answers whet
 opens on Models. One press of Check reads both at once, with the provider's own folders in the environment, and each tab
 shows the answer from that press with the time of its reading. If one reading fails or times out, the other is still
 shown and the failed tab says so. The tab buttons only switch between the tabs. The address names the open tab
-(`/settings/providers/edit?key=Claude&aitab=installation`). The models are read on a press and at no other time. The
+(`/settings?tab=providers&provider=Claude&aitab=installation`). The models are read on a press and at no other time. The
 installation check also runs at start and before a waiting job, for Claude Code, Codex and OpenCode, which is what the
 notice about a login at the top of every page reads; that notice links to the Providers tab.
 
@@ -466,21 +466,25 @@ step has run. [A job's states](job-states.md) has the fields and the transition 
 
 A provider is one named AI login: a tool (Claude Code, Codex or OpenCode) and the folders that tool keeps its login in.
 Every AI choice on the board lists providers by name ("Claude", "Claude-Capra", "Codex"), with the model choice under
-the provider. A provider's name has letters, digits, `.`, `_` and `-`, at most 64.
+the provider.
 
 - **One row of tabs.** Settings has four tabs on one row: Models per phase, Providers, Process and Notifications. A
   link that names the AI tab the row once had (`?tab=ai`) opens Models per phase, and one that names a tool tab
   (`?tab=claude`, `codex`, `copilot`, `opencode`) opens Providers. Copilot is offered nowhere under Settings.
-- **The list.** Providers is a table built like the Models per phase table: one row per provider with its name, its tool
-  and its login (Logged in, Not logged in, Not read, Not installed), and **Add** under it. A row has no field or button of
-  its own; pressing it opens the provider's page. Add opens the same page empty: the tool first, then that tool's
-  fields. The tool of a provider does not change; to change it, add a provider. No provider is special: the ones the
-  board made on its first start can be renamed and removed like the rest.
-- **The provider's page.** One form holds every field of the provider, the name included, with Save and Cancel. Save
-  shows its pending label while it saves; a refusal is written in the form's own line and leaves every field as it was
-  typed; Cancel returns to the Providers tab without saving. **Remove** under the form asks first. Under it the page
-  shows what was read as it opened (see Status), the usage, and the tool's panel with its Check. Renaming a provider
-  updates nothing else: phase defaults, schedule entries and jobs store the provider's key.
+- **The list.** The Providers tab shows the providers in a list, with the chosen provider beside it (under it on a
+  narrow screen). Each row has the tool's icon, the name, the tool's version, the login and the plan (Claude Code's
+  subscription, or the way Codex is logged in), and the provider's on/off switch. Above the list is **+**, which adds a
+  provider, and when the status was read, with Check again. **Add provider** ends the list. Pressing a row chooses
+  that provider; the address names it (`/settings?tab=providers&provider=Claude`), and with none named the first is
+  chosen. Add opens its own page: the tool first, then that tool's fields. The tool of a provider does not change; to
+  change it, add a provider. No provider is special: the ones the board made on its first start can be renamed and
+  removed like the rest.
+- **The chosen provider.** Beside the list: the name with the version and **Remove**, which asks first; then the
+  status (see Status); then one form with the display name and the runtime fields, with Save and Cancel; then the
+  usage and the tool's panel with its Check. Save shows its pending label while it saves; a refusal is written in the
+  form's own line and leaves every field as it was typed; Cancel puts back what was saved. Renaming a provider updates
+  nothing else: phase defaults, schedule entries and jobs store the provider's key. The old address of a provider's
+  page (`/settings/providers/edit?key=`) leads here.
 - **The fields.** Claude Code: a config folder, handed over as `CLAUDE_CONFIG_DIR`; empty means Claude Code's own
   `~/.claude`. Codex: a `CODEX_HOME` folder, empty meaning `~/.codex`, and an optional shadow home. OpenCode: none. A
   folder is written from `/` or `~/`. A folder that is not there yet is made on save; a path that is a file is refused.

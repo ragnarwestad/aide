@@ -112,6 +112,12 @@ describe("whether a provider is logged in", () => {
     expect(check.commands).toContain("CLAUDE_CONFIG_DIR=/home/x/.claude-2 claude auth status");
   });
 
+  test("a Claude login names its plan, from the subscription Claude Code reports", async () => {
+    const run = fakeRun({ ...preflight, "auth status": { stdout: statusIn(true) } });
+    const check = await checkTool("claude", opts(run, { providers: () => ({ Claude: PROVIDERS.Claude }), home: "/home/x" }));
+    expect(check.extra[0]!.plan).toBe("Max");
+  });
+
   test("a switched-off provider is not asked; one with a binary path is asked through that program", async () => {
     const run = fakeRun({ ...preflight, "auth status": { stdout: statusIn(true) } });
     const providers = () => ({

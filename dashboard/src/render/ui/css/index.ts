@@ -51,6 +51,7 @@ const SECTIONS = [
   "list/rows-and-forms.css",
   "pages/job-page.css",
   "pages/project-overview.css",
+  "pages/settings-providers.css",
   "narrow/narrow.css",
   "narrow/narrow-spec-head.css",
   "narrow/narrow-rows.css",

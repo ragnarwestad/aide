@@ -367,15 +367,11 @@ describe("the pages that add and edit a provider", () => {
     expect((await fetch(`${base}/settings/providers/edit?key=Nobody`)).status).toBe(404);
   });
 
-  test("the Providers tab lists every provider as a row that opens its page, with no rename or remove of its own, and Add (AC-6, AC-7)", async () => {
+  test("the address that edited a provider sends the reader to it on the Providers tab, its inner tab kept", async () => {
     const { base } = serve();
-    const html = await (await fetch(`${base}/settings?tab=providers`)).text();
-    for (const key of ["Claude", "Codex"]) {
-      expect(html).toContain(`<tr data-row-href="/settings/providers/edit?key=${key}">`);
-    }
-    expect(html).not.toContain("providers/rename");
-    expect(html).not.toContain(REMOVE);
-    expect(html).toContain("/settings/providers/new");
+    const res = await fetch(`${base}/settings/providers/edit?key=Codex&aitab=installation`, { redirect: "manual" });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/settings?tab=providers&provider=Codex&aitab=installation");
   });
 });
 
@@ -386,13 +382,13 @@ describe("what a provider's page shows of its own folders", () => {
     login: key === "Claude-2" ? login(`CLAUDE_CONFIG_DIR=${provider.configDir} claude auth login`) : undefined,
   });
 
-  test("the status probe and the usage probe are each asked once for that key before the page answers, and the page shows what they answered (AC-3)", async () => {
+  test("every provider's status is read, and the chosen one's usage, before the tab answers, and it shows what they answered (AC-3)", async () => {
     const asked: string[] = [];
     const probe: Probe = async (key, provider, opts) => { asked.push(`status:${key}`); return byKey(key, provider, opts); };
     const usage = async (key: string, provider: Provider) => { asked.push(`usage:${key}`); return stubUsage(key, provider); };
     const { base } = serve({}, CONFIG, probe, usage);
     const html = await (await fetch(`${base}/settings/providers/edit?key=Codex`)).text();
-    expect(asked.sort()).toEqual(["status:Codex", "usage:Codex"]);
+    expect(asked.sort()).toEqual(["status:Claude", "status:Codex", "usage:Codex"]);
     expect(html).toContain("1.0 (Codex)");
     expect(html).toContain("Window of Codex");
   });
@@ -411,16 +407,13 @@ describe("what a provider's page shows of its own folders", () => {
     expect(first).not.toContain("1.0 (Claude-2)");
   });
 
-  test("a provider that is not logged in says so on its page and in its row, and its page shows the command that logs in with its own folder (AC-20, AC-21)", async () => {
+  test("a provider that is not logged in says so, and shows the command that logs in with its own folder (AC-20, AC-21)", async () => {
     const dir = folder();
     const { base } = serve({}, CONFIG, byKey);
     await post(base, ADD, { tool: "claude", name: "Claude-2", configDir: dir });
     const page = await (await fetch(`${base}/settings/providers/edit?key=Claude-2`)).text();
     expect(page).toContain("Not logged in");
     expect(page).toContain(`CLAUDE_CONFIG_DIR=${dir} claude auth login`);
-    const tab = await (await fetch(`${base}/settings?tab=providers`)).text();
-    const row = tab.match(/<tr data-row-href="[^"]*key=Claude-2">.*?<\/tr>/)?.[0] ?? "";
-    expect(row).toContain("Not logged in");
   });
 });
 
@@ -445,7 +438,7 @@ describe("reading every provider's status when Settings opens", () => {
     expect(asked).toEqual([]);
     for (const tab of ["claude", "codex", "copilot", "opencode"]) {
       const html = await (await fetch(`${base}/settings?tab=${tab}`)).text();
-      expect(html).toContain("/settings/providers/edit?key=Claude");
+      expect(html).toContain("provider=Claude");
     }
     expect(asked).toHaveLength(8);
   });

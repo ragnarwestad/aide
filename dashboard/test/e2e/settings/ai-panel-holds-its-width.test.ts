@@ -73,7 +73,7 @@ function measure(p: Page): Promise<Layout> {
 }
 
 async function open(part: string): Promise<Layout> {
-  const address = `/settings/providers/edit?key=Claude&aitab=${part}`;
+  const address = `/settings?tab=providers&provider=Claude&aitab=${part}`;
   await withBrowser(page.goto(`${base}${address}`), `page.goto(${address})`);
   return measure(page);
 }
@@ -81,7 +81,7 @@ async function open(part: string): Promise<Layout> {
 async function clickTab(name: string, part: string): Promise<Layout> {
   const tabs = page.locator("nav[data-aitabs]");
   await Promise.all([
-    page.waitForURL(`**/settings/providers/edit?key=Claude&aitab=${part}`),
+    page.waitForURL(`**/settings?tab=providers&provider=Claude&aitab=${part}`),
     tabs.getByRole("link", { name, exact: true }).click(),
   ]);
   return measure(page);

@@ -4,7 +4,9 @@ import { backLink, btn, helpPopover, messageSlot } from "../../ui/components";
 import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { notificationsPanel } from "./notifications.ts";
 import { processPanel, type ProcessSettings } from "./process.ts";
-import { providersBlock, type ProviderStatus } from "./providers.ts";
+import type { ProviderStatus } from "./providers.ts";
+import { providersTab } from "./provider-list.ts";
+import type { ProviderDetailOptions } from "./provider-detail.ts";
 import type { Provider } from "../../../queue/providers/index.ts";
 import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
@@ -102,6 +104,8 @@ export interface SettingsPageOptions {
   providers?: Record<string, Provider>;
   /** What was read of each provider when the Providers tab opened, by key. */
   providerStatuses?: Record<string, ProviderStatus>;
+  /** The provider the Providers tab shows on the right, with what was read of it. */
+  providerDetail?: ProviderDetailOptions;
   /** The server's public key for push, which the Notifications tab's
    *  script subscribes a device with. */
   pushPublicKey?: string;
@@ -220,7 +224,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const panel = open === "phases"
     ? phasesPanel
     : open === "providers"
-      ? providersBlock(opts.providers, lang, opts.providerStatuses)
+      ? providersTab({ providers: opts.providers, statuses: opts.providerStatuses, detail: opts.providerDetail, now: Date.parse(generatedAt) }, lang)
       : open === "notifications"
         ? notificationsPanel(opts.pushPublicKey, lang)
         : opts.process ? processPanel(opts.process, lang) : "";

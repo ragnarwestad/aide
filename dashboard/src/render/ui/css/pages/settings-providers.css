@@ -1,0 +1,42 @@
+/* --- Settings › Providers -------------------------------------------- */
+
+/* The heading with Add, and when the logins were read at the row's far end. */
+.providershead { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-4) 0 var(--sp-3); }
+.providershead h2 { margin: 0; font-size: var(--fs-xl); }
+.providerschecked { margin-left: auto; }
+
+/* The list beside the chosen provider, in one frame; one column at phone
+   width, the list first. */
+.providerpanes { display: grid; grid-template-columns: minmax(16rem, 1fr) 2fr;
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+.providerlist { list-style: none; margin: 0; padding: 0; border-right: 1px solid var(--line); }
+.providerrow { display: flex; align-items: center; gap: var(--sp-2); padding-right: var(--sp-3);
+  border-bottom: 1px solid var(--line); }
+.providerrow.chosen { background: var(--surface-2); }
+.provideritem { display: flex; align-items: flex-start; gap: var(--sp-3); flex: 1; min-width: 0;
+  padding: var(--sp-3); color: var(--text); }
+.provideritem:hover { text-decoration: none; background: var(--surface-2); }
+.providericon { display: inline-flex; flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--accent); }
+.providericon svg { width: 18px; height: 18px; }
+.providertext { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.providername { overflow-wrap: anywhere; }
+.providerversion { color: var(--muted); font-family: var(--mono); font-size: var(--fs-s); }
+
+/* The chosen provider: its head, its status, one form of label-and-input
+   rows, then the usage and the tool's panel. */
+.providerdetail { padding: var(--sp-4) var(--sp-5); min-width: 0; }
+.providerdetail h4 { margin: var(--sp-5) 0 var(--sp-2); }
+.providerdetailhead { display: flex; align-items: center; gap: var(--sp-3); }
+.providerdetailhead h3 { margin: 0; font-size: var(--fs-l); }
+.providerdetailhead .providerversion { margin-left: auto; }
+.fieldrow { display: grid; grid-template-columns: 1fr minmax(12rem, 1fr); gap: var(--sp-4); align-items: center;
+  padding: var(--sp-3) 0; border-bottom: 1px solid var(--line); }
+.fieldrow label { display: flex; flex-direction: column; gap: 2px; }
+.fieldrow input { height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); font: var(--fs-m)/1 var(--sans); }
+
+@media (max-width: 40rem) {
+  .providerpanes { grid-template-columns: 1fr; }
+  .providerlist { border-right: 0; }
+  .fieldrow { grid-template-columns: 1fr; gap: var(--sp-2); }
+}

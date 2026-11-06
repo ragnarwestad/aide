@@ -111,33 +111,31 @@ export function settingsStates(): PageState[] {
     providerPage("Provider › Add, which tool", {}),
     ...(["claude", "codex", "opencode"] as const).map((tool) => providerPage(`Provider › Add, ${tool}`, { tool })),
   );
+  // The chosen provider, on the Providers tab, with what was read of it.
+  const PROVIDER_DATA = [...names, "~/.claude-konto", "~/.codex-kodeks", "2.1.273", "noen@eksempel.no, Max", "CODEX_HOME=~/.codex-kodeks codex login",
+    "Planlegg 1", "claude-planlegg-1", "Raskkodex", "raskkodex", "Ukjent", "ukjent", "Dagens kvote", "Nov 3 at 11:20pm (Europe/Oslo)", "funnet (2.1.273)",
+    "aide-preflight claude", "claude auth status", "Max", "claude", "codex", "opencode", "300000", "~/.claude", "~/.codex", "~/.codex-shadow"];
+  type Detail = NonNullable<Parameters<typeof renderSettingsPage>[2]["providerDetail"]>;
+  const chosen = (page: string, key: keyof typeof providers, over: Partial<Detail> = {}): PageState =>
+    settings(page, {
+      tab: "providers", providers, providerStatuses: statuses,
+      providerDetail: { key, provider: providers[key], status: statuses[key as keyof typeof statuses], ...over },
+    }, PROVIDER_DATA);
   for (const tool of CHECKABLE_TOOLS) {
     const key = tool === "claude" ? "Konto" : tool === "codex" ? "Kodeks" : "Aapen";
     const reading = tool === "codex" ? CODEX_READING : { ...READING, tool };
     const usage = { ...USAGE, tool };
     for (const part of ["models", "installation"]) {
-      const base = { edit: { key, provider: providers[key as keyof typeof providers] }, aiTab: part, models: { choices: {} } };
-      states.push(providerPage(`Provider › ${tool} › ${part}, before a reading`, { ...base, status: statuses[key as keyof typeof statuses] }));
-      states.push(
-        providerPage(`Provider › ${tool} › ${part}, after a reading`, {
-          ...base,
-          status: statuses[key as keyof typeof statuses],
-          usage,
-          check: checkOf(tool),
-          models: { choices: {}, reading },
-        }),
-      );
+      states.push(chosen(`Provider › ${tool} › ${part}, before a reading`, key, { aiTab: part, models: { choices: {} } }));
+      states.push(chosen(`Provider › ${tool} › ${part}, after a reading`, key, {
+        aiTab: part, usage, check: checkOf(tool), models: { choices: {}, reading },
+      }));
     }
   }
   states.push(
-    providerPage("Provider › codex, usage with no windows", {
-      edit: { key: "Kodeks", provider: providers.Kodeks }, status: statuses.Kodeks, usage: { tool: "codex", at: AT, windows: [] },
-    }),
-    providerPage("Provider › not installed", {
-      edit: { key: "Fraverende", provider: providers.Fraverende }, status: statuses.Fraverende,
-    }),
-    providerPage("Provider › claude, models none offered", {
-      edit: { key: "Konto", provider: providers.Konto }, status: statuses.Konto,
+    chosen("Provider › codex, usage with no windows", "Kodeks", { usage: { tool: "codex", at: AT, windows: [] } }),
+    chosen("Provider › not installed", "Fraverende"),
+    chosen("Provider › claude, models none offered", "Konto", {
       models: { choices: {}, reading: { tool: "claude", at: AT, offered: [], provider: "Konto" } },
     }),
   );

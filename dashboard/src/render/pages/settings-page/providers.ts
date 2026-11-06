@@ -1,9 +1,8 @@
-// The Providers tab under Settings: every AI login the board may run a
-// step on, one row each with its name, its tool and its login. A row opens
-// the provider's page; under the table is Add, which opens a page of its own.
+// What the Providers tab under Settings is made of: its addresses, what was
+// read of each provider, and the row each provider is drawn from. The list
+// is drawn by `provider-list.ts` and the chosen provider by
+// `provider-detail.ts`.
 
-import { esc } from "../../ui/html.ts";
-import { btnLink } from "../../ui/components";
 import { capitalizeFirst } from "../../ui/job-state/provider-limit.ts";
 import { renderSentence } from "../../../i18n/message.ts";
 import { t, type Language } from "../../../i18n";
@@ -21,7 +20,21 @@ export const PROVIDER_EDIT_PATH = "/settings/providers/edit";
 export const PROVIDERS_TAB_PATH = "/settings?tab=providers";
 
 export const providerNewPath = (tool?: ProviderTool): string => (tool ? `${PROVIDER_NEW_PATH}?tool=${tool}` : PROVIDER_NEW_PATH);
-export const providerEditPath = (key: string): string => `${PROVIDER_EDIT_PATH}?key=${encodeURIComponent(key)}`;
+/** A provider's own place: the Providers tab with it chosen. */
+export const providerEditPath = (key: string): string => `${PROVIDERS_TAB_PATH}&provider=${encodeURIComponent(key)}`;
+
+/** The provider the tab shows: the one `asked` names, else the first in
+ *  config order, else none. */
+export function selectedProviderKey(providers: Record<string, Provider> | undefined, asked: string | null | undefined): string | undefined {
+  const keys = Object.keys(providers ?? {});
+  return asked && keys.includes(asked) ? asked : keys[0];
+}
+
+/** The version number in what `<tool> --version` printed: "2.1.318" out of
+ *  "2.1.318 (Claude Code)" or "codex-cli 0.166.0". */
+export function versionNumber(printed: string | undefined): string | undefined {
+  return printed?.match(/\d+\.\d+[\w.+-]*/)?.[0];
+}
 
 /** What the board read of one provider when the tab opened. Declared here
  *  because `src/render` may not import `src/serve`, where it is read. */
@@ -75,50 +88,48 @@ export function providerLoginState(status: ProviderStatus | undefined): Provider
   return login.answer.key.startsWith("login.in") ? "in" : "unread";
 }
 
-/** What a row of the providers table holds, in config order. */
+/** What a row of the providers list holds, in config order. */
 export interface ProviderRow {
   key: string;
   name: string;
+  tool: ProviderTool;
   /** The tool's own name, as the tab shows it. */
-  tool: string;
+  toolName: string;
+  version?: string;
   login: ProviderLoginState;
-  /** The address of the provider's page. */
+  /** The plan the login is on, or how it logged in, where the tool says. */
+  plan?: string;
+  /** Not switched off. */
+  on: boolean;
+  /** The address that chooses the provider. */
   href: string;
+}
+
+/** The plan a login is on: Claude Code's subscription, else the way the
+ *  tool says it logged in (Codex: "ChatGPT"). */
+function planOf(login: ExtraCheck | undefined): string | undefined {
+  if (!login?.answer || login.answer.key === "login.out") return undefined;
+  const method = login.answer.values?.method;
+  return login.plan ?? (typeof method === "string" && method ? method : undefined);
 }
 
 export function providerRows(
   providers: Record<string, Provider> | undefined,
   statuses: Record<string, ProviderStatus> = {},
 ): ProviderRow[] {
-  return Object.entries(providers ?? {}).map(([key, p]) => ({
-    key,
-    name: p.name,
-    tool: TOOL_NAMES[p.tool] ?? p.tool,
-    login: providerLoginState(statuses[key]),
-    href: providerEditPath(key),
-  }));
-}
-
-/** The tab: every provider as a row of the Models per phase table's own kind
- *  of table — name, tool and login — each row opening the provider's page,
- *  and the link that adds one. */
-export function providersBlock(
-  providers: Record<string, Provider> | undefined,
-  lang: Language = "en",
-  statuses: Record<string, ProviderStatus> = {},
-): string {
-  const rows = providerRows(providers, statuses);
-  const body = rows.map((r) =>
-    `<tr data-row-href="${esc(r.href)}"><th scope="row"><a href="${esc(r.href)}">${esc(r.name)}</a></th>` +
-    `<td>${esc(r.tool)}</td><td>${esc(t(lang, `settings.providers.state.${r.login}`))}</td></tr>`).join("");
-  const table = rows.length
-    ? `<table class="settingstable"><thead><tr><th>${esc(t(lang, "settings.providers.name"))}</th>` +
-      `<th>${esc(t(lang, "settings.providers.tool"))}</th><th>${esc(t(lang, "settings.providers.login"))}</th></tr></thead>` +
-      `<tbody>${body}</tbody></table>`
-    : `<p class="muted">${esc(t(lang, "settings.providers.none"))}</p>`;
-  return (
-    `<p>${esc(t(lang, "settings.providers.intro"))}</p>` +
-    table +
-    `<p>${btnLink({ href: PROVIDER_NEW_PATH, label: t(lang, "settings.providers.add"), variant: "primary" })}</p>`
-  );
+  return Object.entries(providers ?? {}).map(([key, p]) => {
+    const version = versionNumber(statuses[key]?.version);
+    const plan = planOf(statuses[key]?.login);
+    return {
+      key,
+      name: p.name,
+      tool: p.tool,
+      toolName: TOOL_NAMES[p.tool] ?? p.tool,
+      ...(version ? { version } : {}),
+      login: providerLoginState(statuses[key]),
+      ...(plan ? { plan } : {}),
+      on: p.enabled !== false,
+      href: providerEditPath(key),
+    };
+  });
 }

@@ -88,3 +88,17 @@ export const ICON_CLOSE =
   `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" ` +
   `stroke="currentColor" stroke-width="1.8" stroke-linecap="round">` +
   `<path d="M4 4l8 8M12 4l-8 8"></path></svg>`;
+
+/** The three tools a provider runs, each a shape of its own: a burst for
+ *  Claude Code, a ring of loops for Codex, brackets for OpenCode. */
+export const TOOL_ICONS: Record<"claude" | "codex" | "opencode", string> = {
+  claude:
+    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">` +
+    `<path d="M8 1.5v13M1.5 8h13M3.4 3.4l9.2 9.2M12.6 3.4l-9.2 9.2"></path></svg>`,
+  codex:
+    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">` +
+    `<circle cx="8" cy="4.5" r="3"></circle><circle cx="4.9" cy="10" r="3"></circle><circle cx="11.1" cy="10" r="3"></circle></svg>`,
+  opencode:
+    `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+    `<path d="M5.5 3.5L2 8l3.5 4.5M10.5 3.5L14 8l-3.5 4.5"></path></svg>`,
+};

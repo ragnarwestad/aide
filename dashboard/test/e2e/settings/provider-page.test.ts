@@ -55,17 +55,19 @@ afterAll(async () => {
 
 const go = (address: string) => withBrowser(page.goto(`${base}${address}`), `page.goto(${address})`);
 
-test("a click on a row of the Providers table opens that provider's page (AC-7)", async () => {
+const CLAUDE = "/settings?tab=providers&provider=Claude";
+
+test("a click on a provider in the list shows it beside the list (AC-7)", async () => {
   await go("/settings?tab=providers");
   await Promise.all([
-    page.waitForURL("**/settings/providers/edit?key=OpenCode"),
-    page.locator('tr[data-row-href*="key=OpenCode"] td').first().click(),
+    page.waitForURL("**/settings?tab=providers&provider=OpenCode"),
+    page.locator(".provideritem", { hasText: "OpenCode" }).click(),
   ]);
   expect(await page.locator('input[name="name"]').inputValue()).toBe("OpenCode");
 });
 
 test("Save shows its pending label while the post is out (AC-10, AC-11)", async () => {
-  await go("/settings/providers/edit?key=Claude");
+  await go(CLAUDE);
   let release: () => void = () => {};
   const held = new Promise<void>((resolve) => { release = resolve; });
   await page.route("**/api/queue/settings/providers/edit", async (route) => {
@@ -77,19 +79,21 @@ test("Save shows its pending label while the post is out (AC-10, AC-11)", async 
   await save.click();
   expect((await save.innerText()).toLowerCase()).toBe(t("en", "list.checksSaving").toLowerCase());
   release();
-  await page.waitForURL("**/settings?tab=providers");
+  await page.locator(".providerlist", { hasText: "Claude-Capra" }).waitFor();
 });
 
-test("Cancel returns to the Providers tab without saving (AC-12)", async () => {
-  await go("/settings/providers/edit?key=Claude");
+test("Cancel puts back what was saved (AC-12)", async () => {
+  await go(CLAUDE);
+  const saved = await page.locator('input[name="name"]').inputValue();
   await page.locator('input[name="name"]').fill("Never-saved");
-  await Promise.all([page.waitForURL("**/settings?tab=providers"), page.locator("#providerform-cancel").click()]);
-  expect(await page.locator("table.settingstable").innerText()).not.toContain("Never-saved");
-  expect(await page.locator("table.settingstable").innerText()).toContain("Claude");
+  await page.locator("#providerform-cancel").click();
+  await page.waitForURL(`**${CLAUDE}`);
+  expect(await page.locator('input[name="name"]').inputValue()).toBe(saved);
+  expect(await page.locator(".providerlist").innerText()).not.toContain("Never-saved");
 });
 
 test("a save the board refuses is written in the form's own line and every field keeps what was typed (AC-18)", async () => {
-  await go("/settings/providers/edit?key=Claude");
+  await go(CLAUDE);
   await page.locator('input[name="name"]').fill("opencode");
   await page.locator("#providerform-save").click();
   await page.locator("#provider-refused span", { hasText: /opencode/i }).waitFor();
@@ -97,21 +101,31 @@ test("a save the board refuses is written in the form's own line and every field
   expect(await page.locator('input[name="name"]').inputValue()).toBe("opencode");
 });
 
+test("a press on a provider's switch turns it off, and a second press on again", async () => {
+  await go(CLAUDE);
+  const toggle = () => page.locator('form:has(input[name="key"][value="Claude"]) button[role="switch"]');
+  expect(await toggle().getAttribute("aria-checked")).toBe("true");
+  await toggle().click();
+  await page.locator('form:has(input[name="key"][value="Claude"]) button[role="switch"][aria-checked="false"]').waitFor();
+  await toggle().click();
+  await page.locator('form:has(input[name="key"][value="Claude"]) button[role="switch"][aria-checked="true"]').waitFor();
+});
+
 test("Remove asks first, removes nothing on Cancel, and removes the provider on OK (AC-13)", async () => {
-  await go("/settings/providers/edit?key=OpenCode");
+  await go("/settings?tab=providers&provider=OpenCode");
   const dialog = page.locator('dialog[id="provider-remove-ask"]');
   await page.locator('button[data-ask="provider-remove-ask"]').click();
   await dialog.waitFor({ state: "visible" });
   await dialog.getByRole("button", { name: t("en", "dialog.cancel") }).click();
   await dialog.waitFor({ state: "hidden" });
   await go("/settings?tab=providers");
-  expect(await page.locator("table.settingstable").innerText()).toContain("OpenCode");
+  expect(await page.locator(".providerlist").innerText()).toContain("OpenCode");
 
-  await go("/settings/providers/edit?key=OpenCode");
+  await go("/settings?tab=providers&provider=OpenCode");
   await page.locator('button[data-ask="provider-remove-ask"]').click();
   await Promise.all([
     page.waitForURL("**/settings?tab=providers"),
     page.locator('dialog[id="provider-remove-ask"]').getByRole("button", { name: t("en", "dialog.ok") }).click(),
   ]);
-  expect(await page.locator("table.settingstable").innerText()).not.toContain("OpenCode");
+  expect(await page.locator(".providerlist").innerText()).not.toContain("OpenCode");
 });

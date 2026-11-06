@@ -7,6 +7,8 @@
 // three be asked one after another exactly as the chain read before.
 import { providerPickerOptions } from "../../providers/options.ts";
 import { readProviderStatus } from "../../providers/status.ts";
+import { providerDetailFor } from "../providers/page.ts";
+import { selectedProviderKey } from "../../../render/pages/settings-page/providers.ts";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
@@ -44,6 +46,11 @@ export async function projectPages(
     const providerStatuses = resolveSettingsTab(tab) === "providers"
       ? await readProviderStatuses(ctx)
       : undefined;
+    const providers = ctx.queue.defaults.providers;
+    const chosen = providerStatuses ? selectedProviderKey(providers, url.searchParams.get("provider")) : undefined;
+    const providerDetail = chosen
+      ? await providerDetailFor(ctx, chosen, providers![chosen]!, providerStatuses?.[chosen], url.searchParams.get("aitab") ?? undefined)
+      : undefined;
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
       modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
@@ -55,7 +62,8 @@ export async function projectPages(
       currentUrl: langResult.currentUrl,
       tab,
       providerStatuses,
-      providers: ctx.queue.defaults.providers,
+      providerDetail,
+      providers,
       pushPublicKey: await ctx.push.publicKey(),
       process: processSettings(ctx.runner, ctx.opts.queueConcurrency),
     });

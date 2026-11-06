@@ -150,7 +150,7 @@ describe("the tabs under a provider's Check", () => {
     expect([...TOOL_PARTS]).toEqual(["models", "installation"]);
     expect(toolParts("claude")).toEqual([...TOOL_PARTS]);
     expect(innerTabs(toolPanel({ key: "Claude-2", tool: "claude" }, undefined))).toEqual(toolParts("claude").map((part) => ({
-      href: `/settings/providers/edit?key=Claude-2&aitab=${part}`,
+      href: `/settings?tab=providers&provider=Claude-2&aitab=${part}`,
       label: t("en", `settings.part.${part}`),
     })));
   });

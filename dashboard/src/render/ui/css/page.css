@@ -69,10 +69,7 @@ nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap
 main:has(> nav.tabbar.subtabs a[href^="/settings"]) > nav.tabbar.subtabs {
   justify-content: center; }
 main:has(> nav.tabbar.subtabs a[href^="/settings"]) > table.settingstable { margin-inline: auto; }
-/* A provider's page has no Settings tab row to find, so its panel is found
-   by the form above it. */
-main:has(> nav.tabbar.subtabs a[href^="/settings"]) > .toolpanel,
-main:has(> form.providerform) > .toolpanel {
+main:has(> nav.tabbar.subtabs a[href^="/settings"]) > .toolpanel {
   width: min(70ch, 100%); margin-inline: auto; }
 /* Narrower than the site's two: seven tabs at 7rem each do not fit a
    laptop, and these labels are one word. They keep the row's own

@@ -3,7 +3,7 @@
 // in one language.
 
 import { describe, expect, test } from "bun:test";
-import { providerLoginState, providerRows, providerStatusLines, type ProviderStatus } from "../../../src/render/pages/settings-page/providers.ts";
+import { providerLoginState, providerRows, providerStatusLines, selectedProviderKey, type ProviderStatus } from "../../../src/render/pages/settings-page/providers.ts";
 import type { ExtraCheck } from "../../../src/render/pages/settings-page/tools.ts";
 import type { Provider } from "../../../src/queue/providers/index.ts";
 
@@ -79,23 +79,37 @@ describe("the login state of a row", () => {
   });
 });
 
-describe("the rows of the providers table", () => {
+describe("the rows of the providers list", () => {
   const providers: Record<string, Provider> = {
     Claude: { name: "Claude", tool: "claude" },
-    "Codex-p": { name: "Codex-p", tool: "codex", codexHome: "~/.codex-p" },
+    "Codex-p": { name: "Codex personal", tool: "codex", codexHome: "~/.codex-p", enabled: false },
     OpenCode: { name: "OpenCode", tool: "opencode" },
   };
 
-  test("each row holds the provider's name, its tool's name, its login state and the address of its page, in config order (AC-6, AC-7)", () => {
-    const statuses = { Claude: status({ key: "Claude", login: login({ ok: false, answer: { key: "login.out", values: { command: "x" } } }) }) };
+  test("each row holds the name, the tool, the version, the login, the plan, the switch and its address, in config order", () => {
+    const statuses = {
+      Claude: status({ key: "Claude", login: login({ answer: { key: "login.inWithAs", values: { method: "claude.ai", account: "a@b.no" } }, plan: "Max" }) }),
+      "Codex-p": status({ key: "Codex-p", version: "codex-cli 0.166.0", login: login({ answer: { key: "login.inWith", values: { method: "ChatGPT" } } }) }),
+    };
     expect(providerRows(providers, statuses)).toEqual([
-      { key: "Claude", name: "Claude", tool: "Claude Code", login: "out", href: "/settings/providers/edit?key=Claude" },
-      { key: "Codex-p", name: "Codex-p", tool: "Codex", login: "unread", href: "/settings/providers/edit?key=Codex-p" },
-      { key: "OpenCode", name: "OpenCode", tool: "OpenCode", login: "unread", href: "/settings/providers/edit?key=OpenCode" },
+      { key: "Claude", name: "Claude", tool: "claude", toolName: "Claude Code", version: "2.1.318", login: "in", plan: "Max", on: true, href: "/settings?tab=providers&provider=Claude" },
+      { key: "Codex-p", name: "Codex personal", tool: "codex", toolName: "Codex", version: "0.166.0", login: "in", plan: "ChatGPT", on: false, href: "/settings?tab=providers&provider=Codex-p" },
+      { key: "OpenCode", name: "OpenCode", tool: "opencode", toolName: "OpenCode", login: "unread", on: true, href: "/settings?tab=providers&provider=OpenCode" },
     ]);
   });
 
   test("no providers, no rows", () => {
     expect(providerRows(undefined, {})).toEqual([]);
+  });
+});
+
+describe("which provider the tab shows", () => {
+  const providers: Record<string, Provider> = { Claude: { name: "Claude", tool: "claude" }, Codex: { name: "Codex", tool: "codex" } };
+
+  test("the one the address names, else the first, else none", () => {
+    expect(selectedProviderKey(providers, "Codex")).toBe("Codex");
+    expect(selectedProviderKey(providers, "Gone")).toBe("Claude");
+    expect(selectedProviderKey(providers, null)).toBe("Claude");
+    expect(selectedProviderKey(undefined, "Codex")).toBeUndefined();
   });
 });

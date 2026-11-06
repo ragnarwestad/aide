@@ -174,6 +174,7 @@ async function loginCheck(
         if (!parsed.loggedIn) return loginOut(command);
         const mixed = mixedLogins(parsed);
         const ends = loginEnds(parsed.loginExpiresAt);
+        const plan = str(parsed.subscriptionType);
         return {
           question: LOGIN_QUESTION,
           ok: !mixed,
@@ -182,6 +183,7 @@ async function loginCheck(
           answer: loggedIn(str(parsed.authMethod), claudeAccount(parsed)),
           ...(mixed ? { problem: "the login in use is another account's" } : {}),
           ...(ends ? { ends } : {}),
+          ...(plan ? { plan: plan.charAt(0).toUpperCase() + plan.slice(1) } : {}),
         };
       }
     } catch {

@@ -45,6 +45,9 @@ export interface ExtraCheck {
   provider?: string;
   /** When the login ends, as an ISO time, where the tool says. */
   ends?: string;
+  /** The plan the login is on, where the tool says (Claude Code's
+   *  subscription: "Max", "Team"). */
+  plan?: string;
 }
 
 export interface ToolCheck {
@@ -174,7 +177,7 @@ export function toolPanel(
       button: { id: `${id}-run`, label: t(lang, "settings.checkButton"), variant: "primary", pending: t(lang, "settings.checking") },
       after: messageSlot("refused"),
     }) +
-    tabBar(toolParts(tool), (p) => `/settings/providers/edit?key=${encodeURIComponent(key)}&aitab=${p}`, part, {}, "", {
+    tabBar(toolParts(tool), (p) => `/settings?tab=providers&provider=${encodeURIComponent(key)}&aitab=${p}`, part, {}, "", {
       lang,
       label: (p) => t(lang, `settings.part.${p}`),
       data: { aitabs: "" },

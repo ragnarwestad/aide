@@ -116,9 +116,11 @@ export function switchControl(o: {
   offWord: string;
   checked?: boolean;
   disabled?: boolean;
+  /** Sends the form it sits in, for a switch the server answers. */
+  submit?: boolean;
 }): string {
   return (
-    `<button type="button" role="switch" class="switch"${o.id ? ` id="${esc(o.id)}"` : ""} ` +
+    `<button type="${o.submit ? "submit" : "button"}" role="switch" class="switch"${o.id ? ` id="${esc(o.id)}"` : ""} ` +
     `aria-checked="${o.checked ? "true" : "false"}" aria-label="${esc(o.label)}" ` +
     `data-on="${esc(o.onWord)}" data-off="${esc(o.offWord)}"${o.disabled ? " disabled" : ""}>` +
     `<span class="switchtrack" aria-hidden="true"><span class="switchknob"></span></span>` +
@@ -268,5 +270,5 @@ export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2 }[]): 
   `</div>`;
 
 // What used to live here too, in a part beside this file.
-export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO } from "./icons.ts";
+export { ICON_CHECK, ICON_LOCK, ICON_WARN, SPINNER, ICON_PDF, ICON_CHEVRON, ICON_SEARCH, ICON_THEME_DARK, ICON_THEME_LIGHT, ICON_THEME_AUTO, TOOL_ICONS } from "./icons.ts";
 
