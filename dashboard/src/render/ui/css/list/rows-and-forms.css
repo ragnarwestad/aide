@@ -137,6 +137,7 @@ td form { margin: 0; display: inline-block; }
    the form now sits in the middle; wider, `fit-content` gives way and it
    fills. */
 .settingsform { width: fit-content; margin-inline: auto; }
+.settingsform > table.settingstable { margin-top: var(--sp-4); }
 
 /* `display: contents` removes this wrapper from layout entirely, so
    its two fields become direct items of `.scheduleform`'s own grid

@@ -122,7 +122,7 @@ table.settingstable tr.settingsgroup th {
   color: var(--muted);
   text-align: left;
 }
-table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: 0; }
+table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: var(--sp-3); }
 
 /* The Settings page's per-AI panel: prose, the Check button, and what
    the check found. The output block is the preflight's own terminal
