@@ -107,6 +107,8 @@ export interface StepOutcome {
   scopeViolation?: "specs" | "analyze";
   /** The analyze checks that tripped, including project paths when code changed. */
   scopeAnalyze?: unknown;
+  /** The paths a `specs` violation wrote outside the spec folder, at most three. */
+  scopeSpecs?: unknown;
   /** Each repo whose push failed, with what git said, sorted by the runner
    *  (`lib/git-error.sh`); read by `pushFailures()` in `git-failure.ts`. */
   pushFailures?: unknown;

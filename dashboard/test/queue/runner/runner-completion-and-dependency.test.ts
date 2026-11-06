@@ -274,7 +274,7 @@ describe("the completion hook and the landing window", () => {
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
     expect(after?.error).toEqual({ key: "runner.testsRedArchiveNamed", values: { tests: "test/a.test.ts › breaks — not found", button: "Archive" } });
-    expect(after?.errorDetail).toBe(bash);
+    expect(after?.errorDetail).toBeUndefined();
   });
 
   test("an archive that dropped its open merge is stored as the board's own message too", () => {

@@ -236,6 +236,7 @@ line="$(jq -cn \
   --argjson timeLimit "${time_limit_json:-null}" \
   --arg scopeViolation "${scope_violation:-}" \
   --argjson scopeAnalyze "${scope_analyze_json:-null}" \
+  --argjson scopeSpecs "${scope_specs_json:-null}" \
   --argjson pushFailures "${push_failures_json:-[]}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
@@ -302,6 +303,8 @@ line="$(jq -cn \
    # a change outside what an analysis may change (run-spec/record/status-line.sh).
    + (if $scopeViolation == "" then {} else {scopeViolation:$scopeViolation} end)
    + (if $scopeAnalyze == null then {} else {scopeAnalyze:$scopeAnalyze} end)
+   # The paths a `specs` violation wrote, at most three (run-spec/record/specs-guard.sh).
+   + (if $scopeSpecs == null then {} else {scopeSpecs:$scopeSpecs} end)
    # And for the repos whose push failed, each with what git said, sorted
    # (lib/git-error.sh): present only when one failed or was left unpushed.
    + (if $pushFailures == [] then {} else {pushFailures:$pushFailures} end)')"

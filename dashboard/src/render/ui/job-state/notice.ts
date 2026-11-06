@@ -277,9 +277,9 @@ export function specNotice(
             lead.stopReason === "model-at-capacity"));
       const variant: MessageVariant = heldBackInfo ? "info" : waiting ? "waiting" : "failed";
       const extra = detailBeyond(text, lead.error, lead.errorDetail);
-      // An archive's own red run lists its failing lines on the row. An
-      // implement's sentence names its failing tests itself, so the log's
-      // own lines stay behind the (?).
+      // An archive's own red run lists its failing lines on the row when
+      // the result names no tests. Otherwise the log's own lines, if the
+      // runner kept any, stay behind the (?).
       if (extra && isArchiveTestsRed(lead.error)) {
         parts.push({ variant, text }, { variant, text: extra.split("\n").join(" · ") });
       } else {

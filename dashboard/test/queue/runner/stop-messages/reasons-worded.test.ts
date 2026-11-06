@@ -1,5 +1,5 @@
 // The runner's other endings are worded by the board, in the reader's
-// language, with the runner's own English kept behind the (?): a step that
+// language, with the runner's own English behind the (?) where it says more: a step that
 // reached past its scope, a short analysis over its limits, a spec sent back
 // to a full analysis or refused that, and a create that made no folder.
 
@@ -15,6 +15,10 @@ const ended = (terminalReason: string, more: Record<string, unknown> = {}) => ({
 describe("noProgressMessage", () => {
   test("a scope violation says which check it tripped and names its files (AC-4)", () => {
     expect(noProgressMessage("implement", ended("scope-violation", { scopeViolation: "specs" }))).toMatchObject({ key: "runner.scopeSpecs" });
+    expect(noProgressMessage("implement", ended("scope-violation", { scopeViolation: "specs", scopeSpecs: ["00-x/5-note.md", "01-y/a.md"] }))).toEqual({
+      key: "runner.scopeSpecsNamed",
+      values: { button: "Implement", paths: "00-x/5-note.md, 01-y/a.md" },
+    });
     expect(noProgressMessage("analyze", ended("scope-violation", {
       scopeViolation: "analyze",
       scopeAnalyze: { project: { committed: ["src/a.ts"], uncommitted: ["src/b.ts"] }, phaseRows: true, workflowSteps: true },
@@ -58,6 +62,32 @@ describe("a stop the board words", () => {
     runner.poll();
     expect(store.get(job.id)?.error).toMatchObject({ key: "runner.sentBack" });
     expect(store.get(job.id)?.errorDetail).toBe("the plan misses the migration");
+  });
+});
+
+describe("a board sentence that says everything the runner's does", () => {
+  const detailOf = (outcome: Record<string, unknown>): string | undefined => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ...outcome }) });
+    runner.tick();
+    runner.poll();
+    return store.get(job.id)?.errorDetail;
+  };
+
+  test("a time limit the result names leaves no detail behind it", () => {
+    expect(detailOf(ended("timeout", { timeLimit: { seconds: 10, during: "session" } }))).toBeUndefined();
+  });
+
+  test("a red run whose failing tests the sentence names leaves no detail behind it", () => {
+    expect(detailOf(ended("tests-red", { testsRed: { tests: ["a test"], errors: ["boom"], failed: 1, total: 3 } }))).toBeUndefined();
+  });
+
+  test("a red run the result does not name keeps the runner's lines", () => {
+    expect(detailOf(ended("tests-red"))).toBe("the runner's own words");
+  });
+
+  test("a write outside the spec folder that names its files leaves no detail behind it", () => {
+    expect(detailOf(ended("scope-violation", { scopeViolation: "specs", scopeSpecs: ["00-x/5-note.md"] }))).toBeUndefined();
   });
 });
 

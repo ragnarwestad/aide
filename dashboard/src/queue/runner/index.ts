@@ -413,9 +413,9 @@ export class Runner {
         ...usageLimitWait(outcome, stoppedAt),
         finishedAt: stoppedAt,
         error: worded ?? runnerWords(outcome),
-        // The runner's own sentence, when the board worded the stop: the
-        // reason a sent-back gave, or the limit in the runner's words.
-        errorDetail: worded && typeof outcome.error === "string" ? outcome.error : undefined,
+        // The reason a sent-back gave, in the runner's words. Every other
+        // stop the board words names all the runner's sentence says.
+        errorDetail: worded && outcome.terminalReason === "sent-back" && typeof outcome.error === "string" ? outcome.error : undefined,
       });
       this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
       return;

@@ -154,7 +154,7 @@ opencode has no reader.
 and `during`, `session` when it ran out in the AI tool's turn or `tests` when it ran out in the runner's own run of the
 project's tests. The work so far is committed to the branch either way. The board's sentence names the limit (in whole
 minutes, else seconds) and says to press the step again — to carry on, or to test what is there — or to raise the step's
-time limit under Settings; the runner's own sentence stays behind the (?).
+time limit under Settings. The runner's own sentence says nothing more, so the row has no (?) for it.
 
 ## The dashboard's own checkouts
 
@@ -413,10 +413,17 @@ evidence that the phase happened:
   line that it did not run.
 
 A `scope-violation` carries `scopeViolation`: `specs` when the step wrote outside its own spec folder (those changes
-are undone), `analyze` when an analyze changed what it may not. The board words these, and a `short-analysis-over-limit`,
-a `sent-back`, a `sent-back-refused` and a `create` that made no folder, in the reader's language with what to press
-(`src/queue/runner/cross-check-message.ts`); the runner's own sentence, with the paths, the limits crossed or the
-reason given, stays behind the (?).
+are undone), with the first three paths it wrote in `scopeSpecs`, and `analyze` when an analyze changed what it may not.
+The board words these, and a `short-analysis-over-limit`, a `sent-back`, a `sent-back-refused` and a `create` that made
+no folder, in the reader's language with what to press (`src/queue/runner/cross-check-message.ts`). The (?) holds the
+runner's own sentence only where it says something the board's sentence does not:
+
+- the limits a short analysis crossed;
+- the reason a sent-back gave;
+- where a create looked for its folder;
+- the paths or checks of a scope violation from a result that does not list them.
+
+A scope violation's paths and checks are otherwise in the board's sentence, and so are the failing tests of a red run.
 
 **A stamp counts only while nothing cancels it.** An `**Archived:**` or `**Closed:**` line is in effect until a
 later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark follows it, and every reader applies that same

@@ -297,13 +297,27 @@ export const MESSAGES = {
   // A step the runner downgraded because it reached past its scope:
   // `specs`, a write outside its own spec folder, whose changes were
   // undone, or `analyze`, a change an analysis may not make
-  // (`scopeViolation`). The paths are the runner's sentence, the (?) detail.
+  // (`scopeViolation`). The paths are in the sentence when the result lists them.
   "runner.scopeSpecs": {
     en: "{button} reported success, but wrote outside its own spec folder in the specs repo, and those changes were thrown away",
     nb: "{button} meldte at det gikk bra, men skrev utenfor sin egen spec-mappe i spec-repoet, og de endringene ble forkastet",
     es: "{button} informó de éxito, pero escribió fuera de su propia carpeta de spec en el repo de specs, y esos cambios se descartaron",
     de: "{button} meldete Erfolg, hat aber außerhalb seines eigenen Spec-Ordners im Spec-Repo geschrieben, und diese Änderungen wurden verworfen",
     fr: "{button} a signalé un succès, mais a écrit hors de son propre dossier de spec dans le repo de specs, et ces modifications ont été abandonnées",
+    solution: {
+      en: "press {button} again for this step",
+      nb: "trykk {button} igjen for dette steget",
+      es: "pulsa {button} de nuevo para este paso",
+      de: "klicke erneut auf {button} für diesen Schritt",
+      fr: "cliquez de nouveau sur {button} pour cette étape",
+    },
+  },
+  "runner.scopeSpecsNamed": {
+    en: "{button} reported success, but wrote outside its own spec folder in the specs repo ({paths}), and those changes were thrown away",
+    nb: "{button} meldte at det gikk bra, men skrev utenfor sin egen spec-mappe i spec-repoet ({paths}), og de endringene ble forkastet",
+    es: "{button} informó de éxito, pero escribió fuera de su propia carpeta de spec en el repo de specs ({paths}), y esos cambios se descartaron",
+    de: "{button} meldete Erfolg, hat aber außerhalb seines eigenen Spec-Ordners im Spec-Repo geschrieben ({paths}), und diese Änderungen wurden verworfen",
+    fr: "{button} a signalé un succès, mais a écrit hors de son propre dossier de spec dans le repo de specs ({paths}), et ces modifications ont été abandonnées",
     solution: {
       en: "press {button} again for this step",
       nb: "trykk {button} igjen for dette steget",

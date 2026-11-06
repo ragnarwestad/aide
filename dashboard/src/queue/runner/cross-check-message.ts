@@ -36,7 +36,10 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
     return { key: "runner.mergeUnfinishedImplement", values: { button: stepButton(step) } };
   }
   if (outcome.terminalReason === "scope-violation" && outcome.scopeViolation === "specs") {
-    return { key: "runner.scopeSpecs", values: { button: stepButton(step) } };
+    const paths = scopeSpecsPaths(outcome.scopeSpecs);
+    return paths
+      ? { key: "runner.scopeSpecsNamed", values: { button: stepButton(step), paths } }
+      : { key: "runner.scopeSpecs", values: { button: stepButton(step) } };
   }
   if (outcome.terminalReason === "scope-violation" && outcome.scopeViolation === "analyze") {
     const checks = scopeAnalyzeChecks(outcome.scopeAnalyze);
@@ -55,6 +58,11 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
   if (step === "implement") return { key: "runner.noProgressImplement", values: { button: stepButton(step) } };
   if (step === "create") return { key: "runner.noProgressCreate", values: { button: stepButton(step) } };
   return undefined;
+}
+
+function scopeSpecsPaths(value: unknown): string | undefined {
+  const paths = Array.isArray(value) ? value.filter((v): v is string => typeof v === "string" && v !== "") : [];
+  return paths.length ? paths.join(", ") : undefined;
 }
 
 function scopeAnalyzeChecks(value: unknown): string | undefined {
@@ -149,10 +157,25 @@ export function testsNotStartedMessage(step: WorkflowStep, outcome: Partial<Step
  *  ending's own sentence says exactly what the board's message says, in
  *  English, so it is dropped rather than kept behind a "(?)" that only
  *  repeats the row — except a create's, which names the folder it looked
- *  for and where. A red test run's sentence is kept: it carries the
- *  failing lines. */
-export function withoutRestatedError<T extends { terminalReason?: string; error?: unknown }>(outcome: T, step?: WorkflowStep): T {
-  return outcome.terminalReason === "no-progress" && step !== "create" ? { ...outcome, error: undefined } : outcome;
+ *  for and where. A red run whose failing tests the board names, and a
+ *  scope violation whose paths or checks it names, drop it too. */
+export function withoutRestatedError<T extends Partial<StepOutcome>>(outcome: T, step?: WorkflowStep): T {
+  return (outcome.terminalReason === "no-progress" && step !== "create") || namesWhatTheRunnerSaid(outcome, step)
+    ? { ...outcome, error: undefined }
+    : outcome;
+}
+
+/** A red run whose failing tests the board's sentence names, and a scope
+ *  violation whose paths or checks it names: the runner's own sentence
+ *  says nothing more. */
+function namesWhatTheRunnerSaid(outcome: Partial<StepOutcome>, step: WorkflowStep | undefined): boolean {
+  if (outcome.terminalReason === "tests-red") {
+    return (step === "implement" || step === "archive") && testsRed(outcome.testsRed) !== undefined;
+  }
+  if (outcome.terminalReason !== "scope-violation") return false;
+  if (outcome.scopeViolation === "specs") return scopeSpecsPaths(outcome.scopeSpecs) !== undefined;
+  if (outcome.scopeViolation === "analyze") return scopeAnalyzeChecks(outcome.scopeAnalyze) !== undefined;
+  return false;
 }
 
 /** An analyze stopped on the project's acceptance criteria checks, as the
