@@ -48,24 +48,18 @@
 
   apply(stored());
 
-  document.addEventListener("DOMContentLoaded", () => {
+  const markPage = (): void => {
     const radios = document.querySelectorAll("[data-unit-choice]");
-    radios.forEach((radio) => {
-      radio.addEventListener("change", () => {
-        const choice = radio.getAttribute("data-unit-choice") ?? "usd";
-        try {
-          localStorage.setItem(KEY, choice);
-        } catch {
-          // No memory here, but the switch still works for as long as
-          // this page is open — better than refusing to switch at all.
-        }
-        // No reload: both figures are already in the page, and the
-        // attribute decides which one is shown.
-        apply(choice);
-        mark(radios, choice);
-      });
-    });
-    // The server marked $, because it had no way to know. Now we do.
     mark(radios, stored());
+  };
+  document.addEventListener("change", (event) => {
+    const radio = (event.target as Element | null)?.closest?.("[data-unit-choice]");
+    if (!radio) return;
+    const choice = radio.getAttribute("data-unit-choice") ?? "usd";
+    try { localStorage.setItem(KEY, choice); } catch {}
+    apply(choice);
+    markPage();
   });
+  document.addEventListener("DOMContentLoaded", markPage);
+  document.addEventListener("aide-page-drawn", markPage);
 })();

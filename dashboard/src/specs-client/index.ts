@@ -42,8 +42,8 @@ import { startOriginCheck } from "./deploy/origin-check.ts";
 import { onApproachCancel, pickApproach } from "./approach-choice";
 import { onDependsOnCancel, pickSetting } from "./depends-on";
 import { formatElapsed } from "./elapsed.ts";
-import { bindLimits, drawLimits } from "./limits";
-import { connect, onVisibility } from "./live.ts";
+import { bindLimits } from "./limits";
+import { connect, disconnect, onVisibility } from "./live.ts";
 import { navigate } from "./navigation.ts";
 import { bindNewSpecTabs } from "./new-spec-tabs";
 import { postPendingModel } from "./pending-model.ts";
@@ -51,11 +51,11 @@ import { bindReportFrame } from "./report-frame.ts";
 import { postForm } from "./press.ts";
 import { bindProviderAdd } from "./provider-add";
 import { fillUsage } from "./usage-slot";
-import { bindProviderSwap } from "./provider-swap";
 import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
-import { bindBack } from "./spec-detail/open.ts";
+import { bindPageSwap, swapPage } from "./page-swap";
+import { mountPage } from "./page-mount";
 import { placeNamedRow } from "./spec-detail";
 import {
   followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm,
@@ -75,11 +75,6 @@ const providerAdd = document.getElementById("provider-add") as HTMLDialogElement
 if (providerAdd) bindProviderAdd(providerAdd);
 // The chosen provider's usage, read once the tab has drawn.
 void fillUsage(document);
-// Another provider, or a tab of its panel, is put in place without loading the page.
-bindProviderSwap(document, (root) => {
-  drawLimits(root);
-  void fillUsage(root);
-});
 
 // The Settings page's Notifications tab, when it is the one open.
 const pushPanel = document.querySelector("[data-push-panel]") as HTMLElement | null;
@@ -306,11 +301,11 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
 // own controls.
 document.addEventListener("click", ((event: MouseEvent) => {
   followScheduleRow(event, (href) => {
-    location.href = href;
+    void swapPage(href, { history: "push" });
   });
 }) as EventListener);
 // A page that carries `data-reload-every` reloads from here, and waits while a dialog is open.
-startReloadWhileIdle(document);
+const stopReload = startReloadWhileIdle(document);
 
 document.addEventListener("visibilitychange", onVisibility);
 // An installed app coming back to the foreground can be restored from
@@ -328,7 +323,7 @@ offerEachToItsTool(document);
 // used on a page that redraws under them.
 connect();
 
-for (const el of document.querySelectorAll("iframe[data-report-frame]")) bindReportFrame(el as HTMLIFrameElement);
+const stopFrames = Array.from(document.querySelectorAll("iframe[data-report-frame]"), (el) => bindReportFrame(el as HTMLIFrameElement));
 
 // A row the address names sits at the top of the list's box, the page at
 // its top — now, and again once the page has loaded, after the browser's
@@ -336,10 +331,19 @@ for (const el of document.querySelectorAll("iframe[data-report-frame]")) bindRep
 const page = globalThis as unknown as Window;
 placeNamedRow(document, page);
 page.addEventListener?.("load", () => placeNamedRow(document, page));
-// Back from a spec opened in place shuts its row where it stands.
-bindBack(page);
-
 // "← Back" on a page with tabs keeps where the page was opened from while
 // the reader switches tabs. Last, and throwing nothing, so no binding above
 // can be lost to it.
 keepBack(document);
+
+let unmount = () => {
+  stopReload();
+  disconnect();
+  for (const stop of stopFrames) stop();
+};
+bindPageSwap(document, {
+  unmount: () => unmount(),
+  mount: (referrer) => {
+    unmount = mountPage(document, { referrer });
+  },
+});

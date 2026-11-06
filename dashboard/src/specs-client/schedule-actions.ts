@@ -7,6 +7,7 @@
 
 import { isThisPage, type Here } from "./back-link";
 import { postForm, refusalText, writeLine, type ActionResult } from "./press.ts";
+import { swapPage } from "./page-swap";
 
 /** The Enabled checkbox on a list row: no form, no confirm — the tick
  *  itself is the press, the same shape
@@ -67,7 +68,7 @@ export async function submitScheduleForm(
   go: (href: string) => void = (href) =>
     leaveAfterSave(href, location, {
       load: (to) => {
-        location.href = to;
+        void swapPage(to, { history: "push", keepScroll: true });
       },
       leave: leaveWithoutReferrer,
     }),

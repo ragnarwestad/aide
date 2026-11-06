@@ -7,6 +7,7 @@
 // answered here, and nowhere else.
 
 import { postForm, writeLine } from "../press.ts";
+import { swapPage } from "../page-swap";
 
 /** Everything the press touches outside the form, so a test can stand in. */
 export interface ProgressIo {
@@ -17,9 +18,7 @@ export interface ProgressIo {
 }
 
 const browserIo: ProgressIo = {
-  go: (url) => {
-    location.href = url;
-  },
+  go: (url) => void swapPage(url, { history: "push" }),
   // `typeof`: the unit harness runs the page script with no window at all.
   onRestore: (fn) => {
     if (typeof window !== "undefined") {

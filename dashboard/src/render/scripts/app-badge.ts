@@ -28,8 +28,12 @@
     }
   };
 
-  const raw = document.querySelector('meta[name="aide-waiting"]')?.getAttribute("content") ?? "";
-  if (/^\d+$/.test(raw)) show(Number(raw));
+  const showPage = (): void => {
+    const raw = document.querySelector('meta[name="aide-waiting"]')?.getAttribute("content") ?? "";
+    if (/^\d+$/.test(raw)) show(Number(raw));
+  };
+  showPage();
 
   document.addEventListener("aide:waiting", (e) => show((e as CustomEvent).detail));
+  document.addEventListener("aide-page-drawn", showPage);
 })();

@@ -63,27 +63,20 @@
 
   apply(stored());
 
-  document.addEventListener("DOMContentLoaded", () => {
+  const markPage = (): void => {
     const buttons = document.querySelectorAll("[data-theme-choice]");
     const icons = document.querySelectorAll("[data-theme-icon]");
-    buttons.forEach((button) => {
-      button.addEventListener("click", () => {
-        const choice = button.getAttribute("data-theme-choice") ?? "auto";
-        try {
-          localStorage.setItem(KEY, choice);
-        } catch {
-          // No memory here, but the switch still works for as long as
-          // this page is open — better than refusing to switch at all.
-        }
-        // No reload: the tokens are on :root, so changing the attribute
-        // re-themes everything already on screen.
-        apply(choice);
-        mark(buttons, choice);
-        markIcon(icons, choice);
-      });
-    });
-    // The server marked Auto, because it had no way to know. Now we do.
     mark(buttons, stored());
     markIcon(icons, stored());
+  };
+  document.addEventListener("click", (event) => {
+    const button = (event.target as Element | null)?.closest?.("[data-theme-choice]");
+    if (!button) return;
+    const choice = button.getAttribute("data-theme-choice") ?? "auto";
+    try { localStorage.setItem(KEY, choice); } catch {}
+    apply(choice);
+    markPage();
   });
+  document.addEventListener("DOMContentLoaded", markPage);
+  document.addEventListener("aide-page-drawn", markPage);
 })();

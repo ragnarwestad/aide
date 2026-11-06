@@ -74,7 +74,7 @@ const submit = () => {
 };
 
 describe("submitReloadForm", () => {
-  test("posts for JSON and loads the page again on success", async () => {
+  test("posts for JSON and hands a successful reload to the page change (AC-2)", async () => {
     const requests = stubPost(200, { ok: true, note: "saved 1-description.md", changed: true });
     const f = fakeForm({ dataset: { line: "spec-refused", note: "spec-notice" } });
     const event = submit();

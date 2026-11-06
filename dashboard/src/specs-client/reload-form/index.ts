@@ -7,6 +7,8 @@
 // the page.
 
 import { postForm, writeLine } from "../press.ts";
+import { swapPage } from "../page-swap";
+import { sameAddress } from "../page-swap/links";
 
 /** The class the page draws such a form with (`FormHook`, `button.ts`). */
 export const RELOAD_FORM = "form.reloadform";
@@ -18,10 +20,8 @@ export interface ReloadIo {
 }
 
 const browserIo: ReloadIo = {
-  reload: () => location.reload(),
-  go: (href) => {
-    location.href = href;
-  },
+  reload: () => void swapPage(location.href, { history: "replace", keepScroll: true }),
+  go: (href) => void swapPage(href, { history: "push", keepScroll: sameAddress(href, location.href) }),
   line: (id) => document.getElementById(id),
 };
 

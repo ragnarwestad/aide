@@ -40,6 +40,7 @@
   // loaded, and says so with this event (`spec-detail/open.ts`, which names it
   // too: this script imports nothing).
   document.addEventListener("spec-detail-drawn", bindAll);
+  document.addEventListener("aide-page-drawn", bindAll);
 
   function bind(prefix: string): void {
     const form = document.querySelector(`form.${prefix}`) as HTMLFormElement | null;
@@ -111,7 +112,11 @@
         el.dispatchEvent(new Event("change", { bubbles: true }));
       }
       setDirty(false);
-      if (leaveTo) location.assign(leaveTo);
+      if (leaveTo) setTimeout(() => {
+        const link = document.createElement("a");
+        link.href = leaveTo;
+        link.click();
+      }, 0);
     });
   }
 })();

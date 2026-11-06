@@ -30,7 +30,6 @@ let current: { controller: AbortController } | null = null;
 /** The address the page last drew: the pathname Back is compared with, and the
  *  whole address to put back when Back is refused. */
 let drawn = "";
-let drawnAt = "";
 
 const specHead = (key: string): Element | null => document.getElementById(`spec-${key}`);
 
@@ -93,7 +92,6 @@ async function open(link: HTMLAnchorElement, head: HTMLElement, body: HTMLElemen
   const href = link.getAttribute("href") ?? "";
   history.pushState(null, "", href);
   drawn = location.pathname;
-  drawnAt = drawn + location.search + location.hash;
 
   const url = new URL(href, location.href);
   url.searchParams.set("detail", "1");
@@ -155,7 +153,7 @@ function keepInPlace(head: Element, before: number): void {
 
 /** A script a parsed answer names never runs, so each is added as a new one:
  *  the editor or viewer bundle mounts in the row it finds. */
-function addScripts(html: string): void {
+export function addScripts(html: string): void {
   for (const match of html.matchAll(/<script\b[^>]*\ssrc="([^"]+)"/g)) {
     const script = document.createElement("script");
     script.src = match[1]!;
@@ -185,9 +183,9 @@ export function bindBack(win: {
   win.addEventListener?.("popstate", onBack);
 }
 
-function onBack(): void {
+export function onBack(): boolean {
   const path = location.pathname;
-  if (path === drawn) return;
+  if (path === drawn) return true;
   // A press still on its way is over: its request is dropped, and its own
   // ending lifts the lock and draws nothing.
   if (current) {
@@ -195,17 +193,11 @@ function onBack(): void {
     press.pressGen++;
   }
   if (path !== LIST_PATH) {
-    location.reload();
-    return;
+    return false;
   }
   const row = document.getElementById("jobrows")?.querySelector(DETAIL);
   if (row?.querySelector(UNSAVED)) {
-    // The address goes back to what is shown, and the list is loaded: the
-    // browser asks the leave-page question, and staying keeps both.
-    const list = path + location.search + location.hash;
-    history.pushState(null, "", drawnAt);
-    location.assign(list);
-    return;
+    return false;
   }
   if (row) {
     row.remove();
@@ -213,4 +205,5 @@ function onBack(): void {
   }
   drawn = path;
   void swapRows();
+  return true;
 }

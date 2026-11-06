@@ -15,6 +15,7 @@ import { swapRows } from "./row-swap.ts";
 import { showRefusal } from "./tail-actions.ts";
 import { cardAnswered } from "./depends-on";
 import { clearChosenSteps, NEW_SPEC_FORM } from "./state.ts";
+import { swapPage } from "./page-swap";
 
 export async function submitAction(event: Event): Promise<void> {
   // A form that cancelled its own submit (an `onsubmit` that returned
@@ -127,7 +128,7 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
     form,
     async (body) => {
       const id = body?.job?.id;
-      location.href = id ? `/?created=${encodeURIComponent(id)}` : "/";
+      await swapPage(id ? `/?created=${encodeURIComponent(id)}` : "/", { history: "push" });
     },
     (why) => formNote(form, why),
   );
@@ -158,12 +159,12 @@ export async function submitProjectChange(form: HTMLFormElement, event: Event): 
       // Remove — the press that asks in a dialog — lands on the list it
       // was pressed on, in the reader's own view.
       if (!dialog && body?.project) {
-        location.href = `/projects/${encodeURIComponent(body.project)}?tab=config`;
+        await swapPage(`/projects/${encodeURIComponent(body.project)}?tab=config`, { history: "push" });
         return;
       }
       const params = new URLSearchParams(location.search);
       const query = params.toString();
-      location.href = query ? `/projects?${query}` : "/projects";
+      await swapPage(query ? `/projects?${query}` : "/projects", { history: "push" });
     },
     (why) => (hold ? hold.release(why) : formNote(form, why)),
   );
@@ -185,7 +186,7 @@ export async function submitProjectSettings(form: HTMLFormElement, event: Event)
   await postForm(
     form,
     async () => {
-      location.href = `${location.pathname}?tab=config`;
+      await swapPage(`${location.pathname}?tab=config`, { history: "push" });
     },
     (why) => formNote(form, why),
   );
@@ -206,9 +207,9 @@ export function foldLineBreaks(text: string): string {
  *  Enter and takes a line break, all of which an `<input>` did; each is
  *  put back here, per field (never the form: a form with no such field
  *  binds nothing, and `window` is touched only when one was found). */
-export function bindOneLineFields(form: HTMLFormElement): void {
+export function bindOneLineFields(form: HTMLFormElement): () => void {
   const fields = Array.from(form.querySelectorAll("textarea[data-oneline]")) as HTMLTextAreaElement[];
-  if (!fields.length) return;
+  if (!fields.length) return () => {};
   const fits: (() => void)[] = [];
   for (const field of fields) {
     // From one row every time, which is what lets a field shrink again.
@@ -241,5 +242,7 @@ export function bindOneLineFields(form: HTMLFormElement): void {
     fits.push(fit);
     fit();
   }
-  window.addEventListener("resize", () => fits.forEach((fit) => fit()));
+  const resize = () => fits.forEach((fit) => fit());
+  window.addEventListener("resize", resize);
+  return () => window.removeEventListener("resize", resize);
 }

@@ -79,6 +79,7 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 | How the queue runs specs, and what it tells you           | `dashboard/docs/running-specs.md`             | Both              |
 | What a run does to the repositories and its checkouts     | `dashboard/docs/the-runner.md`                | Changing the code |
 | What a row on the specs list says, the spec page          | `dashboard/docs/the-specs-list.md`            | Changing the code |
+| How dashboard pages change in place                       | `dashboard/docs/page-changes.md`              | Changing the code |
 | Adding a project, whether a run can start there           | `dashboard/docs/projects.md`                  | Both              |
 | A job's states and every transition between them          | `dashboard/docs/job-states.md`                | Changing the code |
 | Writing a spec, the four phases, what stops one           | `dashboard/docs/spec-lifecycle.md`            | Using the board   |

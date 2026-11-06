@@ -95,10 +95,8 @@ describe("the acceptance gate, on a page a person could click", () => {
   test("ticking the row clears the message and archive becomes possible", async () => {
     await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), "page.goto(status)");
     await page.locator(`input[name="tick"][value="${ACCEPTANCE_ROW}"]`).check();
-    await Promise.all([
-      page.waitForEvent("load"),
-      page.locator("form.specform button[type=\"submit\"]").click(),
-    ]);
+    await page.locator("form.specform button[type=\"submit\"]").click();
+    await page.locator(".checklist .check.open").waitFor({ state: "detached" });
     expect(await page.locator(".checklist .check.open").count()).toBe(0);
 
     // The specs list's own cache polls on `specCachePollMs`, not on this

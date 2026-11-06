@@ -53,6 +53,19 @@
     }, DELAY_MS);
   });
 
+  document.addEventListener("aide-page-fetching", () => {
+    if (timer !== null || dialog?.open) return;
+    timer = setTimeout(() => {
+      timer = null;
+      openOverlay(document.body?.dataset?.overlayNote || "");
+    }, DELAY_MS);
+  });
+  document.addEventListener("aide-page-drawn", () => {
+    if (timer !== null) clearTimeout(timer);
+    timer = null;
+    if (dialog?.open) dialog.close();
+  });
+
   window.addEventListener("pageshow", (event: Event) => {
     if (!(event as PageTransitionEvent).persisted) return;
     if (timer !== null) {

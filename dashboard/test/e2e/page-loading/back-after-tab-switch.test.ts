@@ -34,10 +34,11 @@ async function backPath(page: Page): Promise<string> {
   return new URL(href ?? "", base).pathname;
 }
 
-/** Clicks the tab whose label is `label` and waits for the page it loads. */
+/** Clicks the tab whose label is `label` and waits for its address. */
 async function clickTab(page: Page, label: string): Promise<void> {
   const tab = page.locator("nav.tabbar a.tab", { hasText: label }).first();
-  await withBrowser(Promise.all([page.waitForEvent("load"), tab.click()]), `the ${label} tab`);
+  const href = await tab.getAttribute("href");
+  await withBrowser(Promise.all([page.waitForURL(new URL(href ?? "", base).href), tab.click()]), `the ${label} tab`);
 }
 
 describe("← Back after switching tabs", () => {
@@ -59,7 +60,10 @@ describe("← Back after switching tabs", () => {
     await clickTab(page, "Deploy");
     await clickTab(page, "Config");
     expect(await backPath(page)).toBe("/specs");
-    await withBrowser(Promise.all([page.waitForURL(`${base}/**`), page.locator("a.backlink").click()]), "Back");
+    await withBrowser(Promise.all([
+      page.waitForURL((url) => url.pathname === "/specs"),
+      page.locator("a.backlink").click(),
+    ]), "Back");
     expect(new URL(page.url()).pathname).toBe("/specs");
   });
 

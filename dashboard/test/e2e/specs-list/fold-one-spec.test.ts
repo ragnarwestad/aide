@@ -57,11 +57,9 @@ test("a chevron opens the spec at its own address, one row at a time, and Back s
   expect(await openRows()).toEqual(["82-second"]);
   expect(await page.$(detail("81-queue-and-runner"))).toBeNull();
 
-  // The first Back lands on the tab's page, which the page script loads again;
-  // the other two leave the document.
-  const reloaded = page.waitForEvent("load");
+  // The first Back puts the tab's page in place; the other two leave it.
   await page.goBack();
-  await reloaded;
+  await page.waitForURL(/tab=analysis/);
   for (let i = 0; i < 2; i++) await page.goBack();
   await page.waitForURL((url) => url.pathname === "/specs");
   expect(await openRows()).toEqual([]);

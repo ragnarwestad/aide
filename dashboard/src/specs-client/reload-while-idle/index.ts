@@ -10,9 +10,10 @@ export function reloadTick(doc: Document, reload: () => void): void {
 }
 
 /** Start the timer from the page's marker, if it has one. */
-export function startReloadWhileIdle(doc: Document, reload: () => void = () => location.reload()): void {
+export function startReloadWhileIdle(doc: Document, reload: () => void = () => location.reload()): () => void {
   const marker = doc.querySelector("[data-reload-every]");
   const seconds = Number(marker?.getAttribute?.("data-reload-every"));
-  if (!seconds) return;
-  setInterval(() => reloadTick(doc, reload), seconds * 1000);
+  if (!seconds) return () => {};
+  const timer = setInterval(() => reloadTick(doc, reload), seconds * 1000);
+  return () => clearInterval(timer);
 }

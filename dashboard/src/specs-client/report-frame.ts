@@ -17,7 +17,7 @@ const browserEnv = (): ReportFrameEnv => ({
   win: window,
 });
 
-export function bindReportFrame(frame: HTMLIFrameElement, env: ReportFrameEnv = browserEnv()): void {
+export function bindReportFrame(frame: HTMLIFrameElement, env: ReportFrameEnv = browserEnv()): () => void {
   let resizing: ResizeObserver | undefined;
 
   const mirrorTheme = (): void => {
@@ -49,6 +49,13 @@ export function bindReportFrame(frame: HTMLIFrameElement, env: ReportFrameEnv = 
 
   frame.addEventListener("load", adopt);
   if (frame.contentDocument?.readyState === "complete") adopt();
-  new env.MutationObserverCtor(mirrorTheme).observe(env.page.documentElement, { attributeFilter: ["data-theme"] });
+  const mutation = new env.MutationObserverCtor(mirrorTheme);
+  mutation.observe(env.page.documentElement, { attributeFilter: ["data-theme"] });
   env.win.addEventListener("resize", fitHeight);
+  return () => {
+    resizing?.disconnect();
+    mutation.disconnect();
+    env.win.removeEventListener("resize", fitHeight);
+    frame.removeEventListener("load", adopt);
+  };
 }

@@ -61,6 +61,7 @@
   // own busy-indicator side effect: same-type listeners on one element
   // run in the order they were added.
   let pendingLink: HTMLAnchorElement | null = null;
+  let pendingSwap: { proceed(): void; stay(): void } | null = null;
   let dialogWired = false;
 
   document.addEventListener("click", (event: Event) => {
@@ -90,12 +91,37 @@
           dirty = false;
           link.click();
         }
+        const swap = pendingSwap;
+        pendingSwap = null;
+        if (dialog.returnValue === "leave" && swap) {
+          dirty = false;
+          swap.proceed();
+        } else swap?.stay();
       });
     }
     event.preventDefault();
     pendingLink = link;
     dialog.showModal();
   });
+
+  document.addEventListener("aide-page-leave", (event: Event) => {
+    if (!dirty) return;
+    const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
+    if (!dialog || typeof dialog.showModal !== "function") return;
+    event.preventDefault();
+    pendingSwap = (event as CustomEvent<{ proceed(): void; stay(): void }>).detail;
+    if (!dialogWired) {
+      dialogWired = true;
+      dialog.addEventListener("close", () => {
+        const swap = pendingSwap;
+        pendingSwap = null;
+        if (dialog.returnValue === "leave" && swap) { dirty = false; swap.proceed(); }
+        else swap?.stay();
+      });
+    }
+    dialog.showModal();
+  });
+  document.addEventListener("aide-page-drawn", () => { dirty = false; });
 
   window.addEventListener("beforeunload", (event: BeforeUnloadEvent) => {
     if (!dirty) return;

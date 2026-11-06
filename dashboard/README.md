@@ -77,6 +77,7 @@ do there is add a project, which [Projects](docs/projects.md) covers.
 - [Running specs](docs/running-specs.md) — the queue: making a spec, time limits, which AI runs a step, schedules
 - [The runner and its checkouts](docs/the-runner.md) — what a run does to the repositories, and what a step publishes
 - [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
+- [Page changes](docs/page-changes.md) — what changes in place and which links the browser still handles
 - [Projects](docs/projects.md) — adding one, whether a run can start there, the project page
 - [A spec's lifecycle](docs/spec-lifecycle.md) — writing a spec, the four phases, what stops one and what moves it on
 - [How a spec moves between phases](docs/spec-transitions.md) — how each move is decided and recorded, holds, the row's button

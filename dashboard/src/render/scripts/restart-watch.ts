@@ -9,10 +9,12 @@
 
 (() => {
   const EVERY_MS = 5000;
+  let watching = false;
   const watch = (): void => {
     const notice = document.querySelector("[data-started-at]");
     const drawnBy = notice?.getAttribute("data-started-at");
-    if (!drawnBy) return;
+    if (!drawnBy || watching) return;
+    watching = true;
     const ask = async (): Promise<void> => {
       try {
         const res = await fetch("/api/version", { headers: { accept: "application/json" } });
@@ -30,4 +32,5 @@
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch);
   else watch();
+  document.addEventListener("aide-page-drawn", () => { watching = false; watch(); });
 })();

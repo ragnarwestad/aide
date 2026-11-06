@@ -98,7 +98,10 @@ describe("the boxes save as they did, and one clears the other", () => {
   test("on the Status tab, ticking Not yet on a done row and pressing Save stores it as Not verified", async () => {
     await status(LIVE, 1100);
     await page.locator(`input[name="unverified"][value="${LIVE_ONE}"]`).check();
-    await Promise.all([page.waitForEvent("load"), page.locator("form.specform button[type=\"submit\"]").click()]);
+    await Promise.all([
+      page.waitForResponse((response) => response.request().method() === "POST"),
+      page.locator("form.specform button[type=\"submit\"]").click(),
+    ]);
     const file = readFileSync(join(dir, "root", "aide", "specs", LIVE, "4-status.md"), "utf-8");
     expect(file).toContain("| AC-1: it folds | Not verified |");
   });

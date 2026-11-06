@@ -298,25 +298,24 @@ describe("Back", () => {
     expect(details()).toHaveLength(0);
   });
 
-  test("with the open spec's Save active puts the spec's address back and loads the list, so the leave question asks", async () => {
+  test("with the open spec's Save active leaves Back for the shared page change", async () => {
     const back = bound();
     await openAndSettle(B);
     unsavedIn(B);
-    const spec = location.pathname + location.search + location.hash;
     place("/specs?q=x");
     pushed.length = 0;
     back();
-    expect(pushed).toEqual([spec]);
-    expect(assigned).toEqual(["/specs?q=x"]);
+    expect(pushed).toEqual([]);
+    expect(assigned).toEqual([]);
     expect(detailRowOf(B).isConnected).toBe(true);
   });
 
-  test("to another spec's address loads that page", async () => {
+  test("to another spec's address leaves Back for the shared page change", async () => {
     const back = bound();
     await openAndSettle(B);
     place(`/specs/${A}?q=x`);
     back();
-    expect(reloads).toEqual([1]);
+    expect(reloads).toEqual([]);
   });
 
   test("with only the hash changed does nothing", async () => {

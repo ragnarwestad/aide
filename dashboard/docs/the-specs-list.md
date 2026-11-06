@@ -505,8 +505,8 @@ the `Let AI formulate acceptance criteria:` line when a create completes.
 The spec is built when its address is asked, never when the list is drawn: the rows answers (`?rows=1`) carry a cell
 for it holding the state badge alone, and the page script puts the spec it holds back there after every redraw
 (`src/specs-client/spec-detail/`), with the fresh badge taken into it, so the editor, a half-typed description and
-ticks not yet saved survive. A tab is a
-page load of the spec's address, and so is every link inside the spec: the page script leaves them to the browser.
+ticks not yet saved survive. A tab and every dashboard link inside the spec put the new page in place through the
+shared page-change mechanism; [Page changes](page-changes.md) describes what remains and what the browser handles.
 The page script puts the row the address names at the top of the list's own box, under its headings, and leaves the
 page at its top, wherever the row sits in the list.
 The spec is shown whole: the editor and the viewer grow with their text at every width, and the list scrolls around

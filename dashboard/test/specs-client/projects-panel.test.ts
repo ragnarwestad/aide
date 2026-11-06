@@ -17,7 +17,7 @@ describe("Remove", () => {
     expect(h.removeButton.disabled).toBe(false);
   });
 
-  test("a removal posts and reloads the page it is on, keeping the view", async () => {
+  test("a removal hands the current view to the shared page change", async () => {
     const h = harness(
       () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
       "actionform",
