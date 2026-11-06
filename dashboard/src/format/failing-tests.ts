@@ -141,6 +141,13 @@ export function failingTests(output: string): FailingTests {
       bunFile = raw.slice(0, -1);
       continue;
     }
+    // bun closes with "N tests failed:" and the (fail) lines again, under
+    // no file: the last heading above it is not theirs.
+    if (/^[0-9]+ tests? failed:$/.test(line)) {
+      bunFile = "";
+      bunError = "";
+      continue;
+    }
     if (/^error: /.test(line) || /^expect\(/.test(line)) {
       if (!bunError) bunError = line;
       continue;
