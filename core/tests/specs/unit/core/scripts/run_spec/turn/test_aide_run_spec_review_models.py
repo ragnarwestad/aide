@@ -177,3 +177,27 @@ def test_an_unnumbered_list_goes_back_whole_rather_than_being_dropped(runner, wo
     rc, out, _, err = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4", verify_model="claude-opus-4", return_stderr=True)
     assert WENT_BACK in _stamped(err)
     assert "- The list is not numbered" in (tmp_path / "fix-prompt.txt").read_text()
+
+
+def test_a_review_on_the_stand_in_beside_a_stand_in_step_runs_on_it(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, "review: no defects found")
+    rc, out, _ = run(runner, workspace, claude, command="implement", tool="fake-claude",
+                     review_tool="fake-claude", review_model="fake-review")
+    assert rc == 0 and out["terminalReason"] == "completed", out
+    calls = fake_claude.calls.read_text().splitlines()
+    assert len(calls) == 2, calls
+    assert "--model fake-review" in calls[1] and "--permission-mode plan" in calls[1], calls[1]
+
+
+def test_a_review_on_the_stand_in_with_no_stand_in_never_reaches_a_model(runner, workspace, fake_codex):
+    with_status(workspace, ["create", "analyze"])
+    codex = fake_codex(
+        "printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'; "
+        + emits(_codex_says("done"))
+    )
+    rc, out, _ = run(runner, workspace, codex=codex, command="implement", tool="codex",
+                     review_tool="fake-claude", review_model="fake-review")
+    assert out["terminalReason"] != "completed", out
+    assert "Review" in out["error"] and "fake-review" in out["error"], out
+    assert len(fake_codex.calls.read_text().splitlines()) == 1

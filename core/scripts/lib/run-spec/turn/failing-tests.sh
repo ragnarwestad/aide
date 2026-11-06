@@ -101,6 +101,9 @@ function num(s, word,   t) {
   }
   # bun: the heading names the file of the (fail) lines under it
   if (raw ~ /^[^ ].*\.(test|spec)\.[cm]?[jt]sx?:$/) { bun_file = substr(raw, 1, length(raw) - 1); next }
+  # bun closes with "N tests failed:" and the (fail) lines again, under
+  # no file: the last heading above it is not theirs.
+  if (line ~ /^[0-9]+ tests? failed:$/) { bun_file = ""; bun_error = ""; next }
   if (line ~ /^error: / || line ~ /^expect\(/) {
     if (bun_error == "") bun_error = line
     next

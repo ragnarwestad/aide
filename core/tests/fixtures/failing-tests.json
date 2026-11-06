@@ -140,6 +140,36 @@
       "total": 1
     },
     {
+      "name": "bun: the closing list of failures belongs to no file, so a test is named once under its own file",
+      "log": [
+        "test/a.test.ts:",
+        "error: actual failure",
+        "(fail) a > breaks [0.46ms]",
+        "(pass) a > works [0.20ms]",
+        "",
+        "test/b.test.ts:",
+        "(pass) b > works [0.10ms]",
+        "",
+        "1 tests failed:",
+        "(fail) a > breaks [0.46ms]",
+        "",
+        " 2 pass",
+        " 1 fail",
+        "Ran 3 tests across 2 files. [218.00ms]"
+      ],
+      "tests": [
+        "test/a.test.ts › a > breaks"
+      ],
+      "files": [
+        "test/a.test.ts"
+      ],
+      "errors": [
+        "error: actual failure"
+      ],
+      "failed": 1,
+      "total": 3
+    },
+    {
       "name": "bun under the dashboard's runner: a failure said live and again in full is one test, and several summaries give no count",
       "log": [
         "(fail) a > breaks [5.00ms]",

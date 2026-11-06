@@ -117,6 +117,24 @@ describe("pushWithRetry: a push rejected because the remote moved", () => {
   });
 });
 
+describe("pushWithRetry: a push origin itself turned down", () => {
+  test("is not a base that moved: it is refused once, in origin's own words", async () => {
+    const said = [
+      "remote: fatal error in commit_refs_rules",
+      "To github.com:ragnarwestad/aide-specs.git",
+      " ! [remote rejected]   HEAD -> main (fatal error in commit_refs_rules",
+      ")",
+      "error: failed to push some refs to 'github.com:ragnarwestad/aide-specs.git'",
+    ].join("\n");
+    const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, reset: { code: 0 }, push: { code: 1, stderr: said } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(false);
+    expect(sentence(result.error)).not.toContain("moved on origin");
+    expect(sentence(result.error)).toContain("fatal error in commit_refs_rules");
+    expect(argv(git.calls).filter((a) => a === "push -q origin HEAD:refs/heads/master")).toHaveLength(1);
+  });
+});
+
 describe("pushWithRetry: a push that cannot reach origin at all", () => {
   test("is retried, waited, up to the bound, then refused if it never recovers", async () => {
     const waits: number[] = [];

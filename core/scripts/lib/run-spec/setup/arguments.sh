@@ -322,8 +322,8 @@ esac
 
 for side_tool in "$review_tool" "$verify_tool"; do
   case "$side_tool" in
-    ""|claude|codex|opencode) ;;
-    *) refuse "invalid Review or Verify tool: $side_tool (claude, codex or opencode)" ;;
+    ""|claude|codex|opencode|fake-claude) ;;
+    *) refuse "invalid Review or Verify tool: $side_tool (claude, codex, opencode or fake-claude)" ;;
   esac
 done
 
