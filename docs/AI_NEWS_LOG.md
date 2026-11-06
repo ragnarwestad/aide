@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-06](#2026-11-06)
   - [2026-11-05](#2026-11-05)
   - [2026-11-04](#2026-11-04)
   - [2026-11-03](#2026-11-03)
@@ -120,6 +121,69 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-06
+
+Nov 5 – Nov 6. Not read: the Copilot releases page past what the fetch held (the notes of v1.0.106 were read in full
+from the file, the pre-releases only in part), the OpenAI developer blog (no post newer than Oct 14), Artificial
+Analysis (the page holds no figures for the harnesses). Of the watched pages, `agents.md` changed in star counts only,
+`code.claude.com/docs/en/hooks-guide` gained the `auth_storage_failure` notification matcher (v2.1.288 or later), and
+the prompting best-practices page and three Anthropic engineering articles changed in wording and chapter labels only.
+
+**Claude Code (v2.1.318, no newer release):**
+
+| Date  | Version | News                                                                                                                                             | Source                                                         |
+|-------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| —     | —       | No Claude Code release after v2.1.318 of Nov 4                                                                                                   | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 6 | —       | Anthropic news lists Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 (Opus 5.5: leads in agentic coding, 40% cheaper than Opus 5 on typical workloads) | [News](https://www.anthropic.com/news)                         |
+| Nov 2 | —       | Claude blog: message threads in the Messages API, so a long-running agent sends the conversation once and only what is new after that            | [Blog](https://claude.com/blog/)                               |
+
+**GitHub Copilot CLI (v1.0.106 stable):**
+
+| Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Source                                                     |
+|-------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 6 | v1.0.106 | Stable. Adds `/code` (open the session in VS Code), a Fusion tier setting, GPT-6.1 Terra as a selectable model, a Sandbox extensions setting and `COPILOT_SESSION_CWD`; a hook file under `.github/hooks` that cannot be read or has an invalid entry is now reported with file and reason instead of skipped silently; plugin rules with `alwaysApply: false` stay out of the prompt until enabled in `/instructions`; `copilot login --device-code` refuses a cleartext `http://` host | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 5 | —        | Changelog: usage metrics API adds code review details and telemetry/version gaps                                                                                                                                                                                                                                                                                                                                                                                                         | [Changelog](https://github.blog/changelog/label/copilot/)  |
+
+**OpenAI Codex CLI (v0.167.0 stable):**
+
+| Date  | Version                      | News                                                                                                                                                                                                                                                                                                                                                   | Source                                               |
+|-------|------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| Nov 6 | v0.167.0                     | Stable. `codex agents --no-daemon` opens the agent command center; terminal session picker switches between connected backends; `gcp_setup_wizard` for Vertex AI; app-server README covers `[permissions.network]` and `prompt-user` command rules that need fresh human approval; automatic compaction accounts for output kept from failed responses | [Releases](https://github.com/openai/codex/releases) |
+| Nov 5 | v0.168.0-alpha.3 to -alpha.7 | Pre-releases with no notes                                                                                                                                                                                                                                                                                                                             | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.5, no newer opencode release):**
+
+| Date  | Version               | News                                                                                                                                                       | Source                                                     |
+|-------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 5 | process-daemon-v0.5.0 | `@opencode/pty` 0.5.0 (protocol 8) published; no new `opencode` release after v2.2.5 of Oct 30                                                             | [Releases](https://github.com/anomalyco/opencode/releases) |
+| —     | —                     | Changelog: percentage `compaction.buffer` (e.g. `"20%"`), a call to a tool named `bash` runs as shell, MCP stdio messages over 10 MiB no longer disconnect | [Changelog](https://opencode.ai/changelog)                 |
+
+**Relevance for aide:**
+
+- ⭐ X list, @zachlloydtweets, Nov 6: Warp measured adversarial code review in its software factory: cost up 140%, quality
+  up 7.5% on its task set, "probably not" worth it except for important changes. Aide runs a review and a verify pass
+  on its own steps, so the claim touches `core/skills/aide-implement/SKILL.md` and the review settings.
+  [Post](https://x.com/zachlloydtweets/status/2118519684387512450)
+- ✅ Copilot CLI v1.0.106: a hook file under `.github/hooks` that is unreadable or invalid is now reported instead of
+  skipped silently; plugin rules with `alwaysApply: false` stay out of the prompt until enabled. Stable is now v1.0.106.
+  [Releases](https://github.com/github/copilot-cli/releases)
+- ✅ Codex v0.167.0: the app-server README now documents `prompt-user` command rules that require fresh human approval
+  and managed network constraints under `[permissions.network]`; stable moved from v0.166.0.
+  [Releases](https://github.com/openai/codex/releases)
+- ✅ X list, @Voxyz_ai, Nov 6: says the official docs list three settings that stretch usage limits, besides the
+  cheaper background subagent status line. Not checked against the docs here.
+  [Post](https://x.com/Voxyz_ai/status/2118387877939921361)
+- ✅ X list, @mattpocockuk, Nov 6: the prompt "How do we make this change fully verifiable" makes the agent verify much
+  harder. Touches the plan in `3-solution.md`. [Post](https://x.com/mattpocockuk/status/2118313863917564136)
+- ✅ X list, @Voxyz_ai, Nov 6: review on another model loses the corrections made in the first harness; Aide's rules
+  reach both tools through the generated `core/AGENTS.md`. [Post](https://x.com/Voxyz_ai/status/2118448272742486490)
+- ✅ Claude blog Nov 2: message threads in the Messages API cut what a long-running agent resends each turn. Aide's
+  steps are CLI sessions, so it touches nothing here yet. [Blog](https://claude.com/blog/)
+- ℹ Anthropic news lists Opus 5.5, Sonnet 5.5 and Haiku 5.5 as launched; their prompting pages were already watched and
+  unchanged. OpenCode: `compaction.buffer` as a percentage. X list: GPT-6 Cyber (@OpenAI), @fmind_dev on a lean
+  AGENTS.md, @housecor on a software factory ladder, @poteto on formal methods, @omarsar0 on refusal classifiers.
+- ℹ The Copilot blog shows nothing newer than Oct 28 on agents; Codex v0.168.0 pre-releases carry no notes.
 
 ### 2026-11-05
 
