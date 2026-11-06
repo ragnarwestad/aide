@@ -79,7 +79,7 @@ def _implementing_claude(fake_claude, tmp_path, folder, *, changes, leaves="", r
 def _implement(runner, workspace, claude, stream):
     return run(
         runner, workspace, claude, command="implement",
-        stream_file=str(stream), return_stderr=True,
+        review_model="claude-sonnet-4", stream_file=str(stream), return_stderr=True,
     )
 
 

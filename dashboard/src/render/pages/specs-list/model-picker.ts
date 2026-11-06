@@ -14,7 +14,7 @@ import {
   resolveRecordedModel,
   type PickerOptions,
 } from "./model-resolve.ts";
-import { allowedSideChoices, sideToolRefusal, sideTools, type SidePart } from "../../../queue/providers/side-tools.ts";
+import { type SidePart } from "../../../queue/providers/side-tools.ts";
 
 export {
   ALREADY_RUN_REASON,
@@ -402,32 +402,27 @@ export function sidePickers(
   g: SpecGroup,
   opts: PickerOptions,
   part: SidePart,
-  implementTool: string,
   locked: boolean,
-  firstLabel: string,
 ): string {
   const models = opts.modelChoices ?? [];
-  const allowed = allowedSideChoices(Object.fromEntries(models.map((choice) => [choice.name, choice])), implementTool);
-  const choices = models.filter((choice) => allowed[choice.name]);
+  const choices = models;
   const providers = opts.providerChoices ?? [];
   const key = groupKey(g.project, g.specFolder);
   const saved = opts.pendingModels?.[key]?.[part] ?? "";
-  const chosen = choices.some((choice) => choice.name === saved) ? saved : "";
-  const savedTool = models.find((choice) => choice.name === saved)?.tool ?? "claude";
-  const refusal = saved && !chosen ? `<span class="muted small">${esc(sideToolRefusal(part, savedTool, implementTool))}</span>` : "";
+  const configured = opts.defaultModels?.[part] ?? opts.defaultModels?.default;
+  const chosen = resolveChosenModel(choices, configured, undefined, saved);
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
-  const resting = chosen ? resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]) : undefined;
+  const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]);
   const disabled = locked ? " disabled" : "";
   const ai = providers.length === 0 || models.length === 0 ? "" : `<select name="provider.${part}" data-ai="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
-    `<option value="">${esc(firstLabel)}</option>` + providers.map((p) =>
-      `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}${sideTools(implementTool).includes(p.tool) ? "" : " hidden disabled"}>${esc(p.name)}</option>`,
+    providers.map((p) =>
+      `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
     ).join("") + `</select>`;
   const options = models.map((choice) => {
     const tool = choice.tool ?? "claude";
-    const offered = sideTools(implementTool).includes(tool);
-    return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}${offered ? "" : " hidden disabled"}>${esc(choice.name)}</option>`;
+    return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
   }).join("");
   const model = `<select name="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
-    `<option value="">${esc(firstLabel)}</option>${options}</select>`;
-  return `${ai}${model}${refusal}`;
+    `${options}</select>`;
+  return `${ai}${model}`;
 }

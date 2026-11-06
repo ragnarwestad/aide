@@ -4,7 +4,7 @@
 
 import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
-import { providerLoginEnv, resolveStepProvider, sharesSessions, type Provider } from "../../queue/providers/index.ts";
+import { providerLoginEnv, resolveStepProvider, runsModel, sharesSessions, type Provider } from "../../queue/providers/index.ts";
 import { homedir } from "node:os";
 import type { CheckableTool } from "../../render";
 import { resolveSidePick, SIDE_PARTS } from "../../queue/providers/side-tools.ts";
@@ -53,12 +53,9 @@ export function stepTool(
   return ((choiceName ? o.modelChoices?.[choiceName]?.tool : undefined) ?? "claude") as CheckableTool;
 }
 
-/** The model an implement's review and the verification of its defects
- *  run on, from the config's `model.review` and `model.verify`: a choice
- *  name, looked up like a step's. The runner runs them on the step's own
- *  tool or on codex beside it (run-spec/turn/side-turn.sh), so a choice on
- *  any other tool is left out and that part runs on the step's own model.
- *  Nothing for another step, or with neither key set. */
+/** The independently chosen model for an implement's review and defect
+ *  verification. A per-spec choice wins over Settings; no resolved choice
+ *  leaves that part Off. */
 export function reviewModelArgs(
   step: string,
   _tool: string,
@@ -69,11 +66,17 @@ export function reviewModelArgs(
 ): string[] {
   if (step !== "implement") return [];
   return SIDE_PARTS.flatMap((part) => {
-    const name = resolveSidePick(part, o.sidePicks, o.model ?? {});
+    const name = resolveSidePick(part, o.sidePicks, o.model ?? {}, Object.keys(o.modelChoices ?? {}));
     if (!name) return [];
     const choice = o.modelChoices?.[name];
     const sideTool = choice?.tool ?? "claude";
-    const providerKey = o.sideProviders?.[part] ?? o.provider?.[part];
+    const ownProvider = o.sideProviders?.[part];
+    const configuredProvider = o.provider?.[part];
+    const providerKey = ownProvider ?? (
+      configuredProvider && o.providers?.[configuredProvider] && runsModel(o.providers[configuredProvider], choice)
+        ? configuredProvider
+        : Object.entries(o.providers ?? {}).find(([, provider]) => runsModel(provider, choice))?.[0]
+    );
     const provider = providerKey ? o.providers?.[providerKey] : undefined;
     const env = provider ? providerLoginEnv(provider, o.home ?? homedir()) : undefined;
     const account = sideTool === "claude" && env?.CLAUDE_CONFIG_DIR

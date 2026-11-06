@@ -8,7 +8,7 @@ import json
 import re
 
 from ...conftest import run
-from ..run_spec_results import CODEX_USAGE, emits
+from ..run_spec_results import CODEX_USAGE, OPENCODE_STREAM_OK, emits
 from ..run_spec_status_files import with_status
 
 REVIEW_MARKER = "Read this spec's own description"
@@ -71,11 +71,19 @@ CODEX_AT_CAPACITY = "\n".join(json.dumps(e) for e in [
 ])
 
 
+def test_no_review_choice_leaves_review_off(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, "review: no defects found")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0 and out["terminalReason"] == "completed", out
+    assert len(fake_claude.calls.read_text().splitlines()) == 1
+
+
 def test_the_verification_drops_a_defect_and_only_the_kept_one_goes_back_renumbered(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     claude = _claude(fake_claude, TWO_DEFECTS, "keep 2\ndrop 1. The guard is already at x.ts:10", keep_in=tmp_path)
     rc, out, _, err = run(runner, workspace, claude, command="implement", model="claude-sonnet-4",
-                          verify_model="claude-opus-4", return_stderr=True)
+                          review_model="claude-sonnet-4", verify_model="claude-opus-4", return_stderr=True)
     assert out["terminalReason"] == "completed", out
     assert out["sessionId"] == IMPLEMENT_SESSION, out
     calls = fake_claude.calls.read_text().splitlines()
@@ -92,7 +100,7 @@ def test_the_verification_drops_a_defect_and_only_the_kept_one_goes_back_renumbe
 def test_a_verification_that_drops_every_defect_sends_nothing_back(runner, workspace, fake_claude):
     with_status(workspace, ["create", "analyze"])
     claude = _claude(fake_claude, TWO_DEFECTS, "drop 1. not reachable\ndrop 2. the code handles it")
-    rc, out, _, err = run(runner, workspace, claude, command="implement", verify_model="claude-opus-4", return_stderr=True)
+    rc, out, _, err = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4", verify_model="claude-opus-4", return_stderr=True)
     assert out["terminalReason"] == "completed", out
     assert len(fake_claude.calls.read_text().splitlines()) == 3
     stages = _stamped(err)
@@ -100,14 +108,14 @@ def test_a_verification_that_drops_every_defect_sends_nothing_back(runner, works
     assert WENT_BACK not in stages, stages
 
 
-def test_a_verification_that_does_not_complete_sends_every_defect_back(runner, workspace, fake_claude, tmp_path):
+def test_a_verification_that_does_not_complete_stops_without_a_fallback(runner, workspace, fake_claude):
     with_status(workspace, ["create", "analyze"])
-    claude = _claude(fake_claude, TWO_DEFECTS, verify_body="exit 3", keep_in=tmp_path)
-    rc, out, _, err = run(runner, workspace, claude, command="implement", verify_model="claude-opus-4", return_stderr=True)
-    assert out["terminalReason"] == "completed", out
-    assert WENT_BACK in _stamped(err)
-    fix_prompt = (tmp_path / "fix-prompt.txt").read_text()
-    assert "1. The first is real" in fix_prompt and "2. The second is not" in fix_prompt
+    claude = _claude(fake_claude, TWO_DEFECTS, verify_body="exit 3")
+    rc, out, _, err = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4", verify_model="claude-opus-4", return_stderr=True)
+    assert out["terminalReason"] == "cli-error", out
+    assert "Verify" in out["error"] and "claude-opus-4" in out["error"], out
+    assert len(fake_claude.calls.read_text().splitlines()) == 3
+    assert WENT_BACK not in _stamped(err)
 
 
 def test_a_review_on_codex_beside_a_claude_step_runs_read_only_and_the_fix_resumes_claude(
@@ -128,7 +136,7 @@ def test_a_review_on_codex_beside_a_claude_step_runs_read_only_and_the_fix_resum
     assert "review: 1. Something is off" in _stamped(err)
 
 
-def test_a_codex_review_at_capacity_falls_back_to_the_steps_own_model_and_leaves_no_limit(
+def test_a_codex_review_at_capacity_stops_without_a_fallback(
     runner, workspace, fake_claude, fake_codex
 ):
     with_status(workspace, ["create", "analyze"])
@@ -136,34 +144,36 @@ def test_a_codex_review_at_capacity_falls_back_to_the_steps_own_model_and_leaves
     codex = fake_codex(emits(CODEX_AT_CAPACITY) + "; exit 1")
     rc, out, _, err = run(runner, workspace, claude, codex=codex, command="implement",
                           review_tool="codex", review_model="gpt-6.1-sol", return_stderr=True)
-    assert out["terminalReason"] == "completed", out
-    assert out.get("providerLimit") is None, out
-    stages = _stamped(err)
-    assert any(s.startswith("error: the review on codex did not complete (model-at-capacity)") for s in stages), stages
-    assert "the review found no defects" in stages, stages
+    assert out["terminalReason"] == "model-at-capacity", out
+    assert "Review" in out["error"] and "gpt-6.1-sol" in out["error"], out
     calls = fake_claude.calls.read_text().splitlines()
-    assert len(calls) == 2 and "--resume" not in calls[1], calls
+    assert len(calls) == 1, calls
 
 
-def test_a_review_tool_that_is_neither_the_steps_nor_codex_is_refused(runner, workspace, fake_claude):
+def test_an_opencode_review_beside_a_claude_step_runs_read_only(
+    runner, workspace, fake_claude, fake_opencode
+):
     with_status(workspace, ["create", "analyze"])
-    rc, out, _ = run(runner, workspace, fake_claude("exit 0"), command="implement", review_tool="opencode")
-    assert rc != 0
-    error = json.dumps(out)
-    assert "review" in error and "opencode" in error and "claude" in error, out
+    claude = _claude(fake_claude, "review: no defects found")
+    opencode = fake_opencode(emits(OPENCODE_STREAM_OK))
+    rc, out, _ = run(runner, workspace, claude, opencode=opencode, command="implement",
+                     review_tool="opencode", review_model="openai/gpt-5", return_stderr=False)
+    assert rc == 0, out
+    (review,) = fake_opencode.calls.read_text().splitlines()
+    assert review.startswith("run --format json --agent plan --model openai/gpt-5"), review
 
 
 def test_a_wrapped_defect_reaches_the_fix_turn_whole(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     review = "review: 2 defect(s) found\n1. The first is real\n   and goes on here\n2. The second is not"
     claude = _claude(fake_claude, review, "keep 1\ndrop 2. handled at y.ts:4", keep_in=tmp_path)
-    run(runner, workspace, claude, command="implement", verify_model="claude-opus-4")
+    run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4", verify_model="claude-opus-4")
     assert "1. The first is real and goes on here" in (tmp_path / "fix-prompt.txt").read_text()
 
 
 def test_an_unnumbered_list_goes_back_whole_rather_than_being_dropped(runner, workspace, fake_claude, tmp_path):
     with_status(workspace, ["create", "analyze"])
     claude = _claude(fake_claude, "review: 1 defect(s) found\n- The list is not numbered", "drop 1. not a defect", keep_in=tmp_path)
-    rc, out, _, err = run(runner, workspace, claude, command="implement", verify_model="claude-opus-4", return_stderr=True)
+    rc, out, _, err = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4", verify_model="claude-opus-4", return_stderr=True)
     assert WENT_BACK in _stamped(err)
     assert "- The list is not numbered" in (tmp_path / "fix-prompt.txt").read_text()

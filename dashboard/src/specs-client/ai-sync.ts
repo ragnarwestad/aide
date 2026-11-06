@@ -41,27 +41,19 @@ export function offerEachToItsTool(root: ParentNode): void {
   syncSidePickers(root);
 }
 
-/** Review and Verify may use Implement's tool or Codex. All configured
- * options stay in the DOM so changing Implement can reveal the new set. */
+/** Review and Verify are independent of Implement. Restore every configured
+ * option after the ordinary per-phase setup has filtered model selects. */
 export function syncSidePickers(root: ParentNode, formId?: string): void {
   for (const el of root.querySelectorAll("select[data-side-picker]")) {
     const select = el as HTMLSelectElement;
     const form = select.getAttribute("form") ?? "";
     if (formId && form !== formId) continue;
-    const implement = root.querySelector(`select[name="model.implement"][form="${form}"]`) as HTMLSelectElement | null;
-    const tool = implement ? Array.from(implement.options).find((option) => option.value === implement.value)?.dataset.tool : undefined;
-    if (!tool) continue;
-    const allowed = new Set(tool === "codex" ? ["codex"] : [tool, "codex"]);
-    const groups = new Map<HTMLOptGroupElement, boolean>();
     for (const option of Array.from(select.options)) {
-      const offered = option.value === "" || allowed.has(option.dataset.tool ?? "");
-      option.hidden = !offered;
-      option.disabled = !offered;
+      option.hidden = false;
+      option.disabled = false;
       const group = option.parentElement as HTMLOptGroupElement | null;
-      if (group?.tagName === "OPTGROUP") groups.set(group, (groups.get(group) ?? true) && !offered);
+      if (group?.tagName === "OPTGROUP") group.hidden = false;
     }
-    for (const [group, empty] of groups) group.hidden = empty;
-    if (select.selectedOptions[0]?.disabled) select.value = "";
   }
 }
 
@@ -127,7 +119,6 @@ export function applyAiPick(select: HTMLSelectElement): void {
       chosen.set(selectKey(model), want);
     }
   }
-  if (name === "model.implement") syncSidePickers(document, form);
   // On a LIVE line nothing else would carry this to the server: the write
   // above fires no `change` event, so the running job would go on using
   // the provider and model the row has stopped showing. Called with the

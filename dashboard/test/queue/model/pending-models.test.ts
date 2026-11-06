@@ -38,11 +38,10 @@ describe("QueueStore.setPendingModel()", () => {
     expect(new QueueStore({ defaults, resolve, pendingModelsPath }).pendingModels["aide/81-queue-and-runner"]).toEqual({ verify: "codex" });
   });
 
-  test("refuses a Review choice on another tool (AC-13)", () => {
+  test("records a Review choice on another tool (AC-2)", () => {
     const defaults = { ...DEFAULTS, modelChoices: { ...DEFAULTS.modelChoices, pickle: { tool: "opencode" as const } } };
     const result = new QueueStore({ defaults, resolve }).setPendingModel("aide", "81-queue-and-runner", "review", "pickle");
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toContain("cannot run beside an implement on claude");
+    expect(result).toEqual({ ok: true });
   });
 
   test("records a valid pick", () => {

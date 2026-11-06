@@ -79,6 +79,14 @@ describe("a long message gets a panel row of its own", () => {
       expect(wholeRow(html)).not.toContain("the specs tree is dirty");
     }
   });
+
+  test("a stopped side model's part, model and reason reach the row unchanged (AC-6)", () => {
+    const error = "Verify on gpt-6.1-sol could not run: the model is at capacity";
+    const html = rows([
+      row({ id: "failed", specFolder: "714-side-model", steps: ["implement"], state: "failed", error }),
+    ], [target("714-side-model")]);
+    expect(panel(html)).toContain(error);
+  });
 });
 
 // --- The held-back note belongs to the archive row alone -----------

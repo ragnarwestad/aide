@@ -372,11 +372,14 @@ evidence that the phase happened:
   - **A review.** A second, fresh session reads the spec's description and the branch's diff and looks for defects
     against the description, each with the concrete case it goes wrong for (`run-spec/turn/review.sh`). It never
     comments on style, naming or structure, except that a description with an `## Out of scope` section makes each
-    change under an item in it a defect too. It runs on the spec's Review choice, then the Models per phase Review choice, else the step's own
-    model, read-only, on the step's tool or on Codex (`run-spec/turn/side-turn.sh`); a review on Codex that does not
-    complete is done again by the step's own model.
-  - **A verification**, when the spec's or Models per phase's Verify choice names a model: a third fresh session keeps or drops each defect after
-    tracing it in the code. One that does not complete keeps them all.
+    change under an item in it a defect too. Every completed implement runs Review on the spec's Review choice, then
+    the Models per phase Review choice, then the default model, read-only on that model's AI
+    (`run-spec/turn/side-turn.sh`). If the chosen model cannot run, Implement stops with Review, the model and the
+    reason; it never falls back to another model.
+  - **A verification**, whenever Review finds defects: a third fresh session runs read-only on the spec's Verify
+    choice, then the Models per phase Verify choice, then the default model, and keeps or drops each defect after
+    tracing it in the code. If the chosen model cannot run, Implement stops with Verify, the model and the reason; it
+    never falls back to another model.
   - **A fix turn.** The defects that are kept go back to the ORIGINAL implement session as one follow-up turn, which
     fixes them or turns one down on a `not a defect: <number>. <why>` line. The review itself is best-effort: a
     verdict it cannot parse, or a turn that does not complete, counts as "found nothing" and is logged as an error.

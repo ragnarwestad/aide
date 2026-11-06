@@ -10,7 +10,7 @@ import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
 import { defaultModelForTool, modelOptions, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
-import { allowedSideChoices, SIDE_PARTS, sideToolRefusal, type SidePart } from "../../../queue/providers/side-tools.ts";
+import { SIDE_PARTS, type SidePart } from "../../../queue/providers/side-tools.ts";
 
 export const SETTINGS_ROUTE = "/settings";
 
@@ -182,28 +182,20 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   };
   const renderSideRow = (part: SidePart): string => {
     if (!models.length) return "";
-    const implement = settingsRowChoice(models, opts.defaultModels, "implement");
-    const allowed = allowedSideChoices(Object.fromEntries(models.map((choice) => [choice.name, choice])), implement.tool);
-    const sideModels = models.filter((choice) => allowed[choice.name]);
-    const saved = opts.defaultModels[part] ?? "";
-    const chosen = sideModels.some((choice) => choice.name === saved) ? saved : "";
-    const savedTool = models.find((choice) => choice.name === saved)?.tool ?? "claude";
-    const refusal = saved && !chosen ? `<span class="muted small">${esc(sideToolRefusal(part, savedTool, implement.tool))}</span>` : "";
+    const { model: chosen } = settingsRowChoice(models, opts.defaultModels, part);
     const label = t(lang, `settings.side.${part}`);
-    const first = t(lang, `settings.side.${part}First`);
     const providers = opts.providerChoices ?? [];
-    const resting = chosen ? resolveProvider({ modelChoices: sideModels, providerChoices: providers, defaultProviders: opts.defaultProviders }, part, chosen, []) : undefined;
-    const ai = `<option value="">${esc(first)}</option>` + providers.map((provider) =>
-      `<option value="${esc(provider.key)}" data-tool="${esc(provider.tool)}" data-default="${esc(defaultModelForTool(models, provider.tool, chosen) ?? "")}"${provider.key === resting?.key ? " selected" : ""}${allowed[models.find((m) => m.tool === provider.tool)?.name ?? ""] ? "" : " hidden disabled"}>${esc(provider.name)}</option>`,
+    const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, part, chosen, []);
+    const ai = providers.map((provider) =>
+      `<option value="${esc(provider.key)}" data-tool="${esc(provider.tool)}" data-default="${esc(defaultModelForTool(models, provider.tool, chosen) ?? "")}"${provider.key === resting?.key ? " selected" : ""}>${esc(provider.name)}</option>`,
     ).join("");
     const sideOptions = models.map((choice) => {
       const tool = choice.tool ?? "claude";
-      const offered = !!allowed[choice.name];
-      return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}${offered ? "" : " hidden disabled"}>${esc(choice.name)}</option>`;
+      return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
     }).join("");
     return `<tr data-side="${part}"><th scope="row">${esc(label)}</th>` +
       `<td><select aria-label="${esc(t(lang, "settings.row.aiAria", { step: label }))}" form="settings-form" name="provider.${part}" data-ai="model.${part}" data-side-picker>${ai}</select></td>` +
-      `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: label }))}" form="settings-form" name="model.${part}" data-side-picker><option value="">${esc(first)}</option>${sideOptions}</select>${refusal}</td><td></td></tr>`;
+      `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: label }))}" form="settings-form" name="model.${part}" data-side-picker>${sideOptions}</select></td><td></td></tr>`;
   };
   // One <tbody> per group, which is what makes the grouping structural
   // rather than a styled blank row: a reader of the markup, and anything

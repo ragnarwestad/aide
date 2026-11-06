@@ -20,7 +20,7 @@ const MODELS = [
 const TIMEOUT_SEC = { default: 1200, implement: 5400 };
 
 describe("Settings page", () => {
-  test("Review and Verify have AI and model choices but no timeout (AC-1, AC-2, AC-3, AC-4, AC-12)", () => {
+  test("Review and Verify offer every model and select their setting or the default (AC-1, AC-2)", () => {
     const html = renderSettingsPage([], "2026-08-24T00:00:00Z", {
       modelChoices: [...MODELS, { name: "pickle", tool: "opencode" as const }],
       providerChoices: [
@@ -28,16 +28,21 @@ describe("Settings page", () => {
         { key: "Codex", name: "Codex", tool: "codex" },
         { key: "OpenCode", name: "OpenCode", tool: "opencode" },
       ],
-      defaultModels: { default: "sonnet" }, timeoutSec: TIMEOUT_SEC,
+      defaultModels: { default: "sonnet", review: "codex-fast" }, timeoutSec: TIMEOUT_SEC,
     });
     for (const part of ["review", "verify"]) {
       expect(html).toContain(`name="provider.${part}"`);
       expect(html).toContain(`name="model.${part}"`);
       expect(html).not.toContain(`name="timeoutSec.${part}"`);
     }
-    expect(html).toContain('<option value="">Same as Implement</option>');
-    expect(html).toContain('<option value="">Off</option>');
-    expect(html.match(/<tr data-side="review">[\s\S]*?<\/tr>/)?.[0]).toContain('value="pickle" data-tool="opencode" hidden disabled');
+    for (const part of ["review", "verify"]) {
+      const row = html.match(new RegExp(`<tr data-side="${part}">[\\s\\S]*?<\\/tr>`))?.[0] ?? "";
+      expect(row).not.toContain("Same as Implement");
+      expect(row).not.toContain('<option value="">Off</option>');
+      for (const model of ["sonnet", "opus", "codex-fast", "pickle"]) expect(row).toContain(`value="${model}"`);
+      expect(row).toMatch(new RegExp(`<option value="${part === "review" ? "codex-fast" : "sonnet"}"[^>]*selected`));
+      expect(row).not.toContain("hidden disabled");
+    }
   });
 
   // The rows still come FROM the canonical step list rather than a

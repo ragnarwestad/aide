@@ -133,7 +133,13 @@ def test_the_review_turn_runs_in_the_sandbox_too(runner, workspace, fake_claude)
     must not run with more reach than the step it reviews."""
     with_status(workspace, ["create", "analyze"])
     claude = _reviewing_claude(fake_claude, "review: no defects found")
-    rc, out, _ = run(runner, workspace, claude, command="implement")
+    rc, out, _ = run(
+        runner,
+        workspace,
+        claude,
+        command="implement",
+        review_model="claude-sonnet-4",
+    )
     assert rc == 0, out
     calls = fake_claude.calls.read_text().splitlines()
     assert len(calls) == 2, calls

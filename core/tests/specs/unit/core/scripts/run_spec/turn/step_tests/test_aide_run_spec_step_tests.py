@@ -111,12 +111,9 @@ def test_a_red_suite_goes_back_to_the_session_and_a_fix_ends_the_step_completed(
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     calls = fake_claude.calls.read_text().splitlines()
-    # implement, then the review (fresh — the fake's own prompt does not
-    # say "test suite is red" either, so it takes the same "else" branch
-    # and reports no defects), then the resumed fix turn.
-    assert len(calls) == 3, calls
-    assert "--resume" not in calls[1] and "--session-id" not in calls[1], calls[1]
-    assert "--resume" in calls[2] and "--session-id" not in calls[2], calls[2]
+    # Review is Off when none was chosen: implement, then the resumed fix.
+    assert len(calls) == 2, calls
+    assert "--resume" in calls[1] and "--session-id" not in calls[1], calls[1]
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
     assert record["exitCode"] == 0, record
 
@@ -146,28 +143,24 @@ def test_a_red_suite_goes_back_to_a_codex_thread_too(runner, workspace, fake_cod
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     calls = fake_codex.calls.read_text().splitlines()
-    # implement, then the review (fresh — no "test suite is red" in its
-    # own prompt either, so it takes the same "else" branch and reports
-    # no defects), then the resumed fix turn.
-    assert len(calls) == 3, calls
-    assert "resume" not in calls[1], calls[1]
-    assert calls[2].startswith("exec resume ") and calls[2].endswith(f" {CODEX_THREAD_ID} -"), calls[2]
-    assert "--json" in calls[2], calls[2]
-    assert "--sandbox" not in calls[2] and "--add-dir" not in calls[2], calls[2]
+    # Review is Off when none was chosen: implement, then the resumed fix.
+    assert len(calls) == 2, calls
+    assert calls[1].startswith("exec resume ") and calls[1].endswith(f" {CODEX_THREAD_ID} -"), calls[1]
+    assert "--json" in calls[1], calls[1]
+    assert "--sandbox" not in calls[1] and "--add-dir" not in calls[1], calls[1]
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
     assert record["exitCode"] == 0, record
 
 
 def test_a_suite_still_red_after_the_rounds_ends_tests_red(runner, workspace, fake_claude):
     """Two follow-up turns and no fix: the cap holds, the step ends
-    tests-red, and the session was asked exactly 1 (implement) + 1
-    (review, which finds nothing to report here) + 2 (fix rounds)
-    times."""
+    tests-red, and the session was asked exactly once to implement and
+    twice to fix the red suite. Review is Off when none was chosen."""
     with_status(workspace, ["create", "analyze"])
     _project_with_test_cmd(workspace, "test -f fixed.txt")
     rc, out, _ = run(runner, workspace, _fixing_claude(fake_claude, fix_on_retry=False), command="implement")
     assert out["terminalReason"] == "tests-red", out
-    assert len(fake_claude.calls.read_text().splitlines()) == 4
+    assert len(fake_claude.calls.read_text().splitlines()) == 3
 
 
 # --- a later turn of the step is judged on its own bytes ------------------------
@@ -510,13 +503,11 @@ def test_the_second_turn_line_names_the_size_the_first_turn_left(runner, workspa
         stream_file=str(stream), return_stderr=True,
     )
     turns = [s for s in _stamped(err) if s.startswith("model turn started")]
-    # implement (byte 0), then the review (same reply, so the same
-    # length), then the resumed fix turn.
+    # Review is Off: implement (byte 0), then the resumed fix turn.
     first = len(json.dumps(RESULT_OK)) + 1
     assert turns == [
         "model turn started (transcript at byte 0)",
         f"model turn started (transcript at byte {first})",
-        f"model turn started (transcript at byte {first * 2})",
     ], turns
 
 
@@ -730,8 +721,8 @@ def test_a_suite_whose_server_could_not_start_ends_tests_not_started_with_no_fix
     assert out["testsNotStarted"]["port"] == 8806, out
     assert out["testsNotStarted"]["holder"]["spec"] == "58-sign-up", out
     calls = fake_claude.calls.read_text().splitlines()
-    # implement and its review; no fix turn.
-    assert len(calls) == 2, calls
+    # Review is Off and the server failure gets no fix turn.
+    assert len(calls) == 1, calls
     assert not any("--resume" in c for c in calls), calls
 
 

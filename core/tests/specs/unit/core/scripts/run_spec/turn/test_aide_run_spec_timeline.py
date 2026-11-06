@@ -35,7 +35,13 @@ def test_the_turn_line_says_where_the_transcript_stood_and_the_commit_comes_afte
     claude = fake_claude("cat > /dev/null\nprintf 'work\\n' > made.txt\n" f"echo '{json.dumps(RESULT_OK)}'")
     stream = tmp_path / "job.stream.jsonl"
     _, out, _, err = run(
-        runner, workspace, claude, command="implement", stream_file=str(stream), return_stderr=True
+        runner,
+        workspace,
+        claude,
+        command="implement",
+        review_model="claude-sonnet-4",
+        stream_file=str(stream),
+        return_stderr=True,
     )
     stages = _stamped(err)
     turns = [s for s in stages if s.startswith("model turn started")]
@@ -159,7 +165,14 @@ def test_a_second_turn_of_a_step_records_its_own_marks_and_not_the_first_turn_s(
 ):
     with_status(workspace, ["create", "analyze"])
     claude = fake_claude(body(claude_said(START), claude_said(DONE), tail=CLAUDE_RESULT + "\nprintf 'work\\n' > made.txt"))
-    _, _, _, err = run(runner, workspace, claude, command="implement", return_stderr=True)
+    _, _, _, err = run(
+        runner,
+        workspace,
+        claude,
+        command="implement",
+        review_model="claude-sonnet-4",
+        return_stderr=True,
+    )
     # implement, then the review that follows it: the same reply twice.
     assert lines_of(err) == [START, DONE, START, DONE]
 

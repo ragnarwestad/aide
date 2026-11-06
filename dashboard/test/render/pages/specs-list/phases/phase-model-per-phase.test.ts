@@ -70,20 +70,39 @@ describe("one picker per phase", () => {
   const phaseSelect = (html: string, step: string) =>
     html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";
 
-  test("Review and Verify use filtered pickers and lock with Implement (AC-8, AC-9, AC-12)", () => {
-    const html = rows([], { pendingModels: { "aide/169-one-picker": { review: "gpt-fast" } } });
+  test("Review and Verify show Settings choices and per-spec overrides while offering every model (AC-1, AC-3, AC-4)", () => {
+    const html = rows([], {
+      defaultModels: { default: "sonnet", review: "fable" },
+      pendingModels: { "aide/169-one-picker": { review: "gpt-fast" } },
+    });
     expect(html).toContain('name="model.review"');
     expect(html).toContain('name="model.verify"');
-    expect(html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0]).toContain('value="gpt-fast"');
+    const review = html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const verify = html.match(/<tr class="subrow" data-side="verify">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    for (const model of ["sonnet", "fable", "gpt-fast"]) expect(review).toContain(`value="${model}"`);
+    expect(review).toMatch(/<option value="gpt-fast"[^>]*selected/);
+    expect(verify).toMatch(/<option value="sonnet"[^>]*selected/);
+    expect(review).not.toContain('<option value="">');
+    expect(verify).not.toContain('<option value="">');
+    expect(review).not.toContain("hidden disabled");
   });
 
-  test("side pickers follow a running job's edited Implement tool (AC-12)", () => {
+  test("Review and Verify show the first listed model when the configured default is not listed (AC-3)", () => {
+    const html = rows([], { modelChoices: [{ name: "Sonnet" }], defaultModels: { default: "opus" } });
+    for (const part of ["review", "verify"]) {
+      const side = html.match(new RegExp(`<tr class="subrow" data-side="${part}">[\\s\\S]*?<\\/tr>`))?.[0] ?? "";
+      expect(side).toMatch(/<option value="Sonnet"[^>]*selected/);
+    }
+  });
+
+  test("side pickers do not follow a running job's edited Implement tool (AC-2)", () => {
     const html = rows([
       row({ id: "j1", specFolder: "169-one-picker", steps: ["analyze", "implement"], stepIndex: 0, state: "running", model: "sonnet", stepModels: { analyze: "sonnet", implement: "gpt-fast" } }),
     ]);
     const review = html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(review).toContain('value="gpt-fast"');
-    expect(review).toContain('value="sonnet" data-tool="claude" hidden disabled');
+    expect(review).toContain('value="sonnet" data-tool="claude"');
+    expect(review).not.toContain("hidden disabled");
   });
 
   // --- the server half: what a phase has already run on ---------------------

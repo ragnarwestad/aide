@@ -96,7 +96,7 @@ def _implementing_claude(fake_claude, own, fix, review):
 def _implement_claude(runner, workspace, fake_claude, own, fix, review):
     with_status(workspace, ["create", "analyze"])
     claude = _implementing_claude(fake_claude, own, fix, review)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
+    rc, out, _ = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4")
     assert out["terminalReason"] == "completed", out
     return out
 
@@ -279,7 +279,7 @@ def test_codex_reads_each_turn_after_its_own_task_started(
     monkeypatch.setenv("CODEX_HOME", str(home))
     codex = _implementing_codex(fake_codex, home, own=[_count(40_000), _count(60_000)],
                                 fix=[_count(90_000)], review=[_count(240_000)])
-    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement", review_model="gpt-6.1-sol")
     assert out["terminalReason"] == "completed", out
     assert out["context"]["beforeChecks"] == 60_000, out
     assert out["context"]["fullest"] == 90_000, out
@@ -306,5 +306,5 @@ def test_codexs_review_thread_is_not_the_main_session(runner, workspace, fake_co
     monkeypatch.setenv("CODEX_HOME", str(home))
     codex = _implementing_codex(fake_codex, home, own=[_count(60_000)], fix=[_count(90_000)],
                                 review=[_count(250_000)])
-    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement", review_model="gpt-6.1-sol")
     assert out["context"]["fullest"] == 90_000, out

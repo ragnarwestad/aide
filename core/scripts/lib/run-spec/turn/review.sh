@@ -107,7 +107,16 @@ verified_defects() {  # <defects> <reply>
     END { if (buf != "") print buf }')
 }
 
-if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; then
+side_failure() {  # <Review|Verify> <tool> <model>
+  terminal_reason="$side_reason"
+  [ "$terminal_reason" = "unavailable" ] && terminal_reason="cli-error"
+  error_msg="$1 on ${3:-$2} could not run: ${side_error:-$side_reason}"
+  provider_limit_out="${side_limit:-}"; at_capacity_out="${side_capacity:-}"; provider_error_out="${side_provider_error:-}"
+  stage_error "$error_msg"
+}
+
+if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] \
+  && { [ -n "$review_model" ] || [ -n "$review_tool" ]; }; then
   implement_session="$session_out"
   running_cost="$cost"
 
@@ -126,10 +135,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
   review_prompt "$review_description_path" "$review_fork" "$review_base" "$review_screenshots" "$headless_note" \
     > "$work_dir/prompt-review"
 
-  # A fresh session (run-spec/turn/side-turn.sh): on --review-tool and
-  # --review-model when the board names them, else on the step's own.
-  # When that other tool does not complete — Codex out of quota, or its
-  # model at capacity — the step's own model reviews instead.
+  # A fresh read-only session on the independently chosen AI and model.
   review_on="${review_tool:-$tool}"
   stage "reviewing what the step changed"
   side_reason="unavailable"
@@ -137,20 +143,10 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
     side_turn "$review_on" "$work_dir/prompt-review" "${review_claude_config_dir:-$claude_config_dir}" "${review_codex_home:-$codex_home_arg}"
     running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
   fi
-  if [ "$side_reason" != "completed" ] && [ "$review_on" != "$tool" ]; then
-    stage_error "the review on $review_on did not complete (${side_reason}) — the step's own model reviews instead"
-    side_argv_for "$tool" "" "${session_project:-} ${spec_id:-} review"
-    side_turn "$tool" "$work_dir/prompt-review" "$claude_config_dir" "$codex_home_arg"
-    running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
-  fi
   cost="$running_cost"
 
   if [ "$side_reason" != "completed" ]; then
-    # Best-effort: the review's OWN turn shares the step's one deadline,
-    # and a step whose real work is already done and committed must not
-    # be reported timeout/cli-error purely because this added safety net
-    # had a hiccup.
-    stage_error "the review's own turn did not complete (${side_reason}) — proceeding without it"
+    side_failure "Review" "$review_on" "$review_model"
   else
     review_verdict="$(printf '%s\n' "$side_message" | grep -iE '^review: ' | tail -n 1)"
     review_defects=""
@@ -203,7 +199,8 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ]; th
           [ -n "$review_defects" ] || stage "the verification dropped every defect — nothing goes back to the session"
         fi
       else
-        stage_error "the verification did not complete (${side_reason}) — every defect goes back to the session"
+        side_failure "Verify" "$verify_on" "$verify_model"
+        review_defects=""
       fi
     fi
 
