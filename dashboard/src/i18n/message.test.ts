@@ -20,6 +20,22 @@ describe("renderMessage", () => {
     expect(renderMessage("de", { key: "runner.notAnalyzed" })).toContain("Analysieren");
     expect(renderMessage("fr", { key: "runner.notAnalyzed" })).toContain("Analyser");
   });
+
+  test("a named shared-files push says the specs plan to change the files (AC-6)", () => {
+    const message = renderMessage("en", {
+      key: "push.stoppedSharedFilesNamed",
+      values: { step: "Analyze", specs: "624, 619", button: "Analyze" },
+    });
+    expect(message).toContain("specs 624, 619 plan to change the same files");
+  });
+
+  test("a red merge-test push names the project checkout as the place to fix it (AC-2)", () => {
+    const message = renderMessage("en", {
+      key: "push.stoppedTestsRed",
+      values: { step: "Archive", button: "Archive" },
+    });
+    expect(message).toContain("fix the failures in the project checkout");
+  });
 });
 
 describe("renderSentence", () => {

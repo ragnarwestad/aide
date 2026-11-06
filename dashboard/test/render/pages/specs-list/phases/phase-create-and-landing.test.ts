@@ -399,7 +399,7 @@ describe("an unlanded archive failure names itself, not an unrelated phase", () 
       [target("278-repro", { done: BUILT })],
     );
     expect(panel(html)).toContain(
-      "Archive merge failed: the spec was archived, but its branch is still open — re-run archive.",
+      "Archive merge failed: the spec was archived, but its branch is still open — press Archive again.",
     );
     expect(panel(html)).not.toContain("implement: last re-run failed");
     expect(panel(html)).not.toContain('"implement: last re-run failed"');
@@ -430,7 +430,7 @@ describe("an unlanded archive failure names itself, not an unrelated phase", () 
       [target("278-repro2", { done: BUILT })],
     );
     expect(panel(html)).toContain(
-      "Archive merge failed: the spec was archived, but its branch is still open — re-run archive.",
+      "Archive merge failed: the spec was archived, but its branch is still open — press Archive again.",
     );
     expect(panel(html)).not.toContain("implement:");
   });
