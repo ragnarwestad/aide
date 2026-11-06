@@ -220,8 +220,11 @@ clears the notice on the next page load. An AI with no Models reading since the 
 reading failed, get no such notice. The Models reading is kept per tool and names the provider whose folders it was
 read with.
 
-**A provider's page shows how much of its subscription is used**, read each time the page opens with the provider's
-folders: each usage window with the share used, when it starts over, and when it was read. Claude Code's comes from
+**The chosen provider shows how much of its subscription is used**, read with the provider's folders: each usage
+window with the share used, when it starts over, and when it was read. Reading it runs the tool and takes seconds, so
+the Providers tab does not wait for it: it draws at once, with "Reading the usage…" where the usage goes, and fills
+it in when the reading comes. A reading is kept for two minutes and shown at once in that time; a provider saved
+since is read again. Claude Code's comes from
 `claude -p /usage`, and Codex's from `codex app-server`'s `account/rateLimits/read`; neither runs a model. When Claude's
 text has no line the board can read as a window, the page shows the text as it came. OpenCode reports no usage windows.
 
@@ -475,7 +478,8 @@ the provider.
   narrow screen). Each row has the tool's icon, the name, the tool's version, the login and the plan (Claude Code's
   subscription, or the way Codex is logged in), and the provider's on/off switch. Above the list is **+**, which adds a
   provider, and when the status was read, with Check again. **Add provider** ends the list. Pressing a row chooses
-  that provider; the address names it (`/settings?tab=providers&provider=Claude`), and with none named the first is
+  that provider in place, without loading the page again (as do the tabs of its panel and Check again); the address
+  names it (`/settings?tab=providers&provider=Claude`), and with none named the first is
   chosen. The tool of a provider does not change; to change it, add a provider. No provider is special: the ones the
   board made on its first start can be renamed and removed like the rest.
 - **Add.** **+** and **Add provider** open the Add dialog, in three steps. Next moves on only when the step's fields are

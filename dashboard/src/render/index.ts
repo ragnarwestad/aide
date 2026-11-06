@@ -45,11 +45,11 @@ export {
 } from "./pages/settings-page";
 export type { SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
 export {
-  CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, toolPanel, toolPart, toolParts,
+  CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, toolPanel, toolPart, toolParts, usageBlock,
 } from "./pages/settings-page/tools.ts";
 export {
   PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_SWITCH_ROUTE,
-  PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, PROVIDERS_TAB_PATH, providerEditPath,
+  PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, PROVIDER_USAGE_PATH, PROVIDERS_TAB_PATH, providerEditPath,
 } from "./pages/settings-page/providers.ts";
 export type { ProviderStatus } from "./pages/settings-page/providers.ts";
 export type { CheckableTool, ExtraCheck, ToolCheck, ToolPart } from "./pages/settings-page/tools.ts";

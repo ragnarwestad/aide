@@ -42,7 +42,7 @@ import { startOriginCheck } from "./deploy/origin-check.ts";
 import { onApproachCancel, pickApproach } from "./approach-choice";
 import { onDependsOnCancel, pickSetting } from "./depends-on";
 import { formatElapsed } from "./elapsed.ts";
-import { bindLimits } from "./limits";
+import { bindLimits, drawLimits } from "./limits";
 import { connect, onVisibility } from "./live.ts";
 import { navigate } from "./navigation.ts";
 import { bindNewSpecTabs } from "./new-spec-tabs";
@@ -50,6 +50,8 @@ import { postPendingModel } from "./pending-model.ts";
 import { bindReportFrame } from "./report-frame.ts";
 import { postForm } from "./press.ts";
 import { bindProviderAdd } from "./provider-add";
+import { fillUsage } from "./usage-slot";
+import { bindProviderSwap } from "./provider-swap";
 import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
@@ -71,6 +73,13 @@ bindLimits(document);
 // The Providers tab's Add dialog, when it is the one open.
 const providerAdd = document.getElementById("provider-add") as HTMLDialogElement | null;
 if (providerAdd) bindProviderAdd(providerAdd);
+// The chosen provider's usage, read once the tab has drawn.
+void fillUsage(document);
+// Another provider, or a tab of its panel, is put in place without loading the page.
+bindProviderSwap(document, (root) => {
+  drawLimits(root);
+  void fillUsage(root);
+});
 
 // The Settings page's Notifications tab, when it is the one open.
 const pushPanel = document.querySelector("[data-push-panel]") as HTMLElement | null;

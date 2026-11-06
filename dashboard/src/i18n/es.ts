@@ -441,6 +441,7 @@ export const es: Record<TranslationKey, string> = {
   "settings.notifications.checking": "Comprobando este dispositivo…",
   "settings.notifications.job": "Un trabajo programado notifica según su propia elección — nunca, solo cuando la ejecución no tuvo éxito, o en cada ejecución. Se ajusta en el formulario del trabajo, en la pestaña Programación del proyecto.",
   "settings.usage.readAt": "Uso leído {at}",
+  "settings.usage.reading": "Leyendo el uso…",
   "settings.usage.unread": "Uso aún sin leer.",
   "settings.usage.failed": "No se pudo leer el uso: {reason}",
   "settings.usage.none": "Esta IA no informa de ventanas de uso.",

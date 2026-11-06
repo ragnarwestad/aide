@@ -1,7 +1,7 @@
-// What only a browser does on a provider's page: a click on a row of the
-// Providers table, the pending label while a save is out, Cancel leaving
-// without saving, Remove asking first, and a refused save keeping what was
-// typed.
+// What only a browser does on the Providers tab: a click on a provider in
+// the list, the pending label while a save is out, Cancel putting back what
+// was saved, Remove asking first, a refused save keeping what was typed,
+// the on/off switch, and the usage filled in after the tab has drawn.
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "bun:test";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -57,13 +57,15 @@ const go = (address: string) => withBrowser(page.goto(`${base}${address}`), `pag
 
 const CLAUDE = "/settings?tab=providers&provider=Claude";
 
-test("a click on a provider in the list shows it beside the list (AC-7)", async () => {
+test("a click on a provider in the list shows it beside the list without loading the page again (AC-7)", async () => {
   await go("/settings?tab=providers");
-  await Promise.all([
-    page.waitForURL("**/settings?tab=providers&provider=OpenCode"),
-    page.locator(".provideritem", { hasText: "OpenCode" }).click(),
-  ]);
-  expect(await page.locator('#provider-form input[name="name"]').inputValue()).toBe("OpenCode");
+  await page.evaluate(() => { (window as unknown as { stayed: boolean }).stayed = true; });
+  await page.locator(".provideritem", { hasText: "OpenCode" }).click();
+  await page.locator('#provider-form input[name="name"][value="OpenCode"]').waitFor();
+  expect(page.url()).toContain("/settings?tab=providers&provider=OpenCode");
+  expect(await page.evaluate(() => (window as unknown as { stayed?: boolean }).stayed)).toBe(true);
+  await page.goBack();
+  await page.locator('#provider-form input[name="name"][value="Claude"]').waitFor();
 });
 
 test("Save shows its pending label while the post is out (AC-10, AC-11)", async () => {
@@ -128,4 +130,10 @@ test("Remove asks first, removes nothing on Cancel, and removes the provider on 
     page.locator('dialog[id="provider-remove-ask"]').getByRole("button", { name: t("en", "dialog.ok") }).click(),
   ]);
   expect(await page.locator(".providerlist").innerText()).not.toContain("OpenCode");
+});
+
+test("the chosen provider's usage is read after the tab has drawn, and filled in where the tab left room for it", async () => {
+  await go(CLAUDE);
+  await page.locator(".usageslot", { hasText: t("en", "settings.usage.none") }).waitFor();
+  expect(await page.locator(".usageslot[data-usage-from]").count()).toBe(0);
 });

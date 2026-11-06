@@ -373,29 +373,28 @@ describe("what a provider's page shows of its own folders", () => {
     login: key === "Claude-2" ? login(`CLAUDE_CONFIG_DIR=${provider.configDir} claude auth login`) : undefined,
   });
 
-  test("every provider's status is read, and the chosen one's usage, before the tab answers, and it shows what they answered (AC-3)", async () => {
+  test("every provider's status is read before the tab answers, and the chosen one's usage is not waited for (AC-3)", async () => {
     const asked: string[] = [];
     const probe: Probe = async (key, provider, opts) => { asked.push(`status:${key}`); return byKey(key, provider, opts); };
-    const usage = async (key: string, provider: Provider) => { asked.push(`usage:${key}`); return stubUsage(key, provider); };
-    const { base } = serve({}, CONFIG, probe, usage);
+    const never = () => new Promise<ToolUsage>(() => {});
+    const { base } = serve({}, CONFIG, probe, async (key) => { asked.push(`usage:${key}`); return never(); });
     const html = await (await fetch(`${base}/settings/providers/edit?key=Codex`)).text();
-    expect(asked.sort()).toEqual(["status:Claude", "status:Codex", "usage:Codex"]);
+    expect(asked.sort()).toEqual(["status:Claude", "status:Codex"]);
     expect(html).toContain("1.0 (Codex)");
-    expect(html).toContain("Window of Codex");
+    expect(html).toContain('data-usage-from="/settings/providers/usage?key=Codex"');
   });
 
   test("two providers of one tool each show their own login and usage and not the other's (AC-4)", async () => {
     const dir = folder();
     const { base } = serve({}, CONFIG, byKey);
     await post(base, ADD, { tool: "claude", name: "Claude-2", configDir: dir });
-    const second = await (await fetch(`${base}/settings/providers/edit?key=Claude-2`)).text();
-    const first = await (await fetch(`${base}/settings/providers/edit?key=Claude`)).text();
+    const second = await (await fetch(`${base}/settings/providers/usage?key=Claude-2`)).text();
+    const first = await (await fetch(`${base}/settings/providers/usage?key=Claude`)).text();
     expect(second).toContain("Window of Claude-2");
-    expect(second).not.toContain("Window of Claude</");
     expect(first).toContain("Window of Claude");
     expect(first).not.toContain("Window of Claude-2");
-    expect(second).toContain("1.0 (Claude-2)");
-    expect(first).not.toContain("1.0 (Claude-2)");
+    expect(await (await fetch(`${base}/settings/providers/edit?key=Claude-2`)).text()).toContain("1.0 (Claude-2)");
+    expect(await (await fetch(`${base}/settings/providers/edit?key=Claude`)).text()).not.toContain("1.0 (Claude-2)");
   });
 
   test("a provider that is not logged in says so, and shows the command that logs in with its own folder (AC-20, AC-21)", async () => {

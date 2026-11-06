@@ -9,7 +9,7 @@ import { t, type Language, type TranslationKey } from "../../../i18n";
 import { providerFields, type Provider, type ProviderField, type ProviderTool } from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../specs-list";
 import {
-  PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_TAB_PATH, providerEditPath, providerStatusLines, versionNumber, type ProviderStatus,
+  PROVIDER_USAGE_PATH, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_TAB_PATH, providerEditPath, providerStatusLines, versionNumber, type ProviderStatus,
 } from "./providers.ts";
 import { toolPanel, toolPart, usageBlock, type ToolCheck } from "./tools.ts";
 import type { ModelsPanel } from "./models.ts";
@@ -24,6 +24,9 @@ export interface ProviderDetailOptions {
   provider: Provider;
   status?: ProviderStatus;
   usage?: ToolUsage;
+  /** No reading of the usage is kept: the tab draws a place for it, and
+   *  the page's script asks for one there. */
+  usagePending?: boolean;
   /** The tool's last Check, and the models reading with what it is set against. */
   check?: ToolCheck;
   models?: ModelsPanel;
@@ -89,6 +92,14 @@ function removeControl(key: string, name: string, lang: Language): string {
   );
 }
 
+/** The usage, or a place for it the page's script fills in from
+ *  `PROVIDER_USAGE_PATH`, as tall as a reading so nothing moves when it comes. */
+function usageSlot(o: ProviderDetailOptions, now: number, lang: Language): string {
+  if (!o.usagePending) return `<div class="usageslot">${usageBlock(o.usage, now, lang)}</div>`;
+  const from = `${PROVIDER_USAGE_PATH}?key=${encodeURIComponent(o.key)}`;
+  return `<div class="usageslot" data-usage-from="${esc(from)}" aria-busy="true"><p class="muted">${esc(t(lang, "settings.usage.reading"))}</p></div>`;
+}
+
 export function providerDetail(o: ProviderDetailOptions, now: number, lang: Language): string {
   const { key, provider } = o;
   const version = versionNumber(o.status?.version);
@@ -117,7 +128,7 @@ export function providerDetail(o: ProviderDetailOptions, now: number, lang: Lang
     saveCancelActions("providerform", {}, lang) +
     `</form>`;
   return (
-    head + status + form + usageBlock(o.usage, now, lang) +
+    head + status + form + usageSlot(o, now, lang) +
     toolPanel({ key, tool: provider.tool }, o.check, o.models ?? {}, lang, toolPart(o.aiTab))
   );
 }

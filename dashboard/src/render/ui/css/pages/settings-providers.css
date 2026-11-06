@@ -26,11 +26,16 @@
    rows, then the usage and the tool's panel. */
 .providerdetail { padding: var(--sp-4) var(--sp-5); min-width: 0; }
 .providerdetail h4 { margin: var(--sp-5) 0 var(--sp-2); }
+/* The usage, or the place it is read into: as tall as a reading of three
+   windows, so the panel under it holds still when it comes. */
+.usageslot { min-height: 7.5rem; }
 .providerdetailhead { display: flex; align-items: center; gap: var(--sp-3); }
 .providerdetailhead h3 { margin: 0; font-size: var(--fs-l); }
 .providerdetailhead .providerversion { margin-left: auto; }
 .fieldrow { display: grid; grid-template-columns: 1fr minmax(12rem, 1fr); gap: var(--sp-4); align-items: center;
   padding: var(--sp-3) 0; border-bottom: 1px solid var(--line); }
+/* Save and Cancel under the fields, apart from them and from each other. */
+.providerform .factions { display: flex; gap: var(--sp-2); margin: var(--sp-4) 0 var(--sp-2); }
 .fieldrow label { display: flex; flex-direction: column; gap: 2px; }
 .fieldrow input { height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--line);
   background: var(--surface); color: var(--text); font: var(--fs-m)/1 var(--sans); }
