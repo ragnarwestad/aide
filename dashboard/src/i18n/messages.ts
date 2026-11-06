@@ -1992,11 +1992,11 @@ export const MESSAGES = {
     de: "nicht alle Abnahmekriterien sind abgehakt",
     fr: "les critères d'Acceptation ne sont pas tous cochés",
     solution: {
-      en: "tick them under › on the Specs list",
-      nb: "kryss dem av under › på Specs-lista",
-      es: "márcalos bajo › en la lista Specs",
-      de: "hake sie unter › in der Specs-Liste ab",
-      fr: "cochez-les sous › dans la liste Specs",
+      en: "tick the ACs in the panel below",
+      nb: "kryss av akseptansekriteriene i panelet under",
+      es: "marca los criterios de aceptación en el panel de abajo",
+      de: "hake die Abnahmekriterien im Bereich darunter ab",
+      fr: "cochez les critères d'acceptation dans le panneau ci-dessous",
     },
   },
   "wordPhase.stopNoPassingTestRecord": {
