@@ -9,7 +9,7 @@ import { nextFireTime, scheduleNotifyOf, type ScheduleNotify } from "../../../qu
 import { btn, btnLink, field, messageSlot, rowMessage } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
-import { defaultModelForTool, modelOptions, resolveChosenModel, resolveProvider, type SpecsPageOptions } from "../specs-list";
+import { defaultModelForTool, modelOptions, offeredProviders, resolveChosenModel, resolveProvider, type SpecsPageOptions } from "../specs-list";
 
 export interface ScheduleFormOptions {
   /** Present when editing; absent when creating — decides the submit
@@ -85,7 +85,7 @@ function modelFields(opts: ScheduleFormOptions, lang: Language = "en"): string {
   const aiSelect =
     providers.length > 1
       ? `<select name="provider" data-ai="model" form="${SCHEDULE_FORM_ID}">` +
-        providers
+        offeredProviders(providers, resting?.key)
           .map(
             (p) =>
               `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}"` +

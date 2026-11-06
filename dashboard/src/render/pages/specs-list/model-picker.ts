@@ -8,6 +8,7 @@ import { runFormId } from "./cells.ts";
 import {
   TOOL_NAMES,
   defaultModelForTool,
+  offeredProviders,
   providerToolOf,
   resolveChosenModel,
   resolveProvider,
@@ -23,6 +24,7 @@ export {
   compactModelLabel,
   compactModelLabelFull,
   defaultModelForTool,
+  offeredProviders,
   phaseAiModel,
   providerToolOf,
   resolveChosenModel,
@@ -385,7 +387,7 @@ export function aiPicker(
     (locked ? " disabled" : "") +
     `>` +
     (gone ? `<option value="${esc(usedProvider)}" selected>${esc(usedProvider)}</option>` : "") +
-    providers
+    offeredProviders(providers, resting?.key)
       .map(
         (p) =>
           `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}"` +
@@ -415,7 +417,7 @@ export function sidePickers(
   const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]);
   const disabled = locked ? " disabled" : "";
   const ai = providers.length === 0 || models.length === 0 ? "" : `<select name="provider.${part}" data-ai="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
-    providers.map((p) =>
+    offeredProviders(providers, resting?.key).map((p) =>
       `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,
     ).join("") + `</select>`;
   const options = models.map((choice) => {

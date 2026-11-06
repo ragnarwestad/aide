@@ -98,12 +98,22 @@ export interface ProviderOption {
   key: string;
   name: string;
   tool: "claude" | "codex" | "opencode";
+  /** Switched off in Settings → Providers. */
+  off?: boolean;
+}
+
+/** The providers a picker shows: every one that is switched on, and a
+ *  switched-off one only when it is `chosen`, so a choice already on it is
+ *  shown as it is and posted back unchanged. */
+export function offeredProviders(providers: readonly ProviderOption[], chosen?: string): ProviderOption[] {
+  return providers.filter((p) => !p.off || p.key === chosen);
 }
 
 /** The provider a phase line is on. The first of `picks` (a job's own
- *  provider for the step, then a pending pick) that is offered and runs the
+ *  provider for the step, then a pending pick) that is listed and runs the
  *  model's tool; else the configured one for the step when it does; else the
- *  first offered provider that does. */
+ *  first listed provider that is switched on and does — the runner's own
+ *  order (`resolveStepProvider`). */
 export function resolveProvider(
   opts: Pick<SpecsPageOptions, "modelChoices" | "providerChoices" | "defaultProviders">,
   step: string,
@@ -118,7 +128,7 @@ export function resolveProvider(
     if (runs(found)) return found;
   }
   const wanted = providers.find((p) => p.key === opts.defaultProviders?.[step]);
-  return runs(wanted) ? wanted : providers.find(runs);
+  return runs(wanted) ? wanted : providers.find((p) => !p.off && runs(p));
 }
 
 /** The three fields any of `modelPicker`/`aiPicker`/`phaseCaptionCells`

@@ -141,12 +141,18 @@ export const MESSAGES = {
   // puts the AI's name and the time in the reader's language.
   // A step's provider is switched off in Settings: the step waits for it.
   "runner.providerSwitchedOff": {
-    en: "held back: {provider} is switched off — switch it on in Settings, the Providers tab",
-    nb: "holdt tilbake: {provider} er slått av — slå den på i Innstillinger, fanen Providere",
-    es: "retenido: {provider} está desactivado — actívalo en Ajustes, la pestaña Proveedores",
-    de: "zurückgehalten: {provider} ist ausgeschaltet — schalte ihn in den Einstellungen ein, Reiter Anbieter",
-    fr: "retenu : {provider} est désactivé — activez-le dans Réglages, onglet Fournisseurs",
-    resolve: "switch it on in Settings, the Providers tab",
+    en: "held back: {provider} is switched off",
+    nb: "holdt tilbake: {provider} er slått av",
+    es: "retenido: {provider} está desactivado",
+    de: "zurückgehalten: {provider} ist ausgeschaltet",
+    fr: "retenu : {provider} est désactivé",
+    solution: {
+      en: "Switch {provider} on in Settings, the Providers tab",
+      nb: "Slå på {provider} i Innstillinger, fanen Providere",
+      es: "Activa {provider} en Ajustes, la pestaña Proveedores",
+      de: "Schalte {provider} in den Einstellungen ein, Reiter Anbieter",
+      fr: "Activez {provider} dans Réglages, onglet Fournisseurs",
+    },
   },
   "runner.usageLimitHeld": {
     en: "held back: waits for {provider}'s usage limit — it starts at {at}",

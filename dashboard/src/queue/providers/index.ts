@@ -110,15 +110,17 @@ export function runsModel(provider: Provider, choice: ModelChoice | undefined): 
   return provider.tool === "claude" ? tool === "claude" || tool === "fake-claude" : tool === provider.tool;
 }
 
-/** The providers a picker offers: those switched on that run at least one
- *  model choice, in the order the config lists them. */
+/** The providers a picker lists: those that run at least one model choice,
+ *  in the order the config lists them. A switched-off one is listed too, so
+ *  a choice already on it is shown as it is; the picker leaves it out
+ *  otherwise (`offeredProviders`). */
 export function providerChoices(
   providers: Record<string, Provider> | undefined,
   modelChoices: Record<string, ModelChoice> | undefined,
 ): { key: string; provider: Provider }[] {
   const choices = Object.values(modelChoices ?? {});
   return Object.entries(providers ?? {})
-    .filter(([, provider]) => provider.enabled !== false && choices.some((c) => runsModel(provider, c)))
+    .filter(([, provider]) => choices.some((c) => runsModel(provider, c)))
     .map(([key, provider]) => ({ key, provider }));
 }
 

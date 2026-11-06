@@ -17,6 +17,8 @@ import {
   type Provider,
 } from "../../../src/queue/providers/index.ts";
 import type { Job, QueueDefaults } from "../../../src/queue/queue.ts";
+import { offeredProviders, resolveProvider } from "../../../src/render/pages/specs-list/model-resolve.ts";
+import { providerPickerOptions } from "../../../src/serve/providers/options.ts";
 
 const PROVIDERS: Record<string, Provider> = {
   claude: { name: "Claude", tool: "claude", enabled: false },
@@ -38,8 +40,9 @@ const job = (over: Record<string, unknown> = {}): Job =>
   ({ id: "j", project: "aide", specFolder: "703-x", steps: ["analyze"], state: "queued", model: {}, ...over }) as unknown as Job;
 
 describe("a switched-off provider", () => {
-  test("is not offered by a picker", () => {
-    expect(providerChoices(PROVIDERS, defaults().modelChoices).map((c) => c.key)).toEqual(["claude-capra", "codex"]);
+  test("is still listed for the pickers, marked off, so a choice already on it is shown", () => {
+    expect(providerChoices(PROVIDERS, defaults().modelChoices).map((c) => c.key)).toEqual(["claude", "claude-capra", "codex"]);
+    expect(providerPickerOptions({ defaults: defaults() }).providerChoices[0]).toMatchObject({ key: "claude", off: true });
   });
 
   test("is passed over when a step falls back to the first provider that runs its model", () => {
@@ -58,6 +61,22 @@ describe("a switched-off provider", () => {
     expect(parseProvider({ name: "Claude", tool: "claude", enabled: false })).toEqual({ name: "Claude", tool: "claude", enabled: false });
     expect(parseProvider({ name: "Claude", tool: "claude", enabled: true })).toEqual({ name: "Claude", tool: "claude" });
     expect(parseProvider({ name: "Claude", tool: "claude", enabled: "no" })).toBeUndefined();
+  });
+});
+
+describe("the board's pages and the runner", () => {
+  test("pick the same provider for every phase when one is switched off, a default on it included", () => {
+    const d = defaults({ provider: { analyze: "claude" } });
+    const options = { ...providerPickerOptions({ defaults: d }), modelChoices: [{ name: "Opus", tool: "claude" as const }] };
+    for (const step of ["create", "analyze"]) {
+      expect(resolveProvider(options as never, step, "Opus", [])?.key).toBe(resolveStepProvider(job(), step, d));
+    }
+  });
+
+  test("a picker lists a switched-off provider only where it is the one chosen", () => {
+    const { providerChoices: all } = providerPickerOptions({ defaults: defaults() });
+    expect(offeredProviders(all).map((p) => p.key)).toEqual(["claude-capra", "codex"]);
+    expect(offeredProviders(all, "claude").map((p) => p.key)).toEqual(["claude", "claude-capra", "codex"]);
   });
 });
 

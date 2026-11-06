@@ -8,7 +8,7 @@ import { providersBlock, type ProviderStatus } from "./providers.ts";
 import type { Provider } from "../../../queue/providers/index.ts";
 import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
-import { defaultModelForTool, modelOptions, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
+import { defaultModelForTool, modelOptions, offeredProviders, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
 import { SIDE_PARTS, type SidePart } from "../../../queue/providers/side-tools.ts";
 
@@ -166,7 +166,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     const { model: chosen } = settingsRowChoice(models, opts.defaultModels, step);
     const providers = opts.providerChoices ?? [];
     const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, step, chosen, []);
-    const ai = providers.map((p) => {
+    const ai = offeredProviders(providers, resting?.key).map((p) => {
       const preferred = defaultModelForTool(models, p.tool, configured);
       return `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(preferred ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`;
     }).join("");
@@ -181,7 +181,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     const label = t(lang, `settings.side.${part}`);
     const providers = opts.providerChoices ?? [];
     const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, part, chosen, []);
-    const ai = providers.map((provider) =>
+    const ai = offeredProviders(providers, resting?.key).map((provider) =>
       `<option value="${esc(provider.key)}" data-tool="${esc(provider.tool)}" data-default="${esc(defaultModelForTool(models, provider.tool, chosen) ?? "")}"${provider.key === resting?.key ? " selected" : ""}>${esc(provider.name)}</option>`,
     ).join("");
     const sideOptions = models.map((choice) => {

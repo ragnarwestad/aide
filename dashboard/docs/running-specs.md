@@ -493,8 +493,9 @@ the provider. A provider's name has letters, digits, `.`, `_` and `-`, at most 6
 - **The name and the ID.** The name is what the board shows: one line of up to 64 characters, spaces included. The ID
   is the key the provider is stored under: letters, digits, `-` or `_`, given on Add or made from the name, and never
   changed afterwards.
-- **On and off.** A provider can be switched off. A switched-off provider is not offered on any AI choice and is not
-  taken when a phase with no provider of its own falls back to the first one that runs its model. A step whose own
+- **On and off.** A provider can be switched off. A switched-off provider is not offered on an AI choice, except on one
+  where it is already the provider chosen, and is not taken when a phase with no provider of its own falls back to the
+  first one that runs its model. A step whose own
   provider, or whose phase default, is switched off is held back on the queue with a sentence saying which provider
   to switch on, and starts once it is on. Review and Verify pass a switched-off provider over for the first one that is
   on. The login check does not read it.

@@ -47,6 +47,7 @@ export {
   TOOL_NAMES,
   defaultModelForTool,
   modelOptions,
+  offeredProviders,
   resolveChosenModel,
   resolveProvider,
   type ProviderOption,
