@@ -34,6 +34,10 @@ const PUSH_RETRY_WAITS_MS = [1000, 2000];
  *  minute, not the runner's four-second default: a push to GitHub over
  *  SSH takes longer than that, and a killed one says nothing at all. */
 const PUSH_TIMEOUT_MS = 60_000;
+/** git's own line for a push refused because origin's branch is ahead:
+ *  `! [rejected] main -> main (fetch first)` or `(non-fast-forward)`.
+ *  `[remote rejected]` is origin refusing for a reason of its own. */
+const BASE_MOVED = /\[rejected\]|non-fast-forward|\(fetch first\)/;
 
 interface PushRetryResult {
   ok: boolean;
@@ -75,6 +79,11 @@ export async function pushWithRetry(run: GitRunner, root: string, base: string, 
     const said = (pushed.stderr ?? "").trim() || (reachable.stderr ?? "");
     return { ok: false, cause: gitError(said), error: gitErrorDetail(said) };
   }
+  // Reachable, and origin itself turned the push down (`[remote rejected]`:
+  // a rule, a hook, an error at GitHub): nothing moved, so merging again
+  // would only be refused again. git's own words say why.
+  const said = pushed.stderr ?? "";
+  if (!BASE_MOVED.test(said)) return { ok: false, cause: gitError(said), error: gitErrorDetail(said) };
   // Reachable, still rejected: base moved on origin under this landing.
   // Not settled here with `pull --rebase` any more — a rebase of a
   // landing's merge commits failed before it started once (364,

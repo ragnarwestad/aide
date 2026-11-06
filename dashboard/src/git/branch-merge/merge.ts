@@ -252,8 +252,10 @@ export async function mergeBranchIntoDefault(
     //    REPORTED and never rolled back — `aide-run-spec`'s own
     //    precedent is that a push problem is not a reason to undo
     //    committed work; step 3's leftover check drops it on the next
-    //    landing, once origin is back. A push origin REFUSED is base
-    //    having moved: the local merge is dropped and made again, once.
+    //    landing, once origin is back. A push refused because base is
+    //    ahead is base having moved: the local merge is dropped and made
+    //    again, once. A push origin turned down for a reason of its own
+    //    is refused in origin's words.
     for (let attempt = 0; ; attempt++) {
       const failed = await mergeAndGate();
       if (failed) return failed;
