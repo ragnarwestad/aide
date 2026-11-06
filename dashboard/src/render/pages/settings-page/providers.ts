@@ -1,4 +1,4 @@
-// The Providers tab under Settings → AI: every AI login the board may run a
+// The Providers tab under Settings: every AI login the board may run a
 // step on, one row each with its name, its tool and its login. A row opens
 // the provider's page; under the table is Add, which opens a page of its own.
 

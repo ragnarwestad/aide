@@ -14,33 +14,28 @@ import { SIDE_PARTS, type SidePart } from "../../../queue/providers/side-tools.t
 
 export const SETTINGS_ROUTE = "/settings";
 
-/** The page's top row. It is a row INSIDE the page, not the
- *  application's own tab bar, which this page hides. */
-export const SETTINGS_GROUPS = ["ai", "process", "notifications"] as const;
-export type SettingsGroup = (typeof SETTINGS_GROUPS)[number];
-
-/** AI's own row: the models-per-phase table and the providers. The table
+/** The page's one row of tabs. It is a row INSIDE the page, not the
+ *  application's own tab bar, which this page hides. The models table
  *  keeps the key it had as the page's first tab, so `?tab=phases` still
  *  opens it. */
-export const AI_TABS = ["phases", "providers"] as const;
+export const SETTINGS_PANELS = ["phases", "providers", "process", "notifications"] as const;
+export type SettingsPanel = (typeof SETTINGS_PANELS)[number];
 
 /** The tool tabs the row had once: a link that still names one opens
  *  Providers, where each tool's providers are. */
 const REMOVED_TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
-/** Every value `?tab=` can name: a group, or a tab inside AI. */
-export const SETTINGS_TABS = [...SETTINGS_GROUPS, ...AI_TABS, ...REMOVED_TOOL_TABS] as const;
+/** Every value `?tab=` can name: a tab, the AI tab the row had once, or a
+ *  removed tool tab. */
+export const SETTINGS_TABS = [...SETTINGS_PANELS, "ai", ...REMOVED_TOOL_TABS] as const;
 
-export type SettingsPanel = Exclude<(typeof SETTINGS_GROUPS)[number] | (typeof AI_TABS)[number], "ai">;
-
-/** Which group is open and which panel it draws, off `?tab=`. AI opens on
- *  its models table, and an unknown or absent value opens AI. */
-export function resolveSettingsTab(raw: string | undefined): { group: SettingsGroup; panel: SettingsPanel } {
-  const tab = pickTab(SETTINGS_TABS, raw, "ai");
-  if (tab === "ai") return { group: "ai", panel: "phases" };
-  if (tab === "process" || tab === "notifications") return { group: tab, panel: tab };
-  if ((REMOVED_TOOL_TABS as readonly string[]).includes(tab)) return { group: "ai", panel: "providers" };
-  return { group: "ai", panel: tab as SettingsPanel };
+/** Which panel is open, off `?tab=`. The page opens on its models table,
+ *  as does the AI tab it had once and an unknown or absent value. */
+export function resolveSettingsTab(raw: string | undefined): SettingsPanel {
+  const tab = pickTab(SETTINGS_TABS, raw, "phases");
+  if (tab === "ai") return "phases";
+  if ((REMOVED_TOOL_TABS as readonly string[]).includes(tab)) return "providers";
+  return tab as SettingsPanel;
 }
 
 /** The steps that act on a spec: what a reader presses on a row of the
@@ -100,8 +95,8 @@ export interface SettingsPageOptions {
   /** The request's own address, threaded to `pageShell` so its
    *  language links keep the reader on this same page. */
   currentUrl?: string;
-  /** Which tab is open, off `?tab=`: a group, or a tab inside AI.
-   *  Absent opens AI on its models-per-phase table. */
+  /** Which tab is open, off `?tab=`. Absent opens the models-per-phase
+   *  table. */
   tab?: string;
   /** The providers the Providers tab lists, by key. */
   providers?: Record<string, Provider>;
@@ -220,9 +215,8 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     btn({ id: "settingsform-save", label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") }) +
     btn({ id: "settingsform-cancel", label: t(lang, "dialog.cancel"), type: "button", disabled: true }) +
     `</div></form>`;
-  const { group: openGroup, panel: open } = resolveSettingsTab(opts.tab);
-  const top = tabBar(SETTINGS_GROUPS, SETTINGS_ROUTE, openGroup, {}, "", { lang });
-  const aiRow = openGroup === "ai" ? tabBar(AI_TABS, SETTINGS_ROUTE, open as (typeof AI_TABS)[number], {}, "", { lang }) : "";
+  const open = resolveSettingsTab(opts.tab);
+  const top = tabBar(SETTINGS_PANELS, SETTINGS_ROUTE, open, {}, "", { lang });
   const panel = open === "phases"
     ? phasesPanel
     : open === "providers"
@@ -231,9 +225,9 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
         ? notificationsPanel(opts.pushPublicKey, lang)
         : opts.process ? processPanel(opts.process, lang) : "";
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
-  // the frame's padding twice. Both rows sit directly in it, so page.css's
-  // Settings rule centres them, and the panel after them, as it did one row.
-  const body = `${back}${top}${aiRow}${panel}`;
+  // the frame's padding twice. The row sits directly in it, so page.css's
+  // Settings rule centres it, and the panel after it.
+  const body = `${back}${top}${panel}`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, {
     script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });

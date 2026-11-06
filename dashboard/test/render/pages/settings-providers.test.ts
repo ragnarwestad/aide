@@ -1,4 +1,4 @@
-// What a provider's row on Settings → AI → Providers says about its tool
+// What a provider's row on Settings → Providers says about its tool
 // and its login. The decision is made by one function, so it is proven there,
 // in one language.
 

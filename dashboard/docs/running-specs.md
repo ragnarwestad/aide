@@ -311,7 +311,7 @@ its phase file as a `- **Effort:**` line, and shown on the job's page beside its
 
 ## Global defaults for the AI and model
 
-`/settings` holds the default AI and model per step, on its AI tab under Models per phase. A step with no provider saved there runs on the first provider that runs its model, which is the provider its row shows. Review and Verify sit directly under Implement, without timeouts, and each list contains every configured model independently of Implement's AI. The same two lines on a spec override these defaults for that spec; without an override, the line shows and uses its Models per phase choice, or the default model when it has none. Every completed implement runs Review, and Review finding defects runs Verify, both read-only. If either chosen model cannot run, Implement stops with the part, model and reason and does not fall back to another model. The other rows are the
+`/settings` holds the default AI and model per step, on its Models per phase tab. A step with no provider saved there runs on the first provider that runs its model, which is the provider its row shows. Review and Verify sit directly under Implement, without timeouts, and each list contains every configured model independently of Implement's AI. The same two lines on a spec override these defaults for that spec; without an override, the line shows and uses its Models per phase choice, or the default model when it has none. Every completed implement runs Review, and Review finding defects runs Verify, both read-only. If either chosen model cannot run, Implement stops with the part, model and reason and does not fall back to another model. The other rows are the
 six that act on a spec (Create, Analyze, Implement, Archive, Close and Reopen) and Schedule. A step nothing has been saved
 for runs on Claude Code's Opus, and its row shows that; a `model.default` in the config file is a saved choice for every
 step without one of its own. On a host whose choices hold no Opus, the row shows the first listed choice while the runner
@@ -468,9 +468,9 @@ A provider is one named AI login: a tool (Claude Code, Codex or OpenCode) and th
 Every AI choice on the board lists providers by name ("Claude", "Claude-Capra", "Codex"), with the model choice under
 the provider. A provider's name has letters, digits, `.`, `_` and `-`, at most 64.
 
-- **Two tabs.** Settings → AI has two tabs: Models per phase and Providers. A link that names one of the tool tabs the
-  row once had (`?tab=claude`, `codex`, `copilot`, `opencode`) opens Providers. Copilot is offered nowhere under
-  Settings → AI.
+- **One row of tabs.** Settings has four tabs on one row: Models per phase, Providers, Process and Notifications. A
+  link that names the AI tab the row once had (`?tab=ai`) opens Models per phase, and one that names a tool tab
+  (`?tab=claude`, `codex`, `copilot`, `opencode`) opens Providers. Copilot is offered nowhere under Settings.
 - **The list.** Providers is a table built like the Models per phase table: one row per provider with its name, its tool
   and its login (Logged in, Not logged in, Not read, Not installed), and **Add** under it. A row has no field or button of
   its own; pressing it opens the provider's page. Add opens the same page empty: the tool first, then that tool's
@@ -539,14 +539,14 @@ model name starts with.
    `rules`, `plugins` and `projects`. For each, `ln -s ~/.claude/<name> ~/.claude-2/<name>`. Without `projects` a
    step cannot continue a session another login made, and without the rest it runs without the skills.
 3. Log in: `CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login`.
-4. Add it under Settings → AI → Providers, with the name to show and `~/.claude-2`.
+4. Add it under Settings → Providers, with the name to show and `~/.claude-2`.
 
 **Setting up a second Codex login** is a folder of its own, with its own login, in one of two ways. With a `CODEX_HOME`
 of its own and no shadow home the provider keeps its sessions apart. With a shadow home the provider shares its
 `CODEX_HOME`'s sessions and settings and keeps its own login, so one provider can continue a session another started:
 
 1. Make an empty folder, such as `~/.codex-personal`, and log in there: `CODEX_HOME=~/.codex-personal codex login`.
-2. Add the provider under Settings → AI → Providers with the shared folder as `CODEX_HOME` and the new folder as the
+2. Add the provider under Settings → Providers with the shared folder as `CODEX_HOME` and the new folder as the
    shadow home. Save links everything in the `CODEX_HOME` except `auth.json` into the shadow home, and again before each
    Codex step, so an entry added since is linked. A shadow home that already has a `sessions` folder or a `config.toml`
    of its own is refused; start from an empty folder and log in there again.

@@ -1,5 +1,5 @@
 // Adding, editing (the name among the fields) and removing a provider on
-// Settings → AI → Providers, and the pages that add and edit one. The file is
+// Settings → Providers, and the pages that add and edit one. The file is
 // written first and the live providers changed after; a refusal changes
 // neither.
 

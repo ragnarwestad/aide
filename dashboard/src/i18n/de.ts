@@ -378,7 +378,6 @@ export const de: Record<TranslationKey, string> = {
   "settings.process.cores": "Dieser Rechner hat {cores} Kerne. Eine gespeicherte Zahl gilt ab dem nächsten Schritt, den die Warteschlange startet; ein bereits laufender Schritt wird deswegen nie gestoppt.",
   "nav.back": "Zurück",
   "tab.steps": "Protokolle",
-  "tab.ai": "KI",
   "tab.phases": "Modelle pro Phase",
   "tab.providers": "Anbieter",
   "tab.process": "Prozess",

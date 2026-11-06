@@ -1,5 +1,5 @@
 // The routes behind providers: adding, editing, renaming and removing one on
-// Settings → AI → Providers, and the pages that add and edit one.
+// Settings → Providers, and the pages that add and edit one.
 
 import type { RoutesContext } from "../";
 import { handleProviderPages } from "./page.ts";

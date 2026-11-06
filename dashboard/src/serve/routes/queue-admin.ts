@@ -63,7 +63,7 @@ export async function handleQueueAdminRoutes(
     const key = typeof asked === "string" ? asked : "";
     const provider = ctx.queue.defaults.providers?.[key];
     if (!provider) {
-      return json({ error: `${key || "That"} is not a provider — open its page under Settings → AI → Providers and press Check there` }, 400);
+      return json({ error: `${key || "That"} is not a provider — open its page under Settings → Providers and press Check there` }, 400);
     }
     const tool = provider.tool;
     const probe = ctx.opts.toolProbe;

@@ -41,7 +41,7 @@ export async function projectPages(
     // no other tab reads anything: a read can hold the page for as long as
     // its timeout.
     const tab = url.searchParams.get("tab") ?? undefined;
-    const providerStatuses = resolveSettingsTab(tab).panel === "providers"
+    const providerStatuses = resolveSettingsTab(tab) === "providers"
       ? await readProviderStatuses(ctx)
       : undefined;
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {

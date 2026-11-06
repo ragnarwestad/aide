@@ -40,10 +40,10 @@ export type { NavEntry } from "./ui/shell.ts";
 export { backLink, resolveBackHref } from "./ui/components";
 
 export {
-  AI_TABS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, SETTINGS_GROUPS, SETTINGS_ROUTE, SETTINGS_STEPS,
+  OTHER_STEPS, renderSettingsPage, resolveSettingsTab, SETTINGS_PANELS, SETTINGS_ROUTE, SETTINGS_STEPS,
   SETTINGS_TABS, settingsRowChoice, SPEC_STEPS, UNROWED_STEPS,
 } from "./pages/settings-page";
-export type { SettingsGroup, SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
+export type { SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
 export {
   CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, toolPanel, toolPart, toolParts,
 } from "./pages/settings-page/tools.ts";

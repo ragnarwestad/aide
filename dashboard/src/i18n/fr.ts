@@ -378,7 +378,6 @@ export const fr: Record<TranslationKey, string> = {
   "settings.process.cores": "Cette machine a {cores} cœurs. Un nombre enregistré s'applique dès la prochaine étape que la file démarre ; une étape déjà en cours n'est jamais arrêtée pour autant.",
   "nav.back": "Retour",
   "tab.steps": "Journaux",
-  "tab.ai": "IA",
   "tab.phases": "Modèles par phase",
   "tab.providers": "Fournisseurs",
   "tab.process": "Processus",

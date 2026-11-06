@@ -1,4 +1,4 @@
-// An AI's Models tab under Settings → AI: adding a model it offers to the
+// An AI's Models tab under Settings: adding a model it offers to the
 // model choices, and removing a choice it no longer offers. The file is
 // written first and the live choices changed only once the write
 // succeeded, the order every Settings save follows; every page reads the

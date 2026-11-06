@@ -381,7 +381,6 @@ export const nb: Record<TranslationKey, string> = {
   "settings.process.cores": "Denne maskinen har {cores} kjerner. Et lagret tall brukes fra neste steg køen starter; et steg som allerede kjører, stoppes aldri på grunn av det.",
   "nav.back": "Tilbake",
   "tab.steps": "Logger",
-  "tab.ai": "KI",
   "tab.phases": "Modeller per fase",
   "tab.providers": "Providere",
   "tab.process": "Prosess",

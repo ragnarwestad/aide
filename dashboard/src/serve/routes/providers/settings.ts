@@ -1,5 +1,5 @@
 // Adding, editing (the name among the fields) and removing a provider from
-// Settings → AI → Providers. Add and Edit run the same rules in the same
+// Settings → Providers. Add and Edit run the same rules in the same
 // order. The file is written first and the live providers changed only once
 // the write succeeded, the order the model choices follow
 // (`settings-models.ts`); a refusal changes neither.

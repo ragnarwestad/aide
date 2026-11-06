@@ -390,7 +390,6 @@ export const en = {
   "settings.process.cores": "This machine has {cores} cores. A saved number is used from the next step the queue starts; a step already running is never stopped for it.",
   "nav.back": "Back",
   "tab.steps": "Logs",
-  "tab.ai": "AI",
   "tab.phases": "Models per phase",
   "tab.providers": "Providers",
   "tab.process": "Process",

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
-  AI_TABS, CHECKABLE_TOOLS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_GROUPS, SETTINGS_STEPS,
+  CHECKABLE_TOOLS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_PANELS, SETTINGS_STEPS,
   SPEC_STEPS, TOOL_PARTS, toolPanel, toolPart, toolParts, UNROWED_STEPS,
 } from "../../../src/render";
 import { t } from "../../../src/i18n";
@@ -116,47 +116,25 @@ describe("the Settings tabs", () => {
     };
   };
 
-  test("the top row is AI, Process and Notifications", () => {
-    expect([...SETTINGS_GROUPS]).toEqual(["ai", "process", "notifications"]);
-    expect(SETTINGS_GROUPS.map(tabLabel)).toEqual(["AI", "Process", "Notifications"]);
-  });
-
-  test("AI's row is exactly Models per phase and Providers, no tool among them (AC-1, AC-25)", () => {
-    expect([...AI_TABS]).toEqual(["phases", "providers"]);
-    expect(AI_TABS.map(tabLabel)).toEqual(["Models per phase", "Providers"]);
+  test("the one row is Models per phase, Providers, Process and Notifications", () => {
+    expect([...SETTINGS_PANELS]).toEqual(["phases", "providers", "process", "notifications"]);
+    expect(SETTINGS_PANELS.map(tabLabel)).toEqual(["Models per phase", "Providers", "Process", "Notifications"]);
     expect([...CHECKABLE_TOOLS]).toEqual(["claude", "codex", "opencode"]);
   });
 
-  test("AI opens on Models per phase, as does no tab or an unknown one", () => {
-    for (const raw of ["ai", undefined, "nope"]) {
-      expect(resolveSettingsTab(raw)).toEqual({ group: "ai", panel: "phases" });
-    }
+  test("the page opens on Models per phase, as do the AI tab it had, no tab and an unknown one", () => {
+    for (const raw of ["ai", undefined, "nope"]) expect(resolveSettingsTab(raw)).toBe("phases");
   });
 
   test("every tab opens its own panel, and a removed tool tab opens Providers (AC-2)", () => {
-    for (const tab of AI_TABS) {
-      expect(resolveSettingsTab(tab)).toEqual({ group: "ai", panel: tab });
-    }
-    for (const old of ["claude", "codex", "copilot", "opencode"]) {
-      expect(resolveSettingsTab(old)).toEqual({ group: "ai", panel: "providers" });
-    }
-    expect(resolveSettingsTab("notifications")).toEqual({ group: "notifications", panel: "notifications" });
-    for (const raw of [...AI_TABS, ...SETTINGS_GROUPS, undefined, "nope"]) {
-      expect(SETTINGS_GROUPS as readonly string[]).toContain(resolveSettingsTab(raw).group);
-    }
+    for (const tab of SETTINGS_PANELS) expect(resolveSettingsTab(tab)).toBe(tab);
+    for (const old of ["claude", "codex", "copilot", "opencode"]) expect(resolveSettingsTab(old)).toBe("providers");
   });
 
-  test("the page offers the AI row only under AI", () => {
+  test("the page links the four tabs and marks the open one", () => {
     const claude = links(render("claude"));
-    expect(claude.keys).toEqual(new Set([...SETTINGS_GROUPS, ...AI_TABS]));
-    expect(claude.current).toEqual(new Set(["ai", "providers"]));
-    const notifications = links(render("notifications"));
-    expect(notifications.keys).toEqual(new Set(SETTINGS_GROUPS));
-    expect(notifications.current).toEqual(new Set(["notifications"]));
-  });
-
-  test("Process is its own group", () => {
-    expect(resolveSettingsTab("process")).toEqual({ group: "process", panel: "process" });
+    expect(claude.keys).toEqual(new Set(SETTINGS_PANELS));
+    expect(claude.current).toEqual(new Set(["providers"]));
   });
 });
 

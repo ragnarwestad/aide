@@ -340,13 +340,13 @@ Open question: where a step the user cancelled belongs.
 ### 21. Named profiles for the AI and the step settings
 
 From the user's wish to save choices once instead of setting them phase by phase. Today there is one table of
-models per step, under Settings → AI, and a spec can change the model of any of its phases. A profile is a named
+models per step, under Settings → Models per phase, and a spec can change the model of any of its phases. A profile is a named
 set of those choices, such as "Standard", "Cheap" or "Thorough", saved once and chosen for a project or a single
 spec.
 
 What a profile could hold:
 
-- **The AI and model for each step:** the table Settings → AI has today, which becomes the profile "Standard".
+- **The AI and model for each step:** the table Settings → Models per phase has today, which becomes the profile "Standard".
 - **The step settings:** acceptance ticking, AI formulation, criteria checks and choosing an approach, and the ones
   fixed in code today: whether the review runs, how many rounds red tests get, and the time limit. A "Quick"
   profile could then run Sonnet without plan review or code review, and a "Thorough" one Opus with every check on.

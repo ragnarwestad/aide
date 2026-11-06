@@ -378,7 +378,6 @@ export const es: Record<TranslationKey, string> = {
   "settings.process.cores": "Esta máquina tiene {cores} núcleos. Un número guardado se usa desde el siguiente paso que inicie la cola; un paso que ya se está ejecutando nunca se detiene por ello.",
   "nav.back": "Atrás",
   "tab.steps": "Registros",
-  "tab.ai": "IA",
   "tab.phases": "Modelos por fase",
   "tab.providers": "Proveedores",
   "tab.process": "Proceso",
