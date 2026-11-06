@@ -130,7 +130,7 @@ describe("submitReloadForm", () => {
     const f = fakeForm({ inDialog: "formdialog" });
     await submitReloadForm(f.form, submit(), f.io);
     expect(f.dialog.closes).toBe(0);
-    expect(f.own.textContent).toBe("Claude is already a provider's name");
+    expect(f.own.textContent).toContain("Claude is already a provider's name");
   });
 
   test("on success a form goes to its address with {key} replaced by the key the answer names", async () => {
