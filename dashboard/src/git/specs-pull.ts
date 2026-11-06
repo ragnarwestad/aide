@@ -38,12 +38,19 @@ export interface SpecsPullResult {
   /** One sentence for the reader: why nothing was pulled, or what the
    *  pull did. Both ride back on the redirect, so both are prose. */
   note: string;
+  /** On a refusal that has a fix: the problem and the fix apart, for a
+   *  caller that shows them as two lines. `note` holds both in one. */
+  problem?: string;
+  solution?: string;
   /** Whether the checkout actually moved. "Already up to date" is a
    *  success and is not the same news. */
   moved: boolean;
 }
 
-const refuse = (note: string): SpecsPullResult => ({ ok: false, note, moved: false });
+const refuse = (said: string | ReturnType<typeof errorSentence>): SpecsPullResult =>
+  typeof said === "string"
+    ? { ok: false, note: said, moved: false }
+    : { ok: false, note: said.text, problem: said.problem, solution: said.solution, moved: false };
 
 const short = (sha: string | null): string => (sha ?? "").slice(0, 7) || "unknown";
 
@@ -70,7 +77,7 @@ export async function pullFastForward(
         errorSentence({
           what: `${dir} is not a git working tree — nothing was pulled.`,
           resolve: `Check the project's specs root is a git checkout, ${IN_THE_CHECKOUT}.`,
-        }).text,
+        }),
       );
     }
     const root = top.stdout.trim();
@@ -84,7 +91,7 @@ export async function pullFastForward(
         errorSentence({
           what: "the specs checkout has uncommitted changes — nothing was pulled.",
           resolve: `Commit or discard them ${IN_THE_CHECKOUT}, then try again.`,
-        }).text,
+        }),
       );
     }
 
@@ -94,7 +101,7 @@ export async function pullFastForward(
         errorSentence({
           what: "the specs checkout has no default branch on origin — nothing was pulled.",
           resolve: `Check the specs repo's default branch on origin, from the checkout ${IN_THE_CHECKOUT}.`,
-        }).text,
+        }),
       );
     }
     const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
@@ -106,7 +113,7 @@ export async function pullFastForward(
         errorSentence({
           what: `the specs checkout is on ${on || "an unknown branch"}, not ${base} — nothing was pulled.`,
           resolve: `Switch it to ${base} ${IN_THE_CHECKOUT}, then try again.`,
-        }).text,
+        }),
       );
     }
 
@@ -116,7 +123,7 @@ export async function pullFastForward(
         errorSentence({
           what: "origin could not be reached — nothing was pulled.",
           resolve: "Check the network from the serving host, then try again.",
-        }).text,
+        }),
       );
     }
 
@@ -129,7 +136,7 @@ export async function pullFastForward(
         errorSentence({
           what: "the specs checkout has commits origin does not, so it cannot fast-forward — nothing was pulled.",
           resolve: `Merge it by hand, ${IN_THE_CHECKOUT}.`,
-        }).text,
+        }),
       );
     }
 
@@ -140,7 +147,7 @@ export async function pullFastForward(
         errorSentence({
           what: "the pull failed — nothing was pulled.",
           resolve: `Try again; if it keeps failing, check it ${IN_THE_CHECKOUT}.`,
-        }).text,
+        }),
       );
     }
     const after = await run(root, ["rev-parse", "HEAD"]);

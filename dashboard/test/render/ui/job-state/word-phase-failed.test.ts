@@ -3,6 +3,9 @@
 import { describe, expect, test } from "bun:test";
 import { wordPhase } from "../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../src/render";
+import { renderSentence } from "../../../../src/i18n/message.ts";
+
+const said = (w: ReturnType<typeof wordPhase>): string | undefined => renderSentence("en", w.qualifier);
 
 const attemptOf = (state: string, ok: boolean, extra: Record<string, unknown> = {}) =>
   ({ state, results: [{ step: "analyze", ok, costUsd: 0 }], ...extra }) as unknown as QueueRowView;
@@ -23,7 +26,7 @@ describe("a failed newest run speaks for the phase", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "model-refused", step: "analyze" });
     expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
     expect(w.pip).toBe("refused");
-    expect(w.qualifier).toContain("declined");
+    expect(said(w)).toContain("declined");
   });
 
   test("a stop at the time limit from history stays amber Stopped", () => {
@@ -46,8 +49,8 @@ describe("an analyze stopped on its acceptance criteria", () => {
   test("reads amber Stopped from history, in a sentence rather than the raw token", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "acceptance-criteria", step: "analyze" });
     expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
-    expect(w.qualifier).toBeDefined();
-    expect(w.qualifier).not.toContain("acceptance-criteria");
+    expect(said(w)).toBeDefined();
+    expect(said(w)).not.toContain("acceptance-criteria");
   });
 });
 
@@ -55,8 +58,8 @@ describe("an analyze whose short analysis was over a limit", () => {
   test("reads Failed from history, in a sentence rather than the raw token", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "short-analysis-over-limit", step: "analyze" });
     expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
-    expect(w.qualifier).toBeDefined();
-    expect(w.qualifier).not.toContain("short-analysis-over-limit");
+    expect(said(w)).toBeDefined();
+    expect(said(w)).not.toContain("short-analysis-over-limit");
   });
 });
 
@@ -64,8 +67,8 @@ describe("an analyze stopped because the model was at capacity", () => {
   test("reads amber Stopped from history, in a sentence rather than the raw token", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "model-at-capacity", step: "analyze" });
     expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
-    expect(w.qualifier).toContain("at capacity");
-    expect(w.qualifier).not.toContain("model-at-capacity");
+    expect(said(w)).toContain("at capacity");
+    expect(said(w)).not.toContain("model-at-capacity");
   });
 });
 
@@ -73,8 +76,8 @@ describe("an analyze stopped on files another open spec changes", () => {
   test("reads amber Stopped from history, in a sentence rather than the raw token", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "shared-files", step: "analyze" });
     expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
-    expect(w.qualifier).toBeDefined();
-    expect(w.qualifier).not.toContain("shared-files");
+    expect(said(w)).toBeDefined();
+    expect(said(w)).not.toContain("shared-files");
   });
 });
 
@@ -82,15 +85,15 @@ describe("an implement sent back to a full analysis", () => {
   test("reads amber Stopped from history, in a sentence rather than the raw token", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "sent-back", step: "implement" });
     expect(w.badge).toEqual({ variant: "waiting", label: "Stopped" });
-    expect(w.qualifier).toBeDefined();
-    expect(w.qualifier).not.toContain("sent-back");
+    expect(said(w)).toBeDefined();
+    expect(said(w)).not.toContain("sent-back");
   });
 
   test("one refused, because its analysis was already full, reads Failed in a sentence of its own", () => {
     const w = wordPhase(false, undefined, undefined, { stopped: "sent-back-refused", step: "implement" });
     expect(w.badge).toEqual({ variant: "refused", label: "Failed" });
-    expect(w.qualifier).toBeDefined();
-    expect(w.qualifier).not.toContain("sent-back-refused");
-    expect(w.qualifier).not.toBe(wordPhase(false, undefined, undefined, { stopped: "sent-back", step: "implement" }).qualifier);
+    expect(said(w)).toBeDefined();
+    expect(said(w)).not.toContain("sent-back-refused");
+    expect(said(w)).not.toBe(said(wordPhase(false, undefined, undefined, { stopped: "sent-back", step: "implement" })));
   });
 });

@@ -36,7 +36,7 @@ def test_an_unresolved_test_command_says_no_test_ran_and_names_the_manifest_fix_
     assert out["terminalReason"] == "tests-not-started", out
     assert out["testsNotStarted"] == {"kind": "test-command-unresolved"}, out
     assert "no test ran" in out["error"], out["error"]
-    assert "AIDE_TEST_CMD" in out["error"] and ".aide/project.yaml" in out["error"], out["error"]
+    assert "AIDE_TEST_CMD" in out["errorSolution"] and ".aide/project.yaml" in out["errorSolution"], out
     assert "tests are red" not in out["error"], out["error"]
 
 

@@ -414,7 +414,7 @@ ${waitingMeta()}
 ${opts.startAt ? `<meta name="aide-start" content="${esc(opts.startAt)}">\n` : ""}<style>${CSS}</style>
 <script>${START_PAGE_SCRIPT}${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${APP_BADGE_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
 </head>
-<body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}">`;
+<body data-overlay-note="${esc(capitalizeFirst(t(lang, "shell.overlayLoading")))}" data-problem="${esc(t(lang, "message.problem"))}" data-solution="${esc(t(lang, "message.solution"))}">`;
 }
 
 /** The rest of the document, from the header to `</html>`. `afterMain` is

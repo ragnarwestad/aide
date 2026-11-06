@@ -441,7 +441,7 @@ describe("the line under a job row's state", () => {
     test("a failed job names the provider after its own sentence and keeps its log (AC-10)", () => {
       const row = schedule({ id: "f2", state: "failed", error: said, results: onWork } as never);
       expect(message(row)).toEqual({
-        variant: "failed", text: `${sentenceOf} · ${ranOn("implement", "Work")}`, log: "/jobs/f2?tab=steps",
+        variant: "failed", text: `${sentenceOf}\n${ranOn("implement", "Work")}`, log: "/jobs/f2?tab=steps",
       });
     });
 

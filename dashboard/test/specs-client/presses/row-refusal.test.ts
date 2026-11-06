@@ -115,7 +115,7 @@ describe("a refused press on the list", () => {
     const event = { target: form, defaultPrevented: false, preventDefault() { event.defaultPrevented = true; } };
     await submitAction(event as unknown as Event);
     expect(dialog.hasAttribute("open")).toBe(false);
-    expect(refusalRows(doc).map(words)).toEqual(["The job is already done; only a queued or running job can be cancelled"]);
+    expect(refusalRows(doc).map(words)).toEqual(["Problem: The job is already done; only a queued or running job can be cancelled"]);
   });
 
   test("naming no spec, goes into the list's own line, which a redraw leaves", async () => {

@@ -25,9 +25,11 @@ export interface ActionResult {
   ok?: boolean;
   spec?: string;
   error?: string;
+  /** What resolves `error`, when the route knows one. */
+  solution?: string;
   /** The project routes answer step by step (`answerProjectChange`), so
    *  a refusal can name WHICH step refused. */
-  results?: { error?: string }[];
+  results?: { error?: string; solution?: string }[];
   /** An Add that SUCCEEDED and still has something to say: whether a
    *  run can start in the project it just registered. */
   readiness?: { canRun?: boolean; note?: string };
@@ -46,10 +48,18 @@ export interface ActionResult {
 }
 
 /** Why the server said no, whichever shape it said it in: the project
- *  routes answer per step, the queue routes answer once. */
+ *  routes answer per step, the queue routes answer once. Written as a
+ *  Problem line and, when the answer has a fix, a Solution line, labelled
+ *  in the words the page carries (`data-problem`, `data-solution`). */
 export function refusalText(body: ActionResult | null): string {
-  const perStep = (body?.results ?? []).map((r) => r.error).filter(Boolean).join("; ");
-  return perStep || body?.error || "the request failed";
+  const steps = (body?.results ?? []).filter((r) => r.error);
+  const perStep = steps.map((r) => r.error).join("; ");
+  const problem = perStep || body?.error || "the request failed";
+  const solution = perStep ? steps.find((r) => r.solution)?.solution : body?.solution;
+  const dataset = typeof document === "undefined" ? undefined : document.body?.dataset;
+  const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+  const first = `${dataset?.problem ?? "Problem"}: ${capital(problem)}`;
+  return solution ? `${first}\n${dataset?.solution ?? "Solution"}: ${capital(solution)}` : first;
 }
 
 /** Writes `text` into a message line `messageSlot()` drew: into its

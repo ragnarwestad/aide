@@ -6,13 +6,13 @@ const all = (s: string) => ({ en: s, nb: s, es: s, de: s, fr: s });
 
 /** A catalog of its own, so the rule is proven on entries in each shape
  *  whatever the board's own entries hold. */
-const CATALOG: Record<string, MessageEntry> = {
+const CATALOG = {
   "t.lines": { ...all("the push of {branch} was refused"), nb: "pushen av {branch} ble avvist", solution: { ...all("press Archive again"), nb: "trykk Arkiver igjen" } },
   "t.noFix": { ...all("the spec is archived"), solution: null, exempt: "a fact, nothing to put right" },
   "t.wrapper": { ...all("archive merge failed: {message}"), solution: null, exempt: "the message inside it knows the fix" },
   "t.wrapperWithFix": { ...all("creating {title} failed: {message}"), solution: all("press Try again, then press Create") },
   "t.legacy": { ...all("held back — press Analyze first"), resolve: "press Analyze first" },
-};
+} as unknown as Record<string, MessageEntry>;
 
 const m = (key: string, rest: Omit<BoardMessage, "key"> = {}): BoardMessage => ({ key: key as MessageKey, ...rest });
 
@@ -65,9 +65,50 @@ describe("a message not yet in the two-line shape", () => {
   });
 
   test("keeps a two-line message inside it whole, fix and all", () => {
-    const legacyWrapper: Record<string, MessageEntry> = { ...CATALOG, "t.oldWrapper": { ...all("archive failed: {message}"), exempt: "x" } };
+    const legacyWrapper = { ...CATALOG, "t.oldWrapper": { ...all("archive failed: {message}"), exempt: "x" } } as unknown as Record<string, MessageEntry>;
     expect(renderMessage("en", m("t.oldWrapper", { inner: m("t.lines", { values: { branch: "b" } }) }), legacyWrapper)).toBe(
       "archive failed: the push of b was refused — press Archive again",
     );
+  });
+});
+
+describe("the board's own entries", () => {
+  test("an entry is a Problem line and a Solution line in the reader's language (AC-1)", () => {
+    expect(renderMessage("nb", m("runner.notAnalyzed"))).toBe(
+      "Problem: Holdt tilbake: ikke analysert ennå\nLøsning: Trykk Analyser først",
+    );
+  });
+
+  test("an entry that offered two fixes names the one that resolves the case (AC-2)", () => {
+    expect(renderMessage("en", m("runner.modelAtCapacity", { values: { button: "Analyze" } })).split("\n")[1]).toBe(
+      "Solution: Press Analyze again",
+    );
+  });
+
+  test("a wrapper takes the fix of the message inside it (AC-3)", () => {
+    const inner = m("runner.notAnalyzed");
+    const out = renderMessage("en", m("landing.stepFailed", { values: { step: "Archive" }, inner }));
+    expect(out.split("\n")[1]).toBe("Solution: Press Analyze first");
+  });
+
+  test("an entry around data keeps its own fix (AC-3)", () => {
+    const out = renderMessage("en", m("runner.criteriaStopped", { values: { message: "x" } }));
+    expect(out.split("\n")).toHaveLength(2);
+  });
+
+  test("a runner's English words with their fix are the two lines (AC-4)", () => {
+    expect(
+      renderMessage("nb", m("message.written", { values: { problem: "cannot fast-forward b", solution: "merge it by hand" } })),
+    ).toBe("Problem: Cannot fast-forward b\nLøsning: Merge it by hand");
+  });
+
+  test("a runner's words without a fix are the Problem line alone (AC-4)", () => {
+    expect(renderMessage("en", m("message.written", { values: { problem: "cannot do x", solution: "" } }))).toBe(
+      "Problem: Cannot do x",
+    );
+  });
+
+  test("a message stored as plain text reads exactly as stored (AC-5)", () => {
+    expect(renderSentence("nb", "cannot do x — fix y")).toBe("cannot do x — fix y");
   });
 });

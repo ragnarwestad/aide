@@ -284,8 +284,8 @@ def test_a_lock_without_a_pid_times_out_with_the_path_and_safe_removal_condition
     rc, out, _ = run(runner, workspace, claude)
     assert rc != 0, out
     assert str(lock) in out["error"], out["error"]
-    assert "safe to remove" in out["error"], out["error"]
-    assert "no aide-run-spec process is using that checkout" in out["error"], out["error"]
+    assert "remove that lock" in out["errorSolution"], out
+    assert "no aide-run-spec process is using that checkout" in out["errorSolution"], out
 
 def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
     runner, workspace, fake_claude, tmp_path

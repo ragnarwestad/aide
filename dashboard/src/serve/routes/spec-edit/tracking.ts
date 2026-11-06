@@ -16,7 +16,7 @@ import { inFlight } from "../../../render/ui/job-state";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "../../../render";
 import { workRoundJobs } from "../../spec-views/work-round.ts";
 import {
-  ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, readBounded,
+  ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, readBounded, refusal,
   resolveDependencyFolder,
 } from "../../serve-helpers";
 
@@ -40,7 +40,7 @@ export async function trackingRoutes(
   // The spec named in a refusal, as `/approach` and `/model` name it, so
   // the Running tab writes it under the row it was pressed on.
   const spec = `${project}/${specFolder}`;
-  const refuse = (error: string): Response => json({ error, spec }, 400);
+  const refuse = (error: string, solution?: string): Response => refusal({ error, solution }, { spec });
 
   // Before the body is even read: this one WRITES, commits and pushes,
   // and an archived spec's folder is in `archive/` — the same refusal
@@ -109,7 +109,7 @@ export async function trackingRoutes(
   // refuse, because a real sha never equals null.
   const sentSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
   if (sentSha !== null && sentSha !== currentSha) {
-    return refuse("the description changed since you opened this page — reload and try again");
+    return refuse("the description changed since you opened this page", "reload and try again");
   }
   // What the write compares against: what this route just read, when the
   // form sent nothing to compare. A branch that moves between that read

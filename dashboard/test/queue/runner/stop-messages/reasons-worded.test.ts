@@ -60,3 +60,25 @@ describe("a stop the board words", () => {
     expect(store.get(job.id)?.errorDetail).toBe("the plan misses the migration");
   });
 });
+
+describe("a stop in the runner's own words", () => {
+  test("stores the problem and the fix apart (AC-4)", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(0.1), ...ended("timeout", { error: "ran out of time", errorSolution: "press Implement again" }) }),
+    });
+    runner.tick();
+    runner.poll();
+    const stored = store.get(job.id);
+    expect(stored?.state).toBe("stopped");
+    expect(stored?.error).toMatchObject({ key: "message.written", values: { problem: "ran out of time", solution: "press Implement again" } });
+  });
+
+  test("an outcome without a fix stores the plain string (AC-5)", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ...ended("timeout", { error: "ran out of time" }) }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.error).toBe("ran out of time");
+  });
+});

@@ -83,7 +83,7 @@ run_model_turn() {
   duration=$(( $(date +%s) - started_at ))
 
 # --- reading what came back --------------------------------------------------
-session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""
+session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""; error_solution=""
 # Where this turn's own bytes begin in the transcript. Every turn of a step
 # appends to the one transcript — the review's and verification's side turns
 # included — so the last closing event or limit event in the file may be an
@@ -359,8 +359,8 @@ if [ -n "$stopped" ]; then
   # can be re-run from where it got to. The row says "press Run"
   # separately (`nextActionHint`); this sentence only has to say why
   # and that nothing was lost.
-  error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step"
-  error_msg="$error_msg — work up to that point is committed to the branch"
+  error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step; work up to that point is committed to the branch"
+  error_solution="press $step_button again to carry on from there"
   # The limit and that it ran out in the session, for the board's own sentence.
   time_limit_json="$(jq -cn --argjson s "$timeout_sec" '{seconds:$s, during:"session"}')"
 # "Did the tool say how it went", not "was a cost measured" — the two
@@ -370,20 +370,22 @@ elif [ -n "${provider_limit_out:-}" ]; then
   terminal_reason="provider-limit"
   limit_type="$(jq -r '.window // "provider" | gsub("_"; " ")' <<<"$provider_limit_out")"
   reset_at="$(jq -r '.resetsAt // empty' <<<"$provider_limit_out")"
-  error_msg="$limit_type provider limit reached — press $step_button again once it resets"
+  error_msg="$limit_type provider limit reached"
   [ -n "$reset_at" ] && error_msg="$error_msg; resets $reset_at"
+  error_solution="press $step_button again once it resets"
 # The provider has no room for this model right now: no reset to wait
 # for, and another model runs at once.
 elif [ -n "$at_capacity_out" ]; then
   terminal_reason="model-at-capacity"
   error_msg="$step_button stopped: ${model:-${model_id_out:-the model}} is at capacity right now"
-  error_msg="$error_msg — press $step_button again, or choose another model for this step"
+  error_solution="press $step_button again"
 elif [ "$have_result" = "true" ]; then
   is_error="$(jq -r '.is_error // false' <<<"$result_json")"
   if [ "$is_error" = "true" ] && [ "$(jq -r '.stop_reason // empty' <<<"$result_json")" = "refusal" ]; then
     # The model's own stop, not the CLI failing: the result's `stop_reason` says so.
     terminal_reason="model-refused"
-    error_msg="$step_button stopped: the model declined to continue — press $step_button again, or choose another model for this step"
+    error_msg="$step_button stopped: the model declined to continue"
+    error_solution="choose another model for this step, then press $step_button"
   elif [ "$is_error" = "true" ]; then
     terminal_reason="cli-error"
     # The provider's own words: the error list, or else the result's text,
@@ -393,21 +395,23 @@ elif [ "$have_result" = "true" ]; then
     provider_error_out="$(provider_error_json "$error_msg" \
       "$(jq -r '.api_error_status // empty' <<<"$result_json")" "$claude_error_name")"
     if [ -n "$error_msg" ]; then
-      error_msg="$error_msg $(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
+      error_solution="$(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
     else
       provider_error_out='{"kind":"silent"}'
-      error_msg="$tool ended (exit $exit_code) without giving a reason — its output is in this step's log; press $step_button again"
+      error_msg="$tool ended (exit $exit_code) without giving a reason"
+      error_solution="its output is in this step's log; press $step_button again"
     fi
   elif [ "$subtype" = "turn_failed" ] && [ -n "$error_msg" ]; then
     # Codex's or OpenCode's own error, read above: it says why, where the
     # exit code (1) says only that it failed.
     terminal_reason="cli-error"
     provider_error_out="$(provider_error_json "$error_msg")"
-    error_msg="$error_msg $(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
+    error_solution="$(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
   elif [ "$exit_code" -ne 0 ] && [ "$(jq -r '(.errors // []) | length' <<<"$result_json")" -eq 0 ]; then
     terminal_reason="cli-error"
     provider_error_out='{"kind":"silent"}'
-    error_msg="$tool ended (exit $exit_code) without giving a reason — its output is in this step's log; press $step_button again"
+    error_msg="$tool ended (exit $exit_code) without giving a reason"
+    error_solution="its output is in this step's log; press $step_button again"
   else
   case "$subtype" in
     success) terminal_reason="completed" ;;
@@ -417,10 +421,11 @@ elif [ "$have_result" = "true" ]; then
        [ -n "$error_msg" ] || error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
        if [ -n "$error_msg" ]; then
          provider_error_out="$(provider_error_json "$error_msg")"
-         error_msg="$error_msg $(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
+         error_solution="$(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
        else
          provider_error_out='{"kind":"silent"}'
-         error_msg="$tool ended (exit $exit_code) without giving a reason — its output is in this step's log; press $step_button again"
+         error_msg="$tool ended (exit $exit_code) without giving a reason"
+         error_solution="its output is in this step's log; press $step_button again"
        fi ;;
   esac
   fi
@@ -432,14 +437,15 @@ else
   # says how to fix it; pressing again fails the same way until someone has.
   if grep -q 'claude\.json' "$work_dir/err" 2>/dev/null; then
     [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
-    error_msg="$error_msg — fix or move that file on the serving host before $step_button can run"
+    error_solution="fix or move that file on the serving host before $step_button can run"
   elif [ -z "$error_msg" ]; then
     provider_error_out='{"kind":"silent"}'
-    error_msg="$tool ended (exit $exit_code) without giving a reason — its output is in this step's log; press $step_button again"
+    error_msg="$tool ended (exit $exit_code) without giving a reason"
+    error_solution="its output is in this step's log; press $step_button again"
   else
     # What the tool wrote last, sorted the way a failed turn's error is.
     provider_error_out="$(provider_error_json "$(tail -n 5 "$work_dir/err" 2>/dev/null)")"
-    error_msg="$error_msg $(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
+    error_solution="$(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
   fi
 fi
 [ -n "$resume_part" ] && [ "$resume_part" != "preparing" ] && aide_part_open "$resume_part"

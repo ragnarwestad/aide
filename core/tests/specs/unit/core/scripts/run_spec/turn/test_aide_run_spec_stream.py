@@ -160,7 +160,8 @@ def test_a_claude_api_error_carries_the_provider_s_own_words_and_kind_AC_6(runne
     _, out, _ = run(runner, workspace, claude, command="analyze")
     assert out["terminalReason"] == "cli-error", out
     expected_end = "log in to claude on the serving host, then press Analyze again" if kind == "login" else "press Analyze again"
-    assert out["error"] == f"{text} \u2014 {expected_end}", out["error"]
+    assert out["error"] == text, out["error"]
+    assert out["errorSolution"] == expected_end, out
     assert out["providerError"]["kind"] == kind, out
 
 def test_a_claude_error_of_no_known_kind_carries_its_first_line(runner, workspace, fake_claude):
@@ -179,7 +180,7 @@ def test_nonzero_exit_prevents_a_success_subtype_from_completing(runner, workspa
     assert out["terminalReason"] == "cli-error"
     assert out["providerError"] == {"kind": "silent"}
     assert "ended (exit 1) without giving a reason" in out["error"]
-    assert "this step's log" in out["error"]
+    assert "this step's log" in out["errorSolution"]
 
 
 def test_a_non_success_result_keeps_its_supplied_cause_AC_6(runner, workspace, fake_claude):
@@ -411,5 +412,5 @@ def test_a_damaged_claude_json_is_not_answered_with_press_again(runner, workspac
     assert out["ok"] is False
     assert out["terminalReason"] == "cli-error"
     assert "Fix the JSON in /Users/me/.claude.json" in out["error"], out["error"]
-    assert "press Analyze again" not in out["error"], out["error"]
-    assert "serving host" in out["error"], out["error"]
+    assert "press Analyze again" not in out["errorSolution"], out
+    assert "serving host" in out["errorSolution"], out

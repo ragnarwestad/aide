@@ -147,7 +147,7 @@ describe("the runner holds what the map names", () => {
     makeRunner().tick(undefined, new Map([[job.id, { key: "runner.approachChoice" }]]));
     expect(spawns).toHaveLength(0);
     expect(store.get(job.id)?.state).toBe("queued");
-    expect(sentence(store.get(job.id)?.error)).toContain("choose the approach");
+    expect(sentence(store.get(job.id)?.error)).toContain("hoose the approach");
   });
 
   test("it starts at the next tick once the map no longer names it", () => {

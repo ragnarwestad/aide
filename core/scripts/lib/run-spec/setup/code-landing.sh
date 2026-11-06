@@ -80,7 +80,8 @@ if [ -n "$specs_repo" ] && [ "$specs_repo" = "$specs_root" ] \
   && declare -f aide_manifest_get >/dev/null 2>&1; then
   specs_root_project="$(aide_manifest_get name "$project_root")"
   if [ -n "$specs_root_project" ] && [ -d "$specs_root/$specs_root_project" ]; then
-    refuse "the specs root is $specs_root, which is the specs repository's own top level, and $specs_root/$specs_root_project is already there — set the specs root to that folder, or move it aside if it is not this project's"
+    refuse_fix "the specs root is $specs_root, which is the specs repository's own top level, and $specs_root/$specs_root_project is already there" \
+      "set the specs root to that folder"
   fi
 fi
 

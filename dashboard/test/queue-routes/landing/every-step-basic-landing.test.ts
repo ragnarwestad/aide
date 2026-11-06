@@ -217,7 +217,7 @@ describe("every step lands its own work", () => {
     expect(failed.errorReason).toBe("conflict");
     expect(failed.landing).toBeFalsy();
     // The message names the failing step.
-    expect(sentence(failed.landingError).startsWith("archive merge failed:")).toBe(true);
+    expect(sentence(failed.landingError).startsWith("Problem: Archive merge failed:")).toBe(true);
     // Nothing half-merged, and nothing deployed from a merge that never
     // happened.
     expect(git.calls.some((c) => repoOf(c.dir) === paths.project && c.args.join(" ") === "merge --abort")).toBe(true);
@@ -258,7 +258,7 @@ describe("every step lands its own work", () => {
     // to notice `analyze`'s result, one to start `close` once its
     // landing has cleared), on top of the landing's own retries.
     const running = await settle(base, id, (j) => j.stepIndex === 1 && j.state === "running", 300);
-    expect(sentence(running.landingError)).toContain("analyze merge failed");
+    expect(sentence(running.landingError)).toContain("Analyze merge failed");
 
     writeFileSync(
       join(resultDir(dir), `${id}.json`),
@@ -267,7 +267,7 @@ describe("every step lands its own work", () => {
     const done = await settle(base, id, (j) => j.state === "done" && !j.landing);
 
     expect(done.error).toBeFalsy();
-    expect(sentence(done.landingError)).toContain("analyze merge failed");
+    expect(sentence(done.landingError)).toContain("Analyze merge failed");
   }, 20000);
 
   // A middle-of-the-workflow step lands what its OWN run

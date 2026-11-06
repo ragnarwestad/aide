@@ -25,7 +25,7 @@ import {
 } from "../../../project/parse-status";
 import { parseSpecStateText } from "../../../project/parse-spec-state.ts";
 import { STATUS_SPEC_FILE } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, tickMessage } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, json, logRefusal, readBounded, refusal, tickMessage } from "../../serve-helpers";
 import { STATE_SPEC_FILE, specWriteInFlight, stateRelPath } from "./shared.ts";
 
 import type { RoutesContext } from "..";
@@ -47,7 +47,7 @@ export async function checkRoutes(
     // it has no file-level base sha to send (see `statusBaseSha` below).
     const fromList = url.searchParams.get("fromList") === "1";
     const spec = `${project}/${specFolder}`;
-    const refuse = (error: string): Response => json({ error, spec }, 409);
+    const refuse = (error: string, solution?: string): Response => refusal({ error, solution }, { spec }, 409);
     /** `changed` is false for a press that committed nothing, so the page
      *  can say so instead of loading again. */
     const succeed = (note: string, changed: boolean): Response => json({ ok: true, note, changed });
@@ -170,7 +170,7 @@ export async function checkRoutes(
       const current = state.get(line);
       // A Failed row is never drawn as a box: it leaves that state through Reopen.
       if (current === undefined || current === "failed") {
-        return refuse("that check is not there to change any more — reload the page and look again");
+        return refuse("that check is not there to change any more", "reload the page and look again");
       }
       // An archived spec is the record of what was judged: a check that was
       // put off may still be completed or marked Failed, and nothing else
@@ -195,7 +195,7 @@ export async function checkRoutes(
           return refuse("say what did not hold before marking a check Failed — nothing was saved");
         }
         if (failNoteTooLong(note)) {
-          return refuse(`the note is over ${FAIL_NOTE_MAX} characters — shorten it and press Save again, nothing was saved`);
+          return refuse(`the note is over ${FAIL_NOTE_MAX} characters, so nothing was saved`, "shorten it and press Save again");
         }
       }
       const next =
@@ -210,7 +210,7 @@ export async function checkRoutes(
       // beside it included — never applied silently while one of them
       // is dropped.
       if (next === null) {
-        return refuse("that check is not there to change any more — reload the page and look again");
+        return refuse("that check is not there to change any more", "reload the page and look again");
       }
       ticked = next;
     }

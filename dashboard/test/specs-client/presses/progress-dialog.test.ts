@@ -137,7 +137,7 @@ describe("submitProgress from inside the ask", () => {
     const a = fakeAsk();
     const io = fakeIo();
     await submitProgress(a.form, submit(), io);
-    expect(a.line.textContent).toBe("Give a reason.");
+    expect(a.line.textContent).toBe("Problem: Give a reason.");
     expect(a.ask.closes).toBe(0);
     expect(a.standing()).toBe(false);
     expect(io.gone).toEqual([]);

@@ -10,7 +10,7 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import { chooseApproachIn, specFileText } from "../../../project/discover";
 import { parseApproaches, pendingChoice, withChosenApproach } from "../../../project/approach-choice.ts";
-import { ARCHIVED_REFUSAL, bodyToObject, editMessage, json, logRefusal, readBounded } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, bodyToObject, editMessage, json, logRefusal, readBounded, refusal } from "../../serve-helpers";
 import { followOnJob, specWriteInFlight } from "./shared.ts";
 import { afterTick } from "./checks.ts";
 
@@ -27,9 +27,9 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
   if (!found) return new Response("not found", { status: 404 });
   const dir = await ctx.machinerySpecDir(project!, found);
   const spec = `${project}/${specFolder}`;
-  const refuse = (error: string): Response => {
-    logRefusal("approach", spec, error);
-    return json({ error, spec }, 409);
+  const refuse = (error: string, solution?: string): Response => {
+    logRefusal("approach", spec, solution ? `${error} — ${solution}` : error);
+    return refusal({ error, solution }, { spec }, 409);
   };
   if (ctx.specRef(project!, specFolder!)?.archived) return refuse(ARCHIVED_REFUSAL);
   // A step running or landing is writing the plan this would write into.
@@ -57,7 +57,7 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
   const solution = branchTarget ? (branchRead?.text ?? "") : (specFileText(dir, SOLUTION_FILE) ?? "");
   const pending = pendingChoice(chooseApproachIn(specFileText(dir, "1-description.md") ?? ""), parseApproaches(solution));
   const picked = pending?.find((a) => a.letter === letter);
-  if (!picked) return refuse("there is no approach to choose here any more — reload the page");
+  if (!picked) return refuse("there is no approach to choose here any more", "reload the page");
 
   const recommended = picked.mark === "recommended";
   // Another approach replaces the job held for the choice with one that
@@ -67,7 +67,7 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
     ? undefined
     : ours.find((job) => job.state === "queued" && job.steps[job.stepIndex] === "implement");
   if (!recommended && ours.some((job) => job.state === "queued" && job !== held)) {
-    return refuse("another job for this spec is waiting — cancel it first, then save again");
+    return refuse("another job for this spec is waiting", "cancel it first, then save again");
   }
   // Cancelled BEFORE the write: a tick between the two would otherwise
   // find the choice recorded, release the hold, and start implement on
@@ -106,7 +106,7 @@ export async function approachRoutes(ctx: RoutesContext, req: Request, path: str
         ),
       );
   if (!result.ok) {
-    return refuse(held ? `${result.note} — the held run was cancelled; press Save again` : result.note);
+    return held ? refuse(`${result.note}; the held run was cancelled`, "press Save again") : refuse(result.note);
   }
 
   if (!recommended) {

@@ -56,7 +56,7 @@ describe("a create that ends without a spec", () => {
     expect(b.sent.calls).toHaveLength(1);
     const p = await openCall(b.sent.calls[0]!, b.keys);
     expect(p.title).toBe("aide · Layout of the new dashboard");
-    expect(p.body).toBe("Creating the spec failed: the session could not start — tap to try again with what you typed.");
+    expect(p.body).toBe("Problem: Creating the spec failed: the session could not start\nSolution: Tap to try again with what you typed");
     expect(p.url).toBe(`/new?retry=${job.id}`);
   });
 
@@ -68,7 +68,7 @@ describe("a create that ends without a spec", () => {
     });
     await b.push.idle();
     const p = await openCall(b.sent.calls[0]!, b.keys);
-    expect(p.body).toStartWith("Opprettingen av specen feilet: serveren startet på nytt");
+    expect(p.body).toStartWith("Problem: Opprettingen av specen feilet: serveren startet på nytt");
   });
 
   test("a timeout or provider limit (stopped) counts too", async () => {

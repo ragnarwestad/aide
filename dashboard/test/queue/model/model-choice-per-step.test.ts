@@ -242,8 +242,7 @@ describe("editing a running job's model for a step still ahead", () => {
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
       expect(answer.error).toBe(
-        "unknown or not-allowed model: haiku — Reload the page and try again — " +
-          "or, if this came from a raw request, check the field this names.",
+        "unknown or not-allowed model: haiku — Reload the page and try again",
       );
     }
     expect(job.model().implement).toBe("opus");
@@ -255,8 +254,7 @@ describe("editing a running job's model for a step still ahead", () => {
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
       expect(answer.error).toBe(
-        "no model choice is configured on this server — Reload the page and try again — " +
-          "or, if this came from a raw request, check the field this names.",
+        "no model choice is configured on this server — Reload the page and try again",
       );
     }
   });
@@ -267,7 +265,7 @@ describe("editing a running job's model for a step still ahead", () => {
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
       expect(answer.error).toBe(
-        "invalid model — Reload the page and try again — or, if this came from a raw request, check the field this names.",
+        "invalid model — Reload the page and try again",
       );
     }
   });

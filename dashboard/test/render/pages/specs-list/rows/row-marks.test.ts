@@ -156,7 +156,7 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
   // not moving in the one state this note exists for.
   test("the note is there when only git proves implement ran", () => {
     const html = heldForChecks({ done: ["create", "analyze"], historyDone: ["analyze", "implement"] });
-    expect(noticeCellHtml(html, FOLDER)).toContain("the Acceptance criteria are not all ticked");
+    expect(noticeCellHtml(html, FOLDER)).toContain("The Acceptance criteria are not all ticked");
   });
 
   // The exact sentence, carrying the link.

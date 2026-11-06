@@ -127,7 +127,7 @@ describe("a tail box's tick posts itself", () => {
     // Put back BEFORE the row is re-asked for, so a redraw that never
     // comes still leaves the box telling the truth.
     expect(checkedWhenRedrawn).toBe(false);
-    expect(h.listRefused.textContent).toBe("Archive is not an editable step on this job");
+    expect(h.listRefused.textContent).toBe("Problem: Archive is not an editable step on this job");
     // And the row is live again.
     expect(h.tailBox.disabled).toBe(false);
     expect(h.runButton.disabled).toBe(false);

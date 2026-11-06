@@ -28,7 +28,7 @@
 // here, re-exporting them for every existing importer.
 
 import { specNumber } from "../../project/spec-folder.ts";
-import { cliErrorMessage, noProgressMessage, runStopMessage, withoutRestatedError } from "./cross-check-message.ts";
+import { cliErrorMessage, noProgressMessage, runnerWords, runStopMessage, withoutRestatedError } from "./cross-check-message.ts";
 import { gitFailureMessage } from "./git-failure.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BoardMessage } from "../../i18n/message.ts";
@@ -417,7 +417,7 @@ export class Runner {
         stopReason: outcome.terminalReason,
         ...usageLimitWait(outcome, stoppedAt),
         finishedAt: stoppedAt,
-        error: worded ?? outcome.error,
+        error: worded ?? runnerWords(outcome),
         // The runner's own sentence, when the board worded the stop: the
         // reason a sent-back gave, or the limit in the runner's words.
         errorDetail: worded && typeof outcome.error === "string" ? outcome.error : undefined,

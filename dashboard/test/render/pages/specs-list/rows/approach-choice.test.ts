@@ -53,7 +53,7 @@ describe("the approach warning on a row", () => {
     const g = groupOf([held()]);
     const notice = specNotice(g.lead, undefined, undefined, errorMarkNotices(g, "en", () => false), "en");
     const texts = (notice?.parts ?? [{ text: notice?.text ?? "" }]).map((p) => p.text);
-    expect(texts.filter((text) => text.includes("choose the approach"))).toHaveLength(1);
+    expect(texts.filter((text) => /choose the approach/i.test(text))).toHaveLength(1);
   });
 
   test("stands with no job at all, since Implement does not start on its own", () => {

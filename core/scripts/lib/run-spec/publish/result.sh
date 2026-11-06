@@ -26,7 +26,8 @@ if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
   ok="false"
   terminal_reason="unpushed"
   suffix=" (stopped: unpushed)"
-  error_msg="the step's own work did not reach origin: $unpushed_roots${push_error:+ — $push_error} — fix the branch in the checkout on the serving host"
+  error_msg="the step's own work did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
+  error_solution="fix the branch in the checkout on the serving host"
   note_unpushed_without_failure
 elif [ -n "$status_file" ]; then
   completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
@@ -113,7 +114,8 @@ elif [ -n "$status_file" ]; then
     ok="false"
     terminal_reason="unpushed"
     suffix=" (stopped: unpushed)"
-    error_msg="the workflow-steps line did not reach origin: $unpushed_roots${push_error:+ — $push_error} — fix the branch in the checkout on the serving host"
+    error_msg="the workflow-steps line did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
+    error_solution="fix the branch in the checkout on the serving host"
     note_unpushed_without_failure
   fi
 fi
@@ -203,7 +205,7 @@ cost_json="null"
 [ "$cost_known" = "true" ] && cost_json="$cost"
 
 # The step's own failure, once, as an error line in the log.
-[ -n "$error_msg" ] && stage_error "$(printf '%s' "$error_msg" | tr '\n' ' ')"
+[ -n "$error_msg" ] && stage_error "$(printf '%s' "$error_msg${error_solution:+ — $error_solution}" | tr '\n' ' ')"
 if [ "$ok" = "true" ]; then aide_part_close; else aide_part_close "stopped: ${terminal_reason:-failed}"; fi
 
 context_json="$(context_use_json)"
@@ -215,7 +217,7 @@ line="$(jq -cn \
   --argjson costUsd "$cost_json" --argjson costMeasured "$cost_measured" \
   --arg terminalReason "$terminal_reason" --arg subtype "$subtype" \
   --argjson durationSec "$duration" --argjson repos "$repos_json" \
-  --arg error "$error_msg" --arg branch "$branch" --arg push "$push_mode" \
+  --arg error "$error_msg" --arg errorSolution "${error_solution:-}" --arg branch "$branch" --arg push "$push_mode" \
   --arg branchUrl "$branch_url" --argjson branchUrls "$branch_urls_json" \
   --arg prUrl "$pr_url" \
   --arg prError "$pr_error" --arg pushError "$push_error" \
@@ -246,6 +248,7 @@ line="$(jq -cn \
     pushError:(if $pushError == "" then null else $pushError end),
     pullError:(if $pullError == "" then null else $pullError end),
     repos:$repos, error:(if $error == "" then null else $error end)}
+   + (if $errorSolution == "" then {} else {errorSolution:$errorSolution} end)
    # ABSENT, not null, when there is no answer: the reader renames a job
    # to what this names, and "the field is not there" is the only shape
    # that cannot be mistaken for a folder called nothing.

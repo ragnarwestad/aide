@@ -79,7 +79,7 @@ def _failed_on_a_limit(out, said):
     assert out["ok"] is False, out
     assert out["terminalReason"] == "short-analysis-over-limit", out
     assert said in out["error"], out["error"]
-    assert "Analyze runs again" in out["error"], out["error"]
+    assert "Analyze runs again" in out["errorSolution"], out
 
 
 def test_a_short_analysis_within_every_limit_completes_and_says_so(runner, workspace, fake_claude):

@@ -37,7 +37,7 @@ describe("a step the model refused", () => {
 
   test("suggests running the step again or another model, and never install, login or Settings", () => {
     const text = renderSentence("en", refused()?.error as Parameters<typeof renderSentence>[1]) ?? "";
-    expect(text).toContain("Press Analyze again");
+    expect(text).toContain("then press Analyze");
     expect(text).toContain("another model");
     expect(text).not.toMatch(/install|log ?in|logged in|Settings|Check/i);
   });

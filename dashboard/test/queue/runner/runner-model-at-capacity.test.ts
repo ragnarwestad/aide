@@ -32,6 +32,6 @@ describe("a step stopped because the model is at capacity", () => {
     const text = renderSentence("en", atCapacity()?.error as Parameters<typeof renderSentence>[1]) ?? "";
     expect(text).toContain("sonnet");
     expect(text).toContain("at capacity right now");
-    expect(text).toContain("Press Analyze again, or choose another model for this step.");
+    expect(text).toContain("Solution: Press Analyze again");
   });
 });

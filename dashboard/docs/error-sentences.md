@@ -41,10 +41,10 @@ Solution: Press Try again to open the form with what you typed, then press Creat
 
 ### In the message catalog
 
-An entry in `src/i18n/messages.ts` holds the problem in its language texts and the fix in `solution`, one text per
+Every entry in `src/i18n/messages.ts` holds the problem in its language texts and the fix in `solution`, one text per
 language; `solution: null` is a message with nothing to resolve, and `exempt` says why. The composer
 (`src/i18n/message.ts`) writes the labels and the line break, and starts each line with a capital, so the catalog's
-own texts stay lowercase. An entry without `solution` reads as the one text it holds, problem and fix together.
+own texts stay lowercase. A test fails for an entry with neither.
 
 ### A message inside another
 
@@ -79,24 +79,27 @@ A sentence claims no more than the code that wrote it has checked.
 
 ## The shared builder
 
-`src/format/error-sentence.ts` composes the problem and its fix for every sentence built this way — a neutral spot, since its callers are `queue/parse-request.ts`, `git/specs-pull.ts` and `format/tool-failure.ts`, not the render layer itself:
+`src/format/error-sentence.ts` composes the problem and its fix for every sentence built this way, and returns them
+apart as `problem` and `solution` beside the one-line `text`:
 
 ```typescript
 const PUSH_ERROR_SENTENCE = errorSentence({
   what: "A step's push did not reach origin.",
   resolve: "Pull the branch in the checkout on the serving host, then push it again from a terminal.",
-}).text;
+});
 ```
 
-It throws if given neither `resolve` nor `exempt` — a sentence built this way cannot skip part 2 by accident. A
-lower-level helper deep in a call chain (`git/branch-merge/result.ts`'s `refuse()`, `aide-run-spec`'s own `refuse()`) does not
-call the builder — it keeps returning a plain string — but follows the same `what — resolve` shape by hand, so a
-reader sees one convention regardless of which layer wrote the words.
+It throws if given neither `resolve` nor `exempt`. `writtenMessage(problem, solution)` stores a pair written in English
+as the catalog's `message.written` message, which the composer draws as the two lines. A route answers a refusal with
+`error` for the problem and `solution` for the fix, and the page writes them as the two lines.
 
-`BASH_ERROR_REGISTRY` in `core/tests/specs/unit/core/scripts/run_spec/run_spec_project_state.py`, checked by
-`run_spec/record/test_aide_run_spec_no_progress.py`, is the registry for the sentences `aide-run-spec` writes: each is
-listed there with the resolution phrase its own current text must contain, or the reason it is exempt. It grows as
-each sentence is migrated to this convention — an entry is added once a sentence is fixed, not before.
+`aide-run-spec` gives an error's fix apart as well: `refuse_fix <problem> <fix>` for a refusal and `error_solution`
+beside `error_msg` for a step's result, written as `errorSolution` beside `error`. A job stored before that has `error`
+alone and reads as it was stored.
+
+`RUNNER_ERROR_REGISTRY` in `core/tests/specs/unit/core/scripts/run_spec/run_spec_error_registry.py`, checked by
+`run_spec/test_runner_error_solutions.py`, covers every error `aide-run-spec` writes: each is listed with the fix it
+gives apart, or the reason it has none.
 
 ## An error that has resolved itself
 

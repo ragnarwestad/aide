@@ -106,7 +106,7 @@ describe("specStateChip() on a held-back queued row", () => {
     expect(badgeHtml).not.toMatch(/\d+\/\d+/);
     // `<phase> <what happened>: <the longer sentence>` — the phase and
     // the state word as one phrase: "implement held back: …".
-    expect(notice?.text.startsWith("Implement held back:")).toBe(true);
+    expect(notice?.text.startsWith("Problem: Implement held back:")).toBe(true);
   });
 
   // A job that actually stopped still reads "Stopped" — the fix is

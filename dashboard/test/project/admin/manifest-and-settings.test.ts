@@ -278,7 +278,7 @@ describe("a refused link names the file it came out of", () => {
     const readiness = await assessProjectReadiness(fakeGit({}).run, dir);
     const check = readiness.checks.find((c) => c.check === "worktreeLinks")!;
     expect(check.blocking).toBe(true);
-    expect(check.detail).toContain("worktreeLinks must not escape the root");
+    expect(check.detail).toContain("WorktreeLinks must not escape the root");
     expect(projectsRoot).toBeTruthy();
   });
 });

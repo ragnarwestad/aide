@@ -68,7 +68,8 @@ EOF_FOREIGN
     scope_violation="specs"
     ok="false"
     suffix=" (stopped: scope-violation)"
-    error_msg="the step reported success but wrote outside its own spec folder in the specs repo — $foreign_named — those changes were discarded. A step writes only $spec_folder/; press $step_button again for this step."
-    echo "aide-run-spec: $error_msg" >&2
+    error_msg="the step reported success but wrote outside its own spec folder in the specs repo — $foreign_named — those changes were discarded; a step writes only $spec_folder/"
+    error_solution="press $step_button again for this step"
+    echo "aide-run-spec: $error_msg — $error_solution" >&2
   fi
 fi

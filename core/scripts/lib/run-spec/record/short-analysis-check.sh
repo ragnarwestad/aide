@@ -78,6 +78,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
         | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | cut -c1-300 | sed 's/[[:space:]]*$//')"
       record_sent_back "$sa_dir/1-description.md" "$sa_why" || true
     fi
-    error_msg="$step_button wrote a short analysis for a spec that may not have one: $sa_crossed. Analyze runs again and writes the full analysis."
+    error_msg="$step_button wrote a short analysis for a spec that may not have one: $sa_crossed"
+    error_solution="Analyze runs again and writes the full analysis"
   fi
 fi

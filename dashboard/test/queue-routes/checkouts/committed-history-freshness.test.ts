@@ -131,7 +131,7 @@ describe("a description newer than the analysis is shown on the row", () => {
 
   /** A phase's log, under its line once the address unfolds it. */
   const phaseLog = (html: string, phase: string): string =>
-    html.match(new RegExp(`<tr class="phasemsgs" data-msgs="${phase}">.*?</tr>`))?.[0] ?? "";
+    html.match(new RegExp(`<tr class="phasemsgs" data-msgs="${phase}">[\\s\\S]*?</tr>`))?.[0] ?? "";
 
   /** The marks sit on the step boxes, which a collapsed row does not
    *  draw — so every fetch here asks for the spec open. */

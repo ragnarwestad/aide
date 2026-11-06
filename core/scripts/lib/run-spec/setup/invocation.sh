@@ -25,10 +25,10 @@ find_bin() {
 claude_bin=""; codex_bin=""; opencode_bin=""
 if [ "$tool" = "codex" ]; then
   codex_bin="$(find_bin "${AIDE_CODEX_BIN:-}" codex)"
-  [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse "cannot find the codex binary (set AIDE_CODEX_BIN)"
+  [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse_fix "cannot find the codex binary" "set AIDE_CODEX_BIN"
 elif [ "$tool" = "opencode" ]; then
   opencode_bin="$(find_bin "${AIDE_OPENCODE_BIN:-}" opencode)"
-  [ -n "$opencode_bin" ] && [ -x "$opencode_bin" ] || refuse "cannot find the opencode binary (set AIDE_OPENCODE_BIN)"
+  [ -n "$opencode_bin" ] && [ -x "$opencode_bin" ] || refuse_fix "cannot find the opencode binary" "set AIDE_OPENCODE_BIN"
 else
   # The environment wins; the project's own .aide/config is the fallback.
   # A per-machine file is where a project points its runs at a stand-in
@@ -39,10 +39,10 @@ else
   # override is a refusal rather than a silent fall-through to the real
   # CLI: a run that says it is scripted must never reach a model.
   if [ "$tool" = "fake-claude" ] && [ -z "$claude_override" ]; then
-    refuse "--tool fake-claude needs a stand-in binary — set AIDE_CLAUDE_BIN in the project's .aide/config"
+    refuse_fix "--tool fake-claude needs a stand-in binary" "set AIDE_CLAUDE_BIN in the project's .aide/config"
   fi
   claude_bin="$(find_bin "$claude_override" claude)"
-  [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse "cannot find the claude binary (set AIDE_CLAUDE_BIN)"
+  [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse_fix "cannot find the claude binary" "set AIDE_CLAUDE_BIN"
 fi
 
 # Claude's safety is ONE string; Codex's is a sandbox mode and (in the

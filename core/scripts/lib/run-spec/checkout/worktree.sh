@@ -125,7 +125,8 @@ sync_branch_with_origin() {
   git -C "$root" merge-base --is-ancestor "$tip" "$here" >/dev/null 2>&1 && return 0
   if git -C "$root" merge-base --is-ancestor "$here" "$tip" >/dev/null 2>&1; then
     git -C "$root" branch -f "$br" "$tip" >/dev/null 2>&1 \
-      || refuse "cannot fast-forward $br to origin's copy in $root — merge it by hand, in the checkout on the serving host"
+      || refuse_fix "cannot fast-forward $br to origin's copy in $root" \
+        "merge it by hand, in the checkout on the serving host"
     return 0
   fi
   # What this machine has and origin has not may be nothing but merges of
@@ -135,10 +136,12 @@ sync_branch_with_origin() {
   # taken.
   if only_clean_merges_of_base "$root" "$tip" "$here"; then
     git -C "$root" branch -f "$br" "$tip" >/dev/null 2>&1 \
-      || refuse "cannot move $br to origin's copy in $root — reconcile it by hand, in the checkout on the serving host"
+      || refuse_fix "cannot move $br to origin's copy in $root" \
+        "reconcile it by hand, in the checkout on the serving host"
     return 0
   fi
-  refuse "$br has diverged from origin's copy in $root (each has commits the other has not) — reconcile them by hand, in the checkout on the serving host"
+  refuse_fix "$br has diverged from origin's copy in $root (each has commits the other has not)" \
+    "reconcile them by hand, in the checkout on the serving host"
 }
 
 # True when every commit in $2..$3 is a merge of the default branch
@@ -356,7 +359,8 @@ update_branch_to_base() {
     files_words="$(jq -r '.[0:5] | join(", ")' <<<"$files_json")"
     [ "$(jq 'length' <<<"$files_json")" -le 5 ] || files_words="$files_words (+$(jq 'length - 5' <<<"$files_json"))"
     git -C "$wt" merge --abort >/dev/null 2>&1 || true
-    refuse "cannot bring $branch up to date with $ref in $root — conflict${files_words:+ in $files_words}, merge it by hand, in the checkout on the serving host" "conflict" \
+    refuse_fix "cannot bring $branch up to date with $ref in $root — conflict${files_words:+ in $files_words}" \
+      "merge it by hand, in the checkout on the serving host" "conflict" \
       "$(jq -cn --arg repo "$([ "$root" = "$project_root" ] && echo code || echo specs)" --arg branch "$branch" \
         --arg base "${ref#origin/}" --argjson files "$files_json" \
         '{conflict: {repo: $repo, branch: $branch, base: $base, files: $files[0:5], more: ([($files | length) - 5, 0] | max)}}')"

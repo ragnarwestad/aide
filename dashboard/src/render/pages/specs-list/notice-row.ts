@@ -18,6 +18,7 @@ import { esc } from "../../ui/html.ts";
 import { sharedFilesSentence, specNotice, wordPhase } from "../../ui/job-state";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { t, type Language } from "../../../i18n";
+import { renderSentence, type Sentence } from "../../../i18n/message.ts";
 import { archivedRowNotices, errorMarkNotices } from "./row-marks.ts";
 import { isArchivedRow, type SpecGroup, type SpecsFilter } from "./data-model";
 import { checksRow, checksFold, checksPanel } from "./row-checks.ts";
@@ -75,9 +76,13 @@ export const listRefusalLine = (): string => messageSlot("refused", "failed", { 
 function phaseDisagreement(g: SpecGroup, lang: Language, sharedFiles?: string): string | undefined {
   // An analyze stopped on shared files is said from the spec's own record
   // (`sharedFilesSentence`), which already opens with the step.
-  const said = (step: string, qualifier: string, stopped?: string): string =>
-    sharedFiles && step === "analyze" && stopped === "shared-files" ? sharedFiles : `${stepLabel(step, lang)} ${qualifier}`;
-  let earliest: { step: string; qualifier: string; stopped?: string } | undefined;
+  const said = (step: string, qualifier: Sentence, stopped?: string): string =>
+    sharedFiles && step === "analyze" && stopped === "shared-files"
+      ? sharedFiles
+      : typeof qualifier === "string"
+        ? `${stepLabel(step, lang)} ${qualifier}`
+        : renderSentence(lang, { key: "message.lead", values: { lead: stepLabel(step, lang) }, inner: qualifier })!;
+  let earliest: { step: string; qualifier: Sentence; stopped?: string } | undefined;
   for (const p of g.phases) {
     const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult }, lang);
     if (!word.qualifier) continue;

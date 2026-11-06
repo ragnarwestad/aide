@@ -43,9 +43,9 @@ provider_error_json() {
 
 provider_error_ending() {
   case "${1:-other}" in
-    login) printf '%s' "— log in to $2 on the serving host, then press $3 again" ;;
-    forbidden) printf '%s' "— check that the account may use this model, or choose another model for this step" ;;
-    network) printf '%s' "— check the network from the serving host, then press $3 again" ;;
-    *) printf '%s' "— press $3 again" ;;
+    login) printf '%s' "log in to $2 on the serving host, then press $3 again" ;;
+    forbidden) printf '%s' "check that the account may use this model, then press $3 again" ;;
+    network) printf '%s' "check the network from the serving host, then press $3 again" ;;
+    *) printf '%s' "press $3 again" ;;
   esac
 }

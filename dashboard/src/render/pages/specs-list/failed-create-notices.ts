@@ -5,7 +5,7 @@
 
 import { t, type Language } from "../../../i18n";
 import { MESSAGES } from "../../../i18n/messages.ts";
-import { renderSentence, type Sentence } from "../../../i18n/message.ts";
+import { renderMessage, type Sentence } from "../../../i18n/message.ts";
 import { stepButton } from "../../../format/step-label.ts";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
 import { esc } from "../../ui/html.ts";
@@ -24,39 +24,33 @@ function withFormButton(s: Sentence, lang: Language): Sentence {
   return { ...s, ...(values ? { values } : {}), ...(inner !== undefined ? { inner } : {}) };
 }
 
-type Ending = "full" | "bridge" | "none";
-
-/** What the message adds after the reason: the two presses in full when
- *  the reason says nothing to do, a line saying where Try again leads when
- *  the reason already says to press Create, and nothing when the reason
- *  has advice of its own — a create whose spec was made and not merged
- *  must not be told to make it again. */
-function endingFor(r: Sentence | Sentence[] | undefined): Ending {
-  if (r === undefined) return "full";
-  if (Array.isArray(r)) {
-    const each = r.map(endingFor);
-    return each.includes("bridge") ? "bridge" : each.length > 0 && each.every((e) => e === "none") ? "none" : "full";
-  }
-  if (typeof r === "string") return "full";
-  if (r.values?.button === stepButton("create")) return "bridge";
-  const entry = (MESSAGES as Record<string, { resolve?: string }>)[r.key];
-  if (entry?.resolve) return "none";
-  return endingFor(r.inner);
+/** Whether the reason already says what to do, so the message must not add
+ *  the two presses of its own: a create whose spec was made and not merged
+ *  must not be told to make it again. A reason that says to press Create
+ *  is answered by Try again, which leads to that form. */
+function carriesFix(r: Sentence | Sentence[] | undefined): boolean {
+  if (r === undefined || typeof r === "string") return false;
+  if (Array.isArray(r)) return r.length > 0 && r.every(carriesFix);
+  if (r.values?.button === stepButton("create")) return false;
+  if (r.values?.solution) return true;
+  const entry = (MESSAGES as Record<string, { solution: unknown }>)[r.key];
+  if (entry?.solution) return true;
+  return carriesFix(r.inner);
 }
 
 /** What failed and why, then what to press. */
 export function failedCreateText(r: FailedCreate, lang: Language): string {
   const reasons = Array.isArray(r.reason) ? r.reason.map((s) => withFormButton(s, lang)) : withFormButton(r.reason, lang);
-  const failed = t(lang, "list.createFailed", {
-    project: r.project,
-    title: r.title,
-    reason: renderSentence(lang, reasons) ?? "",
+  return renderMessage(lang, {
+    key: carriesFix(r.reason) ? "create.failed" : "create.failedTryAgain",
+    values: {
+      project: r.project,
+      title: r.title,
+      tryAgain: t(lang, "list.createTryAgain"),
+      create: t(lang, "form.create"),
+    },
+    inner: reasons,
   });
-  const ending = endingFor(r.reason);
-  if (ending === "none") return failed;
-  const labels = { tryAgain: t(lang, "list.createTryAgain"), create: t(lang, "form.create") };
-  const action = t(lang, ending === "full" ? "list.createFailedAction" : "list.createFailedBridge", labels);
-  return `${failed}${/[.!?]$/.test(failed) ? "" : "."} ${action}`;
 }
 
 export function renderFailedCreateNotices(records: FailedCreate[], lang: Language): string {

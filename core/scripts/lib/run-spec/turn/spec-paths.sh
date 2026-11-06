@@ -334,7 +334,7 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
   stopped=""; exit_code=0; duration=0
   session_out=""; subtype=""; cost="0"; cost_measured="false"; tokens_json=""
   model_id_out=""
-  cost_known="true"; error_msg=""
+  cost_known="true"; error_msg=""; error_solution=""
   if [ -n "$create_no_ai" ]; then
     # This path is reached only from aide-run-spec, headless by
     # construction — the same literal-name mode the AI-driven skill path
@@ -378,7 +378,7 @@ if [ -n "$skip_ai" ] || [ -n "$create_no_ai" ] || [ -n "$reopen_keep_no_ai" ] \
       error_msg="$(jq -r '.error // "aide-reopen-spec refused"' <<<"$reopen_result" 2>/dev/null)"
     fi
   else
-    terminal_reason="$archive_terminal_reason"; error_msg=""
+    terminal_reason="$archive_terminal_reason"; error_msg=""; error_solution=""
   fi
 else
   run_model_turn "$work_dir/prompt"
@@ -387,7 +387,7 @@ else
   if [ -n "$resume_session" ] && { [ "$terminal_reason" = "cli-error" ] || [ "$terminal_reason" = "model-refused" ]; }; then
     echo "aide-run-spec: the analysis session $resume_session could not be continued; starting the implement afresh" >&2
     argv=("${fresh_argv[@]}"); resume_session=""
-    session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""
+    session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""; error_solution=""
     # The refused attempt was not the step's session.
     context_fullest=""; context_window=""
     run_model_turn "$work_dir/prompt"
@@ -454,9 +454,11 @@ if [ "$command_name" = "create" ] && [ "$ok" = "true" ] && [ -z "$create_no_ai" 
   ok="false"
   suffix=" (stopped: no-progress)"
   if [ -n "$misplaced_where" ]; then
-    error_msg="the step reported success but made the spec folder in the wrong place — $spec_arg is $misplaced_where, not under $specs_root_shown. Press $step_button again for this step."
+    error_msg="the step reported success but made the spec folder in the wrong place — $spec_arg is $misplaced_where, not under $specs_root_shown"
+    error_solution="press $step_button again for this step"
   else
-    error_msg="the step reported success but made no spec folder named $spec_arg under $specs_root_shown. Press $step_button again for this step."
+    error_msg="the step reported success but made no spec folder named $spec_arg under $specs_root_shown"
+    error_solution="press $step_button again for this step"
   fi
   created_spec_folder=""
 fi

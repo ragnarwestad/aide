@@ -8,7 +8,9 @@ import { readSpecState } from "../../project/parse-spec-state.ts";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
 import { isDeployJob } from "../../queue/queue.ts";
 import { jobDismissible } from "../../render/pages/jobs-page/rows.ts";
-import { bodyToObject, json, logRefusal, readBounded } from "../serve-helpers";
+import { errorSentence } from "../../format/error-sentence.ts";
+import { splitFix } from "../../format/request-fixes.ts";
+import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 
 /** The steps a spec's phase moves through: the ones the run route checks
@@ -90,9 +92,12 @@ export async function handleJobActionRoutes(
           if (typeof step !== "string") continue;
           if (step === "implement" && phase === "analyzed" && !analyzedOnMain && completedPhases.includes("analyze")) {
             const spec = `${askedFor.project}/${askedFor.specFolder}`;
-            const message = `${askedFor.specFolder}'s analysis has run, but it has not been merged into main, which implement starts from — press Analyze again to merge it.`;
-            logRefusal("run", spec, message);
-            return json({ error: message, spec }, 400);
+            const said = errorSentence({
+              what: `${askedFor.specFolder}'s analysis has run, but it has not been merged into main, which implement starts from`,
+              resolve: "press Analyze again to merge it",
+            });
+            logRefusal("run", spec, said.text);
+            return refusal(said.solution ? { error: said.problem, solution: said.solution } : { error: said.problem }, { spec });
           }
           const move = isLegalMove(phase, step, askedFor.specFolder);
           // Refused here, at the press, with the table's own sentence:
@@ -141,7 +146,7 @@ export async function handleJobActionRoutes(
       // `spec` for the same reason merge's answer carries it: the page
       // shows a refusal on the row it belongs to, so the answer has to
       // say which.
-      return json({ error: result.error, spec }, 400);
+      return refusal(splitFix(result.error), { spec });
     }
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
@@ -245,7 +250,7 @@ export async function handleJobActionRoutes(
     const result = ctx.queue.editTailStep(id!, step, add);
     if (!result.ok) {
       logRefusal("steps", spec, result.error);
-      return json({ error: result.error, spec }, 400);
+      return refusal(splitFix(result.error), { spec });
     }
     // Now, not on the next two-second timer: a step added in the
     // instant the running one finishes would otherwise wait for it.
@@ -274,7 +279,7 @@ export async function handleJobActionRoutes(
     const result = ctx.queue.editTailModel(id!, step, model, provider);
     if (!result.ok) {
       logRefusal("model", spec, result.error);
-      return json({ error: result.error, spec }, 400);
+      return refusal(splitFix(result.error), { spec });
     }
     // A step this job was not queued with is a choice about a job still
     // to come: kept on this job alone, it went when the job ended, and

@@ -14,27 +14,23 @@ const rec = (over: Partial<FailedCreate> = {}): FailedCreate => ({
   reason: { key: "runner.serverRestarted", values: { button: "Create" } }, failedAt: "2026-11-05T12:00:00.000Z", ...over,
 });
 
-const action = (lang: "en" | "nb") =>
-  t(lang, "list.createFailedAction", { tryAgain: t(lang, "list.createTryAgain"), create: t(lang, "form.create") });
-const bridge = (lang: "en" | "nb") => t(lang, "list.createFailedBridge", { tryAgain: t(lang, "list.createTryAgain") });
-
 describe("failedCreateText", () => {
-  test("a reason that says to press Create names the form's own button, and says where Try again leads", () => {
+  test("a reason that says to press Create names the form's own button in the Solution line", () => {
     const text = failedCreateText(rec(), "nb");
     expect(text).toContain(t("nb", "form.create"));
     expect(text).not.toContain("Create");
-    expect(text.endsWith(bridge("nb"))).toBe(true);
-    expect(text).not.toContain(action("nb"));
+    expect(text).toContain(t("nb", "list.createTryAgain"));
   });
 
   test("a reason in the runner's own words gets both presses", () => {
-    expect(failedCreateText(rec({ reason: "cannot create the worktree" }), "en").endsWith(action("en"))).toBe(true);
+    const text = failedCreateText(rec({ reason: "cannot create the worktree" }), "en");
+    expect(text).toContain("Solution: Press Try again to open the form with what you typed, then press Create");
   });
 
   test("a reason with advice of its own gets none added", () => {
     const text = failedCreateText(rec({ reason: { key: "landing.createNothingToLand" } }), "en");
-    expect(text).not.toContain(action("en"));
-    expect(text).not.toContain(bridge("en"));
+    expect(text.split("\n")).toHaveLength(2);
+    expect(text).not.toContain("Try again");
   });
 });
 

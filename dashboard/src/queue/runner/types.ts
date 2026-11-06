@@ -118,6 +118,9 @@ export interface StepOutcome {
    *  `errorReason` is `"conflict"`; read by `conflictOf()` in `git-failure.ts`. */
   conflict?: unknown;
   error?: string;
+  /** What resolves `error`, written apart by the runner; absent when the
+   *  runner gives no fix, and in a result written before it did. */
+  errorSolution?: string;
   /** A deploy's failure in the board's own words, which the English `error`
    *  beside it restates: the job's row reads this, and `error` is its
    *  hover detail. Only a `deploy` step writes it. */

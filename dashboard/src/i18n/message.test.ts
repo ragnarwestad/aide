@@ -1,20 +1,19 @@
 import { describe, expect, test } from "bun:test";
-import { t } from "./index.ts";
 import { renderMessage, renderSentence } from "./message.ts";
 
 describe("renderMessage", () => {
   test("renders a message with values substituted, per language", () => {
     expect(renderMessage("en", { key: "runner.dependencyNotArchived", values: { dependency: "80-x" } })).toBe(
-      "held back: depends on 80-x, which is not archived yet",
+      "Problem: Held back: depends on 80-x, which is not archived yet",
     );
     expect(renderMessage("nb", { key: "runner.dependencyNotArchived", values: { dependency: "80-x" } })).toBe(
-      "holdt tilbake: avhenger av 80-x, som ikke er arkivert ennå",
+      "Problem: Holdt tilbake: avhenger av 80-x, som ikke er arkivert ennå",
     );
   });
 
   test("renders a message with no values unchanged (AC-1)", () => {
     expect(renderMessage("en", { key: "runner.notAnalyzed" })).toBe(
-      "held back: not analyzed yet — press Analyze first",
+      "Problem: Held back: not analyzed yet\nSolution: Press Analyze first",
     );
     expect(renderMessage("es", { key: "runner.notAnalyzed" })).toContain("Analizar");
     expect(renderMessage("de", { key: "runner.notAnalyzed" })).toContain("Analysieren");
@@ -46,13 +45,15 @@ describe("renderSentence", () => {
 
   test("a BoardMessage renders through the catalog", () => {
     expect(renderSentence("nb", { key: "runner.runVanished", values: { button: "Archive" } })).toBe(
-      "kjøringen forsvant uten å etterlate et resultat. — Trykk Archive igjen.",
+      "Problem: Kjøringen forsvant uten å etterlate et resultat\nLøsning: Trykk Archive igjen",
     );
   });
 
   test("an array of mixed Sentences joins each as its own sentence", () => {
     const result = renderSentence("en", ["cannot fast-forward main", { key: "runner.runVanished", values: { button: "Implement" } }]);
-    expect(result).toBe("cannot fast-forward main. The run vanished without leaving a result. — Press Implement again.");
+    expect(result).toBe(
+      "Problem: Cannot fast-forward main\nProblem: The run vanished without leaving a result\nSolution: Press Implement again",
+    );
   });
 
   test("an array where every Sentence already ends in a full stop never joins with '.;'", () => {
@@ -101,11 +102,13 @@ describe("renderSentence", () => {
 // Typed text (a create's title) fills a blank as written.
 describe("a value with replacement patterns fills its blank as typed", () => {
   test("renderMessage keeps $& and $$ literal", () => {
-    expect(renderMessage("en", { key: "push.createFailed", values: { reason: "cost $& then $$5" } })).toContain(
+    expect(renderMessage("en", { key: "push.createFailed", inner: "cost $& then $$5" })).toContain(
       "cost $& then $$5",
     );
   });
   test("t keeps $& and $$ literal", () => {
-    expect(t("en", "list.createFailed", { project: "aide", title: "a $& b $$ c", reason: "r" })).toContain("a $& b $$ c");
+    expect(renderMessage("en", { key: "create.failed", values: { project: "aide", title: "a $& b $$ c" }, inner: "r" })).toContain(
+      "a $& b $$ c",
+    );
   });
 });

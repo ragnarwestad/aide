@@ -11,6 +11,16 @@ export function json(body: unknown, status = 200): Response {
   });
 }
 
+/** A refusal's answer: the problem in `error` and, when there is one, the
+ *  fix in `solution`, which the page writes as the Solution line. */
+export function refusal(
+  { error, solution }: { error: string; solution?: string },
+  extra: Record<string, unknown> = {},
+  status = 400,
+): Response {
+  return json({ error, ...(solution ? { solution } : {}), ...extra }, status);
+}
+
 // Read a request body, refusing anything over the limit. Both checks
 // matter and neither replaces the other: the header is a claim a client
 // can lie about, and the actual text is the only thing that has to be

@@ -82,7 +82,7 @@ describe("postScheduleRun", () => {
     const form = fakeRunForm("/api/queue/schedule/aide/nightly/run", slot);
     const fetchImpl = fakeFetch(() => ({ ok: false, body: { error: "refused" } }));
     await postScheduleRun(form, fetchImpl);
-    expect(slot.textContent).toBe("Refused");
+    expect(slot.textContent).toBe("Problem: Refused");
   });
 
   test("a later accepted press empties the slot", async () => {
@@ -97,7 +97,7 @@ describe("postScheduleRun", () => {
     const slot = fakeSlot();
     const form = fakeRunForm("/x", slot);
     await postScheduleRun(form, (async () => { throw new Error("offline"); }) as unknown as typeof fetch);
-    expect(slot.textContent).toBe("The request failed");
+    expect(slot.textContent).toBe("Problem: The request failed");
   });
 });
 

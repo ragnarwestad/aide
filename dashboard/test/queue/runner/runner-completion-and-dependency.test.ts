@@ -311,7 +311,7 @@ describe("the completion hook and the landing window", () => {
     const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "cli-error", error: "no" }) });
     runner.tick();
     runner.poll();
-    const text = store.get(job.id)?.error as string;
+    const text = sentence(store.get(job.id)?.error);
     expect(text).toContain("sonnet");
     expect(text).toContain("no");
     expect(text).toContain("Check");
@@ -509,7 +509,7 @@ describe("parked on its own missing analyze step", () => {
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
-    expect(sentence(stored?.error)).toBe("held back: not analyzed yet — press Analyze first");
+    expect(sentence(stored?.error)).toBe("Problem: Held back: not analyzed yet\nSolution: Press Analyze first");
   });
 
   test("the same job starts once the holds no longer name it", () => {
@@ -529,7 +529,7 @@ describe("parked on its own missing analyze step", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]), new Map([[job.id, { key: "runner.notAnalyzed" }]]));
     expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toBe("held back: not analyzed yet — press Analyze first");
+    expect(sentence(store.get(job.id)?.error)).toBe("Problem: Held back: not analyzed yet\nSolution: Press Analyze first");
   });
 
   test("no set at all is exactly today's behaviour", () => {
@@ -587,7 +587,7 @@ describe("a step appended to a running job's tail", () => {
     expect(spawns.map((s) => s.step)).toEqual(["analyze"]);
     const after = store.get(job.id)!;
     expect(after.state).toBe("queued");
-    expect(sentence(after.error)).toContain("held back: depends on 80,");
+    expect(sentence(after.error)).toContain("Held back: depends on 80,");
   });
 });
 
@@ -612,7 +612,7 @@ describe("an archive whose acceptance criteria are not all ticked", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]));
     expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toContain("held back: depends on 80,");
+    expect(sentence(store.get(job.id)?.error)).toContain("Held back: depends on 80,");
   });
 });
 

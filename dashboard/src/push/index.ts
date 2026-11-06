@@ -10,7 +10,7 @@
 
 import { stepButton, stepLabel } from "../format/step-label.ts";
 import type { Language } from "../i18n";
-import { renderMessage, renderSentence } from "../i18n/message.ts";
+import { renderMessage } from "../i18n/message.ts";
 import type { Job } from "../queue/queue.ts";
 import { scheduleRunPath } from "../render";
 import { createFailedCreates, failedCreateFrom, type FailedCreates } from "./failed-creates.ts";
@@ -63,7 +63,7 @@ const BODY_MAX = 500;
 function payloadFor(a: Attention, job: Job, lang: Language): { title: string; body: string; url: string } {
   if (a.kind === "create-failed") {
     const r = failedCreateFrom(job);
-    const body = renderMessage(lang, { key: messageKeyFor(a), values: { reason: renderSentence(lang, r.reason) ?? "" } });
+    const body = renderMessage(lang, { key: messageKeyFor(a), inner: r.reason });
     return {
       title: `${r.project} · ${r.title}`,
       body: body.length > BODY_MAX ? `${body.slice(0, BODY_MAX - 1)}…` : body,

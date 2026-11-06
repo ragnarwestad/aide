@@ -81,7 +81,7 @@ beforeAll(async () => {
   await waitUntil(
     async () => {
       const res = await fetch(`${base}/specs?live=0`);
-      return (await res.text()).includes("tick them under › on the Specs list, or on the Status tab");
+      return (await res.text()).includes("Tick them under › on the Specs list");
     },
     10_000,
     "the specs list to carry the acceptance hold-back message",
@@ -113,7 +113,7 @@ describe("the acceptance gate, on a page a person could click", () => {
     const notice = page.locator(`tr.specnotice[data-folder="${FOLDER}"]`);
     const noticeCount = await notice.count();
     const noticeText = noticeCount > 0 ? await notice.textContent() : "";
-    expect(noticeText).not.toContain("tick them under › on the Specs list, or on the Status tab");
+    expect(noticeText).not.toContain("Tick them under › on the Specs list");
 
     // "archive becomes possible": press the row's real
     // Run/Archive control and confirm the resulting queued job is NOT

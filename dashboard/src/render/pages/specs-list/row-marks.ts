@@ -130,7 +130,7 @@ function liveMarks(
     marks.push({
       variant: "waiting",
       label: t(lang, "list.archiveHeldBackWord", { step: implement }),
-      sentence: `${implement} ${renderSentence(lang, { key: "runner.approachChoice" })!}`,
+      sentence: renderSentence(lang, { key: "message.lead", values: { lead: implement }, inner: { key: "runner.approachChoice" } })!,
       own: true,
       kind: "approach-choice",
     });
@@ -186,6 +186,13 @@ export interface RowMarkNotice {
   kind?: NoticePart["kind"];
 }
 
+/** A mark's label in front of its sentence. A sentence drawn as a Problem
+ *  line takes the label after "Problem:", so the line label stays first. */
+function withLead(lang: Language, lead: string, sentence: string): string {
+  const prefix = `${t(lang, "message.problem")}: `;
+  return sentence.startsWith(prefix) ? `${prefix}${lead}: ${sentence.slice(prefix.length)}` : `${lead}: ${sentence}`;
+}
+
 /** The four things a LIVE row's own fields can say, ranked exactly as
  *  `liveMarks()` ranks them — a pull request open for the
  *  branch is one of them, not a State-column badge: a badge
@@ -207,7 +214,7 @@ export function errorMarkNotices(
   // request waiting on review, neither of which is broken.
   return marks.map((m) => ({
     variant: m.variant === "waiting" ? ("waiting" as MessageVariant) : ("failed" as MessageVariant),
-    text: marks.length > 1 ? `${m.label}: ${m.sentence}` : m.sentence,
+    text: marks.length > 1 ? withLead(lang, m.label, m.sentence) : m.sentence,
     href: m.href,
     own: m.own,
     kind: m.kind,

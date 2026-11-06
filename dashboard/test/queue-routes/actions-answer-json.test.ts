@@ -82,3 +82,15 @@ describe("every action answers JSON, never a redirect", () => {
     });
   }
 });
+
+describe("a refused Run gives the problem and the fix apart", () => {
+  test("an unknown model answers error and solution", async () => {
+    const { base } = start();
+    const res = await press(base, "/api/queue", [["project", "aide"], ["specFolder", SPEC], ["steps", "analyze"], ["model", "no-such-model"]]);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: string; solution?: string };
+    expect(body.error).toEqual(expect.any(String));
+    expect(body.error).not.toContain("Reload the page");
+    expect(body.solution).toBe("Reload the page and try again");
+  });
+});

@@ -1,7 +1,7 @@
 // The one rule for what a phase shows.
 
 import type { BadgeVariant, PipKind } from "../components";
-import { renderMessage } from "../../../i18n/message.ts";
+import type { BoardMessage, Sentence } from "../../../i18n/message.ts";
 import type { MessageKey } from "../../../i18n/messages.ts";
 import type { Language } from "../../../i18n";
 import { t } from "../../../i18n";
@@ -33,9 +33,9 @@ const STOP_SENTENCES: Record<string, MessageKey> = {
   "sent-back-refused": "wordPhase.stopSentBackRefused",
 };
 
-export const stopSentence = (reason: string, lang: Language = "en", step?: string): string => {
+export const stopSentence = (reason: string, step?: string): Sentence => {
   const key = STOP_SENTENCES[reason];
-  return key ? renderMessage(lang, { key, values: { button: step ? stepButton(step) : "its button" } }) : reason;
+  return key ? { key, values: { button: step ? stepButton(step) : "its button" } } : reason;
 };
 
 /** What one phase reads as, in the three parts a row and a job page
@@ -53,18 +53,17 @@ export interface PhaseWord {
    *  caller hands it to the row's panel instead, named for its phase
    *  (`specNotice`); on the queue list a phase line is the
    *  badge and nothing else, whatever has happened to that phase. */
-  qualifier?: string;
+  qualifier?: Sentence;
 }
 
 /** The sentence for "these two records do not agree about this spec"
  *  Deliberately the same words the job-history version
  *  below uses — a reader has one thing to learn, and the file is the
  *  half that is wrong in both cases. */
-const filesDisagreeSentence = (lang: Language, step: string | undefined): string =>
-  renderMessage(lang, {
-    key: "wordPhase.filesDisagree",
-    values: { phase: step ?? "this phase", button: step ? stepButton(step) : "its button" },
-  });
+const filesDisagreeSentence = (step: string | undefined): BoardMessage => ({
+  key: "wordPhase.filesDisagree",
+  values: { phase: step ?? "this phase", button: step ? stepButton(step) : "its button" },
+});
 
 /** The sentence for a last attempt that disagrees with the file:
  *  an `unlanded` failure is its own, specific story — the spec
@@ -76,9 +75,9 @@ const filesDisagreeSentence = (lang: Language, step: string | undefined): string
  *  Its resolution matches `notLandedTitle()`'s own "re-run archive"
  *  (cell-helpers.ts) — the same fact worded two ways
  *  is the clearest sign no shared convention exists. */
-const attemptQualifier = (attempt: QueueRowView, lang: Language): string =>
+const attemptQualifier = (attempt: QueueRowView, lang: Language): Sentence =>
   attempt.errorReason === "unlanded"
-    ? renderMessage(lang, { key: "wordPhase.attemptQualifierUnlanded", values: { button: stepButton("archive") } })
+    ? { key: "wordPhase.attemptQualifierUnlanded", values: { button: stepButton("archive") } }
     : t(lang, "list.lastRerun").replace("{state}", stateWord(attempt, lang));
 
 /** The one rule, applied by everything that words a phase.
@@ -141,7 +140,7 @@ function decidePhase(
   // qualifier that has something sharper to say: an attempt that ended
   // badly is the more useful sentence, and two sentences about one
   // phase is the row saying two things at once.
-  const filesDisagree = history.fileDisagrees && !history.settling ? filesDisagreeSentence(lang, history.step) : undefined;
+  const filesDisagree = history.fileDisagrees && !history.settling ? filesDisagreeSentence(history.step) : undefined;
   // A phase that is running says so, whatever happened the last time it
   // ran. The history's "done" is about a previous attempt; this one is
   // in flight, and a line reading "done · 2 attempts" over a spec the
@@ -262,7 +261,7 @@ function decidePhase(
       // (the State column says where a spec stands, errors go
       // in the error line).
       badge: { variant: failed ? BADGE_VARIANT.failed : "waiting", label: capitalizeFirst(word) },
-      qualifier: `${word}: ${stopSentence(history.stopped, lang, history.step)}`,
+      qualifier: { key: "message.lead", values: { lead: `${word}:` }, inner: stopSentence(history.stopped, history.step) },
     };
   }
   // The queue has no job for this phase, and the git-verified history
@@ -304,10 +303,10 @@ function decidePhase(
       // nothing reached the files at all, and the row's own message
       // says so (2026-09-11).
       badge: { variant: history.historyDone ? "done" : "waiting", label: capitalizeFirst(stateWord(attempt, lang)) },
-      qualifier: renderMessage(lang, {
+      qualifier: {
         key: history.historyDone ? "wordPhase.lastRunDisagreesUnlanded" : "wordPhase.lastRunDisagreesUnwritten",
         values: { button: history.step ? stepButton(history.step) : "its button" },
-      }),
+      },
     };
   }
   return {

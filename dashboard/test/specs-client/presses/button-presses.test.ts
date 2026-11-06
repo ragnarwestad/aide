@@ -90,7 +90,7 @@ describe("a refused action keeps the view and says why", () => {
       url.includes("/cancel") ? { ok: true, body: { ok: false, error: "the tree is dirty" } } : { ok: true },
     );
     await h.submit();
-    expect(h.listRefused.textContent).toBe("The tree is dirty");
+    expect(h.listRefused.textContent).toBe("Problem: The tree is dirty");
   });
 });
 // --- Every control answers the press ------------------------------

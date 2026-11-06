@@ -249,7 +249,8 @@ acquire_worktree_lock() {
     fi
     if [ "$(date +%s)" -ge "$deadline" ]; then
       worktree_lock=""
-      refuse "timed out waiting for the worktree lock at $lock on the serving host. It is safe to remove that lock only after confirming that no aide-run-spec process is using that checkout."
+      refuse_fix "timed out waiting for the worktree lock at $lock on the serving host" \
+        "remove that lock, but only after confirming that no aide-run-spec process is using that checkout"
     fi
     sleep 0.2
   done
@@ -277,7 +278,8 @@ for root in "${roots[@]}"; do
   [ -n "$base" ] || refuse "cannot work out the default branch in $root"
   if [ "$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)" != "$base" ]; then
     switch_error="$(git -C "$root" switch -q "$base" 2>&1)" \
-      || refuse "cannot switch to $base in $root ($(printf '%s\n' "$switch_error" | grep -m1 . | head -c 200)) — fix the checkout on the serving host"
+      || refuse_fix "cannot switch to $base in $root ($(printf '%s\n' "$switch_error" | grep -m1 . | head -c 200))" \
+        "fix the checkout on the serving host"
   fi
   if [ "$do_pull" = "yes" ] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
     stage "fetching $base from origin in $root"

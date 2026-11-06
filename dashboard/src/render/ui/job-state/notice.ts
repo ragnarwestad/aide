@@ -251,7 +251,7 @@ export function specNotice(
           limited.provider?.name ?? lead.provider,
         )
       : lead.errorReason === "held-back"
-        ? `${stepLabel(currentStep(lead), lang)} ${renderSentence(lang, lead.error)!}`
+        ? renderSentence(lang, { key: "message.lead", values: { lead: stepLabel(currentStep(lead), lang) }, inner: lead.error })!
         : renderSentence(lang, lead.error)!;
     if (!said(text)) {
       // Three of the six held-back reasons resolve on their own —

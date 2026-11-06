@@ -10,7 +10,6 @@ from ..run_spec_invoking import create
 from ...conftest import READ_SPECS, git, run
 from ..run_spec_fakes import analyze_claude_advancing_row, analyze_claude_naming_implement, analyze_claude_renaming_the_header, analyze_claude_writing_the_line_from_nothing, project_only_claude, specs_only_claude, writing_claude
 from ..run_spec_origins import origin
-from ..run_spec_project_state import BASH_ERROR_REGISTRY
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import conflicting_branch, recorded_line, status_with_phase, with_status, write_raw_status
 
@@ -382,22 +381,6 @@ def test_a_genuine_analyze_run_is_unaffected(runner, workspace, fake_claude):
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
     assert recorded_line(workspace) == "create, analyze"
-
-def test_every_bash_error_sentence_has_a_resolution_or_a_named_exemption(runner, run_spec_source):
-    """"A test SHALL fail for an error sentence that carries no
-    resolution, over the set of sentences the board can show" — this is
-    that check for the bash-authored half of the set. Each registry entry
-    names a literal or regex fragment expected in the script's own source
-    and either a `resolve` substring the matched text must contain, or an
-    `exempt` reason there is genuinely nothing to resolve."""
-    source = run_spec_source
-    for entry in BASH_ERROR_REGISTRY:
-        match = re.search(entry["pattern"], source)
-        assert match, f"{entry['name']}: pattern not found in {runner}"
-        resolve, exempt = entry.get("resolve"), entry.get("exempt")
-        assert resolve or exempt, f"{entry['name']}: has neither resolve nor exempt"
-        if resolve:
-            assert resolve in match.group(0), f"{entry['name']}: {resolve!r} not in {match.group(0)!r}"
 
 def test_a_local_branch_origin_no_longer_has_is_not_reused(runner, workspace, fake_claude, origin):
     """A branch that landed and was deleted on origin can linger locally

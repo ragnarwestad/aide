@@ -116,7 +116,7 @@ describe("a phase's explanations are in its log, not its State/Action cell", () 
   const stateCell = (html: string, step: string): string =>
     phaseLine(html, step).match(/<td data-col="state">(.*?)<\/td>/)?.[1] ?? "";
   const log = (html: string, step: string): string =>
-    html.match(new RegExp(`<tr class="phasemsgs" data-msgs="${step}">.*?</tr>`))?.[0] ?? "";
+    html.match(new RegExp(`<tr class="phasemsgs" data-msgs="${step}">[\\s\\S]*?</tr>`))?.[0] ?? "";
   const kept = () => ({ logs: [{ by: "ai" as const, lines: ["THE-LOG-LINE"] }], steps: [], running: false });
 
   test("the log carries the explanations escaped, beside its transcript, and the State/Action cell carries none", () => {

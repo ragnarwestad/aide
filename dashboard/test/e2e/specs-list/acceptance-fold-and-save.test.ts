@@ -60,7 +60,7 @@ beforeAll(async () => {
   writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "ac-coverage.json"), COVERAGE_JSON);
   ran(started.dir, ["analyze", "implement"]);
   await waitUntil(
-    async () => (await (await fetch(`${base}/specs?live=0`)).text()).includes("tick them under › on the Specs list, or on the Status tab"),
+    async () => (await (await fetch(`${base}/specs?live=0`)).text()).includes("Tick them under › on the Specs list"),
     10_000,
     "the specs list to carry the acceptance hold-back message",
   );
@@ -115,10 +115,10 @@ describe("saving from the list", () => {
     await waitUntil(async () => (await notice().locator("input[name=\"tick\"]:checked").count()) === 1, 10_000, "the first tick to be saved");
     // The redraw that the save set off keeps the file the reader opened open.
     await waitUntil(async () => (await notice().locator("details[data-testfile][open]").count()) === 1, 10_000, "the opened file to stay open");
-    expect(await notice().textContent()).toContain("tick them under › on the Specs list, or on the Status tab");
+    expect(await notice().textContent()).toContain("Tick them under › on the Specs list");
     await notice().locator(`input[name="tick"]`).nth(1).check();
     await save();
-    await waitUntil(async () => (await notice().count()) === 0 || !(await notice().textContent())?.includes("tick them"), 10_000, "the message to go");
+    await waitUntil(async () => (await notice().count()) === 0 || !(await notice().textContent())?.includes("Tick them"), 10_000, "the message to go");
     const jobs = (await (await fetch(`${base}/api/queue`, { headers: { accept: "application/json" } })).json()).jobs;
     expect(jobs).toEqual([]);
   });

@@ -10,7 +10,7 @@ import { errorSentence } from "../../../format/error-sentence.ts";
 import { DESCRIPTION_MAX, descriptionPart } from "../../../project/description-bound.ts";
 import { criteriaChecksIn, dependsOnIn, specFileText, withDependsOnLine } from "../../../project/discover";
 import { EDITABLE_SPEC_FILE, FILE_TABS, STATUS_SPEC_FILE, documentTabScript, listViewIn, renderSpecDetail, renderSpecGroupRows, renderSpecPageFailedRest, renderSpecsPageHead, renderSpecsPageRest, renderSpecStepsFollowParts, resolveSpecTab, specTabPath } from "../../../render";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, streamedPage } from "../../serve-helpers";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, SPEC_EDITOR_ASSET_PATH, SPEC_VIEWER_ASSET_PATH, bodyToObject, editMessage, json, languageChoice, logRefusal, readBounded, refusal, streamedPage } from "../../serve-helpers";
 import { listHeaders, specsListParts, specsRowsAnswer } from "../page-routes/specs-list-view.ts";
 
 import { stepsOfRound } from "../../spec-views/work-round.ts";
@@ -228,7 +228,7 @@ export async function specPageRoutes(
     );
     if (!result.ok) {
       logRefusal("update", `${project}/${specFolder}`, result.note);
-      return json({ error: result.note }, 400);
+      return refusal({ error: result.problem ?? result.note, solution: result.solution });
     }
     // `changed` says whether the page has anything new to show: an Update
     // that moved nothing leaves its sentence instead of loading again.

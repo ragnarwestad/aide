@@ -217,7 +217,8 @@ if [ -n "$step_tests_folder" ]; then
     terminal_reason="tests-not-started"
     ok="false"
     suffix=" (stopped: tests-not-started)"
-    error_msg="the step reported success, but no test ran because the runner could not work out the project's test command. Fix AIDE_TEST_CMD in the project's .aide/project.yaml before pressing $step_button again."
+    error_msg="the step reported success, but no test ran because the runner could not work out the project's test command"
+    error_solution="fix AIDE_TEST_CMD in the project's .aide/project.yaml, then press $step_button again"
   else
     step_test_args=()
     step_test_count=0
@@ -255,7 +256,8 @@ EOF_CMDS
           terminal_reason="timeout"
           ok="false"
           suffix=" (stopped: timeout)"
-          error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step while the project's tests were running — the work is committed to the branch; press $step_button again to test it"
+          error_msg="stopped at its own $(time_limit_words "$timeout_sec") time limit for this step while the project's tests were running; the work is committed to the branch"
+          error_solution="press $step_button again to test it"
           time_limit_json="$(jq -cn --argjson s "$timeout_sec" '{seconds:$s, during:"tests"}')"
           break
         fi
@@ -268,9 +270,11 @@ EOF_CMDS
           ok="false"
           suffix=" (stopped: tests-not-started)"
           if [ "$(jq -r '.kind' <<<"$step_tests_unrun")" = "spec-folder-missing" ]; then
-            error_msg="the step reported success, but the project's tests were not run — the spec's folder $(jq -r '.folder' <<<"$step_tests_unrun") was not found on the spec's branch, where the runner records the test run. Press $step_button again for this step once the folder is back in place."
+            error_msg="the step reported success, but the project's tests were not run — the spec's folder $(jq -r '.folder' <<<"$step_tests_unrun") was not found on the spec's branch, where the runner records the test run"
+            error_solution="press $step_button again for this step once the folder is back in place"
           else
-            error_msg="the step reported success, but the project's tests were not run — the test recorder did not write a readable result (exit code $(jq -r '.exitCode' <<<"$step_tests_unrun")). Press $step_button again for this step once the recorder is working."
+            error_msg="the step reported success, but the project's tests were not run — the test recorder did not write a readable result (exit code $(jq -r '.exitCode' <<<"$step_tests_unrun"))"
+            error_solution="press $step_button again for this step once the recorder is working"
           fi
           break
         fi
@@ -308,8 +312,9 @@ EOF_CMDS
           terminal_reason="tests-not-started"
           ok="false"
           suffix=" (stopped: tests-not-started)"
-          error_msg="the step reported success, but the project's tests stopped when the server needed by ${step_tests_failed_command:-the test command} could not start. Press $step_button again once that server can start.
+          error_msg="the step reported success, but the project's tests stopped when the server needed by ${step_tests_failed_command:-the test command} could not start.
 $step_tests_start_line"
+          error_solution="press $step_button again once that server can start"
           [ -n "$step_tests_holder" ] && error_msg="$error_msg
 port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(.command // "a process") (pid \(.pid))" + (if .spec then ", spec \(.spec)" else "" end)')"
           break
@@ -322,8 +327,9 @@ port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(
           terminal_reason="tests-red"
           ok="false"
           suffix=" (stopped: tests-red)"
-          error_msg="the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's. Press $step_button again for this step.
+          error_msg="the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's.
 $step_tests_failing"
+          error_solution="press $step_button again for this step"
           # No session turn occurs between the last suite run and this
           # isolated check of every red file.
           run_red_files_again "$step_tests_named" "$work_dir/red-again.json"

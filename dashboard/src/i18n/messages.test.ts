@@ -48,8 +48,10 @@ describe("every {placeholder} in an English string is present in every other lan
   });
 });
 
+const LANGS = ["en", "nb", "es", "de", "fr"] as const;
+
 // A used-up usage limit starts again by itself, so no sentence about it
-// may ask the reader to act: each is `exempt`, never `resolve`.
+// asks the reader to act: each has `solution: null` and says why.
 describe("the sentences about a used-up usage limit ask for no press", () => {
   const KEYS: (keyof typeof MESSAGES)[] = [
     "runner.usageLimitHeld", "runner.usageLimitHeldNoReset", "runner.usageLimitHeldProbe",
@@ -57,32 +59,71 @@ describe("the sentences about a used-up usage limit ask for no press", () => {
     "wordPhase.stopProviderLimit", "push.stoppedProviderLimit",
   ];
 
-  test.each(KEYS)("%s is exempt and carries no resolve", (key) => {
-    const entry = MESSAGES[key] as MessageEntry & { exempt?: string; resolve?: string };
+  test.each(KEYS)("%s has no fix and says why", (key) => {
+    const entry = MESSAGES[key] as MessageEntry;
+    expect(entry.solution, key).toBeNull();
     expect(entry.exempt, key).toBeTruthy();
-    expect(entry.resolve, key).toBeUndefined();
   });
 });
 
-describe("registered error sentences name their resolution", () => {
-  test("every entry carries a resolution or says why none exists (AC-2)", () => {
-    for (const [key, entry] of Object.entries(MESSAGES)) {
-      const registered = entry as MessageEntry & { resolve?: string; exempt?: string };
-      expect(registered.resolve ?? registered.exempt, key).toBeTruthy();
-    }
-  });
-
-  test("repeat instructions name a button instead of a generic run (AC-1)", () => {
-    for (const [key, entry] of Object.entries(MESSAGES)) {
-      const resolution = (entry as MessageEntry & { resolve?: string }).resolve ?? "";
-      if (!resolution.includes("{button}")) {
-        expect(resolution, key).not.toMatch(/\b(?:run|running|try running|step) (?:it |the step )?again\b/i);
-        expect(resolution, key).not.toMatch(/\brun \/aide-/i);
+describe("registered error sentences hold a fix apart from the problem", () => {
+  test("every entry holds a fix in all five languages, or no fix and a reason (AC-1, AC-8)", () => {
+    for (const [key, entry] of Object.entries(MESSAGES) as [string, MessageEntry][]) {
+      if (entry.solution === null) {
+        expect(entry.exempt, `${key} has no solution and no exempt reason`).toBeTruthy();
+        continue;
+      }
+      expect(entry.solution, `${key} has neither a solution nor solution: null`).toBeTruthy();
+      expect(entry.exempt, `${key} has a solution and an exempt reason`).toBeUndefined();
+      for (const lang of LANGS) {
+        expect(entry.solution![lang], `${key}.solution.${lang}`).toBeTruthy();
       }
     }
   });
 
-  test("no language uses the catalog's forbidden words (AC-5)", () => {
+  test("a fix keeps the same {placeholders} in every language", () => {
+    for (const [key, entry] of Object.entries(MESSAGES) as [string, MessageEntry][]) {
+      if (!entry.solution) continue;
+      const want = placeholders(entry.solution.en);
+      for (const lang of ["nb", "es", "de", "fr"] as const) {
+        expect(placeholders(entry.solution[lang]), `${key}.solution.${lang} placeholders`).toEqual(want);
+      }
+    }
+  });
+
+  test("no entry still carries resolve (AC-1)", () => {
+    for (const [key, entry] of Object.entries(MESSAGES) as [string, MessageEntry][]) {
+      expect("resolve" in entry, `${key} still carries resolve`).toBe(false);
+    }
+  });
+
+  test("no fix offers a second fix (AC-2)", () => {
+    for (const [key, entry] of Object.entries(MESSAGES) as [string, MessageEntry][]) {
+      if (!entry.solution) continue;
+      expect(entry.solution.en, key).not.toMatch(/(?:, | — |\. )or\b|\bor (?:choose|press|check|use|wait)\b/i);
+    }
+  });
+
+  test("a message around a message that knows the fix carries none (AC-3)", () => {
+    for (const key of [
+      "runner.notPushedCode", "runner.notPushedSpecs", "runner.notFetchedCode", "runner.notFetchedSpecs",
+      "landing.pushFailedTo", "landing.stepFailed", "landing.stepStopped",
+    ] as const) {
+      expect((MESSAGES[key] as MessageEntry).solution, key).toBeNull();
+    }
+  });
+
+  test("repeat instructions name a button instead of a generic run", () => {
+    for (const [key, entry] of Object.entries(MESSAGES) as [string, MessageEntry][]) {
+      const fix = entry.solution?.en ?? "";
+      if (!fix.includes("{button}")) {
+        expect(fix, key).not.toMatch(/\b(?:run|running|try running|step) (?:it |the step )?again\b/i);
+        expect(fix, key).not.toMatch(/\brun \/aide-/i);
+      }
+    }
+  });
+
+  test("no language uses the catalog's forbidden words", () => {
     const keys = [
       "readiness.specsRoot.missingConfigured", "readiness.specsRoot.missingFallback",
       "readiness.specsRepo.none", "readiness.specsRepo.own", "readiness.specsRepo.other",

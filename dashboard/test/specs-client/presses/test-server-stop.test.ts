@@ -105,7 +105,7 @@ describe("submitTestServerStop", () => {
     const stub = stubGlobals({ ok: true, body: { ok: false, error: "no such test server" } });
     try {
       await submitTestServerStop(event);
-      expect(refusedSpan.textContent).toBe("No such test server");
+      expect(refusedSpan.textContent).toBe("Problem: No such test server");
       expect(removed()).toBe(false);
     } finally {
       stub.restore();

@@ -45,7 +45,8 @@ restore_unlanded_archive() {
   result="$("$SCRIPT_DIR/aide-reopen-spec" --specs-root "$specs_root_wt" --spec "$spec_folder" \
     --boundary "$(git -C "$top" rev-parse --short HEAD 2>/dev/null)" 2>/dev/null)"
   [ "$(jq -r '.ok // false' <<<"$result" 2>/dev/null)" = "true" ] \
-    || refuse "$spec_folder is under archive/ on its branch from an archive that never merged into $base, and could not be moved back ($(jq -r '.error // "no answer"' <<<"$result" 2>/dev/null)) — fix the specs checkout on the serving host"
+    || refuse_fix "$spec_folder is under archive/ on its branch from an archive that never merged into $base, and could not be moved back ($(jq -r '.error // "no answer"' <<<"$result" 2>/dev/null))" \
+      "fix the specs checkout on the serving host"
   git -C "$top" commit -q -m "Move $spec_folder back out of archive/ — its archive never merged into $base" >/dev/null 2>&1 \
     || refuse "$spec_folder was moved back out of archive/ on its branch, but the move could not be committed"
   stage "$spec_folder was under archive/ on its branch from an archive that never merged — moved back where $base has it"

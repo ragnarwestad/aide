@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { t } from "../../../../../src/i18n";
+import { renderSentence } from "../../../../../src/i18n/message.ts";
 import { stopSentence } from "../../../../../src/render/ui/job-state/word-phase.ts";
 import type { QueueRowView } from "../../../../../src/render";
 import type { Phase } from "../../../../../src/render/pages/specs-list/data-model";
@@ -40,7 +41,7 @@ describe("phaseExplanations", () => {
     const said = phaseExplanations(group({ analyzeStale: true }), stopped, "en");
     expect(said).toHaveLength(2);
     expect(said[0]).toBe(t("en", "list.descriptionChangedSince"));
-    expect(said[1]).toContain(stopSentence("provider-limit", "en"));
+    expect(said[1]!.toLowerCase()).toContain(renderSentence("en", stopSentence("provider-limit"))!.replace(/^Problem: /, "").toLowerCase());
     expect(new Set(said).size).toBe(said.length);
   });
 

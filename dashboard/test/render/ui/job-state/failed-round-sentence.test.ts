@@ -38,8 +38,8 @@ describe("sharedFilesSentence", () => {
     ],
   });
   const ARCHIVED =
-    "Analyze stopped on files other open specs changed, and every one of them has been archived or removed since — " +
-    "press Analyze again to go on.";
+    "Problem: Analyze stopped on files other open specs changed, and every one of them has been archived or removed since\n" +
+    "Solution: Press Analyze again to go on";
   /** The reader, and a log of how often it was asked. */
   const reading = (answer: OpenOverlap[] | undefined) => {
     const asked = { n: 0 };
@@ -93,7 +93,7 @@ describe("sharedFilesSentence", () => {
 
   test("one spec open and one archived names the open one alone", () => {
     const said = jobState.sharedFilesSentence(stoppedOn("shared-files"), undefined, () => OPEN.slice(0, 1));
-    expect(said).toContain("82 The other thing: a.ts, b.ts.");
+    expect(said).toContain("82 The other thing: a.ts, b.ts");
     expect(said).not.toContain("84");
   });
 

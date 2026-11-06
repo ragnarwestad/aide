@@ -39,7 +39,8 @@ merge_unfinished() {
   terminal_reason="merge-unfinished"
   ok="false"
   suffix=" (stopped: merge-unfinished)"
-  error_msg="the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press $step_button again for this step."
+  error_msg="the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away"
+  error_solution="press $step_button again for this step"
 }
 
 status_file=""
@@ -91,7 +92,8 @@ if [ -n "$status_file" ]; then
       terminal_reason="no-progress"
       ok="false"
       suffix=" (stopped: no-progress)"
-      error_msg="the step reported success but left no real progress — nothing changed in the project. Press $step_button again for this step."
+      error_msg="the step reported success but left no real progress — nothing changed in the project"
+      error_solution="press $step_button again for this step"
     fi
     # Work done on top of a merge the session threw away is work on the old
     # base, and the landing meets the same conflict again.
@@ -138,12 +140,13 @@ if [ -n "$status_file" ]; then
           terminal_reason="$archive_refusal"
           ok="true"
           suffix=""
-          error_msg=""
+          error_msg=""; error_solution=""
         else
           terminal_reason="no-progress"
           ok="false"
           suffix=" (stopped: no-progress)"
-          error_msg="the step reported success but left no real progress — the spec folder was never moved to archive/. Press $step_button again for this step."
+          error_msg="the step reported success but left no real progress — the spec folder was never moved to archive/"
+          error_solution="press $step_button again for this step"
         fi
         ;;
     esac
@@ -249,7 +252,8 @@ if [ -n "$status_file" ]; then
           } else null end),
           phaseRows:($rows == "yes"), workflowSteps:($workflow == "yes")}
          | if .project == null then del(.project) else . end')"
-      error_msg="the step reported success but changed things outside analyze's scope — $scope_what. Press $step_button again for this step."
+      error_msg="the step reported success but changed things outside analyze's scope — $scope_what"
+      error_solution="press $step_button again for this step"
     fi
   fi
 fi

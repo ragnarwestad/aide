@@ -140,7 +140,7 @@ def test_a_sentence_on_a_full_analysis_is_refused_and_names_analyze_ac_1_ac_2(ru
     assert out["ok"] is False, out
     assert out["terminalReason"] == "sent-back-refused", out
     assert "its analysis is already full" in out["error"], out["error"]
-    assert "Press Analyze again" in out["error"], out["error"]
+    assert "press Analyze again" in out["errorSolution"], out
     assert _description(workspace) == before
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: sent-back-refused)"), subject

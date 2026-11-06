@@ -470,7 +470,6 @@ from .run_spec.run_spec_fakes import (  # noqa: E402,F401
 # registry — kept beside this file, imported here so every part of
 # the suite keeps one import surface.
 from .run_spec.run_spec_project_state import (  # noqa: E402,F401
-    BASH_ERROR_REGISTRY,
     BASH_UNTESTABLE,
     CODE_LANDING,
     PRECEDENCE,

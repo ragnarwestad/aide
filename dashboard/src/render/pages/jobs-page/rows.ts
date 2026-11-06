@@ -194,7 +194,7 @@ export function jobMessage(row: MessageRow, lang: Language): JobMessage | undefi
     return {
       // The badge's own colour: a stop is amber, a failure red.
       variant: row.state === "stopped" ? "waiting" : "failed",
-      text: ranOn ? `${own} · ${ranOn}` : own,
+      text: ranOn ? `${own}\n${ranOn}` : own,
       log: `/jobs/${row.id}?tab=steps`,
     };
   }

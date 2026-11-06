@@ -65,7 +65,7 @@ beforeAll(async () => {
   // verified "implement" against git history, which the list reaches by its
   // own poll.
   const deadline = Date.now() + 10_000;
-  while (!(await (await fetch(`${base}/specs?live=0`)).text()).includes("tick them under › on the Specs list, or on the Status tab")) {
+  while (!(await (await fetch(`${base}/specs?live=0`)).text()).includes("Tick them under › on the Specs list")) {
     if (Date.now() > deadline) throw new Error("the specs list never carried the acceptance hold-back message");
     await new Promise((r) => setTimeout(r, 50));
   }

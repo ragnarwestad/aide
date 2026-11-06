@@ -3,6 +3,7 @@
 // sentences that explain it are said here, for the phase they are about.
 
 import { t, type Language } from "../../../../i18n";
+import { renderSentence } from "../../../../i18n/message.ts";
 import { wordPhase } from "../../../ui/job-state";
 import type { Phase, SpecGroup } from "../data-model";
 import { prErrorOf, prErrorSentence } from "../row-shared.ts";
@@ -14,8 +15,11 @@ export function phaseExplanations(g: Pick<SpecGroup, "analyzeStale" | "done">, p
   const said = [
     p.step === "analyze" && g.analyzeStale ? t(lang, "list.descriptionChangedSince") : undefined,
     prErrorOf(p) ? prErrorSentence(lang) : undefined,
-    wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult, step: p.step }, lang)
-      .qualifier,
+    renderSentence(
+      lang,
+      wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult, step: p.step }, lang)
+        .qualifier,
+    ),
   ];
   return [...new Set(said.filter((s): s is string => !!s))];
 }

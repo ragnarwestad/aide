@@ -9,7 +9,6 @@
 //     mode at all; widening what an unattended run may do is not
 //     something an HTTP body gets to decide
 
-import { errorSentence } from "../format/error-sentence.ts";
 import { DESCRIPTION_MAX } from "../project/description-bound.ts";
 import { parseCreateChoices } from "./create-choices.ts";
 import { listedModelName } from "./model-name.ts";
@@ -19,18 +18,8 @@ import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
 
-/** Every refusal in this file answers a request the ordinary Run/New-
- *  spec form does not normally post (2-analysis.md): most of these are
- *  reachable only from a hand-crafted request, and the rest from a page
- *  left open long enough for its own project/spec/model list to go
- *  stale before the post landed. What resolves either one is the same,
- *  so it is wrapped once here rather than worded by hand per call site
- */
-export const invalidRequest = (what: string): string =>
-  errorSentence({
-    what,
-    resolve: "Reload the page and try again — or, if this came from a raw request, check the field this names.",
-  }).text;
+import { fixInTheForm, invalidRequest } from "../format/request-fixes.ts";
+export { invalidRequest } from "../format/request-fixes.ts";
 
 export const NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
 export const FOLDER_RE = /^[A-Za-z0-9._-]{1,128}$/;
@@ -319,13 +308,6 @@ export const CLOSE_REASON_MAX = 5000;
  *  newline is allowed in the description and nowhere else: a description
  *  is a paragraph, a title is a line. */
 const CONTROL_CHARS = /[\x00-\x08\x0b-\x1f\x7f]/;
-
-// A field a person actually types into the New-spec form: its resolution names the form, not the raw-request wording
-// `invalidRequest()` gives the rest of this file — a title over
-// `TITLE_MAX` is a real reader who typed too much, never a hand-crafted
-// request.
-const fixInTheForm = (what: string): string =>
-  errorSentence({ what, resolve: "Fix it in the New spec form and submit again." }).text;
 
 function text(raw: unknown, max: number, name: string, multiline = false): string | Error {
   if (typeof raw !== "string") return new Error(invalidRequest(`invalid ${name}`));

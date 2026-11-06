@@ -13,7 +13,8 @@
 // tool's words are the detail. This sentence covers the rest: the tool's
 // words as they came, and the check that can answer for itself.
 
-import { errorSentence } from "./error-sentence.ts";
+import type { BoardMessage } from "../i18n/message.ts";
+import { errorSentence, writtenMessage } from "./error-sentence.ts";
 
 /** The tools whose Settings tab a reader can be sent to. Kept as a plain
  *  list rather than imported from the render layer: this module is
@@ -63,7 +64,7 @@ export interface ToolFailure {
 /** The sentence, or undefined when there is nothing to name: a failure
  *  with neither a tool nor a model is not a tool failure, and wrapping
  *  it would say less than the original. */
-export function toolFailureSentence(f: ToolFailure): { text: string; title?: string } | undefined {
+export function toolFailureSentence(f: ToolFailure): ReturnType<typeof errorSentence> | undefined {
   // An ending that is not about the AI keeps the step's own sentence
   // exactly as the script wrote it: "the step's own work did not reach
   // origin" is not improved by being told which model was running, and a
@@ -97,9 +98,9 @@ export function toolFailureSentence(f: ToolFailure): { text: string; title?: str
  *  the CLI's raw words only when there is neither. */
 export function stepFailure<M>(
   boardMessage: M | undefined,
-  outcome: { error?: unknown; terminalReason?: string; tool?: string },
+  outcome: { error?: unknown; errorSolution?: unknown; terminalReason?: string; tool?: string },
   model: string | undefined,
-): { error: M | string | undefined; errorDetail: string | undefined } {
+): { error: M | BoardMessage | string | undefined; errorDetail: string | undefined } {
   const said = typeof outcome.error === "string" ? outcome.error : undefined;
   if (boardMessage) return { error: boardMessage, errorDetail: said };
   const named = toolFailureSentence({
@@ -108,6 +109,8 @@ export function stepFailure<M>(
     model,
     terminalReason: outcome.terminalReason,
   });
-  if (named) return { error: named.text, errorDetail: named.title };
+  if (named) return { error: writtenMessage(named.problem, named.solution), errorDetail: named.title };
+  const fix = typeof outcome.errorSolution === "string" && outcome.errorSolution ? outcome.errorSolution : undefined;
+  if (said && fix) return { error: writtenMessage(said, fix), errorDetail: undefined };
   return { error: said ?? outcome.terminalReason, errorDetail: undefined };
 }

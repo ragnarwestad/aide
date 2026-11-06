@@ -21,7 +21,7 @@ refuse_base_inside_a_root() {
 # known: a symlinked base could resolve into a root the literal path did
 # not name.
 refuse_base_inside_a_root "$worktree_base"
-mkdir -p "$worktree_base" 2>/dev/null || refuse "cannot create the worktree base at $worktree_base — fix its parent directory on the serving host"
+mkdir -p "$worktree_base" 2>/dev/null || refuse_fix "cannot create the worktree base at $worktree_base" "fix its parent directory on the serving host"
 worktree_base="$(cd "$worktree_base" && pwd -P)" || refuse "cannot resolve the worktree base"
 refuse_base_inside_a_root "$worktree_base"
 # Keyed by project AND spec: two projects can share one specs repo, and a
@@ -64,7 +64,8 @@ for entry in $links_raw; do
   link_base="${entry##*/}"
   for denied in $WORKTREE_LINK_DENYLIST; do
     if [ "$link_base" = "$denied" ]; then
-      refuse "$links_key names a build output, not a dependency cache: $entry — such a directory is generated per worktree and wants no link at all"
+      refuse_fix "$links_key names a build output, not a dependency cache: $entry" \
+        "remove it from $links_key: such a directory is generated per worktree and wants no link at all"
     fi
   done
   # A named path with nothing to link is refused rather than skipped

@@ -10,7 +10,7 @@ import { jobsSentence } from "../../ui/components/spec-name.ts";
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
-import { renderSentence } from "../../../i18n/message.ts";
+import { renderMessage, renderSentence } from "../../../i18n/message.ts";
 import { pickTab, tabBar, tabbedBody } from "../job-page";
 import { SCHEDULE_REFUSED_LINE, scheduleControlCells } from "../schedule-page/controls.ts";
 import { scheduleNewPath, schedulePagePath, scheduleSettingsPath } from "../schedule-page";
@@ -119,7 +119,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
   const errorLine = failure
     ? rowMessage(
         "failed",
-        t(lang, "deploy.failedAt", { step: t(lang, STEP_LABEL[failure.step]!), error: renderSentence(lang, failure.sentence) ?? "" }),
+        renderMessage(lang, { key: "deploy.stepFailed", values: { step: t(lang, STEP_LABEL[failure.step]!) }, inner: failure.sentence }),
         {
           hook: "refusal deploy-error",
           tag: "p",

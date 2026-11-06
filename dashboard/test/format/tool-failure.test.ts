@@ -7,6 +7,8 @@
 
 import { describe, expect, test } from "bun:test";
 import { stepFailure, toolFailureSentence } from "../../src/format/tool-failure.ts";
+import { renderSentence } from "../../src/i18n/message.ts";
+import { writtenMessage } from "../../src/format/error-sentence.ts";
 
 describe("toolFailureSentence", () => {
   test("it names the AI and the model the step was on", () => {
@@ -118,8 +120,7 @@ describe("stepFailure", () => {
 
   test("with no board message the named sentence is the row's text", () => {
     const out = stepFailure(undefined, { error: "boom", tool: "opencode", terminalReason: "cli-error" }, "gemini-3.1-pro");
-    expect(typeof out.error).toBe("string");
-    expect(out.error as string).toContain("OpenCode on gemini-3.1-pro");
+    expect(renderSentence("en", out.error as never)).toContain("OpenCode on gemini-3.1-pro");
     expect(out.errorDetail).toBe("boom");
   });
 
@@ -136,7 +137,23 @@ describe("stepFailure", () => {
 
   test('"none" is the deterministic create path, not an AI that failed', () => {
     const out = stepFailure(undefined, { error: "boom", tool: "none", terminalReason: "cli-error" }, "Sonnet");
-    expect(out.error as string).toContain("Sonnet");
-    expect(out.error as string).not.toContain("none");
+    expect(renderSentence("en", out.error as never)).toContain("Sonnet");
+    expect(renderSentence("en", out.error as never)).not.toContain("none");
+  });
+});
+
+describe("stepFailure with the runner's fix apart", () => {
+  test("stores the problem and the fix as one written message (AC-4)", () => {
+    const out = stepFailure(
+      undefined,
+      { error: "cannot fast-forward b", errorSolution: "merge it by hand", terminalReason: "refused" },
+      undefined,
+    );
+    expect(out.error).toEqual(writtenMessage("cannot fast-forward b", "merge it by hand"));
+  });
+
+  test("an outcome from a runner before the fix was apart keeps its plain string (AC-5)", () => {
+    const out = stepFailure(undefined, { error: "cannot do x — fix y", terminalReason: "refused" }, undefined);
+    expect(out.error).toBe("cannot do x — fix y");
   });
 });

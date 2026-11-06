@@ -1,5 +1,6 @@
 import type { BoardMessage, Sentence } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
+import { writtenMessage } from "../../format/error-sentence.ts";
 import type { WorkflowStep } from "../queue.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { toolLabel } from "../../format/tool-failure.ts";
@@ -255,3 +256,8 @@ export function cliErrorMessage(step: WorkflowStep, outcome: Partial<StepOutcome
   if (said.kind === "provider") return { key: "runner.cliErrorProvider", values: { tool, cause: said.message, button } };
   return { key: "runner.cliErrorOther", values: { tool, cause: said.message, button } };
 }
+
+/** The runner's own words for a step that ended: its problem and, when it
+ *  gave one apart, its fix, as one message; its plain string otherwise. */
+export const runnerWords = (outcome: Partial<StepOutcome>): BoardMessage | string | undefined =>
+  outcome.error && outcome.errorSolution ? writtenMessage(outcome.error, outcome.errorSolution) : outcome.error;

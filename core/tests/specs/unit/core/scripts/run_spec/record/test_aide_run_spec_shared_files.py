@@ -79,7 +79,7 @@ def test_a_spec_sharing_a_file_ends_the_analysis_stopped_ac_1_ac_2_ac_6(runner, 
     assert out["terminalReason"] == "shared-files", out
     assert OTHER in out["error"] and "shared.ts" in out["error"], out["error"]
     assert "plan to change the same files" in out["error"], out["error"]
-    assert "press Analyze again" in out["error"], out["error"]
+    assert "Depends on" in out["errorSolution"], out
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: shared-files)"), subject
 

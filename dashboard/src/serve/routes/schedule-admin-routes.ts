@@ -5,7 +5,8 @@
 // names the page the reader came from, for the page script to go to.
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
-import { bodyToObject, json, logRefusal, readBounded } from "../serve-helpers";
+import { splitFix } from "../../format/request-fixes.ts";
+import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
 import { projectScheduleTab, renamedBack, scheduleBackPath } from "./page-routes/schedule-edit-page.ts";
 
@@ -62,7 +63,7 @@ export async function handleScheduleAdminRoutes(
     // never refused for missing confirmation.
     const enabled = body.enabled === "1" || body.enabled === true;
     const result = setScheduleEnabled(ctx.scheduleStore, project, name, enabled);
-    if (!result.ok) return json({ error: result.error }, 400);
+    if (!result.ok) return refusal(splitFix(result.error));
     return json({ ok: true, enabled });
   }
 
@@ -85,7 +86,7 @@ export async function handleScheduleAdminRoutes(
     });
     if (!result.ok) {
       logRefusal("run now", `${project}/${name}`, result.error);
-      return json({ error: `Run now was refused for ${project}:${name}: ${result.error}` }, 400);
+      { const said = splitFix(result.error); return refusal({ error: `Run now was refused for ${project}:${name}: ${said.error}`, solution: said.solution }); }
     }
     ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
@@ -103,7 +104,7 @@ export async function handleScheduleAdminRoutes(
     // No typed confirmation (2026-09-08): the dialog asks the question
     // in a sentence, and the press is the answer.
     const result = deleteScheduleEntry(ctx.scheduleStore, project, name);
-    if (!result.ok) return json({ error: result.error }, 400);
+    if (!result.ok) return refusal(splitFix(result.error));
     return json({ ok: true });
   }
 
@@ -119,7 +120,7 @@ export async function handleScheduleAdminRoutes(
     const result = updateScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), name, {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
     }, knownModels(ctx), knownProviders(ctx));
-    if (!result.ok) return json({ error: result.error }, 400);
+    if (!result.ok) return refusal(splitFix(result.error));
     const back = scheduleBackPath(body.back, projectScheduleTab(project));
     return json({ ok: true, location: renamedBack(back, project, name, str(body.name) || name) });
   }
@@ -139,7 +140,7 @@ export async function handleScheduleAdminRoutes(
     const result = createScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
     }, knownModels(ctx), knownProviders(ctx));
-    if (!result.ok) return json({ error: result.error }, 400);
+    if (!result.ok) return refusal(splitFix(result.error));
     return json({ ok: true, location: scheduleBackPath(body.back, projectScheduleTab(project)) });
   }
 

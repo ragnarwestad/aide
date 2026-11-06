@@ -205,15 +205,23 @@ done
 # --- refusal ----------------------------------------------------------------
 # One place, one shape: a refusal is still a JSON line, so a caller never
 # has to parse two formats.
-# refuse <sentence> [<errorReason>] [<JSON object of fields to add>]
+# refuse <problem> [<errorReason>] [<JSON object of fields to add>]
+# for a refusal with nothing for the reader to do; refuse_fix gives the fix
+# apart, as `errorSolution` beside the problem in `error`.
 refuse() {
-  local msg="$1" reason="${2:-}" extra="${3:-}"
+  refuse_fix "$1" "" "${2:-}" "${3:-}"
+}
+
+# refuse_fix <problem> <fix> [<errorReason>] [<JSON object of fields to add>]
+refuse_fix() {
+  local msg="$1" fix="${2:-}" reason="${3:-}" extra="${4:-}"
   local line
   [ -n "$extra" ] || extra="{}"
-  line="$(jq -cn --arg e "$msg" --arg r "$reason" --argjson x "$extra" \
+  line="$(jq -cn --arg e "$msg" --arg s "$fix" --arg r "$reason" --argjson x "$extra" \
     '{ok:false, exitCode:2, terminalReason:"refused", costUsd:0, costMeasured:false, error:$e}
+     + (if $s == "" then {} else {errorSolution:$s} end)
      + (if $r == "" then {} else {errorReason:$r} end) + $x')"
-  stage_error "$msg"
+  stage_error "$msg${fix:+ — $fix}"
   aide_part_close "stopped: refused"
   printf '%s\n' "$line"
   [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null

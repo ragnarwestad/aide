@@ -15,7 +15,8 @@ import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTe
 import { SETTINGS_STEPS, type ToolCheck, type ToolModels } from "../../render";
 import { providerLoginEnv } from "../../queue/providers/index.ts";
 import { SIDE_PARTS } from "../../queue/providers/side-tools.ts";
-import { MAX_CREATE_BODY, bodyToObject, json, readBounded } from "../serve-helpers";
+import { splitFix } from "../../format/request-fixes.ts";
+import { MAX_CREATE_BODY, bodyToObject, json, readBounded, refusal } from "../serve-helpers";
 import { checkTool, recordCheck } from "../tool-check.ts";
 import { readModels, recordModels } from "../tool-models";
 import { recordClaudeVersions } from "./settings-models.ts";
@@ -37,7 +38,7 @@ export async function handleQueueAdminRoutes(
       return json({ error: "malformed body" }, 400);
     }
     const result = ctx.queue.enqueueCreate(raw);
-    if (!result.ok) return json({ error: result.error }, 400);
+    if (!result.ok) return refusal(splitFix(result.error));
     ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });

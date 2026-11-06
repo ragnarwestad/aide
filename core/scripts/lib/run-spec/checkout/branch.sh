@@ -42,7 +42,7 @@ if [ "$command_name" = "reopen" ]; then
   done
 fi
 
-mkdir -p "$wt_dir" 2>/dev/null || refuse "cannot create the worktree directory at $wt_dir — fix its parent directory on the serving host"
+mkdir -p "$wt_dir" 2>/dev/null || refuse_fix "cannot create the worktree directory at $wt_dir" "fix its parent directory on the serving host"
 work_roots=()
 reopen_boundary_sha=""
 for root in "${roots[@]}"; do
@@ -94,7 +94,8 @@ $(git_error_detail "$fetch_retry_said")" "" \
       base_ref_for "$root" "$base"
     fi
     wt_error="$(git -C "$root" worktree add -q -b "$branch" "$wt" "$base_ref" 2>&1)" \
-      || refuse "cannot create $branch in a worktree of $root ($(printf '%s\n' "$wt_error" | grep -m1 . | head -c 200)) — fix the checkout on the serving host"
+      || refuse_fix "cannot create $branch in a worktree of $root ($(printf '%s\n' "$wt_error" | grep -m1 . | head -c 200))" \
+        "fix the checkout on the serving host"
     created_wt+=("$wt"); created_wt_root+=("$root")
   fi
   link_worktree_deps "$root" "$wt"

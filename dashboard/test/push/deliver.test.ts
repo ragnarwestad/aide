@@ -54,7 +54,7 @@ describe("what a notification says", () => {
     await b.push.idle();
     const sent = await openCall(b.sent.calls[0]!, d);
     expect(sent.title).toBe(`aide · ${SPEC}`);
-    expect(sent.body).toBe("Implement failed — it waits for you to look at why and press Implement again.");
+    expect(sent.body).toBe("Problem: Implement failed\nSolution: Look at why, then press Implement again");
   });
 
   test("the payload carries how many specs wait, read once per delivery, when the board gives a count", async () => {
@@ -95,7 +95,7 @@ describe("what a notification says", () => {
     await b.push.idle();
     const sent = await openCall(b.sent.calls[0]!, d);
     expect(sent.body).toBe(
-      "Implement stopped: specs 624, 619 plan to change the same files as this spec — add them to this spec's Depends on, or press Implement again to go on.",
+      "Problem: Implement stopped: specs 624, 619 plan to change the same files as this spec\nSolution: Add them to this spec's Depends on",
     );
   });
 

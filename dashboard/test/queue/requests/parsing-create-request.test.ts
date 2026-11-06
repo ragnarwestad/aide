@@ -225,8 +225,7 @@ describe("parseCreateRequest — model", () => {
     expect(r).toEqual({
       ok: false,
       error:
-        "unknown or not-allowed model: nonexistent-model — Reload the page and try again — " +
-        "or, if this came from a raw request, check the field this names.",
+        "unknown or not-allowed model: nonexistent-model — Reload the page and try again",
     });
   });
 
@@ -237,8 +236,7 @@ describe("parseCreateRequest — model", () => {
     expect(r).toEqual({
       ok: false,
       error:
-        "no model choice is configured on this server — Reload the page and try again — " +
-        "or, if this came from a raw request, check the field this names.",
+        "no model choice is configured on this server — Reload the page and try again",
     });
   });
 

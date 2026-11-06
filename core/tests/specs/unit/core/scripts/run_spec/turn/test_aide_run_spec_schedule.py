@@ -106,7 +106,7 @@ def test_a_failed_job_names_run_now_as_the_button_to_press_again(runner, workspa
     rc, out, _ = schedule(runner, workspace, job(fake_claude, "exit 1\n"))
     assert out["ok"] is False, out
     # A scheduled job's page has no Schedule button: Run now starts it again.
-    assert "press Run now again" in out["error"], out
+    assert "press Run now again" in out["errorSolution"], out
 
 
 def test_a_cancelled_job_that_has_committed_keeps_it_on_the_branch(runner, workspace, fake_claude, origin, tmp_path):

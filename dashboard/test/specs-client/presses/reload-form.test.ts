@@ -86,7 +86,7 @@ describe("submitReloadForm", () => {
     stubPost(409, { error: "another job for this spec is still running — nothing was saved" });
     const f = fakeForm({ dataset: { line: "spec-refused", note: "spec-notice" } });
     await submitReloadForm(f.form, submit(), f.io);
-    expect(f.named["spec-refused"]!.textContent).toBe("Another job for this spec is still running — nothing was saved");
+    expect(f.named["spec-refused"]!.textContent).toBe("Problem: Another job for this spec is still running — nothing was saved");
     expect(f.reloads).toHaveLength(0);
   });
 
@@ -94,7 +94,7 @@ describe("submitReloadForm", () => {
     stubPost(400, { error: "unknown tool" });
     const f = fakeForm();
     await submitReloadForm(f.form, submit(), f.io);
-    expect(f.own.textContent).toBe("Unknown tool");
+    expect(f.own.textContent).toBe("Problem: Unknown tool");
     expect(f.reloads).toHaveLength(0);
   });
 
@@ -120,7 +120,7 @@ describe("submitReloadForm", () => {
     const f = fakeForm({ dataset: { line: "spec-refused" }, inDialog: true });
     await submitReloadForm(f.form, submit(), f.io);
     expect(f.dialog.closes).toBe(1);
-    expect(f.named["spec-refused"]!.textContent).toBe("No such entry");
+    expect(f.named["spec-refused"]!.textContent).toBe("Problem: No such entry");
   });
 
   test("a form naming where to go goes there on success instead of loading the page again", async () => {
@@ -135,7 +135,7 @@ describe("submitReloadForm", () => {
     stubPost(400, { error: "no such entry" });
     const f = fakeForm({ dataset: { done: "/projects/aide?tab=schedule", line: "spec-refused" } });
     await submitReloadForm(f.form, submit(), f.io);
-    expect(f.named["spec-refused"]!.textContent).toBe("No such entry");
+    expect(f.named["spec-refused"]!.textContent).toBe("Problem: No such entry");
     expect(f.went).toEqual([]);
     expect(f.reloads).toHaveLength(0);
   });
