@@ -61,6 +61,16 @@ if printf '%s' "$prompt" | grep -q "test suite is red"; then
   ok "left the suite red on purpose"
 fi
 
+# Implement's review and its verification run after every implement
+# (run-spec/turn/review-prompts.sh, read by their first lines). The review
+# finds nothing; a verification keeps every numbered defect it is given.
+case "$(printf '%s\n' "$prompt" | head -1)" in
+  "Read this spec's own description and everything this spec's branch changed"*)
+    ok "review: no defects found" ;;
+  "A review of this spec's branch reported the defects below"*)
+    ok "$(printf '%s\n' "$prompt" | sed -n '/^The defects:$/,/^Do not edit/p' | sed -n 's/^\([0-9][0-9]*\)\. .*/keep \1/p')" ;;
+esac
+
 # The round's one scheduled job (fixture-project/schedules/), whose prompt
 # names no step: it fails, so its row on the Running tab is a failed one.
 if printf '%s' "$prompt" | grep -q "^A scheduled job that fails\.$"; then
