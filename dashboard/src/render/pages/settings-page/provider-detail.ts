@@ -56,11 +56,12 @@ export function fieldRow(o: { id: string; name: string; label: string; help: str
   );
 }
 
-/** The runtime fields of a tool, filled in from `provider` when there is one. */
-export function runtimeRows(tool: ProviderTool, provider: Provider | undefined, lang: Language): string {
+/** The runtime fields of a tool, filled in from `provider` when there is one;
+ *  each field's id is `<idPrefix>-<field>`. */
+export function runtimeRows(tool: ProviderTool, provider: Provider | undefined, lang: Language, idPrefix = "provider"): string {
   const toolName = TOOL_NAMES[tool] ?? tool;
   return runtimeFields(tool).map((name) => fieldRow({
-    id: `provider-${name}`,
+    id: `${idPrefix}-${name}`,
     name,
     label: t(lang, `settings.providers.${name}` as TranslationKey),
     help: t(lang, HELP[name], { tool: toolName }),

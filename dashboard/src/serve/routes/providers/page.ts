@@ -1,14 +1,14 @@
-// The page that adds a provider (the tool first, then its fields), and the
-// address that once edited one, which now sends the reader to that provider
-// on the Providers tab. The chosen provider is read by the Settings route
-// (`providerDetailFor`).
+// The addresses that once added and edited a provider on pages of their
+// own: each now sends the reader to the Providers tab, where Add is a
+// dialog and the chosen provider is shown beside the list. The chosen
+// provider is read by the Settings route (`providerDetailFor`).
 
-import { PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, providerEditPath, renderProviderPage } from "../../../render";
-import { asProviderTool, type Provider } from "../../../queue/providers/index.ts";
+import { PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, PROVIDERS_TAB_PATH, providerEditPath } from "../../../render";
+import type { Provider } from "../../../queue/providers/index.ts";
 import { readProviderUsage } from "../../providers/status.ts";
 import { lastChecks } from "../../tool-check.ts";
 import { lastModels } from "../../tool-models";
-import { languageChoice, modelChoiceOptions, specsClientScript } from "../../serve-helpers";
+import { modelChoiceOptions } from "../../serve-helpers";
 import type { ProviderDetailOptions } from "../../../render/pages/settings-page/provider-detail.ts";
 import type { ProviderStatus } from "../../../render";
 import type { RoutesContext } from "../";
@@ -36,6 +36,8 @@ export async function providerDetailFor(
   };
 }
 
+const redirect = (location: string): Response => new Response(null, { status: 302, headers: { location } });
+
 export async function handleProviderPages(
   ctx: RoutesContext,
   req: Request,
@@ -48,16 +50,7 @@ export async function handleProviderPages(
     const key = url.searchParams.get("key") ?? "";
     if (!ctx.queue.defaults.providers?.[key]) return new Response("not found", { status: 404 });
     const aiTab = url.searchParams.get("aitab");
-    return new Response(null, { status: 302, headers: { location: providerEditPath(key) + (aiTab ? `&aitab=${encodeURIComponent(aiTab)}` : "") } });
+    return redirect(providerEditPath(key) + (aiTab ? `&aitab=${encodeURIComponent(aiTab)}` : ""));
   }
-  const langResult = languageChoice(url, req);
-  const html = renderProviderPage(ctx.nav(), new Date().toISOString(), {
-    tool: asProviderTool(url.searchParams.get("tool")),
-    script: await specsClientScript(),
-    lang: langResult.lang,
-    currentUrl: langResult.currentUrl,
-  });
-  const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-  if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
-  return new Response(html, { headers });
+  return redirect(PROVIDERS_TAB_PATH);
 }

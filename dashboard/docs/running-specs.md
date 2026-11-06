@@ -476,9 +476,21 @@ the provider.
   subscription, or the way Codex is logged in), and the provider's on/off switch. Above the list is **+**, which adds a
   provider, and when the status was read, with Check again. **Add provider** ends the list. Pressing a row chooses
   that provider; the address names it (`/settings?tab=providers&provider=Claude`), and with none named the first is
-  chosen. Add opens its own page: the tool first, then that tool's fields. The tool of a provider does not change; to
-  change it, add a provider. No provider is special: the ones the board made on its first start can be renamed and
-  removed like the rest.
+  chosen. The tool of a provider does not change; to change it, add a provider. No provider is special: the ones the
+  board made on its first start can be renamed and removed like the rest.
+- **Add.** **+** and **Add provider** open the Add dialog, in three steps. Next moves on only when the step's fields are
+  filled in right.
+  1. **Provider:** one card each for Claude Code, Codex and OpenCode.
+  2. **Identity:** the display name and the ID. The ID is made from the name as it is typed, until it is typed in
+     itself.
+  3. **Config:** the chosen tool's runtime fields, and the command that logs the provider in on the machine the board
+     runs on, written out with the folder and binary path as they are typed
+     (`CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login`). The board does not log a provider in: the command is run
+     there, and Status shows when it is logged in.
+
+  Add saves the provider and shows it beside the list. A refusal stays in the dialog with the reason; Cancel closes
+  it, and it opens empty at the first step again. The old address of the Add page (`/settings/providers/new`) leads
+  to the Providers tab.
 - **The chosen provider.** Beside the list: the name with the version and **Remove**, which asks first; then the
   status (see Status); then one form with the display name and the runtime fields, with Save and Cancel; then the
   usage and the tool's panel with its Check. Save shows its pending label while it saves; a refusal is written in the

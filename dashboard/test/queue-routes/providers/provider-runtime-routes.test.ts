@@ -52,7 +52,7 @@ const errorOf = async (res: Response): Promise<string> => ((await res.json()) as
 describe("the ID a provider is stored under", () => {
   test("Add stores it under the ID given, and the name may have spaces", async () => {
     const { base, queueDefaults } = serve();
-    const res = await post(base, ADD, { tool: "opencode", name: "Open Code (work)", id: "opencode_work" });
+    const res = await post(base, ADD, { tool: "opencode", name: "Open Code (work)", providerId: "opencode_work" });
     expect(res.status).toBe(200);
     expect(queueDefaults.providers?.opencode_work?.name).toBe("Open Code (work)");
   });
@@ -67,7 +67,7 @@ describe("the ID a provider is stored under", () => {
     const { base, file } = serve();
     const before = readFileSync(file, "utf-8");
     for (const id of ["two words", "a.b", "x".repeat(65), "claude"]) {
-      expect((await post(base, ADD, { tool: "opencode", name: "Mine", id })).status).toBe(400);
+      expect((await post(base, ADD, { tool: "opencode", name: "Mine", providerId: id })).status).toBe(400);
     }
     expect(readFileSync(file, "utf-8")).toBe(before);
   });

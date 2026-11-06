@@ -9,6 +9,7 @@ import {
   autoCompactError,
   parseProvider,
   parseProviders,
+  providerLoginCommand,
   providerChoices,
   providerKeyFrom,
   providerNameError,
@@ -85,6 +86,14 @@ describe("a binary path", () => {
     for (const tool of ["claude", "codex", "opencode"]) {
       expect(parseProvider({ name: "P", tool, binary: "/opt/bin/x" })?.binary).toBe("/opt/bin/x");
     }
+  });
+
+  test("is the program the login command runs, quoted where a shell needs it", () => {
+    expect(providerLoginCommand({ tool: "claude", binary: "/opt/bin/claude-next", configDir: "~/.claude-2" })).toBe(
+      "CLAUDE_CONFIG_DIR=~/.claude-2 /opt/bin/claude-next auth login",
+    );
+    expect(providerLoginCommand({ tool: "codex", binary: "~/my tools/codex" })).toBe("~/'my tools/codex' login");
+    expect(providerLoginCommand({ tool: "opencode", binary: "/opt/oc" })).toBe("/opt/oc auth login");
   });
 
   test("an empty one is no binary path, and one of the wrong type is no provider", () => {

@@ -10,6 +10,8 @@
 
 import type { Job, ModelChoice, QueueDefaults } from "../types.ts";
 import { NAME_RE } from "../parse-request.ts";
+export { providerKeyFrom } from "./key.ts";
+export { providerLoginCommand } from "./login-command.ts";
 import { listedModelName, resolveStepModel } from "../model-name.ts";
 
 export const PROVIDER_TOOLS = ["claude", "codex", "opencode"] as const;
@@ -64,20 +66,6 @@ export function providerNameError(name: string): string | null {
   return null;
 }
 
-/** The ID a provider is stored under when none is given: its name in lower
- *  case, letters and digits kept, every other run of characters one `-`. */
-export function providerKeyFrom(name: string): string {
-  const key = name
-    .toLowerCase()
-    .replaceAll("æ", "ae")
-    .replaceAll("ø", "o")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9_]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64);
-  return key || "provider";
-}
 
 /** The range `claude --autocompact` takes, in tokens. */
 export const AUTO_COMPACT_MIN = 100_000;
@@ -232,26 +220,6 @@ export function providerLoginEnv(provider: Provider, home: string): Record<strin
   return {};
 }
 
-/** A folder as a shell word: left as written when it needs no quoting, else
- *  single-quoted, with a leading `~/` kept outside the quotes so it still
- *  expands. */
-function shellFolder(dir: string): string {
-  if (/^[A-Za-z0-9_@%+=:,./~-]+$/.test(dir)) return dir;
-  const quote = (text: string): string => `'${text.replaceAll("'", "'\\''")}'`;
-  return dir.startsWith("~/") ? `~/${quote(dir.slice(2))}` : quote(dir);
-}
-
-/** The command that logs the provider in, its folder written as it is
- *  stored (quoted where a shell needs it), so a person can paste it into a
- *  terminal. */
-export function providerLoginCommand(provider: Provider): string {
-  if (provider.tool === "opencode") return "opencode auth login";
-  if (provider.tool === "claude") {
-    return `${provider.configDir ? `CLAUDE_CONFIG_DIR=${shellFolder(provider.configDir)} ` : ""}claude auth login`;
-  }
-  const folder = provider.shadowHome || provider.codexHome;
-  return `${folder ? `CODEX_HOME=${shellFolder(folder)} ` : ""}codex login`;
-}
 
 /** One entry read off a file field by field: undefined when it is not a
  *  provider (a bad name, an unknown tool, a field of the wrong type). */

@@ -2,16 +2,18 @@
 // tool's mark, its name, its version, its login and its on/off switch — and
 // the chosen provider on the right (`provider-detail.ts`). Over the two, the
 // heading with Add, and when the logins were read with the link that reads
-// them again.
+// them again. Add, there and at the end of the list, opens the Add dialog
+// (`provider-add.ts`).
 
 import { esc, relTimeLabel } from "../../ui/html.ts";
 import { messageSlot, switchControl, TOOL_ICONS } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import type { Provider } from "../../../queue/providers/index.ts";
 import {
-  PROVIDER_NEW_PATH, PROVIDERS_SWITCH_ROUTE, PROVIDERS_TAB_PATH, providerEditPath, providerRows, type ProviderRow, type ProviderStatus,
+  PROVIDERS_SWITCH_ROUTE, PROVIDERS_TAB_PATH, providerEditPath, providerRows, type ProviderRow, type ProviderStatus,
 } from "./providers.ts";
 import { providerDetail, type ProviderDetailOptions } from "./provider-detail.ts";
+import { PROVIDER_ADD_DIALOG, providerAddDialog } from "./provider-add.ts";
 
 /** The line a refused switch is written into. */
 export const PROVIDER_SWITCH_REFUSED = "provider-switch-refused";
@@ -63,7 +65,7 @@ export function providersTab(o: ProvidersTabOptions, lang: Language): string {
   const read = Object.values(o.statuses ?? {}).map((s) => s.at).sort()[0];
   const head =
     `<div class="providershead"><h2>${esc(t(lang, "settings.providers.heading"))}</h2>` +
-    `<a class="iconlink" href="${PROVIDER_NEW_PATH}" aria-label="${esc(t(lang, "settings.providers.addProvider"))}" title="${esc(t(lang, "settings.providers.addProvider"))}">+</a>` +
+    `<button type="button" class="iconlink" data-ask="${PROVIDER_ADD_DIALOG}" aria-label="${esc(t(lang, "settings.providers.addProvider"))}" title="${esc(t(lang, "settings.providers.addProvider"))}">+</button>` +
     (read
       ? `<span class="providerschecked muted small">${esc(t(lang, "settings.providers.checked", { when: relTimeLabel(read, o.now, lang) }))} · ` +
         `<a href="${esc(chosen ? providerEditPath(chosen) : PROVIDERS_TAB_PATH)}">${esc(t(lang, "settings.providers.recheck"))}</a></span>`
@@ -71,12 +73,13 @@ export function providersTab(o: ProvidersTabOptions, lang: Language): string {
     `</div>`;
   const list =
     `<ul class="providerlist">${rows.map((r) => row(r, chosen, lang)).join("")}` +
-    `<li class="providerrow"><a class="provideritem" href="${PROVIDER_NEW_PATH}"><span class="providericon" aria-hidden="true">+</span>` +
-    `<span class="providertext">${esc(t(lang, "settings.providers.addProvider"))}</span></a></li></ul>`;
+    `<li class="providerrow"><button type="button" class="provideritem" data-ask="${PROVIDER_ADD_DIALOG}"><span class="providericon" aria-hidden="true">+</span>` +
+    `<span class="providertext">${esc(t(lang, "settings.providers.addProvider"))}</span></button></li></ul>`;
   const detail = o.detail ? providerDetail(o.detail, o.now, lang) : `<p class="muted">${esc(t(lang, "settings.providers.none"))}</p>`;
   return (
     head +
     messageSlot("refused", "failed", { id: PROVIDER_SWITCH_REFUSED }) +
-    `<div class="providerpanes">${list}<section class="providerdetail">${detail}</section></div>`
+    `<div class="providerpanes">${list}<section class="providerdetail">${detail}</section></div>` +
+    providerAddDialog(lang)
   );
 }

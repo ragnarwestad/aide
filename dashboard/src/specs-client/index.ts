@@ -49,6 +49,7 @@ import { bindNewSpecTabs } from "./new-spec-tabs";
 import { postPendingModel } from "./pending-model.ts";
 import { bindReportFrame } from "./report-frame.ts";
 import { postForm } from "./press.ts";
+import { bindProviderAdd } from "./provider-add";
 import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
@@ -66,6 +67,10 @@ import { checkboxKey, chosen, chosenSteps, selectKey } from "./state.ts";
 // The count under every bounded text field: drawn first, so a binding below
 // that reads or fills a field finds it already counted.
 bindLimits(document);
+
+// The Providers tab's Add dialog, when it is the one open.
+const providerAdd = document.getElementById("provider-add") as HTMLDialogElement | null;
+if (providerAdd) bindProviderAdd(providerAdd);
 
 // The Settings page's Notifications tab, when it is the one open.
 const pushPanel = document.querySelector("[data-push-panel]") as HTMLElement | null;

@@ -40,7 +40,9 @@ const line = () => ({ textContent: "" });
 type Line = ReturnType<typeof line>;
 
 /** A form with one button, a line of its own, and the page's named lines. */
-function fakeForm(o: { dataset?: Record<string, string>; inDialog?: boolean } = {}) {
+/** `inDialog` names the open dialog around the form: a confirmation's, or one
+ *  that holds a form of its own (any other class). */
+function fakeForm(o: { dataset?: Record<string, string>; inDialog?: "confirmdialog" | "formdialog" } = {}) {
   const own = line();
   const named: Record<string, Line> = { "spec-refused": line(), "spec-notice": line() };
   const dialog = { closes: 0, close() { dialog.closes += 1; } };
@@ -54,7 +56,7 @@ function fakeForm(o: { dataset?: Record<string, string>; inDialog?: boolean } = 
     dataset: o.dataset ?? {},
     querySelector: (sel: string) => (sel === ".refused" ? own : null),
     querySelectorAll: (sel: string) => (sel === "button" || sel.startsWith("button,") ? [button] : []),
-    closest: (sel: string) => (sel.includes("dialog") && o.inDialog ? dialog : null),
+    closest: (sel: string) => (o.inDialog && sel.includes("dialog") && (!sel.includes(".confirmdialog") || o.inDialog === "confirmdialog") ? dialog : null),
   } as unknown as HTMLFormElement;
   const reloads: number[] = [];
   const went: string[] = [];
@@ -115,12 +117,27 @@ describe("submitReloadForm", () => {
     expect(f.reloads).toHaveLength(1);
   });
 
-  test("a refusal closes the open dialog around the form before it is written", async () => {
+  test("a refusal closes the open confirmation around the form before it is written", async () => {
     stubPost(400, { error: "no such entry" });
-    const f = fakeForm({ dataset: { line: "spec-refused" }, inDialog: true });
+    const f = fakeForm({ dataset: { line: "spec-refused" }, inDialog: "confirmdialog" });
     await submitReloadForm(f.form, submit(), f.io);
     expect(f.dialog.closes).toBe(1);
     expect(f.named["spec-refused"]!.textContent).toBe("Problem: No such entry");
+  });
+
+  test("a refusal leaves a dialog holding a form of its own open, with the reason in it", async () => {
+    stubPost(400, { error: "Claude is already a provider's name" });
+    const f = fakeForm({ inDialog: "formdialog" });
+    await submitReloadForm(f.form, submit(), f.io);
+    expect(f.dialog.closes).toBe(0);
+    expect(f.own.textContent).toBe("Claude is already a provider's name");
+  });
+
+  test("on success a form goes to its address with {key} replaced by the key the answer names", async () => {
+    stubPost(200, { ok: true, key: "claude work" });
+    const f = fakeForm({ dataset: { done: "/settings?tab=providers&provider={key}" } });
+    await submitReloadForm(f.form, submit(), f.io);
+    expect(f.went).toEqual(["/settings?tab=providers&provider=claude%20work"]);
   });
 
   test("a form naming where to go goes there on success instead of loading the page again", async () => {

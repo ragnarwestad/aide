@@ -35,6 +35,34 @@
 .fieldrow input { height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--line);
   background: var(--surface); color: var(--text); font: var(--fs-m)/1 var(--sans); }
 
+/* The two Add buttons are buttons that look like the link and the row they sit among. */
+button.iconlink, button.provideritem { border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+
+/* The Add dialog: the three steps named across its top, one step's fields at
+   a time, and its buttons in one row. A step, a tool's fields and a button
+   the script has hidden stay hidden, whatever their own display. */
+dialog.provideradd { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
+  background: var(--surface); color: var(--text); width: min(36rem, calc(100vw - 2rem)); box-shadow: var(--overlay-shadow); }
+dialog.provideradd::backdrop { background: var(--backdrop); }
+.provideraddform { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5) var(--sp-6); }
+.provideraddform h2 { margin: 0; font-size: var(--fs-l); font-weight: 600; }
+.provideraddform p { margin: 0; }
+.addactions { display: flex; gap: var(--sp-2); }
+.provideraddform [hidden] { display: none; }
+.addsteps { display: flex; gap: var(--sp-4); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-s); }
+.addsteps li[aria-current="step"] { color: var(--text); font-weight: 600; }
+.addstep { display: flex; flex-direction: column; gap: var(--sp-2); }
+.toolcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--sp-2); }
+.toolcard { position: relative; display: flex; align-items: flex-start; gap: var(--sp-2); padding: var(--sp-3);
+  border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; }
+.toolcard:hover { background: var(--surface-2); }
+.toolcard:has(input:checked) { border-color: var(--accent); background: var(--surface-2); }
+.toolcard input { position: absolute; opacity: 0; pointer-events: none; }
+.addtool fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.logincommand { display: flex; flex-direction: column; gap: 2px; padding: var(--sp-3) 0; }
+.logincommand code { margin-top: var(--sp-1); padding: var(--sp-2); border-radius: var(--r-s); background: var(--surface-2);
+  font-family: var(--mono); font-size: var(--fs-s); overflow-wrap: anywhere; user-select: all; }
+
 @media (max-width: 40rem) {
   .providerpanes { grid-template-columns: 1fr; }
   .providerlist { border-right: 0; }

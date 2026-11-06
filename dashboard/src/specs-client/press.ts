@@ -33,6 +33,8 @@ export interface ActionResult {
   /** An Add that SUCCEEDED and still has something to say: whether a
    *  run can start in the project it just registered. */
   readiness?: { canRun?: boolean; note?: string };
+  /** What an Add stored the new entry under: a provider's key. */
+  key?: string;
   /** The project a project route answered for (`answerProjectChange`). */
   project?: string;
   /** The job a queue request started, for a caller that waits for it. */

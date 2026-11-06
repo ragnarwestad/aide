@@ -28,7 +28,8 @@ const browserIo: ReloadIo = {
 /** Posts the form. A refusal goes into the line the form names with
  *  `data-line`, or its own `.refused` line; an answer that changed nothing
  *  leaves its note in the line the form names with `data-note`, instead of
- *  loading the page again. A form with `data-done` goes there on success. */
+ *  loading the page again. A form with `data-done` goes there on success,
+ *  with `{key}` in it replaced by the key the answer names. */
 export async function submitReloadForm(form: HTMLFormElement, event: Event, io: ReloadIo = browserIo): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
@@ -42,12 +43,13 @@ export async function submitReloadForm(form: HTMLFormElement, event: Event, io: 
         writeLine(note, answer.note ?? "");
         return;
       }
-      if (form.dataset.done) io.go(form.dataset.done);
+      if (form.dataset.done) io.go(form.dataset.done.replace("{key}", encodeURIComponent(answer?.key ?? "")));
       else io.reload();
     },
     (why) => {
-      // A confirm dialog's OK: the refusal is written behind it.
-      (form.closest("dialog[open]") as HTMLDialogElement | null)?.close();
+      // A confirm dialog's OK: the refusal is written behind it. A dialog
+      // that holds a form of its own keeps it open, with the refusal in it.
+      (form.closest("dialog.confirmdialog[open]") as HTMLDialogElement | null)?.close();
       writeLine(note, "");
       writeLine(line, why);
     },

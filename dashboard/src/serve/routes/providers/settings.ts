@@ -162,7 +162,7 @@ async function saveChecked(
   const provider: Provider = { name, tool, ...off, ...fields, ...runtime };
   const clash = conflict(providers, key, provider, home);
   if (clash) return refuse(clash);
-  const made = key ?? newKey(providers, name, asked.id);
+  const made = key ?? newKey(providers, name, asked.providerId);
   if (typeof made !== "string") return refuse(made.error);
   const target = made;
   const missing = await notInstalled(ctx, target, provider);

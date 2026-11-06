@@ -301,28 +301,19 @@ describe("removing a provider something uses", () => {
 });
 
 describe("the pages that add and edit a provider", () => {
-  test("Add asks for the tool first and shows no field; a chosen tool shows its name and only its own folders (AC-8)", async () => {
+  test("the address of the old Add page leads to the Providers tab, where Add is a dialog", async () => {
     const { base } = serve();
-    const first = await (await fetch(`${base}/settings/providers/new`)).text();
-    for (const tool of ["claude", "codex", "opencode"]) expect(first).toContain(`/settings/providers/new?tool=${tool}`);
-    expect(first).not.toContain('name="name"');
-
-    const codex = await (await fetch(`${base}/settings/providers/new?tool=codex`)).text();
-    for (const field of ["name", "codexHome", "shadowHome"]) expect(codex).toContain(`name="${field}"`);
-    expect(codex).not.toContain('name="configDir"');
-    expect(codex).toContain(ADD);
-
-    const open = await (await fetch(`${base}/settings/providers/new?tool=opencode`)).text();
-    expect(open).toContain('name="name"');
-    expect(open).not.toContain('name="configDir"');
-    expect(open).not.toContain('name="codexHome"');
+    const res = await fetch(`${base}/settings/providers/new?tool=codex`, { redirect: "manual" });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/settings?tab=providers");
   });
 
   test("Edit shows the name as a field beside the folders, with the tool shown and not asked (AC-9)", async () => {
     const { base } = serve();
     const dir = folder();
     await post(base, ADD, { tool: "claude", name: "Capra", configDir: dir });
-    const html = await (await fetch(`${base}/settings/providers/edit?key=Capra`)).text();
+    const page = await (await fetch(`${base}/settings/providers/edit?key=Capra`)).text();
+    const html = page.match(/<form id="provider-form"[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(html).toContain('name="name" type="text" value="Capra"');
     expect(html).toContain(`value="${dir}"`);
     expect(html).toContain(EDIT);

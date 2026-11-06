@@ -19,7 +19,6 @@ export const PROVIDER_NEW_PATH = "/settings/providers/new";
 export const PROVIDER_EDIT_PATH = "/settings/providers/edit";
 export const PROVIDERS_TAB_PATH = "/settings?tab=providers";
 
-export const providerNewPath = (tool?: ProviderTool): string => (tool ? `${PROVIDER_NEW_PATH}?tool=${tool}` : PROVIDER_NEW_PATH);
 /** A provider's own place: the Providers tab with it chosen. */
 export const providerEditPath = (key: string): string => `${PROVIDERS_TAB_PATH}&provider=${encodeURIComponent(key)}`;
 

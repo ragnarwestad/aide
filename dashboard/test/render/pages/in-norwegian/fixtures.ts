@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   renderAddProjectPage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderSchedulePage,
-  renderProviderPage, renderScheduleDetailPage, renderScheduleNewPage, renderSchedulePromptPage, renderSettingsPage,
+  renderScheduleDetailPage, renderScheduleNewPage, renderSchedulePromptPage, renderSettingsPage,
   CHECKABLE_TOOLS, type ProjectView, type ProviderStatus, type ToolCheck, type ToolModels, type ToolUsage,
 } from "../../../../src/render";
 import type { GitRunner } from "../../../../src/git/branch-status.ts";
@@ -99,17 +99,6 @@ export function settingsStates(): PageState[] {
     settings("Settings › Providers", { tab: "providers", providers, providerStatuses: statuses }, names),
     settings("Settings › Providers, none", { tab: "providers", providers: {} }),
     settings("Settings › claude (a removed tab opens Providers)", { tab: "claude", providers, providerStatuses: statuses }, names),
-  );
-  const providerPage = (page: string, opts: Partial<Parameters<typeof renderProviderPage>[2]>, data: string[] = []): PageState => ({
-    page,
-    html: renderProviderPage(NAV, NOW, { ...nb, ...opts }),
-    data: [...data, ...names, "~/.claude-konto", "~/.codex-kodeks", "2.1.273", "noen@eksempel.no, Max", "CODEX_HOME=~/.codex-kodeks codex login",
-      "Planlegg 1", "claude-planlegg-1", "Raskkodex", "raskkodex", "Ukjent", "ukjent", "Dagens kvote", "Nov 3 at 11:20pm (Europe/Oslo)", "funnet (2.1.273)",
-      "aide-preflight claude", "claude auth status"],
-  });
-  states.push(
-    providerPage("Provider › Add, which tool", {}),
-    ...(["claude", "codex", "opencode"] as const).map((tool) => providerPage(`Provider › Add, ${tool}`, { tool })),
   );
   // The chosen provider, on the Providers tab, with what was read of it.
   const PROVIDER_DATA = [...names, "~/.claude-konto", "~/.codex-kodeks", "2.1.273", "noen@eksempel.no, Max", "CODEX_HOME=~/.codex-kodeks codex login",

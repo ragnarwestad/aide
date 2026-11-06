@@ -63,7 +63,7 @@ test("a click on a provider in the list shows it beside the list (AC-7)", async 
     page.waitForURL("**/settings?tab=providers&provider=OpenCode"),
     page.locator(".provideritem", { hasText: "OpenCode" }).click(),
   ]);
-  expect(await page.locator('input[name="name"]').inputValue()).toBe("OpenCode");
+  expect(await page.locator('#provider-form input[name="name"]').inputValue()).toBe("OpenCode");
 });
 
 test("Save shows its pending label while the post is out (AC-10, AC-11)", async () => {
@@ -74,7 +74,7 @@ test("Save shows its pending label while the post is out (AC-10, AC-11)", async 
     await held;
     await route.continue();
   });
-  await page.locator('input[name="name"]').fill("Claude-Capra");
+  await page.locator('#provider-form input[name="name"]').fill("Claude-Capra");
   const save = page.locator("#providerform-save");
   await save.click();
   expect((await save.innerText()).toLowerCase()).toBe(t("en", "list.checksSaving").toLowerCase());
@@ -84,21 +84,21 @@ test("Save shows its pending label while the post is out (AC-10, AC-11)", async 
 
 test("Cancel puts back what was saved (AC-12)", async () => {
   await go(CLAUDE);
-  const saved = await page.locator('input[name="name"]').inputValue();
-  await page.locator('input[name="name"]').fill("Never-saved");
+  const saved = await page.locator('#provider-form input[name="name"]').inputValue();
+  await page.locator('#provider-form input[name="name"]').fill("Never-saved");
   await page.locator("#providerform-cancel").click();
   await page.waitForURL(`**${CLAUDE}`);
-  expect(await page.locator('input[name="name"]').inputValue()).toBe(saved);
+  expect(await page.locator('#provider-form input[name="name"]').inputValue()).toBe(saved);
   expect(await page.locator(".providerlist").innerText()).not.toContain("Never-saved");
 });
 
 test("a save the board refuses is written in the form's own line and every field keeps what was typed (AC-18)", async () => {
   await go(CLAUDE);
-  await page.locator('input[name="name"]').fill("opencode");
+  await page.locator('#provider-form input[name="name"]').fill("opencode");
   await page.locator("#providerform-save").click();
   await page.locator("#provider-refused span", { hasText: /opencode/i }).waitFor();
   expect((await page.locator("#provider-refused").innerText()).toLowerCase()).toContain("opencode");
-  expect(await page.locator('input[name="name"]').inputValue()).toBe("opencode");
+  expect(await page.locator('#provider-form input[name="name"]').inputValue()).toBe("opencode");
 });
 
 test("a press on a provider's switch turns it off, and a second press on again", async () => {
