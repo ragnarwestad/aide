@@ -561,4 +561,6 @@ export const es: Record<TranslationKey, string> = {
   "settings.notifications.msgBlocked": "Las notificaciones están bloqueadas para este sitio. Permítelas en los ajustes del propio dispositivo y abre esta pestaña de nuevo.",
   "settings.notifications.msgUnsupported": "Las notificaciones necesitan la app instalada en este dispositivo — añade el dashboard a la pantalla de inicio y ábrelo desde allí.",
   "settings.notifications.msgFailed": "No se pudieron activar las notificaciones. Inténtalo de nuevo.",
+  "message.problem": "Problema",
+  "message.solution": "Solución",
 };

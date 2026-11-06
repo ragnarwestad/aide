@@ -564,4 +564,6 @@ export const nb: Record<TranslationKey, string> = {
   "settings.notifications.msgBlocked": "Varsler er blokkert for dette nettstedet. Tillat dem i innstillingene til selve enheten, og åpne så denne fanen på nytt.",
   "settings.notifications.msgUnsupported": "Varsler krever den installerte appen på denne enheten — legg dashbordet til på Hjem-skjermen og åpne det derfra.",
   "settings.notifications.msgFailed": "Varsler kunne ikke slås på. Prøv igjen.",
+  "message.problem": "Problem",
+  "message.solution": "Løsning",
 };

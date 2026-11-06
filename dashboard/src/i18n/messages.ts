@@ -20,6 +20,11 @@ export interface MessageEntry {
    *  genuinely nothing to resolve (docs/error-sentences.md). */
   resolve?: string;
   exempt?: string;
+  /** The fix, in each language, for a message in the two-line shape: the
+   *  language texts above are then the problem alone. `null` is the
+   *  two-line shape with nothing to resolve, and `exempt` says why
+   *  (docs/error-sentences.md). */
+  solution?: { en: string; nb: string; es: string; de: string; fr: string } | null;
 }
 
 const INVALID_REQUEST_TAIL_EN =

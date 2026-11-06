@@ -2,7 +2,7 @@
 
 ## Table of contents
 
-- [The three parts](#the-three-parts)
+- [The two lines](#the-two-lines)
 - [Only what was checked](#only-what-was-checked)
 - [The shared builder](#the-shared-builder)
 - [An error that has resolved itself](#an-error-that-has-resolved-itself)
@@ -16,23 +16,52 @@ and [The specs list and the spec page](the-specs-list.md) — this page is the c
 next sentence is written the same way.
 
 
-## The three parts
+## The two lines
 
-An error sentence has up to three parts, in order:
+An error message has two lines, and detail behind them:
 
-1. **What happened** — plain language, never raw tool output.
-2. **What resolves it** — named as either a control on the board (the button, the tab, the page) when the fix is a
-   press away, or a location off the board (the checkout on the serving host, a terminal) when it is not.
-3. **Optional detail** — git/tool output MAY follow, as hover detail on the sentence, never as the sentence itself.
+1. **Problem:** what happened, in plain language, never raw tool output.
+2. **Solution:** one fix, on a line of its own under the problem. It names either a control on the board (the button,
+   the tab, the page) when the fix is a press away, or a place off the board (the checkout on the serving host, a
+   terminal) when it is not.
+3. **Detail:** git's or a tool's own output MAY follow, behind the message's (?), never on either line.
 
-A sentence carries part 2 unless there is genuinely nothing to resolve — the fact is stated and that is the whole
-answer (`ARCHIVED_REFUSAL` in `src/serve/serve-helpers/edit-sentences.ts` is the model case: editing an archived spec is
-intentionally impossible, not a gap).
+For example:
 
-The row's own text starts with an uppercase letter. That happens once, at render time, in `rowMessage`/
-`rowMessageParts` (`src/render/ui/components/message.ts`) and the job detail page's own banner — and in `writeLine()`
-(`src/specs-client/press.ts`) for a line the page's script fills — after every part above is
-joined into the finished sentence — never in the message catalog (`src/i18n/messages.ts`), which stays lowercase
+```text
+Problem: Creating "A create that fails" in aide-test failed: the model stopped before it wrote the spec.
+Solution: Press Try again to open the form with what you typed, then press Create.
+```
+
+- **One fix, never several.** A message with more than one way out names the one that resolves it here.
+- **No Solution line when there is nothing to resolve.** The problem is stated and that is the whole answer
+  (`ARCHIVED_REFUSAL` in `src/serve/serve-helpers/edit-sentences.ts` is the model case: editing an archived spec is
+  intentionally impossible, not a gap).
+- **The labels are in the reader's language**, as the rest of the board is: "Problem" and "Løsning" in Norwegian.
+
+### In the message catalog
+
+An entry in `src/i18n/messages.ts` holds the problem in its language texts and the fix in `solution`, one text per
+language; `solution: null` is a message with nothing to resolve, and `exempt` says why. The composer
+(`src/i18n/message.ts`) writes the labels and the line break, and starts each line with a capital, so the catalog's
+own texts stay lowercase. An entry without `solution` reads as the one text it holds, problem and fix together.
+
+### A message inside another
+
+A message whose text has a `{message}` blank takes only the problem of the message inside it, and the message shows one
+Solution line: the outer message's own fix when it has one, and otherwise the fix of the message inside it. An outer
+message whose inner message knows the better fix carries no fix of its own.
+
+### Several messages on one row
+
+Messages that share a fix share one Solution line, their problems joined on one Problem line. A message with a fix of
+its own gets a Problem and a Solution line of its own.
+
+### Capital letters
+
+The row's own text starts with an uppercase letter, once, at render time, in `rowMessage`/`rowMessageParts`
+(`src/render/ui/components/message.ts`) and the job detail page's own banner — and in `writeLine()`
+(`src/specs-client/press.ts`) for a line the page's script fills — never in the message catalog, which stays lowercase
 because its entries are reused both on their own and glued behind a phase name.
 
 ## Only what was checked
@@ -50,7 +79,7 @@ A sentence claims no more than the code that wrote it has checked.
 
 ## The shared builder
 
-`src/format/error-sentence.ts` composes parts 1 and 2 for every sentence built this way — a neutral spot, since its callers are `queue/parse-request.ts`, `git/specs-pull.ts` and `format/tool-failure.ts`, not the render layer itself:
+`src/format/error-sentence.ts` composes the problem and its fix for every sentence built this way — a neutral spot, since its callers are `queue/parse-request.ts`, `git/specs-pull.ts` and `format/tool-failure.ts`, not the render layer itself:
 
 ```typescript
 const PUSH_ERROR_SENTENCE = errorSentence({

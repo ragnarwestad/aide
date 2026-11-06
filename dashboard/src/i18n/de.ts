@@ -561,4 +561,6 @@ export const de: Record<TranslationKey, string> = {
   "settings.notifications.msgBlocked": "Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in den Einstellungen des Geräts und öffne diesen Tab dann erneut.",
   "settings.notifications.msgUnsupported": "Benachrichtigungen brauchen die installierte App auf diesem Gerät — füge das Dashboard zum Home-Bildschirm hinzu und öffne es von dort.",
   "settings.notifications.msgFailed": "Benachrichtigungen konnten nicht eingeschaltet werden. Versuche es erneut.",
+  "message.problem": "Problem",
+  "message.solution": "Lösung",
 };

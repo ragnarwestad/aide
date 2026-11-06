@@ -573,4 +573,6 @@ export const en = {
   "settings.notifications.msgBlocked": "Notifications are blocked for this site. Allow them in the device's own settings, then open this tab again.",
   "settings.notifications.msgUnsupported": "Notifications need the installed app on this device — add the dashboard to the Home Screen and open it from there.",
   "settings.notifications.msgFailed": "Notifications could not be turned on. Try again.",
+  "message.problem": "Problem",
+  "message.solution": "Solution",
 } as const;

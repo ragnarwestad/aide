@@ -17,6 +17,8 @@
    leaves, and a path with no spaces in it breaks rather than pushing the
    page sideways at phone width. */
 .rowmsg > span { min-width: 0; overflow-wrap: anywhere; }
+/* A message's Solution line stands under its Problem line. */
+.rowmsg > span { white-space: pre-line; }
 /* A link inside a message's sentence is told apart from the words around
    it, whatever colour the message's state gives them. */
 .rowmsg a:not(.btn) { color: var(--link-text); text-decoration: underline; }
