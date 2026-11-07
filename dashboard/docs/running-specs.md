@@ -3,6 +3,7 @@
 ## Table of contents
 
 - [Making a spec from the page](#making-a-spec-from-the-page)
+- [Queueing from a terminal](#queueing-from-a-terminal)
 - [Which requests the dashboard answers](#which-requests-the-dashboard-answers)
 - [The queue config](#the-queue-config)
 - [Which AI runs a step](#which-ai-runs-a-step)
@@ -94,6 +95,42 @@ An analyze that writes a short analysis over one of its limits ends `failed` wit
 runner records the same requirement in the description, the board lands the step's specs branch, and queues one job for
 the same spec with Analyze and every step the stopped job had not run, on its models and effort. This happens once per
 spec.
+
+## Queueing from a terminal
+
+`aide` is a command installed in `~/.local/bin` with Aide's other commands. It makes the same requests as the page's
+buttons, from a terminal or an AI session, and answers in one sentence with no link.
+
+| Command                                                 | What it queues                                                     |
+|---------------------------------------------------------|--------------------------------------------------------------------|
+| `aide create <project> "<title>"`                       | A create, as the New spec form does                                |
+| `aide analyze`, `implement`, `archive`, `reopen <spec>` | That step, as the button on the spec's row does                    |
+| `aide close <spec> --reason "<why>"`                    | Close, as the Close button does                                    |
+| `aide status <spec>`                                    | Nothing: it says the spec's phase and what its newest job is doing |
+
+- **The description of a create** comes from `--file`, else from standard input, else from `$VISUAL` or `$EDITOR`.
+  `--depends-on <spec>` (repeatable), `--then analyze,implement,archive`, `--provider`, `--criteria-checks off|warn|stop`,
+  `--choose-approach`, `--acceptance-not-required` and `--no-ai-criteria` are the form's other settings. Both boxes the
+  form opens ticked are ticked unless the last two flags are given.
+- **The model** is the phase's model from Models per phase. `--model <name>` runs the step on that model instead, and on
+  a create it applies to every step the create runs.
+- **A spec** is named by its number or its folder. A number is looked up in the specs root of the checkout the command
+  runs in, or of the board host's checkout of the project named with `--project`; without such a checkout it is
+  matched against the project's jobs on the board, and otherwise the spec's folder is needed. The project is `--project`, else the one
+  the current directory belongs to.
+- **The board** is `AIDE_BOARD_URL` in `~/.aide/config` ([Configuration](../../docs/CONFIGURATION.md)). The command
+  asks the board to fetch the project's specs first.
+- **An accepted request** is answered by what was queued, on which model (and provider, when the job has one), and
+  whether it starts now or what it waits for. The AI behind a model is named when this machine holds the board's queue
+  config (`~/.aide/dashboard/queue-config.json`), as on the board's host.
+- **A refused request** prints the board's own reason on stderr and exits 1. A call made wrongly exits 2.
+- **Without `AIDE_BOARD_URL`, or with a board that does not know the project,** nothing is queued: the command says so,
+  names the `/aide-<step>` skill to run in an AI session instead, and exits 1. A board that cannot be reached, or does
+  not answer in time, is said so with exit 1; a request that got no answer may still have been queued.
+- **`aide status`** reads the phase from the spec's repository on this machine, after fetching origin, and says so when
+  it had to use this machine's copy. For a project with no checkout here it says only what the job is doing.
+
+Another program called `aide` earlier on `PATH` hides this one.
 
 ## Which requests the dashboard answers
 
