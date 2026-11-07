@@ -236,6 +236,14 @@ code_commit_message() {
 
 commit_and_push_roots() {
   local i=0 root wt changed head_now amend_source=() excludes=() line
+  # The stop mark follows the step's outcome as it stands now, not as it
+  # stood when cleanup.sh first worked it out: a review, a verification or
+  # a fix turn that ends the step later sets only its terminal reason. A
+  # step that ended ok (an archive the archive gate turned away) carries none.
+  if [ "$terminal_reason" != "completed" ] && [ -z "$suffix" ] && [ "${ok:-}" != "true" ]; then
+    suffix=" (stopped: $terminal_reason)"
+  fi
+  amend_note="${model_suffix}${suffix}"
   for root in "${roots[@]}"; do
     wt="${work_roots[$i]:-}"
     # A Cancel that lands before a root's worktree is cut reaches this with
@@ -302,6 +310,19 @@ EXCLUDES_EOF
           git -C "$wt" commit -q -F - >/dev/null 2>&1 <<<"$(code_commit_message)" || true
         fi
       fi
+    fi
+    # Work still uncommitted here is lost with the worktree when the run
+    # ends: the step does not finish, and git's own words say why.
+    if [ "$changed" -gt 0 ] \
+       && [ -n "$(git -C "$wt" status --porcelain -- . ${excludes[@]+"${excludes[@]}"} 2>/dev/null)" ]; then
+      commit_said="$(git -C "$wt" add -A -- . ${excludes[@]+"${excludes[@]}"} 2>&1 >/dev/null | grep -m1 . || true)"
+      ok="false"
+      terminal_reason="unpushed"
+      suffix=" (stopped: unpushed)"
+      amend_note="${model_suffix}${suffix}"
+      error_msg="the step's own work could not be committed in $root${commit_said:+ — $commit_said}"
+      error_solution="fix the checkout on the serving host, then press $step_button again"
+      stage_error "$error_msg"
     fi
     head_after_per_root[i]="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "${head_after_per_root[$i]}")"
     i=$(( i + 1 ))

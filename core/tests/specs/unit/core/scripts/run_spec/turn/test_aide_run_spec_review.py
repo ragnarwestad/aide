@@ -210,6 +210,23 @@ def test_the_reviews_own_turn_failing_stops_implement(runner, workspace, fake_cl
     assert any("Review on claude-sonnet-4 could not run" in s for s in stages), stages
 
 
+def test_a_step_stopped_by_its_review_commits_its_work_as_unfinished(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    claude = fake_claude(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
+        "  exit 1\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done'))}'\n"
+        "fi\n"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4")
+    assert out["terminalReason"] == "cli-error", out
+    message = git(workspace["project"], "log", "-1", "--pretty=%B", "aide/81-queue-and-runner")
+    assert message.startswith("WIP: "), message
+
+
 def test_a_non_implement_command_never_gets_a_review_call(runner, workspace, fake_claude):
     with_status(workspace, ["create"])
     claude = fake_claude(

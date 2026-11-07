@@ -120,3 +120,18 @@ def test_a_stopped_step_s_own_code_commit_is_marked_unfinished(runner, workspace
     rc, out, _ = run(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC, kill_grace_sec="2")
     assert out["terminalReason"] == "timeout"
     assert git(workspace["project"], "log", "-1", "--pretty=%B", BRANCH).strip() == "WIP: Queue"
+
+
+def test_a_commit_that_fails_is_not_a_completed_step(runner, workspace, fake_claude):
+    """The worktree goes when the run ends: work that could not be
+    committed is lost with it, so the step says so instead of finishing."""
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + WRITE_CODE
+        + 'touch "$(git rev-parse --git-dir)/index.lock"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert out["ok"] is False, out
+    assert out["terminalReason"] != "completed", out
+    assert "commit" in out["error"], out
