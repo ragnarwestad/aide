@@ -4,8 +4,12 @@
 Every push to main while a landing's test gate runs moves main under it, and the landing gives up after the second
 move. The hook reads the board's queue mirror, `~/.aide/dashboard/aide-queue.json`, on the machine that serves the
 board, and over ssh from AIDE_BOARD_HOST anywhere else. A job is landing while it carries `landing`: an archive step
-that is still running works on its own branch, and a push then moves nothing under it. A queue that cannot be read
-blocks the push too: not knowing is not "nothing is running".
+that is still running works on its own branch, and a push then moves nothing under it.
+
+A landing moves the main of its project's code repo and of its specs repo, which other projects may share, and nothing
+else. So a push is held only when the repo it runs in has the same origin as one of the board's own checkouts of a
+landing project (`~/.aide/dashboard/checkouts/<project>/{code,specs}`). A queue, a repo or an origin that cannot be
+read blocks the push too: not knowing is not "nothing is running".
 
 Exit 0 lets the command run; exit 2 blocks it, with the reason on stderr for the session to read.
 """
@@ -17,7 +21,11 @@ import sys
 from pathlib import Path
 
 PUSH = re.compile(r"(^|[;&|(\s])git(\s+-[Cc]\s+\S+)*\s+push(\s|$)")
+GIT_C = re.compile(r"(?:^|[;&|(\s])git((?:\s+-[Cc]\s+\S+)+)\s+push(?:\s|$)")
+CD = re.compile(r"(?:^|[;&|(\s])cd\s+(\S+)")
 MIRROR = ".aide/dashboard/aide-queue.json"
+CHECKOUTS = ".aide/dashboard/checkouts"
+PROJECT = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
 def read_queue():
@@ -50,14 +58,65 @@ def landing(job):
     return bool(job.get("landing"))
 
 
+def same_repo(url):
+    """An origin as host/owner/repo, so `git@host:o/r.git` and `https://host/o/r` read as one repo."""
+    url = url.strip().lower()
+    url = re.sub(r"^[a-z+]+://", "", url)
+    url = re.sub(r"^[^@/]+@", "", url)
+    url = url.replace(":", "/", 1) if "/" not in url.split(":", 1)[0] and ":" in url else url
+    return re.sub(r"(\.git)?/*$", "", url)
+
+
+def origin_of(path):
+    done = subprocess.run(["git", "-C", str(path), "remote", "get-url", "origin"], capture_output=True, text=True)
+    return same_repo(done.stdout) if done.returncode == 0 and done.stdout.strip() else None
+
+
+def pushed_repo(command, cwd):
+    """The origin of the repo the push runs in: `git -C <dir> push`, else the last `cd <dir>` before it, else the
+    session's own directory. None when that cannot be told."""
+    push_at = PUSH.search(command).start()
+    flags = GIT_C.search(command)
+    if flags:
+        where = re.findall(r"-[Cc]\s+(\S+)", flags.group(1))[-1]
+    else:
+        cds = [m.group(1) for m in CD.finditer(command[:push_at])]
+        where = cds[-1] if cds else (cwd or os.getcwd())
+    path = Path(os.path.expanduser(where.strip("'\"")))
+    if not path.is_absolute():
+        path = Path(cwd or os.getcwd()) / path
+    return origin_of(path) if path.is_dir() else None
+
+
+def landing_origins(projects):
+    """The origins of the board's code and specs checkouts of each project, or None when one cannot be read."""
+    if not all(PROJECT.match(p) for p in projects):
+        return None
+    local = Path.home() / CHECKOUTS
+    if (Path.home() / MIRROR).exists():
+        origins = [origin_of(d) for p in projects for d in sorted((local / p).glob("*")) if (d / ".git").exists()]
+        return origins if origins and all(origins) else None
+    host = os.environ.get("AIDE_BOARD_HOST")
+    script = "; ".join(f"for r in ~/{CHECKOUTS}/{p}/*/; do [ -e \"$r.git\" ] && git -C \"$r\" remote get-url origin; done"
+                       for p in projects)
+    try:
+        done = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", host, script],
+                              capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    origins = [same_repo(line) for line in done.stdout.splitlines() if line.strip()]
+    return origins if done.returncode == 0 and origins else None
+
+
 def main():
     if any(arg in ("-h", "--help") for arg in sys.argv[1:]):
         print("usage: guard-push < <a Claude Code PreToolUse payload on stdin>\n\n" + __doc__.strip())
         return 0
     try:
-        command = (json.load(sys.stdin).get("tool_input") or {}).get("command") or ""
+        payload = json.load(sys.stdin)
     except ValueError:
         return 0
+    command = (payload.get("tool_input") or {}).get("command") or ""
     if not PUSH.search(command):
         return 0
     jobs, why = read_queue()
@@ -67,6 +126,10 @@ def main():
         return 2
     busy = [j for j in jobs if landing(j)]
     if busy:
+        mine = pushed_repo(command, payload.get("cwd"))
+        theirs = landing_origins(sorted({str(j.get("project")) for j in busy}))
+        if mine and theirs is not None and mine not in theirs:
+            return 0
         names = ", ".join(f"{j.get('project')}/{j.get('specFolder')}" for j in busy)
         print(f"Blocked: an archive is landing on the board ({names}). A push now moves main under its test gate; "
               "push once it has landed.", file=sys.stderr)

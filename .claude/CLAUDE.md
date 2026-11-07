@@ -113,8 +113,10 @@ the dashboard's docs pages to 550; they are written to be searched. Where to loo
 
 **A `git push` waits while an archive lands on the board.** A hook in
 `.claude/settings.json` (and `dashboard/.claude/settings.json`) runs
-`scripts/guard-push` before every Bash call, and blocks a push while the
-board's queue shows a landing, or when the queue cannot be read. Off the
+`scripts/guard-push` before every Bash call, and blocks a push to a repo
+while the board lands a project whose code or specs repo has the same
+origin, or when the queue or those origins cannot be read. A landing in
+another project does not block it. Off the
 machine that serves the board it reads the queue over ssh from
 `AIDE_BOARD_HOST`, set under `"env"` in that folder's
 `.claude/settings.local.json`.
