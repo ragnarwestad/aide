@@ -13,7 +13,7 @@ import time
 from ...conftest import git, run
 from ..run_spec_invoking import wait_until
 from ..run_spec_results import RESULT_OK
-from ..run_spec_status_files import with_status
+from ..run_spec_status_files import conflicting_branch, with_status
 
 BRANCH = "aide/81-queue-and-runner"
 
@@ -140,3 +140,38 @@ def test_a_cancelled_steps_commit_waits_for_the_checkout_lock(runner, workspace,
             proc.kill()
             proc.wait(timeout=10)
     assert git(workspace["project"], "show", f"{BRANCH}:cancelled-work.txt") == "half done"
+
+
+def test_a_cancel_while_the_merge_is_still_open_commits_no_conflict_markers(runner, workspace, fake_claude, tmp_path):
+    """An implement is handed main's conflict open; a Cancel before the
+    session resolved it leaves the branch where it was, never a merge
+    commit with the markers in it."""
+    with_status(workspace, ["create", "analyze"])
+    branch = conflicting_branch(workspace)
+    before = git(workspace["project"], "rev-parse", branch)
+    ready = tmp_path / "ready"
+    claude = fake_claude("cat > /dev/null\n" f"touch {ready}\n" "sleep 60\n")
+    env = {**os.environ, "AIDE_CLAUDE_BIN": str(claude)}
+    proc = subprocess.Popen(
+        [
+            str(runner),
+            "--project-dir", str(workspace["project"]),
+            "--command", "implement",
+            "--spec", workspace["folder"],
+            "--timeout-sec", "120",
+            "--permission-mode", "acceptEdits",
+            "--result-file", str(tmp_path / "result.json"),
+            "--worktree-base", str(workspace["wtbase"]),
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env,
+    )
+    try:
+        wait_until(ready.exists, 60, "the session never started")
+        proc.send_signal(signal.SIGTERM)
+        proc.wait(timeout=60)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=10)
+    assert "<<<<<<<" not in git(workspace["project"], "show", f"{branch}:contested.txt")
+    assert git(workspace["project"], "rev-parse", branch) == before

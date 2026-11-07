@@ -127,8 +127,8 @@ There is no `resolve` step and no Resolve button.
 - **The test command is the gate.** A resolution that does not pass the project's own tests does not land.
 - **A conflict no machine could settle reaches the row** as the failure's own text, which names the branch, beside the
   ordinary re-run control.
-- **An interrupted `archive` commits no markers.** `aide-run-spec` aborts an unfinished merge before its generic
-  commit loop, for `archive` only.
+- **An interrupted `archive` or `implement` commits no markers.** `aide-run-spec` aborts a merge still open before
+  it commits, at the end of the step and on a Cancel.
 - **`core/scripts/aide-archive-spec` decides and moves; the skill keeps only conflict resolution and doc feedback.**
   The script resolves the spec, asks `core/scripts/lib/transitions.json` whether it may move to `archived`, and moves
   the folder on the spec's branch. The move reaches the default branch only when the archive step completes and lands.

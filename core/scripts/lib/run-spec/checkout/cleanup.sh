@@ -54,10 +54,5 @@ amend_note="${model_suffix}${suffix}"
 # where the step found it, which is also what "leaves the branch as it
 # found it" means when /aide-archive gives up on the resolution on
 # purpose.
-if [ "$command_name" = "archive" ] || [ "$command_name" = "implement" ]; then
-  for wt in "${work_roots[@]}"; do
-    git -C "$wt" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 || continue
-    git -C "$wt" merge --abort >/dev/null 2>&1 || true
-  done
-fi
+abort_unfinished_merges
 

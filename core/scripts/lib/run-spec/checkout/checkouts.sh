@@ -207,6 +207,17 @@ take_signal_lock() {
   signal_locks+=("$lock")
 }
 trap 'keep_stream; remove_worktrees; release_signal_locks; delete_empty_branches; release_worktree_lock; rm -rf "$work_dir"' EXIT
+# A merge still open in a worktree is put back, never committed: the
+# publish step's `git add -A` would take the conflict markers in the files
+# and commit them as the merge. The end of every step and a Cancel both
+# run this before they commit.
+abort_unfinished_merges() {
+  local wt
+  for wt in ${work_roots[@]+"${work_roots[@]}"}; do
+    git -C "$wt" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 || continue
+    git -C "$wt" merge --abort >/dev/null 2>&1 || true
+  done
+}
 # TERM and INT get a handler of their own, and NOT because the EXIT trap
 # is skipped without one — measured, bash 3.2.57 runs the EXIT trap on an
 # untrapped SIGTERM. The reason is the opposite: with an explicit handler
@@ -239,6 +250,7 @@ on_signal() {
     for root in ${roots[@]+"${roots[@]}"}; do take_signal_lock "$root"; done
     suffix=" (stopped: cancelled)"
     commit_label="${commit_label:-$spec_label}"
+    abort_unfinished_merges
     declare -f commit_and_push_roots >/dev/null 2>&1 \
       || source "$SCRIPT_DIR/lib/run-spec/publish/publish.sh" >/dev/null 2>&1
     commit_and_push_roots >/dev/null 2>&1 || true

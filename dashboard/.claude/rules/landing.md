@@ -100,11 +100,12 @@ reads what a landing left.
 
 `docs/landing.md`, "Archive resolves the conflict itself".
 
-- **A conflict is `archive`'s to resolve, by the literal string
-  `archive`, never a denylist.** `update_branch_to_base()` hands it the
-  worktree with the merge OPEN; every other step aborts and refuses.
-  `aide-run-spec` aborts an unfinished merge before its generic commit
-  loop, for `archive` only, so conflict markers are never committed. The
+- **A conflict is `archive`'s and `implement`'s to resolve, by the
+  literal step names, never a denylist.** `update_branch_to_base()` hands
+  them the worktree with the merge OPEN; every other step aborts and
+  refuses. `aide-run-spec` aborts a merge still open before it commits,
+  at the end of the step and on a Cancel, so conflict markers are never
+  committed. The
   landing's test gate (`docs/landing.md`, "The tests run on the landing,
   once") is what stops a resolution that breaks the suite: red drops the
   merge, and nothing lands.
