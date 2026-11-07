@@ -10,7 +10,7 @@ import pathlib
 import shutil
 import re
 import pytest
-from ...conftest import run
+from ...conftest import run, stand_in
 from ..run_spec_fakes import creating_claude, specs_only_claude, writing_claude
 from ..run_spec_invoking import CREATE_KEY, create
 from ..run_spec_origins import leave_branch_on_origin, leave_unmerged_branch_on_origin
@@ -349,9 +349,8 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     (tmp_path / "lib" / "git-error.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "git-error.sh").read_bytes()
     )
-    (tmp_path / "lib" / "tracking-info.sh").write_bytes(
-        (pathlib.Path(runner).parent / "lib" / "tracking-info.sh").read_bytes()
-    )
+    for name in ("tracking-info.sh", "status-progress.sh", "spec-state.sh", "spec-transitions.sh"):
+        (tmp_path / "lib" / name).write_bytes((pathlib.Path(runner).parent / "lib" / name).read_bytes())
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, runner_path=lone_copy)
     assert rc == 2, out
@@ -405,8 +404,7 @@ def test_a_refusal_is_an_error_line_in_the_log(runner, workspace, fake_claude):
 def test_every_part_the_runner_sources_is_checked_before_the_first_phase(runner):
     """A part sourced without being in the `need_part` list is found
     missing only when the run reaches it, after the model has been paid
-    for. Parts sourced behind their own `[ -f ... ] &&` are optional and
-    need no check."""
+    for."""
     text = pathlib.Path(runner).read_text()
     loop = re.search(r"^for _part in (.+); do need_part", text, re.M)
     assert loop, "the need_part loop is gone"
@@ -427,12 +425,38 @@ def test_an_unknown_argument_is_refused_in_the_result_file(runner, workspace, fa
     assert "--extra-project-dir" in written["error"], written
 
 
-def test_a_missing_part_of_the_runner_is_refused_in_the_result_file(runner, workspace, fake_claude, tmp_path):
+@pytest.mark.parametrize("part", [
+    "lib/run-spec/turn/review.sh", "lib/spec-state.sh", "lib/status-progress.sh",
+    "lib/spec-transitions.sh", "_aide-spec-lib.sh",
+])
+def test_a_missing_part_of_the_runner_is_refused_in_the_result_file(runner, workspace, fake_claude, tmp_path, part):
+    """Every part the runner sources is required: a missing one is an
+    install that did not finish, never a check quietly skipped."""
     scripts = tmp_path / "scripts"
     shutil.copytree(runner.parent, scripts, symlinks=True)
-    (scripts / "lib" / "run-spec" / "turn" / "review.sh").unlink()
+    (scripts / part).unlink()
     claude = fake_claude("exit 1")
     rc, out, _ = run(runner, workspace, claude, runner_path=scripts / "aide-run-spec")
     assert rc == 2, out
     written = json.loads((workspace["project"].parent / "result.json").read_text())
-    assert "review.sh is missing" in written["error"], written
+    assert f"{pathlib.PurePath(part).name} is missing" in written["error"], written
+
+
+@pytest.mark.parametrize("answer, reason, said", [
+    ('{"ok":false,"exitCode":2,"terminalReason":"refused","error":"no reason given"}', "refused", "no reason given"),
+    ('{"ok":true,"exitCode":0,"terminalReason":"conflict-open"}', "conflict-open", "merge"),
+    ('{"ok":true,"exitCode":0,"terminalReason":"already-archived","note":"81 is archived"}', "already-archived", "81 is archived"),
+    ("", "refused", "no answer"),
+])
+def test_a_close_that_moved_nothing_says_why(runner, workspace, fake_claude, tmp_path, answer, reason, said):
+    """Only `closed` lands; every other answer from aide-close-spec is a
+    close that did not happen, and the step says so instead of finishing."""
+    scripts = tmp_path / "scripts"
+    shutil.copytree(runner.parent, scripts, symlinks=True)
+    stand_in(scripts / "aide-close-spec", f"#!/bin/sh\necho '{answer}'\n" if answer else "#!/bin/sh\nexit 3\n")
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="close", reason="the idea does not hold",
+                     runner_path=scripts / "aide-run-spec")
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == reason, out
+    assert said in out["error"], out

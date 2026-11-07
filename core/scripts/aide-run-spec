@@ -179,23 +179,6 @@ early_refusal() {   # $1 = the refusal as one JSON line
   printf 'aide-run-spec: %s\n' "$1" >&2
   exit 2
 }
-# shellcheck source=/dev/null
-[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
-# shellcheck source=/dev/null
-[ -f "$SCRIPT_DIR/lib/tracking-info.sh" ] && source "$SCRIPT_DIR/lib/tracking-info.sh"
-# shellcheck source=/dev/null
-[ -f "$SCRIPT_DIR/lib/status-progress.sh" ] && source "$SCRIPT_DIR/lib/status-progress.sh"
-# The spec's state file, derived from the prose this script
-# rewrites below. Guarded like status-progress.sh above.
-[ -f "$SCRIPT_DIR/lib/spec-state.sh" ] && source "$SCRIPT_DIR/lib/spec-state.sh"
-# The one table and function pair that decide and record a
-# spec's phase moves — pure phase order only. The dependency gate below
-# (DEPENDENCY_GATED_STEPS) stays a standalone check, same as archive's
-# acceptance-criteria/test-record gates in aide-archive-spec: it runs for
-# BOTH implement and archive before either script's own phase-order
-# check, and archive's phase-order check lives in a different process
-# (aide-archive-spec) that never shares this gate's resolver functions.
-[ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
 
 command -v jq >/dev/null 2>&1 || early_refusal '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'
 
@@ -211,7 +194,27 @@ need_part() {
 # EVERY phase, before the first one runs. Checked one at a time where
 # each is sourced, a missing late phase was only found after the step had
 # run and the money was spent.
-for _part in tracking-info.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh run-spec/turn/failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/model-turn.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
+for _part in tracking-info.sh status-progress.sh spec-state.sh spec-transitions.sh run-spec/setup/arguments.sh run-spec/setup/code-landing.sh run-spec/setup/gates.sh run-spec/setup/git-hooks.sh run-spec/setup/sandbox.sh run-spec/setup/invocation.sh run-spec/checkout/checkouts.sh run-spec/checkout/worktree.sh run-spec/checkout/branch.sh run-spec/checkout/unlanded-archive.sh run-spec/turn/time-limit.sh run-spec/turn/test-start.sh run-spec/turn/failing-tests.sh run-spec/turn/step-tests.sh run-spec/turn/provider-limit.sh run-spec/turn/provider-error.sh run-spec/turn/context-use.sh run-spec/turn/model-marks.sh run-spec/turn/test-workers.sh run-spec/turn/model-turn.sh run-spec/turn/screenshots.sh run-spec/turn/spec-paths.sh run-spec/checkout/cleanup.sh run-spec/record/sent-back-check.sh run-spec/record/records.sh run-spec/record/status-line.sh run-spec/turn/review-prompts.sh run-spec/turn/side-turn.sh run-spec/turn/review.sh run-spec/record/specs-guard.sh run-spec/record/shared-files-check.sh run-spec/record/short-analysis-check.sh files-to-change.sh translation-files.sh git-error.sh run-spec/record/criteria-check.sh run-spec/record/outcome.sh run-spec/record/ac-coverage.sh run-spec/publish/publish.sh run-spec/publish/result.sh; do need_part "$_part"; done
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] \
+  || early_refusal '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"_aide-spec-lib.sh is missing beside aide-run-spec","errorSolution":"reinstall aide (core/implementations/claude-code/install.sh)"}'
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/tracking-info.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/status-progress.sh"
+# The spec's state file, derived from the prose this script rewrites below.
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-state.sh"
+# The one table and function pair that decide and record a
+# spec's phase moves — pure phase order only. The dependency gate below
+# (DEPENDENCY_GATED_STEPS) stays a standalone check, same as archive's
+# acceptance-criteria/test-record gates in aide-archive-spec: it runs for
+# BOTH implement and archive before either script's own phase-order
+# check, and archive's phase-order check lives in a different process
+# (aide-archive-spec) that never shares this gate's resolver functions.
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-transitions.sh"
 # The step's own clock, started before anything it does (2026-09-08).
 # It began beside the AI session and therefore measured the session
 # alone: the checkout, the worktree, the branch, the archive pre-check
@@ -374,7 +377,7 @@ source "$SCRIPT_DIR/lib/run-spec/publish/publish.sh"
 # Only after a session that finished: a run that failed, timed out or
 # was refused must not have its spec closed as a side effect of asking.
 #
-# The answer is only REMEMBERED here. `terminal_reason` stays
+# A `closed` answer is only REMEMBERED here. `terminal_reason` stays
 # `completed` through the pushing below, so an unpushed close still
 # takes the `unpushed` branch every other step takes — a `closed` the
 # dashboard would land while the branch never reached origin is the one
@@ -383,8 +386,32 @@ close_outcome=""
 if [ "$command_name" = "close" ] && [ "$terminal_reason" = "completed" ]; then
   close_args=(--project-dir "$project_wt" --spec "$spec_folder" --reason "$reason")
   [ "$specs_root_wt" != "$project_wt" ] && close_args+=(--specs-dir "$specs_root_wt")
-  close_after="$("$SCRIPT_DIR/aide-close-spec" "${close_args[@]}" 2>/dev/null)"
+  close_after="$("$SCRIPT_DIR/aide-close-spec" "${close_args[@]}" 2>"$work_dir/close.err")"
   close_outcome="$(jq -r '.terminalReason // empty' <<<"$close_after" 2>/dev/null)"
+  # Any other answer moved nothing: the step stops, and says why.
+  case "$close_outcome" in
+    closed|already-closed) ;;
+    *)
+      ok="false"
+      close_said="$(jq -r '.error // .note // empty' <<<"$close_after" 2>/dev/null)"
+      case "$close_outcome" in
+        conflict-open)
+          terminal_reason="conflict-open"
+          error_msg="the close moved nothing: a merge is still open in the checkout"
+          error_solution="finish or abort that merge, then press $step_button again" ;;
+        already-archived)
+          terminal_reason="already-archived"
+          error_msg="the close moved nothing: ${close_said:-the spec is archived}"
+          error_solution="press Reopen for it first" ;;
+        *)
+          terminal_reason="refused"
+          [ -n "$close_said" ] || close_said="aide-close-spec gave no answer${close_after:+: $close_after}"
+          [ -s "$work_dir/close.err" ] && close_said="$close_said — $(grep -m1 . "$work_dir/close.err")"
+          error_msg="the close moved nothing: $close_said"
+          error_solution="press $step_button again once that is put right" ;;
+      esac
+      stage_error "$error_msg" ;;
+  esac
 fi
 
 # Which test covers which requirement, for the row the user ticks —

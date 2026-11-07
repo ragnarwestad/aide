@@ -117,9 +117,7 @@ fi
 # The close's own word, now that the push has been confirmed: a spec
 # that was stamped and moved, and whose branch reached origin, is
 # `closed` — the one terminal reason the dashboard lands a close on.
-# Anything else the script answered (`conflict-open`, `refused`,
-# `already-archived`) moved nothing, so `completed` stands and nothing
-# is landed.
+# Anything else the script answered stopped the step where it was asked.
 if [ "$terminal_reason" = "completed" ]; then
   case "$close_outcome" in
     closed|already-closed) terminal_reason="closed" ;;

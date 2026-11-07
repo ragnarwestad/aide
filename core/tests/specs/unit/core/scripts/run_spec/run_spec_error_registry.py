@@ -53,6 +53,10 @@ RUNNER_ERROR_REGISTRY: list[dict] = [
     {"pattern": r'did not write a readable result', "solution": "once the recorder is working"},
     {"pattern": r'tests stopped when the server needed by', "solution": "once that server can start"},
     {"pattern": r"tests are red on its result", "solution": "press $step_button again for this step"},
+    {"pattern": r"could not be committed in", "solution": "fix the checkout on the serving host"},
+    {"pattern": r"the close moved nothing: a merge is still open", "solution": "finish or abort that merge"},
+    {"pattern": r"the close moved nothing: \$\{close_said:-the spec is archived\}", "solution": "press Reopen for it first"},
+    {"pattern": r'the close moved nothing: \$close_said"', "solution": "once that is put right"},
     # --- nothing to resolve ------------------------------------------------
     {"pattern": r'"error":"jq is required"', "exempt": "the machine that runs the board has no jq, which the install checks for"},
     {"pattern": r'"error":"unknown argument', "exempt": CALLER},
