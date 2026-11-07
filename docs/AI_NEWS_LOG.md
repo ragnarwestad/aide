@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-07](#2026-11-07)
   - [2026-11-06](#2026-11-06)
   - [2026-11-05](#2026-11-05)
   - [2026-11-04](#2026-11-04)
@@ -121,6 +122,68 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-07
+
+Nov 6 – Nov 7. Not read: the Copilot releases page past the notes of v1.0.108-0 and v1.0.107 (read in the file only in part), the OpenAI developer blog (no post newer than Oct 14), Artificial Analysis (the page holds no figures for the harnesses). Of the watched pages, `agents.md` changed in star counts only and the prompting best-practices page in spacing only; the OpenCode skills and agents pages were rewritten (see relevance).
+
+**Claude Code (v2.1.319):**
+
+| Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Source                                                         |
+|-------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| Nov 6 | v2.1.319 | `permissions.denyInsteadOfPrompting` denies a call that would wait on a permission prompt and the turn continues; `claude -p` now exits 1 in auto mode when actions were refused for lack of a safety check; auto mode without server access asks or denies (`CLAUDE_CODE_AUTO_MODE_SERVER=0` keeps the built-in classifier); MCP tasks move to the background (`CLAUDE_CODE_DISABLE_MCP_TASK_BACKGROUND`); `CLAUDE_CODE_DISABLE_FEATURE_FLAGS`; `/tasks` lists finished subagents; Bash deny/ask rules no longer miss quoted commands | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Nov 7 | —        | Anthropic news dates Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 as Nov 7 (Opus 5.5: leads in agentic coding, 40% cheaper than Opus 5 on typical workloads)                                                                                                                                                                                                                                                                                                                                                                              | [News](https://www.anthropic.com/news)                         |
+
+**GitHub Copilot CLI (v1.0.107 stable; v1.0.108-1 the newest pre-release):**
+
+| Date  | Version        | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Source                                                     |
+|-------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 6 | v1.0.107       | Stable (Nov 6 notes in the releases file)                                                                                                                                                                                                                                                                                                                                                                                                                                                          | [Releases](https://github.com/github/copilot-cli/releases) |
+| Nov 7 | v1.0.108-0, -1 | Pre-releases: Autopilot with Assisted Permissions no longer stops for permission prompts; managed plugin assignments with `defaultEnabled` activate plugins; `copilot help config` names the `.claude/rules` and `.claude/settings.json` files it reads; `disabledSkills` matches skill names in any letter case; a warning when a custom agent's skills are missing; MCP deny rules match the server's advertised tool name; a path such as `/docs/setup.md` no longer loads a skill named `docs` | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.167.0 stable; v0.169.0-alpha.2 pre-release):**
+
+| Date  | Version          | News                                             | Source                                               |
+|-------|------------------|--------------------------------------------------|------------------------------------------------------|
+| Nov 6 | v0.169.0-alpha.2 | Pre-release with no notes; stable stays v0.167.0 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.6):**
+
+| Date  | Version | News                                                                                                                                                                                                                                        | Source                                                     |
+|-------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| Nov 6 | v2.2.6  | Opt-in MCP connection sharing (`pool: true`); `opencode run -w` starts the session in a new git worktree; `opencode run --archived`; `opencode run` waits for background jobs and SIGTERM exits 143; webfetch rejects URLs with credentials | [Releases](https://github.com/anomalyco/opencode/releases) |
+| —     | —       | Docs: the skills and agents pages are rewritten for OpenCode 2 (see relevance)                                                                                                                                                              | [Skills](https://opencode.ai/docs/skills)                  |
+
+**Relevance for aide:**
+
+- ⚠️ OpenCode docs, skills page rewritten for OpenCode 2: the path decides a skill's ID and the frontmatter `name` is
+  only a display label; `.claude/skills` and `.agents/skills` are still scanned, a skill without a `description` is not
+  advertised, and `disable-model-invocation: true` hides a skill from the model. Aide's skills keep `name` equal to
+  the folder and carry a description, so nothing breaks; verify once on an OpenCode 2 install.
+  [Page](https://opencode.ai/docs/skills)
+- ✅ OpenCode docs, agents page rewritten: Markdown agents use `permissions` as a list and the old v1 frontmatter is
+  deprecated. Aide installs no OpenCode agents, so it is not touched. [Page](https://opencode.ai/docs/agents)
+- ⚠️ Claude Code v2.1.319: `claude -p` now exits 1 in auto mode when actions were refused because no safety check was
+  available, and auto mode without server access asks or denies instead of using the built-in classifier. The runner
+  starts headless steps, so check that a step run this way is read as failed and not as done.
+  [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ Claude Code v2.1.319: `permissions.denyInsteadOfPrompting` denies a call that would wait on a prompt and lets the
+  turn continue; fits headless steps. Bash deny/ask rules no longer miss commands written with quoted words.
+  [Releases](https://github.com/anthropics/claude-code/releases)
+- ✅ Copilot CLI v1.0.108-0: `copilot help config` names the `.claude/rules` and `.claude/settings.json` files the CLI
+  reads, and skill names in `disabledSkills` match in any letter case.
+  [Releases](https://github.com/github/copilot-cli/releases)
+- ✅ X list, @AdamHoltererer, Nov 7: in T3 Code telemetry Opus 5.5 fails twice as many turns on max reasoning as on
+  high, and /fast is about 25% faster for 2.5x the usage. Bears on the effort a step sets.
+  [Post](https://x.com/AdamHoltererer/status/2118871687848477030)
+- ✅ X list, @somi_ai, Nov 7: a slide from Anthropic says "verify twice" prompts raised cost 48% with no gain in
+  accuracy; filler such as "be thorough" is prompt debt. Touches the wording of skills and runner prompts.
+  [Post](https://x.com/somi_ai/status/2118913468208402603)
+- ✅ X list, @zachlloydtweets, Nov 7: `/merge-risk` grades the risk of a pull request; Aide grades a change in analyze
+  but not at landing. [Post](https://x.com/zachlloydtweets/status/2118808092066672933)
+- ℹ Anthropic news: Opus 5.5, Sonnet 5.5, Haiku 5.5 dated Nov 7; the Codex changelog and releases show nothing new
+  beyond v0.167.0; the Copilot blog shows no new article on agents; X list: Claude Code cloud sessions save a repo's
+  environment (@ClaudeDevs), agent memory as plain .md files (@PawelHuryn).
 
 ### 2026-11-06
 
