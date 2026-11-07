@@ -1,0 +1,148 @@
+{
+  "_about": "The result file's structured fields as aide-run-spec writes them (`written`), and what the dashboard reads from each (`read`). The runner's tests check that every key the runner writes is one these cases know, with the same JSON type (run_spec_result_fields.py); dashboard/test/queue/runner/result-fields.test.ts reads every case through the dashboard's parser. A key the runner starts writing goes here first, and the dashboard's test then says what is read from it.",
+  "fields": {
+    "testsRed": [
+      {
+        "name": "red tests, none passed alone, with the suite's total",
+        "written": {
+          "tests": ["e2e/a.spec.ts:5 › a works", "e2e/b.spec.ts:9 › b works"],
+          "errors": ["", ""],
+          "failed": 2,
+          "total": 22,
+          "passedAlone": [],
+          "passedAloneErrors": [],
+          "passedAloneCount": 0
+        },
+        "read": {
+          "tests": ["e2e/a.spec.ts:5 › a works", "e2e/b.spec.ts:9 › b works"],
+          "errors": ["", ""],
+          "failed": 2,
+          "total": 22,
+          "passedAlone": [],
+          "passedAloneErrors": [],
+          "passedAloneCount": 0
+        }
+      },
+      {
+        "name": "one still red, one passed alone, no total",
+        "written": {
+          "tests": ["test/a.test.ts › a works"],
+          "errors": ["expected 1, got 2"],
+          "failed": 1,
+          "passedAlone": ["test/b.test.ts › b works"],
+          "passedAloneErrors": ["timed out"],
+          "passedAloneCount": 1
+        },
+        "read": {
+          "tests": ["test/a.test.ts › a works"],
+          "errors": ["expected 1, got 2"],
+          "failed": 1,
+          "passedAlone": ["test/b.test.ts › b works"],
+          "passedAloneErrors": ["timed out"],
+          "passedAloneCount": 1
+        }
+      }
+    ],
+    "testsNotStarted": [
+      {
+        "name": "no test command",
+        "written": { "kind": "test-command-unresolved" },
+        "read": { "kind": "test-command-unresolved" }
+      },
+      {
+        "name": "the spec folder is missing on the branch",
+        "written": { "kind": "spec-folder-missing", "folder": "42-dark-mode" },
+        "read": { "kind": "spec-folder-missing", "folder": "42-dark-mode" }
+      },
+      {
+        "name": "the recorder failed",
+        "written": { "kind": "recorder-failed", "exitCode": 2, "error": "the test recorder did not write a readable result (exit code 2)" },
+        "read": { "kind": "recorder-failed", "error": "the test recorder did not write a readable result (exit code 2)" }
+      },
+      {
+        "name": "a port in use, held by another spec's server",
+        "written": {
+          "kind": "port-in-use",
+          "port": 8806,
+          "url": "http://localhost:8806/health/ready",
+          "line": "Error: http://localhost:8806/health/ready is already used",
+          "command": "pnpm test",
+          "holder": { "pid": 4242, "command": "node", "cwd": "/h/.aide/dashboard/worktrees/skjera/58-sign-up/code", "project": "skjera", "spec": "58-sign-up" }
+        },
+        "read": {
+          "kind": "port-in-use",
+          "port": 8806,
+          "line": "Error: http://localhost:8806/health/ready is already used",
+          "command": "pnpm test",
+          "holder": { "pid": 4242, "command": "node", "spec": "58-sign-up" }
+        }
+      },
+      {
+        "name": "the server did not answer in time",
+        "written": { "kind": "server-timeout", "ms": 60000, "line": "Error: Timed out waiting 60000ms from config.webServer.", "command": "pnpm test:e2e" },
+        "read": { "kind": "server-timeout", "ms": 60000, "line": "Error: Timed out waiting 60000ms from config.webServer.", "command": "pnpm test:e2e" }
+      },
+      {
+        "name": "the server exited",
+        "written": { "kind": "server-exited", "line": "Error: Process from config.webServer was not able to start. Exit code: 1", "command": "pnpm test:e2e" },
+        "read": { "kind": "server-exited", "line": "Error: Process from config.webServer was not able to start. Exit code: 1", "command": "pnpm test:e2e" }
+      }
+    ],
+    "timeLimit": [
+      {
+        "name": "stopped in the session",
+        "written": { "seconds": 1800, "during": "session" },
+        "read": { "seconds": 1800, "during": "session" }
+      },
+      {
+        "name": "stopped in the tests",
+        "written": { "seconds": 6, "during": "tests" },
+        "read": { "seconds": 6, "during": "tests" }
+      }
+    ],
+    "providerError": [
+      {
+        "name": "the provider's own words",
+        "written": { "kind": "other", "message": "the model refused the turn" },
+        "read": { "kind": "other", "message": "the model refused the turn" }
+      },
+      {
+        "name": "not logged in",
+        "written": { "kind": "login", "message": "Not logged in, please run /login" },
+        "read": { "kind": "login", "message": "Not logged in, please run /login" }
+      },
+      {
+        "name": "the provider refused the account",
+        "written": { "kind": "forbidden", "message": "API Error: 403 forbidden" },
+        "read": { "kind": "forbidden", "message": "API Error: 403 forbidden" }
+      },
+      {
+        "name": "the network failed",
+        "written": { "kind": "network", "message": "fetch failed" },
+        "read": { "kind": "network", "message": "fetch failed" }
+      },
+      {
+        "name": "the provider's own side failed",
+        "written": { "kind": "provider", "message": "API Error: 500 internal server error" },
+        "read": { "kind": "provider", "message": "API Error: 500 internal server error" }
+      },
+      {
+        "name": "the tool said nothing",
+        "written": { "kind": "silent" },
+        "read": { "kind": "silent" }
+      }
+    ],
+    "scopeAnalyze": [
+      {
+        "name": "the project repo changed",
+        "written": { "project": { "committed": ["src/a.ts"], "uncommitted": ["new-code.txt"] }, "phaseRows": false, "workflowSteps": false },
+        "read": "project code (committed: src/a.ts; uncommitted: new-code.txt)"
+      },
+      {
+        "name": "a row ticked and a step claimed",
+        "written": { "phaseRows": true, "workflowSteps": true },
+        "read": "Phase-table rows; Workflow steps completed"
+      }
+    ]
+  }
+}

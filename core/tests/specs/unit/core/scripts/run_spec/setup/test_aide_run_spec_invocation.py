@@ -17,6 +17,7 @@ from ..run_spec_project_state import (
     CHOOSE_APPROACH, CRITERIA_CHECKS, SENT_BACK, configure_choose_approach, configure_criteria_checks, configure_sent_back,
 )
 from ..run_spec_results import FLAT_USAGE, MODEL_USAGE, RESULT_ERROR, RESULT_OK, init_event, stream_body
+from ..run_spec_result_fields import assert_written_as_in_fixture
 
 def test_the_claude_binary_can_be_named_in_the_projects_own_config(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")  # dry run: must not be called
@@ -267,6 +268,7 @@ def test_a_run_stopped_at_its_time_limit_keeps_the_model_id_but_no_tokens(runner
     assert out["modelId"] == "claude-opus-5-5"
     assert "tokens" not in out
     # The limit, for the board's own sentence: it ran out in the session.
+    assert_written_as_in_fixture("timeLimit", out["timeLimit"])
     assert out["timeLimit"] == {"seconds": int(STOP_DEADLINE_SEC), "during": "session"}
 
 def test_a_fake_claude_step_reports_no_model_id_even_when_its_stream_names_one(runner, workspace, fake_claude):

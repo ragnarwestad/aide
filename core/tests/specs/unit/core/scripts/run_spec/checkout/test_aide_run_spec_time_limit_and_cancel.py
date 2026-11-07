@@ -14,6 +14,7 @@ from ...conftest import git, run
 from ..run_spec_invoking import wait_until
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import conflicting_branch, with_status
+from ..run_spec_result_fields import assert_written_as_in_fixture
 
 BRANCH = "aide/81-queue-and-runner"
 
@@ -32,6 +33,7 @@ def test_the_runners_own_test_run_stops_at_the_steps_time_limit(runner, workspac
     assert time.monotonic() - began < 60, "the suite ran on past the step's own limit"
     assert out["terminalReason"] == "timeout", out
     assert "while the project's tests were running" in out["error"]
+    assert_written_as_in_fixture("timeLimit", out["timeLimit"])
     assert out["timeLimit"] == {"seconds": 6, "during": "tests"}
     # The work is on the branch, for the next press to test.
     assert git(workspace["project"], "show", f"{BRANCH}:implemented.txt") == "real work"

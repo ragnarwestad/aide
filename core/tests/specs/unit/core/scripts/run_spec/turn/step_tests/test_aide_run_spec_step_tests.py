@@ -20,6 +20,7 @@ from ...run_spec_results import (
     emits,
 )
 from ...run_spec_status_files import with_status
+from ...run_spec_result_fields import assert_written_as_in_fixture
 
 BRANCH = "aide/81-queue-and-runner"
 REVIEW_MARKER = "Read this spec's own description"
@@ -719,6 +720,7 @@ def test_a_suite_whose_server_could_not_start_ends_tests_not_started_with_no_fix
     rc, out, _ = run(runner, workspace, _fixing_claude(fake_claude, fix_on_retry=False), command="implement")
     assert out["ok"] is False, out
     assert out["terminalReason"] == "tests-not-started", out
+    assert_written_as_in_fixture("testsNotStarted", out["testsNotStarted"])
     assert out["testsNotStarted"]["kind"] == "port-in-use", out
     assert out["testsNotStarted"]["port"] == 8806, out
     assert out["testsNotStarted"]["holder"]["spec"] == "58-sign-up", out
@@ -748,6 +750,7 @@ def test_a_server_start_failure_names_each_failed_command_and_the_captured_line_
     )
     assert out["terminalReason"] == "tests-not-started", out
     assert "echo first failed; exit 1" not in out["error"], out["error"]
+    assert_written_as_in_fixture("testsNotStarted", out["testsNotStarted"])
     assert out["testsNotStarted"]["command"].startswith('echo "Error: Process'), out
     assert out["testsNotStarted"]["line"] == "Error: Process from config.webServer was not able to start. Exit code: 1", out
     assert "config.webServer was not able to start" in out["error"], out["error"]

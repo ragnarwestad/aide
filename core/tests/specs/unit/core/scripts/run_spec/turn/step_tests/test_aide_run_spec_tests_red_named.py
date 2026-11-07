@@ -7,6 +7,7 @@ import json
 from ....conftest import run, stand_in
 from ...run_spec_results import RESULT_OK
 from ...run_spec_status_files import with_status
+from ...run_spec_result_fields import assert_written_as_in_fixture
 
 
 def _project_with_test_cmd(workspace, cmd):
@@ -65,6 +66,7 @@ def test_red_tests_are_named_without_a_cause_when_no_files_command_is_set_ac_4_a
     claude, _ = _claude(fake_claude, tmp_path)
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "tests-red", out
+    assert_written_as_in_fixture("testsRed", out["testsRed"])
     assert out["testsRed"] == {
         "tests": ["e2e/a.spec.ts:5 › a works", "e2e/b.spec.ts:9 › b works"],
         "errors": ["", ""],
@@ -85,6 +87,7 @@ def test_whether_the_session_changed_a_failing_file_is_not_a_verdict_ac_6(
     claude, _ = _claude(fake_claude, tmp_path, work="mkdir -p web/e2e && printf 'x\\n' > web/e2e/a.spec.ts")
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "tests-red", out
+    assert_written_as_in_fixture("testsRed", out["testsRed"])
     assert "touched" not in out["testsRed"], out
     assert "untouched" not in out["testsRed"], out
 
@@ -97,6 +100,7 @@ def test_different_prior_failures_are_not_used_as_a_verdict_ac_6(runner, workspa
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "tests-red", out
     assert "variedBetweenRuns" not in out["testsRed"], out
+    assert_written_as_in_fixture("testsRed", out["testsRed"])
     assert out["testsRed"]["tests"] == ["e2e/c.spec.ts:3 › c works"], out
 
 

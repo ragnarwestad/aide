@@ -60,7 +60,7 @@ function scopeSpecsPaths(value: unknown): string | undefined {
   return paths.length ? paths.join(", ") : undefined;
 }
 
-function scopeAnalyzeChecks(value: unknown): string | undefined {
+export function scopeAnalyzeChecks(value: unknown): string | undefined {
   if (!value || typeof value !== "object") return undefined;
   const detail = value as { project?: unknown; phaseRows?: unknown; workflowSteps?: unknown };
   const checks: string[] = [];

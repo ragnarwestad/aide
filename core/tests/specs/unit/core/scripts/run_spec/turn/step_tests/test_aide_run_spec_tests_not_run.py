@@ -12,6 +12,7 @@ from ....conftest import READ_SPECS, stand_in
 from ....conftest import run
 from ...run_spec_results import RESULT_OK
 from ...run_spec_status_files import with_status
+from ...run_spec_result_fields import assert_written_as_in_fixture
 
 FOLDER = "81-queue-and-runner"
 
@@ -34,6 +35,7 @@ def test_an_unresolved_test_command_says_no_test_ran_and_names_the_manifest_fix_
     )
     rc, out, _ = run(runner, workspace, claude, command="implement", runner_path=scripts / "aide-run-spec")
     assert out["terminalReason"] == "tests-not-started", out
+    assert_written_as_in_fixture("testsNotStarted", out["testsNotStarted"])
     assert out["testsNotStarted"] == {"kind": "test-command-unresolved"}, out
     assert "no test ran" in out["error"], out["error"]
     assert "AIDE_TEST_CMD" in out["errorSolution"] and ".aide/project.yaml" in out["errorSolution"], out
@@ -66,6 +68,7 @@ def test_a_spec_folder_the_recorder_cannot_find_ends_tests_not_started_without_a
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["ok"] is False, out
     assert out["terminalReason"] == "tests-not-started", out
+    assert_written_as_in_fixture("testsNotStarted", out["testsNotStarted"])
     assert out["testsNotStarted"] == {"kind": "spec-folder-missing", "folder": FOLDER}, out
     assert "test suite is red" not in prompts.read_text(), "no fix round for tests that never ran"
 
@@ -92,6 +95,7 @@ def test_a_recorder_that_ends_without_a_result_is_not_red_tests_ac_3(
     )
     rc, out, _ = run(runner, workspace, claude, command="implement", runner_path=copied)
     assert out["terminalReason"] == "tests-not-started", out
+    assert_written_as_in_fixture("testsNotStarted", out["testsNotStarted"])
     assert out["testsNotStarted"]["kind"] == "recorder-failed", out
     # The board words this cause from its `error`, and reads nothing without one.
     assert "did not write a readable result" in out["testsNotStarted"].get("error", ""), out

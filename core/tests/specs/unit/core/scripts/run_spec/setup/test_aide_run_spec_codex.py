@@ -16,6 +16,7 @@ from ..run_spec_results import (
     CODEX_STREAM_NOT_LOGGED_IN, CODEX_STREAM_OK,
     CODEX_STREAM_RECOVERED, CODEX_STREAM_USAGE_LIMIT, CODEX_THREAD_ID, CODEX_USAGE, RESULT_OK, emits,
 )
+from ..run_spec_result_fields import assert_written_as_in_fixture
 
 
 def test_a_codex_run_records_tool_and_tokens_but_no_cost(runner, workspace, fake_codex):
@@ -335,6 +336,7 @@ def test_a_failed_codex_turn_says_codex_s_own_error_not_its_exit_code(runner, wo
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
     assert out["error"] == "the model refused the turn", out["error"]
     assert out["errorSolution"] == "press Implement again", out
+    assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"] == {"kind": "other", "message": "the model refused the turn"}
 
 
@@ -343,6 +345,7 @@ def test_a_codex_401_is_a_login_error(runner, workspace, fake_codex):
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["terminalReason"] == "cli-error", out
     assert CODEX_401_MESSAGE in out["error"], out["error"]
+    assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"]["kind"] == "login", out
 
 

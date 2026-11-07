@@ -12,6 +12,7 @@ from ..run_spec_fakes import analyze_claude_advancing_row, analyze_claude_naming
 from ..run_spec_origins import origin
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import conflicting_branch, recorded_line, status_with_phase, with_status, write_raw_status
+from ..run_spec_result_fields import assert_written_as_in_fixture
 
 
 def test_a_completed_claim_with_no_project_change_at_all_is_downgraded(
@@ -254,6 +255,7 @@ def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded(
     assert out["ok"] is False, out
     assert out["terminalReason"] == "scope-violation", out
     assert out["scopeViolation"] == "analyze", out
+    assert_written_as_in_fixture("scopeAnalyze", out["scopeAnalyze"])
     assert out["scopeAnalyze"] == {
         "project": {"committed": [], "uncommitted": ["new-code.txt"]},
         "phaseRows": False,
@@ -274,6 +276,7 @@ def test_analyze_scope_keeps_a_changed_path_with_spaces_whole(
     )
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
+    assert_written_as_in_fixture("scopeAnalyze", out["scopeAnalyze"])
     assert out["scopeAnalyze"]["project"]["uncommitted"] == ["src/my file.ts"], out
 
 @pytest.mark.parametrize("mark", ["✅", "🔄", "❌", "⚠️"])

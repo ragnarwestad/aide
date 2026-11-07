@@ -16,6 +16,7 @@ from ..run_spec_results import (
     OVERLOAD_RETRIES, RESULT_OK, RESULT_OVERLOADED, RESULT_OVERLOADED_TEXT, STREAM_NOISE, claude_api_error,
     stream_body,
 )
+from ..run_spec_result_fields import assert_written_as_in_fixture
 
 def test_the_kept_stream_survives_the_work_dir_cleanup(runner, workspace, fake_claude, tmp_path):
     stream = tmp_path / "job.stream.jsonl"
@@ -162,11 +163,13 @@ def test_a_claude_api_error_carries_the_provider_s_own_words_and_kind_AC_6(runne
     expected_end = "log in to claude on the serving host, then press Analyze again" if kind == "login" else "press Analyze again"
     assert out["error"] == text, out["error"]
     assert out["errorSolution"] == expected_end, out
+    assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"]["kind"] == kind, out
 
 def test_a_claude_error_of_no_known_kind_carries_its_first_line(runner, workspace, fake_claude):
     result = {**RESULT_OK, "is_error": True, "errors": ["provider request failed", "more"]}
     _, out, _ = run(runner, workspace, fake_claude(stream_body(result)))
+    assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"] == {"kind": "other", "message": "provider request failed; more"}
 
 def test_a_step_that_completed_carries_no_provider_error(runner, workspace, fake_claude):
@@ -178,6 +181,7 @@ def test_nonzero_exit_prevents_a_success_subtype_from_completing(runner, workspa
     _, out, _ = run(runner, workspace, claude)
     assert out["ok"] is False
     assert out["terminalReason"] == "cli-error"
+    assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"] == {"kind": "silent"}
     assert "ended (exit 1) without giving a reason" in out["error"]
     assert "this step's log" in out["errorSolution"]
@@ -186,6 +190,7 @@ def test_nonzero_exit_prevents_a_success_subtype_from_completing(runner, workspa
 def test_a_non_success_result_keeps_its_supplied_cause_AC_6(runner, workspace, fake_claude):
     result = {**RESULT_OK, "subtype": "error", "errors": ["provider said why"]}
     _, out, _ = run(runner, workspace, fake_claude(stream_body(result, exit_code=1)))
+    assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"] == {"kind": "other", "message": "provider said why"}
     assert "provider said why" in out["error"]
 
@@ -396,6 +401,7 @@ def test_a_claude_server_error_after_529_retries_is_a_cli_error(runner, workspac
     claude = fake_claude(stream_body(result, before=OVERLOAD_RETRIES, exit_code=1))
     rc, out, _ = run(runner, workspace, claude)
     assert out["terminalReason"] == "cli-error"
+    assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"]["kind"] == "provider", out
 
 CORRUPT_CLAUDE_JSON = (
