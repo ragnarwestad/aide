@@ -89,19 +89,28 @@ export function toolFailureSentence(f: ToolFailure): ReturnType<typeof errorSent
   return errorSentence({ what, resolve, detail: said });
 }
 
+/** What stays behind the (?) of a sentence the board words: the result's
+ *  `errorLog`, and for a result without one — a refusal the board words
+ *  (`fetchFailure`, `conflict`), a deploy, or a result from a runner that did
+ *  not yet send it — the runner's own words, whole. */
+export function stepDetail(outcome: { error?: unknown; errorLog?: unknown }): string | undefined {
+  if (typeof outcome.errorLog === "string" && outcome.errorLog.trim()) return outcome.errorLog;
+  return typeof outcome.error === "string" && outcome.error ? outcome.error : undefined;
+}
+
 /** What a failed step's `error` and `errorDetail` should be, decided in
  *  one place rather than inline in the runner's own transition call.
  *
  *  A board message wins outright: it already says what to do, and the
- *  CLI's own sentence survives as hover detail behind it. Otherwise the
+ *  result's `errorLog` survives as hover detail behind it. Otherwise the
  *  sentence above is used when there is an AI or a model to name, and
  *  the CLI's raw words only when there is neither. */
 export function stepFailure<M>(
   boardMessage: M | undefined,
-  outcome: { error?: unknown; errorSolution?: unknown; terminalReason?: string; tool?: string },
+  outcome: { error?: unknown; errorLog?: unknown; errorSolution?: unknown; terminalReason?: string; tool?: string },
   model: string | undefined,
 ): { error: M | BoardMessage | string | undefined; errorDetail: string | undefined } {
-  const said = typeof outcome.error === "string" ? outcome.error : undefined;
+  const said = stepDetail(outcome);
   if (boardMessage) return { error: boardMessage, errorDetail: said };
   const named = toolFailureSentence({
     error: said,

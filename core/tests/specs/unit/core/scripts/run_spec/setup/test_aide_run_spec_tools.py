@@ -323,7 +323,7 @@ def test_an_archive_that_drops_the_open_merge_is_merge_unfinished_not_completed(
     rc, out, _ = run(runner, workspace, claude, command="archive", push="branch")
     assert out["ok"] is False, out
     assert out["terminalReason"] == "merge-unfinished", out
-    assert "still behind main" in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
     assert not is_ancestor(project, "main", branch), "the branch was left as the step found it"
 
 

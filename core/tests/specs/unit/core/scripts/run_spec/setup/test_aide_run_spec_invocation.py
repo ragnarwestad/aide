@@ -485,15 +485,10 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
         workspace["project"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner"
     ).startswith("WIP: ")
 
-    # The sentence a reader actually sees. A stop at OUR OWN
-    # limit is not an outside fault, and the work is not lost — the
-    # commit asserted two lines above is exactly what makes that true.
-    # `error` is read verbatim by the row's panel and the job page's
-    # banner, so this string is the whole of what either one says.
-    assert "time limit" in out["error"]
-    assert f"{STOP_DEADLINE_SEC}-second" in out["error"], "the limit's own number belongs in the sentence"
-    assert "committed" in out["error"]
-    assert "killed" not in out["error"], "a limit we set is not something that happened to us"
+    # The board words a stop at OUR OWN limit from the limit itself, so the
+    # result carries it as a field and no sentence of the runner's.
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert out["timeLimit"] == {"seconds": int(STOP_DEADLINE_SEC), "during": "session"}, out
 
 def test_a_stopped_run_reports_unmeasured_cost_even_when_it_flushes_json(runner, workspace, fake_claude):
     """Measured on the mini 2026-08-16: a SIGTERM'd `claude -p` DOES

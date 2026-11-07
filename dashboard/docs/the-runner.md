@@ -129,7 +129,7 @@ read first and never reach this.
 Every kind except `silent` carries the provider's first line as `message`, cut at a word after 160 characters. The board
 words each kind in the reader's language (`cliErrorMessage`, `src/queue/runner/cross-check-message.ts`): login, account
 access, the serving host's network, the provider's side, another error, or a turn that gave no reason. The cause appears
-in every sentence that has one. The job's whole `error` stays behind the row's (?). A step with no `providerError`, or on a
+in every sentence that has one. The result's `errorLog`, the tool's own words, stays behind the row's (?). A step with no `providerError`, or on a
 tool that is no provider, gets the sentence in `src/format/tool-failure.ts`, which names the tool and the model and carries the tool's words as
 they came.
 
@@ -156,7 +156,7 @@ opencode has no reader.
 and `during`, `session` when it ran out in the AI tool's turn or `tests` when it ran out in the runner's own run of the
 project's tests. The work so far is committed to the branch either way. The board's sentence names the limit (in whole
 minutes, else seconds) and says to press the step again — to carry on, or to test what is there — or to raise the step's
-time limit under Settings. The runner's own sentence says nothing more, so the row has no (?) for it.
+time limit under Settings. The result carries no sentence of the runner's for it, so the row has no (?).
 
 ## The dashboard's own checkouts
 
@@ -259,7 +259,7 @@ question to origin, and when origin does not answer, the push's own words decide
 GitHub does not take fails both. `message` leaves out the `To <url>` and `hint:` lines and the sentences git adds to
 every failure, and is cut at a word after 160 characters.
 
-The job's `error` and `pushError` keep git's text in whole lines, eight at most, without colour codes, carriage
+The result's `errorLog` and `pushError` keep git's text in whole lines, eight at most, without colour codes, carriage
 returns or blank lines (`git_error_detail`), and the board shows it behind the row's (?). The row's own sentence is
 the board's (`gitFailureMessage`, `src/queue/runner/git-failure.ts`): one per repo, naming the repo and the branch,
 with why in the reader's language: `auth` names the SSH key; `no-write`, `https-auth` and `network` name the distinct
@@ -269,7 +269,7 @@ git gave no error text.
 **A fetch of the base that fails is sorted the same way.** Before it cuts a new branch, the runner fetches the base
 from origin (`fetch_base_with_retry`, `run-spec/setup/gates.sh`, three retries) and refuses when it still fails, rather
 than cut the branch from the checkout's own tip. The result carries the cause as `fetchFailure`, shaped as one entry
-of `pushFailures` with the base as `branch`, and `error` keeps git's lines whole for the (?). The row names the repo and
+of `pushFailures` with the base as `branch`, and the refusal's `error` keeps git's lines whole for the (?). The row names the repo and
 the base: `auth`, `no-write`, `https-auth`, `network` and `github` read as for a push; `other`, `refused` and `none` give git's first line, or say git gave
 no text, and say to run `git fetch` by hand in the checkout on the serving host if trying again fails the same way.
 
@@ -426,15 +426,16 @@ evidence that the phase happened:
 A `scope-violation` carries `scopeViolation`: `specs` when the step wrote outside its own spec folder (those changes
 are undone), with the first three paths it wrote in `scopeSpecs`, and `analyze` when an analyze changed what it may not.
 The board words these, and a `short-analysis-over-limit`, a `sent-back`, a `sent-back-refused` and a `create` that made
-no folder, in the reader's language with what to press (`src/queue/runner/cross-check-message.ts`). The (?) holds the
-runner's own sentence only where it says something the board's sentence does not:
+no folder, in the reader's language with what to press (`src/queue/runner/cross-check-message.ts`). The result carries
+no sentence for them, and the (?) holds the result's `errorLog`, whole:
 
 - the limits a short analysis crossed;
-- the reason a sent-back gave;
+- the reason a sent-back gave, and for a refused one why it was refused;
 - where a create looked for its folder;
-- the paths or checks of a scope violation from a result that does not list them.
+- the failing test lines of a red run.
 
-A scope violation's paths and checks are otherwise in the board's sentence, and so are the failing tests of a red run.
+Which endings the runner leaves without a sentence is listed in
+[Where a failure's sentence comes from](error-sentences.md#where-a-failures-sentence-comes-from).
 
 **A stamp counts only while nothing cancels it.** An `**Archived:**` or `**Closed:**` line is in effect until a
 later `**Round boundary:**`, `**Reopened:**` or `**Reset:**` mark follows it, and every reader applies that same

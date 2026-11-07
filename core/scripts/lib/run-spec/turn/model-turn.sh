@@ -83,7 +83,7 @@ run_model_turn() {
   duration=$(( $(date +%s) - started_at ))
 
 # --- reading what came back --------------------------------------------------
-session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""; error_solution=""
+session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""; error_solution=""; error_log=""
 # Where this turn's own bytes begin in the transcript. Every turn of a step
 # appends to the one transcript — the review's and verification's side turns
 # included — so the last closing event or limit event in the file may be an
@@ -447,6 +447,11 @@ else
     provider_error_out="$(provider_error_json "$(tail -n 5 "$work_dir/err" 2>/dev/null)")"
     error_solution="$(provider_error_ending "$(jq -r .kind <<<"$provider_error_out")" "$tool" "$step_button")"
   fi
+fi
+# A failed tool's own words are what the board shows behind its sentence. A
+# tool that gave no reason has none: the runner's line saying so is not kept.
+if [ "$terminal_reason" = "cli-error" ] && [ "$(jq -r '.kind // empty' <<<"${provider_error_out:-null}" 2>/dev/null)" != "silent" ]; then
+  error_log="$error_msg"
 fi
 [ -n "$resume_part" ] && [ "$resume_part" != "preparing" ] && aide_part_open "$resume_part"
 return 0

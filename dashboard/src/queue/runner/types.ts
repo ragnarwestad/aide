@@ -124,6 +124,12 @@ export interface StepOutcome {
   /** What resolves `error`, written apart by the runner; absent when the
    *  runner gives no fix, and in a result written before it did. */
   errorSolution?: string;
+  /** The facts and raw words behind an ending the board words itself: the
+   *  failing test lines, what the tool or git said, the plan review's
+   *  faults as written. Sent instead of `error` for those endings
+   *  (`board_words_ending`, `run-spec/publish/result.sh`); it stays behind
+   *  the (?) as it came. Absent when there are none. */
+  errorLog?: string;
   /** A deploy's failure in the board's own words, which the English `error`
    *  beside it restates: the job's row reads this, and `error` is its
    *  hover detail. Only a `deploy` step writes it. */

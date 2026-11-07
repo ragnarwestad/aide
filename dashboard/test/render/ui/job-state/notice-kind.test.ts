@@ -4,6 +4,7 @@
 // ONE producer's "held back:" prefix, which left every other waiting-
 // shaped message still guessing "warn" or "err" for itself.
 import { describe, expect, test } from "bun:test";
+import { HELD_BACK_INFO_KEYS } from "../../../../src/render/ui/job-state/notice.ts";
 import { specNotice } from "../../../../src/render/ui/job-state";
 import type { QueueRowView } from "../../../../src/render";
 
@@ -123,5 +124,15 @@ describe("specNotice for a step stopped because the model is at capacity", () =>
     );
     expect(notice?.variant).toBe("waiting");
     expect(notice?.text).toContain("sonnet");
+  });
+});
+
+
+describe("informational holds", () => {
+  test.each([...HELD_BACK_INFO_KEYS])("%s has no error labels", (key) => {
+    const notice = specNotice(lead({ steps: ["analyze"], errorReason: "held-back",
+      error: { key, values: { dependency: "aide:726" } } }));
+    expect(notice?.variant).toBe("info");
+    expect(notice?.text).not.toMatch(/^(Problem|Solution):/m);
   });
 });

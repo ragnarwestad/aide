@@ -77,9 +77,8 @@ def test_a_spec_sharing_a_file_ends_the_analysis_stopped_ac_1_ac_2_ac_6(runner, 
     out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts", "mine.ts"])
     assert out["ok"] is False, out
     assert out["terminalReason"] == "shared-files", out
-    assert OTHER in out["error"] and "shared.ts" in out["error"], out["error"]
-    assert "plan to change the same files" in out["error"], out["error"]
-    assert "Depends on" in out["errorSolution"], out
+    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
+    assert out["sharedFiles"] == [{"spec": OTHER, "files": ["shared.ts"]}], out
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: shared-files)"), subject
 
@@ -112,8 +111,7 @@ def test_the_result_lists_each_spec_with_its_files(runner, workspace, fake_claud
         {"spec": OTHER, "files": ["x.ts", "y.ts"]},
         {"spec": THIRD, "files": ["z.ts"]},
     ], out
-    for name in (OTHER, THIRD, "x.ts", "y.ts", "z.ts"):
-        assert name in out["error"], out["error"]
+    assert out["error"] is None, out
 
 
 def test_a_spec_the_record_already_named_before_the_turn_lets_the_step_complete(runner, workspace, fake_claude):
@@ -132,7 +130,7 @@ def test_a_new_spec_still_stops_the_step_naming_it_alone(runner, workspace, fake
     )
     assert out["terminalReason"] == "shared-files", out
     assert out["sharedFiles"] == [{"spec": THIRD, "files": ["fresh.ts"]}], out
-    assert OTHER not in out["error"], out["error"]
+    assert out["error"] is None, out
 
 
 def test_a_stopped_analysis_leaves_the_description_as_it_was(runner, workspace, fake_claude):

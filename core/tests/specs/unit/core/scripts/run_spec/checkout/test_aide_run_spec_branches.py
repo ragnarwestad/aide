@@ -274,7 +274,9 @@ def test_a_push_origin_refuses_says_why_not_diverged(
     assert out["terminalReason"] == "unpushed", out
     assert "Permission to org/repo.git denied" in out["pushError"], out["pushError"]
     assert "diverged" not in out["pushError"], out["pushError"]
-    assert "Permission to org/repo.git denied" in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert "Permission to org/repo.git denied" in out["errorLog"], out["errorLog"]
+    assert out["pushFailures"], out
 
 def test_a_push_that_cannot_reach_its_remote_at_all_still_needs_no_retry(
     runner, workspace, fake_claude

@@ -95,7 +95,8 @@ def test_is_error_prevents_a_success_subtype_from_completing(runner, workspace, 
     _, out, _ = run(runner, workspace, claude)
     assert out["ok"] is False
     assert out["terminalReason"] == "cli-error"
-    assert "provider request failed" in out["error"]
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert "provider request failed" in out["errorLog"]
 
 # What Claude Code writes when the model declines to go on, read off the
 # stream of a real refused analysis: a system event, an assistant event that
@@ -133,8 +134,7 @@ def test_a_refusal_ends_model_refused_and_the_commit_says_so(runner, workspace, 
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "model-refused", out
-    assert "Analyze" in out["error"] and "declined" in out["error"], out["error"]
-    assert "provider reported an error" not in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
     subject_line = git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner")
     assert subject_line.endswith("(stopped: model-refused)"), subject_line
 
@@ -160,9 +160,8 @@ def test_a_claude_api_error_carries_the_provider_s_own_words_and_kind_AC_6(runne
     claude = fake_claude(stream_body(result, before=before, exit_code=1))
     _, out, _ = run(runner, workspace, claude, command="analyze")
     assert out["terminalReason"] == "cli-error", out
-    expected_end = "log in to claude on the serving host, then press Analyze again" if kind == "login" else "press Analyze again"
-    assert out["error"] == text, out["error"]
-    assert out["errorSolution"] == expected_end, out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert out["errorLog"] == text, out["errorLog"]
     assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"]["kind"] == kind, out
 
@@ -183,8 +182,8 @@ def test_nonzero_exit_prevents_a_success_subtype_from_completing(runner, workspa
     assert out["terminalReason"] == "cli-error"
     assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"] == {"kind": "silent"}
-    assert "ended (exit 1) without giving a reason" in out["error"]
-    assert "this step's log" in out["errorSolution"]
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert "errorLog" not in out, out
 
 
 def test_a_non_success_result_keeps_its_supplied_cause_AC_6(runner, workspace, fake_claude):
@@ -192,7 +191,7 @@ def test_a_non_success_result_keeps_its_supplied_cause_AC_6(runner, workspace, f
     _, out, _ = run(runner, workspace, fake_claude(stream_body(result, exit_code=1)))
     assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"] == {"kind": "other", "message": "provider said why"}
-    assert "provider said why" in out["error"]
+    assert out["error"] is None and "provider said why" in out["errorLog"], out
 
 def test_exit_zero_and_a_non_error_success_still_complete(runner, workspace, fake_claude):
     claude = fake_claude(stream_body(RESULT_OK, exit_code=0))
@@ -375,7 +374,7 @@ def test_a_claude_overloaded_result_is_a_model_at_capacity_stop(runner, workspac
     assert rc == 0, out
     assert out["ok"] is False
     assert out["terminalReason"] == "model-at-capacity", out
-    assert "sonnet is at capacity right now" in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
     assert out["costUsd"] == pytest.approx(RESULT_OVERLOADED["total_cost_usd"])
 
 
@@ -417,6 +416,5 @@ def test_a_damaged_claude_json_is_not_answered_with_press_again(runner, workspac
     _, out, _ = run(runner, workspace, fake_claude(body))
     assert out["ok"] is False
     assert out["terminalReason"] == "cli-error"
-    assert "Fix the JSON in /Users/me/.claude.json" in out["error"], out["error"]
-    assert "press Analyze again" not in out["errorSolution"], out
-    assert "serving host" in out["errorSolution"], out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert "Fix the JSON in /Users/me/.claude.json" in out["errorLog"], out["errorLog"]

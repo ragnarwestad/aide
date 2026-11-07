@@ -6,7 +6,7 @@
 // of four AIs it even came from.
 
 import { describe, expect, test } from "bun:test";
-import { stepFailure, toolFailureSentence } from "../../src/format/tool-failure.ts";
+import { stepDetail, stepFailure, toolFailureSentence } from "../../src/format/tool-failure.ts";
 import { renderSentence } from "../../src/i18n/message.ts";
 import { writtenMessage } from "../../src/format/error-sentence.ts";
 
@@ -156,5 +156,36 @@ describe("stepFailure with the runner's fix apart", () => {
   test("an outcome from a runner before the fix was apart keeps its plain string (AC-5)", () => {
     const out = stepFailure(undefined, { error: "cannot do x — fix y", terminalReason: "refused" }, undefined);
     expect(out.error).toBe("cannot do x — fix y");
+  });
+});
+
+describe("stepDetail", () => {
+  test("is the result's errorLog when it has one (AC-2)", () => {
+    expect(stepDetail({ errorLog: "a.test.ts › works\nb.test.ts › stays" })).toBe("a.test.ts › works\nb.test.ts › stays");
+  });
+
+  test("is the runner's own error, whole, when there is no errorLog (AC-4)", () => {
+    expect(stepDetail({ error: "first line\nsecond line" })).toBe("first line\nsecond line");
+  });
+
+  test("is nothing when the result has neither", () => {
+    expect(stepDetail({})).toBeUndefined();
+    expect(stepDetail({ errorLog: "  " })).toBeUndefined();
+  });
+});
+
+describe("stepFailure with an errorLog", () => {
+  test("a board message's detail is the errorLog (AC-2)", () => {
+    const out = stepFailure({ key: "runner.testsRedImplement" }, { errorLog: "a.test.ts › works", terminalReason: "tests-red" }, "Sonnet");
+    expect(out.error).toEqual({ key: "runner.testsRedImplement" });
+    expect(out.errorDetail).toBe("a.test.ts › works");
+  });
+
+  test("a cli-error whose words are in errorLog names the AI and the model with those words (AC-2)", () => {
+    const out = stepFailure(undefined, { errorLog: "boom", tool: "opencode", terminalReason: "cli-error" }, "gemini-3.1-pro");
+    const sentence = renderSentence("en", out.error as never) ?? "";
+    expect(sentence).toContain("OpenCode on gemini-3.1-pro");
+    expect(sentence).toContain("boom");
+    expect(out.errorDetail).toBe("boom");
   });
 });

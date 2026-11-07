@@ -80,5 +80,6 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ]; then
     fi
     error_msg="$step_button wrote a short analysis for a spec that may not have one: $sa_crossed"
     error_solution="Analyze runs again and writes the full analysis"
+    error_log="$sa_crossed"
   fi
 fi

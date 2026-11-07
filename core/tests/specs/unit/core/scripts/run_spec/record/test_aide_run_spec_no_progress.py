@@ -136,7 +136,7 @@ def test_archive_no_progress_guard_downgrades_when_the_folder_never_moved(
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "no-progress", out
-    assert "never moved to archive" in out["error"], out
+    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
     assert recorded_line(workspace) == "create, analyze, implement"
 
 def _archive_claim_after_resolving_a_conflict(runner, workspace, fake_claude):

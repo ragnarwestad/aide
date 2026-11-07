@@ -113,7 +113,8 @@ def test_a_verification_that_does_not_complete_stops_without_a_fallback(runner, 
     claude = _claude(fake_claude, TWO_DEFECTS, verify_body="exit 3")
     rc, out, _, err = run(runner, workspace, claude, command="implement", review_model="claude-sonnet-4", verify_model="claude-opus-4", return_stderr=True)
     assert out["terminalReason"] == "cli-error", out
-    assert "Verify" in out["error"] and "claude-opus-4" in out["error"], out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert "Verify" in out["errorLog"] and "claude-opus-4" in out["errorLog"], out
     assert len(fake_claude.calls.read_text().splitlines()) == 3
     assert WENT_BACK not in _stamped(err)
 
@@ -145,7 +146,8 @@ def test_a_codex_review_at_capacity_stops_without_a_fallback(
     rc, out, _, err = run(runner, workspace, claude, codex=codex, command="implement",
                           review_tool="codex", review_model="gpt-6.1-sol", return_stderr=True)
     assert out["terminalReason"] == "model-at-capacity", out
-    assert "Review" in out["error"] and "gpt-6.1-sol" in out["error"], out
+    assert out["error"] is None, out
+    assert "Review" in out["errorLog"] and "gpt-6.1-sol" in out["errorLog"], out
     calls = fake_claude.calls.read_text().splitlines()
     assert len(calls) == 1, calls
 
@@ -199,7 +201,8 @@ def test_a_review_on_the_stand_in_with_no_stand_in_never_reaches_a_model(runner,
     rc, out, _ = run(runner, workspace, codex=codex, command="implement", tool="codex",
                      review_tool="fake-claude", review_model="fake-review")
     assert out["terminalReason"] != "completed", out
-    assert "Review" in out["error"] and "fake-review" in out["error"], out
+    assert out["error"] is None, out
+    assert "Review" in out["errorLog"] and "fake-review" in out["errorLog"], out
     assert len(fake_codex.calls.read_text().splitlines()) == 1
 
 

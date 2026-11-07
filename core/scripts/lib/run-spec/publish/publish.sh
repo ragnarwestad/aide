@@ -322,6 +322,7 @@ EXCLUDES_EOF
       amend_note="${model_suffix}${suffix}"
       error_msg="the step's own work could not be committed in $root${commit_said:+ — $commit_said}"
       error_solution="fix the checkout on the serving host, then press $step_button again"
+      error_log="${commit_said:-}"
       stage_error "$error_msg"
     fi
     head_after_per_root[i]="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "${head_after_per_root[$i]}")"

@@ -28,16 +28,16 @@
 // here, re-exporting them for every existing importer.
 
 import { specReference } from "../../project/spec-folder.ts";
-import { cliErrorMessage, noProgressMessage, runnerWords, runStopMessage, withoutRestatedError } from "./cross-check-message.ts";
+import { cliErrorMessage, noProgressMessage, runnerWords, runStopMessage } from "./cross-check-message.ts";
 import { gitFailureMessage } from "./git-failure.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import type { BoardMessage } from "../../i18n/message.ts";
+import { renderSentence, type BoardMessage, type Sentence } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
 import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { isRunStop, takesSlot } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
-import { stepFailure } from "../../format/tool-failure.ts";
+import { stepDetail, stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
 import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-hold.ts";
 import { projectHold } from "./project-holds.ts";
@@ -413,9 +413,7 @@ export class Runner {
         ...usageLimitWait(outcome, stoppedAt),
         finishedAt: stoppedAt,
         error: worded ?? runnerWords(outcome),
-        // The reason a sent-back gave, in the runner's words. Every other
-        // stop the board words names all the runner's sentence says.
-        errorDetail: worded && outcome.terminalReason === "sent-back" && typeof outcome.error === "string" ? outcome.error : undefined,
+        errorDetail: worded ? stepDetail(outcome) : undefined,
       });
       this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
       return;
@@ -423,7 +421,7 @@ export class Runner {
     if (!outcome.ok) {
       const failure = stepFailure(
         noProgressMessage(step, outcome) ?? cliErrorMessage(step, outcome) ?? gitFailureMessage(outcome),
-        withoutRestatedError(outcome, step),
+        outcome,
         job.model[step] ?? job.modelChoice,
       );
       const result = this.o.store.transition(job.id, "step-failed", {
@@ -438,7 +436,9 @@ export class Runner {
         // reason left by an earlier attempt.
         errorReason: outcome.errorReason,
       });
-      this.announce(result.ok ? result.job : job, "failed", step, outcome.error ?? outcome.terminalReason);
+      // The notifier gets a sentence: the runner's own where it sent one, else the board's, in English.
+      const reason = outcome.error ?? renderSentence("en", failure.error as Sentence | Sentence[] | undefined);
+      this.announce(result.ok ? result.job : job, "failed", step, reason ?? outcome.terminalReason);
       return;
     }
 

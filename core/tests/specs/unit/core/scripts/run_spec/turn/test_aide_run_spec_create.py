@@ -170,7 +170,8 @@ def test_a_create_that_made_no_folder_did_not_make_the_spec(runner, workspace, f
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "no-progress", out
-    assert f"made no spec folder named {CREATE_KEY}" in out["error"], out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert out["errorLog"].startswith(f"no spec folder named {CREATE_KEY} under "), out
     assert "specFolder" not in out, out
 
 def test_a_create_folder_one_level_too_high_is_refused_and_named(runner, workspace, fake_claude):
@@ -194,7 +195,8 @@ def test_a_create_folder_one_level_too_high_is_refused_and_named(runner, workspa
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "no-progress", out
-    assert f"{CREATE_KEY} is at {CREATE_KEY} in the specs repository, not under proj-a" in out["error"], out
+    assert out["error"] is None, out
+    assert out["errorLog"] == f"{CREATE_KEY} is at {CREATE_KEY} in the specs repository, not under proj-a", out
 
 def test_create_is_told_the_specs_root_it_must_write_under(runner, workspace, fake_claude, tmp_path):
     """The path is a fact the prompt states, the same way the folder's

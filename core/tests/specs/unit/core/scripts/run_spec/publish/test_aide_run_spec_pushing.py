@@ -302,8 +302,8 @@ def test_an_unpushed_step_never_lands_on_the_workflow_steps_line(
     assert out["terminalReason"] == "unpushed"
     # The repository (or repositories) that did not confirm are
     # named, not just "a push failed" generically.
-    assert str(workspace["project"]) in out["error"], out["error"]
-    assert str(workspace["specs"]) in out["error"], out["error"]
+    assert out["error"] is None, out
+    assert sorted(f["repo"] for f in out["pushFailures"]) == ["code", "specs"], out["pushFailures"]
     branch = "aide/81-queue-and-runner"
     line = workflow_steps_line(workspace["specs"], branch, workspace["folder"])
     assert line == "- **Workflow steps completed:** analyze", line
@@ -342,8 +342,8 @@ def test_a_re_run_after_unpushed_reaches_origin_and_lands_on_the_line(
     assert rc == 0, out
     assert out["ok"] is False
     assert out["terminalReason"] == "unpushed"
-    assert str(project) in out["error"], out["error"]
-    assert str(workspace["specs"]) in out["error"], out["error"]
+    assert out["error"] is None, out
+    assert sorted(f["repo"] for f in out["pushFailures"]) == ["code", "specs"], out["pushFailures"]
 
     # Origin now accepts pushes — the same two bare repos, hook removed.
     (rejecting_origin["project"] / "hooks" / "pre-receive").unlink()
@@ -375,7 +375,8 @@ def test_the_second_pass_alone_can_fail_unpushed(
     assert out["ok"] is False
     assert out["terminalReason"] == "unpushed"
     assert out["pushError"]
-    assert out["pushError"] in out["error"], "the line's own push says why it failed"
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert out["pushError"] in out["errorLog"], "the line's own push says why it failed"
     assert [(f["repo"], f["kind"]) for f in out["pushFailures"]] == [("specs", "refused")]
     branch = "aide/81-queue-and-runner"
     # Origin's own copy is exactly pass 1's content — the line's own

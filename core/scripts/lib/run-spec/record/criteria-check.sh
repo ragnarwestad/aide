@@ -60,5 +60,6 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ 
     amend_note="${model_suffix}${suffix}"
     error_msg="$step_button stopped on the acceptance criteria — $criteria_check_faults"
     error_solution="put the description right, then press $step_button again"
+    error_log="$criteria_check_faults"
   fi
 fi

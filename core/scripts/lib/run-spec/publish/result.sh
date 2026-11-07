@@ -28,6 +28,7 @@ if [ "$terminal_reason" = "completed" ] && [ -n "$status_file" ] \
   suffix=" (stopped: unpushed)"
   error_msg="the step's own work did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
   error_solution="fix the branch in the checkout on the serving host"
+  error_log="${push_error:-}"
   note_unpushed_without_failure
 elif [ -n "$status_file" ]; then
   completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file" "$specs_ref_before"
@@ -110,6 +111,7 @@ elif [ -n "$status_file" ]; then
     suffix=" (stopped: unpushed)"
     error_msg="the workflow-steps line did not reach origin: $unpushed_roots${push_error:+ — $push_error}"
     error_solution="fix the branch in the checkout on the serving host"
+    error_log="${push_error:-}"
     note_unpushed_without_failure
   fi
 fi
@@ -196,11 +198,33 @@ fi
 cost_json="null"
 [ "$cost_known" = "true" ] && cost_json="$cost"
 
+# The endings the board words itself from the result's own fields
+# (core/tests/fixtures/board-worded-endings.json is the table both sides read).
+# For one of these the result carries the fields and `errorLog`, and no sentence;
+# the run log below still gets the runner's own.
+board_words_ending() {
+  case "$terminal_reason" in
+    tests-red|tests-not-started|model-refused|merge-unfinished|scope-violation|model-at-capacity|cli-error|\
+    short-analysis-over-limit|sent-back|sent-back-refused) return 0 ;;
+    timeout) [ -n "${time_limit_json:-}" ] && return 0 ;;
+    shared-files) jq -e 'length > 0' <<<"${shared_files_json:-null}" >/dev/null 2>&1 && return 0 ;;
+    no-progress) case "$command_name" in implement|archive|create) return 0 ;; esac ;;
+    acceptance-criteria)
+      jq -e '.missing == true or ([.notEars, .noScenario, .contradictions, .cannotBuild] | add | length > 0)' \
+        <<<"${criteria_faults_json:-null}" >/dev/null 2>&1 && return 0 ;;
+    unpushed) jq -e 'length > 0' <<<"${push_failures_json:-[]}" >/dev/null 2>&1 && return 0 ;;
+  esac
+  return 1
+}
+
 # The step's own failure, once, as an error line in the log.
 [ -n "$error_msg" ] && stage_error "$(printf '%s' "$error_msg${error_solution:+ — $error_solution}" | tr '\n' ' ')"
 if [ "$ok" = "true" ]; then aide_part_close; else aide_part_close "stopped: ${terminal_reason:-failed}"; fi
 
 context_json="$(context_use_json)"
+
+result_error="$error_msg"; result_fix="${error_solution:-}"; result_log=""
+if board_words_ending; then result_error=""; result_fix=""; result_log="${error_log:-}"; fi
 
 line="$(jq -cn \
   --argjson ok "$ok" --argjson exitCode "$exit_code" \
@@ -209,7 +233,7 @@ line="$(jq -cn \
   --argjson costUsd "$cost_json" --argjson costMeasured "$cost_measured" \
   --arg terminalReason "$terminal_reason" --arg subtype "$subtype" \
   --argjson durationSec "$duration" --argjson repos "$repos_json" \
-  --arg error "$error_msg" --arg errorSolution "${error_solution:-}" --arg branch "$branch" --arg push "$push_mode" \
+  --arg error "$result_error" --arg errorSolution "$result_fix" --arg errorLog "$result_log" --arg branch "$branch" --arg push "$push_mode" \
   --arg branchUrl "$branch_url" --argjson branchUrls "$branch_urls_json" \
   --arg prUrl "$pr_url" \
   --arg prError "$pr_error" --arg pushError "$push_error" \
@@ -242,6 +266,9 @@ line="$(jq -cn \
     pullError:(if $pullError == "" then null else $pullError end),
     repos:$repos, error:(if $error == "" then null else $error end)}
    + (if $errorSolution == "" then {} else {errorSolution:$errorSolution} end)
+   # The facts and raw words behind an ending the board words, for its (?):
+   # absent when there are none.
+   + (if $errorLog == "" then {} else {errorLog:$errorLog} end)
    # ABSENT, not null, when there is no answer: the reader renames a job
    # to what this names, and "the field is not there" is the only shape
    # that cannot be mistaken for a folder called nothing.

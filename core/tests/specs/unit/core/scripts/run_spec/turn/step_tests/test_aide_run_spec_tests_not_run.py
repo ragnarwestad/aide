@@ -37,9 +37,7 @@ def test_an_unresolved_test_command_says_no_test_ran_and_names_the_manifest_fix_
     assert out["terminalReason"] == "tests-not-started", out
     assert_written_as_in_fixture("testsNotStarted", out["testsNotStarted"])
     assert out["testsNotStarted"] == {"kind": "test-command-unresolved"}, out
-    assert "no test ran" in out["error"], out["error"]
-    assert "AIDE_TEST_CMD" in out["errorSolution"] and ".aide/project.yaml" in out["errorSolution"], out
-    assert "tests are red" not in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
 
 
 def _claude_moving_the_folder_away(fake_claude, tmp_path):
@@ -99,6 +97,5 @@ def test_a_recorder_that_ends_without_a_result_is_not_red_tests_ac_3(
     assert out["testsNotStarted"]["kind"] == "recorder-failed", out
     # The board words this cause from its `error`, and reads nothing without one.
     assert "did not write a readable result" in out["testsNotStarted"].get("error", ""), out
-    assert "red: worker(s) 1" not in out["error"], out["error"]
-    assert "did not write a readable result" in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
     assert "test suite is red" not in prompts.read_text()

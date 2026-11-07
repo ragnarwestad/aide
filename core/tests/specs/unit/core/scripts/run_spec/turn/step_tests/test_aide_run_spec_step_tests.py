@@ -56,7 +56,7 @@ def test_an_implement_whose_tests_are_red_ends_tests_red_with_the_runners_own_re
     rc, out, _ = run(runner, workspace, _implementing_claude(fake_claude), command="implement")
     assert out["ok"] is False, out
     assert out["terminalReason"] == "tests-red", out
-    assert "tests are red on its result" in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out, out
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
     assert record["exitCode"] != 0 and record["command"] == "false", record
     status = git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/4-status.md")
@@ -224,7 +224,7 @@ def test_a_codex_fix_turn_at_capacity_ends_the_step_model_at_capacity_though_the
     codex = _three_turns(fake_codex, CODEX_OK, CODEX_OK, (CODEX_STREAM_AT_CAPACITY_NO_TURN.split("\n"), 1))
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
     assert out["terminalReason"] == "model-at-capacity", out
-    assert "at capacity right now" in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out, out
 
 
 def test_a_claude_fix_turn_at_capacity_ends_the_step_model_at_capacity_though_the_first_turn_completed(
@@ -658,7 +658,7 @@ def test_a_failing_test_the_output_names_twice_is_reported_once(runner, workspac
     )
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "tests-red", out
-    assert out["error"].count("(fail) the one that failed") == 1, out["error"]
+    assert out["errorLog"].count("(fail) the one that failed") == 1, out["errorLog"]
 
 
 def test_a_monorepo_run_shows_the_failing_packages_own_error_not_its_summary(runner, workspace, fake_claude, tmp_path):
@@ -684,8 +684,8 @@ def test_a_monorepo_run_shows_the_failing_packages_own_error_not_its_summary(run
     )
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "tests-red", out
-    assert "address already in use" in out["error"], out["error"]
-    assert "outside the domain" not in out["error"], out["error"]
+    assert "address already in use" in out["errorLog"], out["errorLog"]
+    assert "outside the domain" not in out["errorLog"], out["errorLog"]
 
 
 def test_a_suite_whose_server_could_not_start_ends_tests_not_started_with_no_fix_round(
@@ -749,12 +749,13 @@ def test_a_server_start_failure_names_each_failed_command_and_the_captured_line_
         runner_path=scripts / "aide-run-spec",
     )
     assert out["terminalReason"] == "tests-not-started", out
-    assert "echo first failed; exit 1" not in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert "echo first failed; exit 1" not in out["errorLog"], out["errorLog"]
     assert_written_as_in_fixture("testsNotStarted", out["testsNotStarted"])
     assert out["testsNotStarted"]["command"].startswith('echo "Error: Process'), out
     assert out["testsNotStarted"]["line"] == "Error: Process from config.webServer was not able to start. Exit code: 1", out
-    assert "config.webServer was not able to start" in out["error"], out["error"]
-    assert "echo setup complete" not in out["error"], out["error"]
+    assert "config.webServer was not able to start" in out["errorLog"], out["errorLog"]
+    assert "echo setup complete" not in out["errorLog"], out["errorLog"]
 
 
 def test_the_tail_of_a_red_log_starts_at_a_line_not_inside_a_word(runner, workspace, fake_claude, tmp_path):
@@ -772,6 +773,6 @@ def test_the_tail_of_a_red_log_starts_at_a_line_not_inside_a_word(runner, worksp
     _project_with_test_cmd(workspace, str(suite))
     rc, out, _ = run(runner, workspace, _fixing_claude(fake_claude, fix_on_retry=False), command="implement")
     assert out["terminalReason"] == "tests-red", out
-    shown = out["error"].split("\n", 1)[1]
+    shown = out["errorLog"]
     assert shown.startswith("noise line number "), shown[:40]
     assert "\nmake sure the database is reachable\n" in shown, shown
