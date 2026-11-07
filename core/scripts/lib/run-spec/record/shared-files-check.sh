@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# run-spec/record/shared-files-check.sh — an analyze whose files overlap those of
-# another open spec ends stopped, naming the spec and the files.
+# run-spec/record/shared-files-check.sh — an analyze with a required ordering
+# or an overlap missing a decision ends stopped, naming the specs and files.
 #
 # Sourced by aide-run-spec after run-spec/record/specs-guard.sh and before
 # run-spec/record/criteria-check.sh, so a stop on shared files is decided first,
@@ -8,32 +8,21 @@
 # run-spec/record/outcome.sh, which writes the phase file's `Result:` line from
 # the verdict left here.
 #
-# The comparison is aide-spec-overlap's; the runner judges nothing itself. It
-# runs `--record` once more, which records what the session's own Step 6 missed
-# and changes nothing when that ran, and then compares the record with the
-# record as it stood before the turn (`--analysis`, read from the ref the turn
-# started at): a spec the record already named before the turn was warned about
-# then, and pressing Analyze again goes on past it. Only a spec new to the
-# record stops the step. The stopped analysis keeps its work and the record, and
-# the phase stays `created`.
+# The analysis records a reasoned decision for every overlap and completes its
+# plan. Only a required ordering, or an overlap still missing a valid decision,
+# stops the step. Required orderings carry their reasons to the board; bare
+# file overlap never authorizes an automatic dependency update.
 #
-# Leaves `shared_files_json` — a JSON array of {spec, files} — set only on a stop.
+# Leaves `shared_files_json` — a JSON array of {spec, files, reason?} — on a stop.
 
 shared_files_json=""
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ -f "$SCRIPT_DIR/aide-spec-overlap" ]; then
   shared_after="$("$SCRIPT_DIR/aide-spec-overlap" --specs-root "$specs_root_wt" --spec "$spec_label" --record --project-dir "$project_root" 2>/dev/null | tail -1)"
-  shared_before_file="$work_dir/analysis-before"
-  : > "$shared_before_file"
-  [ -n "${specs_ref_before:-}" ] && \
-    git -C "$specs_root_wt/$spec_label" show "$specs_ref_before:./2-analysis.md" > "$shared_before_file" 2>/dev/null
-  shared_before="$("$SCRIPT_DIR/aide-spec-overlap" --specs-root "$specs_root_wt" --spec "$spec_label" --analysis "$shared_before_file" --project-dir "$project_root" 2>/dev/null | tail -1)"
-  shared_new="$(jq -cn --argjson after "${shared_after:-null}" --argjson before "${shared_before:-null}" '
-    ($before.warned // [] | map(.spec)) as $known
-    | [($after.warned // [])[] | select(.spec as $s | ($known | index([$s])) | not)]' 2>/dev/null)" || shared_new=""
+  shared_new="$(jq -c '(.required // []) + (.unreviewed // .warned // [])' <<<"${shared_after:-null}" 2>/dev/null)" || shared_new=""
   if [ -z "$shared_new" ] || [ "$(jq -r '.ok // false' <<<"${shared_after:-null}" 2>/dev/null)" != "true" ]; then
     stage "shared files: the comparison with the other open specs could not be made — the step completes"
   elif [ "$shared_new" = "[]" ]; then
-    stage "shared files: no other open spec changes the same files — the step completes"
+    stage "shared files: no unresolved or required ordering — the step completes"
   else
     shared_files_json="$shared_new"
     shared_files_said="$(jq -r 'map(.spec + ": " + (.files | join(", "))) | join("; ")' <<<"$shared_new")"

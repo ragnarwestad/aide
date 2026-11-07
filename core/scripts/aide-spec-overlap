@@ -24,7 +24,10 @@
 # The record of what an analysis has been warned about is its own
 # `### Overlapping specs` subsection, one line per spec:
 #   - `<spec>` — `<file>`, `<file>`
-# Only --record writes it.
+# Only --record writes it. `### Overlap decisions` holds one reasoned decision
+# per spec: `- `<spec>` — depends|independent — <reason>`. Missing, duplicate
+# or empty decisions remain unreviewed; sharing a path alone never authorizes
+# an automatic dependency.
 #
 # Prints ONE JSON line to stdout:
 #   {ok, exitCode, files, overlaps, warned, landed}
@@ -32,6 +35,9 @@
 # overlaps the candidates sharing a path with it, less the specs `warned`
 #          names, each {spec, files}, sorted by folder.
 # warned   the specs in this spec's record, each {spec, files}.
+# required the current overlaps classified `depends`, with a non-empty reason.
+# independent the current overlaps classified as unrelated changes.
+# unreviewed the current overlaps without exactly one valid decision.
 # landed   the specs `warned` names that this spec's Depends on line also
 #          names and whose folder now sits under archive/.
 # A refusal is the one shape the other jq scripts share:
@@ -136,15 +142,27 @@ for dir in "$specs_root"/*/; do
     '$acc + [{spec: $spec, files: $files}]')"
 done
 
-overlaps_json="$(jq -cn --argjson files "$files_json" --argjson cands "$candidates_json" --argjson warned "$warned_json" \
+all_overlaps_json="$(jq -cn --argjson files "$files_json" --argjson cands "$candidates_json" \
   --argjson translations "${translation_json:-[]}" '
-  ($warned | map(.spec)) as $known
-  | [$cands[]
-     | select(.spec as $s | ($known | index([$s])) | not)
-     | {spec, files: ([.files[] | select(endswith(".md") | not) | select(. as $f | $translations | index([$f]) | not)
-                       | select(. as $f | $files | index([$f]))] | unique)}
-     | select(.files | length > 0)]
-  | sort_by(.spec)')"
+  [$cands[]
+   | {spec, files: ([.files[] | select(endswith(".md") | not) | select(. as $f | $translations | index([$f]) | not)
+                     | select(. as $f | $files | index([$f]))] | unique)}
+   | select(.files | length > 0)] | sort_by(.spec)')"
+overlaps_json="$(jq -cn --argjson all "$all_overlaps_json" --argjson warned "$warned_json" '
+  ($warned | map(.spec)) as $known | [$all[] | select(.spec as $s | ($known | index([$s])) | not)]')"
+decisions_json="$(printf '%s\n' "$own_text" | section "Overlap decisions" | jq -Rsc '
+  split("\n") | map(capture("^\\s*-\\s*`(?<spec>[^`]+)` — (?<decision>depends|independent) — (?<reason>\\S.*)$")?)')"
+required_json="$(jq -cn --argjson all "$all_overlaps_json" --argjson decisions "${decisions_json:-[]}" '
+  [$all[] | . as $overlap | [$decisions[] | select(.spec == $overlap.spec)] as $choices
+   | select($choices | length == 1) | select($choices[0].decision == "depends")
+   | . + {reason: $choices[0].reason}]')"
+independent_json="$(jq -cn --argjson all "$all_overlaps_json" --argjson decisions "${decisions_json:-[]}" '
+  [$all[] | . as $overlap | [$decisions[] | select(.spec == $overlap.spec)] as $choices
+   | select($choices | length == 1) | select($choices[0].decision == "independent")]')"
+
+unreviewed_json="$(jq -cn --argjson all "$all_overlaps_json" --argjson required "$required_json" --argjson independent "$independent_json" '
+  ($required + $independent | map(.spec)) as $reviewed
+  | [$all[] | select(.spec as $s | ($reviewed | index([$s])) | not)]')"
 
 # --- what the record names that has been archived since ----------------------
 
@@ -198,4 +216,5 @@ fi
 
 jq -cn --argjson files "$files_json" --argjson overlaps "$overlaps_json" \
   --argjson warned "$warned_json" --argjson landed "$landed_json" \
-  '{ok:true, exitCode:0, files:$files, overlaps:$overlaps, warned:$warned, landed:$landed}'
+  --argjson required "$required_json" --argjson independent "$independent_json" --argjson unreviewed "$unreviewed_json" \
+  '{ok:true, exitCode:0, files:$files, overlaps:$overlaps, warned:$warned, landed:$landed, required:$required, independent:$independent, unreviewed:$unreviewed}'

@@ -45,7 +45,7 @@ def _open_spec(workspace, folder, files, steps="create, analyze"):
     _commit(workspace, f"add {folder}")
 
 
-def _analyze(runner, workspace, fake_claude, files, written_record=None, earlier_record=None):
+def _analyze(runner, workspace, fake_claude, files, written_record=None, earlier_record=None, decisions=""):
     """An analyze whose session writes 2-analysis.md listing `files` (and
     `written_record`, as if its own comparison step had recorded it), with
     3-solution.md left as its template. `earlier_record` is what the
@@ -60,7 +60,7 @@ def _analyze(runner, workspace, fake_claude, files, written_record=None, earlier
     body = (
         "cat > /dev/null\n" + READ_SPECS
         + f'cat > "$specs/{folder}/2-analysis.md" <<\'ANALYSISEOF\'\n'
-        + _analysis(files, written_record or earlier_record) + "ANALYSISEOF\n"
+        + _analysis(files, written_record or earlier_record) + decisions + "ANALYSISEOF\n"
         + f"echo '{json.dumps(RESULT_OK)}'\n"
     )
     rc, out, _, err = run(runner, workspace, fake_claude(body), command="analyze", return_stderr=True)
@@ -116,23 +116,22 @@ def test_the_result_lists_each_spec_with_its_files(runner, workspace, fake_claud
         assert name in out["error"], out["error"]
 
 
-def test_a_spec_the_record_already_named_before_the_turn_lets_the_step_complete(runner, workspace, fake_claude):
+def test_an_earlier_warning_without_a_decision_still_requires_review(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts"])
     out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts"], earlier_record={OTHER: ["shared.ts"]})
-    assert out["ok"] is True, out
-    assert out["terminalReason"] == "completed", out
-    assert "sharedFiles" not in out, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "shared-files", out
+    assert out["sharedFiles"] == [{"spec": OTHER, "files": ["shared.ts"]}], out
 
 
-def test_a_new_spec_still_stops_the_step_naming_it_alone(runner, workspace, fake_claude):
+def test_all_unreviewed_overlaps_are_reported_including_earlier_warnings(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts"])
     _open_spec(workspace, THIRD, ["fresh.ts"])
     out, _ = _analyze(
         runner, workspace, fake_claude, ["shared.ts", "fresh.ts"], earlier_record={OTHER: ["shared.ts"]},
     )
     assert out["terminalReason"] == "shared-files", out
-    assert out["sharedFiles"] == [{"spec": THIRD, "files": ["fresh.ts"]}], out
-    assert OTHER not in out["error"], out["error"]
+    assert out["sharedFiles"] == [{"spec": OTHER, "files": ["shared.ts"]}, {"spec": THIRD, "files": ["fresh.ts"]}], out
 
 
 def test_a_stopped_analysis_leaves_the_description_as_it_was(runner, workspace, fake_claude):
@@ -153,5 +152,22 @@ def test_no_shared_file_completes_the_step_and_says_so(runner, workspace, fake_c
     out, err = _analyze(runner, workspace, fake_claude, ["mine.ts"])
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
-    assert "sharedFiles" not in out, out
+    assert "sharedFiles" not in out
     assert re.search(r"^aide-run-spec \d\d:\d\d:\d\d \+\d+s shared files: ", err, re.M), err
+
+
+def test_a_reviewed_independent_overlap_does_not_stop_analysis(runner, workspace, fake_claude):
+    _open_spec(workspace, OTHER, ["shared.ts"])
+    decision = f"\n### Overlap decisions\n\n- `{OTHER}` — independent — unrelated functions in the same module\n"
+    out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts"], decisions=decision)
+    assert out["terminalReason"] == "completed", out
+    assert "sharedFiles" not in out
+
+
+def test_a_required_ordering_keeps_its_reason_for_the_board(runner, workspace, fake_claude):
+    _open_spec(workspace, OTHER, ["shared.ts"])
+    reason = "the other change replaces the result shape consumed here"
+    decision = f"\n### Overlap decisions\n\n- `{OTHER}` — depends — {reason}\n"
+    out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts"], earlier_record={OTHER: ["shared.ts"]}, decisions=decision)
+    assert out["terminalReason"] == "shared-files", out
+    assert out["sharedFiles"] == [{"spec": OTHER, "files": ["shared.ts"], "reason": reason}]

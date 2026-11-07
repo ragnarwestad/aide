@@ -15,11 +15,9 @@ import { translationMergeArgs } from "./land-branch/run-script.ts";
 // and `runner` themselves) that cross those stage boundaries. The
 // stages run in dependency order — project resolution before the
 // queue, schedules before land, land before the runner, everything
-// before `Bun.serve()` — so nothing here needs the forward-reference
-// tricks the pre-split single function relied on except the two that
-// are genuinely unavoidable: `readServerPort` (nothing exists before
-// `Bun.serve()` returns) and `scheduleCtx.readRunner` (the runner is
-// built after schedules, since it needs the land functions).
+// before `Bun.serve()`. Callbacks read later-created state only after setup:
+// `readServerPort` reads the server, `scheduleCtx.readRunner` reads the runner,
+// and the automatic dependency handler reads the routes context.
 
 import { AideRunStore } from "../queue/aide-run-store.ts";
 import { Notifier } from "../integrations/notify.ts";
@@ -48,6 +46,7 @@ import { createProjectResolver } from "./setup/resolve-project.ts";
 import { setupSpecViews } from "./setup/spec-views.ts";
 import { setupQueueContext } from "./setup/queue-context.ts";
 import { createLaunchdRestart } from "./land-branch";
+import { applyOverlapDependencies } from "./dependencies";
 import { createQueueRunner, resumeCutLandingsAtBoot, type RunnerSetupContext } from "./runner-setup.ts";
 import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover.ts";
 import { setBoardInfo } from "../render/ui/board-info.ts";
@@ -242,6 +241,7 @@ export function createServer(opts: ServerOptions) {
     landArchivedSpec: land.landArchivedSpec,
     landClosedSpec: land.landClosedSpec,
     landStoppedStepBranch: land.landStoppedStepBranch,
+    handleSharedFiles: (job, outcome) => applyOverlapDependencies(routesCtx, job, outcome),
     landScheduleRun: land.landScheduleRun,
     startDeploy: land.deployJob.start,
     specDir: resolution.specDir,

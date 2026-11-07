@@ -261,16 +261,17 @@ It reads the `### Files to change` Step 5 wrote, compares it with the
 other analyzed specs of the project that are not archived, and answers
 one JSON line.
 
-- **`"overlaps":[]`:** the step ends `— done`, and Step 7 follows.
-- **`overlaps` names a spec:** end the step stopped, naming every spec:
-  `--- Step 6 of 11: Compare with the other open specs — stopped: shares files with <spec>, …`.
-  Write nothing more: no plan, no review, no status. The session's last
-  words name each spec, the files it shares with this one, and the two
-  choices: add the specs to the spec's Depends on, so that its analysis
-  runs again once they are archived, or run Analyze again to go on
-  regardless.
-- **The command is not installed:** the step ends `— skipped:
-  aide-spec-overlap is not installed`, and Step 7 follows.
+A shared file is a candidate, not proof of a dependency. Read
+[overlap-decisions.md](references/overlap-decisions.md) and assess the
+actual changes against the other specs' analyses and plans. Record a
+reasoned `depends` or `independent` decision for each current overlap in
+`### Overlap decisions`, using `aide-write-spec`.
+
+Finish the plan and its review instead of stopping here. The runner
+checks the decisions after the turn. The board adds required dependencies
+only when the complete chain stays free of cycles, explains what it
+added, and queues the remaining work to wait for them. An overlap without
+a valid decision authorizes no automatic change.
 
 ### Step 7 of 11: Create the implementation plan (3-solution.md)
 
@@ -304,7 +305,10 @@ First write `--- Step 8 of 11: Review the plan — started`, and when this step 
 Attack the plan while the mistake is still cheap, before any test is
 written: reviewers with distinct perspectives (feasibility, scope,
 coherence) attack `3-solution.md`, findings become must-fix/should-fix,
-and the plan is REVISED — not just annotated. See
+and the plan is REVISED — not just annotated. The review also checks the
+Overlap decisions against the final plan: a shared filename alone is not
+a reason to require another spec first, and a decision that no longer
+matches the plan must be corrected in the analysis. See
 `references/plan-review.md` for the full routine (three reviewers at
 every complexity, consolidation, and what gets written where). Hand the Feasibility and
 Coherence reviewers the acceptance criteria checks level from Step 1:

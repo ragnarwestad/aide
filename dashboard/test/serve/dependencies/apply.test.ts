@@ -1,0 +1,158 @@
+import { afterEach, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyOverlapDependencies } from "../../../src/serve/dependencies";
+import { createRootLock } from "../../../src/serve/serve-helpers/config.ts";
+import type { RoutesContext } from "../../../src/serve/routes";
+import type { Job } from "../../../src/queue/queue.ts";
+
+const dirs: string[] = [];
+afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+const description = (deps: string[] = []) => `# X\n\n## Tracking info\n\n- **Created:** now\n${deps.length ? `- **Depends on:** ${deps.map((d) => `\`${d}\``).join(", ")}\n` : ""}`;
+const setup = (dependencies: Record<string, string[]> = { "1-a": [], "2-b": [] }) => {
+  const dir = mkdtempSync(join(tmpdir(), "aide-auto-deps-")); dirs.push(dir);
+  const origin = join(dir, "origin.git"), code = join(dir, "code");
+  const git = (cwd: string, ...args: string[]) => {
+    const out = Bun.spawnSync(["git", "-c", "user.name=Test", "-c", "user.email=test@example.test", ...args], { cwd });
+    if (out.exitCode) throw new Error(out.stderr.toString());
+    return out.stdout.toString().trim();
+  };
+  git(dir, "init", "--bare", "--initial-branch=main", origin);
+  git(dir, "clone", origin, code);
+  const specs = join(code, "aide");
+  for (const [folder, deps] of Object.entries(dependencies)) {
+    mkdirSync(join(specs, folder), { recursive: true });
+    writeFileSync(join(specs, folder, "1-description.md"), description(deps));
+  }
+  git(code, "add", "aide"); git(code, "commit", "-m", "Seed specs"); git(code, "push", "origin", "main");
+  const job = { id: "old", project: "aide", specFolder: "1-a", state: "stopped", stopReason: "shared-files",
+    steps: ["analyze", "implement", "archive"], stepIndex: 0, model: { analyze: "opus" }, results: [],
+  } as unknown as Job;
+  const jobs = new Map([[job.id, job]]);
+  const queued: Record<string, unknown>[] = [];
+  const ctx = {
+    gitRun: async (cwd: string, args: string[]) => {
+      const out = Bun.spawnSync(["git", "-c", "user.name=Test", "-c", "user.email=test@example.test", ...args], { cwd });
+      return { code: out.exitCode, stdout: out.stdout.toString(), stderr: out.stderr.toString() };
+    },
+    mergeLock: createRootLock(), branchStatus: { defaultBranch: async () => "main", openSpecBranches: async () => new Set() },
+    specDir: (_project: string, folder: string) => join(specs, folder),
+    machinerySpecDir: async (_project: string, folder: string) => folder,
+    specsRoot: async () => code, rereadProject: async () => {}, invalidateScan: () => {}, tickRunner: async () => {},
+    queue: {
+      list: () => [...jobs.values()], get: (id: string) => jobs.get(id),
+      update: (id: string, patch: Partial<Job>) => Object.assign(jobs.get(id)!, patch),
+      enqueue: (request: Record<string, unknown>) => {
+        queued.push(request); const next = { ...job, ...request, id: `new-${queued.length}`, state: "queued" } as Job;
+        jobs.set(next.id, next); return { ok: true, job: next };
+      },
+    },
+  } as unknown as RoutesContext;
+  return { dir, code, specs, git, job, jobs, queued, ctx };
+};
+const outcome = { sharedFiles: [{ spec: "2-b", files: ["shared.ts"], reason: "the result contract must be updated first" }] };
+
+test("saves the dependency and queues the remaining steps with an informational explanation", async () => {
+  const h = setup();
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toContain("`2-b`");
+  expect(h.queued[0]).toMatchObject({ project: "aide", specFolder: "1-a", steps: ["analyze", "implement", "archive"], model: { analyze: "opus" } });
+  expect(h.jobs.get("new-1")?.dependencyNotice).toMatchObject({ key: "runner.dependenciesAdded" });
+});
+
+test("rejects a complete batch on a transitive cycle and leaves git unchanged", async () => {
+  const h = setup({ "1-a": [], "2-b": ["3"], "3-c": ["1"], "4-d": [] });
+  const before = h.git(h.code, "rev-parse", "HEAD");
+  await applyOverlapDependencies(h.ctx, h.job, { sharedFiles: [
+    { spec: "4-d", files: ["x.ts"], reason: "its API is needed" }, ...outcome.sharedFiles,
+  ] });
+  expect(h.git(h.code, "rev-parse", "HEAD")).toBe(before);
+  expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toBe(description());
+  expect(h.queued).toEqual([]);
+  expect(h.job.error).toEqual({ key: "runner.dependencyCycle", values: { chain: "aide:1 → aide:2 → aide:3 → aide:1" } });
+});
+
+test("unreviewed file overlap does not authorize an automatic dependency", async () => {
+  const h = setup();
+  await applyOverlapDependencies(h.ctx, h.job, { sharedFiles: [{ spec: "2-b", files: ["shared.ts"] }] });
+  expect(h.queued).toEqual([]);
+  expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toBe(description());
+});
+
+test("the explanation includes the target and reason, and a repeated callback creates no second job", async () => {
+  const h = setup();
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  expect(h.queued).toHaveLength(1);
+  expect(h.jobs.get("new-1")?.dependencyNotice).toEqual({ key: "runner.dependenciesAdded", values: {
+    dependencies: "aide:2 — the result contract must be updated first",
+  } });
+});
+
+test("simultaneous reverse requests cannot add a cycle", async () => {
+  const h = setup();
+  const second = { ...h.job, id: "second", specFolder: "2-b" };
+  h.jobs.set(second.id, second);
+  await Promise.all([
+    applyOverlapDependencies(h.ctx, h.job, outcome),
+    applyOverlapDependencies(h.ctx, second, { sharedFiles: [{ spec: "1-a", files: ["x.ts"], reason: "requires its API" }] }),
+  ]);
+  expect(h.queued).toHaveLength(1);
+  expect(readFileSync(join(h.specs, "2-b", "1-description.md"), "utf8")).toBe(description());
+  expect(second.error).toMatchObject({ key: "runner.dependencyCycle" });
+});
+
+test("checks the graph after pulling new dependency edits from origin", async () => {
+  const h = setup();
+  const run = h.ctx.gitRun;
+  let changed = false;
+  h.ctx.gitRun = async (cwd, args) => {
+    if (!changed && args[0] === "fetch") {
+      changed = true;
+      const writer = join(h.dir, "writer");
+      h.git(h.dir, "clone", join(h.dir, "origin.git"), writer);
+      writeFileSync(join(writer, "aide", "2-b", "1-description.md"), description(["1"]));
+      h.git(writer, "add", "aide"); h.git(writer, "commit", "-m", "Edit dependencies elsewhere"); h.git(writer, "push", "origin", "main");
+    }
+    return run(cwd, args);
+  };
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  expect(h.queued).toEqual([]);
+  expect(h.job.error).toMatchObject({ key: "runner.dependencyCycle" });
+  expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toBe(description());
+});
+
+test("includes dependency edits on another spec's open branch", async () => {
+  const h = setup();
+  h.git(h.code, "checkout", "-b", "aide/2-b");
+  writeFileSync(join(h.specs, "2-b", "1-description.md"), description(["1"]));
+  h.git(h.code, "add", "aide"); h.git(h.code, "commit", "-m", "Edit dependencies on a branch");
+  h.git(h.code, "push", "origin", "aide/2-b"); h.git(h.code, "checkout", "main");
+  h.ctx.branchStatus.openSpecBranches = async () => new Set(["aide/2-b"]);
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  expect(h.queued).toEqual([]);
+  expect(h.job.error).toMatchObject({ key: "runner.dependencyCycle" });
+});
+
+test("a refused push restores the description and queues nothing", async () => {
+  const h = setup();
+  const before = h.git(h.code, "rev-parse", "HEAD");
+  const run = h.ctx.gitRun;
+  h.ctx.gitRun = (cwd, args) => args[0] === "push"
+    ? Promise.resolve({ code: 1, stdout: "", stderr: "push refused" }) : run(cwd, args);
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  expect(h.git(h.code, "rev-parse", "HEAD")).toBe(before);
+  expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toBe(description());
+  expect(h.queued).toEqual([]);
+  expect(h.job.error).toMatchObject({ key: "runner.autoDependenciesFailed" });
+});
+
+test("a saved dependency is explained even when the follow-up cannot be queued", async () => {
+  const h = setup();
+  h.ctx.queue.enqueue = () => ({ ok: false, error: "queue unavailable" });
+  await applyOverlapDependencies(h.ctx, h.job, outcome);
+  expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toContain("`2-b`");
+  expect(h.job.dependencyNotice).toMatchObject({ key: "runner.dependenciesAdded" });
+  expect(h.job.error).toMatchObject({ key: "runner.autoDependenciesFailed" });
+});
