@@ -123,8 +123,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] \
   # The review finds what changed itself, against where the branch left
   # the default branch: an earlier attempt's commits count as much as
   # this turn's, and nothing pasted into the prompt has to be cut short.
-  review_base="$(default_branch "$project_root")"
-  git -C "$project_wt" rev-parse --verify --quiet "origin/$review_base" >/dev/null && review_base="origin/$review_base"
+  review_base="$(default_ref "$project_wt" "$project_root")"
   review_fork="$(git -C "$project_wt" merge-base "$review_base" HEAD 2>/dev/null)" || review_fork="HEAD"
   review_description_path="$specs_root_wt/$spec_label/1-description.md"
 

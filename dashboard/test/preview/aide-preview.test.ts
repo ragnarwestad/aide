@@ -136,6 +136,24 @@ describe("aide-preview serves one branch", () => {
     }
   });
 
+  // The checkout's lock is aide-run-spec's own: a lock a killed process
+  // left is taken over at once, and released once the worktree is made.
+  test("a lock left by a process that is gone is taken over, and released", async () => {
+    const { dir, cleanup } = checkout();
+    const port = await freePort();
+    const lock = join(dir, ".git", "aide-run-spec-worktree.lock");
+    const gone = Bun.spawnSync(["sh", "-c", "echo $$"]).stdout.toString().trim();
+    mkdirSync(lock);
+    writeFileSync(join(lock, "pid"), `${gone}\n`);
+    try {
+      const result = runPreview(dir, port, "exit 3");
+      expect(result.log).toContain("exited with code 3 before anything answered");
+      expect(existsSync(lock)).toBe(false);
+    } finally {
+      cleanup();
+    }
+  });
+
   test("a command that never answers leaves no worktree behind either", async () => {
     const { dir, cleanup } = checkout();
     const port = await freePort();

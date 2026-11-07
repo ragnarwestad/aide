@@ -72,21 +72,13 @@ mkdir -p "$(dirname "$WT")"
 # checkout (acquire_worktree_lock, run-spec/setup/gates.sh): runs of one
 # project share this checkout, and a `git worktree add` outside the lock
 # loses a ref lock while a run is in its own section.
-LOCK="$ROOT/.git/aide-run-spec-worktree.lock"
-DEADLINE=$(( $(date +%s) + 120 ))
-while ! mkdir "$LOCK" 2>/dev/null; do
-  OWNER="$(cat "$LOCK/pid" 2>/dev/null || true)"
-  if [ -n "$OWNER" ] && ! kill -0 "$OWNER" 2>/dev/null; then
-    rm -rf "$LOCK" 2>/dev/null || true
-    continue
-  fi
-  if [ "$(date +%s)" -ge "$DEADLINE" ]; then
-    echo "timed out waiting for the worktree lock on $ROOT (pid ${OWNER:-unknown} may be stuck)" >&2
-    exit 1
-  fi
-  sleep 0.2
-done
-echo $$ > "$LOCK/pid" 2>/dev/null || true
+# shellcheck source=/dev/null
+source "$(cd "$(dirname "$0")" && pwd)/lib/checkout-lock.sh"
+LOCK="$(checkout_lock_path "$ROOT")"
+if ! checkout_lock_take "$ROOT" 120; then
+  echo "timed out waiting for the worktree lock on $ROOT (pid ${checkout_lock_owner:-unknown} may be stuck)" >&2
+  exit 1
+fi
 git -C "$ROOT" worktree remove --force "$WT" >/dev/null 2>&1 || true
 ADD_ERROR="$(git -C "$ROOT" worktree add --detach "$WT" "$BRANCH" 2>&1)"
 ADD_CODE=$?

@@ -55,7 +55,7 @@ def _standalone_runner_copy(runner, tmp_path, name="aide-run-spec-under-test"):
         (pathlib.Path(runner).parent / "lib" / "tracking-info.sh").read_bytes()
     )
     # The spec's state file and its phase moves: required like every part.
-    for name in ("spec-state.sh", "spec-transitions.sh", "failing-tests.sh"):
+    for name in ("spec-state.sh", "spec-transitions.sh", "failing-tests.sh", "checkout-lock.sh"):
         (tmp_path / "lib" / name).write_bytes((pathlib.Path(runner).parent / "lib" / name).read_bytes())
     # And the runner's own phases (`lib/run-spec/`): the script sources
     # them by path, so a copy without them refuses before it starts.

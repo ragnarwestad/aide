@@ -194,16 +194,10 @@ release_signal_locks() {
 # refuses: a lock still held after two minutes is left, and the commit goes
 # ahead without it, as it always did.
 take_signal_lock() {
-  local lock="$1/.git/aide-run-spec-worktree.lock" deadline owner
+  local lock
+  lock="$(checkout_lock_path "$1")"
   [ "$lock" = "${worktree_lock:-}" ] && return 0
-  deadline=$(( $(date +%s) + 120 ))
-  while ! mkdir "$lock" 2>/dev/null; do
-    owner="$(cat "$lock/pid" 2>/dev/null || true)"
-    if [ -n "$owner" ] && ! kill -0 "$owner" 2>/dev/null; then rm -rf "$lock" 2>/dev/null || true; continue; fi
-    [ "$(date +%s)" -ge "$deadline" ] && return 0
-    sleep 0.2
-  done
-  echo $$ > "$lock/pid" 2>/dev/null || true
+  checkout_lock_take "$1" 120 || return 0
   signal_locks+=("$lock")
 }
 trap 'keep_stream; remove_worktrees; release_signal_locks; delete_empty_branches; release_worktree_lock; rm -rf "$work_dir"' EXIT

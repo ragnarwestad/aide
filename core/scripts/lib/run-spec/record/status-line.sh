@@ -72,10 +72,7 @@ if [ -n "$status_file" ]; then
     # start, so only the branch's own change is left; the specs root is
     # excluded, since a spec's own files are not the project's code.
     if [ "$proj_changed" != "yes" ]; then
-      proj_base="$(default_branch "$project_root")"
-      proj_base_ref="$proj_base"
-      git -C "$project_wt" show-ref --verify --quiet "refs/remotes/origin/$proj_base" \
-        && proj_base_ref="origin/$proj_base"
+      proj_base_ref="$(default_ref "$project_wt" "$project_root")"
       git -C "$project_wt" diff --quiet "$proj_base_ref" HEAD -- . \
         ${git_add_excludes[@]+"${git_add_excludes[@]}"} \
         ${specs_root_excludes[@]+"${specs_root_excludes[@]}"} 2>/dev/null

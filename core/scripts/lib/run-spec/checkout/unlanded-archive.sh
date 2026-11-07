@@ -33,8 +33,7 @@ restore_unlanded_archive() {
   [ -n "$here" ] || return 0
   prefix="$(git -C "$specs_root_wt" rev-parse --show-prefix 2>/dev/null)"
   base="$(default_branch "$top")"
-  base_ref_here="$base"
-  git -C "$top" show-ref --verify --quiet "refs/remotes/origin/$base" && base_ref_here="origin/$base"
+  base_ref_here="$(ref_on_origin "$top" "$base")"
   git -C "$top" cat-file -e "$base_ref_here:${prefix}$spec_folder" 2>/dev/null || return 0
   ! git -C "$top" cat-file -e "$base_ref_here:${prefix}archive/$spec_folder" 2>/dev/null || return 0
   # A commit now would finish the merge the session is to resolve.

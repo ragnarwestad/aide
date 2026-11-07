@@ -75,13 +75,11 @@ ac_coverage_refs() {   # stdin: ac_coverage_added_lines
 # The record itself, for a completed implement only.
 write_ac_coverage() {
   [ "${command_name:-}" = "implement" ] && [ "${terminal_reason:-}" = "completed" ] || return 0
-  local folder="$specs_root_wt/$spec_label" ids base base_ref
+  local folder="$specs_root_wt/$spec_label" ids base_ref
   [ -f "$folder/1-description.md" ] || return 0
   ids="$(grep -oE '^- \*\*AC-[0-9]+' "$folder/1-description.md" | grep -oE 'AC-[0-9]+' | sort -t- -k2 -n -u)"
   [ -n "$ids" ] || return 0
-  base="$(default_branch "$project_root")"
-  base_ref="$base"
-  git -C "$project_wt" show-ref --verify --quiet "refs/remotes/origin/$base" && base_ref="origin/$base"
+  base_ref="$(default_ref "$project_wt" "$project_root")"
   if ac_coverage_added_lines "$project_wt" "$base_ref" | ac_coverage_refs \
     | jq -R -s --arg ids "$ids" '
         [split("\n")[] | select(length > 0) | split("\t") | {id: .[0], file: .[1], name: .[2]}] as $refs

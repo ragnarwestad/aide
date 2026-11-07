@@ -26,12 +26,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" != "create" ] && [ 
   # A path the default branch already holds as HEAD has it came in with a
   # merge of that branch — another spec archived meanwhile —
   # and is not this step's own write.
-  specs_guard_branch="$(default_branch "$specs_repo_wt")"
-  if git -C "$specs_repo_wt" show-ref --verify --quiet "refs/remotes/origin/$specs_guard_branch"; then
-    specs_guard_tip="origin/$specs_guard_branch"
-  else
-    specs_guard_tip="$specs_guard_branch"
-  fi
+  specs_guard_tip="$(default_ref "$specs_repo_wt")"
   specs_guard_own_commits() {
     [ -n "${specs_ref_before:-}" ] || return 0
     if git -C "$specs_repo_wt" rev-parse -q --verify "$specs_guard_tip^{commit}" >/dev/null 2>&1; then

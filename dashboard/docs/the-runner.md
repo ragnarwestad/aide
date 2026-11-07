@@ -46,6 +46,8 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 
 The per-root lock is `$root/.git/aide-run-spec-worktree.lock` (`acquire_worktree_lock`, `run-spec/setup/gates.sh`). Every
 move of a shared checkout takes it: the switch, the fetch, the fast-forward and the `worktree add`.
+How it is waited for, and taken over from a process that is gone, is `core/scripts/lib/checkout-lock.sh`,
+which `aide-preview` uses too.
 
 Two pages sit beside this one:
 

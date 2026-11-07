@@ -55,12 +55,7 @@ EOF
 # origin/<base> when there is one: a stale main checkout must not decide
 # what a reused branch is merged with.
 base_ref_for() {   # sets $base_ref
-  local root="$1" b="$2"
-  if git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$b"; then
-    base_ref="origin/$b"
-  else
-    base_ref="$b"
-  fi
+  base_ref="$(ref_on_origin "$1" "$2")"
 }
 
 # The branch already exists, because the previous step for this spec made

@@ -78,6 +78,23 @@ default_branch() {
   git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null
 }
 
+# $1 = a checkout, $2 = a branch. origin/<branch> when origin has it, the
+# local branch otherwise: a stale local branch must not decide what a step
+# compares with or merges.
+ref_on_origin() {
+  if git -C "$1" show-ref --verify --quiet "refs/remotes/origin/$2"; then
+    echo "origin/$2"
+  else
+    echo "$2"
+  fi
+}
+
+# $1 = a checkout, $2 = the checkout whose default branch it is (the first
+# when left out). The default branch as ref_on_origin gives it.
+default_ref() {
+  ref_on_origin "$1" "$(default_branch "${2:-$1}")"
+}
+
 # True (rc 0) unless origin can PROVE $1's folder is not (yet) under
 # archive/ in the specs repo's current default branch — the question
 # asked here, replacing the branch-merge question this
@@ -238,23 +255,13 @@ fetch_base_with_retry() {
 # which is exactly what setting this variable early would do.
 worktree_lock=""
 acquire_worktree_lock() {
-  local root="$1" lock deadline owner_pid
-  lock="$root/.git/aide-run-spec-worktree.lock"
-  deadline=$(( $(date +%s) + ${AIDE_WORKTREE_LOCK_WAIT_SECONDS:-120} ))
-  while ! mkdir "$lock" 2>/dev/null; do
-    owner_pid="$(cat "$lock/pid" 2>/dev/null || true)"
-    if [ -n "$owner_pid" ] && ! kill -0 "$owner_pid" 2>/dev/null; then
-      rm -rf "$lock" 2>/dev/null || true
-      continue
-    fi
-    if [ "$(date +%s)" -ge "$deadline" ]; then
-      worktree_lock=""
-      refuse_fix "timed out waiting for the worktree lock at $lock on the serving host" \
-        "remove that lock, but only after confirming that no aide-run-spec process is using that checkout"
-    fi
-    sleep 0.2
-  done
-  echo $$ > "$lock/pid" 2>/dev/null || true
+  local root="$1" lock
+  lock="$(checkout_lock_path "$root")"
+  if ! checkout_lock_take "$root" "${AIDE_WORKTREE_LOCK_WAIT_SECONDS:-120}"; then
+    worktree_lock=""
+    refuse_fix "timed out waiting for the worktree lock at $lock on the serving host" \
+      "remove that lock, but only after confirming that no aide-run-spec process is using that checkout"
+  fi
   worktree_lock="$lock"
 }
 release_worktree_lock() {

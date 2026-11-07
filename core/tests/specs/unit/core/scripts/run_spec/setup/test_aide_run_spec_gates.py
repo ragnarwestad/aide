@@ -8,6 +8,7 @@ in conftest.py beside them.
 import json
 import pathlib
 import shutil
+import subprocess
 import re
 import pytest
 from ...conftest import run, stand_in
@@ -349,7 +350,7 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     (tmp_path / "lib" / "git-error.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "git-error.sh").read_bytes()
     )
-    for name in ("tracking-info.sh", "status-progress.sh", "spec-state.sh", "spec-transitions.sh", "failing-tests.sh"):
+    for name in ("tracking-info.sh", "status-progress.sh", "spec-state.sh", "spec-transitions.sh", "failing-tests.sh", "checkout-lock.sh"):
         (tmp_path / "lib" / name).write_bytes((pathlib.Path(runner).parent / "lib" / name).read_bytes())
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, runner_path=lone_copy)
@@ -460,3 +461,21 @@ def test_a_close_that_moved_nothing_says_why(runner, workspace, fake_claude, tmp
     assert out["ok"] is False, out
     assert out["terminalReason"] == reason, out
     assert said in out["error"], out
+
+
+def _default_ref(repo):
+    gates = pathlib.Path(__file__).resolve().parents[7] / "scripts/lib/run-spec/setup/gates.sh"
+    return subprocess.run(["bash", "-c", f'source "{gates}"; default_ref "$1"', "_", str(repo)],
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+
+def test_the_default_branch_is_compared_on_origin_when_origin_has_it(tmp_path):
+    def git(*a, cwd):
+        subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True)
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    git("init", "-q", "-b", "main", cwd=origin)
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "one", cwd=origin)
+    git("clone", "-q", str(origin), "clone", cwd=tmp_path)
+    assert _default_ref(tmp_path / "clone") == "origin/main"
+    assert _default_ref(origin) == "main"
