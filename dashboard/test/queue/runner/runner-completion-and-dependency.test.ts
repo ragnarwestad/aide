@@ -259,24 +259,6 @@ describe("the completion hook and the landing window", () => {
     expect(after?.errorDetail).toBe(bash);
   });
 
-  test("an archive whose tests are red names each failing test and its error (AC-3)", () => {
-    const bash =
-      "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's. Press Archive again for this step.\n(fail) the fact is on the list";
-    const job = enqueue({ steps: ["archive"] });
-    const runner = makeRunner({ readResult: () => outcome({
-      ok: false,
-      terminalReason: "tests-red",
-      error: bash,
-      testsRed: { tests: ["test/a.test.ts › breaks"], errors: ["not found"], failed: 1, passedAlone: [], passedAloneErrors: [], passedAloneCount: 0 },
-    }) });
-    runner.tick();
-    runner.poll();
-    const after = store.get(job.id);
-    expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({ key: "runner.testsRedArchiveNamed", values: { tests: "test/a.test.ts › breaks — not found", button: "Archive" } });
-    expect(after?.errorDetail).toBeUndefined();
-  });
-
   test("an archive that dropped its open merge is stored as the board's own message too", () => {
     const bash =
       "the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press Archive again for this step.";

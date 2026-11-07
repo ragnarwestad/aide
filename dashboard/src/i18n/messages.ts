@@ -1149,20 +1149,6 @@ export const MESSAGES = {
       fr: "cliquez de nouveau sur {button} ; l'étape ne se termine que sur une exécution au vert",
     },
   },
-  "runner.testsRedArchiveNamed": {
-    en: "archive reported success, but the project's tests are red after the merge with main: {tests}",
-    nb: "arkivering meldte ferdig, men prosjektets tester er røde etter mergen med main: {tests}",
-    es: "archive informó de éxito, pero los tests del proyecto están en rojo tras el merge con main: {tests}",
-    de: "Archive meldete Erfolg, aber die Tests des Projekts sind nach dem Merge mit main rot: {tests}",
-    fr: "archive a signalé un succès, mais les tests du projet sont au rouge après le merge avec main : {tests}",
-    solution: {
-      en: "press {button} again; the step ends only on a green run",
-      nb: "trykk {button} igjen; steget ender bare på en grønn kjøring",
-      es: "pulsa {button} de nuevo; el paso solo termina con una ejecución en verde",
-      de: "klicke erneut auf {button}; der Schritt endet erst bei einem grünen Lauf",
-      fr: "cliquez de nouveau sur {button} ; l'étape ne se termine que sur une exécution au vert",
-    },
-  },
   // A schedule job never starts while anything else for its project is
   // running or merging — the same shape as
   // `runner.archiveRunning` above, but one-directional: only the

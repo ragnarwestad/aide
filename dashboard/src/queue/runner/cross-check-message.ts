@@ -24,11 +24,6 @@ export function noProgressMessage(step: WorkflowStep, outcome: Partial<StepOutco
     return testsRedMessage(step, outcome);
   }
   if (outcome.terminalReason === "tests-not-started") return testsNotStartedMessage(step, outcome);
-  if (outcome.terminalReason === "tests-red" && step === "archive") {
-    const red = testsRed(outcome.testsRed);
-    if (red) return { key: "runner.testsRedArchiveNamed", values: { tests: testList(red.tests, red.errors, red.failed), button: stepButton(step) } };
-    return { key: "runner.testsRedArchive", values: { button: stepButton(step) } };
-  }
   if (outcome.terminalReason === "merge-unfinished" && step === "archive") {
     return { key: "runner.mergeUnfinishedArchive", values: { button: stepButton(step) } };
   }
@@ -170,7 +165,7 @@ export function withoutRestatedError<T extends Partial<StepOutcome>>(outcome: T,
  *  says nothing more. */
 function namesWhatTheRunnerSaid(outcome: Partial<StepOutcome>, step: WorkflowStep | undefined): boolean {
   if (outcome.terminalReason === "tests-red") {
-    return (step === "implement" || step === "archive") && testsRed(outcome.testsRed) !== undefined;
+    return step === "implement" && testsRed(outcome.testsRed) !== undefined;
   }
   if (outcome.terminalReason !== "scope-violation") return false;
   if (outcome.scopeViolation === "specs") return scopeSpecsPaths(outcome.scopeSpecs) !== undefined;
