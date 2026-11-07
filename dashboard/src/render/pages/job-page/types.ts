@@ -4,6 +4,7 @@ import type { QueueRowView } from "../../ui/job-state";
 import type { DiffStatEntry } from "../../../git/diff-stat.ts";
 import type { ProviderLimit } from "../../../queue/queue.ts";
 import type { LogPart } from "../../../queue/parse-stream";
+import type { ResultTool } from "../../../queue/providers/tools.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -13,7 +14,7 @@ export interface JobStepResultView {
    *  result written before the second tool existed says nothing here,
    *  and claude is what ran it. `none` is a `create` step that skipped
    *  the AI session entirely. */
-  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
+  tool?: ResultTool;
   /** This step's token total, absent when the run did not measure one
    *  A number, like the list's own view: the page shows a
    *  compact total, not the stored split. */
@@ -88,7 +89,7 @@ export interface JobDetailView extends QueueRowView {
    *  since a running step's tool always names a real CLI (`runningStep`
    *  is resolved from the config's own model choice, which has no "none"
    *  entry). */
-  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
+  tool?: ResultTool;
   /** The spec's H1. */
   title?: string;
   finishedAt?: string;

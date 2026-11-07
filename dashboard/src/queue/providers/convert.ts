@@ -7,6 +7,7 @@ import { listedModelName, resolveStepModel } from "../model-name.ts";
 import type { ScheduleEntry } from "../schedule.ts";
 import type { Job, QueueDefaults, StepResult } from "../types.ts";
 import { expandDir, PROVIDER_TOOLS, willRun, type Provider, type ProviderTool } from "./index.ts";
+import { SHORT_TOOL_NAMES } from "./tools.ts";
 
 export interface ConversionInput {
   defaults: Pick<QueueDefaults, "model" | "modelChoices">;
@@ -24,8 +25,6 @@ export interface Conversion {
   schedules: Record<string, ScheduleEntry[]>;
   jobs: Job[];
 }
-
-const TOOL_NAMES: Record<ProviderTool, string> = { claude: "Claude", codex: "Codex", opencode: "OpenCode" };
 
 export function convertToProviders(input: ConversionInput): Conversion {
   const { defaults, home } = input;
@@ -49,7 +48,7 @@ export function convertToProviders(input: ConversionInput): Conversion {
   const toolKey = {} as Record<ProviderTool, string>;
   const providers: Record<string, Provider> = {};
   for (const tool of PROVIDER_TOOLS) {
-    toolKey[tool] = free(TOOL_NAMES[tool]);
+    toolKey[tool] = free(SHORT_TOOL_NAMES[tool]);
     providers[toolKey[tool]] = { name: toolKey[tool], tool };
   }
   for (const a of accounts) providers[a.key] = a.provider;

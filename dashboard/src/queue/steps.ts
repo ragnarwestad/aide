@@ -3,6 +3,7 @@
 // other file in this split reaches for first.
 
 import type { Job } from "./types.ts";
+import { RESULT_TOOLS, RUNNABLE_TOOLS, type ResultTool, type RunnableTool } from "./providers/tools.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with { type: "json" };
 
@@ -301,13 +302,7 @@ export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<Trans
  *  three times over. */
 export const ARCHIVE_ONLY_STEP = "reopen";
 
-/** The CLIs a step can run on, as `--tool` spells them. One list, read
- *  wherever a tool name arrives as a string at runtime: the config
- *  file's `modelChoices`, and a result file's own `tool`. A hand-written
- *  copy of these names is how `opencode` reached the board as a type but
- *  not as a value - the type checker cannot see a string comparison. */
-export const RUNNABLE_TOOLS = ["claude", "codex", "opencode", "fake-claude"] as const;
-export type RunnableTool = (typeof RUNNABLE_TOOLS)[number];
+export { RUNNABLE_TOOLS, type RunnableTool };
 
 /** A tool name off a file, or undefined when it is not one of ours. */
 export function asRunnableTool(value: unknown): RunnableTool | undefined {
@@ -318,8 +313,8 @@ export function asRunnableTool(value: unknown): RunnableTool | undefined {
 
 /** The same, widened by the one value a result file carries that is not
  *  a CLI at all: `none` is the deterministic `create` path. */
-export function asResultTool(value: unknown): RunnableTool | "none" | undefined {
-  return value === "none" ? "none" : asRunnableTool(value);
+export function asResultTool(value: unknown): ResultTool | undefined {
+  return (RESULT_TOOLS as readonly unknown[]).includes(value) ? (value as ResultTool) : undefined;
 }
 
 /** Whether a landing is under way in `project`. A landing moves that

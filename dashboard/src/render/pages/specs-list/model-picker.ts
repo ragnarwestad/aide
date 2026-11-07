@@ -16,6 +16,7 @@ import {
   type PickerOptions,
 } from "./model-resolve.ts";
 import { type SidePart } from "../../../queue/providers/side-tools.ts";
+import { RUNNABLE_TOOLS } from "../../../queue/providers/tools.ts";
 
 export {
   ALREADY_RUN_REASON,
@@ -164,7 +165,7 @@ export function lockedDuration(ms: number | undefined): string {
  *  one CLI and implement on another — which the runner has always
  *  allowed and the filter is what stopped anyone discovering.
  *
- *  `TOOL_NAMES`'s own key order, not the configuration's: which group
+ *  `RUNNABLE_TOOLS`'s own order, not the configuration's: which group
  *  comes first is a fact about the page, not about whichever tool an
  *  admin happened to list first. A tool with nothing configured draws
  *  no group at all. */
@@ -179,12 +180,12 @@ export function modelOptions(
   chosen?: string,
   ranModelId?: string,
 ): string {
-  const groups = Object.keys(TOOL_NAMES)
+  const groups = RUNNABLE_TOOLS
     .map((tool) => {
       const group = models.filter((m) => (m.tool ?? "claude") === tool);
       if (!group.length) return "";
       return (
-        `<optgroup label="${esc(TOOL_NAMES[tool]!)}">` +
+        `<optgroup label="${esc(TOOL_NAMES[tool])}">` +
         group
           .map(
             (m) =>

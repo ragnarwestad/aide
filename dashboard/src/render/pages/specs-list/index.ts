@@ -37,6 +37,7 @@ import type { QueueRowView } from "../../ui/job-state";
 import type { ProgressStepState } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
+import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { renderFailedCreateNotices } from "./failed-create-notices.ts";
 // Re-exported for the pages that pick a model outside a row of this
@@ -141,7 +142,7 @@ export interface SpecsPageOptions {
   /** The models a job may be asked to run on, from the config. Empty or
    *  absent means the per-step configuration is the only answer and the
    *  page offers no choice at all. */
-  modelChoices?: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude"; ranAs?: string; named?: { id: string; name: string } }[];
+  modelChoices?: { name: string; tool?: RunnableTool; ranAs?: string; named?: { id: string; name: string } }[];
   /** The configured model per step (plus a "default" key), from the
    *  config's own `model` table. It is what a phase line's select is
    *  pre-filled with when the phase has not run yet — the reader sees

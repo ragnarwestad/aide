@@ -4,6 +4,8 @@
 // unchanged and keeps its name; a colour is never the only signal,
 // which is why each state has a SHAPE of its own here.
 
+import type { ProviderTool } from "../../../queue/providers/tools.ts";
+
 
 
 // --- icons -------------------------------------------------------------------
@@ -91,7 +93,7 @@ export const ICON_CLOSE =
 
 /** The three tools a provider runs, each a shape of its own: a burst for
  *  Claude Code, a ring of loops for Codex, brackets for OpenCode. */
-export const TOOL_ICONS: Record<"claude" | "codex" | "opencode", string> = {
+export const TOOL_ICONS: Record<ProviderTool, string> = {
   claude:
     `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">` +
     `<path d="M8 1.5v13M1.5 8h13M3.4 3.4l9.2 9.2M12.6 3.4l-9.2 9.2"></path></svg>`,

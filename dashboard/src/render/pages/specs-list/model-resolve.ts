@@ -3,6 +3,8 @@
 // theme so the reasoning and the markup that reads it are not one file.
 
 import type { SpecsPageOptions } from "./";
+import { asRunnableTool } from "../../../queue/steps.ts";
+import { SHORT_TOOL_NAMES, TOOL_NAMES, type ProviderTool } from "../../../queue/providers/tools.ts";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 
 // The select is PRE-FILLED, never a "default" entry (asked for
@@ -97,7 +99,7 @@ export const providerToolOf = (tool: string | undefined): string => (tool === un
 export interface ProviderOption {
   key: string;
   name: string;
-  tool: "claude" | "codex" | "opencode";
+  tool: ProviderTool;
   /** Switched off in Settings → Providers. */
   off?: boolean;
 }
@@ -149,32 +151,7 @@ export type PickerOptions = Pick<
  *  and model selects say so the same way its box does. */
 export const ALREADY_RUN_REASON = "already done, and not a step you can run";
 
-/** What each CLI is called on the page. The config's own word is the
- *  short one the runner uses; this is the one a reader picks by.
- *
- *  `fake-claude` is the scripted stand-in a project points
- *  `AIDE_CLAUDE_BIN` at: it speaks Claude Code's own command line and
- *  event format, costs nothing, and answers every step the same way
- *  every time. It is named here so a row running it says so, rather than
- *  reading as a real Claude run. */
-export const TOOL_NAMES: Record<string, string> = {
-  claude: "Claude Code",
-  codex: "Codex",
-  opencode: "OpenCode",
-  "fake-claude": "Fake-Claude",
-};
-
-/** The same tools, in the one word a narrow screen has room for. The
- *  compact picker (`aiModelButton`) shows an AI and a model together in
- *  a box eight characters wide — "Claude Code/sonnet" does not fit, and
- *  the second word is not the one that tells the two tools apart. */
-export const SHORT_TOOL_NAMES: Record<string, string> = {
-  claude: "Claude",
-  codex: "Codex",
-  // Already the one word a narrow screen has room for.
-  opencode: "OpenCode",
-  "fake-claude": "Fake-Claude",
-};
+export { SHORT_TOOL_NAMES, TOOL_NAMES };
 
 /** What one phase line is actually ON: the model, and the tool that
  *  model belongs to. The same two answers `modelPicker` and `aiPicker`
@@ -211,6 +188,12 @@ export function phaseAiModel(
   return { model, tool, ...(gone ? { provider: usedProvider } : provider ? { provider: provider.name } : {}) };
 }
 
+/** A tool's one-word name, or the word as it was written when the dashboard names no such tool. */
+const shortToolName = (tool: string): string => {
+  const known = asRunnableTool(tool);
+  return known ? SHORT_TOOL_NAMES[known] : tool;
+};
+
 /** The compact button's own text: the model's
  *  bare name, unless another entry in the SAME array carries that
  *  exact name — a tool prefix then goes in front, "Codex · gpt-6"
@@ -230,7 +213,7 @@ export function compactModelLabel(
 ): string {
   if (!on) return "";
   const collides = models.filter((m) => m.name === on.model).length > 1;
-  return collides ? `${on.provider ?? SHORT_TOOL_NAMES[on.tool] ?? on.tool} · ${on.model}` : on.model;
+  return collides ? `${on.provider ?? shortToolName(on.tool)} · ${on.model}` : on.model;
 }
 
 /** The FULL text the growing button shows once there is room for it
@@ -244,5 +227,5 @@ export function compactModelLabelFull(
   on: { model: string; tool: string; provider?: string } | undefined,
 ): string {
   if (!on) return "";
-  return `${on.provider ?? SHORT_TOOL_NAMES[on.tool] ?? on.tool} · ${on.model}`;
+  return `${on.provider ?? shortToolName(on.tool)} · ${on.model}`;
 }

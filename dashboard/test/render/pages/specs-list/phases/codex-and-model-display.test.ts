@@ -18,6 +18,11 @@ describe("compactModelLabel() names the phase's model", () => {
     expect(compactModelLabel(models, { model: "gpt-6", tool: "codex" })).toBe("Codex · gpt-6");
   });
 
+  test("a tool the dashboard does not name shows as written (AC-5)", () => {
+    const models = [{ name: "x" }, { name: "x" }];
+    expect(compactModelLabel(models, { model: "x", tool: "gemini" })).toBe("gemini · x");
+  });
+
   test("empty when the phase is on nothing", () => {
     expect(compactModelLabel([{ name: "sonnet" }], undefined)).toBe("");
   });
@@ -40,6 +45,10 @@ describe("compactModelLabelFull() always names the tool ahead of the model", () 
     expect(compactModelLabelFull(models, { model: "gpt-6", tool: "codex" })).toBe(
       compactModelLabel(models, { model: "gpt-6", tool: "codex" }),
     );
+  });
+
+  test("a tool the dashboard does not name shows as written (AC-5)", () => {
+    expect(compactModelLabelFull([{ name: "x" }], { model: "x", tool: "gemini" })).toBe("gemini · x");
   });
 
   test("empty when the phase is on nothing", () => {

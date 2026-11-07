@@ -8,6 +8,7 @@ import {
   backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, labelledCheckbox, messageSlot, resolveBackHref,
   saveCancelActions,
 } from "../../../src/render/ui/components";
+import { TOOL_ICONS } from "../../../src/render/ui/components/icons.ts";
 import { esc } from "../../../src/render/ui/html.ts";
 import { t } from "../../../src/i18n";
 
@@ -287,5 +288,13 @@ describe("saveCancelActions in the reader's language", () => {
 
   test("with no language it draws English, as every caller did before (AC-5)", () => {
     expect(saveCancelActions("x")).toContain(">Cancel<");
+  });
+});
+
+describe("TOOL_ICONS is keyed by the provider tools", () => {
+  test("a provider tool left out of the icons is a type error (AC-3)", () => {
+    // @ts-expect-error opencode is missing
+    const missing = { claude: "x", codex: "x" } satisfies typeof TOOL_ICONS;
+    expect(Object.keys(missing)).toHaveLength(2);
   });
 });

@@ -4,6 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { convertToProviders } from "../../../src/queue/providers/convert.ts";
 import { resolveStepProvider } from "../../../src/queue/providers/index.ts";
+import { SHORT_TOOL_NAMES } from "../../../src/queue/providers/tools.ts";
 import type { Job, QueueDefaults } from "../../../src/queue/types.ts";
 
 const HOME = "/home/ragnar";
@@ -35,6 +36,18 @@ describe("convertToProviders", () => {
       Work: { name: "Work", tool: "claude", configDir: "~/.claude-2" },
       Spare: { name: "Spare", tool: "claude", configDir: "/opt/claude-3" },
     });
+  });
+
+  test("the Codex tool's provider takes its name from the short tool names (AC-4)", () => {
+    const before = SHORT_TOOL_NAMES.codex;
+    SHORT_TOOL_NAMES.codex = "Kodeks";
+    try {
+      const { providers } = convert([]);
+      expect(providers["Kodeks"]).toEqual({ name: "Kodeks", tool: "codex" });
+      expect(providers["Codex"]).toBeUndefined();
+    } finally {
+      SHORT_TOOL_NAMES.codex = before;
+    }
   });
 
   test("an account named like a tool keeps its name and the tool's provider takes the next free one (AC-7)", () => {
