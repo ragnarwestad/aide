@@ -197,12 +197,12 @@ underneath; which phase a press would run is on the Running tab's button, which 
 An analyze stopped on its acceptance criteria reads Stopped, and its notice line is amber, naming each fault the
 plan review found. Its phase counts as not done, even on a spec analyzed before, so the Running tab's button offers Analyze again.
 
-An analyze stopped on files another open spec also changes reads Stopped too, and its notice line names each spec that is still open by number and title, with the files it shares. The names are
-read from the `### Overlapping specs` record in the spec's own analysis each time the row is drawn, so the line is the
-same with the stopped job in the queue and without it. A spec archived since is left out; when every one is, the line
-says so and that pressing Analyze goes on, and asks for nothing in Depends on. Its phase counts as not done, so the
-Running tab's button offers Analyze again, which goes on. Adding the specs to Depends on and saving queues Analyze instead, held
-until they archive, but only while the stopped job is still in the queue.
+Analyze reviews shared file paths against the actual changes and completes its plan. Unrelated changes to the
+same file are independent. When its decisions require another spec to finish first, the board adds that dependency
+and queues Analyze and its remaining steps, held until the dependency archives. An informational notice names
+what was added and why. Existing dependencies stay in place. A direct or indirect cycle rejects the whole update
+and shows the chain; no dependency is added in that case. An overlap without a reasoned decision stops Analyze
+without authorizing an automatic change.
 
 ## The notice line under the name
 

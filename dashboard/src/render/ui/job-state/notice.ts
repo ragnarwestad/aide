@@ -108,6 +108,8 @@ export function sharedFilesSentence(
   const leadStopped = lead?.state === "stopped" && lead.stopReason === "shared-files";
   const historyStopped = analyzeStopped === "shared-files" && !(lead && (inFlight(lead) || lead.error));
   if (!leadStopped && !historyStopped) return undefined;
+  if (leadStopped && lead?.error && typeof lead.error === "object" && !Array.isArray(lead.error) &&
+      ["runner.dependencyCycle", "runner.autoDependenciesFailed", "runner.overlapDecisionMissing"].includes(lead.error.key)) return renderSentence(lang, lead.error);
   const open = overlaps();
   const button = stepButton("analyze");
   if (open?.length) {
@@ -195,6 +197,7 @@ export function specNotice(
   readyToArchive?: boolean,
 ): RowNotice | undefined {
   const parts: (NoticePart & { variant: MessageVariant; title?: string })[] = [];
+  if (lead?.dependencyNotice) parts.push({ variant: "info", text: renderSentence(lang, lead.dependencyNotice)!, own: true });
   // A failed landing writes the same sentence twice on the job: as its
   // `error` and, prefixed with the step, as its `landingError`. Said
   // once here — the mark carries it in full.

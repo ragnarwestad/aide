@@ -315,3 +315,35 @@ def test_the_projects_translation_files_are_never_an_overlap(script, root, tmp_p
     rc, out = overlap(script, root, SPEC, "--project-dir", str(project))
     assert rc == 0, out
     assert specs_named(out["overlaps"]) == {OTHER: ["x.ts"]}, out
+
+
+def test_a_reasoned_ordering_is_reported_separately_from_shared_paths(script, root):
+    text = analysis_text(["x.ts"], {OTHER: ["x.ts"]},
+        f"\n### Overlap decisions\n\n- `{OTHER}` — depends — changes the result contract consumed here\n")
+    make_spec(root, SPEC, phase="created", analysis=text)
+    make_spec(root, OTHER, ["x.ts"])
+    rc, out = overlap(script, root)
+    assert rc == 0, out
+    assert out.get("required") == [{"spec": OTHER, "files": ["x.ts"], "reason": "changes the result contract consumed here"}]
+
+
+def test_different_work_in_a_shared_file_is_not_a_required_dependency(script, root):
+    text = analysis_text(["x.ts"], {OTHER: ["x.ts"]},
+        f"\n### Overlap decisions\n\n- `{OTHER}` — independent — changes login links while this changes display names\n")
+    make_spec(root, SPEC, phase="created", analysis=text)
+    make_spec(root, OTHER, ["x.ts"])
+    rc, out = overlap(script, root)
+    assert rc == 0, out
+    assert out["required"] == []
+    assert out["independent"] == [{"spec": OTHER, "files": ["x.ts"]}]
+
+
+@pytest.mark.parametrize("decision", ["depends —", "depends —   ", "unsure — maybe", "depends — reason\n- `{other}` — independent — other reason"])
+def test_missing_or_conflicting_decisions_never_authorize_dependencies(script, root, decision):
+    text = analysis_text(["x.ts"], {OTHER: ["x.ts"]},
+        f"\n### Overlap decisions\n\n- `{OTHER}` — {decision.format(other=OTHER)}\n")
+    make_spec(root, SPEC, phase="created", analysis=text)
+    make_spec(root, OTHER, ["x.ts"])
+    _, out = overlap(script, root)
+    assert out["required"] == []
+    assert out["independent"] == []

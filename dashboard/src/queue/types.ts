@@ -51,6 +51,7 @@ export interface ProviderLimit {
 export interface SharedFiles {
   spec: string;
   files: string[];
+  reason?: string;
 }
 
 /** What `testedGreen` on a step result holds. */
@@ -396,6 +397,7 @@ export interface Job {
    *  a job that has moved on has already overwritten it, so the one
    *  chance to find out why a landing failed was gone (2026-09-20). */
   landingErrorDetail?: string;
+  dependencyNotice?: Sentence;
   /** Raw git/tool output behind `error` — never part
    *  of `error`'s own text, which stays a fixed, resolution-bearing
    *  sentence. Hover-only detail for whoever needs the exact words. */

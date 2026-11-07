@@ -530,13 +530,20 @@ false, the commit subject ending `(stopped: acceptance-criteria)`, the error nam
 `cannotBuild`. The runner reads the line and never judges the criteria itself. `none found`, or no line, completes the
 step.
 
-**The shared files check.** The analyze skill compares the files its analysis will change with those of every other
-open spec in the project that is analyzed or implemented and not archived, with `aide-spec-overlap`, and stops before
-the plan when one shares a file. A Markdown file never counts. After the turn (`run-spec/record/shared-files-check.sh`)
-the runner runs the command with `--record`, which writes the specs found into the analysis's `### Overlapping specs`.
-A spec that is new in that list ends the step `shared-files`: `ok` false, the error naming each spec with its files,
-and the result's `sharedFiles` (`[{ "spec": "<folder>", "files": [...] }]`). A spec already in the list does not stop
-the next Analyze. When `aide-spec-overlap` is not installed, the check is skipped.
+**The shared files check.** `aide-spec-overlap` compares the planned file paths of open, analyzed or implemented
+specs. Markdown and the project's translation files do not count. Analyze reviews the descriptions, analyses,
+plans and affected functions, records a reasoned `depends` or `independent` decision under `### Overlap decisions`
+in its newest analysis round, and finishes the plan. The runner checks those decisions after the turn:
+independent changes do not stop the step, while an unreviewed overlap or a required ordering ends it `shared-files`.
+An earlier warning alone is not a decision. Required orderings carry a non-empty `reason` in each result's
+`sharedFiles` entry; unreviewed paths carry no reason and authorize no automatic edit.
+
+After the stopped analysis lands, the board adds the required dependencies, preserving existing ones, and queues
+Analyze and the remaining steps. The ordinary dependency hold waits until they archive. Updates share the specs
+repository's lock; validation reads the freshly pulled descriptions and dependency edits on open branches before
+any write. A direct or indirect cycle rejects the whole update, leaves dependencies unchanged, and shows its
+chain. A saved update leaves an informational notice naming the dependencies and their reasons. A failed save
+queues nothing. When `aide-spec-overlap` is not installed, the comparison is skipped.
 
 **The short analysis check.** A small spec may get a short analysis: the files to change and where the tests sit, with
 no plan and no plan review. The limits and the grade are the `SHORT_ANALYSIS_*` constants in

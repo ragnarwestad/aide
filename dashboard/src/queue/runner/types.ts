@@ -309,7 +309,7 @@ export function sharedFiles(raw: unknown): SharedFiles[] | undefined {
     if (e === null || typeof e !== "object") return [];
     const r = e as Record<string, unknown>;
     const files = Array.isArray(r.files) ? r.files.filter((f): f is string => typeof f === "string" && f !== "") : [];
-    return typeof r.spec === "string" && r.spec !== "" && files.length ? [{ spec: r.spec, files }] : [];
+    return typeof r.spec === "string" && r.spec !== "" && files.length ? [{ spec: r.spec, files, ...(typeof r.reason === "string" && r.reason.trim() ? { reason: r.reason.trim() } : {}) }] : [];
   });
   return specs.length ? specs : undefined;
 }

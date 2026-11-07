@@ -67,6 +67,7 @@ export interface RunnerSetupContext {
   landArchivedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landClosedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landStoppedStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
+  handleSharedFiles?: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landScheduleRun: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   /** Starts a `deploy` step, which this process runs itself. */
   startDeploy: (job: Job, resultFile: string) => SpawnResult;
@@ -329,6 +330,12 @@ export function stepDoneHandler(
     forgetSpecCachesFor(ctx, job);
     const landing = landingFor(job, step, outcome);
     if (!landing) rereadSpecCachesFor(ctx, job);
+    if (step === "analyze" && outcome.terminalReason === "shared-files" && ctx.handleSharedFiles) {
+      void Promise.resolve(landing).then(() => {
+        setTimeout(() => void ctx.handleSharedFiles!(job, outcome)
+          .catch((error) => logRefusal("dependencies", `${job.project}/${job.specFolder}`, String(error))), 0);
+      }, (error) => logRefusal("dependencies", `${job.project}/${job.specFolder}`, String(error)));
+    }
     if (step === "implement" && outcome.terminalReason === "sent-back") {
       queueFullAnalysisRound(job, ["analyze", "implement"], landing, "sent back");
     }
