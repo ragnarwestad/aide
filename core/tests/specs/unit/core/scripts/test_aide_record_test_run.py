@@ -325,3 +325,23 @@ def test_without_progress_file_nothing_about_the_output_changes(script, project,
     )
     assert proc.returncode == 3
     assert "on stderr" in proc.stderr and "on stderr" not in proc.stdout
+
+
+def test_a_red_run_names_its_failing_tests_in_the_line_not_the_record(script, project, specs_root, tmp_path):
+    """The one reading of a red run's output, for the runner and the
+    landing alike; the record keeps its shape."""
+    (project / "suite.sh").write_text(
+        "echo 'FAILED t/test_a.py::test_one - AssertionError: no'\n"
+        "echo '1 failed, 4 passed in 0.1s' >&2\nexit 1\n"
+    )
+    result = tmp_path / "result.json"
+    rc, out, _ = run(script, project, specs_root, "81-x", "bash suite.sh", result_file=result)
+    assert rc == 1, out
+    assert out["failingTests"]["tests"] == ["t/test_a.py::test_one"], out
+    assert json.loads(result.read_text())["failingTests"]["failed"] == 1
+    assert "failingTests" not in json.loads((specs_root / "81-x" / "test-run.json").read_text())
+
+
+def test_a_green_run_names_no_failing_tests(script, project, specs_root):
+    rc, out, _ = run(script, project, specs_root, "81-x", "true")
+    assert rc == 0 and "failingTests" not in out, out

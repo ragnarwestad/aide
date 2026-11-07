@@ -12,10 +12,12 @@ const SCRIPTS = join(import.meta.dir, "../../../core/scripts");
 // The reasons the script writes that are NOT a failure of the step's work:
 // a finished step, a close, the two limits the queue keeps as stopped, a model
 // the provider had no room for, an analyze stopped on its acceptance criteria or on files another open
-// spec changes, an implement sent back to a full analysis, a cancel, and the runner
-// declining before any model ran.
+// spec changes, an implement sent back to a full analysis, a cancel, the runner
+// declining before any model ran, and a close that found a merge still open or
+// the spec already archived.
 const NOT_FAILURES = [
   "completed", "closed", "timeout", "provider-limit", "model-at-capacity", "acceptance-criteria", "shared-files", "sent-back", "cancelled", "refused",
+  "conflict-open", "already-archived",
 ];
 
 describe("isFailedStop", () => {

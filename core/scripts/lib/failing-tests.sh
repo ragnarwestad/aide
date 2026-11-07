@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# run-spec/turn/failing-tests.sh — sourced by aide-run-spec before run-spec/turn/step-tests.sh.
+# failing-tests.sh — sourced by aide-record-test-run, and by aide-run-spec
+# for the helpers below that read the parser's answer.
 #
 # Which tests a red run failed, read from the run's own output: the board
 # names them, and a fix round hands them back to the session, instead of
-# the last lines of the log. The landing reads the same output in
-# TypeScript (dashboard/src/format/failing-tests.ts); the two are pinned
-# by core/tests/fixtures/failing-tests.json.
+# the last lines of the log. aide-record-test-run reads its run with
+# `failing_tests` and puts the answer on its own line as `failingTests`,
+# which the runner and the landing both read; core/tests/fixtures/failing-tests.json
+# pins the parser.
 #
 # What each runner prints, without its colour and cursor codes:
 #   Playwright  "  2 failed", then one "[project] › file:line:col › title"

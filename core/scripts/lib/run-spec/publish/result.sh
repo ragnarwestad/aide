@@ -281,7 +281,7 @@ line="$(jq -cn \
    # (run-spec/turn/test-start.sh): the kind, the port or the wait, and
    # who held the port when the runner could tell.
    + (if $testsNotStarted == null then {} else {testsNotStarted:$testsNotStarted} end)
-   # And for the tests a red implement run named (run-spec/turn/failing-tests.sh):
+   # And for the tests a red implement run named (lib/failing-tests.sh):
    # at most eight, the counts, and whether they point at the change.
    + (if $testsRed == null then {} else {testsRed:$testsRed} end)
    # And for the error the provider gave on a step that ended cli-error

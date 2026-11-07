@@ -25,7 +25,7 @@
 # again — up to AIDE_TEST_FIX_ROUNDS more turns (2), each within what
 # is left of the step's time limit. The record on the branch is always
 # the runner's last run. Each red run's failing tests are read by name
-# (run-spec/turn/failing-tests.sh): a fix round is handed those, and a step
+# (lib/failing-tests.sh): a fix round is handed those, and a step
 # still red carries them in the result's `testsRed`, with whether they lie
 # in files the change touched and whether the runs failed different ones.
 #
@@ -236,7 +236,7 @@ EOF_CMDS
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
       step_fix_round=0
       step_cost_total="$cost"
-      # The tests each red run named (run-spec/turn/failing-tests.sh).
+      # The tests each red run named (lib/failing-tests.sh).
       step_tests_runs=0
       # The lines of each task a monorepo runner's summary names as failed
       # that say error or fail, without their colour codes, at most eight.
@@ -293,7 +293,9 @@ EOF_CMDS
         [ -n "$step_tests_failing" ] || step_tests_failing="$(log_tail "$work_dir/step-test-run.log" 600)"
         step_tests_runs=$((step_tests_runs + 1))
         step_tests_named="$work_dir/failing-tests-$step_tests_runs.json"
-        failing_tests "$work_dir/step-test-run.log" > "$step_tests_named"
+        # The recorder read them from the run's output, as it does for the landing.
+        jq -c '.failingTests // {tests:[], files:[], errors:[]}' "$work_dir/step-test-run.json" > "$step_tests_named" 2>/dev/null \
+          || echo '{"tests":[],"files":[],"errors":[]}' > "$step_tests_named"
         # The suite never started — its server could not start (run-spec/turn/test-start.sh).
         # No session can free a port or start a machine's service, so this
         # ends the step at once, with the cause and, for a port, who holds it.

@@ -1,5 +1,5 @@
 {
-  "_about": "Test output and the failing tests read from it. Pins core/scripts/lib/run-spec/turn/failing-tests.sh and dashboard/src/format/failing-tests.ts to the same answers.",
+  "_about": "Test output and the failing tests read from it. Pins core/scripts/lib/failing-tests.sh, the one reader, which aide-record-test-run uses.",
   "cases": [
     {
       "name": "Playwright under pnpm: the failed list, not pnpm's box or the recorder's line; flaky ones are not failures",

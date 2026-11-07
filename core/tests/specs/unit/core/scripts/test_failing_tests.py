@@ -1,10 +1,9 @@
-"""The failing tests a red run names (run-spec/turn/failing-tests.sh).
+"""The failing tests a red run names (lib/failing-tests.sh).
 
 Read from the run's own output, for Playwright, vitest, bun, pytest and
 turbo, without colour codes, and never pnpm's error box or the recorder's
-JSON line. The landing reads the same output in TypeScript
-(dashboard/src/format/failing-tests.ts), and
-core/tests/fixtures/failing-tests.json pins both.
+JSON line. aide-record-test-run puts the answer on its own line, for the
+runner and the landing alike; core/tests/fixtures/failing-tests.json pins it.
 """
 
 import json
@@ -14,9 +13,9 @@ import subprocess
 import pytest
 
 CASES = json.loads(
-    (pathlib.Path(__file__).resolve().parents[7] / "fixtures" / "failing-tests.json").read_text()
+    (pathlib.Path(__file__).resolve().parents[4] / "fixtures" / "failing-tests.json").read_text()
 )["cases"]
-PART = pathlib.Path(__file__).resolve().parents[9] / "core" / "scripts" / "lib" / "run-spec" / "turn" / "failing-tests.sh"
+PART = pathlib.Path(__file__).resolve().parents[6] / "core" / "scripts" / "lib" / "failing-tests.sh"
 
 
 def _bash(snippet):

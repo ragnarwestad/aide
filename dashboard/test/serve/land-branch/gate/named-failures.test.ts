@@ -7,6 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { failingLines, runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
+import { namingRecorder } from "../../../helpers/naming-recorder.ts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -47,9 +48,9 @@ function recorder(first: string, second: string): void {
   const runs = join(bin, "runs");
   writeFileSync(
     join(bin, "record"),
-    `#!/bin/sh\n[ -f "$2/spec-change" ] || exit 0\necho run >> ${runs}\n` +
+    namingRecorder(`[ -f "$2/spec-change" ] || exit 0\necho run >> ${runs}\n` +
       `if [ "$(wc -l < ${runs})" -eq 1 ]; then ${first ? `echo 'FAILED t/test_a.py::${first} - first error'` : "echo 'error: command stopped before naming a test'"}; else echo 'FAILED t/test_a.py::${second} - second error'; fi\n` +
-      `echo '{"ok":true,"exitCode":1,"terminalReason":"recorded"}'\nexit 1\n`,
+      `echo '{"ok":true,"exitCode":1,"terminalReason":"recorded"}'\nexit 1\n`),
     { mode: 0o755 },
   );
   process.env.AIDE_RESOLVE_TEST_CMD_BIN = join(bin, "resolve");

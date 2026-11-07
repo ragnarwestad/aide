@@ -1,24 +1,22 @@
-// The failing tests a red run names, read from its own output.
-// `failing_tests` (core/scripts/lib/run-spec/turn/failing-tests.sh) reads
-// a step's own run the same way, and core/tests/fixtures/failing-tests.json
-// pins both.
+// The failing tests a red run names, as the recorder put them on its answer.
 
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { failingTests, variedBetween } from "../../src/format/failing-tests.ts";
+import { recordedFailures, variedBetween } from "../../src/format/failing-tests.ts";
 
-const CASES = JSON.parse(readFileSync(join(import.meta.dir, "../../../core/tests/fixtures/failing-tests.json"), "utf-8"))
-  .cases as { name: string; log: string[]; tests: string[]; files: string[]; errors: string[]; failed?: number; total?: number }[];
+describe("recordedFailures", () => {
+  test("reads the failing tests off the recorder's last line, after the tests' own output", () => {
+    const stdout = [
+      "FAILED t/test_a.py::one - AssertionError: no",
+      '{"ok":true,"exitCode":1,"terminalReason":"recorded","failingTests":{"tests":["t/test_a.py::one"],"files":["t/test_a.py"],"errors":["AssertionError: no"],"failed":1,"total":5}}',
+    ].join("\n");
+    expect(recordedFailures(stdout)).toEqual({
+      tests: ["t/test_a.py::one"], files: ["t/test_a.py"], errors: ["AssertionError: no"], failed: 1, total: 5,
+    });
+  });
 
-describe("failingTests", () => {
-  test.each(CASES)("$name (AC-1, AC-4)", ({ log, tests, files, errors, failed, total }) => {
-    const got = failingTests(`${log.join("\n")}\n`);
-    expect(got.tests).toEqual(tests);
-    expect(got.files).toEqual(files);
-    expect(got.errors).toEqual(errors);
-    expect(got.failed).toBe(failed);
-    expect(got.total).toBe(total);
+  test("a recorder that was stopped, or names none, names no test", () => {
+    expect(recordedFailures("FAILED t/test_a.py::one - no\n").tests).toEqual([]);
+    expect(recordedFailures('{"ok":true,"exitCode":1,"terminalReason":"recorded"}\n').tests).toEqual([]);
   });
 });
 

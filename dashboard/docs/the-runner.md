@@ -394,7 +394,7 @@ evidence that the phase happened:
     verdict it cannot parse, or a turn that does not complete, counts as "found nothing" and is logged as an error.
   - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red goes back
     to the same session as a follow-up turn, at most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time
-    limit. Each red run's failing tests are read from its output (`run-spec/turn/failing-tests.sh`: Playwright,
+    limit. Each red run's failing tests are read from its output by `aide-record-test-run` (`lib/failing-tests.sh`: Playwright,
     vitest, bun, pytest and turbo, without colour codes, never pnpm's error box or the recorder's JSON line), and a
     fix round's prompt names them; the log's own failing lines go only when no test is named, or no name carries a
     file. Before a still-red step ends, each named red file is run once more alone when the project has an

@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { timeoutVerdict } from "../../src/serve/land-branch/test-gate.ts";
 import { runProjectSuiteBeforePush } from "../../src/serve/land-branch/test-gate.ts";
 import { renderSentence } from "../../src/i18n/message.ts";
+import { namingRecorder } from "../helpers/naming-recorder.ts";
 
 /** What a reader would see: a message is stored as
  *  its key and the values that fill its blanks, and composed when
@@ -148,7 +149,7 @@ describe("the landing's test gate", () => {
     dirs.push(runs);
     writeFileSync(
       process.env.AIDE_RECORD_TEST_RUN_BIN!,
-      `#!/bin/sh\necho run >> ${runs}\n[ $(wc -l < ${runs}) -gt 2 ] && exit 0\necho 'FAILED tests/test_x.py::test_x - assert 1 == 2'\nexit 1\n`,
+      namingRecorder(`echo run >> ${runs}\n[ $(wc -l < ${runs}) -gt 2 ] && exit 0\necho 'FAILED tests/test_x.py::test_x - assert 1 == 2'\nexit 1`),
       { mode: 0o755 },
     );
 

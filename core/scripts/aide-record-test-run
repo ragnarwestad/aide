@@ -61,6 +61,10 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-result.sh"
+# The one reading of which tests a red run failed, for the runner and the
+# landing alike: it rides on this script's answer as `failingTests`.
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/failing-tests.sh"
 
 [ -n "$project_dir" ] || aide_spec_refuse "missing --project-dir"
 [ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
@@ -78,16 +82,23 @@ tree=""
 declare -f aide_tree_hash >/dev/null 2>&1 && tree="$(aide_tree_hash "$project_dir" 2>/dev/null || echo "")"
 record_file="$target_dir/test-run.json"
 
-# One command, run in the project. With --progress-file its output (both
-# streams) still passes through whole, and the lines that say how far it
-# has come are written to the file as they arrive.
+# Everything the commands print, both streams, kept to read the failing
+# tests from once they are done.
+output_file="$(mktemp)"
+trap 'rm -f "$output_file" "$output_file.rc"' EXIT
+
+# One command, run in the project. Its two streams pass through as they
+# are, and into $output_file. With --progress-file they pass through
+# whole, and the lines that say how far it has come are written to the
+# file as they arrive.
 run_cmd() {   # <command>
   if [ -z "$progress_file" ]; then
-    ( cd "$project_dir" && bash -c "$1" )
-    return
+    { { ( cd "$project_dir" && bash -c "$1" ); echo $? > "$output_file.rc"; } 2>&1 1>&3 3>&- \
+        | tee -a "$output_file" >&2 3>&-; } 3>&1 | tee -a "$output_file"
+    return "$(cat "$output_file.rc" 2>/dev/null || echo 1)"
   fi
   printf 'running %s\n' "$1" >> "$progress_file"
-  ( cd "$project_dir" && bash -c "$1" ) 2>&1 | LC_ALL=C awk -v out="$progress_file" '
+  ( cd "$project_dir" && bash -c "$1" ) 2>&1 | tee -a "$output_file" | LC_ALL=C awk -v out="$progress_file" '
     function note(s) { print s >> out; fflush(out) }
     { print; fflush() }
     /\[ *[0-9]+%\][ \t]*$/ {
@@ -103,6 +114,12 @@ run_cmd() {   # <command>
     /^red: / { note($0) }
   '
   return "${PIPESTATUS[0]}"
+}
+
+# `{failingTests: …}` for a red run, `{}` for a green one.
+failing_tests_of_run() {   # <exit code>
+  if [ "$1" -eq 0 ]; then echo '{}'; return; fi
+  jq -c '{failingTests: .}' <<<"$(failing_tests "$output_file")" 2>/dev/null || echo '{}'
 }
 
 if [ "${#cmds[@]}" -le 1 ]; then
@@ -129,8 +146,8 @@ if [ "${#cmds[@]}" -le 1 ]; then
   fi
   [ -f "$record_file" ] || aide_spec_refuse "test-run.json was not written"
 
-  line="$(jq -cn --argjson e "${exit_code:-1}" --arg c "$commit" --arg cmd "$cmd" \
-    '{ok:true, exitCode:$e, commit:$c, command: ($cmd | if . == "" then null else . end), terminalReason:"recorded"}')"
+  line="$(jq -cn --argjson e "${exit_code:-1}" --arg c "$commit" --arg cmd "$cmd" --argjson f "$(failing_tests_of_run "${exit_code:-0}")" \
+    '{ok:true, exitCode:$e, commit:$c, command: ($cmd | if . == "" then null else . end), terminalReason:"recorded"} + $f')"
   printf '%s\n' "$line"
   [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
   exit "${exit_code:-1}"
@@ -162,8 +179,8 @@ if ! jq -cn --arg commit "$commit" --arg tree "$tree" --argjson exitCode "$agg_e
 fi
 [ -f "$record_file" ] || aide_spec_refuse "test-run.json was not written"
 
-line="$(jq -cn --argjson e "$agg_exit" --arg c "$commit" --argjson commands "$results_json" \
-  '{ok:true, exitCode:$e, commit:$c, command:null, commands:$commands, terminalReason:"recorded"}')"
+line="$(jq -cn --argjson e "$agg_exit" --arg c "$commit" --argjson commands "$results_json" --argjson f "$(failing_tests_of_run "$agg_exit")" \
+  '{ok:true, exitCode:$e, commit:$c, command:null, commands:$commands, terminalReason:"recorded"} + $f')"
 printf '%s\n' "$line"
 [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
 exit "$agg_exit"

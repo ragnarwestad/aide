@@ -7,6 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
+import { namingRecorder } from "../../../helpers/naming-recorder.ts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -47,7 +48,7 @@ function recorder(redWhen: "always" | "with the spec" | "different" | "main unna
     : redWhen === "different" ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "(fail) main only"; fi; exit 1'
     : redWhen === "main unnamed" ? 'if [ -f "$2/spec-change" ]; then echo "(fail) merge only"; else echo "error: command failed"; fi; exit 1'
     : '[ -f "$2/spec-change" ] && { echo "(fail) a test"; exit 1; }; exit 0';
-  writeFileSync(join(bin, "record"), `#!/bin/sh\n${test}\n`, { mode: 0o755 });
+  writeFileSync(join(bin, "record"), namingRecorder(test), { mode: 0o755 });
   process.env.AIDE_RESOLVE_TEST_CMD_BIN = join(bin, "resolve");
   process.env.AIDE_RECORD_TEST_RUN_BIN = join(bin, "record");
   process.env.AIDE_TEST_GATE_LOG = join(bin, "gate.log");

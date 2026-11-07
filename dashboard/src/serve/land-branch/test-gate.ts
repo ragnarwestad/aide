@@ -19,7 +19,7 @@ import { NO_GIT_HOOKS } from "../../integrations/no-git-hooks.ts";
 import { alreadySeenGreen, type GatedJob } from "./seen-green.ts";
 import { runLogPath } from "../../queue/runner/run-log-path.ts";
 import { type BusyJob, testWorkerShare } from "../../queue/test-workers.ts";
-import { failingTests, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
+import { recordedFailures, variedBetween, type FailingTests } from "../../format/failing-tests.ts";
 import { stepButton } from "../../format/step-label.ts";
 import type { Sentence } from "../../i18n/message.ts";
 
@@ -198,7 +198,7 @@ async function resultOnDefaultBranch(
     const out = await runScript([recorder, "--project-dir", tree.dir, ...argTail], tree.dir, LANDING_GATE_TIMEOUT_MS, undefined, testWorkers(jobs));
     if (out.timedOut) return { status: "not-checked", reason: "the tests on the default branch did not finish" };
     if (out.code === 0) return { status: "green" };
-    return { status: "red", failures: failingTests(`${out.stdout}\n${out.stderr}`) };
+    return { status: "red", failures: recordedFailures(out.stdout) };
   } finally {
     await tree.remove();
   }
@@ -381,7 +381,7 @@ async function runSuiteIn(
     stepLogLine(job, `the landing runs the project's tests on the merge (${commands.length} command(s))`);
     const button = stepButton("archive");
     let gate = await runOnce("");
-    const firstResult = failingTests(`${gate.stdout}\n${gate.stderr}`);
+    const firstResult = recordedFailures(gate.stdout);
     // A red run gets the WHOLE command once more: a test that lost to a
     // busy host passes the second time, and a real failure fails twice.
     // A run that timed out is not retried — a second one would hold the
@@ -411,7 +411,7 @@ async function runSuiteIn(
       // test output rides in `detail`, on hover and on the job's own page.
       // Where the work IS rides in the sentence itself: the origin check
       // after the merge loop adds nothing beside a red suite.
-      const lastResult = failingTests(`${gate.stdout}\n${gate.stderr}`);
+      const lastResult = recordedFailures(gate.stdout);
       const firstTests = firstResult.tests;
       const lastTests = lastResult.tests;
       const detail = failingLines(gate.stdout, gate.stderr);
