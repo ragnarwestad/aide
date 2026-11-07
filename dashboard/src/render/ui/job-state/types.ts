@@ -89,6 +89,7 @@ export interface QueueRowView {
   /** Raw git/tool output behind `error` — see
    *  `Job.errorDetail`. */
   errorDetail?: string;
+  dependencyNotice?: Sentence;
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
   model?: string;

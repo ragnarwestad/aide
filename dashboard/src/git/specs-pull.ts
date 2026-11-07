@@ -245,7 +245,7 @@ export async function saveSpecFiles(
   dir: string,
   resolveBase: (root: string) => Promise<string | null>,
   edits: SpecFileEdit[],
-  opts: { specLabel: string; message: string },
+  opts: { specLabel: string; message: string; validate?: () => Promise<string | undefined> },
 ): Promise<SpecsSaveResult> {
   // Which file a refusal is ABOUT: one file names itself, several name
   // the save. Computed once, because most of the refusals below say it.
@@ -271,6 +271,9 @@ export async function saveSpecFiles(
         };
       }
     }
+
+    const validation = await opts.validate?.();
+    if (validation) return { ok: false, note: validation, committed: false };
 
     // Captured BEFORE the writes, so a rollback undoes exactly this
     // save's commit and nothing the pull above brought in.

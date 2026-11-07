@@ -77,6 +77,38 @@ export const MESSAGES = {
 
   // --- the runner's hold-backs and caps (runner.ts) -------------------------
 
+  "runner.dependenciesAdded": {
+    en: "dependencies added automatically: {dependencies}",
+    nb: "avhengigheter lagt til automatisk: {dependencies}",
+    es: "dependencias añadidas automáticamente: {dependencies}",
+    de: "Abhängigkeiten automatisch hinzugefügt: {dependencies}",
+    fr: "dépendances ajoutées automatiquement : {dependencies}",
+    statement: "records the dependencies the board added and why",
+  },
+  "runner.overlapDecisionMissing": {
+    en: "Analyze did not finish assessing the overlap with {specs}",
+    nb: "Analyser fullførte ikke vurderingen av overlapp med {specs}",
+    es: "Analyze no terminó de evaluar el solapamiento con {specs}",
+    de: "Analyze hat die Überschneidung mit {specs} nicht vollständig bewertet",
+    fr: "Analyze n’a pas terminé l’évaluation du chevauchement avec {specs}",
+    solution: { en: "run Analyze again to complete the assessment", nb: "kjør Analyser igjen for å fullføre vurderingen", es: "ejecuta Analyze de nuevo para completar la evaluación", de: "starte Analyze erneut, um die Bewertung abzuschließen", fr: "relancez Analyze pour terminer l’évaluation" },
+  },
+  "runner.dependencyCycle": {
+    en: "dependencies were not added because they would create a cycle: {chain}",
+    nb: "avhengighetene ble ikke lagt til fordi de ville laget en sirkel: {chain}",
+    es: "no se añadieron dependencias porque crearían un ciclo: {chain}",
+    de: "Abhängigkeiten wurden nicht hinzugefügt, da ein Kreis entstehen würde: {chain}",
+    fr: "les dépendances n’ont pas été ajoutées car elles créeraient un cycle : {chain}",
+    solution: { en: "review Depends on, then run Analyze again", nb: "se over Depends on, og kjør Analyser igjen", es: "revisa Depends on y ejecuta Analyze de nuevo", de: "prüfe Depends on und starte Analyze erneut", fr: "vérifiez Depends on puis relancez Analyze" },
+  },
+  "runner.autoDependenciesFailed": {
+    en: "the automatic dependency update could not finish: {reason}",
+    nb: "den automatiske oppdateringen av avhengigheter kunne ikke fullføres: {reason}",
+    es: "la actualización automática de dependencias no pudo completarse: {reason}",
+    de: "die automatische Aktualisierung der Abhängigkeiten konnte nicht abgeschlossen werden: {reason}",
+    fr: "la mise à jour automatique des dépendances n’a pas pu aboutir : {reason}",
+    solution: { en: "review Depends on, then run Analyze again", nb: "se over Depends on, og kjør Analyser igjen", es: "revisa Depends on y ejecuta Analyze de nuevo", de: "prüfe Depends on und starte Analyze erneut", fr: "vérifiez Depends on puis relancez Analyze" },
+  },
   "runner.landingPause": {
     en: "held back: a merge is still running — this starts when it has finished",
     nb: "holdt tilbake: en merge kjører fortsatt — dette starter når den er ferdig",

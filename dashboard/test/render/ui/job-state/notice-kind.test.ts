@@ -136,3 +136,21 @@ describe("informational holds", () => {
     expect(notice?.text).not.toMatch(/^(Problem|Solution):/m);
   });
 });
+
+test("automatic dependency changes remain informational beside the dependency hold", () => {
+  const notice = specNotice(lead({ steps: ["analyze"], errorReason: "held-back",
+    error: { key: "runner.dependencyNotArchived", values: { dependency: "aide:726" } },
+    dependencyNotice: { key: "runner.dependenciesAdded", values: { dependencies: "aide:726 — needs its result contract" } },
+  }));
+  expect(notice?.parts?.find((part) => part.text.includes("needs its result contract")))
+    .toMatchObject({ variant: "info" });
+  expect(notice?.text).not.toMatch(/^(Problem|Solution):/m);
+});
+
+test("a cycle explanation is not hidden by the older shared-file notice", async () => {
+  const { sharedFilesSentence } = await import("../../../../src/render/ui/job-state/notice.ts");
+  const text = sharedFilesSentence(lead({ state: "stopped", stopReason: "shared-files",
+    error: { key: "runner.dependencyCycle", values: { chain: "aide:1 → aide:2 → aide:1" } },
+  }), "shared-files", () => [{ folder: "2-b", label: "2 B", files: ["x.ts"] }]);
+  expect(text).toContain("aide:1 → aide:2 → aide:1");
+});
