@@ -40,11 +40,13 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] && 
       terminal_reason="sent-back"
       error_msg="$step_button sent the spec back to a full analysis: $sent_back_why"
       error_solution="Analyze runs again with a full analysis, then $step_button"
+      error_log="$sent_back_why"
     else
       stage "sent back: refused, $sent_back_refusal — Implement fails"
       terminal_reason="sent-back-refused"
       error_msg="$step_button asked to send the spec back to a full analysis, but $sent_back_refusal: $sent_back_why"
       error_solution="press Analyze again for a new plan"
+      error_log="$sent_back_why"$'\n'"$sent_back_refusal"
     fi
     ok="false"
     suffix=" (stopped: $terminal_reason)"

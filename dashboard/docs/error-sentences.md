@@ -5,6 +5,7 @@
 - [The two lines](#the-two-lines)
 - [Only what was checked](#only-what-was-checked)
 - [The shared builder](#the-shared-builder)
+- [Where a failure's sentence comes from](#where-a-failures-sentence-comes-from)
 - [An error that has resolved itself](#an-error-that-has-resolved-itself)
 - [Words the reader does not use](#words-the-reader-does-not-use)
 
@@ -96,13 +97,36 @@ It throws if given neither `resolve` nor `exempt`. `writtenMessage(problem, solu
 as the catalog's `message.written` message, which the composer draws as the two lines. A route answers a refusal with
 `error` for the problem and `solution` for the fix, and the page writes them as the two lines.
 
-`aide-run-spec` gives an error's fix apart as well: `refuse_fix <problem> <fix>` for a refusal and `error_solution`
-beside `error_msg` for a step's result, written as `errorSolution` beside `error`. A job stored before that has `error`
-alone and reads as it was stored.
+`aide-run-spec` gives an error's fix apart as well: `refuse_fix <problem> <fix>` for a refusal and, for an ending the
+board does not word itself, `error_solution` beside `error_msg` in a step's result, written as `errorSolution` beside
+`error`. A job stored before that has `error` alone and reads as it was stored.
 
 `RUNNER_ERROR_REGISTRY` in `core/tests/specs/unit/core/scripts/run_spec/run_spec_error_registry.py`, checked by
 `run_spec/test_runner_error_solutions.py`, covers every error `aide-run-spec` writes: each is listed with the fix it
 gives apart, or the reason it has none.
+
+## Where a failure's sentence comes from
+
+Two sides could write the sentence a person reads when a step stops or fails; each ending has exactly one.
+
+- **The board words it** when the result's own fields are enough for the sentence: a red run, tests that never
+  started, a refused model, an unfinished merge, a scope violation, a model at capacity, a tool failing, a short
+  analysis over its limits, a send-back and a refused send-back, a time limit (`timeLimit` set), shared files
+  (`sharedFiles` listed), a `no-progress` in an implement, archive or create, an acceptance-criteria stop with a
+  sorted fault (`criteriaFaults`) and an unpushed branch with a push failure (`pushFailures`). For these the result
+  carries the structured fields and `errorLog`, and no `error` or `errorSolution`. `Runner.complete()` words the
+  ending from the fields, and `errorLog` stays behind the (?) as it came: the failing test lines, what the tool or
+  git said, the plan review's faults as written.
+- **The runner words it** for every other ending: a refusal before a run starts, a close that moved nothing, a usage
+  limit, a time limit with no limit named, a criteria fault it could not sort, and a commit that failed with no push
+  failure. The result carries `error` and `errorSolution` and no `errorLog`, and the board shows them as they are.
+
+The runner still writes its own sentence into its run log for every ending; only the result leaves it out.
+`board_words_ending` in `core/scripts/lib/run-spec/publish/result.sh` decides which side words an ending, and
+`core/tests/fixtures/board-worded-endings.json` lists the cases that both the runner's and the board's tests read.
+
+A job stored before the runner sent `errorLog`, or a result that carries only `error` for an ending the board words,
+keeps the runner's words whole behind the (?), and a stored job with only a sentence shows that sentence as it was.
 
 ## An error that has resolved itself
 

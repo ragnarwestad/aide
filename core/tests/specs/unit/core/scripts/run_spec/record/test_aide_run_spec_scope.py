@@ -19,8 +19,7 @@ def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_dis
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "scope-violation", out
-    assert "999-made-by-the-run" in out["error"], out
-    assert "press Analyze again" in out["errorSolution"], out
+    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
     assert out["scopeViolation"] == "specs", out
     assert [p.split("/")[0] for p in out["scopeSpecs"]] == ["999-made-by-the-run"], out
     tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", "aide/81-queue-and-runner")
@@ -46,7 +45,8 @@ def test_a_run_that_deletes_another_spec_folder_is_downgraded_and_the_folder_res
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert out["terminalReason"] == "scope-violation", out
-    assert "80-neighbour" in out["error"], out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert [p.split("/")[0] for p in out["scopeSpecs"]] == ["80-neighbour"], out
     tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", "aide/81-queue-and-runner")
     assert "80-neighbour/1-description.md" in tree, tree
 
@@ -67,7 +67,8 @@ def test_a_change_to_another_spec_folder_the_session_committed_is_undone(runner,
     )
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert out["terminalReason"] == "scope-violation", out
-    assert "80-neighbour" in out["error"], out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert [p.split("/")[0] for p in out["scopeSpecs"]] == ["80-neighbour"], out
     kept = git(workspace["specs"], "show", "aide/81-queue-and-runner:80-neighbour/1-description.md")
     assert kept == "# 80", kept
 
@@ -150,7 +151,8 @@ def test_a_run_that_creates_another_spec_folder_is_downgraded_and_the_folder_dis
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "scope-violation", out
-    assert "999-made-by-the-run" in out["error"], out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert any("999-made-by-the-run" in p for p in out["scopeSpecs"]), out
     tree = git(ws["project"], "ls-tree", "-r", "--name-only", "aide/81-queue-and-runner")
     assert "999-made-by-the-run" not in tree, tree
     assert f"specs/{folder}/2-analysis.md" in tree, tree
@@ -213,5 +215,6 @@ def test_an_analyze_that_commits_a_project_file_is_still_downgraded_when_specs_a
     assert rc == 0, out
     assert out["ok"] is False, out
     assert out["terminalReason"] == "scope-violation", out
-    # It says what was committed, in those words — not "uncommitted".
-    assert "(committed: new-code.txt" in out["error"], out
+    # It says what was committed, in the field — not "uncommitted".
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert out["scopeAnalyze"]["project"]["committed"] == ["new-code.txt"], out

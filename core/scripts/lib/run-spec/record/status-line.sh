@@ -137,7 +137,7 @@ if [ -n "$status_file" ]; then
           terminal_reason="$archive_refusal"
           ok="true"
           suffix=""
-          error_msg=""; error_solution=""
+          error_msg=""; error_solution=""; error_log=""
         else
           terminal_reason="no-progress"
           ok="false"

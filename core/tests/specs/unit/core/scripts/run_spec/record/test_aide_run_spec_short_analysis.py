@@ -78,8 +78,8 @@ def _log(err):
 def _failed_on_a_limit(out, said):
     assert out["ok"] is False, out
     assert out["terminalReason"] == "short-analysis-over-limit", out
-    assert said in out["error"], out["error"]
-    assert "Analyze runs again" in out["errorSolution"], out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert said in out["errorLog"], out
 
 
 def test_a_short_analysis_within_every_limit_completes_and_says_so(runner, workspace, fake_claude):
@@ -181,8 +181,8 @@ def test_every_limit_crossed_is_named_and_the_criteria_are_not_one(runner, works
     out, _ = _analyze(runner, workspace, fake_claude, grade="HIGH", criteria=8, files=[f"f{n}.ts" for n in range(5)])
     for said in ("it is graded HIGH, not LOW",
                  "it has 5 source files to change, over the limit of 3 (f0.ts, f1.ts, f2.ts, f3.ts, f4.ts)"):
-        assert said in out["error"], out["error"]
-    assert "acceptance criteria" not in out["error"], out["error"]
+        assert said in out["errorLog"], out["errorLog"]
+    assert "acceptance criteria" not in out["errorLog"], out["errorLog"]
 
 
 def test_a_short_analysis_for_a_spec_sent_back_to_a_full_one_fails(runner, workspace, fake_claude):
@@ -258,4 +258,4 @@ def test_the_crossing_sentence_names_the_source_files_it_counted(runner, workspa
     sources = ["src/a.ts", "src/b.ts", "src/c.ts", "src/d.ts"]
     out, _ = _analyze(runner, workspace, fake_claude, files=[*sources, "test/a.test.ts", "README.md"])
     _failed_on_a_limit(out, "it has 4 source files to change, over the limit of 3 (src/a.ts, src/b.ts, src/c.ts, src/d.ts)")
-    assert "test/a.test.ts" not in out["error"] and "README.md" not in out["error"], out["error"]
+    assert "test/a.test.ts" not in out["errorLog"] and "README.md" not in out["errorLog"], out["errorLog"]

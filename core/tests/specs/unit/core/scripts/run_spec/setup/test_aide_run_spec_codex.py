@@ -168,7 +168,7 @@ def test_a_failed_codex_turn_is_reported_not_swallowed(runner, workspace, fake_c
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["ok"] is False
     assert out["terminalReason"] == "cli-error"
-    assert "refused the turn" in (out["error"] or "")
+    assert out["error"] is None and "refused the turn" in out["errorLog"], out
 
 def _codex_session(home, *rate_limits):
     """Codex's own session file for the thread the fake reports, holding
@@ -291,9 +291,7 @@ def test_a_codex_model_at_capacity_is_its_own_stop_and_the_commit_says_so(runner
     assert rc == 0, out
     assert out["ok"] is False
     assert out["terminalReason"] == "model-at-capacity", out
-    assert "at capacity right now" in out["error"], out["error"]
-    assert out["errorSolution"] == "press Analyze again", out
-    assert "gpt-5.6" in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
     subject_line = git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner")
     assert subject_line.endswith("(stopped: model-at-capacity)"), subject_line
 
@@ -334,8 +332,8 @@ def test_a_failed_codex_turn_says_codex_s_own_error_not_its_exit_code(runner, wo
     """Codex exits 1 on every failed turn; its own last error says why."""
     codex = fake_codex(emits(CODEX_STREAM_FAILED) + "; exit 1")
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex, command="implement")
-    assert out["error"] == "the model refused the turn", out["error"]
-    assert out["errorSolution"] == "press Implement again", out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert out["errorLog"] == "the model refused the turn", out
     assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"] == {"kind": "other", "message": "the model refused the turn"}
 
@@ -344,7 +342,7 @@ def test_a_codex_401_is_a_login_error(runner, workspace, fake_codex):
     codex = fake_codex(emits(CODEX_STREAM_NOT_LOGGED_IN) + "; exit 1")
     rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
     assert out["terminalReason"] == "cli-error", out
-    assert CODEX_401_MESSAGE in out["error"], out["error"]
+    assert out["error"] is None and CODEX_401_MESSAGE in out["errorLog"], out
     assert_written_as_in_fixture("providerError", out["providerError"])
     assert out["providerError"]["kind"] == "login", out
 

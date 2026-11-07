@@ -68,7 +68,8 @@ def test_a_sentence_on_a_short_analysis_ends_the_step_sent_back(runner, workspac
     out = _implement(runner, workspace, _claude(fake_claude))
     assert out["ok"] is False, out
     assert out["terminalReason"] == "sent-back", out
-    assert SENTENCE in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert out["errorLog"] == SENTENCE, out
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: sent-back)"), subject
 
@@ -139,8 +140,8 @@ def test_a_sentence_on_a_full_analysis_is_refused_and_names_analyze_ac_1_ac_2(ru
     out = _implement(runner, workspace, _claude(fake_claude))
     assert out["ok"] is False, out
     assert out["terminalReason"] == "sent-back-refused", out
-    assert "its analysis is already full" in out["error"], out["error"]
-    assert "press Analyze again" in out["errorSolution"], out
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert out["errorLog"] == f"{SENTENCE}\nits analysis is already full", out
     assert _description(workspace) == before
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: sent-back-refused)"), subject
@@ -158,5 +159,6 @@ def test_a_description_that_cannot_hold_the_line_is_refused(runner, workspace, f
     out = _implement(runner, workspace, _claude(fake_claude))
     assert out["ok"] is False, out
     assert out["terminalReason"] == "sent-back-refused", out
-    assert "no Created line" in out["error"], out["error"]
+    assert out["error"] is None, out
+    assert out["errorLog"].splitlines()[1] == "the description has no Created line to record it under", out
     assert _description(workspace) == before

@@ -34,31 +34,22 @@ describe("a notice's detail", () => {
     expect(notice?.title).toBe("ENOENT: no such file or directory");
   });
 
-  test("an implement's red run keeps its log lines behind the (?), not on the row or restated", () => {
+  test("a two-line detail whose first line restates the message is shown whole (AC-3)", () => {
+    const detail = "Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL\nsrc/a.test.ts:3 › works";
     const notice = specNotice(
       lead({
         specFolder: "06-a-test-that-stays-red",
         error: { key: "runner.testsRedFailing", values: { n: "1", total: "9", tests: "a.spec.ts:3 › works", button: "Implement" } },
         errorReason: "tests-red" as QueueRowView["errorReason"],
-        errorDetail:
-          "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's. Press Implement again for this step.\n" +
-          "Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL",
+        errorDetail: detail,
       }),
     );
-    expect(notice?.title).toBe("Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL");
+    expect(notice?.title).toBe(detail);
     expect(notice?.parts).toHaveLength(1);
   });
 
-  test("a run that never started keeps its log line behind the (?), not its restated sentence", () => {
-    const line = "Error: http://localhost:8806/health/ready is already used, make sure that nothing is running on the port/url";
-    const notice = specNotice(
-      lead({
-        error: { key: "runner.testsNotStartedPortSpec", values: { port: "8806", spec: "58", button: "Implement" } },
-        errorDetail:
-          "the step reported success, but the project's tests did not start — the server the tests need could not start, so no test ran. Press Implement again for this step once that is put right.\n" +
-          line,
-      }),
-    );
-    expect(notice?.title).toBe(line);
+  test("a stored job whose error is the runner's string shows that string (AC-4)", () => {
+    const notice = specNotice(lead({ error: "the step's own work did not reach origin: code" }));
+    expect(notice?.text).toContain("the step's own work did not reach origin: code");
   });
 });

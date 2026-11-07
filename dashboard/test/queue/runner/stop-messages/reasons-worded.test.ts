@@ -1,11 +1,11 @@
 // The runner's other endings are worded by the board, in the reader's
-// language, with the runner's own English behind the (?) where it says more: a step that
+// language, with the result's `errorLog` behind the (?): a step that
 // reached past its scope, a short analysis over its limits, a spec sent back
 // to a full analysis or refused that, and a create that made no folder.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
-import { noProgressMessage, runStopMessage, withoutRestatedError } from "../../../../src/queue/runner/cross-check-message.ts";
+import { cliErrorMessage, noProgressMessage, runStopMessage } from "../../../../src/queue/runner/cross-check-message.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -41,10 +41,17 @@ describe("noProgressMessage", () => {
     });
   });
 
-  test("a create that left no folder, keeping where the runner looked as the detail", () => {
+  test("a create that left no folder", () => {
     expect(noProgressMessage("create", ended("no-progress"))).toMatchObject({ key: "runner.noProgressCreate" });
-    expect(withoutRestatedError(ended("no-progress"), "create").error).toBe("the runner's own words");
-    expect(withoutRestatedError(ended("no-progress"), "implement").error).toBeUndefined();
+  });
+});
+
+describe("cliErrorMessage", () => {
+  test("a scheduled job that failed names Run now as the button to press again", () => {
+    expect(cliErrorMessage("schedule", ended("cli-error", { tool: "claude", providerError: { kind: "silent" } }))).toEqual({
+      key: "runner.cliErrorSilent",
+      values: { tool: "Claude Code", button: "Run now" },
+    });
   });
 });
 
@@ -54,40 +61,43 @@ describe("runStopMessage", () => {
   });
 });
 
-describe("a stop the board words", () => {
-  test("keeps the runner's own sentence as the detail", () => {
-    const job = enqueue({ steps: ["implement"] });
-    const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ...ended("sent-back", { error: "the plan misses the migration" }) }) });
-    runner.tick();
-    runner.poll();
-    expect(store.get(job.id)?.error).toMatchObject({ key: "runner.sentBack" });
-    expect(store.get(job.id)?.errorDetail).toBe("the plan misses the migration");
-  });
-});
-
-describe("a board sentence that says everything the runner's does", () => {
-  const detailOf = (outcome: Record<string, unknown>): string | undefined => {
-    const job = enqueue({ steps: ["implement"] });
+describe("the detail behind a sentence the board words", () => {
+  const stored = (outcome: Record<string, unknown>, step = "implement") => {
+    const job = enqueue({ steps: [step] });
     const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ...outcome }) });
     runner.tick();
     runner.poll();
-    return store.get(job.id)?.errorDetail;
+    return store.get(job.id);
   };
+  const result = (terminalReason: string, more: Record<string, unknown> = {}) => ({ ok: false, terminalReason, ...more });
 
-  test("a time limit the result names leaves no detail behind it", () => {
-    expect(detailOf(ended("timeout", { timeLimit: { seconds: 10, during: "session" } }))).toBeUndefined();
+  test("a sent-back stop keeps the result's errorLog whole (AC-2)", () => {
+    const after = stored(result("sent-back", { errorLog: "the plan misses the migration\nand the rollback" }));
+    expect(after?.error).toMatchObject({ key: "runner.sentBack" });
+    expect(after?.errorDetail).toBe("the plan misses the migration\nand the rollback");
   });
 
-  test("a red run whose failing tests the sentence names leaves no detail behind it", () => {
-    expect(detailOf(ended("tests-red", { testsRed: { tests: ["a test"], errors: ["boom"], failed: 1, total: 3 } }))).toBeUndefined();
+  test("a criteria stop keeps the plan review's faults as the errorLog (AC-2)", () => {
+    const after = stored(
+      result("acceptance-criteria", {
+        criteriaFaults: { missing: false, notEars: ["AC-1"], noScenario: [], contradictions: [], cannotBuild: [] },
+        errorLog: "AC-1 is vague",
+      }),
+      "analyze",
+    );
+    expect(after?.error).toMatchObject({ key: "runner.criteriaStopped" });
+    expect(after?.errorDetail).toBe("AC-1 is vague");
   });
 
-  test("a red run the result does not name keeps the runner's lines", () => {
-    expect(detailOf(ended("tests-red"))).toBe("the runner's own words");
+  test("a failure keeps the errorLog by the same rule, with no line cut (AC-2, AC-3)", () => {
+    const log = "a.test.ts › works\nb.test.ts › stays";
+    expect(stored(result("tests-red", { errorLog: log }))?.errorDetail).toBe(log);
+    expect(stored(result("tests-not-started", { errorLog: log }))?.errorDetail).toBe(log);
   });
 
-  test("a write outside the spec folder that names its files leaves no detail behind it", () => {
-    expect(detailOf(ended("scope-violation", { scopeViolation: "specs", scopeSpecs: ["00-x/5-note.md"] }))).toBeUndefined();
+  test("a stop that carries no errorLog leaves no detail (AC-2)", () => {
+    expect(stored(result("timeout", { timeLimit: { seconds: 10, during: "session" } }))?.errorDetail).toBeUndefined();
+    expect(stored(result("scope-violation", { scopeViolation: "specs", scopeSpecs: ["00-x/5-note.md"] }))?.errorDetail).toBeUndefined();
   });
 });
 

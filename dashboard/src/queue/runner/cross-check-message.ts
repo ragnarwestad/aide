@@ -4,7 +4,7 @@ import { writtenMessage } from "../../format/error-sentence.ts";
 import type { WorkflowStep } from "../queue.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { toolLabel } from "../../format/tool-failure.ts";
-import { providerError, sharedFiles, testsNotStarted, testsRed, timeLimit, type StepOutcome } from "./types.ts";
+import { modelIdOf, providerError, sharedFiles, testsNotStarted, testsRed, timeLimit, type StepOutcome } from "./types.ts";
 
 /** The bash cross-check's verdicts (run-spec/record/status-line.sh,
  *  run-spec/turn/step-tests.sh) — a step that made `no-progress`, an
@@ -148,33 +148,9 @@ export function testsNotStartedMessage(step: WorkflowStep, outcome: Partial<Step
   return { key: "runner.testsNotStarted", values: { button } };
 }
 
-/** The outcome as the failure's detail should see it. A `no-progress`
- *  ending's own sentence says exactly what the board's message says, in
- *  English, so it is dropped rather than kept behind a "(?)" that only
- *  repeats the row — except a create's, which names the folder it looked
- *  for and where. A red run whose failing tests the board names, and a
- *  scope violation whose paths or checks it names, drop it too. */
-export function withoutRestatedError<T extends Partial<StepOutcome>>(outcome: T, step?: WorkflowStep): T {
-  return (outcome.terminalReason === "no-progress" && step !== "create") || namesWhatTheRunnerSaid(outcome, step)
-    ? { ...outcome, error: undefined }
-    : outcome;
-}
-
-/** A red run whose failing tests the board's sentence names, and a scope
- *  violation whose paths or checks it names: the runner's own sentence
- *  says nothing more. */
-function namesWhatTheRunnerSaid(outcome: Partial<StepOutcome>, step: WorkflowStep | undefined): boolean {
-  if (outcome.terminalReason === "tests-red") {
-    return step === "implement" && testsRed(outcome.testsRed) !== undefined;
-  }
-  if (outcome.terminalReason !== "scope-violation") return false;
-  if (outcome.scopeViolation === "specs") return scopeSpecsPaths(outcome.scopeSpecs) !== undefined;
-  if (outcome.scopeViolation === "analyze") return scopeAnalyzeChecks(outcome.scopeAnalyze) !== undefined;
-  return false;
-}
-
 /** An analyze stopped on the project's acceptance criteria checks, as the
- *  board's own sentence naming each fault by kind. Undefined when the
+ *  board's own sentence naming each fault by kind, with the plan review's
+ *  words as the result's `errorLog` behind the (?). Undefined when the
  *  result sorted none (`criteriaFaults`, run-spec/record/criteria-check.sh):
  *  the runner's own sentence then carries the plan review's words. */
 export function criteriaStopMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
@@ -210,15 +186,16 @@ export function sharedFilesStopMessage(step: WorkflowStep, outcome: Partial<Step
 }
 
 /** A step the provider had no room for: the board's sentence naming the
- *  model the step ran on. Undefined without one: the runner's own
- *  sentence then stands. */
+ *  model the step ran on — the job's own, else the model id the result
+ *  names. Undefined without either: the bare ending then stands. */
 export function modelAtCapacityMessage(
   step: WorkflowStep,
   outcome: Partial<StepOutcome>,
   model: string | undefined,
 ): BoardMessage | undefined {
-  if (outcome.terminalReason !== "model-at-capacity" || !model) return undefined;
-  return { key: "runner.modelAtCapacity", values: { button: stepButton(step), model } };
+  const named = model ?? modelIdOf(outcome.modelId);
+  if (outcome.terminalReason !== "model-at-capacity" || !named) return undefined;
+  return { key: "runner.modelAtCapacity", values: { button: stepButton(step), model: named } };
 }
 
 /** The board's sentence for a run that stopped on a check of the spec
@@ -233,7 +210,7 @@ export const runStopMessage = (step: WorkflowStep, outcome: Partial<StepOutcome>
 
 /** A step that sent its spec back to a full analysis: the board queues the
  *  Analyze round itself (`runner-setup.ts`). The step's own reason is the
- *  runner's English, behind the (?). */
+ *  result's `errorLog`, behind the (?). */
 export function sentBackMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {
   if (outcome.terminalReason !== "sent-back") return undefined;
   return { key: "runner.sentBack", values: { button: stepButton(step), analyze: stepButton("analyze") } };

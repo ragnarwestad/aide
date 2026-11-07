@@ -59,8 +59,8 @@ def test_a_named_fault_at_stop_ends_analyze_stopped(runner, workspace, fake_clau
     )
     assert out["ok"] is False, out
     assert out["terminalReason"] == "acceptance-criteria", out
-    for ac in ("AC-2", "AC-4", "AC-5"):
-        assert ac in out["error"], out["error"]
+    assert out["error"] is None and "errorSolution" not in out, out
+    assert out["errorLog"] == "not in EARS: AC-2, AC-4; no scenario for when the condition does not hold: AC-5", out
     assert out["criteriaFaults"] == {
         "missing": False, "notEars": ["AC-2", "AC-4"], "noScenario": ["AC-5"], "contradictions": [], "cannotBuild": [],
     }, out
@@ -107,15 +107,15 @@ def test_a_contradiction_at_stop_is_sorted_by_pair(runner, workspace, fake_claud
     )
     assert out["terminalReason"] == "acceptance-criteria", out
     assert out["criteriaFaults"]["contradictions"] == ["AC-1/AC-3", "AC-2/AC-5"], out
-    for ac in ("AC-1", "AC-2", "AC-3", "AC-5"):
-        assert ac in out["error"], out["error"]
+    assert out["error"] is None, out
+    assert out["errorLog"] == "contradiction: AC-1/AC-3, AC-2/AC-5", out
 
 
 def test_a_criterion_that_cannot_be_built_at_stop_is_sorted(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, "stop", "**Criteria check:** stop — cannot be built: AC-6")
     assert out["terminalReason"] == "acceptance-criteria", out
     assert out["criteriaFaults"]["cannotBuild"] == ["AC-6"], out
-    assert "AC-6" in out["error"], out["error"]
+    assert out["error"] is None and out["errorLog"] == "cannot be built: AC-6", out
 
 
 def test_every_kind_on_one_line_is_sorted_into_its_own(runner, workspace, fake_claude):
@@ -146,7 +146,8 @@ def test_new_kinds_at_off_complete(runner, workspace, fake_claude):
 def test_a_fault_worded_outside_the_grammar_still_stops(runner, workspace, fake_claude):
     out, _ = _analyze(runner, workspace, fake_claude, "stop", "**Criteria check:** stop — AC-1 is vague")
     assert out["terminalReason"] == "acceptance-criteria", out
-    assert "AC-1 is vague" in out["error"], out["error"]
+    # No fault the runner could sort: the board has no sentence, so the runner's own stands.
+    assert "AC-1 is vague" in out["error"] and "errorLog" not in out, out
     assert out["criteriaFaults"] == {
         "missing": False, "notEars": [], "noScenario": [], "contradictions": [], "cannotBuild": [],
     }, out

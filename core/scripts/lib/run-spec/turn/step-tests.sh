@@ -321,6 +321,8 @@ $step_tests_start_line"
           error_solution="press $step_button again once that server can start"
           [ -n "$step_tests_holder" ] && error_msg="$error_msg
 port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(.command // "a process") (pid \(.pid))" + (if .spec then ", spec \(.spec)" else "" end)')"
+          # What the server printed and who holds the port: the sentence's lines after its first.
+          error_log="${error_msg#*$'\n'}"
           break
         fi
         # Another turn, or the end: the cap, a session the runner cannot
@@ -334,6 +336,7 @@ port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(
           error_msg="the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's.
 $step_tests_failing"
           error_solution="press $step_button again for this step"
+          error_log="$step_tests_failing"
           # No session turn occurs between the last suite run and this
           # isolated check of every red file.
           run_red_files_again "$step_tests_named" "$work_dir/red-again.json"

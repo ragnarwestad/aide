@@ -190,13 +190,12 @@ describe("the completion hook and the landing window", () => {
     expect(spawns.length).toBe(before + 1);
   });
 
-  // The bash cross-check's `no-progress` verdict arrives as an English
-  // sentence of the script's own; the job shows the board's message for
-  // that step instead, so a Norwegian row is not the one place on the
-  // board that speaks English. The script's sentence
-  // says nothing the message does not, so it is not kept as a detail
-  // either: a "(?)" that only repeats the row is noise.
-  test("an archive that made no progress is stored as the board's own message, with no detail repeating it", () => {
+  // A result written before the runner left its sentence out for an ending
+  // the board words (no `errorLog`) arrives with the runner's English `error`;
+  // the job shows the board's message for that step instead, so a Norwegian
+  // row is not the one place on the board that speaks English, and the
+  // runner's words stay whole behind the (?).
+  test("an archive that made no progress is stored as the board's own message, the runner's words whole as the detail (AC-4)", () => {
     const bash =
       "the step reported success but left no real progress — the spec folder was never moved to archive/. Press Run again for this step.";
     const job = enqueue({ steps: ["archive"] });
@@ -206,10 +205,10 @@ describe("the completion hook and the landing window", () => {
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
     expect(after?.error).toEqual({ key: "runner.noProgressArchive", values: { button: "Archive" } });
-    expect(after?.errorDetail).toBeUndefined();
+    expect(after?.errorDetail).toBe(bash);
   });
 
-  test("an implement that made no progress is stored as the board's own message, with no detail repeating it", () => {
+  test("an implement that made no progress is stored as the board's own message, the runner's words whole as the detail (AC-4)", () => {
     const bash =
       "the step reported success but left no real progress — nothing changed in the project. Press Implement again for this step.";
     const job = enqueue({ steps: ["implement"] });
@@ -218,7 +217,7 @@ describe("the completion hook and the landing window", () => {
     runner.poll();
     const after = store.get(job.id);
     expect(after?.error).toEqual({ key: "runner.noProgressImplement", values: { button: "Implement" } });
-    expect(after?.errorDetail).toBeUndefined();
+    expect(after?.errorDetail).toBe(bash);
   });
 
   test("an implement whose own test run is red is stored as the board's own message, the failing lines as detail", () => {

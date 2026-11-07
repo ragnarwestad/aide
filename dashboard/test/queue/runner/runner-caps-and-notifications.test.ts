@@ -288,4 +288,15 @@ describe("notifications", () => {
     expect(events.map((e) => e.event)).toEqual(["failed"]);
     expect(events[0]!.reason).toContain("dirty");
   });
+
+  test("a failure the board words notifies with the board's sentence in English, not the bare ending (AC-2)", () => {
+    enqueue({ steps: ["implement"] });
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(0), ok: false, terminalReason: "no-progress" }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(events.map((e) => e.event)).toEqual(["failed"]);
+    expect(events[0]!.reason).toContain("left no real progress");
+  });
 });

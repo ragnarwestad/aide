@@ -95,18 +95,16 @@ def test_a_job_that_commits_and_hits_its_time_limit_keeps_the_commit_on_the_bran
     claude = job(fake_claude, COMMIT_IN_PROJECT + "sleep 120\n")
     rc, out, _ = schedule(runner, workspace, claude, timeout_sec=STOP_DEADLINE_SEC)
     assert out["terminalReason"] == "timeout", out
-    # The message that used to be a lie for a schedule run is now true
-    # for it too, the same as for every other command.
-    assert "committed to the branch" in out["error"], out
+    # The limit reaches the board as a field, the same as for every other command.
+    assert out["error"] is None and out["timeLimit"] == {"seconds": int(STOP_DEADLINE_SEC), "during": "session"}, out
     assert BRANCH in heads(origin["project"]), heads(origin["project"])
 
 
-def test_a_failed_job_names_run_now_as_the_button_to_press_again(runner, workspace, fake_claude):
+def test_a_failed_job_leaves_the_sentence_to_the_board(runner, workspace, fake_claude):
     with_prompt(workspace)
     rc, out, _ = schedule(runner, workspace, job(fake_claude, "exit 1\n"))
     assert out["ok"] is False, out
-    # A scheduled job's page has no Schedule button: Run now starts it again.
-    assert "press Run now again" in out["errorSolution"], out
+    assert out["error"] is None and "errorSolution" not in out, out
 
 
 def test_a_cancelled_job_that_has_committed_keeps_it_on_the_branch(runner, workspace, fake_claude, origin, tmp_path):
