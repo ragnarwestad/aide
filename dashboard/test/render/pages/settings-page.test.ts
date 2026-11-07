@@ -146,76 +146,69 @@ describe("the tabs of a provider's page", () => {
   const PROVIDER = { name: "Claude", tool: "claude" as const };
   const STATUS = { key: "Claude", at: "2026-11-05T09:00:00.000Z", installed: true, version: "2.1.318 (Claude Code)" };
   const USAGE = { tool: "claude" as const, at: "2026-11-05T09:00:00.000Z", windows: [{ name: "Window of Claude", usedPercent: 7 }] };
+  const READING = "<p>what the tab read</p>";
   const draw = (aiTab?: string, tool: "claude" | "codex" | "opencode" = "claude") =>
-    providerDetail({ key: "Claude", provider: { ...PROVIDER, tool }, status: STATUS, usage: USAGE, aiTab }, Date.parse(STATUS.at), "en");
+    providerDetail({ key: "Claude", provider: { ...PROVIDER, tool }, status: STATUS, usage: USAGE, reading: READING, aiTab }, Date.parse(STATUS.at), "en");
   /** Each tab the page links to, as its address and its words. */
   const tabs = (html: string) =>
     [...html.matchAll(/<a [^>]*href="([^"]*aitab=[^"]*)"([^>]*)>([^<]*)<\/a>/g)].map((m) => ({
       href: m[1]!.replaceAll("&amp;", "&"), label: m[3], current: m[2]!.includes("aria-current"),
     }));
 
-  test("they are Overview, Config, Models and Installation, in that order, each a link to the provider's page (AC-1)", () => {
-    expect([...PROVIDER_TABS]).toEqual(["overview", "config", "models", "installation"]);
+  test("they are Config, Usage, Models and Installation, in that order, each a link to the provider's page", () => {
+    expect([...PROVIDER_TABS]).toEqual(["config", "usage", "models", "installation"]);
     expect(tabs(draw()).map(({ href, label }) => ({ href, label }))).toEqual([
-      { href: "/settings?tab=providers&provider=Claude&aitab=overview", label: "Overview" },
       { href: "/settings?tab=providers&provider=Claude&aitab=config", label: "Config" },
+      { href: "/settings?tab=providers&provider=Claude&aitab=usage", label: "Usage" },
       { href: "/settings?tab=providers&provider=Claude&aitab=models", label: t("en", "settings.part.models") },
       { href: "/settings?tab=providers&provider=Claude&aitab=installation", label: t("en", "settings.part.installation") },
     ]);
     expect(providerTabPath("Claude", "models")).toBe("/settings?tab=providers&provider=Claude&aitab=models");
   });
 
-  test("the page opens on Overview, as does an absent, empty or unknown tab (AC-1, AC-10)", () => {
-    for (const raw of [undefined, "", "nope", "Models", "subscription"]) expect(providerTab(raw)).toBe("overview");
-    expect(tabs(draw()).filter((x) => x.current).map((x) => x.label)).toEqual(["Overview"]);
+  test("the page opens on Config, as does an absent, empty or unknown tab, and the old Overview", () => {
+    for (const raw of [undefined, "", "nope", "Models", "overview"]) expect(providerTab(raw)).toBe("config");
+    expect(tabs(draw()).filter((x) => x.current).map((x) => x.label)).toEqual(["Config"]);
   });
 
-  test("a named tab opens that tab, and the old Models and Installation links still do (AC-10)", () => {
+  test("a named tab opens that tab", () => {
     for (const tab of PROVIDER_TABS) {
       expect(providerTab(tab)).toBe(tab);
       expect(tabs(draw(tab)).filter((x) => x.current).map((x) => x.href.split("aitab=")[1])).toEqual([tab]);
     }
   });
 
-  test("Overview holds the status and the usage, and neither the form nor a reading's place (AC-2)", () => {
-    const html = draw("overview");
-    expect(html).toContain("2.1.318");
+  test("Usage holds the login and the usage, and neither the version nor the form", () => {
+    const html = draw("usage");
     expect(html).toContain("Window of Claude");
+    expect(html).not.toContain(STATUS.version);
     expect(html).not.toContain('id="provider-form"');
-    expect(html).not.toContain("data-read-from");
   });
 
-  test("Config holds the form, whose Save and Cancel come back to Config, and no status or reading (AC-3)", () => {
+  test("Config holds the form, whose Save and Cancel come back to Config, and no status or usage", () => {
     const html = draw("config");
     const here = providerTabPath("Claude", "config");
     expect(html).toContain('id="provider-form"');
     expect(html).toContain(`data-done="${here.replaceAll("&", "&amp;")}"`);
     expect(html).toContain(`data-cancel-href="${here.replaceAll("&", "&amp;")}"`);
     expect(html).not.toContain("Window of Claude");
-    expect(html).not.toContain("data-read-from");
+    expect(html).not.toContain(READING);
     expect(html).not.toContain(t("en", "settings.providers.status"));
   });
 
-  test("Models holds a place that reads from the Models address, with its line saying it is being read (AC-4, AC-8)", () => {
+  test("Models holds what the server read for it, and nothing for the page's script to fill", () => {
     const html = draw("models");
-    expect(html).toContain('data-read-from="/settings/providers/models?key=Claude"');
-    expect(html).toContain('aria-busy="true"');
-    expect(html).toContain(t("en", "settings.models.reading"));
+    expect(html).toContain(READING);
+    expect(html).not.toContain("data-read-from");
     expect(html).not.toContain('id="provider-form"');
     expect(html).not.toContain("Window of Claude");
   });
 
-  test.each(["claude", "codex", "opencode"] as const)("%s's Installation tab holds the sentence naming where aide installs, and a place that reads from the Installation address (AC-5, AC-8)", (tool) => {
+  test.each(["claude", "codex", "opencode"] as const)("%s's Installation tab holds the sentence naming where aide installs, and what the server read for it", (tool) => {
     const html = draw("installation", tool);
-    expect(html).toContain('data-read-from="/settings/providers/installation?key=Claude"');
-    expect(html).toContain(t("en", "settings.install.reading"));
+    expect(html).toContain(READING);
+    expect(html).not.toContain("data-read-from");
     expect(html).toContain(esc(toolWhere("en", tool, placesOf(INSTALL_TARGETS, tool))));
-  });
-
-  test("a place whose reading does not come back carries the sentence it shows then (AC-9)", () => {
-    for (const tab of ["models", "installation"]) {
-      expect(draw(tab)).toContain(`data-read-failed="${esc(t("en", "settings.read.failed"))}"`);
-    }
   });
 
   test("every tab has the line Remove's refusal is written into, exactly once", () => {

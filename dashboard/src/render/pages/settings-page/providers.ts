@@ -17,12 +17,6 @@ export const PROVIDERS_SWITCH_ROUTE = "/api/queue/settings/providers/switch";
 
 export const PROVIDER_NEW_PATH = "/settings/providers/new";
 export const PROVIDER_EDIT_PATH = "/settings/providers/edit";
-/** A provider's usage, read now: the block the Providers tab fills in. */
-export const PROVIDER_USAGE_PATH = "/settings/providers/usage";
-/** A provider's models, read now: the block the Models tab fills in. */
-export const PROVIDER_MODELS_PATH = "/settings/providers/models";
-/** A provider's installation, read now: the block the Installation tab fills in. */
-export const PROVIDER_INSTALLATION_PATH = "/settings/providers/installation";
 export const PROVIDERS_TAB_PATH = "/settings?tab=providers";
 
 /** A provider's own place: the Providers tab with it chosen. */
@@ -56,18 +50,15 @@ export interface ProviderStatus {
   login?: ExtraCheck;
 }
 
-/** What a provider's page says of what was read: the tool, then the login,
- *  then when the login ends. A login that could not be read says so and
+/** What a provider's page says of what was read: that the tool is not
+ *  installed, or the login and when it ends. A login that could not be read says so and
  *  says to open the tab again; it is never said to be "not logged in". */
 export function providerStatusLines(status: ProviderStatus, provider: Provider, lang: Language): string[] {
   if (!status.installed) {
     return [t(lang, "settings.providers.notInstalled", { tool: TOOL_NAMES[provider.tool] ?? provider.tool })];
   }
-  const lines = [
-    status.version
-      ? t(lang, "settings.providers.installed", { version: status.version })
-      : t(lang, "settings.providers.installedNoVersion"),
-  ];
+  // The version is the heading's, beside the name.
+  const lines: string[] = [];
   const login = status.login;
   if (!login) return lines;
   if (login.ok === null || !login.answer) {

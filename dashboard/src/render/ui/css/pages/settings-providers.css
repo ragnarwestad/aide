@@ -27,16 +27,10 @@
 .providerversion { color: var(--muted); font-family: var(--mono); font-size: var(--fs-s); }
 
 /* The chosen provider: its head, its four tabs, and under them the open
-   tab's body: the status and usage, one form of label-and-input rows, or
-   the place a reading is filled into. */
+   tab's body: one form of label-and-input rows, the login and usage, or
+   a reading. */
 .providerdetail { padding: var(--sp-4) var(--sp-5); min-width: 0; }
 .providerdetail h4 { margin: var(--sp-5) 0 var(--sp-2); }
-/* The usage, or the place it is read into: as tall as a reading of three
-   windows, so the panel under it holds still when it comes. */
-.usageslot { min-height: 7.5rem; }
-/* The place the Models or Installation reading is filled into: as tall as
-   a typical answer, so the page holds still when it comes. */
-.readslot { min-height: 14rem; }
 .providerdetail .toolpanel { margin-top: var(--sp-3); }
 .providerdetailhead { display: flex; align-items: center; gap: var(--sp-3); }
 .providerdetailhead h3 { margin: 0; font-size: var(--fs-l); }

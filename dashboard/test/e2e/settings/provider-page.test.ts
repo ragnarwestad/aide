@@ -136,16 +136,3 @@ test("Remove asks first, removes nothing on Cancel, and removes the provider on 
   ]);
   expect(await page.locator(".providerlist").innerText()).not.toContain("OpenCode");
 });
-
-test("the chosen provider's usage is read after the tab has drawn, and filled in where the tab left room for it", async () => {
-  await go(CLAUDE);
-  await page.locator(".usageslot", { hasText: t("en", "settings.usage.none") }).waitFor();
-  expect(await page.locator(".usageslot[data-read-from]").count()).toBe(0);
-});
-
-test("opening the Models tab reads the models with no press, and fills the place where the tab left room for it", async () => {
-  await go(`${CLAUDE}&aitab=models`);
-  await page.locator(".readslot", { hasText: t("en", "settings.models.available") }).waitFor();
-  expect(await page.locator(".readslot[data-read-from]").count()).toBe(0);
-  expect(await page.locator('form[action="/api/queue/settings/check"]').count()).toBe(0);
-});

@@ -344,23 +344,30 @@ describe("the pages that add and edit a provider", () => {
     expect(res.headers.get("location")).toBe("/settings?tab=providers&provider=Codex&aitab=installation");
   });
 
-  test("the Providers tab carries the four tabs of the chosen provider with Overview open, and a named tab opens (AC-1, AC-10)", async () => {
+  test("the Providers tab carries the four tabs of the chosen provider with Config open, and a named tab opens", async () => {
     const { base } = serve();
     const open = async (query: string) => {
       const html = await (await fetch(`${base}/settings?tab=providers&provider=Claude${query}`)).text();
       return [...html.matchAll(/<a [^>]*href="[^"]*aitab=(\w+)"([^>]*)>/g)].map((m) => ({ tab: m[1], current: m[2]!.includes("aria-current") }));
     };
-    const tabs = ["overview", "config", "models", "installation"];
-    expect(await open("")).toEqual(tabs.map((tab) => ({ tab, current: tab === "overview" })));
+    const tabs = ["config", "usage", "models", "installation"];
+    expect(await open("")).toEqual(tabs.map((tab) => ({ tab, current: tab === "config" })));
     expect(await open("&aitab=installation")).toEqual(tabs.map((tab) => ({ tab, current: tab === "installation" })));
   });
 
-  test("the page answers at once while a models reading never does, on the Models tab (AC-8)", async () => {
-    const never = () => new Promise<never>(() => {});
-    const { base } = serve({}, CONFIG, stubProbe, stubUsage, { check: never, models: never });
-    const html = await (await fetch(`${base}/settings?tab=providers&provider=Claude&aitab=models`)).text();
-    expect(html).toContain('data-read-from="/settings/providers/models?key=Claude"');
-    expect(html).toContain('aria-busy="true"');
+  test("the Models and Installation tabs are read before the page answers, and a tab reads only its own", async () => {
+    const asked: string[] = [];
+    const { base } = serve({}, CONFIG, stubProbe, stubUsage, {
+      check: async (tool) => { asked.push(`check:${tool}`); return { tool, at: "2026-11-05T09:00:00.000Z", found: true, lines: ["preflight says hello"], extra: [] }; },
+      models: async (tool) => { asked.push(`models:${tool}`); return { tool, at: "2026-11-05T09:00:00.000Z", offered: [{ model: "opus-read-now" }] }; },
+    });
+    const page = (tab: string) => fetch(`${base}/settings?tab=providers&provider=Claude&aitab=${tab}`).then((r) => r.text());
+    expect(await page("models")).toContain("opus-read-now");
+    expect(asked).toEqual(["models:claude"]);
+    expect(await page("installation")).toContain("preflight says hello");
+    expect(asked).toEqual(["models:claude", "check:claude"]);
+    await page("config");
+    expect(asked).toEqual(["models:claude", "check:claude"]);
   });
 });
 
@@ -371,35 +378,34 @@ describe("what a provider's page shows of its own folders", () => {
     login: key === "Claude-2" ? login(`CLAUDE_CONFIG_DIR=${provider.configDir} claude auth login`) : undefined,
   });
 
-  test("every provider's status is read before the tab answers, and the chosen one's usage is not waited for (AC-3)", async () => {
+  test("every provider's status is read before the tab answers, and the usage only on the Usage tab, before it answers", async () => {
     const asked: string[] = [];
     const probe: Probe = async (key, provider, opts) => { asked.push(`status:${key}`); return byKey(key, provider, opts); };
-    const never = () => new Promise<ToolUsage>(() => {});
-    const { base } = serve({}, CONFIG, probe, async (key) => { asked.push(`usage:${key}`); return never(); });
-    const html = await (await fetch(`${base}/settings/providers/edit?key=Codex`)).text();
+    const { base } = serve({}, CONFIG, probe, async (key, provider) => { asked.push(`usage:${key}`); return stubUsage(key, provider); });
+    expect((await fetch(`${base}/settings/providers/edit?key=Codex`)).status).toBe(200);
     expect(asked.sort()).toEqual(["status:Claude", "status:Codex"]);
-    expect(html).toContain("1.0 (Codex)");
-    expect(html).toContain('data-read-from="/settings/providers/usage?key=Codex"');
+    expect(await (await fetch(`${base}/settings?tab=providers&provider=Codex&aitab=usage`)).text()).toContain("Window of Codex");
+    expect(asked.filter((a) => a.startsWith("usage:"))).toEqual(["usage:Codex"]);
   });
 
   test("two providers of one tool each show their own login and usage and not the other's (AC-4)", async () => {
     const dir = folder();
     const { base } = serve({}, CONFIG, byKey);
     await post(base, ADD, { tool: "claude", name: "Claude-2", configDir: dir });
-    const second = await (await fetch(`${base}/settings/providers/usage?key=Claude-2`)).text();
-    const first = await (await fetch(`${base}/settings/providers/usage?key=Claude`)).text();
+    const second = await (await fetch(`${base}/settings?tab=providers&provider=Claude-2&aitab=usage`)).text();
+    const first = await (await fetch(`${base}/settings?tab=providers&provider=Claude&aitab=usage`)).text();
     expect(second).toContain("Window of Claude-2");
     expect(first).toContain("Window of Claude");
     expect(first).not.toContain("Window of Claude-2");
-    expect(await (await fetch(`${base}/settings/providers/edit?key=Claude-2`)).text()).toContain("1.0 (Claude-2)");
-    expect(await (await fetch(`${base}/settings/providers/edit?key=Claude`)).text()).not.toContain("1.0 (Claude-2)");
+    expect(second).toContain(`CLAUDE_CONFIG_DIR=${dir} claude auth login`);
+    expect(first).not.toContain(`CLAUDE_CONFIG_DIR=${dir} claude auth login`);
   });
 
   test("a provider that is not logged in says so, and shows the command that logs in with its own folder (AC-20, AC-21)", async () => {
     const dir = folder();
     const { base } = serve({}, CONFIG, byKey);
     await post(base, ADD, { tool: "claude", name: "Claude-2", configDir: dir });
-    const page = await (await fetch(`${base}/settings/providers/edit?key=Claude-2`)).text();
+    const page = await (await fetch(`${base}/settings/providers/edit?key=Claude-2&aitab=usage`, { redirect: "follow" })).text();
     expect(page).toContain("Not logged in");
     expect(page).toContain(`CLAUDE_CONFIG_DIR=${dir} claude auth login`);
   });

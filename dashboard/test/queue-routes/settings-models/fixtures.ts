@@ -74,7 +74,7 @@ export const post = (base: string, path: string, body: Record<string, string>) =
 
 /** The Models tab of a provider opened, which reads its tool's models. */
 export const openModelsTab = (base: string, key: string) =>
-  fetch(`${base}/settings/providers/models?key=${encodeURIComponent(key)}`);
+  fetch(`${base}/settings?tab=providers&provider=${encodeURIComponent(key)}&aitab=models`);
 
 /** The providers a tab is read for: one per tool, on the tool's own folders. */
 export const PROVIDERS = {

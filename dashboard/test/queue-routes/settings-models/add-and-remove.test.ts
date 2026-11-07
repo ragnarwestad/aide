@@ -9,7 +9,7 @@ import { parse } from "jsonc-parser";
 import { forgetChecks } from "../../../src/serve/tool-check.ts";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
-import { AT, CLAUDE_READING, defaultsOf, modelsProbe, offeredChoices, ownFiles, post, openModelsTab } from "./fixtures.ts";
+import { AT, CLAUDE_READING, defaultsOf, modelsProbe, offeredChoices, ownFiles, post, openModelsTab, stubReads } from "./fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness("aide-settings-models-");
 const ownDirs: string[] = [];
@@ -48,7 +48,7 @@ const OPENCODE_READING = { tool: "opencode" as const, at: AT, offered: [{ model:
 /** A server on a config file of the test's own. */
 function serve(probe = modelsProbe(), choices = CHOICES, model: Record<string, string> = MODEL, config = CONFIG) {
   const { file, modelIdsPath } = ownFiles(config, ownDirs);
-  const { base } = start({ queueDefaults: defaultsOf(choices, model), toolProbe: probe, queueConfigFile: file, modelIdsPath });
+  const { base } = start({ ...stubReads, queueDefaults: defaultsOf(choices, model), toolProbe: probe, queueConfigFile: file, modelIdsPath });
   return { base, file, modelIdsPath, probe };
 }
 

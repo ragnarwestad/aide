@@ -16,8 +16,8 @@ const status = (over: Partial<ProviderStatus> = {}): ProviderStatus => ({
 const said = (s: ProviderStatus, provider: Provider = CLAUDE): string => providerStatusLines(s, provider, "en").join("\n");
 
 describe("what a provider's row says", () => {
-  test("an installed tool is shown with the version as printed (AC-1)", () => {
-    expect(providerStatusLines(status(), CLAUDE, "en")[0]).toBe("Installed, version 2.1.318 (Claude Code)");
+  test("an installed tool's lines leave its version to the heading", () => {
+    expect(said(status())).not.toContain("2.1.318");
   });
 
   test("a tool that is not installed says so, and says nothing of a login (AC-1)", () => {

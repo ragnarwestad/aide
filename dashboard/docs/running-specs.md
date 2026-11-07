@@ -206,19 +206,17 @@ itself shows for the model. Each option sits under a group named after its tool.
 whole string is what `model` holds (`opencode/gemini-3.1-pro`). Nothing OpenCode offers is reachable until a provider is
 logged in (`opencode auth login`); the page of an OpenCode provider answers whether one is.
 
-**A provider's page has four tabs under its heading: Overview, Config, Models and Installation**, and opens on
-Overview. Overview holds the status (the tool's version and the login) and the usage. Config holds the form with the
-display name and the runtime fields, with Save and Cancel, and nothing else; both come back to Config. Models holds the
+**A provider's page has four tabs under its heading: Config, Usage, Models and Installation**, and opens on
+Config. Config holds the form with the display name and the runtime fields, with Save and Cancel, and nothing else;
+both come back to Config. Usage holds the login and the usage; the version is in the heading. Models holds the
 models reading and the choices it is set against. Installation holds the sentence saying where Aide's skills, rules and
 scripts are for the tool, and the installation reading. The address names the open tab
 (`/settings?tab=providers&provider=Claude&aitab=installation`), so a reload or a link opens the same tab; `aitab` takes
-`overview`, `config`, `models` and `installation`, and anything else opens Overview.
+`config`, `usage`, `models` and `installation`, and anything else opens Config.
 
-**Models and Installation read their own answer when the tab is opened,** with no press. The tab is drawn at once with
-a line saying it is being read, in a place as tall as a typical answer, and the page's script fills the place from the
-tab's own address (`/settings/providers/models?key=` and `/settings/providers/installation?key=`), so the page does not
-wait for the tool. A reading that fails or runs out of time says so in the tab's own line, and so does a request that
-does not come back. The models are read with the provider's own folders in the environment. Each opening reads again and
+**Usage, Models and Installation read their own answer when the tab is opened,** with no press, before the page
+answers. While the page waits, the click shows the same Loading cover as any other link on the board. A reading that
+fails or runs out of time says so in the tab. The models are read with the provider's own folders in the environment. Each opening reads again and
 records what it read: the models feed Add, the pickers and the notice about models no longer offered, and the
 installation check feeds the notice about a login. The installation check also runs at start and before a waiting job,
 for Claude Code, Codex and OpenCode, which is what that notice at the top of every page reads; the notice links to the
@@ -231,16 +229,15 @@ whose last reading failed, get no such notice. The Models reading is kept per to
 read with.
 
 **The chosen provider shows how much of its subscription is used**, read with the provider's folders: each usage
-window with the share used, when it starts over, and when it was read. Reading it runs the tool and takes seconds, so
-the Providers tab does not wait for it: it draws at once, with "Reading the usage…" where the usage goes, and fills
-it in when the reading comes. A reading is kept for two minutes and shown at once in that time; a provider saved
-since is read again. Claude Code's comes from
+window with the share used, when it starts over, and when it was read. Reading it runs the tool and takes seconds,
+so a reading is kept for two minutes, and the Usage tab opened again in that time shows it without reading; a
+provider saved since is read again. Claude Code's comes from
 `claude -p /usage`, and Codex's from `codex app-server`'s `account/rateLimits/read`; neither runs a model. When Claude's
 text has no line the board can read as a window, the page shows the text as it came. OpenCode reports no usage windows.
 
 **The Installation tab shows what `aide-preflight` printed**: whether the command line is installed and which version,
 where each piece of aide lands, whether the installed files match the repository, and every command the check ran. The
-login is not on the tab: the Overview tab shows it.
+login is not on the tab: the Usage tab shows it.
 
 **The Models tab lists the models under three headings.** "Currently supported by Aide" is every model choice of that
 AI. "Available" is the models the AI offers that are not choices, each with Add. "No longer available" is the choices it
@@ -506,8 +503,8 @@ the provider.
   it, and it opens empty at the first step again. The old address of the Add page (`/settings/providers/new`) leads
   to the Providers tab.
 - **The chosen provider.** Beside the list: the name with the version and **Remove**, which asks first; then the
-  four tabs. Overview has the status (see Status) and the usage; Config has one form with the display name and the
-  runtime fields, with Save and Cancel; Models and Installation have the readings made when they are opened. Save shows its pending label while it saves; a refusal is written in the
+  four tabs. Config has one form with the display name and the runtime fields, with Save and Cancel; Usage has the
+  login (see Status) and the usage; Models and Installation have the readings made when they are opened. Save shows its pending label while it saves; a refusal is written in the
   form's own line and leaves every field as it was typed; Cancel puts back what was saved. Renaming a provider updates
   nothing else: phase defaults, schedule entries and jobs store the provider's key. The old address of a provider's
   page (`/settings/providers/edit?key=`) leads here.

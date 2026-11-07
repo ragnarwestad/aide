@@ -57,8 +57,6 @@ interface Layout {
 }
 
 async function measure(p: Page): Promise<Layout> {
-  // The tab's reading comes in after the page has drawn.
-  await p.locator("[data-read-from]").waitFor({ state: "detached" });
   return p.evaluate(() => {
     const r = document.querySelector("section.toolpanel[data-tool]")!.getBoundingClientRect();
     return {

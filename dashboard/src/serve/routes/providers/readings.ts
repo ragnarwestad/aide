@@ -1,5 +1,5 @@
-// What a provider's Models and Installation tabs are filled with: each
-// asks its tool when the page's script requests it, records the answer
+// What a provider's Models and Installation tabs are drawn with: each
+// asks its tool when the tab is opened, records the answer
 // where the pickers, Add, the header notices and the re-check before a
 // job read it, and answers with the tab's HTML.
 

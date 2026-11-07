@@ -49,7 +49,7 @@ export async function projectPages(
     const providers = ctx.queue.defaults.providers;
     const chosen = providerStatuses ? selectedProviderKey(providers, url.searchParams.get("provider")) : undefined;
     const providerDetail = chosen
-      ? await providerDetailFor(ctx, chosen, providers![chosen]!, providerStatuses?.[chosen], url.searchParams.get("aitab") ?? undefined)
+      ? await providerDetailFor(ctx, chosen, providers![chosen]!, providerStatuses?.[chosen], url.searchParams.get("aitab") ?? undefined, langResult.lang)
       : undefined;
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
       modelChoices: modelChoiceOptions(ctx.queue),

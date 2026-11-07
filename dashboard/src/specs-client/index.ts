@@ -50,7 +50,6 @@ import { postPendingModel } from "./pending-model.ts";
 import { bindReportFrame } from "./report-frame.ts";
 import { postForm } from "./press.ts";
 import { bindProviderAdd } from "./provider-add";
-import { fillReadings } from "./read-slot";
 import { bindPushPanel } from "./push.ts";
 import { startReloadWhileIdle } from "./reload-while-idle";
 import { relabelRunButton } from "./row-swap.ts";
@@ -74,7 +73,6 @@ bindLimits(document);
 const providerAdd = document.getElementById("provider-add") as HTMLDialogElement | null;
 if (providerAdd) bindProviderAdd(providerAdd);
 // The chosen provider's readings (usage, models, installation), read once the tab has drawn.
-void fillReadings(document);
 
 // The Settings page's Notifications tab, when it is the one open.
 const pushPanel = document.querySelector("[data-push-panel]") as HTMLElement | null;

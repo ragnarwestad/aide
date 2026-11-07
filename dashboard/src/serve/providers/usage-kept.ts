@@ -1,7 +1,7 @@
 // A provider's subscription usage, kept for a short while once read. Reading
-// it runs the tool (`claude -p /usage` takes seconds), so the Providers tab
-// never waits for it: the tab shows a reading kept from the last two
-// minutes, and otherwise asks for one after it has drawn. A reading is kept
+// it runs the tool (`claude -p /usage` takes seconds), so the Usage tab
+// shows a reading kept from the last two minutes, and reads one before it
+// answers only when none is kept. A reading is kept
 // per server and per provider as it stood, so an edited provider is read
 // again.
 
