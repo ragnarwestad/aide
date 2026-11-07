@@ -31,6 +31,26 @@ def test_every_aide_script_a_skill_runs_exists():
     assert not missing, f"skills run scripts core/scripts does not have: {missing}"
 
 
+def runs_hand_off(skill, step):
+    blocks = BASH_BLOCK.findall((CORE_SKILLS_DIR / skill / "SKILL.md").read_text(encoding="utf-8"))
+    return any(re.search(rf"^\s*aide-hand-off\s+{step}\b", block, re.M) for block in blocks)
+
+
+@pytest.mark.validation
+@pytest.mark.parametrize("step", ["analyze", "implement", "archive", "close", "reopen"])
+def test_a_step_skill_hands_its_own_step_to_aide_hand_off_AC_1(step):
+    assert runs_hand_off(f"aide-{step}", step), (
+        f"aide-{step} has no bash block that runs aide-hand-off {step}"
+    )
+
+
+@pytest.mark.validation
+def test_the_create_skill_hands_the_title_and_description_to_aide_hand_off_AC_2():
+    assert runs_hand_off("aide-create", "create"), (
+        "aide-create has no bash block that runs aide-hand-off create"
+    )
+
+
 PUSHING_SKILLS = ("aide-create", "aide-analyze", "aide-implement", "aide-archive", "aide-close")
 
 

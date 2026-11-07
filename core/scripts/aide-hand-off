@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# aide-hand-off — an /aide-* skill running in an AI session hands its step to
+# the board when the project has one, by running `aide` for it.
+#
+# Takes `aide`'s own arguments, with the project left out of `create`, which
+# is found from the checkout:
+#
+#   aide-hand-off analyze|implement|archive|reopen <spec>
+#   aide-hand-off reopen <spec> --reset
+#   aide-hand-off close <spec> --reason "<why>"
+#   aide-hand-off create "<title>" [--depends-on <spec>]...   # description on stdin
+#
+# Exit codes, which the skills branch on:
+#   3  Do the step in the session: this is a headless run, or the project has
+#      no board (none set, none that knows the project). Nothing is printed
+#      and nothing is sent.
+#   0  The board took the step. Its answer, one sentence, is on stdout.
+#   1  The board refused, or could not be reached. The reason is on stdout.
+#   2  The call was wrong. The usage is on stdout.
+#
+# A headless run is the board's own step, started by its runner; handing that
+# on would queue the step the runner is already running.
+set -u
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DO_IT_HERE=3
+
+hand_off_usage() {
+  cat <<'EOF'
+usage: aide-hand-off analyze|implement|archive|reopen <spec>
+       aide-hand-off reopen <spec> --reset
+       aide-hand-off close <spec> --reason "<why>"
+       aide-hand-off create "<title>" [--depends-on <spec>]...   (description on stdin)
+
+Queues the step on the board through `aide` when this project has one.
+Exit 3 means there is no board here, or the run is headless: do the step in
+the session. Any other exit: the printed text is the answer.
+EOF
+}
+
+case "${1:-}" in
+  -h|--help) hand_off_usage; exit 0 ;;
+esac
+
+[ -z "${AIDE_HEADLESS:-}" ] || exit "$DO_IT_HERE"
+[ -f "$SCRIPT_DIR/aide" ] || exit "$DO_IT_HERE"
+
+step="${1:-}"
+case "$step" in
+  analyze|implement|archive|reopen|close|create) ;;
+  *) hand_off_usage; exit 2 ;;
+esac
+
+# aide's functions, without running it: it runs its command only when executed.
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/aide"
+type read_board_url >/dev/null 2>&1 && type aide_config_get >/dev/null 2>&1 || exit "$DO_IT_HERE"
+
+read_board_url
+[ -n "$board_url" ] || exit "$DO_IT_HERE"
+
+find_own_project
+
+# Where `aide` says there is no board for the project, the session does the step.
+no_board_tail="in an AI session instead"
+
+if [ "$step" = "create" ]; then
+  # aide create takes the project in front of the title.
+  set -- create "$own_project" "${@:2}"
+fi
+
+if [ "$step" = "reopen" ]; then
+  reset=""
+  for arg in "$@"; do
+    [ "$arg" = "--reset" ] && reset=yes
+  done
+  if [ -n "$reset" ]; then
+    # aide reopen cannot ask for a reset, and aide refuses --reset as an
+    # option; the board is only asked whether it has the project.
+    project="$own_project"
+    answer_file="$(mktemp)"
+    trap 'rm -f "$answer_file"' EXIT
+    asked="$( ( require_board "reopen with a reset" "/aide-reopen ${2:-}" ) 2>&1 )"
+    asked_exit=$?
+    if [ "$asked_exit" -eq 0 ]; then
+      echo "Reopening with a reset is chosen with Reopen on the spec's page on the board; nothing was queued."
+      exit 1
+    fi
+    case "$asked" in
+      *"$no_board_tail"*) exit "$DO_IT_HERE" ;;
+    esac
+    printf '%s\n' "$asked"
+    exit 1
+  fi
+fi
+
+out_file="$(mktemp)"
+err_file="$(mktemp)"
+trap 'rm -f "$out_file" "$err_file" "${answer_file:-}"' EXIT
+
+bash "$SCRIPT_DIR/aide" "$@" >"$out_file" 2>"$err_file"
+aide_exit=$?
+
+if [ "$aide_exit" -eq 1 ] && grep -qF "$no_board_tail" "$err_file"; then
+  exit "$DO_IT_HERE"
+fi
+
+cat "$out_file" "$err_file"
+exit "$aide_exit"

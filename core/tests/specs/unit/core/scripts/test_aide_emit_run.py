@@ -1,10 +1,8 @@
-"""Tests for core/scripts/aide-emit-run — the UserPromptSubmit emitter
-that links a Claude Code session to the aide spec it works on.
+"""Tests for core/scripts/aide-emit-run — the phase reporter an
+/aide-implement run calls at each TDD phase boundary.
 
-The script is a prompt hook: it must never write to stdout (that text
-is injected into the model's context), must always exit 0 (non-zero
-blocks the prompt), must match only slash-launched aide commands —
-which arrive with a LEADING SPACE in real transcripts — and must stay
+It is called from a line in the skill, never from a hook: it must never
+write to stdout, must always exit 0, must never read stdin, and must stay
 inert unless AIDE_RUN_URL is set (aide ships generic).
 """
 import json
@@ -63,19 +61,6 @@ def listener():
     lst.close()
 
 
-def run_emitter(emitter, prompt, cwd, url=None, session_id="abc-123"):
-    env = dict(os.environ)
-    env.pop("AIDE_RUN_URL", None)
-    if url:
-        env["AIDE_RUN_URL"] = url
-    payload = {"session_id": session_id, "cwd": str(cwd), "prompt": prompt,
-               "hook_event_name": "UserPromptSubmit"}
-    return subprocess.run(
-        [str(emitter)], input=json.dumps(payload), capture_output=True,
-        text=True, env=env, timeout=30,
-    )
-
-
 def run_phase(emitter, cwd, *args, url=None, session_id="abc-123"):
     """Phase mode: called from a skill, NOT from a hook — so there is no
     JSON on stdin and the session id comes from the environment.
@@ -110,55 +95,6 @@ def git_repo(tmp_path):
     repo.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
     return repo
-
-
-@pytest.mark.claude_code
-class TestAideEmitRun:
-    def test_leading_space_slash_command_is_emitted(self, emitter, listener, git_repo):
-        result = run_emitter(emitter, " /aide-implement 80", git_repo, listener.url)
-        assert result.returncode == 0
-        assert result.stdout == "", "a prompt hook must never write to stdout"
-        got = listener.wait()
-        assert len(got) == 1, "the emitter never POSTed"
-        event = got[0]
-        assert event["spec"] == "80"
-        assert event["command"] == "implement"
-        assert event["project"] == "myproj"
-        assert event["sessionId"] == "abc-123"
-        assert event["host"]
-        assert "prompt" not in event, "the prompt body must never leave the machine"
-
-    def test_command_without_argument_omits_spec(self, emitter, listener, git_repo):
-        run_emitter(emitter, "/aide-explore", git_repo, listener.url)
-        got = listener.wait()
-        assert len(got) == 1
-        assert got[0]["command"] == "explore"
-        assert "spec" not in got[0]
-
-    def test_prose_mentioning_a_command_is_ignored(self, emitter, listener, git_repo):
-        result = run_emitter(
-            emitter, "hva innebærer /aide-archive dvs å lukke rapporten?",
-            git_repo, listener.url,
-        )
-        assert result.returncode == 0
-        assert listener.wait(timeout=0.7) == []
-
-    def test_non_aide_prompt_is_ignored(self, emitter, listener, git_repo):
-        run_emitter(emitter, "fix the login bug", git_repo, listener.url)
-        assert listener.wait(timeout=0.7) == []
-
-    def test_inert_without_url(self, emitter, listener, git_repo):
-        result = run_emitter(emitter, " /aide-implement 80", git_repo, url=None)
-        assert result.returncode == 0
-        assert result.stdout == ""
-        assert listener.wait(timeout=0.7) == []
-
-    def test_unreachable_url_still_exits_zero_silently(self, emitter, git_repo):
-        result = run_emitter(
-            emitter, " /aide-analyze 5", git_repo, "http://127.0.0.1:9/api/aide-run",
-        )
-        assert result.returncode == 0
-        assert result.stdout == ""
 
 
 @pytest.mark.claude_code
@@ -242,24 +178,42 @@ class TestImplementSkillReportsItsPhases:
 
 
 @pytest.mark.claude_code
-class TestEmitterIsShipped:
+class TestThereIsNoPromptHook:
+    def test_a_call_without_arguments_posts_nothing_AC_6(self, emitter, listener, git_repo):
+        env = dict(os.environ, AIDE_RUN_URL=listener.url)
+        prompt = {"session_id": "abc-123", "cwd": str(git_repo), "prompt": " /aide-implement 80",
+                  "hook_event_name": "UserPromptSubmit"}
 
-    def test_reference_settings_carry_the_prompt_hook(self, workspace_root):
+        result = subprocess.run(
+            [str(emitter)], input=json.dumps(prompt), capture_output=True,
+            text=True, env=env, timeout=30,
+        )
+
+        assert result.returncode == 0
+        assert result.stdout == ""
+        assert listener.wait(timeout=0.7) == []
+
+    def test_the_reference_settings_call_aide_emit_run_from_no_hook_AC_6(self, workspace_root):
         settings = json.loads(
             (workspace_root / "core" / "implementations" / "claude-code" / "settings.json").read_text()
         )
-        commands = " ".join(
-            h["command"]
-            for group in settings["hooks"].get("UserPromptSubmit", [])
-            for h in group["hooks"]
-            if h["type"] == "command"
-        )
-        assert "aide-emit-run" in commands
-        assert "AIDE_RUN_URL" in commands, "the hook is opt-in via AIDE_RUN_URL"
+        commands = [
+            hook["command"]
+            for groups in settings["hooks"].values()
+            for group in groups
+            for hook in group["hooks"]
+            if hook["type"] == "command"
+        ]
+        assert not [c for c in commands if "aide-emit-run" in c]
 
-    def test_installer_prints_the_paste_block(self, workspace_root):
-        content = (workspace_root / "core" / "implementations" / "claude-code" / "install.sh").read_text()
-        assert "aide-emit-run" in content and "AIDE_RUN_URL" in content, (
-            "install.sh must print the ready-to-paste UserPromptSubmit block — "
-            "aide never edits ~/.claude/settings.json itself"
+    def test_the_installer_prints_no_settings_block_for_a_hook_AC_6(self, workspace_root, tmp_path):
+        result = subprocess.run(
+            [str(workspace_root / "core" / "implementations" / "claude-code" / "install.sh")],
+            capture_output=True, text=True, timeout=300,
+            env={"HOME": str(tmp_path / "home"), "PATH": "/usr/bin:/bin"},
         )
+
+        assert result.returncode == 0, result.stderr
+        assert "UserPromptSubmit" not in result.stdout
+        assert "AIDE_RUN_URL" not in result.stdout
+        assert "aide-emit-run" in result.stdout, "the script is still installed, for phase mode"

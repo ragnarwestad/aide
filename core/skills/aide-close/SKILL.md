@@ -22,6 +22,18 @@ merged.
 **Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with,
 plus the reason the user closing it typed)
 
+## A project with a board
+
+Working interactively, hand the step to the board first:
+
+```bash
+aide-hand-off close <spec> --reason "<the reason>"
+```
+
+Ask for the reason first when none was given. Exit 3, or no such command: go on with Step 1. Any other exit: its output is your last words; do nothing else.
+
+---
+
 ## Workflow
 
 The steps below are this skill's own, inside the queue's `close` step.

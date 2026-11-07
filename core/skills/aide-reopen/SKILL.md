@@ -22,6 +22,18 @@ asked are the analysis, the plan and the status reset as well.
 
 ---
 
+## A project with a board
+
+Working interactively, hand the step to the board first:
+
+```bash
+aide-hand-off reopen <spec>
+```
+
+Add `--reset` when the arguments ask for a reset. Exit 3, or no such command: go on with Step 1. Any other exit: its output is your last words; do nothing else.
+
+---
+
 ## Workflow
 
 The steps below are this skill's own, inside the queue's `reopen` step.

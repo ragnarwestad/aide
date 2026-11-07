@@ -1,31 +1,25 @@
 #!/usr/bin/env bash
-# aide-emit-run — link a Claude Code session to the aide spec it works
-# on, and report TDD phase boundaries from inside a run.
+# aide-emit-run — report a TDD phase boundary from inside an
+# /aide-implement run to the board.
 #
-# Two modes, one payload:
+#   aide-emit-run --phase red|green|verify [--spec N] [--command implement|archive]
 #
-#   * hook mode (no arguments): reads the UserPromptSubmit JSON from
-#     stdin. If the prompt is a slash-launched aide command
-#     (`/aide-<command> [<spec>]`, tolerating the leading space real
-#     prompts carry), POSTs {host, sessionId, command, spec?, project?,
-#     capturedAt}.
-#   * phase mode (`--phase red|green|verify [--spec N]`): called from
-#     a line in the aide-implement skill, NOT from a hook — so it never
-#     reads stdin (that would hang the very step it reports from) and
-#     takes the session id from $CLAUDE_SESSION_ID. Same payload plus
-#     `phase`.
+# Called from a line in the aide-implement skill, never from a hook, so it
+# never reads stdin (that would hang the very step it reports from) and takes
+# the session id from $CLAUDE_SESSION_ID. POSTs {host, sessionId, command,
+# phase, spec?, project?, capturedAt} to $AIDE_RUN_URL, which the board's
+# runner sets for every step it spawns; without it nothing is sent. Only the
+# command, spec reference and phase leave the machine.
 #
-# Only the parsed command, spec reference and phase leave the machine —
-# never the prompt body. Both modes need AIDE_RUN_URL; without it
-# nothing is sent.
+# A call without --phase sends nothing, so a hook still pointing here is
+# harmless.
 #
-# Prompt-hook discipline (non-negotiable):
-#   * stdout is injected into the model's context -> silence it, line one
-#   * a non-zero exit blocks the prompt -> always exit 0
+# Discipline:
+#   * stdout is silent
+#   * always exit 0
 #   * never block: curl is backgrounded with a 1 s cap
 [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ] && { cat <<'USAGE'
 Usage:
-  aide-emit-run                                  # hook mode, reads UserPromptSubmit JSON on stdin
   aide-emit-run --phase red|green|verify [--spec N] [--command implement|archive]
 USAGE
 exit 0; }
@@ -71,8 +65,7 @@ if [ -n "$phase" ]; then
   # not reach the dashboard.
   case "$phase" in red|green|verify) ;; *) exit 0 ;; esac
 
-  # The session id is what joins this event to the run on /live. In
-  # print mode there is no hook JSON to read it from.
+  # The session id is what joins this event to the run on /live.
   session_id="${CLAUDE_SESSION_ID:-}"
   [[ "$session_id" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || exit 0
   [[ "$spec" =~ ^[A-Za-z0-9._-]{1,64}$ ]] || spec=""
@@ -88,30 +81,4 @@ if [ -n "$phase" ]; then
   exit 0
 fi
 
-# --- hook mode ---------------------------------------------------------------
-input="$(cat)"
-prompt="$(printf '%s' "$input" | jq -r '.prompt // empty')"
-[ -n "$prompt" ] || exit 0
-
-# Anchored: optional leading whitespace, then /aide-<command>, then an
-# optional argument. NEVER an unanchored search — prose that merely
-# mentions a command must not match.
-re='^[[:space:]]*/aide-(explore|create|analyze|implement|archive|make-tests|to-pdf|to-html|react-class-to-func)([[:space:]]+([^[:space:]]+))?'
-[[ "$prompt" =~ $re ]] || exit 0
-cmd="${BASH_REMATCH[1]}"
-spec="${BASH_REMATCH[3]:-}"
-
-session_id="$(printf '%s' "$input" | jq -r '.session_id // empty')"
-[[ "$session_id" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || exit 0
-
-project="$(project_of "$(printf '%s' "$input" | jq -r '.cwd // empty')")"
-
-payload="$(jq -cn \
-  --arg host "$host" --arg sid "$session_id" --arg cmd "$cmd" \
-  --arg spec "$spec" --arg project "$project" --arg at "$captured_at" \
-  '{host: $host, sessionId: $sid, command: $cmd, capturedAt: $at}
-   + (if $spec != "" then {spec: $spec} else {} end)
-   + (if $project != "" then {project: $project} else {} end)')"
-
-post "$payload"
 exit 0

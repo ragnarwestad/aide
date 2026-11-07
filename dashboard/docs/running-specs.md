@@ -127,6 +127,13 @@ buttons, from a terminal or an AI session, and answers in one sentence with no l
 - **Without `AIDE_BOARD_URL`, or with a board that does not know the project,** nothing is queued: the command says so,
   names the `/aide-<step>` skill to run in an AI session instead, and exits 1. A board that cannot be reached, or does
   not answer in time, is said so with exit 1; a request that got no answer may still have been queued.
+- **A skill run in an AI session hands its step to `aide`** when the project has a board. `/aide-analyze`,
+  `/aide-implement`, `/aide-archive`, `/aide-close` and `/aide-reopen` queue their step, and `/aide-create` queues the
+  title, the description and any dependencies, through `aide-hand-off`; the session does nothing else and ends on
+  `aide`'s answer. A board that is set but cannot be reached ends the session on that sentence. Without a board the skill
+  does the step in the session. A headless run never hands its step over, since it is the board's own step. A reopen that
+  asks for a reset is not handed over, because `aide reopen` cannot carry it: the answer says it is chosen with Reopen
+  on the spec's page, and nothing is queued. This holds for every AI tool that reads the skills.
 - **`aide status`** reads the phase from the spec's repository on this machine, after fetching origin, and says so when
   it had to use this machine's copy. For a project with no checkout here it says only what the job is doing.
 
@@ -795,32 +802,10 @@ folder `src/render/pages/jobs-page/`, the `jobs.*` words and the `aide_jobs_view
 A spec's row shows a live indicator (session id, liveness and cost so far) while an `/aide-*` command runs against it.
 The queue side works with nothing configured.
 
-**The queue's own runner is the producer for anything it queued itself.** When it spawns a step, it hands the child
-`AIDE_RUN_URL` pointing at this server's own `POST /api/aide-run`, so a headless run's phases reach the row.
-
-**A Claude Code `UserPromptSubmit` hook is the other producer, and it is a user's own, opt-in setting**, for reporting an
-`/aide-*` command run BY HAND in an interactive terminal. `aide-emit-run` (installed to `~/.local/bin`) POSTs one small
-event per slash-launched command: host, session id, command, spec, project; never the prompt text. It is inert until
-`AIDE_RUN_URL` is set. Aide's `install.sh` prints the ready-to-paste block for `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "AIDE_RUN_URL=\"http://127.0.0.1:8788/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-The `:8788` address answers on the serving host itself and nowhere else.
+**The queue's own runner reports a run's phases.** When it spawns a step, it hands the child `AIDE_RUN_URL` pointing at
+this server's own `POST /api/aide-run`, and the implement skill calls `aide-emit-run --phase red|green|verify` at each
+TDD phase boundary, so a headless run's phases reach the row. A step started by hand in a project with a board is queued
+there instead (see Queueing from a terminal).
 
 **`GET /api/aide-runs` is these runs in flight, as JSON.** No page renders it directly: the spec list shows every
 queued run per row, and interactive sessions are claude-usage's own page. Runs are kept in memory (LRU 512) and

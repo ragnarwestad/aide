@@ -53,6 +53,22 @@ Examples:
 
 ---
 
+## A project with a board
+
+Working interactively, once the title and the description are settled, hand
+them to the board instead of writing spec files:
+
+```bash
+aide-hand-off create "<title>" [--depends-on <spec>]... <<'AIDE_DESCRIPTION'
+<the description, as it came in>
+AIDE_DESCRIPTION
+```
+
+Exit 3, or no such command: go on with Step 1. Any other exit: its output
+is your last words, in place of the `■ /aide-create …` line; do nothing else.
+
+---
+
 ## Workflow
 
 The steps below are this skill's own, inside the queue's `create` step.

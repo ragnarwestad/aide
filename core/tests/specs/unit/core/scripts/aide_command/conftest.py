@@ -180,7 +180,7 @@ class Machine:
 
     def run(self, *args, stdin="", stdin_fd=None, env=None, timeout=60):
         full = dict(os.environ, HOME=str(self.home), GIT_TERMINAL_PROMPT="0")
-        for name in ("AIDE_BOARD_URL", "AIDE_BOARD_ANSWER_SECONDS", "VISUAL", "EDITOR"):
+        for name in ("AIDE_BOARD_URL", "AIDE_BOARD_ANSWER_SECONDS", "AIDE_HEADLESS", "VISUAL", "EDITOR"):
             full.pop(name, None)
         full.update(env or {})
         kwargs = {"stdin": stdin_fd} if stdin_fd is not None else {"input": stdin}

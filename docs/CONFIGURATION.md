@@ -52,7 +52,7 @@ machine. It is never committed.
 
 | Key              | What it says                                                                                                                                                                                                                                                                                                            | Read by                   |
 |------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|
-| `AIDE_BOARD_URL` | The board's address as this machine reaches it, such as `https://<serving-host>.<tailnet>.ts.net` ([dashboard/docs/tailscale.md](../dashboard/docs/tailscale.md)). Without it `aide-push-specs` pushes and tells nobody, `aide` names the `/aide-<step>` skill to run instead, and Aide works as before without a board | `aide-push-specs`, `aide` |
+| `AIDE_BOARD_URL` | The board's address as this machine reaches it, such as `https://<serving-host>.<tailnet>.ts.net` ([dashboard/docs/tailscale.md](../dashboard/docs/tailscale.md)). With it set, an `/aide-*` skill run in a session hands its step to the board. Without it `aide-push-specs` pushes and tells nobody, `aide` names the `/aide-<step>` skill to run instead, and Aide works as before without a board | `aide-push-specs`, `aide`, `aide-hand-off` |
 
 ---
 

@@ -40,6 +40,18 @@ Examples:
 
 ---
 
+## A project with a board
+
+Working interactively, hand the step to the board first:
+
+```bash
+aide-hand-off analyze <spec>
+```
+
+Exit 3, or no such command: go on with Step 1. Any other exit: its output is your last words; do nothing else.
+
+---
+
 ## Workflow
 
 The steps below are this skill's own, inside the queue's `analyze` step.

@@ -5,18 +5,14 @@ serving host; HTTPS and other devices are an optional proxy, documented on
 its own page (`dashboard/docs/tailscale.md`), which carries the HTTPS
 placeholder address.
 
-The dashboard used to be served over plain HTTP on a port, and
-that address was written down in four places that no single test could
-see at once: the dashboard's own README, the root manifest, the ROADMAP,
-and the hook block `core/implementations/claude-code/install.sh` prints for
-people to paste. When the address changed, one of them would have been
-left behind — and a stale address in the pasted hook block is silent:
-`aide-emit-run` posts into the void and no run ever appears.
+The dashboard's address is written down in several places that no single
+test could see at once: the dashboard's own README, the root manifest and
+the ROADMAP. When the address changes, one of them would be left behind.
 
 `dashboard/test/no-hardcoded-host.test.ts` guards the same files against
 naming ONE operator's machine, but it only scans inside `dashboard/`, so
-`docs/ROADMAP.md` and `core/implementations/claude-code/install.sh` have no
-guard at all. Both rules are checked here, across both toolchains' trees.
+`docs/ROADMAP.md` has no guard at all. Both rules are checked here, across
+both toolchains' trees.
 """
 import re
 
@@ -30,7 +26,6 @@ ADDRESS_FILES = (
     "dashboard/docs/tailscale.md",
     "docs/ROADMAP.md",
     ".aide/project.yaml",
-    "core/implementations/claude-code/install.sh",
 )
 
 # The page for the optional HTTPS proxy is the one that writes out the
@@ -95,7 +90,7 @@ class TestDocumentedAddressIsHttps:
 
 @pytest.mark.validation
 class TestNoRealAddressInTheUnguardedFiles:
-    """`no-hardcoded-host.test.ts` scans dashboard/ only; these two are outside it."""
+    """`no-hardcoded-host.test.ts` scans dashboard/ only; the ROADMAP is outside it."""
 
     @pytest.mark.parametrize("relative_path", ADDRESS_FILES)
     def test_no_real_serving_address_is_named(self, workspace_root, relative_path):
