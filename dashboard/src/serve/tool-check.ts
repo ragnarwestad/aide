@@ -1,12 +1,13 @@
 // Asking a tool whether it is actually usable on this host.
 //
 // WHERE aide installs for each tool lives in
-// `core/scripts/lib/install-targets.txt`: `core/scripts/aide-preflight`
-// prints its place lines from it, and the Settings tab for each AI names
-// the same places (`render/pages/settings-page/places.ts`). This module
-// runs the preflight and passes on what it said; it does not keep a second
-// copy of the answer in TypeScript (`docs/bash-typescript-decisions.md`,
-// "Not a pair: where aide installs for each AI").
+// `core/scripts/lib/install-targets.txt`: `core/scripts/aide-preflight
+// --facts` answers from it whether each place exists, whether the files are
+// behind and whether the CLI is found, and the Installation tab lists the
+// same places (`render/pages/settings-page/places.ts`). This module runs
+// the preflight and reads its facts; it does not decide any of them a
+// second time in TypeScript (`docs/bash-typescript-decisions.md`, "Not a
+// pair: where aide installs for each AI").
 //
 // What the preflight cannot answer is asked separately, and only where
 // there is something to ask: whether the AI is logged in, and for OpenCode
@@ -44,14 +45,32 @@ export function stripAnsi(text: string): string {
   return text.replace(ANSI, "");
 }
 
-const lines = (text: string): string[] =>
+const printedLines = (text: string): string[] =>
   stripAnsi(text).split("\n").map((l) => l.trimEnd()).filter((l) => l.trim().length > 0);
+
+/** What `aide-preflight --facts` said; undefined when it gave no `cli`
+ *  line, which an older preflight does not: it answers `--facts` with its
+ *  banner and then "Unknown tool", and that is not a CLI that is missing. */
+function readFacts(text: string): { found: boolean; missing: string[]; paths: Record<string, string>; behind: boolean } | undefined {
+  const facts = printedLines(text).map((l) => l.split("\t"));
+  const cli = facts.find((f) => f[0] === "cli");
+  if (!cli) return undefined;
+  return {
+    found: cli[1] === "found",
+    missing: facts.filter((f) => f[0] === "place" && f[3] === "missing").map((f) => f[1]!),
+    paths: Object.fromEntries(facts.filter((f) => f[0] === "place" && f[2]).map((f) => [f[1]!, f[2]!])),
+    behind: facts.some((f) => f[0] === "files" && f[1] === "behind"),
+  };
+}
 
 export interface CheckOptions {
   /** Test seam: what to run instead of the real binaries. */
   run?: typeof runScript;
   /** Test seam: where to find the scripts. */
   scriptPath?: (name: string) => string;
+  /** Where the board's runner is: the preflight is looked for beside it
+   *  first, so a board serving a branch runs that branch's preflight. */
+  scriptDir?: string;
   now?: () => Date;
   /** The providers whose logins are asked, live: a tool's check asks the
    *  login of each provider of that tool, and its own login when it has
@@ -239,29 +258,22 @@ export async function askLogin(
 export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): Promise<ToolCheck> {
   const path = opts.scriptPath ?? ((name: string) => scriptFor(name));
   const at = (opts.now ?? (() => new Date()))().toISOString();
-  // Every command this check runs, recorded as it runs. A reader who
-  // needs to go further than the page can take them runs the same line
-  // in a terminal and sees everything, rather than guessing at what was
-  // asked.
-  const commands: string[] = [];
-  const base = opts.run ?? runScript;
-  const run: typeof runScript = (argv, cwd, timeoutMs, owner, extraEnv) => {
-    // With the variable in front, as a reader would type the same line.
-    const vars = Object.entries(extraEnv ?? {}).map(([k, v]) => `${k}=${v} `).join("");
-    commands.push(vars + argv.join(" "));
-    return base(argv, cwd, timeoutMs, owner, extraEnv);
-  };
+  const run = opts.run ?? runScript;
 
-  const result = await run([path("aide-preflight"), tool], process.cwd(), CHECK_TIMEOUT_MS);
+  const preflight = opts.scriptDir ? scriptFor("aide-preflight", { beside: opts.scriptDir }) : path("aide-preflight");
+  const result = await run([preflight, "--facts", tool], process.cwd(), CHECK_TIMEOUT_MS);
   if (result.timedOut) {
+    return { tool, at, found: false, extra: [], error: "The check did not finish in time." };
+  }
+  const facts = result.code === 0 ? readFacts(result.stdout) : undefined;
+  if (!facts) {
+    const said = printedLines(`${result.stdout}\n${result.stderr}`).pop();
     return {
-      tool, at, found: false, lines: [], extra: [], commands,
-      error: "The check did not finish in time.",
+      tool, at, found: false, extra: [],
+      error: `The check gave no answer the board can read${said ? `: ${said}` : "."}`,
     };
   }
-  const printed = lines(`${result.stdout}\n${result.stderr}`);
-  // The preflight's own wording for a CLI it could not find.
-  const found = printed.length > 0 && !printed.some((l) => /NOT installed|not found/i.test(l));
+  const { found, missing, paths, behind } = facts;
 
   // A CLI that is not there cannot be asked anything, and asking would
   // report "not logged in" for what is really "not installed".
@@ -275,7 +287,7 @@ export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): P
       extra.push(await askLogin(tool, run, bin, provider, opts.home));
     }
   }
-  return { tool, at, found, lines: printed, extra, commands };
+  return { tool, at, found, missing, paths, behind, extra };
 }
 
 /** Run every check once, for a server that has just come up.

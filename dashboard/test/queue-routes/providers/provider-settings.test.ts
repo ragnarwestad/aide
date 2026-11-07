@@ -358,13 +358,13 @@ describe("the pages that add and edit a provider", () => {
   test("the Models and Installation tabs are read before the page answers, and a tab reads only its own", async () => {
     const asked: string[] = [];
     const { base } = serve({}, CONFIG, stubProbe, stubUsage, {
-      check: async (tool) => { asked.push(`check:${tool}`); return { tool, at: "2026-11-05T09:00:00.000Z", found: true, lines: ["preflight says hello"], extra: [] }; },
+      check: async (tool) => { asked.push(`check:${tool}`); return { tool, at: "2026-11-05T09:00:00.000Z", found: true, missing: ["scripts"], extra: [] }; },
       models: async (tool) => { asked.push(`models:${tool}`); return { tool, at: "2026-11-05T09:00:00.000Z", offered: [{ model: "opus-read-now" }] }; },
     });
     const page = (tab: string) => fetch(`${base}/settings?tab=providers&provider=Claude&aitab=${tab}`).then((r) => r.text());
     expect(await page("models")).toContain("opus-read-now");
     expect(asked).toEqual(["models:claude"]);
-    expect(await page("installation")).toContain("preflight says hello");
+    expect(await page("installation")).toContain("~/.local/bin/");
     expect(asked).toEqual(["models:claude", "check:claude"]);
     await page("config");
     expect(asked).toEqual(["models:claude", "check:claude"]);

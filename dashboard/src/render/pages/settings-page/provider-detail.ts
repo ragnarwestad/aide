@@ -14,8 +14,7 @@ import {
   PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_TAB_PATH,
   providerEditPath, providerStatusLines, versionNumber, type ProviderStatus,
 } from "./providers.ts";
-import { INSTALL_TARGETS, placesOf } from "./places.ts";
-import { toolWhere, usageBlock } from "./tools.ts";
+import { usageBlock } from "./tools.ts";
 import type { ToolUsage } from "./usage.ts";
 
 /** The line a refusal is written into, named so the Remove dialog's form
@@ -141,7 +140,7 @@ export function providerDetail(o: ProviderDetailOptions, now: number, lang: Lang
     open === "config" ? form
     : open === "usage" ? status + usageBlock(o.usage, now, lang)
     : open === "models" ? (o.reading ?? "")
-    : `<p>${esc(toolWhere(lang, provider.tool, placesOf(INSTALL_TARGETS, provider.tool)))}</p>` + (o.reading ?? "");
+    : (o.reading ?? "");
   // Remove's refusal is written into this line; Config draws it inside its form.
   const refused = open === "config" ? "" : messageSlot("refused", "failed", { id: PROVIDER_REFUSED_LINE });
   return head + refused + tabs + `<section class="toolpanel" data-tool="${esc(provider.tool)}">${body}</section>`;

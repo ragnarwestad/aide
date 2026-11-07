@@ -38,7 +38,7 @@ beforeAll(async () => {
       },
       providerProbe: async (key: string) => ({ key, at: AT, installed: true }),
       toolProbe: {
-        check: async (tool: "claude" | "codex" | "opencode") => ({ tool, at: AT, found: true, lines: [], extra: [] }),
+        check: async (tool: "claude" | "codex" | "opencode") => ({ tool, at: AT, found: true, extra: [] }),
         models: async (tool: "claude" | "codex" | "opencode") => ({ tool, at: AT, offered: [{ model: "opus" }] }),
       },
       usageProbe: async (_key: string, provider: { tool: "claude" | "codex" | "opencode" }) => ({ tool: provider.tool, at: AT, windows: [] }),

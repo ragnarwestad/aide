@@ -314,12 +314,6 @@ export const fr: Record<TranslationKey, string> = {
   "limit.credit": "Usage supplémentaire : {reason}.",
   "limit.plan": "Forfait : {plan}.",
 
-  "settings.where.claude":
-    "Claude Code lit les skills d'aide dans {skills} et ses règles dans {rules} ; les scripts d'aide sont dans {scripts}.",
-  "settings.where.codex":
-    "Codex lit les instructions d'aide dans {instructions}, ses hooks dans {hookConfig} et {hooks}, et ses skills dans {skills}, qu'il partage avec Copilot ; les scripts d'aide sont dans {scripts}.",
-  "settings.where.opencode":
-    "OpenCode n'apporte aucun modèle à lui : chaque modèle appartient à un fournisseur et s'appelle fournisseur/modèle. aide installe seulement ses instructions, dans {instructions}, et OpenCode trouve les skills d'aide là où elles sont déjà, dans {skills} et {claudeSkills}.",
   "settings.part.usage": "Utilisation",
   "settings.part.models": "Modèles",
   "settings.part.installation": "Installation",
@@ -431,8 +425,14 @@ export const fr: Record<TranslationKey, string> = {
   "settings.models.adding": "ajout…",
   "settings.models.failed": "Les modèles n'ont pas pu être lus : {reason}",
   "settings.models.readAt": "Modèles lus {at}",
-  "settings.install.ran": "Exécuté :",
-  "settings.install.checkedAt": "Vérifié {at}",
+  "settings.install.holds.instructions": "Instructions",
+  "settings.install.holds.rules": "Règles",
+  "settings.install.holds.skills": "Skills",
+  "settings.install.holds.scripts": "Scripts",
+  "settings.install.holds.hooks": "Hooks",
+  "settings.install.cliMissing": "La ligne de commande de {tool} est introuvable sur cette machine.",
+  "settings.install.missing": "Absent de cette machine : {places}. Appuyez sur Deploy, qui lance les installateurs.",
+  "settings.install.behind": "Les fichiers installés sont en retard sur le dépôt. Appuyez sur Deploy, qui lance les installateurs.",
   "settings.install.fail": "ÉCHEC",
   "form.create": "Créer",
   "form.creating": "création…",

@@ -41,7 +41,7 @@ function countingProbe(over: { check?: (tool: CheckableTool) => Promise<ToolChec
     modelReads: [] as { tool: CheckableTool; configured: string[]; env?: Record<string, string> }[],
     check: async (tool: CheckableTool): Promise<ToolCheck> => {
       probe.checks.push(tool);
-      return over.check ? over.check(tool) : { tool, at: AT, found: true, lines: ["preflight says hello"], extra: [] };
+      return over.check ? over.check(tool) : { tool, at: AT, found: true, missing: ["scripts"], extra: [] };
     },
     models: async (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string> }): Promise<ToolModels> => {
       probe.modelReads.push({ tool, configured: opts.configured, env: opts.env });
@@ -105,12 +105,14 @@ describe("the Models tab", () => {
 });
 
 describe("the Installation tab", () => {
-  test("it runs the check once and shows the installation reading, holding the preflight's lines", async () => {
+  test("it runs the check once and shows the table with what the check found missing", async () => {
     const probe = countingProbe();
     const { base } = serve(probe);
     const res = await open(base, "Claude", "installation");
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("preflight says hello");
+    const html = await res.text();
+    expect(html).toContain("~/.claude/skills/");
+    expect(html).toContain("Not on this host: ~/.local/bin/");
     expect(probe.checks).toEqual(["claude"]);
     expect(probe.modelReads).toHaveLength(0);
   });
@@ -118,7 +120,7 @@ describe("the Installation tab", () => {
   test("it records the check it answered (AC-11)", async () => {
     const { base } = serve(countingProbe());
     await open(base, "Codex", "installation");
-    expect(lastChecks().codex).toMatchObject({ tool: "codex", lines: ["preflight says hello"] });
+    expect(lastChecks().codex).toMatchObject({ tool: "codex", missing: ["scripts"] });
   });
 
 
@@ -132,7 +134,7 @@ describe("the Installation tab", () => {
 
   test("a check that ran out of time says so in its own line (AC-9)", async () => {
     const error = "The check did not finish in time.";
-    const { base } = serve(countingProbe({ check: async (tool) => ({ tool, at: AT, found: false, lines: [], extra: [], error }) }));
+    const { base } = serve(countingProbe({ check: async (tool) => ({ tool, at: AT, found: false, extra: [], error }) }));
     expect(await (await open(base, "Claude", "installation")).text()).toContain(error);
   });
 });

@@ -4,6 +4,7 @@
 // job read it, and answers with the tab's HTML.
 
 import { homedir } from "node:os";
+import { dirname } from "node:path";
 import { installationBlock, modelsBlock, stamp, TOOL_TAB_LABELS, type ToolCheck, type ToolModels } from "../../../render";
 import type { Language } from "../../../i18n";
 import { providerLoginEnv, type Provider } from "../../../queue/providers/index.ts";
@@ -50,10 +51,10 @@ export async function readInstallationTab(ctx: RoutesContext, provider: Provider
   const probe = ctx.opts.toolProbe;
   let check: ToolCheck;
   try {
-    check = await (probe ? probe.check(tool) : checkTool(tool, { providers: () => ctx.queue.defaults.providers }));
+    check = await (probe ? probe.check(tool) : checkTool(tool, { providers: () => ctx.queue.defaults.providers, scriptDir: ctx.opts.queueRunnerBin ? dirname(ctx.opts.queueRunnerBin) : undefined }));
   } catch (err) {
-    check = { tool, at: new Date().toISOString(), found: false, lines: [], extra: [], error: `The check could not be run: ${failed(err)}` };
+    check = { tool, at: new Date().toISOString(), found: false, extra: [], error: `The check could not be run: ${failed(err)}` };
   }
   recordCheck(check);
-  return installationBlock(check, stamp(check.at), lang);
+  return installationBlock(check, lang);
 }

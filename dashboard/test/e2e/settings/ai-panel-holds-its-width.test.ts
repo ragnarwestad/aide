@@ -1,7 +1,7 @@
 // A provider's tool panel holds one width whichever of its tabs is open, and its tab row stays where it is. Installation's
-// preflight output is the widest thing any tab holds; it must wrap or
-// scroll inside the panel rather than widen it. Only a real browser lays
-// the page out, so the widths are measured in Chromium.
+// longest line is the check's error; it must wrap inside the panel rather
+// than widen it. Only a real browser lays the page out, so the widths are
+// measured in Chromium.
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
@@ -12,7 +12,6 @@ browserDeadline();
 
 const SENTENCE =
   "Claude Code is installed in the usual place and was found on the path, and every one of the settings files that Aide writes is where it should be";
-const CHECKSUM = `sha256 ${"0123456789abcdef".repeat(4)}`;
 
 const harness = queueHarness("aide-e2e-ai-panel-width-");
 let browser: Browser;
@@ -32,8 +31,8 @@ beforeAll(async () => {
       usageProbe: async () => ({ tool: "claude" as const, at: "2026-11-05T09:00:00.000Z", windows: [] }),
       toolProbe: {
         check: async () => ({
-          tool: "claude" as const, commands: ["aide-preflight claude"], at: new Date().toISOString(),
-          found: true, lines: [SENTENCE, CHECKSUM], extra: [],
+          tool: "claude" as const, at: new Date().toISOString(),
+          found: false, error: SENTENCE, extra: [],
         }),
         models: async () => ({ tool: "claude" as const, at: new Date().toISOString(), offered: [] }),
       },
@@ -50,8 +49,6 @@ afterAll(async () => {
 interface Layout {
   panel: { left: number; right: number; width: number };
   tabLefts: number[];
-  /** Per `pre.checkoutput`: fits its own box, or scrolls inside it. */
-  outputsContained: boolean[];
   pageWidth: number;
   windowWidth: number;
 }
@@ -62,9 +59,6 @@ async function measure(p: Page): Promise<Layout> {
     return {
       panel: { left: r.left, right: r.right, width: r.width },
       tabLefts: [...document.querySelectorAll("nav[data-aitabs] a")].map((a) => a.getBoundingClientRect().left),
-      outputsContained: [...document.querySelectorAll<HTMLElement>("pre.checkoutput")].map(
-        (el) => el.scrollWidth <= el.clientWidth || getComputedStyle(el).overflowX !== "visible",
-      ),
       pageWidth: document.documentElement.scrollWidth,
       windowWidth: window.innerWidth,
     };
@@ -96,13 +90,11 @@ test("the panel and its tabs hold still across the two tabs", async () => {
   installation.tabLefts.forEach((left, i) => expect(Math.abs(left - models.tabLefts[i]!)).toBeLessThan(3));
 });
 
-test("Installation's output fits its box or scrolls, and the page stays inside the window", async () => {
+test("Installation's long error stays inside the page, which stays inside the window", async () => {
   await page.setViewportSize({ width: 1280, height: 800 });
   const models = await open("models");
   const installation = await open("installation");
   expect(Math.abs(installation.panel.width - models.panel.width)).toBeLessThan(0.5);
-  expect(installation.outputsContained.length).toBeGreaterThan(0);
-  expect(installation.outputsContained.every(Boolean)).toBe(true);
   expect(installation.pageWidth).toBeLessThanOrEqual(installation.windowWidth);
 });
 
@@ -111,5 +103,4 @@ test("on a phone the panel stays inside the window on Installation", async () =>
   const installation = await open("installation");
   expect(installation.panel.right).toBeLessThanOrEqual(installation.windowWidth);
   expect(installation.pageWidth).toBeLessThanOrEqual(installation.windowWidth);
-  expect(installation.outputsContained.every(Boolean)).toBe(true);
 });

@@ -58,8 +58,6 @@ const USAGE: ToolUsage = {
 };
 const checkOf = (tool: ToolCheck["tool"]): ToolCheck => ({
   tool, at: AT, found: true,
-  lines: ["funnet (2.1.273)", "   skills -> ~/.claude/skills/ ok"],
-  commands: ["aide-preflight claude", "claude auth status"],
   extra: [
     { question: "Is it logged in?", ok: true, detail: "", answer: { key: "login.inWithAs", values: { method: "claude.ai", account: "noen@eksempel.no, Max" } } },
     { question: "Er den oppdatert?", ok: false, detail: "mangler" },
@@ -96,14 +94,13 @@ export function settingsStates(): PageState[] {
     Fraverende: statusOf("Fraverende", undefined, false),
   };
   states.push(
-    settings("Settings › Providers", { tab: "providers", providers, providerStatuses: statuses }, names),
-    settings("Settings › Providers, none", { tab: "providers", providers: {} }),
-    settings("Settings › claude (a removed tab opens Providers)", { tab: "claude", providers, providerStatuses: statuses }, names),
+    settings("Settings › Providers", { tab: "providers", providers, providerStatuses: statuses }, [...names, "opencode"]),
+    settings("Settings › Providers, none", { tab: "providers", providers: {} }, ["opencode"]),
+    settings("Settings › claude (a removed tab opens Providers)", { tab: "claude", providers, providerStatuses: statuses }, [...names, "opencode"]),
   );
   // The chosen provider, on the Providers tab, with what was read of it.
   const PROVIDER_DATA = [...names, "~/.claude-konto", "~/.codex-kodeks", "2.1.273", "noen@eksempel.no, Max", "CODEX_HOME=~/.codex-kodeks codex login",
-    "Planlegg 1", "claude-planlegg-1", "Raskkodex", "raskkodex", "Ukjent", "ukjent", "Dagens kvote", "Nov 3 at 11:20pm (Europe/Oslo)", "funnet (2.1.273)",
-    "aide-preflight claude", "claude auth status", "Max", "claude", "codex", "opencode", "300000", "~/.claude", "~/.codex", "~/.codex-shadow"];
+    "Planlegg 1", "claude-planlegg-1", "Raskkodex", "raskkodex", "Ukjent", "ukjent", "Dagens kvote", "Nov 3 at 11:20pm (Europe/Oslo)", "Max", "claude", "codex", "opencode", "300000", "~/.claude", "~/.codex", "~/.codex-shadow"];
   type Detail = NonNullable<Parameters<typeof renderSettingsPage>[2]["providerDetail"]>;
   const chosen = (page: string, key: keyof typeof providers, over: Partial<Detail> = {}): PageState =>
     settings(page, {
@@ -123,8 +120,8 @@ export function settingsStates(): PageState[] {
     states.push(
       answer(`Provider › ${tool} › the Models answer`, models(reading)),
       answer(`Provider › ${tool} › the Models answer, failed`, models({ tool, at: AT, offered: [], error: "ukjent" })),
-      answer(`Provider › ${tool} › the Installation answer`, installationBlock(checkOf(tool), stamp(AT), "nb")),
-      answer(`Provider › ${tool} › the Installation answer, failed`, installationBlock({ tool, at: AT, found: false, lines: [], extra: [], error: "ukjent" }, stamp(AT), "nb")),
+      answer(`Provider › ${tool} › the Installation answer`, installationBlock(checkOf(tool), "nb")),
+      answer(`Provider › ${tool} › the Installation answer, failed`, installationBlock({ tool, at: AT, found: false, extra: [], error: "ukjent" }, "nb")),
     );
   }
   states.push(

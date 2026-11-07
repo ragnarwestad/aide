@@ -209,8 +209,8 @@ logged in (`opencode auth login`); the page of an OpenCode provider answers whet
 **A provider's page has four tabs under its heading: Config, Usage, Models and Installation**, and opens on
 Config. Config holds the form with the display name and the runtime fields, with Save and Cancel, and nothing else;
 both come back to Config. Usage holds the login and the usage; the version is in the heading. Models holds the
-models reading and the choices it is set against. Installation holds the sentence saying where Aide's skills, rules and
-scripts are for the tool, and the installation reading. The address names the open tab
+models reading and the choices it is set against. Installation holds the table of where Aide is installed for the tool.
+The address names the open tab
 (`/settings?tab=providers&provider=Claude&aitab=installation`), so a reload or a link opens the same tab; `aitab` takes
 `config`, `usage`, `models` and `installation`, and anything else opens Config.
 
@@ -235,9 +235,12 @@ provider saved since is read again. Claude Code's comes from
 `claude -p /usage`, and Codex's from `codex app-server`'s `account/rateLimits/read`; neither runs a model. When Claude's
 text has no line the board can read as a window, the page shows the text as it came. OpenCode reports no usage windows.
 
-**The Installation tab shows what `aide-preflight` printed**: whether the command line is installed and which version,
-where each piece of aide lands, whether the installed files match the repository, and every command the check ran. The
-login is not on the tab: the Usage tab shows it.
+**The Installation tab is a table of where Aide is installed for the tool**: one row per place in
+`core/scripts/lib/install-targets.txt`, with what the place holds (instructions, rules, skills, scripts or hooks) and its
+path. Under the table a line appears only when something is wrong: a place that is not on the host, with the advice to
+press Deploy; installed files behind the repository, with the same advice; the tool's command line not found; or a check
+that could not run or whose answer the board could not read. When nothing is wrong, nothing is under the table. The facts
+come from `aide-preflight --facts <tool>`, and the login is not on the tab: the Usage tab shows it.
 
 **The Models tab lists the models under three headings.** "Currently supported by Aide" is every model choice of that
 AI. "Available" is the models the AI offers that are not choices, each with Add. "No longer available" is the choices it

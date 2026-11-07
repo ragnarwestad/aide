@@ -317,12 +317,6 @@ export const nb: Record<TranslationKey, string> = {
   "limit.credit": "Ekstra forbruk: {reason}.",
   "limit.plan": "Abonnement: {plan}.",
 
-  "settings.where.claude":
-    "Claude Code leser aides skills fra {skills} og reglene fra {rules}; aides skript ligger i {scripts}.",
-  "settings.where.codex":
-    "Codex leser aides instruksjoner fra {instructions}, hookene fra {hookConfig} og {hooks}, og skillsene fra {skills}, som den deler med Copilot; aides skript ligger i {scripts}.",
-  "settings.where.opencode":
-    "OpenCode har ingen modell selv: hver modell hører til en leverandør og heter leverandør/modell. aide installerer bare instruksjonene, til {instructions}, og OpenCode finner aides skills der de allerede ligger, i {skills} og {claudeSkills}.",
   "settings.part.usage": "Forbruk",
   "settings.part.models": "Modeller",
   "settings.part.installation": "Installasjon",
@@ -434,8 +428,14 @@ export const nb: Record<TranslationKey, string> = {
   "settings.models.adding": "legger til…",
   "settings.models.failed": "Modellene kunne ikke leses: {reason}",
   "settings.models.readAt": "Modeller lest {at}",
-  "settings.install.ran": "Kjørte:",
-  "settings.install.checkedAt": "Sjekket {at}",
+  "settings.install.holds.instructions": "Instruksjoner",
+  "settings.install.holds.rules": "Regler",
+  "settings.install.holds.skills": "Skills",
+  "settings.install.holds.scripts": "Skript",
+  "settings.install.holds.hooks": "Hooks",
+  "settings.install.cliMissing": "Kommandolinjen til {tool} finnes ikke på denne maskinen.",
+  "settings.install.missing": "Finnes ikke på denne maskinen: {places}. Trykk Deploy, som kjører installasjonsskriptene.",
+  "settings.install.behind": "De installerte filene ligger bak repoet. Trykk Deploy, som kjører installasjonsskriptene.",
   "settings.install.fail": "FEIL",
   "form.create": "Opprett",
   "form.creating": "oppretter…",

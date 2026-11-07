@@ -1,13 +1,13 @@
 // Where aide installs for each AI, read from the one table that says so.
-// `core/scripts/aide-preflight` prints the same rows, so the sentence on an
-// AI's tab and the check's own output name the same places.
+// `core/scripts/aide-preflight` reads the same rows, so the Installation
+// tab and the check's facts name the same places.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export interface InstallTarget {
   tool: string;
-  /** The place's name, as the tab's sentence fills it in. */
+  /** The place's name. */
   place: string;
   /** The path in the repository, or "-" when nothing is copied. */
   from: string;
@@ -35,7 +35,17 @@ export const INSTALL_TARGETS = parseInstallTargets(
   readFileSync(join(import.meta.dir, "../../../../../core/scripts/lib/install-targets.txt"), "utf-8"),
 );
 
-/** One AI's places by name: { skills: "~/.claude/skills/", … }. */
-export function placesOf(targets: InstallTarget[], tool: string): Record<string, string> {
-  return Object.fromEntries(targets.filter((row) => row.tool === tool).map((row) => [row.place, row.to]));
-}
+/** What a place holds, which the Installation tab labels it with: the
+ *  five labels `settings.install.holds.<label>` says. */
+export type PlaceHolds = "instructions" | "rules" | "skills" | "scripts" | "hooks";
+
+/** What each place name in the table holds. */
+export const PLACE_HOLDS: Record<string, PlaceHolds> = {
+  instructions: "instructions",
+  rules: "rules",
+  skills: "skills",
+  claudeSkills: "skills",
+  scripts: "scripts",
+  hookConfig: "hooks",
+  hooks: "hooks",
+};

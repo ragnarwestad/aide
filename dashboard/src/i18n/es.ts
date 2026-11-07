@@ -314,12 +314,6 @@ export const es: Record<TranslationKey, string> = {
   "limit.credit": "Uso extra: {reason}.",
   "limit.plan": "Plan: {plan}.",
 
-  "settings.where.claude":
-    "Claude Code lee las skills de aide desde {skills} y sus reglas desde {rules}; los scripts de aide están en {scripts}.",
-  "settings.where.codex":
-    "Codex lee las instrucciones de aide desde {instructions}, sus hooks desde {hookConfig} y {hooks}, y sus skills desde {skills}, que comparte con Copilot; los scripts de aide están en {scripts}.",
-  "settings.where.opencode":
-    "OpenCode no trae ningún modelo propio: cada modelo pertenece a un proveedor y se llama proveedor/modelo. aide solo instala sus instrucciones, en {instructions}, y OpenCode encuentra las skills de aide donde ya están, en {skills} y {claudeSkills}.",
   "settings.part.usage": "Uso",
   "settings.part.models": "Modelos",
   "settings.part.installation": "Instalación",
@@ -431,8 +425,14 @@ export const es: Record<TranslationKey, string> = {
   "settings.models.adding": "añadiendo…",
   "settings.models.failed": "No se pudieron leer los modelos: {reason}",
   "settings.models.readAt": "Modelos leídos {at}",
-  "settings.install.ran": "Ejecutó:",
-  "settings.install.checkedAt": "Comprobado {at}",
+  "settings.install.holds.instructions": "Instrucciones",
+  "settings.install.holds.rules": "Reglas",
+  "settings.install.holds.skills": "Skills",
+  "settings.install.holds.scripts": "Scripts",
+  "settings.install.holds.hooks": "Hooks",
+  "settings.install.cliMissing": "La línea de comandos de {tool} no se encuentra en este equipo.",
+  "settings.install.missing": "No están en este equipo: {places}. Pulsa Deploy, que ejecuta los instaladores.",
+  "settings.install.behind": "Los archivos instalados van por detrás del repositorio. Pulsa Deploy, que ejecuta los instaladores.",
   "settings.install.fail": "FALLO",
   "form.create": "Crear",
   "form.creating": "creando…",

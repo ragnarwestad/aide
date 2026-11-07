@@ -13,15 +13,21 @@
 #   aide-preflight copilot
 #   aide-preflight codex
 #   aide-preflight opencode
+#   aide-preflight --facts claude   # what the board reads, one fact per line
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Whether a CLI is on PATH.
+cli_found() {
+  command -v "$1" >/dev/null 2>&1
+}
+
 # Probe a CLI: print found+version or a not-found warning. Never fails.
 probe() {
   local label="$1" cmd="$2" version
-  if command -v "$cmd" >/dev/null 2>&1; then
+  if cli_found "$cmd"; then
     version="$("$cmd" --version 2>/dev/null | head -1)"
     echo -e "${GREEN}✅ $label found${NC} (${version:-version unknown})"
   else
@@ -29,9 +35,14 @@ probe() {
   fi
 }
 
-# "exists" or "new" for a target path
+# Whether a place from the table exists on this machine.
+place_exists() {
+  [ -e "$(target_path "$1")" ]
+}
+
+# "exists" or "new" for a place from the table
 state() {
-  if [ -e "$1" ]; then echo "exists, will be updated"; else echo "new"; fi
+  if place_exists "$1"; then echo "exists, will be updated"; else echo "new"; fi
 }
 
 # Where aide installs for each AI: one table, which the dashboard's
@@ -48,6 +59,15 @@ target_path() {
   esac
 }
 
+# A place from the table as the report shows it: under ~/.config/ only
+# where $XDG_CONFIG_HOME moves it.
+shown_path() {
+  case "$1" in
+    \~/.config/*) [ -n "${XDG_CONFIG_HOME:-}" ] && { target_path "$1"; return 0; } ;;
+  esac
+  echo "$1"
+}
+
 # Every place the table names for one AI, one line each.
 places() {
   local ai="$1" tool place from to shown
@@ -58,12 +78,11 @@ places() {
   while read -r tool place from to; do
     case "$tool" in ''|'#'*) continue ;; esac
     [ "$tool" = "$ai" ] || continue
-    shown="$to"
-    case "$to" in \~/.config/*) [ -n "${XDG_CONFIG_HOME:-}" ] && shown="$(target_path "$to")" ;; esac
+    shown="$(shown_path "$to")"
     if [ "$from" = "-" ]; then
       printf '   %-38s → %s   (read in place, nothing installed)\n' "$place" "$shown"
     else
-      printf '   %-38s → %s   (%s)\n' "$from" "$shown" "$(state "$(target_path "$to")")"
+      printf '   %-38s → %s   (%s)\n' "$from" "$shown" "$(state "$to")"
     fi
   done < "$TARGETS"
 }
@@ -111,22 +130,36 @@ preflight_optional_deps() {
 }
 
 # Whether this machine's ~/.local/bin copy of aide's scripts is behind
-# the repo it was installed from. Silent when
-# install_common_bin has never stamped one — an old install, or a
-# machine that has not installed aide at all — so this never claims
-# drift it cannot actually measure.
-preflight_drift() {
+# the repo it was installed from, as "<state>|<installed sha>|<current sha>".
+# The state is "unknown" when install_common_bin has never stamped one — an
+# old install, or a machine that has not installed aide at all — or when the
+# repo it names cannot be read, so drift is never claimed that cannot
+# actually be measured. This is the one place that decides it.
+drift_state() {
   local stamp="$HOME/.local/bin/.aide-installed-version"
-  [ -f "$stamp" ] || return 0
+  [ -f "$stamp" ] || { echo "unknown||"; return 0; }
   local repo_root installed_sha current_sha
   repo_root="$(sed -n '1p' "$stamp")"
   installed_sha="$(sed -n '2p' "$stamp")"
   # rev-parse (not `[ -d "$repo_root/.git" ]`) so this still works from
   # a git worktree checkout, where .git is a FILE pointing at the real
   # gitdir rather than a directory.
-  git -C "$repo_root" rev-parse --git-dir >/dev/null 2>&1 || return 0
+  git -C "$repo_root" rev-parse --git-dir >/dev/null 2>&1 || { echo "unknown||"; return 0; }
   current_sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || echo unknown)"
   if [ "$installed_sha" = "$current_sha" ]; then
+    echo "match|$installed_sha|$current_sha"
+  else
+    echo "behind|$installed_sha|$current_sha"
+  fi
+}
+
+# Say whether the installed files are behind the repo. Silent when that
+# cannot be measured.
+preflight_drift() {
+  local state installed_sha current_sha
+  IFS='|' read -r state installed_sha current_sha <<< "$(drift_state)"
+  [ "$state" = "unknown" ] && return 0
+  if [ "$state" = "match" ]; then
     echo -e "${GREEN}✅ Installed files match the repo${NC} ($current_sha)"
   elif [ -n "${AIDE_INSTALLING:-}" ]; then
     # The installer that is running right now is what brings them up:
@@ -139,6 +172,38 @@ preflight_drift() {
   echo ""
 }
 
+# The facts the board reads, for one tool: no banner, no colour, one fact
+# per line with its fields separated by a tab.
+#   cli    found|missing
+#   place  <name>  <path as the report shows it>  exists|missing
+#   files  match|behind|unknown
+preflight_facts() {
+  local ai="$1" tool place from to state
+  case "$ai" in
+    claude|copilot|codex|opencode) ;;
+    *)
+      echo "Unknown tool: ${ai:-(none)} (use claude, copilot, codex or opencode)" >&2
+      return 1 ;;
+  esac
+  if cli_found "$ai"; then printf 'cli\tfound\n'; else printf 'cli\tmissing\n'; fi
+  if [ -f "$TARGETS" ]; then
+    while read -r tool place from to; do
+      case "$tool" in ''|'#'*) continue ;; esac
+      [ "$tool" = "$ai" ] || continue
+      if place_exists "$to"; then state=exists; else state=missing; fi
+      printf 'place\t%s\t%s\t%s\n' "$place" "$(shown_path "$to")" "$state"
+    done < "$TARGETS"
+  fi
+  IFS='|' read -r state _ _ <<< "$(drift_state)"
+  printf 'files\t%s\n' "$state"
+}
+
+# The facts come before the banner: they are for a program to read.
+if [ "${1:-}" = "--facts" ]; then
+  preflight_facts "${2:-}"
+  exit $?
+fi
+
 TOOL="${1:-all}"
 
 echo "🔎 aide preflight"
@@ -147,7 +212,7 @@ echo ""
 
 case "$TOOL" in
   -h|--help)
-    sed -n '9,15p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '9,16p' "$0" | sed 's/^# \{0,1\}//'
     exit 0 ;;
   claude)  preflight_claude; preflight_drift ;;
   copilot) preflight_copilot; preflight_drift ;;

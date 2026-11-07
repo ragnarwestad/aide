@@ -325,13 +325,6 @@ export const en = {
   "limit.credit": "Extra usage: {reason}.",
   "limit.plan": "Plan: {plan}.",
 
-  // An AI's tab on Settings: where aide installs for it.
-  "settings.where.claude":
-    "Claude Code reads aide's skills from {skills} and its rules from {rules}; aide's scripts are in {scripts}.",
-  "settings.where.codex":
-    "Codex reads aide's instructions from {instructions}, its hooks from {hookConfig} and {hooks}, and its skills from {skills}, which it shares with Copilot; aide's scripts are in {scripts}.",
-  "settings.where.opencode":
-    "OpenCode brings no model of its own: every model belongs to a provider and is named provider/model. aide installs only its instructions, to {instructions}, and OpenCode finds aide's skills where they already are, in {skills} and {claudeSkills}.",
   "settings.part.usage": "Usage",
   "settings.part.models": "Models",
   "settings.part.installation": "Installation",
@@ -443,8 +436,14 @@ export const en = {
   "settings.models.adding": "adding…",
   "settings.models.failed": "The models could not be read: {reason}",
   "settings.models.readAt": "Models read {at}",
-  "settings.install.ran": "Ran:",
-  "settings.install.checkedAt": "Checked {at}",
+  "settings.install.holds.instructions": "Instructions",
+  "settings.install.holds.rules": "Rules",
+  "settings.install.holds.skills": "Skills",
+  "settings.install.holds.scripts": "Scripts",
+  "settings.install.holds.hooks": "Hooks",
+  "settings.install.cliMissing": "{tool}'s command line is not found on this host.",
+  "settings.install.missing": "Not on this host: {places}. Press Deploy, which runs the installers.",
+  "settings.install.behind": "The installed files are behind the repository. Press Deploy, which runs the installers.",
   "settings.install.fail": "FAIL",
   "form.create": "Create",
   "form.creating": "creating…",

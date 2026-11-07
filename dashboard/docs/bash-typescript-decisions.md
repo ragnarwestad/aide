@@ -184,10 +184,13 @@ place's name, its source in the repository and where it lands — read by
 both:
 
 - `core/scripts/aide-preflight` — prints one line per row, with whether
-  the place is there yet.
+  the place is there yet; `--facts <tool>` answers, one tab-separated
+  fact per line, whether the CLI is found, whether each place exists and
+  whether the installed files are behind the repository, for the board
+  to read.
 - `dashboard/src/render/pages/settings-page/places.ts` — read once at
-  load; the tool's panel on a provider's page fills its opening sentence
-  with that tool's places.
+  load; the Installation tab on a provider's page draws a table with one
+  row per place of that tool.
 
 It is a plain line table, not JSON: every installer runs the preflight
 before it makes sure jq is installed, and a fresh machine has no jq. The

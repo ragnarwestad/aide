@@ -1,13 +1,14 @@
 # Where aide installs for each AI, one place per line:
 #   <ai>  <place>  <from>  <to>
-# <place> is the place's name in the Settings tab's sentence.
+# <place> is the place's name, which aide-preflight --facts reports and the
+# dashboard's Installation tab labels with what the place holds.
 # <from> is the path in this repository, or "-" when nothing is copied and
 # the AI reads the place where another installer already put it.
 # <to> starts with ~/ for the home directory; ~/.config/ is
 # $XDG_CONFIG_HOME when that is set.
 #
-# aide-preflight prints these places, and the dashboard's Settings tab for
-# each AI names them. The installers keep their own copy lines;
+# aide-preflight prints these places, and the dashboard's Installation tab
+# for each AI lists them. The installers keep their own copy lines;
 # core/tests/specs/unit/core/validation/installer/test_install_targets.py fails
 # when an installer stops putting something where this table says.
 claude    skills        core/skills/                            ~/.claude/skills/
