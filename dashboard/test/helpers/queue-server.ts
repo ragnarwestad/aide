@@ -15,6 +15,8 @@ export interface StartOptions {
   alsoProjects?: string[];
   /** Further spec folders in `aide`, for jobs that run side by side. */
   alsoSpecs?: string[];
+  /** Start with no live specs, before the server scans the project. */
+  emptySpecs?: boolean;
   /** Archived spec folders — written under `specs/archive/<folder>`,
    *  which is where `discoverProjects` looks for them. Keyed
    *  by folder, so one suite can give a spec an `Archived:` stamp in its
@@ -73,6 +75,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
       extra = {},
       alsoProjects = [],
       alsoSpecs = [],
+      emptySpecs = false,
       archivedSpecs = {},
       description = "# Queue - Description\n",
       status = defaultStatus ?? statusSaying(["create"]),
@@ -103,6 +106,7 @@ export function queueHarness(prefix: string, defaultStatus?: string): QueueHarne
         if (spec.analysis !== undefined) writeFileSync(join(archived, "2-analysis.md"), spec.analysis);
         if (spec.solution !== undefined) writeFileSync(join(archived, "3-solution.md"), spec.solution);
       }
+      if (emptySpecs) rmSync(join(root, "aide", "specs", "81-queue-and-runner"), { recursive: true });
       // The queue as the last process left it: a board read back after a restart.
       if (queueMirror !== undefined) writeFileSync(join(dir, "queue.json"), queueMirror);
       const server = createServer({
