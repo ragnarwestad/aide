@@ -414,3 +414,25 @@ def test_every_part_the_runner_sources_is_checked_before_the_first_phase(runner)
     sourced = set(re.findall(r'^source "\$SCRIPT_DIR/lib/([^"]+)"', text, re.M))
     assert sourced, "no sourced parts found; the pattern no longer matches the script"
     assert sorted(sourced - checked) == []
+
+
+def test_an_unknown_argument_is_refused_in_the_result_file(runner, workspace, fake_claude):
+    """The board reads the result file, never stdout: a refusal written
+    only to stdout reaches it as a run that vanished."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, extra_project_dir="/tmp/whatever")
+    assert rc == 2, out
+    written = json.loads((workspace["project"].parent / "result.json").read_text())
+    assert written["terminalReason"] == "refused", written
+    assert "--extra-project-dir" in written["error"], written
+
+
+def test_a_missing_part_of_the_runner_is_refused_in_the_result_file(runner, workspace, fake_claude, tmp_path):
+    scripts = tmp_path / "scripts"
+    shutil.copytree(runner.parent, scripts, symlinks=True)
+    (scripts / "lib" / "run-spec" / "turn" / "review.sh").unlink()
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, runner_path=scripts / "aide-run-spec")
+    assert rc == 2, out
+    written = json.loads((workspace["project"].parent / "result.json").read_text())
+    assert "review.sh is missing" in written["error"], written

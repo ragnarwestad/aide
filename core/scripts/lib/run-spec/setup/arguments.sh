@@ -17,23 +17,23 @@
 # file refuses loudly rather than leaving these names unset under `set -u`.
 _workflow_steps_file="$SCRIPT_DIR/lib/workflow-steps.json"
 [ -f "$_workflow_steps_file" ] \
-  || { echo "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"the shared workflow-step file is missing: $_workflow_steps_file\"}"; exit 2; }
+  || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"the shared workflow-step file is missing: $_workflow_steps_file\"}"
 WORKFLOW_STEPS="$(jq -r '.workflowSteps | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
 DEPENDENCY_GATED_STEPS="$(jq -r '.dependencyGatedSteps | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
 WORKFLOW_ARC="$(jq -r '.workflowArc | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
 WORKFLOW_ARC_RETIRED="$(jq -r '.workflowArcRetired | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
 [ -n "$WORKFLOW_STEPS" ] \
-  || { echo "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read workflowSteps from $_workflow_steps_file\"}"; exit 2; }
+  || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read workflowSteps from $_workflow_steps_file\"}"
 
 # The effort levels a step may be run at: the same
 # shared-vocabulary pattern as workflow-steps.json above — one file, read
 # here and imported by the dashboard.
 _effort_levels_file="$SCRIPT_DIR/lib/effort-levels.json"
 [ -f "$_effort_levels_file" ] \
-  || { echo "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"the shared effort-levels file is missing: $_effort_levels_file\"}"; exit 2; }
+  || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"the shared effort-levels file is missing: $_effort_levels_file\"}"
 EFFORT_LEVELS="$(jq -r '.effortLevels | join(" ")' "$_effort_levels_file" 2>/dev/null)"
 [ -n "$EFFORT_LEVELS" ] \
-  || { echo "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read effortLevels from $_effort_levels_file\"}"; exit 2; }
+  || early_refusal "{\"ok\":false,\"exitCode\":2,\"terminalReason\":\"refused\",\"error\":\"could not read effortLevels from $_effort_levels_file\"}"
 # Directory names a build WRITES into, or that a tool locks a cache in —
 # never a dependency cache a build only reads. A link is one
 # symlink into the main checkout that every concurrent run shares, so two
@@ -209,7 +209,7 @@ while [ $# -gt 0 ]; do
     --worktree-base) worktree_base="${2:-}"; shift 2 ;;
     --pull) do_pull="yes"; shift ;;
     --dry-run) dry_run="yes"; shift ;;
-    *) printf '{"ok":false,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+    *) early_refusal "$(printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}' "$1")" ;;
   esac
 done
 
