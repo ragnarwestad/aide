@@ -139,3 +139,91 @@ class TestPreflightDrift:
         assert result.returncode == 0, result.stderr
         assert "match" not in result.stdout.lower()
         assert "behind" not in result.stdout.lower()
+
+
+FACT_LINES = ("cli", "place", "files")
+
+
+def _table_rows(workspace_root, ai):
+    """The (place, to) rows install-targets.txt gives one tool."""
+    rows = []
+    for line in (workspace_root / "core" / "scripts" / "lib" / "install-targets.txt").read_text().splitlines():
+        fields = line.split()
+        if len(fields) == 4 and fields[0] == ai:
+            rows.append((fields[1], fields[3]))
+    return rows
+
+
+def _facts(workspace_root, ai, home, **kwargs):
+    result = _run(workspace_root, ["--facts", ai], home=home, **kwargs)
+    return result, [line.split("\t") for line in result.stdout.splitlines()]
+
+
+@pytest.mark.validation
+class TestPreflightFacts:
+    """aide-preflight --facts <tool> answers what the board needs as one
+    fact per line, tab-separated: the CLI, each place, the installed files.
+    It is the one place that decides each of them."""
+
+    def test_a_cli_on_path_is_found(self, workspace_root, tmp_path):
+        bin_dir = tmp_path / "bin"
+        _fake_tool(bin_dir, "codex", "9.9.9")
+        result, facts = _facts(workspace_root, "codex", tmp_path, path=f"{bin_dir}:{SYSTEM_PATH}")
+        assert result.returncode == 0, result.stderr
+        assert ["cli", "found"] in facts
+
+    def test_a_cli_not_on_path_is_missing(self, workspace_root, tmp_path):
+        result, facts = _facts(workspace_root, "codex", tmp_path)
+        assert result.returncode == 0, result.stderr
+        assert ["cli", "missing"] in facts
+
+    def test_every_place_of_the_table_is_a_line_saying_whether_it_exists(self, workspace_root, tmp_path):
+        (tmp_path / ".codex" / "hooks").mkdir(parents=True)
+        result, facts = _facts(workspace_root, "codex", tmp_path)
+        assert result.returncode == 0, result.stderr
+        places = {f[1]: f for f in facts if f[0] == "place"}
+        assert list(places) == [place for place, _ in _table_rows(workspace_root, "codex")]
+        assert places["hooks"] == ["place", "hooks", "~/.codex/hooks/", "exists"]
+        assert places["hookConfig"] == ["place", "hookConfig", "~/.codex/hooks.json", "missing"]
+
+    def test_a_place_under_xdg_config_home_is_shown_where_it_is(self, workspace_root, tmp_path):
+        xdg = tmp_path / "xdg"
+        result, facts = _facts(workspace_root, "opencode", tmp_path, env={"XDG_CONFIG_HOME": str(xdg)})
+        assert ["place", "instructions", f"{xdg}/opencode/AGENTS.md", "missing"] in facts
+
+    def test_files_match_when_the_stamp_is_the_repos_head(self, workspace_root, tmp_path):
+        head = subprocess.run(
+            ["git", "-C", str(workspace_root), "rev-parse", "HEAD"], capture_output=True, text=True,
+        ).stdout.strip()
+        TestPreflightDrift._write_stamp(tmp_path, workspace_root, head)
+        _, facts = _facts(workspace_root, "claude", tmp_path)
+        assert ["files", "match"] in facts
+
+    def test_files_are_behind_when_the_stamp_is_stale_installer_run_or_not(self, workspace_root, tmp_path):
+        TestPreflightDrift._write_stamp(tmp_path, workspace_root, "0000000000000000000000000000000000dead")
+        for env in (None, {"AIDE_INSTALLING": "1"}):
+            _, facts = _facts(workspace_root, "claude", tmp_path, env=env)
+            assert ["files", "behind"] in facts
+
+    def test_files_are_unknown_without_a_stamp_or_with_a_repo_that_cannot_be_read(self, workspace_root, tmp_path):
+        _, facts = _facts(workspace_root, "claude", tmp_path)
+        assert ["files", "unknown"] in facts
+        TestPreflightDrift._write_stamp(tmp_path, tmp_path / "no-such-repo", "abc123")
+        _, facts = _facts(workspace_root, "claude", tmp_path)
+        assert ["files", "unknown"] in facts
+
+    def test_it_prints_no_banner_and_no_colour(self, workspace_root, tmp_path):
+        result, facts = _facts(workspace_root, "claude", tmp_path)
+        assert all(f[0] in FACT_LINES for f in facts), result.stdout
+        assert "\033" not in result.stdout
+
+    @pytest.mark.parametrize("args", [["--facts"], ["--facts", "all"], ["--facts", "gemini"]])
+    def test_a_tool_it_does_not_know_exits_1_with_the_message_on_stderr(self, workspace_root, tmp_path, args):
+        result = _run(workspace_root, args, home=tmp_path)
+        assert result.returncode == 1
+        assert result.stdout == ""
+        assert result.stderr.strip()
+
+    def test_the_terminal_mode_prints_no_fact_line(self, workspace_root, tmp_path):
+        result = _run(workspace_root, ["codex"], home=tmp_path)
+        assert not [l for l in result.stdout.splitlines() if l.split("\t")[0] in FACT_LINES and "\t" in l]

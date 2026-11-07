@@ -37,7 +37,7 @@ describe("the tool-fault line", () => {
   test("a Claude Code that is not logged in links to the Providers tab", () => {
     setConfiguredTools(() => ["claude"]);
     recordCheck({
-      tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true, lines: [],
+      tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true,
       extra: [{ question: "Is it logged in?", ok: false, detail: "", problem: "not logged in" }],
     });
     const [line, ...rest] = faultLines(headerNotices("en"));
@@ -50,7 +50,7 @@ describe("the tool-fault line", () => {
 
   test("no tool with a fault draws no line", () => {
     setConfiguredTools(() => ["claude"]);
-    recordCheck({ tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true, lines: [], extra: [] });
+    recordCheck({ tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true, extra: [] });
     expect(faultLines(headerNotices("en"))).toEqual([]);
   });
 });
@@ -103,7 +103,7 @@ describe("the models no longer offered", () => {
     choices({ gone: { tool: "opencode", model: "opencode/gone" } });
     recordModels(reading("opencode", []));
     recordCheck({
-      tool: "opencode", at: AT, found: true, lines: [],
+      tool: "opencode", at: AT, found: true,
       extra: [{ question: "Is it logged in?", ok: false, detail: "", problem: "not logged in" }],
     });
     const hrefs = faultLines(headerNotices("en")).map((line) =>

@@ -178,7 +178,8 @@ and `archive`. A missing line means nothing is known to have completed;
 an unknown value is ignored.
 
 **Do not edit this line. It is written by `aide-run-spec`, from the
-spec's own commits**: each step leaves a commit whose subject names the
+spec's own commits, and by `aide-record-step` for an analyze or implement
+a session completed**: each step leaves a commit whose subject names the
 step, `Run /aide-<step> for <spec-folder>`. A step run interactively
 counts once committed under the same subject.
 
@@ -189,8 +190,8 @@ A completed analysis of a spec that stood at `implemented` also clears
 every row of `## Acceptance criteria` (a `Not verified` one too) and
 rebuilds the table from the criteria in `1-description.md` as they read
 now, one row per `AC-n`; a row keeps its Notes cell only while its
-criterion's text is unchanged. The runner writes each row `⬜` when
-ticking is required. With `- **Acceptance:** not required` saved in the
+criterion's text is unchanged. The runner, and `aide-record-step` after an
+interactive analysis, write each row `⬜` when ticking is required. With `- **Acceptance:** not required` saved in the
 description, it writes each row `Not verified` on every completed
 analysis, including the first.
 

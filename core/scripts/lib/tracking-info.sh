@@ -57,3 +57,48 @@ record_sent_back() {
   cat "$tmp" > "$file"
   rm -f "$tmp"
 }
+
+# The time from an epoch to now (AIDE_NOW_EPOCH, when a test hands in the
+# clock), as `NmSSs`. Fails, printing nothing, for an epoch in the future.
+#   session_time_spent <start-epoch>
+session_time_spent() {
+  local elapsed=$(( ${AIDE_NOW_EPOCH:-$(date +%s)} - $1 ))
+  [ "$elapsed" -ge 0 ] || return 1
+  printf '%dm%02ds' $(( elapsed / 60 )) $(( elapsed % 60 ))
+}
+
+# Write `- **Model:**` (when a model is given) and `- **Time spent:**` right
+# under `## Tracking info` and the blank line after it, after removing the
+# bullets of that section named in <fields>, a `|`-separated list of labels
+# (`Model|Time spent`). Anything else in the section stays. Fails, writing
+# nothing, when the file has no such heading.
+#
+# The block is passed to awk in a file: the macOS awk rejects a newline
+# inside a -v value.
+#   stamp_model_and_time_spent <file> <model> <time-spent> <fields>
+stamp_model_and_time_spent() {
+  local file="$1" model="$2" time_spent="$3" fields="$4" block_file
+  grep -q '^## Tracking info' "$file" 2>/dev/null || return 1
+  block_file="$(mktemp)" || return 1
+  [ -n "$model" ] && printf -- '- **Model:** %s\n' "$model" >> "$block_file"
+  printf -- '- **Time spent:** %s\n' "$time_spent" >> "$block_file"
+  awk -v block="$block_file" -v fields="$fields" '
+    function emit_block(  ln) { while ((getline ln < block) > 0) print ln; close(block) }
+    BEGIN { stale = "^- \\*\\*(" fields "):\\*\\*" }
+    /^## Tracking info/ {
+      print; in_tracking = 1
+      if ((getline nextline) > 0) {
+        if (nextline ~ /^[ \t]*$/) { print nextline; emit_block() } else { held = nextline; has_held = 1; emit_block() }
+      } else { emit_block() }
+      # The held line goes through the same filter as any other line of
+      # the section: a hand-edited file with no blank line after the
+      # heading must not let a stale bullet escape because it was read ahead.
+      if (has_held && held !~ stale) print held
+      next
+    }
+    in_tracking && /^## / { in_tracking = 0 }
+    in_tracking && $0 ~ stale { next }
+    { print }
+  ' "$file" > "$file.stamp-tmp" && mv "$file.stamp-tmp" "$file" || { rm -f "$block_file" "$file.stamp-tmp"; return 1; }
+  rm -f "$block_file"
+}

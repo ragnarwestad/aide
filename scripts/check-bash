@@ -25,6 +25,7 @@ fi
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 shellcheck --severity=warning \
+  core/scripts/aide \
   core/scripts/aide-* \
   core/scripts/_*.sh \
   core/scripts/build-agents-md.sh \

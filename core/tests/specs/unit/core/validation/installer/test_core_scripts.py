@@ -91,6 +91,22 @@ class TestInstallCommonBin:
         assert (tmp_path / ".local" / "bin" / "aide-backfill-spec-state").is_file(), \
             "aide-backfill-spec-state is not in COMMON_BIN_SCRIPTS"
 
+    def test_the_aide_command_and_its_sentence_library_are_installed_AC_1(self, workspace_root, tmp_path):
+        """`aide` is the command a terminal or an AI session queues steps
+        with; it refuses to run without lib/board-answer.sh beside it."""
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True, text=True, env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        command = tmp_path / ".local" / "bin" / "aide"
+        assert command.is_file() and os.access(command, os.X_OK), \
+            "core/scripts/aide did not reach ~/.local/bin as an executable"
+        assert (tmp_path / ".local" / "bin" / "lib" / "board-answer.sh").is_file(), \
+            "lib/board-answer.sh did not reach ~/.local/bin/lib"
+
     def test_workflow_steps_json_is_installed(self, workspace_root, tmp_path):
         """workflow-steps.json is the one file both
         aide-run-spec (jq) and the dashboard (import) read the workflow's

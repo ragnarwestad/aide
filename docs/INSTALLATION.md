@@ -213,14 +213,17 @@ It is installed to `~/.local/bin/` with the other shared scripts, so it can be r
 ```bash
 aide-preflight            # every tool
 aide-preflight codex      # one tool: claude, copilot, codex or opencode
+aide-preflight --facts codex   # what the dashboard reads: one tab-separated fact per line
 ```
 
-The places it prints come from one table, `core/scripts/lib/install-targets.txt`. Each AI tool's tab on the
-dashboard's **Settings** page names the same places in its opening sentence, and a test installs each tool into an
-empty home and fails when an installer stops putting something where the table says.
+The places it prints come from one table, `core/scripts/lib/install-targets.txt`. Each provider's
+**Installation** tab on the dashboard's **Settings** page lists the same places in a table, and a test installs each
+tool into an empty home and fails when an installer stops putting something where the table says.
 
 The **Settings** page also runs the check: each provider's page has an **Installation** tab, which runs the check when
-it is opened and shows what `aide-preflight` printed on the machine the board runs on.
+it is opened. Under the table of places it says only what is wrong on the machine the board runs on: a place that is
+missing, installed files behind the repository, or a command line that is not found. For the first two it advises
+pressing Deploy.
 
 ### Claude Code
 

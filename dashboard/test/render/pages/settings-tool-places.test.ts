@@ -1,17 +1,16 @@
-// A provider's Installation tab opens with a sentence naming where aide
-// installs for that tool, from the same table the preflight prints.
+// A provider's Installation tab draws a table of where aide installs for
+// that tool, from the same table the preflight reads.
 
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { t } from "../../../src/i18n";
-import { esc } from "../../../src/render/ui/html.ts";
 import {
   INSTALL_TARGETS,
+  PLACE_HOLDS,
   parseInstallTargets,
-  placesOf,
 } from "../../../src/render/pages/settings-page/places.ts";
-import { CHECKABLE_TOOLS, toolWhere } from "../../../src/render/pages/settings-page/tools.ts";
+import { installationBlock } from "../../../src/render/pages/settings-page/installation.ts";
 import { providerDetail } from "../../../src/render/pages/settings-page/provider-detail.ts";
 import { modelsBlock } from "../../../src/render/pages/settings-page/models.ts";
 
@@ -31,31 +30,20 @@ describe("the table of places", () => {
   });
 });
 
-describe("the sentence on the Installation tab", () => {
-  test.each([...CHECKABLE_TOOLS])("%s's names every place the table gives it", (tool) => {
-    const rows = INSTALL_TARGETS.filter((row) => row.tool === tool);
-    expect(rows.length).toBeGreaterThan(0);
-    const sentence = toolWhere("en", tool, placesOf(INSTALL_TARGETS, tool));
-    for (const row of rows) expect(sentence).toContain(row.to);
-    expect(sentence).not.toContain("{");
-  });
-
-  test("a table naming other places names those places", () => {
-    const other = parseInstallTargets(
-      "codex instructions core/AGENTS.md ~/.x/AGENTS.md\n" +
-        "codex scripts core/scripts/ ~/.x/bin/\n" +
-        "codex hookConfig core/implementations/codex/hooks/hooks.json ~/.x/hooks.json\n" +
-        "codex hooks core/implementations/codex/hooks/ ~/.x/hooks/\n" +
-        "codex skills core/skills/ ~/.x/skills/\n",
-    );
-    const sentence = toolWhere("en", "codex", placesOf(other, "codex"));
-    for (const row of other) expect(sentence).toContain(row.to);
+describe("what a place holds", () => {
+  test("every place in the table has one of the five labels, and both places for hooks read Hooks (AC-1)", () => {
+    const labels = new Set(["instructions", "rules", "skills", "scripts", "hooks"]);
+    for (const row of INSTALL_TARGETS) expect(labels.has(PLACE_HOLDS[row.place] as string), row.place).toBe(true);
+    expect(PLACE_HOLDS.hookConfig).toBe("hooks");
+    expect(PLACE_HOLDS.hooks).toBe("hooks");
   });
 });
 
-test("a Norwegian reader gets the Norwegian sentence, tabs and model headings", () => {
+test("a Norwegian reader gets the Norwegian labels, tabs and model headings", () => {
   const detail = providerDetail({ key: "Codex", provider: { name: "Codex", tool: "codex" }, aiTab: "installation" }, 0, "nb");
-  expect(detail).toContain(esc(toolWhere("nb", "codex", placesOf(INSTALL_TARGETS, "codex"))));
+  const table = installationBlock({ tool: "codex", at: "2026-10-03T13:30:00.000Z", found: true, extra: [] }, "nb");
+  expect(table).toContain(`>${t("nb", "settings.install.holds.instructions")}<`);
+  expect(t("nb", "settings.install.holds.instructions")).not.toBe(t("en", "settings.install.holds.instructions"));
   for (const part of ["models", "installation"] as const) expect(detail).toContain(`>${t("nb", `settings.part.${part}`)}</a>`);
   const models = modelsBlock("codex", { reading: { tool: "codex", at: "2026-10-03T13:30:00.000Z", offered: [] } }, "", "nb");
   for (const heading of ["supported", "available", "gone"] as const) {

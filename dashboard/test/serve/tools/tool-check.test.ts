@@ -6,6 +6,9 @@
 // something that was never broken.
 
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   checkAllTools, checkTool, forgetChecks, lastChecks, recordCheck, setConfiguredTools, stripAnsi, toolRechecker, toolsWithFaults,
 } from "../../../src/serve/tool-check.ts";
@@ -42,56 +45,91 @@ describe("stripAnsi", () => {
 });
 
 describe("checkTool", () => {
-  test("it runs the preflight for that tool and passes on what it printed", async () => {
+  test("it runs the preflight's facts for that tool and reads what the installation is missing (AC-7, AC-9)", async () => {
     const run = fakeRun({
-      "aide-preflight claude": { stdout: `${ESC}[0;32mClaude Code found${ESC}[0m (2.1.273)\n   skills -> ok\n` },
+      "aide-preflight": {
+        stdout: [
+          "cli\tfound", "place\tskills\t~/.claude/skills/\texists", "place\trules\t~/.claude/rules/\tmissing",
+          "place\tscripts\t~/.local/bin/\tmissing", "files\tbehind",
+        ].join("\n") + "\n",
+      },
     });
     const check = await checkTool("claude", opts(run));
-    expect(run.calls[0]).toEqual(["aide-preflight", "claude"]);
+    expect(run.calls[0]).toEqual(["aide-preflight", "--facts", "claude"]);
     expect(check.found).toBe(true);
-    expect(check.lines).toEqual(["Claude Code found (2.1.273)", "   skills -> ok"]);
+    expect(check.missing).toEqual(["rules", "scripts"]);
+    expect(check.behind).toBe(true);
     expect(check.at).toBe("2026-09-16T08:30:00.000Z");
   });
 
-  test("a tool the preflight could not find is reported as not found", async () => {
-    const run = fakeRun({ "aide-preflight codex": { stdout: "Codex CLI is NOT installed\n" } });
+  test("a place's path is the one the preflight reported", async () => {
+    const run = fakeRun({ "aide-preflight": { stdout: "cli\tfound\nplace\tinstructions\t/srv/config/opencode/AGENTS.md\tmissing\n" } });
+    const check = await checkTool("opencode", opts(run));
+    expect(check.paths).toEqual({ instructions: "/srv/config/opencode/AGENTS.md" });
+  });
+
+  test("files that match, or that cannot be measured, are not behind", async () => {
+    for (const files of ["match", "unknown"]) {
+      const run = fakeRun({ "aide-preflight": { stdout: `cli\tfound\nfiles\t${files}\n` } });
+      const check = await checkTool("claude", opts(run));
+      expect(check.behind).toBe(false);
+      expect(check.missing).toEqual([]);
+    }
+  });
+
+  test("a preflight that runs from the directory it is given is that one (AC-7)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "preflight-beside-"));
+    writeFileSync(join(dir, "aide-preflight"), "");
+    const run = fakeRun({ "aide-preflight": { stdout: "cli\tfound\n" } });
+    await checkTool("claude", { run, scriptDir: dir, now: () => new Date("2026-09-16T08:30:00.000Z") });
+    expect(run.calls[0]).toEqual([join(dir, "aide-preflight"), "--facts", "claude"]);
+  });
+
+  test("a CLI the preflight says is missing is not found, and is asked nothing (AC-4)", async () => {
+    const run = fakeRun({ "aide-preflight --facts codex": { stdout: "cli\tmissing\nfiles\tmatch\n" } });
     const check = await checkTool("codex", opts(run));
     expect(check.found).toBe(false);
+    expect(check.extra).toEqual([]);
+    expect(run.calls.length).toBe(1);
   });
 
   test("a check that does not finish says so instead of reporting a result", async () => {
-    const run = fakeRun({ "aide-preflight opencode": { timedOut: true, code: 143 } });
+    const run = fakeRun({ "aide-preflight --facts opencode": { timedOut: true, code: 143 } });
     const check = await checkTool("opencode", opts(run));
     expect(check.error).toBe("The check did not finish in time.");
-    expect(check.lines).toEqual([]);
     expect(check.extra).toEqual([]);
+  });
+
+  // An older preflight answers --facts with its banner and then "Unknown tool".
+  test.each([
+    ["an old preflight", { code: 1, stdout: "🔎 aide preflight\n=================\n\n❌ Unknown tool: --facts (use claude, copilot, codex, opencode or all)\n" }, "❌ Unknown tool: --facts (use claude, copilot, codex, opencode or all)"],
+    ["one that crashed with no output", { code: 1, stdout: "", stderr: "" }, undefined],
+    ["one that printed no cli line", { code: 0, stdout: "files\tmatch\n" }, "files\tmatch"],
+  ])("%s is a check that gave no answer the board can read, never a CLI that is not installed (AC-9)", async (_name, answer, last) => {
+    const run = fakeRun({ "aide-preflight": answer });
+    const check = await checkTool("codex", opts(run));
+    expect(check.found).toBe(false);
+    expect(check.error).toContain("The check gave no answer the board can read");
+    if (last) expect(check.error).toContain(last);
+    expect(check.extra).toEqual([]);
+    expect(run.calls.length).toBe(1);
   });
 
   test.each(["claude", "codex", "opencode"] as const)("%s's check asks nothing about models (AC-8)", async (tool) => {
     const run = fakeRun({
-      "aide-preflight": { stdout: "found\n" },
+      "aide-preflight": { stdout: "cli\tfound\n" },
       "auth status": { stdout: '{"loggedIn":true}' },
       "login status": { stdout: "Logged in using ChatGPT\n" },
       "opencode auth list": { stdout: "1 credentials\n" },
     });
     const check = await checkTool(tool, opts(run));
     expect(check.extra.some((e) => e.question.toLowerCase().includes("models"))).toBe(false);
-    expect((check.commands ?? []).some((c) => /\bmodels\b/.test(c))).toBe(false);
-  });
-
-  test("a CLI that is not installed is asked nothing at all", async () => {
-    // Asking would report "not logged in" for what is really "not
-    // installed", which sends a reader to fix the wrong thing.
-    const run = fakeRun({ "aide-preflight": { stdout: "Codex CLI is NOT installed\n" } });
-    const check = await checkTool("codex", opts(run));
-    expect(check.found).toBe(false);
-    expect(check.extra).toEqual([]);
-    expect(run.calls.length).toBe(1);
+    expect(run.calls.some((argv) => /\bmodels\b/.test(argv.join(" ")))).toBe(false);
   });
 });
 
 describe("whether a provider is logged in", () => {
-  const preflight = { "aide-preflight": { stdout: "found\n" } };
+  const preflight = { "aide-preflight": { stdout: "cli\tfound\n" } };
   const PROVIDERS = {
     Claude: { name: "Claude", tool: "claude" as const },
     "Claude-2": { name: "Claude-2", tool: "claude" as const, configDir: "~/.claude-2" },
@@ -109,7 +147,6 @@ describe("whether a provider is logged in", () => {
       { argv: "claude auth status", env: { CLAUDE_CONFIG_DIR: "/home/x/.claude-2" } },
     ]);
     expect(check.extra.map((e) => e.provider)).toEqual(["Claude", "Claude-2"]);
-    expect(check.commands).toContain("CLAUDE_CONFIG_DIR=/home/x/.claude-2 claude auth status");
   });
 
   test("a Claude login names its plan, from the subscription Claude Code reports", async () => {
@@ -179,7 +216,7 @@ describe("whether a provider is logged in", () => {
 });
 
 describe("whether a tool is logged in", () => {
-  const preflight = { "aide-preflight": { stdout: "found\n" } };
+  const preflight = { "aide-preflight": { stdout: "cli\tfound\n" } };
   const login = (check: Awaited<ReturnType<typeof checkTool>>) =>
     check.extra.find((e) => e.question === "Is it logged in?")!;
   const claudeStatus = (status: Record<string, unknown>) =>
@@ -290,7 +327,7 @@ describe("whether a tool is logged in", () => {
 });
 
 describe("checkTool for OpenCode", () => {
-  const preflight = { "aide-preflight opencode": { stdout: "OpenCode found (1.18.31)\n" } };
+  const preflight = { "aide-preflight --facts opencode": { stdout: "cli\tfound\n" } };
 
   test("no provider logged in is a failure, with the command to fix it", async () => {
     const run = fakeRun({
@@ -330,38 +367,12 @@ describe("checkTool for OpenCode", () => {
   });
 });
 
-describe("the commands a check ran", () => {
-  test("every command is recorded, in order, exactly as it ran — OpenCode asks nothing about models (AC-8)", async () => {
-    const run = fakeRun({
-      "aide-preflight": { stdout: "found\n" },
-      "opencode auth list": { stdout: "1 credentials\n" },
-    });
-    const check = await checkTool("opencode", opts(run));
-    expect(check.commands).toEqual([
-      "aide-preflight opencode",
-      "opencode auth list",
-    ]);
-  });
-
-  test("a check that did not finish still says what it tried to run", async () => {
-    const run = fakeRun({ "aide-preflight": { timedOut: true } });
-    const check = await checkTool("claude", opts(run));
-    expect(check.commands).toEqual(["aide-preflight claude"]);
-  });
-
-  test("a tool that is not installed shows the one command that found that out", async () => {
-    const run = fakeRun({ "aide-preflight": { stdout: "Codex CLI is NOT installed\n" } });
-    const check = await checkTool("codex", opts(run));
-    expect(check.commands).toEqual(["aide-preflight codex"]);
-  });
-});
-
 describe("the check at start", () => {
   test("it checks Claude Code, Codex and OpenCode only, never Copilot (AC-25)", async () => {
     forgetChecks();
-    const run = fakeRun({ "aide-preflight": { stdout: "found\n" } });
+    const run = fakeRun({ "aide-preflight": { stdout: "cli\tfound\n" } });
     await checkAllTools(opts(run));
-    expect(run.calls.filter((argv) => argv[0] === "aide-preflight").map((argv) => argv[1])).toEqual(["claude", "codex", "opencode"]);
+    expect(run.calls.filter((argv) => argv[0] === "aide-preflight").map((argv) => argv[2])).toEqual(["claude", "codex", "opencode"]);
     expect(Object.keys(lastChecks()).sort()).toEqual(["claude", "codex", "opencode"]);
     forgetChecks();
   });
@@ -371,13 +382,13 @@ describe("what the page reads back", () => {
   test("a recorded check is what the next page load shows, per tool", () => {
     forgetChecks();
     expect(lastChecks()).toEqual({});
-    recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: true, lines: ["a"], extra: [] });
-    recordCheck({ tool: "opencode", at: "2026-09-16T08:01:00.000Z", found: true, lines: ["b"], extra: [] });
+    recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: true, extra: [] });
+    recordCheck({ tool: "opencode", at: "2026-09-16T08:01:00.000Z", found: true, extra: [] });
     expect(Object.keys(lastChecks()).sort()).toEqual(["codex", "opencode"]);
     // A second check for the same tool replaces the first rather than
     // piling up: the page shows the latest answer, not a history.
-    recordCheck({ tool: "codex", at: "2026-09-16T09:00:00.000Z", found: false, lines: ["c"], extra: [] });
-    expect(lastChecks().codex?.lines).toEqual(["c"]);
+    recordCheck({ tool: "codex", at: "2026-09-16T09:00:00.000Z", found: false, extra: [] });
+    expect(lastChecks().codex?.found).toBe(false);
     forgetChecks();
   });
 });
@@ -389,7 +400,6 @@ describe("what the header notice is told", () => {
       tool: "codex",
       at: "2026-09-16T08:00:00.000Z",
       found: true,
-      lines: [],
       // A tool with no command that reports a login answers null.
       // A banner on it would be on permanently.
       extra: [{ question: "Is it logged in?", ok: null, detail: "no command" }],
@@ -400,16 +410,25 @@ describe("what the header notice is told", () => {
       tool: "opencode",
       at: "2026-09-16T08:00:00.000Z",
       found: true,
-      lines: [],
       extra: [{ question: "Is it logged in?", ok: false, detail: "none" }],
     });
     expect(toolsWithFaults()).toEqual([{ tool: "opencode", problems: ["is it logged in"] }]);
     forgetChecks();
   });
 
+  test("a place missing and files behind are no fault in the header (AC-10)", () => {
+    forgetChecks();
+    recordCheck({
+      tool: "codex", at: "2026-09-16T08:00:00.000Z", found: true, missing: ["hooks"], behind: true,
+      extra: [{ question: "Is it logged in?", ok: true, detail: "" }],
+    });
+    expect(toolsWithFaults()).toEqual([]);
+    forgetChecks();
+  });
+
   test("a CLI that is not installed is a fault on its own", () => {
     forgetChecks();
-    recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: false, lines: [], extra: [] });
+    recordCheck({ tool: "codex", at: "2026-09-16T08:00:00.000Z", found: false, extra: [] });
     expect(toolsWithFaults()).toEqual([{ tool: "codex", problems: ["not installed"] }]);
     forgetChecks();
   });
@@ -424,7 +443,6 @@ describe("what the header notice says, and about which tools", () => {
       tool,
       at: "2026-09-17T08:00:00.000Z",
       found: true,
-      lines: [],
       extra: [{ question: "Is it logged in?", ok: false, detail: "…", ...(problem ? { problem } : {}) }],
     });
 
@@ -447,7 +465,7 @@ describe("what the header notice says, and about which tools", () => {
   test("Claude Code's two logins are said as what is wrong", async () => {
     forgetChecks();
     const run = fakeRun({
-      "aide-preflight": { stdout: "found\n" },
+      "aide-preflight": { stdout: "cli\tfound\n" },
       "auth status": {
         stdout: JSON.stringify({
           loggedIn: true, authMethod: "claude.ai", email: "someone@example.com",
@@ -474,7 +492,7 @@ describe("the check before a job starts", () => {
       now: () => new Date(clock),
       check: async (tool) => {
         asked.push(tool);
-        return { tool, at: new Date(clock).toISOString(), found: true, lines: [], extra: [] };
+        return { tool, at: new Date(clock).toISOString(), found: true, extra: [] };
       },
     });
     await recheck(["claude", "claude", "codex"]);

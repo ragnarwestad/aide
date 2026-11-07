@@ -314,12 +314,6 @@ export const de: Record<TranslationKey, string> = {
   "limit.credit": "Zusätzliches Kontingent: {reason}.",
   "limit.plan": "Plan: {plan}.",
 
-  "settings.where.claude":
-    "Claude Code liest die Skills von aide aus {skills} und die Regeln aus {rules}; die Skripte von aide liegen in {scripts}.",
-  "settings.where.codex":
-    "Codex liest die Anweisungen von aide aus {instructions}, die Hooks aus {hookConfig} und {hooks} und die Skills aus {skills}, die es mit Copilot teilt; die Skripte von aide liegen in {scripts}.",
-  "settings.where.opencode":
-    "OpenCode bringt kein eigenes Modell mit: Jedes Modell gehört zu einem Anbieter und heißt Anbieter/Modell. aide installiert nur die Anweisungen, nach {instructions}, und OpenCode findet die Skills von aide dort, wo sie schon liegen, in {skills} und {claudeSkills}.",
   "settings.part.usage": "Nutzung",
   "settings.part.models": "Modelle",
   "settings.part.installation": "Installation",
@@ -431,8 +425,14 @@ export const de: Record<TranslationKey, string> = {
   "settings.models.adding": "fügt hinzu…",
   "settings.models.failed": "Die Modelle konnten nicht gelesen werden: {reason}",
   "settings.models.readAt": "Modelle gelesen {at}",
-  "settings.install.ran": "Ausgeführt:",
-  "settings.install.checkedAt": "Geprüft {at}",
+  "settings.install.holds.instructions": "Anweisungen",
+  "settings.install.holds.rules": "Regeln",
+  "settings.install.holds.skills": "Skills",
+  "settings.install.holds.scripts": "Skripte",
+  "settings.install.holds.hooks": "Hooks",
+  "settings.install.cliMissing": "Die Kommandozeile von {tool} wurde auf diesem Rechner nicht gefunden.",
+  "settings.install.missing": "Nicht auf diesem Rechner: {places}. Deploy drücken, das die Installer ausführt.",
+  "settings.install.behind": "Die installierten Dateien liegen hinter dem Repository. Deploy drücken, das die Installer ausführt.",
   "settings.install.fail": "FEHLER",
   "form.create": "Erstellen",
   "form.creating": "erstellt…",

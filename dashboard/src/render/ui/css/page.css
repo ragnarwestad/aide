@@ -64,8 +64,8 @@ nav.tabbar.subtabs > .row { margin-left: auto; flex: 0 0 auto; flex-wrap: nowrap
    about. Every other page's tab bar is untouched: the spec page's own
    actions ride at its right end. The panel holds one width whichever of
    an AI's tabs is open — the 70ch its own prose already has, or the room
-   there is — so a long preflight line wraps or scrolls in .checkoutput
-   instead of widening the panel and moving the tabs. */
+   there is — so a long line wraps or scrolls in .checkoutput instead of
+   widening the panel and moving the tabs. */
 main:has(> nav.tabbar.subtabs a[href^="/settings"]) > nav.tabbar.subtabs {
   justify-content: center; }
 main:has(> nav.tabbar.subtabs a[href^="/settings"]) > table.settingstable { margin-inline: auto; }

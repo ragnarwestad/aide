@@ -28,7 +28,7 @@ export const CLAUDE_READING: ToolModels = {
 export function modelsProbe(readings: Partial<Record<CheckableTool, ToolModels>> = {}) {
   const probe = {
     modelReads: [] as { tool: CheckableTool; configured: string[]; env?: Record<string, string> }[],
-    check: async (tool: CheckableTool): Promise<ToolCheck> => ({ tool, at: AT, found: true, lines: [], extra: [] }),
+    check: async (tool: CheckableTool): Promise<ToolCheck> => ({ tool, at: AT, found: true, extra: [] }),
     models: async (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string> }): Promise<ToolModels> => {
       probe.modelReads.push({ tool, configured: opts.configured, env: opts.env });
       return readings[tool] ?? { tool, at: AT, offered: [] };

@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# aide-record-step — what an interactive /aide-analyze or /aide-implement
+# runs once it has completed, to record the step the way aide-run-spec
+# records a headless one: the `Workflow steps completed:` line of
+# 4-status.md, 4-status.json, the acceptance rows (after an analysis) and
+# the phase's own Model/Time spent in its Tracking info.
+#
+# It writes nothing itself: it sets the globals the runner's functions read
+# and calls them (completed_steps_for, write_phase_stamp, write_spec_state,
+# rebuild_acceptance_after_analysis, stamp_model_and_time_spent), so a
+# session and the runner cannot record a step differently. It runs no git
+# beyond reading HEAD: the files stay in the working tree for the commit the
+# skill offers, and `files` in the answer names every one of them.
+#
+# Every refusal comes before the first write, so a refused call leaves every
+# file byte for byte. A headless run is refused: aide-run-spec records it.
+#
+# Prints ONE JSON line to stdout and, if given, to --result-file:
+#   {ok, exitCode, terminalReason, error?, specFolder?, step?,
+#    completedSteps?, files?}
+#
+# terminalReason: refused | recorded
+#
+# Usage:
+#   aide-record-step --specs-root <path> --folder <NN-slug>
+#                    --step analyze|implement --start-epoch <epoch-seconds>
+#                    [--model <text>] [--result-file <path>]
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+specs_root=""; folder=""; step=""; start_epoch=""; model=""; result_file=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      cat <<'USAGE'
+Usage:
+  aide-record-step --specs-root <path> --folder <NN-slug>
+                   --step analyze|implement --start-epoch <epoch-seconds>
+                   [--model <text>] [--result-file <path>]
+USAGE
+      exit 0 ;;
+    --specs-root) specs_root="${2:-}"; shift 2 ;;
+    --folder) folder="${2:-}"; shift 2 ;;
+    --step) step="${2:-}"; shift 2 ;;
+    --start-epoch) start_epoch="${2:-}"; shift 2 ;;
+    --model) model="${2:-}"; shift 2 ;;
+    --result-file) result_file="${2:-}"; shift 2 ;;
+    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+  esac
+done
+
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+
+# Sourcing defines functions and writes nothing.
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-result.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-state.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/spec-transitions.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/run-spec/record/records.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/tracking-info.sh"
+
+[ -z "${AIDE_HEADLESS:-}" ] || aide_spec_refuse "a headless run is recorded by aide-run-spec"
+[ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
+[ -n "$folder" ] || aide_spec_refuse "missing --folder"
+case "$step" in
+  analyze|implement) ;;
+  *) aide_spec_refuse "--step must be analyze or implement" ;;
+esac
+[[ "$start_epoch" =~ ^[0-9]+$ ]] || aide_spec_refuse "missing or invalid --start-epoch"
+time_spent="$(session_time_spent "$start_epoch")" || aide_spec_refuse "--start-epoch is in the future"
+
+# The step lists, read as aide-run-spec reads them.
+_workflow_steps_file="$SCRIPT_DIR/lib/workflow-steps.json"
+[ -f "$_workflow_steps_file" ] || aide_spec_refuse "the shared workflow-step file is missing: $_workflow_steps_file"
+WORKFLOW_ARC="$(jq -r '.workflowArc | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
+WORKFLOW_ARC_RETIRED="$(jq -r '.workflowArcRetired | join(" ")' "$_workflow_steps_file" 2>/dev/null)"
+
+specs_root_wt="$specs_root"
+status_file_for "$folder"
+[ -n "$status_file" ] || aide_spec_refuse "spec file not found: $folder/4-status.md"
+phase_file_for "$step" "$folder"
+[ -n "$phase_file" ] || aide_spec_refuse "spec file not found for $step: $folder"
+grep -q '^## Tracking info' "$phase_file" || aide_spec_refuse "no Tracking info heading in $phase_file"
+
+may_apply_spec_transition "$status_file" "$step" || aide_spec_refuse "$transition_message"
+
+spec_dir="$(dirname "$status_file")"
+# The session has not committed yet, so HEAD is the line as it found it.
+pre_ref="$(git -C "$spec_dir" rev-parse --verify -q HEAD 2>/dev/null)"
+
+command_name="$step"
+terminal_reason="completed"
+completed_steps_for "$folder" "$spec_dir" "$status_file" "$pre_ref"
+
+write_phase_stamp "$status_file" "workflow-line" "$completed_steps"
+[ "$step" = "analyze" ] && rebuild_acceptance_after_analysis "$status_file" "$pre_ref"
+write_spec_state "$status_file" "$completed_steps" >/dev/null 2>&1 \
+  || aide_spec_refuse "could not write the state file beside $status_file"
+# The fields that describe one run; the totals over runs (Attempts, Cost,
+# Tokens) are the runner's and stay.
+stamp_model_and_time_spent "$phase_file" "$model" "$time_spent" 'Repo|Model|Model id|Effort|Result|Time spent' \
+  || aide_spec_refuse "could not stamp $phase_file"
+
+aide_spec_emit_ok "$(jq -cn --arg f "$folder" --arg s "$step" --arg c "$completed_steps" \
+  --arg a "${status_file#"$specs_root"/}" --arg b "${status_file%4-status.md}4-status.json" \
+  --arg p "${phase_file#"$specs_root"/}" --arg root "$specs_root/" \
+  '{terminalReason:"recorded", specFolder:$f, step:$s, completedSteps:$c,
+    files:[$a, ($b | ltrimstr($root)), $p]}')"

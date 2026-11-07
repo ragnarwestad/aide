@@ -47,6 +47,18 @@ def test_the_skills_that_push_the_specs_run_the_one_command_and_never_a_bare_git
 
 
 @pytest.mark.validation
+@pytest.mark.parametrize("skill,step", [("aide-analyze", "analyze"), ("aide-implement", "implement")])
+def test_the_skill_records_its_own_step_with_the_start_epoch_it_took_AC_1(skill, step):
+    """`aide-record-step` reads the step and the epoch from these flags."""
+    blocks = BASH_BLOCK.findall((CORE_SKILLS_DIR / skill / "SKILL.md").read_text(encoding="utf-8"))
+    calls = [block for block in blocks if "aide-record-step" in block]
+    assert calls, f"{skill} has no bash block that runs aide-record-step"
+    assert any(re.search(rf"--step\s+{step}\b", call) and "--start-epoch" in call for call in calls), (
+        f"{skill} does not run aide-record-step with --step {step} and --start-epoch"
+    )
+
+
+@pytest.mark.validation
 def test_analyze_plan_and_review_share_the_parts_lines():
     """The plan step writes the Parts lines the plan review checks
     ."""

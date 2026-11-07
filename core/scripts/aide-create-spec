@@ -109,6 +109,8 @@ command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReaso
 
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/lib/spec-result.sh"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/lib/tracking-info.sh"
 
 [ -n "$specs_root" ] || aide_spec_refuse "missing --specs-root"
 
@@ -129,45 +131,12 @@ if [ "$stamp_outcome" = "yes" ]; then
   [ -n "$target" ] || aide_spec_refuse "spec file not found: $folder/1-description.md"
   grep -q '^## Tracking info' "$target" || aide_spec_refuse "no Tracking info heading in $target"
 
-  # AIDE_NOW_EPOCH: the clock a test hands in, so a span is exact rather
-  # than one second either way on a busy host.
-  elapsed=$(( ${AIDE_NOW_EPOCH:-$(date +%s)} - start_epoch ))
-  [ "$elapsed" -ge 0 ] || aide_spec_refuse "--start-epoch is in the future"
-  time_spent="$(printf '%dm%02ds' $(( elapsed / 60 )) $(( elapsed % 60 )))"
-
-  block_file="$(mktemp)"
-  [ -n "$model" ] && printf -- '- **Model:** %s\n' "$model" >> "$block_file"
-  printf -- '- **Time spent:** %s\n' "$time_spent" >> "$block_file"
-
-  # Idempotent, same shape as aide-run-spec's own Tracking-info insert
-  # (core/scripts/aide-run-spec:2134-2148, whose file-based emit_block()
-  # this mirrors): strip any existing Model/Time spent bullet from
-  # inside the section, then insert fresh, right after the heading and
-  # any blank line that follows it. The block is passed via a file
-  # rather than a -v string, matching aide-run-spec's own pattern — the
-  # macOS "one true awk" this repo targets (awk version 20200816) rejects
-  # a literal newline inside a -v value ("newline in string ... at
-  # source line 1"), which a -v-with-embedded-newline approach hits
-  # immediately.
-  awk -v block="$block_file" '
-    function emit_block(  ln) { while ((getline ln < block) > 0) print ln; close(block) }
-    /^## Tracking info/ {
-      print; in_tracking = 1
-      if ((getline nextline) > 0) {
-        if (nextline ~ /^[ \t]*$/) { print nextline; emit_block() } else { held = nextline; has_held = 1; emit_block() }
-      } else { emit_block() }
-      # The held line still goes through the same strip filter a normal
-      # in_tracking line would — a hand-edited file with no blank line
-      # after the heading must not let a stale Model/Time-spent bullet
-      # escape stripping just because it happened to be the lookahead.
-      if (has_held && held !~ /^- \*\*(Model|Time spent):\*\*/) print held
-      next
-    }
-    in_tracking && /^## / { in_tracking = 0 }
-    in_tracking && /^- \*\*(Model|Time spent):\*\*/ { next }
-    { print }
-  ' "$target" > "$target.stamp-tmp" && mv "$target.stamp-tmp" "$target"
-  rm -f "$block_file"
+  # The stamp itself is shared with aide-record-step (lib/tracking-info.sh):
+  # idempotent, it strips any existing Model/Time spent bullet from the
+  # section and inserts fresh ones right after the heading.
+  time_spent="$(session_time_spent "$start_epoch")" || aide_spec_refuse "--start-epoch is in the future"
+  stamp_model_and_time_spent "$target" "$model" "$time_spent" "Model|Time spent" \
+    || aide_spec_refuse "could not stamp $target"
 
   aide_spec_emit_ok "$(jq -cn --arg f "$folder" '{terminalReason:"stamped", specFolder:$f}')"
 fi

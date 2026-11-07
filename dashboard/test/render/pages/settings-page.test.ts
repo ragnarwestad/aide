@@ -4,9 +4,6 @@ import {
   SPEC_STEPS, UNROWED_STEPS,
 } from "../../../src/render";
 import { PROVIDER_TABS, providerDetail, providerTab, providerTabPath } from "../../../src/render/pages/settings-page/provider-detail.ts";
-import { toolWhere } from "../../../src/render/pages/settings-page/tools.ts";
-import { INSTALL_TARGETS, placesOf } from "../../../src/render/pages/settings-page/places.ts";
-import { esc } from "../../../src/render/ui/html.ts";
 import { t } from "../../../src/i18n";
 import { tabLabel } from "../../../src/render/ui/tabs.ts";
 import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
@@ -204,11 +201,10 @@ describe("the tabs of a provider's page", () => {
     expect(html).not.toContain("Window of Claude");
   });
 
-  test.each(["claude", "codex", "opencode"] as const)("%s's Installation tab holds the sentence naming where aide installs, and what the server read for it", (tool) => {
+  test.each(["claude", "codex", "opencode"] as const)("%s's Installation tab holds what the server read for it, and nothing else", (tool) => {
     const html = draw("installation", tool);
     expect(html).toContain(READING);
     expect(html).not.toContain("data-read-from");
-    expect(html).toContain(esc(toolWhere("en", tool, placesOf(INSTALL_TARGETS, tool))));
   });
 
   test("every tab has the line Remove's refusal is written into, exactly once", () => {

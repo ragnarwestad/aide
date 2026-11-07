@@ -1,0 +1,441 @@
+#!/usr/bin/env bash
+# aide — create specs and start their steps on the board from a terminal or
+# an AI session, with the requests the board's own buttons make.
+#
+# Usage:  see usage() below, or `aide --help`.
+#
+# The board's address is AIDE_BOARD_URL in ~/.aide/config, one file per
+# machine (as aide-push-specs reads it). Without it, or with a board that
+# does not know the project, nothing is queued: the command says so, names
+# the /aide-<step> skill to run in an AI session instead, and exits 1.
+#
+# Every answer is one plain sentence and no link. An accepted request says
+# what was queued, on which model, and whether it starts now or what it
+# waits for. A refusal prints the board's own reason on stderr and exits 1;
+# a mistake in how the command was called exits 2.
+#
+# A spec is named by its number or its folder. A number is looked up in the
+# specs root of the checkout the command runs in, so for another project
+# (--project) the spec is named by its folder.
+set -u
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/spec-transitions.sh" ] && source "$SCRIPT_DIR/lib/spec-transitions.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/board-answer.sh" ] && source "$SCRIPT_DIR/lib/board-answer.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/board-request.sh" ] && source "$SCRIPT_DIR/lib/board-request.sh"
+
+# How long to wait for the board: the connection, then an answer. The
+# project check and the reads wait CHECK_SECONDS. A request that queues
+# something is answered only after a scheduler pass, which may ask origin
+# about each queued job's dependencies, so it waits longer.
+CONNECT_SECONDS=3
+CHECK_SECONDS=15
+ANSWER_SECONDS="${AIDE_BOARD_ANSWER_SECONDS:-60}"
+
+STEPS="analyze implement archive reopen"
+
+usage() {
+  cat <<'EOF'
+usage: aide create <project> "<title>" [--file <path>] [--depends-on <spec>]... [--then <steps>]
+                   [--model <name>] [--provider <name>] [--criteria-checks off|warn|stop]
+                   [--choose-approach] [--acceptance-not-required] [--no-ai-criteria]
+       aide analyze|implement|archive|reopen <spec> [--project <name>] [--model <name>]
+       aide close <spec> --reason "<why>" [--project <name>]
+       aide status <spec> [--project <name>]
+
+create reads the description from --file, else from standard input, else from
+$VISUAL / $EDITOR. --then names the steps to run after create (analyze,
+implement, archive, comma separated). A step runs on the phase's model unless
+--model names one. A spec is its number or its folder.
+EOF
+}
+
+die() {
+  echo "aide: $*" >&2
+  exit 1
+}
+
+usage_error() {
+  echo "aide: $*" >&2
+  usage >&2
+  exit 2
+}
+
+# ---------------------------------------------------------------------------
+# The project and the spec
+# ---------------------------------------------------------------------------
+
+project_root=""
+own_project=""
+board_url=""
+project=""
+target_root=""
+spec_folder=""
+spec_path=""
+
+find_own_project() {
+  project_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  own_project="$(aide_manifest_get name "$project_root")"
+  [ -n "$own_project" ] || own_project="$(basename "$project_root")"
+}
+
+# The checkout whose specs root answers for the named project: this one when
+# it is the project, else the board host's own checkout of it, when this
+# machine has one.
+find_target_root() {
+  target_root=""
+  if [ "$project" = "$own_project" ]; then
+    target_root="$project_root"
+  elif [ -d "$HOME/.aide/dashboard/checkouts/$project/code" ]; then
+    target_root="$HOME/.aide/dashboard/checkouts/$project/code"
+  fi
+}
+
+# A number for a project with no checkout here: the folder of a spec the
+# board has a job for.
+number_from_board() {
+  local n="$1"
+  http GET "/api/queue" "$CHECK_SECONDS" && [ "$http_status" = "200" ] || return 0
+  jq -r --arg p "$project" --arg n "$n" '
+    [(.jobs // [])[] | select(.project == $p and ((.specFolder // "") | test("^[0-9]+-")))
+     | select(((.specFolder | capture("^(?<d>[0-9]+)-").d | tonumber)) == ($n | tonumber)) | .specFolder]
+    | first // empty' "$answer_file" 2>/dev/null
+}
+
+read_board_url() {
+  board_url="$(aide_config_get AIDE_BOARD_URL "$HOME")"
+  board_url="${board_url%/}"
+}
+
+# resolve_spec <number or folder>: sets spec_folder (what the board takes)
+# and spec_path (where its files sit in the specs root, archive/ included).
+resolve_spec() {
+  local arg="$1" root resolved
+  if printf '%s' "$arg" | grep -qE '^([0-9]+|[A-Z][A-Z0-9]*-[0-9]+)$'; then
+    if [ -z "$target_root" ]; then
+      resolved=""
+      printf '%s' "$arg" | grep -qE '^[0-9]+$' && resolved="$(number_from_board "$arg")"
+      [ -n "$resolved" ] \
+        || die "$arg is a number, and this machine has no checkout of $project to look it up in — name the spec of $project by its folder"
+      spec_path="$resolved"
+      spec_folder="$resolved"
+      return 0
+    fi
+    root="$(aide_specs_root "$target_root")"
+    resolved="$(aide_resolve_spec "$arg" "$root")"
+    [ -n "$resolved" ] && { [ -d "$root/$resolved" ] || [ -d "$root/archive/$resolved" ]; } \
+      || die "no spec numbered $arg in $root"
+    spec_path="$resolved"
+    spec_folder="${resolved#archive/}"
+  else
+    printf '%s' "$arg" | grep -qE '^[A-Za-z0-9._-]{1,128}$' \
+      || usage_error "$arg is neither a spec number nor a spec folder"
+    spec_folder="$arg"
+    spec_path="$arg"
+    if [ -n "$target_root" ]; then
+      root="$(aide_specs_root "$target_root")"
+      if [ ! -d "$root/$arg" ] && [ -d "$root/archive/$arg" ]; then spec_path="archive/$arg"; fi
+    fi
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# What was queued
+# ---------------------------------------------------------------------------
+
+# finish <what>: the accepted answer is in $answer_file. Reads the job as the
+# board holds it after its own scheduler pass, and says what it waits for.
+finish() {
+  local what="$1" job_id job fresh jobs="[]" state reason
+  job="$(jq -c '.job // empty' "$answer_file" 2>/dev/null)"
+  job_id="$(jq -r '.job.id // empty' "$answer_file" 2>/dev/null)"
+  if [ -n "$job_id" ] && http GET "/api/queue/$job_id" "$CHECK_SECONDS" && [ "$http_status" = "200" ]; then
+    fresh="$(jq -c '.job // empty' "$answer_file" 2>/dev/null)"
+    [ -n "$fresh" ] && job="$fresh"
+    state="$(jq -r '.state // empty' <<<"$job")"
+    reason="$(jq -r '.errorReason // empty' <<<"$job")"
+    if [ "$state" = "queued" ] && [ "$reason" != "held-back" ] \
+        && http GET "/api/queue" "$CHECK_SECONDS" && [ "$http_status" = "200" ]; then
+      jobs="$(jq -c '.jobs // []' "$answer_file" 2>/dev/null)" || jobs="[]"
+    fi
+  else
+    # The request stands; only the wait is unknown.
+    board_answer_sentence "$what" "$job" "-"
+    return 0
+  fi
+  board_answer_sentence "$what" "$job" "$jobs"
+}
+
+# ---------------------------------------------------------------------------
+# The commands
+# ---------------------------------------------------------------------------
+
+run_step() {
+  local body
+  body="$(jq -nc --arg p "$project" --arg f "$spec_folder" --arg s "$command" --arg m "$model" \
+    '{project: $p, specFolder: $f, steps: [$s]} + (if $m != "" then {model: $m} else {} end)')"
+  http_or_die POST "/api/queue" "$ANSWER_SECONDS" "$body"
+  accepted || refuse
+  finish "$command for $spec_folder in $project"
+}
+
+run_close() {
+  local body
+  refused_spec="$spec_folder"
+  if [ -n "$model" ]; then
+    # Close's own route takes no model; the queue's does, with the reason.
+    body="$(jq -nc --arg p "$project" --arg f "$spec_folder" --arg r "$reason" --arg m "$model" \
+      '{project: $p, specFolder: $f, steps: ["close"], closeReason: $r, model: $m}')"
+    http_or_die POST "/api/queue" "$ANSWER_SECONDS" "$body"
+  else
+    body="$(jq -nc --arg r "$reason" '{reason: $r}')"
+    http_or_die POST "/api/queue/specs/$project/$spec_folder/close" "$ANSWER_SECONDS" "$body"
+  fi
+  accepted || refuse
+  finish "close for $spec_folder in $project"
+}
+
+# The description: --file, else standard input when it is not a terminal,
+# else the editor, started as git starts one.
+read_description() {
+  local editor tmp
+  if [ -n "$file" ]; then
+    { [ -r "$file" ] && [ ! -d "$file" ]; } || die "$file is not a file, so there is no description to queue"
+    description="$(cat "$file")"
+  elif [ ! -t 0 ]; then
+    description="$(cat)"
+  else
+    editor="${VISUAL:-${EDITOR:-vi}}"
+    tmp="$(mktemp "${TMPDIR:-/tmp}/aide-description.XXXXXX")" || die "could not make a file for the editor"
+    if ! sh -c "$editor \"\$@\"" "$editor" "$tmp"; then
+      rm -f "$tmp"
+      die "the editor ($editor) did not finish cleanly, so nothing was queued"
+    fi
+    description="$(cat "$tmp")"
+    rm -f "$tmp"
+  fi
+}
+
+run_create() {
+  local body then_json depends_json folder_list="" d
+  description=""
+  read_description
+  # Each --depends-on is a spec of the project: a number is looked up like any other.
+  depends_json="[]"
+  if [ "${#depends[@]}" -gt 0 ]; then
+    for d in "${depends[@]}"; do
+      resolve_spec "$d"
+      folder_list="$folder_list$spec_folder
+"
+    done
+    depends_json="$(printf '%s' "$folder_list" | jq -R . | jq -sc .)"
+  fi
+  then_json="[]"
+  if [ -n "$then_steps" ]; then
+    then_json="$(printf '%s' "$then_steps" | tr ',' '\n' | jq -R . | jq -sc .)"
+  fi
+  body="$(jq -nc --arg project "$project" --arg title "$title" --arg description "$description" \
+    --argjson depends "$depends_json" --argjson extra "$then_json" --arg model "$model" \
+    --arg provider "$provider" --arg criteria "$criteria" --argjson approach "$choose_approach" \
+    --argjson acceptance "$acceptance_required" --argjson formulate "$ai_criteria" '
+    {project: $project, title: $title, description: $description}
+    + (if ($depends | length) > 0 then {dependsOn: $depends} else {} end)
+    + (if ($extra | length) > 0 then {steps: $extra} else {} end)
+    + (if $model != "" then {model: (["create"] + $extra | map({(.): $model}) | add)} else {} end)
+    + (if $provider != "" then {provider: $provider} else {} end)
+    + (if $criteria != "" then {criteriaChecks: $criteria} else {} end)
+    + (if $approach then {chooseApproach: "1"} else {} end)
+    + (if $acceptance then {acceptanceRequired: "1"} else {} end)
+    + (if $formulate then {aiFormulateAcceptance: "1"} else {} end)')"
+  http_or_die POST "/api/queue/create" "$ANSWER_SECONDS" "$body"
+  accepted || refuse
+  local what="create of \"$title\""
+  [ -z "$then_steps" ] || what="$what, then ${then_steps//,/, },"
+  finish "$what in $project"
+}
+
+# The phase from this machine's copy of the spec's repository. Sets
+# phase_text; the phase is "not known here" when the repository is not on
+# this machine.
+read_phase() {
+  local root repo ref branch fetched=yes main_json branch_json candidate found=no
+  phase_text="not known here"
+  [ -n "$target_root" ] || return 0
+  root="$(aide_specs_root "$target_root")"
+  repo="$(git -C "$root" rev-parse --show-toplevel 2>/dev/null)" || return 0
+  GIT_TERMINAL_PROMPT=0 git -C "$repo" fetch -q origin >/dev/null 2>&1 || fetched=no
+  ref="$(git -C "$repo" symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null)"
+  if [ -z "$ref" ]; then
+    for candidate in origin/main origin/master; do
+      git -C "$repo" rev-parse --verify -q "$candidate" >/dev/null 2>&1 && { ref="$candidate"; break; }
+    done
+  fi
+  [ -n "$ref" ] || return 0
+  if [ "$fetched" = "no" ]; then
+    branch="${ref#origin/}"
+    git -C "$repo" rev-parse --verify -q "$branch" >/dev/null 2>&1 && ref="$branch"
+  fi
+  # The record is read through the specs root, not the spec's folder: a
+  # folder that origin has and this machine's working tree does not is
+  # still found. An archived spec sits under archive/ on the default branch.
+  for candidate in "$spec_path" "${spec_path#archive/}" "archive/${spec_path#archive/}"; do
+    read_spec_state_at_ref "$root" "$ref" "$candidate/4-status.md"
+    [ "$state_json_found" = "yes" ] && { found=yes; break; }
+  done
+  [ "$found" = "yes" ] || return 0
+  main_json="$state_json"
+  # implement lands nothing until archive, so a phase the spec's own branch
+  # proves counts as well, as on the board.
+  if [ "$fetched" = "yes" ] && git -C "$repo" rev-parse --verify -q "origin/aide/$spec_folder" >/dev/null 2>&1; then
+    read_spec_state_at_ref "$root" "origin/aide/$spec_folder" "$candidate/4-status.md"
+    branch_json="$state_json"
+    main_json="$(jq -c --argjson b "$branch_json" '.completedPhases = (((.completedPhases // []) + ($b.completedPhases // [])) | unique)' <<<"$main_json")"
+  fi
+  phase_text="$(current_phase_from "$main_json")"
+  [ "$fetched" = "yes" ] || phase_text="$phase_text (this machine's copy, since origin could not be fetched)"
+}
+
+run_status() {
+  local jobs job phase_clause
+  http_or_die GET "/api/queue" "$CHECK_SECONDS"
+  [ "$http_status" = "200" ] || refuse
+  jobs="$(jq -c '.jobs // []' "$answer_file" 2>/dev/null)" || jobs="[]"
+  job="$(jq -c --arg p "$project" --arg f "$spec_folder" \
+    '[.[] | select(.project == $p and .specFolder == $f)] | sort_by(.createdAt // "") | last // empty' <<<"$jobs" 2>/dev/null)"
+  read_phase
+  case "$phase_text" in
+    "not known here") phase_clause="$spec_folder: its phase is not known here" ;;
+    *) phase_clause="$spec_folder is $phase_text" ;;
+  esac
+  printf '%s; %s.\n' "$phase_clause" "$(board_job_clause "$job" "$jobs")"
+}
+
+# ---------------------------------------------------------------------------
+# Arguments
+# ---------------------------------------------------------------------------
+
+command=""
+positionals=()
+depends=()
+file=""
+then_steps=""
+model=""
+provider=""
+criteria=""
+reason=""
+project_flag=""
+choose_approach=false
+acceptance_required=true
+ai_criteria=true
+title=""
+description=""
+phase_text=""
+refused_spec=""
+
+# allow <flag> <commands...>: a flag that does not belong to the command is a usage error.
+allow() {
+  local flag="$1" ok="" c
+  shift
+  for c in "$@"; do [ "$c" = "$command" ] && ok=yes; done
+  [ -n "$ok" ] || usage_error "$flag is not an option of aide $command"
+}
+
+need_value() {
+  [ "$#" -ge 2 ] && [ -n "$2" ] || usage_error "$1 needs a value"
+}
+
+parse_args() {
+  [ $# -gt 0 ] || { usage >&2; exit 2; }
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    create|analyze|implement|archive|reopen|close|status) command="$1"; shift ;;
+    *) usage_error "unknown command $1" ;;
+  esac
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -h|--help) usage; exit 0 ;;
+      --project) allow "$1" analyze implement archive reopen close status; need_value "$@"; project_flag="$2"; shift 2 ;;
+      --model) allow "$1" create analyze implement archive reopen close; need_value "$@"; model="$2"; shift 2 ;;
+      --reason) allow "$1" close; need_value "$@"; reason="$2"; shift 2 ;;
+      --file) allow "$1" create; need_value "$@"; file="$2"; shift 2 ;;
+      --depends-on) allow "$1" create; need_value "$@"; depends+=("$2"); shift 2 ;;
+      --then) allow "$1" create; need_value "$@"; then_steps="$2"; shift 2 ;;
+      --provider) allow "$1" create; need_value "$@"; provider="$2"; shift 2 ;;
+      --criteria-checks) allow "$1" create; need_value "$@"; criteria="$2"; shift 2 ;;
+      --choose-approach) allow "$1" create; choose_approach=true; shift ;;
+      --acceptance-not-required) allow "$1" create; acceptance_required=false; shift ;;
+      --no-ai-criteria) allow "$1" create; ai_criteria=false; shift ;;
+      --*) usage_error "unknown option $1" ;;
+      *) positionals+=("$1"); shift ;;
+    esac
+  done
+
+  if [ "$command" = "create" ]; then
+    [ "${#positionals[@]}" -eq 2 ] || usage_error "create takes a project and a title"
+    project="${positionals[0]}"
+    title="${positionals[1]}"
+    [ -n "$title" ] || usage_error "the title is empty"
+    case "$criteria" in ""|off|warn|stop) ;; *) usage_error "--criteria-checks is off, warn or stop" ;; esac
+    if [ -n "$then_steps" ]; then
+      local s
+      for s in $(printf '%s' "$then_steps" | tr ',' ' '); do
+        case "$s" in analyze|implement|archive) ;; *) usage_error "--then names analyze, implement or archive, not $s" ;; esac
+      done
+    fi
+  else
+    [ "${#positionals[@]}" -eq 1 ] || usage_error "$command takes one spec"
+    spec_arg="${positionals[0]}"
+    [ "$command" != "close" ] || [ -n "$reason" ] || usage_error "close needs --reason"
+  fi
+  printf '%s\n' "$project$project_flag" | grep -qE '^[A-Za-z0-9._-]*$' || usage_error "$project$project_flag is not a project name"
+}
+
+spec_arg=""
+
+main() {
+  parse_args "$@"
+
+  type aide_specs_root >/dev/null 2>&1 || die "_aide-spec-lib.sh is missing beside aide — reinstall aide"
+  type current_phase_from >/dev/null 2>&1 || die "lib/spec-transitions.sh is missing beside aide — reinstall aide"
+  type board_answer_sentence >/dev/null 2>&1 || die "lib/board-answer.sh is missing beside aide — reinstall aide"
+  type require_board >/dev/null 2>&1 || die "lib/board-request.sh is missing beside aide — reinstall aide"
+  command -v jq >/dev/null 2>&1 || die "jq is not on this machine, and aide needs it"
+
+  answer_file="$(mktemp)"
+  trap 'rm -f "$answer_file"' EXIT
+
+  find_own_project
+  read_board_url
+  if [ "$command" != "create" ]; then
+    project="${project_flag:-$own_project}"
+  fi
+
+  find_target_root
+  case "$command" in
+    create)
+      require_board "queue create" "/aide-create"
+      run_create ;;
+    status)
+      require_board "ask about $spec_arg" ""
+      resolve_spec "$spec_arg"
+      run_status ;;
+    close)
+      require_board "queue close on" "/aide-close $spec_arg"
+      resolve_spec "$spec_arg"
+      run_close ;;
+    *)
+      require_board "queue $command on" "/aide-$command $spec_arg"
+      resolve_spec "$spec_arg"
+      run_step ;;
+  esac
+}
+
+# Sourced, the functions are there to use; run, the command runs.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
+fi

@@ -47,16 +47,18 @@ export interface ExtraCheck {
 
 export interface ToolCheck {
   tool: CheckableTool;
-  /** Every command the check ran, in order, exactly as it ran them.
-   *  Shown so a reader who needs to go further can run the same thing
-   *  in a terminal and see more than a page can show. */
-  commands?: string[];
   /** When this answer was obtained. A check is a moment, not a state:
    *  what it says stops being true the next time anything is installed. */
   at: string;
   found: boolean;
-  /** What the preflight printed, one line per entry, colour removed. */
-  lines: string[];
+  /** The names of the places (`install-targets.txt`) that do not exist on
+   *  this host. */
+  missing?: string[];
+  /** Each place's path as the host shows it, by the place's name: where
+   *  `$XDG_CONFIG_HOME` moves a place, the moved path. */
+  paths?: Record<string, string>;
+  /** Whether the installed files are behind the repository they came from. */
+  behind?: boolean;
   extra: ExtraCheck[];
   /** Set when the script could not be run at all, rather than running
    *  and reporting a problem. The two read differently on the page. */
@@ -68,12 +70,6 @@ export const TOOL_TAB_LABELS: Record<CheckableTool, string> = {
   codex: "Codex",
   opencode: "OpenCode",
 };
-
-/** The tab's opening sentence: where aide installs for this AI, each place
- *  filled in from the table the preflight prints. */
-export function toolWhere(lang: Language, tool: CheckableTool, places: Record<string, string>): string {
-  return t(lang, `settings.where.${tool}`, places);
-}
 
 /** How long ago the check was made, so a stale answer reads as one. The
  *  stamp is the moment it was obtained, never the moment the page was

@@ -198,7 +198,7 @@ describe("the checks the board runs on its own", () => {
   // job run. Usage is read by a press alone, so it must ask none.
   test("read no usage for any AI", async () => {
     for (const tool of CHECKABLE_TOOLS) {
-      const run = fakeRun({ stdout: "found\n" });
+      const run = fakeRun({ stdout: "cli\tfound\n" });
       await checkTool(tool, { ...opts(), run });
       const ran = run.calls.map((argv) => argv.join(" "));
       expect(ran.length).toBeGreaterThan(0);
