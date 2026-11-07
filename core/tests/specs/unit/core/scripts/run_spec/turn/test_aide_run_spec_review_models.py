@@ -215,3 +215,17 @@ def test_a_review_with_its_own_bin_runs_on_that_program(runner, workspace, fake_
     assert out["terminalReason"] == "completed", out
     assert fake_codex.calls.read_text().strip(), "the program --review-bin named did not run"
     assert not (tmp_path / "decoy-ran").exists()
+
+
+def test_a_codex_review_that_finds_nothing_keeps_the_claude_steps_cost(
+    runner, workspace, fake_claude, fake_codex
+):
+    """Codex reports no dollar figure; the step's own cost is Claude's, and
+    a review on Codex does not make it unknown."""
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, "review: no defects found")
+    codex = fake_codex(emits(_codex_says("review: no defects found")))
+    rc, out, _ = run(runner, workspace, claude, codex=codex, command="implement",
+                     review_tool="codex", review_model="gpt-6.1-sol")
+    assert out["terminalReason"] == "completed", out
+    assert out.get("costUsd") == 0.5, out

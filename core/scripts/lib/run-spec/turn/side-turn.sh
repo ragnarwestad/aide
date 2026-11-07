@@ -65,7 +65,7 @@ side_argv_for() {  # <tool> <model> <name> [<bin>]
 # globals back afterwards.
 side_turn() {  # <tool> <prompt-file> <claude-config-dir> <codex-home>
   local saved_tool="$tool" saved_session="$session_out" saved_subtype="$subtype" \
-    saved_cost="$cost" saved_measured="$cost_measured" saved_reason="$terminal_reason" \
+    saved_cost="$cost" saved_measured="$cost_measured" saved_known="$cost_known" saved_reason="$terminal_reason" \
     saved_error="$error_msg" saved_fix="${error_solution:-}" saved_limit="${provider_limit_out:-}" saved_capacity="${at_capacity_out:-}" \
     saved_provider_error="${provider_error_out:-}" saved_time_limit="${time_limit_json:-}" \
     saved_tokens="${tokens_json:-}" saved_model_id="${model_id_out:-}" saved_exit="${exit_code:-0}" \
@@ -80,7 +80,7 @@ side_turn() {  # <tool> <prompt-file> <claude-config-dir> <codex-home>
   side_reason="$terminal_reason"; side_message="$turn_message"; side_cost="${cost:-0}"; side_error="$error_msg"
   side_limit="${provider_limit_out:-}"; side_capacity="${at_capacity_out:-}"; side_provider_error="${provider_error_out:-}"
   tool="$saved_tool"; argv=("${saved_argv[@]}")
-  session_out="$saved_session"; subtype="$saved_subtype"; cost="$saved_cost"; cost_measured="$saved_measured"
+  session_out="$saved_session"; subtype="$saved_subtype"; cost="$saved_cost"; cost_measured="$saved_measured"; cost_known="$saved_known"
   terminal_reason="$saved_reason"; error_msg="$saved_error"; error_solution="$saved_fix"; provider_limit_out="$saved_limit"
   at_capacity_out="$saved_capacity"; provider_error_out="$saved_provider_error"; time_limit_json="$saved_time_limit"
   tokens_json="$saved_tokens"; model_id_out="$saved_model_id"; exit_code="$saved_exit"
