@@ -117,17 +117,17 @@ settingsForm?.addEventListener("submit", (async (event: Event) => {
 
 // Delegated from the container, because the controls are replaced along
 // with the rows on every redraw — a listener on the links themselves
-// would last until the next one.
-document.getElementById("jobrows")?.addEventListener("click", ((event: MouseEvent) => {
+// would last until the next one. A page drawn in place brings a new
+// container, and `bindLists` binds that one too.
+function onRowsClick(event: MouseEvent): void {
   navigate(event);
   onApproachCancel(event);
   onDependsOnCancel(event);
-}) as EventListener);
-document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
+}
 // And the row's selects and boxes, for the same reason: the rows are
 // replaced wholesale on every redraw, so a listener bound to a control
 // itself would last until the next one.
-document.getElementById("jobrows")?.addEventListener("change", ((event: Event) => {
+const onRowsChange = ((event: Event) => {
   const target = event.target as Element | null;
   // The compact picker's box says what the line is on, and every branch
   // below can change that. Queued rather than called here: `applyAiPick`
@@ -212,7 +212,20 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
     const formId = step.getAttribute("form");
     if (step.name === "steps" && rows && formId) relabelRunButton(rows, formId);
   }
-}) as EventListener);
+}) as EventListener;
+
+/** The listeners on the lists' own containers, which sit in `<main>`: bound
+ *  at load, and again for every page drawn in place, whose `<main>` is new
+ *  and has none. */
+function bindLists(doc: Document): void {
+  const rows = doc.getElementById("jobrows");
+  rows?.addEventListener("click", onRowsClick as EventListener);
+  rows?.addEventListener("submit", submitAction as EventListener);
+  rows?.addEventListener("change", onRowsChange);
+  // The Test servers list's own Stop button.
+  doc.getElementById("test-servers-rows")?.addEventListener("submit", submitTestServerStop as EventListener);
+}
+bindLists(document);
 // The one listener that is NOT delegated: this form is the whole of its
 // own page, with no swapped container to hang a delegated one off.
 // The handler's promise is returned rather than dropped — a listener's
@@ -260,11 +273,6 @@ setInterval(() => {
     mark.textContent = formatElapsed(Date.now() - since);
   }
 }, 1000);
-
-// The Test servers list's own Stop button — bound once,
-// like the Schedule page's own controls below: this page is never
-// redrawn from the server on a timer, so there is nothing to rebind.
-document.getElementById("test-servers-rows")?.addEventListener("submit", submitTestServerStop as EventListener);
 
 // The /schedule page's own controls: none of these sit
 // inside `#jobrows`, and nothing on this page is swapped from the
@@ -345,5 +353,6 @@ bindPageSwap(document, {
   unmount: () => unmount(),
   mount: (referrer) => {
     unmount = mountPage(document, { referrer });
+    bindLists(document);
   },
 });
