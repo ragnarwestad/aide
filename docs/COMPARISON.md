@@ -72,7 +72,7 @@ tool.
 | OpenSpec           | Change folder holding a capability delta               | 30+ tools, files in the project                                 | By hand                                         | You merge                                    | `openspec/` and per-tool commands                                          |
 | GitHub Spec Kit    | Spec, plan and tasks under `.specify/`                 | 50+ tools, files in the project                                 | By hand                                         | You merge                                    | `.specify/` and per-tool commands                                          |
 | Spec Kitty         | Spec, plan, tasks and work packages per mission        | 17 agents; commands per machine, skills in the project for some | By hand, or unattended through its orchestrator | Merges on a command; tests run at acceptance | `kitty-specs/`, `.kittify/`, `.worktrees/`                                 |
-| AWS Kiro           | Requirements, design, tasks                            | Its own IDE                                                     | By hand                                         | Commits per step; merging not stated         | Three documents per feature, plus steering files                           |
+| AWS Kiro           | Requirements, design, tasks                            | Its own IDE and web service                                     | By hand; unattended in the cloud from a goal    | Commits per step; cloud opens pull requests  | Three documents per feature, plus steering files                           |
 | BMAD-METHOD        | Brief, PRD, architecture, user stories                 | Any tool with skills; a browser                                 | By hand                                         | Not stated                                   | Planning documents, plus what each install adds                            |
 | GSD                | `.planning/` in the project                            | 12 tools, files in each tool's directories                      | By hand                                         | Commits per task; merging not stated         | `.planning/`, plus per-tool files                                          |
 | Superpowers        | A design and a plan per change, in `docs/superpowers/` | 16 harnesses, a plugin per tool                                 | By hand; subagents carry out an approved plan   | Merges locally, or opens a pull request      | `docs/superpowers/`, plus a plugin per tool                                |
@@ -243,7 +243,8 @@ the target branch.
 ## AWS Kiro
 
 **What it is.** [Kiro](https://kiro.dev) is an IDE from AWS with agents of its own, able to carry out a task
-rather than only suggest code.
+rather than only suggest code, and [Kiro on the web](https://kiro.dev/docs/web/), a hosted service that runs the
+same agent in the cloud.
 
 **Document structure.** Three documents per feature: `requirements.md` with user stories and acceptance criteria in
 EARS notation, a fixed sentence form ("When <trigger>, the system shall …"); `design.md` with the technical
@@ -253,17 +254,36 @@ stored.
 **Workflow.** Requirements, then design, then tasks, with approval gates between the phases. Quick Spec writes all
 three documents at once and skips the gates, for a change that is well understood.
 
-**AI tool support.** Its own IDE, which selects between several models itself.
+**AI tool support.** Its own IDE and its own web service, which select between several
+[models](https://kiro.dev/docs/models/available-models/) themselves, Claude and GPT among them. In autonomous mode
+"the agent selects the model automatically — you cannot choose the model yourself".
 
 **Execution.** By hand, in the editor. When the tasks run, Kiro works out which of them depend on each other and
 runs the independent ones at the same time, in groups it calls "waves". Its task runner takes a step further on its
 own: it works in an isolated worktree, on the branch `kirocrew/task/{task_id}`, and carries on through the steps
 with checkpoints, retries and a pause.
 
+[Cloud sessions](https://kiro.dev/docs/cloud-sessions/) run unattended: the agent runs "in a managed cloud sandbox
+instead of on your machine" and "keeps working in the sandbox whether or not you're connected". The sandbox is AWS's,
+in `us-east-1` only, paid from the plan's credits, with at most ten sessions at once. A session is started in several
+ways:
+
+- from the web app, the mobile app, the IDE or the CLI;
+- from GitHub, by putting the `kiro` label on an issue or writing `/kiro` in a comment;
+- on a [schedule](https://kiro.dev/docs/web/automations/), set up in the web app, with a prompt of free text.
+
+[Autonomous mode](https://kiro.dev/docs/web/autonomous-mode/) takes a goal, not the three spec documents: the
+documentation does not state that a cloud session can start from `requirements.md`, `design.md` and `tasks.md`.
+Spec mode is a separate workflow, where "you review and approve, then execution follows the spec".
+
 **Code handling.** The task runner commits as it goes: it runs the step, and "if tests pass, git commits the
 change". A separate reviewer then reads "the actual `git diff HEAD~1`", and a failed review means
 `git reset --hard HEAD~1`, a retry of the step, and a new commit when it passes. Merging those branches back is
 not described. In the editor, Kiro also writes the commit message for what a person has staged.
+
+A cloud session in autonomous mode "writes code, runs tests, diagnoses failures" and opens "one or more pull
+requests or merge requests", though it "won't always open a pull request". "Kiro never merges automatically": a
+person merges the pull request.
 
 **Invasiveness.** The three documents per feature, plus the steering files that hold the standing instructions for
 the project; their location is not stated. The task runner's branches are named `kirocrew/task/{task_id}`.
