@@ -118,8 +118,12 @@ told what happened.
 
 **A spec agreed in the conversation is handed over as text, and it ends
 there.** The user creates it from the dashboard. Create it only when the
-user asks, and then with `/aide-create`; never write, commit or push
-anything in the specs repo on your own initiative. The format the text is handed over in is the `spec-handover`
+user asks, and then with the `aide` command, which queues it on the board
+as the New spec form does: `aide create <project> "<title>"` with the
+description on standard input, and `--depends-on` for each dependency.
+Where `aide` answers that the project has no board, use `/aide-create`
+instead. Never write, commit or push anything in the specs repo on your
+own initiative. The format the text is handed over in is the `spec-handover`
 skill: load it before writing the text.
 
 ---

@@ -7,8 +7,8 @@ description: >-
   under Beskrivelse, and when a dependency may be named.
   Use when: a spec has been agreed in the conversation and its text is to be
   handed over, "skriv spec-teksten", "gi meg specen", proposing a new spec.
-  Do NOT use for: creating the spec's files (use aide-create, and only when
-  the user asks), analysing an existing spec (use aide-analyze).
+  Do NOT use for: creating the spec (`aide create`, and only when the user
+  asks), analysing an existing spec (use aide-analyze).
 effort: medium
 ---
 
@@ -16,8 +16,13 @@ effort: medium
 
 A spec agreed in the conversation is handed over as text, and it ends there:
 the user creates it from the dashboard. When the user asks you to create it,
-invoke `/aide-create` for each spec — never the board's API,
-`aide-create-spec` by hand, or the files written directly.
+run `aide create <project> "<title>"` for each spec, with the description on
+standard input, `--depends-on` for each dependency and
+`--acceptance-not-required` unless the user wants acceptance ticked. It
+queues the create on the board as the New spec form does. Where `aide`
+answers that the project has no board, invoke `/aide-create` instead. Never
+the board's HTTP routes, `aide-create-spec` by hand, or the files written
+directly.
 
 1. **Ask first.** Raise the choices the spec depends on — thresholds,
    scope, dependencies on other specs — before writing the text, not as
