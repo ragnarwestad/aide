@@ -57,6 +57,8 @@ done.
 First write `--- Step 1 of 11: Read the description — started`, and when this step ends, `--- Step 1 of 11: Read the description — done`.
 
 
+- Working interactively, run `date +%s` before anything else and keep the
+  number for Step 9.
 - Read `specs/XX-slug/1-description.md`
 - Identify: What should change? What is the scope? Migration or single fix?
 - If `1-description.md` has a `## Acceptance criteria` section, extract
@@ -329,10 +331,21 @@ for the `## Acceptance criteria` section this file gains — one row per
 AC-n id, unticked, for the user the spec is for to judge and tick,
 never for this skill or `/aide-implement` to tick themselves.
 
-`aide-run-spec` writes `Workflow steps completed:` from the spec's own
-commits — leave that line exactly as you found it. The same script
-writes this phase's `Repo`/`Model`/`Result`/`Time spent`/`Cost` block
-into `2-analysis.md`'s own Tracking info — leave those lines alone too.
+Leave `Workflow steps completed:` and this phase's `Repo`/`Model`/
+`Result`/`Time spent`/`Cost` lines in `2-analysis.md` as you found them:
+headless, `aide-run-spec` writes them. Working interactively, once the
+analysis has completed and before offering the commit, record the step:
+
+```bash
+aide-record-step --step analyze --specs-root "<specs-root>" \
+  --folder "<spec-folder>" --start-epoch "<the number from Step 1>" \
+  --model "<tool> <model>"   # leave --model out when you cannot name your model
+```
+
+The commit carries every file the answer's `files` names, `4-status.json`
+too. A step that stopped records nothing.
+A run Step 6 stopped on shared files has not completed and records
+nothing.
 
 A headless run gets its commit for free — this session does not run
 `git commit` or `git push` itself, headless or not. Working

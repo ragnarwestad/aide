@@ -3,7 +3,9 @@
 #
 # Sourced by aide-run-spec at the point this ran when it was part of
 # that file, so the order, and every variable it shares with the rest
-# of the run, are exactly what they were.
+# of the run, are exactly what they were. Also sourced by aide-record-step,
+# which records a session's step with these same functions: the file stays
+# function definitions only, and a function that reads a global names it.
 # --- the record of what has run -----------------------------------
 # The dashboard reads this spec's own commits to decide which steps it
 # has had. Everything that is not the dashboard — a person opening the
@@ -177,7 +179,25 @@ analysis_follows_implement() {   # $1 = status file, $2 = pre-session ref
   [ "$(current_phase_from "$state_json")" = "implemented" ]
 }
 
-completed_steps_for() {   # sets $completed_steps
+# After a completed analysis: every acceptance row `Not verified` when the
+# description says `Acceptance: not required`, else every row open when the
+# spec stood at `implemented` before the session (the code the ticks judged
+# is about to be replaced). Needs rebuild_acceptance_rows from
+# spec-transitions.sh.
+rebuild_acceptance_after_analysis() {   # $1 = status file, $2 = pre-session ref
+  local status_file="$1" description
+  description="$(dirname "$status_file")/1-description.md"
+  declare -f rebuild_acceptance_rows >/dev/null 2>&1 || return 0
+  if grep -Eq '^[[:blank:]]*-[[:blank:]]*\*\*Acceptance:\*\*[[:blank:]]*not required[[:blank:]]*$' \
+     "$description" 2>/dev/null; then
+    rebuild_acceptance_rows "$status_file" "$description" "Not verified"
+  elif analysis_follows_implement "$status_file" "${2:-}"; then
+    rebuild_acceptance_rows "$status_file" "$description"
+  fi
+  return 0
+}
+
+completed_steps_for() {   # sets $completed_steps; reads $command_name, $terminal_reason, $WORKFLOW_ARC, $WORKFLOW_ARC_RETIRED
   local folder="$1" dir="$2" subject step reason seen completed re re_archive
   local existing_line existing_step archive_counts="yes"
   local analyzed_since="" reset_by_this_run=""

@@ -50,14 +50,8 @@ elif [ -n "$status_file" ]; then
   # "Acceptance: not required" gets every row marked Not verified after
   # every completed analysis. Before Total progress and the state file,
   # which both count these rows.
-  if [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ] && \
-     declare -f rebuild_acceptance_rows >/dev/null 2>&1; then
-    if grep -Eq '^[[:blank:]]*-[[:blank:]]*\*\*Acceptance:\*\*[[:blank:]]*not required[[:blank:]]*$' \
-       "$(dirname "$status_file")/1-description.md" 2>/dev/null; then
-      rebuild_acceptance_rows "$status_file" "$(dirname "$status_file")/1-description.md" "Not verified"
-    elif analysis_follows_implement "$status_file" "$specs_ref_before"; then
-      rebuild_acceptance_rows "$status_file" "$(dirname "$status_file")/1-description.md"
-    fi
+  if [ "$command_name" = "analyze" ] && [ "$terminal_reason" = "completed" ]; then
+    rebuild_acceptance_after_analysis "$status_file" "$specs_ref_before"
   fi
 
   # Nothing derived leaves the file alone: a fresh spec whose Phase

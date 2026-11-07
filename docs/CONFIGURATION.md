@@ -50,9 +50,9 @@ No project setting is read from both of its files. A key written in the other fi
 The same `KEY=value` format as `.aide/config`, in the home directory, so one file serves every project on the
 machine. It is never committed.
 
-| Key              | What it says                                                                                                                                                                                                                                                      | Read by           |
-|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
-| `AIDE_BOARD_URL` | The board's address as this machine reaches it, such as `https://<serving-host>.<tailnet>.ts.net` ([dashboard/docs/tailscale.md](../dashboard/docs/tailscale.md)). Without it `aide-push-specs` pushes and tells nobody, and Aide works as before without a board | `aide-push-specs` |
+| Key              | What it says                                                                                                                                                                                                                                                                                                            | Read by                   |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|
+| `AIDE_BOARD_URL` | The board's address as this machine reaches it, such as `https://<serving-host>.<tailnet>.ts.net` ([dashboard/docs/tailscale.md](../dashboard/docs/tailscale.md)). Without it `aide-push-specs` pushes and tells nobody, `aide` names the `/aide-<step>` skill to run instead, and Aide works as before without a board | `aide-push-specs`, `aide` |
 
 ---
 

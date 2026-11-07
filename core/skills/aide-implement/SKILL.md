@@ -76,6 +76,9 @@ branch afterwards, as it lands every step's work.
 First write `--- Step 1 of 4: Preparation — started`, and when this step ends, `--- Step 1 of 4: Preparation — done`.
 
 
+Working interactively, run `date +%s` before anything else and keep the
+number for the record at the end of Step 4.
+
 1. Read `specs/XX-slug/2-analysis.md` (affected files)
 2. Read `specs/XX-slug/3-solution.md` (implementation plan). Build its
    recommended solution. On a spec that asked to choose the approach, a
@@ -301,10 +304,19 @@ not hold, written when a check after the deploy failed) keeps that
 sentence first until the row is ticked, because the next round reads it
 as the reason the round is needed.
 
-`aide-run-spec` writes `Workflow steps completed:` from the spec's own
-commits — leave that line exactly as you found it. The same script
-writes this phase's `Repo`/`Model`/`Result`/`Time spent`/`Cost` block
-into `3-solution.md`'s own Tracking info — leave those lines alone too.
+Leave `Workflow steps completed:` and this phase's `Repo`/`Model`/
+`Result`/`Time spent`/`Cost` lines in `3-solution.md` as you found them:
+headless, `aide-run-spec` writes them. Working interactively, once Step 4
+has passed and before offering the commit, record the step:
+
+```bash
+aide-record-step --step implement --specs-root "<specs-root>" \
+  --folder "<spec-folder>" --start-epoch "<the number from Step 1>" \
+  --model "<tool> <model>"   # leave --model out when you cannot name your model
+```
+
+The commit carries every file the answer's `files` names, `4-status.json`
+too. A step that stopped records nothing.
 
 The percentage above it is still yours: it says how far
 RED, GREEN and VERIFY got, which is the field for partial work.
