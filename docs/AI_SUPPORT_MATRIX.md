@@ -348,10 +348,18 @@ the machine's Claude Code login.
 | `~/.agents/skills/` | Scanned for `**/SKILL.md`, shared with Codex and Copilot |
 | `~/.claude/skills/` | Scanned the same way, shared with Claude Code            |
 
-A skill is reached through a `skill` tool, by name, not as a slash
+A skill is reached through a `skill` tool, by its ID, not as a slash
 command — which is why a headless step names its skill in words.
 
-OpenCode 1 (1.19.0 on the serving host) does not use metadata to control
+In OpenCode 2 a skill's ID comes from its path under the scanned directory:
+Aide's skills sit one folder deep, so `~/.agents/skills/aide-analyze/SKILL.md`
+is `aide-analyze`, the ID a step names. The frontmatter `name` is only the
+label OpenCode shows, and a skill with no `description` is not offered to the
+model at all. Aide's skills keep `name` equal to the folder and all carry a
+description, which `core/tests/specs/unit/core/validation/rules/test_core_skills.py`
+checks.
+
+OpenCode 1 (checked against 1.19.0) does not use metadata to control
 slash commands or automatic skill selection: an unknown frontmatter field
 is ignored. OpenCode 2 does: a metadata key, or `disable-model-invocation:
 true`, hides a skill from the model's list while it can still be loaded by
