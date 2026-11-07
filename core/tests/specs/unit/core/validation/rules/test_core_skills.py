@@ -146,27 +146,28 @@ ACCEPTED_CLAUDE_CODE_EXTRAS = {"effort", "argument-hint"}
 ALLOWED_FRONTMATTER_FIELDS = SPEC_FRONTMATTER_FIELDS | ACCEPTED_CLAUDE_CODE_EXTRAS
 
 
+def loader_frontmatter_problems(skill_dir):
+    content = (skill_dir / "SKILL.md").read_text()
+    fields = parse_frontmatter(content)
+    name = skill_dir.name
+    if not content.startswith("---"):
+        return [f"{name}: no frontmatter"]
+    problems = []
+    if fields.get("name") != name:
+        problems.append(f"{name}: name {fields.get('name')!r} does not match the directory")
+    if fields.get("effort") not in VALID_EFFORT_LEVELS:
+        problems.append(f"{name}: effort {fields.get('effort')!r} not in {sorted(VALID_EFFORT_LEVELS)}")
+    rogue = set(fields) - ALLOWED_FRONTMATTER_FIELDS
+    if rogue:
+        problems.append(f"{name}: fields outside the allowlist: {sorted(rogue)}")
+    return problems
+
+
 @pytest.mark.validation
 def test_every_core_skill_has_the_frontmatter_the_loaders_read():
     skills = get_skill_dirs()
     assert skills, "No skill directories with SKILL.md in core/skills/"
-    problems = []
-    for skill_dir in skills:
-        content = (skill_dir / "SKILL.md").read_text()
-        fields = parse_frontmatter(content)
-        name = skill_dir.name
-        if not content.startswith("---"):
-            problems.append(f"{name}: no frontmatter")
-            continue
-        if fields.get("name") != name:
-            problems.append(f"{name}: name {fields.get('name')!r} does not match the directory")
-        if "description" not in fields:
-            problems.append(f"{name}: no description")
-        if fields.get("effort") not in VALID_EFFORT_LEVELS:
-            problems.append(f"{name}: effort {fields.get('effort')!r} not in {sorted(VALID_EFFORT_LEVELS)}")
-        rogue = set(fields) - ALLOWED_FRONTMATTER_FIELDS
-        if rogue:
-            problems.append(f"{name}: fields outside the allowlist: {sorted(rogue)}")
+    problems = [p for skill_dir in skills for p in loader_frontmatter_problems(skill_dir)]
     assert not problems, "\n".join(problems)
 
 
@@ -485,8 +486,9 @@ def sample_skill(tmp_path):
     skill.mkdir()
 
     def write(fields="", body="", name="sample", description="valid"):
+        described = "" if description is None else f"description: {description}\n"
         (skill / "SKILL.md").write_text(
-            f"---\nname: {name}\ndescription: {description}\neffort: high\n"
+            f"---\nname: {name}\n{described}effort: high\n"
             f"{fields}---\n{body}", encoding="utf-8")
         return skill
 
@@ -503,6 +505,16 @@ def test_name_boundaries(sample_skill, value, valid):
     problems = skill_standard_problems(sample_skill(name=value))
     assert bool(problems) is not valid
     assert all("sample: name" in p for p in problems)
+
+
+def test_a_name_that_is_not_the_folder_names_the_skill_ac_3(sample_skill):
+    assert "sample: name 'other' does not match the directory" in \
+        loader_frontmatter_problems(sample_skill(name="other"))
+
+
+def test_a_skill_without_a_description_names_the_skill_ac_4(sample_skill):
+    assert skill_standard_problems(sample_skill(description=None)) == [
+        "sample: description must be a supported string of 1–1024 characters"]
 
 
 @pytest.mark.parametrize("field,limit", [("description", 1024), ("compatibility", 500)])
