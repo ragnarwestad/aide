@@ -10,7 +10,7 @@
 // markup stays a real form so the fields it posts are the form's own.
 
 import { ACTIONS, postForm, writeLine } from "./press.ts";
-import { standOpen } from "./progress-dialog";
+import { coverWhile } from "./progress-dialog";
 import { swapRows } from "./row-swap.ts";
 import { showRefusal } from "./tail-actions.ts";
 import { cardAnswered } from "./depends-on";
@@ -141,14 +141,14 @@ export async function submitCreate(form: HTMLFormElement, event: Event): Promise
 // No refusal here has a row to land on: an Add names a project that was
 // never added, and a Remove that failed leaves the project exactly where
 // the reader can already see it. An Add's goes into the form's own
-// `.refused` slot, like New spec's. Remove asks in a progress dialog,
-// which stands while the request is out and takes a refusal in its own
-// line.
+// `.refused` slot, like New spec's. Remove asks in a progress dialog: the
+// page is covered while the request is out, and a refusal asks again with
+// the reason in the dialog's own line.
 export async function submitProjectChange(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
   const dialog = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement | null;
-  const hold = dialog ? standOpen(dialog) : null;
+  const hold = dialog ? coverWhile(dialog) : null;
   await postForm(
     form,
     async (body) => {

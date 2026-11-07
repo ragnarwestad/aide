@@ -619,9 +619,9 @@ The page's own browser code does one thing to the controls: it keeps the reader 
 - **Every confirmation asks the one shared question, with no fallback page behind it.** One function draws the
   question and its answers (`askParts()`, `render/ui/components/confirm-dialog.ts`): the question, the sentence that
   says what the action does, any control of its own, and OK and Cancel. Cancel's is asked in a `dialog.confirmdialog`
-  (`confirmDialog()`); Close's and Reopen's in the progress dialog they then stand in while the press is sent
+  (`confirmDialog()`); Close's and Reopen's in the progress dialog
   (`progressDialog()`, `render/ui/components/progress-dialog.ts`), a `dialog.progressdialog` that also holds a
-  refusal line and the word it shows meanwhile. Close's control is its required Reason field (bounded and counted), Reopen's an
+  refusal line and the word the loading cover shows while the press is sent. Close's control is its required Reason field (bounded and counted), Reopen's an
   unticked box that also resets the analysis, the plan and the status. Its button (`askButton()`) carries `data-ask="<dialog id>"`, and
   one click listener on `body` (`openAsk`, `specs-client/ask.ts`) opens whichever dialog a button names — on a row a
   later redraw drew too, and a Reopen beside a Failed criterion, inside the checks' own form, opens a dialog drawn
@@ -630,11 +630,11 @@ The page's own browser code does one thing to the controls: it keeps the reader 
   buttons do nothing. The question before leaving a page with unsaved changes is the same dialog, opened by the
   unsaved-changes guard from the link that was clicked rather than from a button.
 - **OK goes to the Running tab once the queue has the job.** The dialog's posting form carries `data-progress`, and
-  one submit listener on `body` hands its OK on: the dialog shows "Reopening…" or "Closing…", held open by the one
-  hold every progress dialog has (`standOpen()`, `specs-client/progress-dialog/`: Escape and a click outside do not
-  dismiss it, and a back/forward-cache restore closes it), posts the form, and once it is accepted goes to the
-  Running tab with the job's own row open (`/?open=<project>/<spec>:<step>`). A refused post is written in the dialog's own
-  line, which stays open with whatever was typed or ticked. While a Reopen dialog is open on the list, the live
+  one submit listener on `body` hands its OK on: the question closes and the page's loading cover shows "Reopening…"
+  or "Closing…" (`coverWhile()`, `specs-client/progress-dialog/`), the form is posted, and once it is accepted the
+  page goes to the Running tab with the job's own row open (`/?open=<project>/<spec>:<step>`). Deploy and Remove
+  project do the same with "Deploying…" and "Removing…". A refused post lifts the cover and opens the question again,
+  with the reason in the dialog's own line and whatever was typed or ticked. While a Reopen dialog is open on the list, the live
   redraw waits, so the rows do not take it away.
 - **A Close or Reopen is a row of its own on the Running tab**, as a scheduled job is, never its spec's. A job
   whose current step is `close` or `reopen` (`closeOrReopenStep`, `queue/steps.ts`) has a row while it is queued,

@@ -1,13 +1,9 @@
-// The one dialog every press the board shows under way stands in: Close,
-// Reopen, Remove project and the board's Deploy. It says what it is doing in one
-// heading while its press is under way, writes a refusal in its own line,
-// and one piece of page script keeps it open meanwhile (`standOpen`,
-// specs-client/progress-dialog/). Close and Reopen stand only until the
-// queue has their job; the Running page follows it from there.
-//
-// A step hands it the question it asks first, drawn by the confirmation's
-// own parts: the dialog shows the question and its answers until OK, and
-// only its running face while it stands (`data-standing`).
+// The one dialog every press that asks first and then runs is drawn by:
+// Close, Reopen, Remove project and the board's Deploy. It asks its
+// question, and writes a refusal in its own line. Once OK is pressed the
+// question closes and the page's loading cover shows the dialog's word
+// (`data-cover-note`, "Deploying…") until the page moves on (`coverWhile`,
+// specs-client/progress-dialog/).
 
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import type { Language } from "../../../i18n";
@@ -18,8 +14,8 @@ import { messageSlot } from "./message.ts";
 export interface ProgressParts {
   /** The dialog's id, the one its ask button names. */
   id?: string;
-  /** What it shows, alone as its heading, while its job runs: "closing…".
-   *  Capitalised here. */
+  /** The word the loading cover shows while the press is under way:
+   *  "closing…". Capitalised here. */
   title: string;
   /** The question asked before the step runs (Close, Reopen, Remove
    *  project); its OK's form is `<id>-form`. `queuesJob`: its OK queues a
@@ -38,10 +34,9 @@ export function progressDialog(lang: Language, parts: ProgressParts): string {
     : { question: "", answers: "" };
   return (
     `<dialog class="progressdialog"${parts.id ? ` id="${esc(parts.id)}"` : ""} data-progress-dialog` +
-    `${ask ? " data-asks" : ""}>` +
+    ` data-cover-note="${esc(capitalizeFirst(parts.title))}">` +
     `<div class="progresspanel">` +
     question +
-    `<div data-running-face><h2 class="standingtitle">${esc(capitalizeFirst(parts.title))}</h2></div>` +
     messageSlot("refused") +
     answers +
     `</div></dialog>`

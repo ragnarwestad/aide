@@ -1,101 +1,63 @@
-// The one hold every progress dialog (`render/ui/components/progress-dialog.ts`)
-// is kept open by while its press is under way — Close, Reopen, Remove
-// project and Deploy — and Close's and Reopen's OK: the dialog stands while
-// the press is sent, and once the queue has the job the page goes to the
-// Running page with the spec's row open, where the job is followed. While a
-// dialog is held, Escape and the browser's own ways of closing it are
-// answered here, and nowhere else.
+// What a press that asks first does once its OK is pressed — Close, Reopen,
+// Remove project and Deploy: the question closes, and the page's loading
+// cover (render/ui/busy/nav-overlay.ts) stands in its place with the
+// dialog's own word ("Deploying…") until the page has moved on. A refusal
+// lifts the cover and opens the question again with the reason in its own
+// line.
 
 import { postForm, writeLine } from "../press.ts";
 import { swapPage } from "../page-swap";
 
+export const COVER = "aide-cover";
+export const COVER_DONE = "aide-cover-done";
+
 /** Everything the press touches outside the form, so a test can stand in. */
 export interface ProgressIo {
   go(url: string): void;
-  /** `pageshow` with `persisted`: the back/forward cache brought the page
-   *  back with its dialog open. */
-  onRestore(fn: () => void): void;
+  cover(note: string): void;
+  uncover(): void;
 }
 
 const browserIo: ProgressIo = {
   go: (url) => void swapPage(url, { history: "push" }),
-  // `typeof`: the unit harness runs the page script with no window at all.
-  onRestore: (fn) => {
-    if (typeof window !== "undefined") {
-      window.addEventListener("pageshow", (e) => (e as PageTransitionEvent).persisted && fn());
-    }
-  },
+  cover: (note) => void document.dispatchEvent(new CustomEvent(COVER, { detail: { note } })),
+  uncover: () => void document.dispatchEvent(new Event(COVER_DONE)),
 };
-
-/** Whether a dialog is held, kept per dialog so its listeners are attached
- *  once however many times it is held. */
-const holds = new WeakMap<object, { held: boolean }>();
 
 /** The dialog's line for a refusal: empty when `why` is. */
 function say(dialog: HTMLDialogElement, why: string): void {
   writeLine(dialog.querySelector(".refused"), why);
 }
 
-/** Whether `dialog` is held right now. */
-export function isStanding(dialog: HTMLDialogElement): boolean {
-  return holds.get(dialog)?.held === true;
-}
-
-/** Opens `dialog` as a modal, standing, and keeps it open until `release`:
- *  Escape and the browser's own close do nothing meanwhile, and a restore
- *  from the back/forward cache closes it. `release(why)` writes `why` in
+/** Closes the question and covers the page with the dialog's word until
+ *  `release`. `release(why)` lifts the cover and asks again with `why` in
  *  the dialog's own line. */
-export function standOpen(
-  dialog: HTMLDialogElement,
-  io: Pick<ProgressIo, "onRestore"> = browserIo,
-): { release(why?: string): void } {
-  let hold = holds.get(dialog);
-  if (!hold) {
-    const fresh = { held: false };
-    hold = fresh;
-    holds.set(dialog, fresh);
-    dialog.addEventListener("cancel", (e) => {
-      if (fresh.held) e.preventDefault();
-    });
-    // A browser can close a modal whose cancel was prevented (a second Escape): stand again.
-    dialog.addEventListener("close", () => {
-      if (fresh.held) dialog.showModal();
-    });
-    io.onRestore(() => {
-      fresh.held = false;
-      dialog.removeAttribute("data-standing");
-      say(dialog, "");
-      dialog.close();
-    });
-  }
-  const mine = hold;
-  mine.held = true;
-  dialog.setAttribute("data-standing", "");
+export function coverWhile(dialog: HTMLDialogElement, io: ProgressIo = browserIo): { release(why?: string): void } {
   say(dialog, "");
-  if (!dialog.open) dialog.showModal();
+  if (dialog.open) dialog.close();
+  io.cover(dialog.getAttribute("data-cover-note") ?? "");
   return {
     release: (why) => {
-      mine.held = false;
-      dialog.removeAttribute("data-standing");
-      if (why !== undefined) say(dialog, why);
+      io.uncover();
+      if (why === undefined) return;
+      say(dialog, why);
+      if (!dialog.open) dialog.showModal();
     },
   };
 }
 
-/** Close's and Reopen's OK. A refusal is written in the dialog, which
- *  stays open with what was typed. */
+/** Close's, Reopen's and Deploy's OK. Once the queue has the job the page
+ *  goes to the Running page with the job's row open. */
 export async function submitProgress(form: HTMLFormElement, event: Event, io: ProgressIo = browserIo): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
   // The dialog holds its posting form.
   const dialog = form.closest("dialog[data-progress-dialog]") as HTMLDialogElement;
-  const hold = standOpen(dialog, io);
+  const hold = coverWhile(dialog, io);
   await postForm(
     form,
     (answer) => {
       const job = answer?.job;
-      // It stands until the Running page has replaced this one, with the
-      // job's own row open: its key is the spec's and the job's step.
       const step = job?.steps?.[job.stepIndex ?? 0];
       io.go(job?.project && job.specFolder && step ? `/?open=${job.project}/${job.specFolder}:${step}` : "/");
     },

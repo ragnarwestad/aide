@@ -34,17 +34,16 @@ describe("one ask dialog, one opener", () => {
     expect(writing(all, `class="confirmdialog`)).toEqual([DIALOG]);
   });
 
-  test("only the progress dialog writes its class, its standing mark and its running word", () => {
-    // The page script reads the standing mark; only markup writes it.
+  test("only the progress dialog writes its class, its mark and its cover word", () => {
+    // The page script reads the mark and the word; only markup writes them.
     expect(writing([...render, ...serve], "data-progress-dialog")).toEqual([PROGRESS]);
     expect(writing([...render, ...serve], `class="progressdialog`)).toEqual([PROGRESS]);
-    expect(writing([...render, ...serve], "standingtitle")).toEqual([PROGRESS]);
+    expect(writing([...render, ...serve], "data-cover-note")).toEqual([PROGRESS]);
   });
 
-  test("one script file opens every dialog from its button, and one holds a running one", () => {
+  test("one script file opens every dialog from its button, and one asks again after a refusal", () => {
     expect(writing(client, "data-ask")).toEqual(["src/specs-client/ask.ts"]);
     expect(writing(client, "showModal")).toEqual(["src/specs-client/ask.ts", HOLD]);
-    expect(writing(client, `"cancel"`)).toEqual([HOLD]);
   });
 
   test("only the New-spec form wears the New-spec form's class", () => {

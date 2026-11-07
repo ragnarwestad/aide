@@ -1,7 +1,7 @@
 // Every step the board shows running is shown in a dialog drawn by
 // `progressDialog()`: Close, Reopen, Remove project and Deploy. Each is
-// marked for the page script that holds it open, and has a heading for its
-// running face. Marks the script depends on, not layout or wording.
+// marked for the page script, and names the word the loading cover shows
+// after OK. Marks the script depends on, not layout or wording.
 import { describe, expect, test } from "bun:test";
 import { renderProjectPage, renderProjectsPage, renderSpecsRows, type ProjectPageOptions, type ProjectView } from "../../../src/render";
 import { closeAskDialog } from "../../../src/render/pages/spec-page/ask-dialog.ts";
@@ -12,13 +12,13 @@ import { view } from "../pages/spec-page-fixtures.ts";
 const dialogWith = (html: string, mark: string): string =>
   html.match(new RegExp(`<dialog[^>]*${mark}[^>]*>[\\s\\S]*?</dialog>`))?.[0] ?? "";
 
-/** The heading of the dialog's running face: what it says while it stands. */
-const runningWord = (box: string): string => box.match(/data-running-face[^>]*><h2[^>]*>([^<]*)<\/h2>/)?.[1] ?? "";
+/** The word the loading cover shows once OK is pressed. */
+const coverWord = (box: string): string => box.match(/data-cover-note="([^"]*)"/)?.[1] ?? "";
 
 const expectProgress = (box: string): void => {
   expect(box).not.toBe("");
   expect(box).toContain("data-progress-dialog");
-  expect(runningWord(box)).not.toBe("");
+  expect(coverWord(box)).not.toBe("");
 };
 
 const project: ProjectView = { name: "aide", manifest: { ok: false, error: "no manifest" }, specs: [] };

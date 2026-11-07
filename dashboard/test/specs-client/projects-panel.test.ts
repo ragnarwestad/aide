@@ -35,11 +35,11 @@ describe("Remove", () => {
     expect(h.location.href).toBe("/projects?state=running&sort=cost");
   });
 
-  test("the dialog stands while the removal is out, and stays standing as the page goes", async () => {
-    let standingWhileOut = false;
+  test("the question closes and the page is covered with the dialog's word while the removal is out", async () => {
+    let coveredWhileOut = false;
     const h = harness(
       (url) => {
-        if (url.includes("/remove")) standingWhileOut = h.removeDialog.hasAttribute("data-standing");
+        if (url.includes("/remove")) coveredWhileOut = h.dispatchedEvents.some((e) => e.type === "aide-cover");
         return { ok: true, body: { ok: true, results: [] } };
       },
       "actionform",
@@ -47,18 +47,18 @@ describe("Remove", () => {
       { pathname: "/projects/atlasaurus" },
     );
     await h.submitRemove();
-    expect(standingWhileOut).toBe(true);
-    expect(h.removeDialog.open).toBe(true);
-    expect(h.removeDialog.hasAttribute("data-standing")).toBe(true);
+    expect(coveredWhileOut).toBe(true);
+    expect(h.dispatchedEvents.find((e) => e.type === "aide-cover")?.detail).toEqual({ note: "Removing…" });
+    expect(h.removeDialog.open).toBe(false);
   });
 
-  test("a refusal releases the dialog with its words in the dialog's own line", async () => {
+  test("a refusal lifts the cover and asks again with its words in the dialog's own line", async () => {
     const h = harness(() => ({
       ok: false,
       body: { ok: false, results: [{ step: "allowlist", error: "not on the allowlist" }] },
     }));
     await h.submitRemove();
-    expect(h.removeDialog.hasAttribute("data-standing")).toBe(false);
+    expect(h.dispatched).toContain("aide-cover-done");
     expect(h.removeSlot.textContent).toContain("Not on the allowlist");
     expect(h.removeDialog.open).toBe(true);
   });
@@ -71,7 +71,6 @@ describe("Remove", () => {
     await h.submitRemove();
     expect(h.removeSlot.textContent).toContain("Not on the allowlist");
     expect(h.removeDialog.open).toBe(true);
-    expect(h.removeDialog.closes).toBe(0);
     expect(h.location.href).toBe("http://dash.test/");
     expect(h.replaced).toHaveLength(0);
   });

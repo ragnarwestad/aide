@@ -1,11 +1,12 @@
-// Remove project stands in its progress dialog while its request is out: the
-// running word shows, the question does not, and neither Escape nor a click
-// outside closes it. Only a browser draws the faces and answers Escape.
+// Remove project, once its OK is pressed: the question closes and the
+// loading cover shows Removing… while the request is out, and neither
+// Escape nor a click outside lifts it. Only a browser draws the cover and
+// answers Escape.
 //
 // By hand: `cd dashboard && bun test --timeout 20000 test/e2e/progress-dialog-holds.test.ts`.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
-import { chromium, type Browser, type Locator, type Page } from "playwright";
+import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline } from "../helpers/browser-deadline.ts";
 import {
   INSTALLS, behindBy, harness, loadUntil, ownDirs, projectsRoot, serve,
@@ -29,9 +30,7 @@ afterAll(async () => {
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-const modal = (box: Locator): Promise<boolean> => box.evaluate((el) => (el as HTMLDialogElement).matches(":modal"));
-
-/** Escape twice and a click in the page's corner, outside the dialog. */
+/** Escape twice and a click in the page's corner, outside the cover. */
 async function tryToClose(page: Page): Promise<void> {
   await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");
@@ -39,8 +38,8 @@ async function tryToClose(page: Page): Promise<void> {
   await page.waitForTimeout(400);
 }
 
-describe("a running step stands in its progress dialog", () => {
-  test("Remove project shows Removing… and not its question while its request is out, through Escape and a click outside", async () => {
+describe("a press that asks first covers the page while it is sent", () => {
+  test("Remove project shows Removing… in the loading cover, not its question, through Escape and a click outside", async () => {
     const page = await browser.newPage();
     await page.route(
       (u) => u.pathname.endsWith("/remove"),
@@ -48,14 +47,13 @@ describe("a running step stands in its progress dialog", () => {
     );
     await page.goto(`${base}/projects?live=0`);
     await page.locator('button[data-ask="removeask-aide"]').click();
-    const box = page.locator('dialog[id="removeask-aide"]');
-    await box.getByRole("button", { name: "OK" }).click();
-    await box.getByRole("heading", { name: "Removing…" }).waitFor({ state: "visible", timeout: 5000 });
-    expect(await box.getByText("takes it off the allowlist").isVisible()).toBe(false);
-    expect(await box.getByRole("button", { name: "Cancel" }).isVisible()).toBe(false);
+    const ask = page.locator('dialog[id="removeask-aide"]');
+    await ask.getByRole("button", { name: "OK" }).click();
+    const cover = page.locator("dialog.pageoverlay");
+    await cover.getByText("Removing…").waitFor({ state: "visible", timeout: 5000 });
+    expect(await ask.isVisible()).toBe(false);
     await tryToClose(page);
-    expect(await box.isVisible()).toBe(true);
-    expect(await modal(box)).toBe(true);
+    expect(await cover.isVisible()).toBe(true);
     await page.close();
   });
 });

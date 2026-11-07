@@ -81,7 +81,6 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
   // Remove project asks in a progress dialog, open since its button was
   // pressed: the refusal line is the dialog's, outside the posting form,
   // and the dialog stands while the request is out.
-  const attrs = new Set<string>();
   const removeDialog = {
     open: true,
     closes: 0,
@@ -95,9 +94,7 @@ export function buildProjectsPanel(tokenInput: { value: string }, on: Record<str
       removeDialog.shows += 1;
     },
     addEventListener: () => {},
-    setAttribute: (name: string) => void attrs.add(name),
-    removeAttribute: (name: string) => void attrs.delete(name),
-    hasAttribute: (name: string) => attrs.has(name),
+    getAttribute: (name: string) => (name === "data-cover-note" ? "Removing…" : null),
     querySelector: (sel: string) => (sel.includes("refused") ? removeSlot : null),
   };
   const addButton = {

@@ -303,15 +303,6 @@ dialog.confirmdialog::backdrop, dialog.progressdialog::backdrop { background: va
    `method="dialog"` form beside it, so the row is made by this wrapper.
    A form's own class may carry a margin, which the row resets. */
 .dialogactions { display: flex; gap: var(--sp-2); }
-/* The progress dialog's two faces. Its running face — the heading that
-   says what it is doing — is a column spaced like the panel. A dialog that
-   asks first (`data-asks`) shows its question, its refusal line and its
-   answers until OK; while it stands (`data-standing`, set by `standOpen`)
-   the running face is the only thing in it. Every rule is on the panel's
-   own children, so no mark inside the body can match. */
-.progresspanel > [data-running-face] { display: flex; flex-direction: column; gap: var(--sp-3); }
-dialog[data-asks]:not([data-standing]) > .progresspanel > [data-running-face] { display: none; }
-dialog[data-standing] > .progresspanel > :not([data-running-face]) { display: none; }
 .progresspanel textarea { width: 100%; box-sizing: border-box; }
 .dialogactions > form { margin: 0; }
 

@@ -1,10 +1,10 @@
-// The hold every progress dialog is kept open by while its press is under
-// way, and the Reopen and Close dialogs' OK: the dialog stands while the
-// press is sent, and once the queue has the job the page goes to the
-// Running page with the spec's row open.
+// What a progress dialog's OK does: the question closes, the page's loading
+// cover shows the dialog's word while the press is sent, and once the queue
+// has the job the page goes to the Running page with the spec's row open. A
+// refusal lifts the cover and asks again with the reason.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { isStanding, standOpen, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
+import { coverWhile, submitProgress, type ProgressIo } from "../../../src/specs-client/progress-dialog";
 
 type Listener = (e: { preventDefault(): void; defaultPrevented: boolean }) => void;
 
@@ -33,14 +33,17 @@ function fakeDialog() {
 
 interface Io extends ProgressIo {
   gone: string[];
-  restore?: () => void;
+  /** Each cover shown, by its word, and "done" when it was lifted. */
+  covers: string[];
 }
 
 function fakeIo(): Io {
   const io: Io = {
     gone: [],
+    covers: [],
     go: (url) => void io.gone.push(url),
-    onRestore: (fn) => void (io.restore = fn),
+    cover: (note) => void io.covers.push(note),
+    uncover: () => void io.covers.push("done"),
   };
   return io;
 }
@@ -81,7 +84,6 @@ const submit = () => {
 /** The ask: a dialog the posting form sits INSIDE, with a line for a refusal. */
 function fakeAsk() {
   const base = fakeDialog();
-  const attrs = new Set<string>();
   const refused = { textContent: "" };
   const ask = Object.assign(base, {
     open: false,
@@ -93,9 +95,7 @@ function fakeAsk() {
       ask.closes += 1;
       ask.open = false;
     },
-    setAttribute: (name: string) => void attrs.add(name),
-    removeAttribute: (name: string) => void attrs.delete(name),
-    hasAttribute: (name: string) => attrs.has(name),
+    getAttribute: (name: string) => (name === "data-cover-note" ? "Deploying…" : null),
     querySelector: (sel: string) => (sel === ".refused" ? refused : null),
   });
   const form = {
@@ -106,23 +106,23 @@ function fakeAsk() {
     querySelectorAll: () => [],
     closest: (sel: string) => (sel.includes("data-progress-dialog") ? ask : null),
   } as unknown as HTMLFormElement;
-  return { ask, form, line: refused, standing: () => attrs.has("data-standing") };
+  return { ask, form, line: refused };
 }
 
 describe("submitProgress from inside the ask", () => {
-  test("posts for JSON, stands while it is sent, and goes to the Running page with the job's row open", async () => {
+  test("posts for JSON, covers the page with the dialog's word, and goes to the Running page with the job's row open", async () => {
     const requests = stubPost(200, { ok: true, job: { id: "j1", project: "aide", specFolder: "150-x", steps: ["reopen"], stepIndex: 0 } });
     const a = fakeAsk();
+    a.ask.open = true;
     const io = fakeIo();
     const event = submit();
     await submitProgress(a.form, event, io);
     expect(event.defaultPrevented).toBe(true);
-    expect(a.ask.shows).toBe(1);
+    expect(a.ask.open).toBe(false);
     expect(requests[0]!.headers.accept).toBe("application/json");
     expect(io.gone).toEqual(["/?open=aide/150-x:reopen"]);
-    // It stands until the Running page replaces this one.
-    expect(a.standing()).toBe(true);
-    expect(a.ask.closes).toBe(0);
+    // The cover stays until the Running page is in place.
+    expect(io.covers).toEqual(["Deploying…"]);
   });
 
   test("an answer that names no job goes to the Running page", async () => {
@@ -132,99 +132,36 @@ describe("submitProgress from inside the ask", () => {
     expect(io.gone).toEqual(["/"]);
   });
 
-  test("a refusal is written in the box, which stays open, is not standing, and nothing navigates", async () => {
+  test("a refusal lifts the cover and asks again with the reason in the box, and nothing navigates", async () => {
     stubPost(400, { error: "Give a reason." });
     const a = fakeAsk();
+    a.ask.open = true;
     const io = fakeIo();
     await submitProgress(a.form, submit(), io);
+    expect(io.covers).toEqual(["Deploying…", "done"]);
     expect(a.line.textContent).toBe("Problem: Give a reason.");
-    expect(a.ask.closes).toBe(0);
-    expect(a.standing()).toBe(false);
+    expect(a.ask.open).toBe(true);
     expect(io.gone).toEqual([]);
   });
 });
 
-describe("standOpen, the one hold", () => {
-  const restoring = () => {
-    const io = { restore: undefined as (() => void) | undefined, onRestore: (fn: () => void) => void (io.restore = fn) };
-    return io;
-  };
-
-  test("opens the dialog as a modal, marks it standing and empties its line", () => {
-    const a = fakeAsk();
-    a.line.textContent = "old";
-    standOpen(a.ask as unknown as HTMLDialogElement, restoring());
-    expect(a.ask.shows).toBe(1);
-    expect(a.standing()).toBe(true);
-    expect(isStanding(a.ask as unknown as HTMLDialogElement)).toBe(true);
-    expect(a.line.textContent).toBe("");
-  });
-
-  test("a dialog already open is not opened again", () => {
+describe("coverWhile", () => {
+  test("empties the dialog's line, closes the question and covers the page", () => {
     const a = fakeAsk();
     a.ask.open = true;
-    standOpen(a.ask as unknown as HTMLDialogElement, restoring());
-    expect(a.ask.shows).toBe(0);
-  });
-
-  test("Escape is prevented while it is held, and not once it is released", () => {
-    const a = fakeAsk();
-    const hold = standOpen(a.ask as unknown as HTMLDialogElement, restoring());
-    expect(a.ask.fire("cancel").defaultPrevented).toBe(true);
-    hold.release();
-    expect(a.ask.fire("cancel").defaultPrevented).toBe(false);
-    expect(isStanding(a.ask as unknown as HTMLDialogElement)).toBe(false);
-  });
-
-  test("a browser that closes the held dialog anyway gets it shown again, and a close after release is left alone", () => {
-    const a = fakeAsk();
-    const hold = standOpen(a.ask as unknown as HTMLDialogElement, restoring());
-    a.ask.close();
-    a.ask.fire("close");
-    expect(a.ask.shows).toBe(2);
-    expect(a.ask.open).toBe(true);
-    hold.release();
-    a.ask.close();
-    a.ask.fire("close");
-    expect(a.ask.shows).toBe(2);
-    expect(a.ask.open).toBe(false);
-  });
-
-  test("two holds of one dialog attach one listener of each kind", () => {
-    const a = fakeAsk();
-    const io = restoring();
-    let restores = 0;
-    const counting = { onRestore: (fn: () => void) => { restores += 1; io.onRestore(fn); } };
-    standOpen(a.ask as unknown as HTMLDialogElement, counting).release();
-    standOpen(a.ask as unknown as HTMLDialogElement, counting);
-    expect(a.ask.count("cancel")).toBe(1);
-    expect(a.ask.count("close")).toBe(1);
-    expect(restores).toBe(1);
-  });
-
-  test("a restore from the cache closes it, releases it and empties its line", () => {
-    const a = fakeAsk();
-    const io = restoring();
-    standOpen(a.ask as unknown as HTMLDialogElement, io);
     a.line.textContent = "old";
-    io.restore!();
-    expect(a.ask.closes).toBe(1);
-    expect(a.ask.open).toBe(false);
-    expect(a.standing()).toBe(false);
+    const io = fakeIo();
+    coverWhile(a.ask as unknown as HTMLDialogElement, io);
     expect(a.line.textContent).toBe("");
-    expect(a.ask.fire("cancel").defaultPrevented).toBe(false);
+    expect(a.ask.open).toBe(false);
+    expect(io.covers).toEqual(["Deploying…"]);
   });
 
-  test("release with a reason writes it in the dialog's own line; release without one leaves the line", () => {
+  test("release without a reason lifts the cover and leaves the question closed", () => {
     const a = fakeAsk();
-    standOpen(a.ask as unknown as HTMLDialogElement, restoring()).release("Not on the allowlist.");
-    expect(a.line.textContent).toBe("Not on the allowlist.");
-    expect(a.standing()).toBe(false);
-    expect(a.ask.open).toBe(true);
-    const b = fakeAsk();
-    const hold = standOpen(b.ask as unknown as HTMLDialogElement, restoring());
-    b.line.textContent = "kept";
-    hold.release();
-    expect(b.line.textContent).toBe("kept");
+    const io = fakeIo();
+    coverWhile(a.ask as unknown as HTMLDialogElement, io).release();
+    expect(io.covers).toEqual(["Deploying…", "done"]);
+    expect(a.ask.open).toBe(false);
   });
 });
