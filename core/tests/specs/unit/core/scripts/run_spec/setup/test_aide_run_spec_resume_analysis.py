@@ -63,6 +63,28 @@ def test_a_session_that_cannot_be_continued_starts_the_implement_afresh(runner, 
     assert out["terminalReason"] != "cli-error", out
 
 
+def test_the_fresh_implement_still_reaches_the_specs_worktree(runner, workspace, fake_claude):
+    """The specs worktree is a sibling of the project's, reachable only by
+    --add-dir: the afresh turn is handed it as the first turn was."""
+    claude = fake_claude(
+        'case "$*" in *--resume*) echo "No conversation found with session ID" >&2; exit 1 ;; esac\n'
+        "cat > /dev/null\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    run(runner, workspace, claude, command="implement", resume_session=SESSION)
+    calls = fake_claude.calls.read_text().splitlines()
+    assert "--add-dir" in calls[0] and "--add-dir" in calls[1], calls
+
+
+def test_a_resumed_codex_thread_is_handed_no_add_dir_after_its_prompt(runner, workspace, fake_codex):
+    """`codex exec resume <thread> -` ends at the prompt and takes no
+    --add-dir; the thread keeps the directories it started with."""
+    codex = fake_codex("cat > /dev/null; exit 1")
+    run(runner, workspace, tool="codex", codex=codex, command="implement", resume_session=SESSION)
+    first = fake_codex.calls.read_text().splitlines()[0]
+    assert first.endswith(f"{SESSION} -"), first
+
+
 def test_a_refused_session_starts_the_implement_afresh(runner, workspace, fake_claude):
     """A refusal on the resumed session is not the implement's own: it runs
     again as it would have without the flag, as it does for `cli-error`."""

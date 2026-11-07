@@ -117,6 +117,14 @@ specs_wt=""
 # told "the sandbox only allows the project" and does nothing, while the
 # run reports success. Seen four times on 2026-08-18. So every root the
 # step may write in is handed over explicitly.
+# The fresh argv an implement falls back to, when its analysis's session
+# cannot be continued, is handed them too. A resumed Codex thread
+# (`codex exec resume <thread> -`) ends at its prompt and takes no
+# --add-dir: it keeps the directories it started with.
+codex_resumes="no"
+[ "$tool" = "codex" ] && [ "${argv[${#argv[@]}-1]}" = "-" ] && codex_resumes="yes"
 for wt in "${work_roots[@]}"; do
-  [ "$wt" != "$project_wt" ] && argv+=(--add-dir "$wt")
+  [ "$wt" = "$project_wt" ] && continue
+  [ "$codex_resumes" = "yes" ] || argv+=(--add-dir "$wt")
+  fresh_argv+=(--add-dir "$wt")
 done

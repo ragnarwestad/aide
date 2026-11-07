@@ -114,6 +114,8 @@ def test_a_red_suite_goes_back_to_the_session_and_a_fix_ends_the_step_completed(
     # Review is Off when none was chosen: implement, then the resumed fix.
     assert len(calls) == 2, calls
     assert "--resume" in calls[1] and "--session-id" not in calls[1], calls[1]
+    # A resumed claude is handed the specs worktree again, as its first turn was.
+    assert "--add-dir" in calls[1], calls[1]
     record = json.loads(git(workspace["specs"], "show", f"{BRANCH}:{workspace['folder']}/test-run.json"))
     assert record["exitCode"] == 0, record
 

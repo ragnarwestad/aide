@@ -154,7 +154,8 @@ resume_argv() {
     prev="$arg"
     case "$arg" in
       --session-id|--resume) resumed_argv+=(--resume "$session"); resumes="yes"; skip="yes" ;;
-      --sandbox|--add-dir|--name) skip="yes" ;;
+      --name) skip="yes" ;;
+      --sandbox|--add-dir) if [ "$tool" = "codex" ]; then skip="yes"; else resumed_argv+=("$arg"); fi ;;
       exec) resumed_argv+=(exec resume); resumes="yes" ;;
       *) resumed_argv+=("$arg") ;;
     esac
