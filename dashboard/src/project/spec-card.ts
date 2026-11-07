@@ -46,7 +46,7 @@ export interface CardView {
   shown: CardValues;
   /** Save and Cancel are drawn. */
   saveCancel: boolean;
-  /** Cancel can be pressed: a field that is open shows something other than what was saved. */
+  /** Save and Cancel can be pressed: a field that is open shows something other than what was saved. */
   cancelOffered: boolean;
   /** What Cancel puts back: what was last saved. */
   restore: CardValues;

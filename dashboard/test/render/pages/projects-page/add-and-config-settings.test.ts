@@ -49,3 +49,20 @@ describe("Add project and the Config tab post the same settings", () => {
     ]);
   });
 });
+
+describe("the Config tab's table being edited", () => {
+  test("draws a Save carrying the id the page script waits on for a change (AC-4)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-config-save-"));
+    dirs.push(dir);
+    mkdirSync(join(dir, ".aide"));
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\n");
+    const view = projectSettings(dir, null);
+    for (const { file } of SETTING_GROUPS) {
+      const html = unifiedSettingsTable(view, "p", file, { worktreeLinkCandidates: [], editingGroup: file });
+      const window = new Window();
+      window.document.body.innerHTML = html;
+      const save = window.document.querySelector("form.projectsettingsform #projectsettingsform-save");
+      expect(save?.getAttribute("type")).toBe("submit");
+    }
+  });
+});

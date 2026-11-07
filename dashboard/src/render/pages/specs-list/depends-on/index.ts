@@ -73,7 +73,7 @@ export function dependsOnLine(g: SpecGroup, opts: Pick<SpecsPageOptions, "target
     project: g.project,
     form: id,
     disabled: view.locks.dependsOn !== null,
-    actions: view.saveCancel ? saveCancelActions(id, {}, opts.lang ?? "en") : "",
+    actions: view.saveCancel ? saveCancelActions(id, { saveDisabled: !view.cancelOffered }, opts.lang ?? "en") : "",
     lang: opts.lang,
   });
   const settings = settingsGroup(id, view, opts.lang);

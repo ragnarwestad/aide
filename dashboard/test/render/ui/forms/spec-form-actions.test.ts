@@ -399,3 +399,42 @@ describe("a form that names where Cancel goes", () => {
     expect(went).toEqual([]);
   });
 });
+
+/** A form whose Cancel is a link back to the saved page: it has a Save under
+ *  its prefix and no Cancel button. */
+function saveOnlyForm(prefix: string, saveId = `${prefix}-save`): HTMLInputElement {
+  document.body.innerHTML =
+    `<form class="pageform ${prefix}" method="post">` +
+    `<input type="text" name="cron" value="0 3 * * *">` +
+    `<span class="refused"></span>` +
+    `<button id="${saveId}" type="submit">Save</button>` +
+    `<a href="/back" data-discard-changes>Cancel</a>` +
+    `</form>`;
+  return document.querySelector('input[name="cron"]') as HTMLInputElement;
+}
+const saveBy = (id: string): HTMLButtonElement => document.getElementById(id) as HTMLButtonElement;
+
+describe("a form whose Cancel is a link keeps Save inactive until a field changes", () => {
+  for (const prefix of ["projectsettingsform", "scheduleform"]) {
+    test(`${prefix}: Save starts disabled, the first change enables it, and a refusal leaves it enabled (AC-4, AC-5, AC-8)`, () => {
+      const field = saveOnlyForm(prefix);
+      expect(saveBy(`${prefix}-save`).disabled).toBe(false);
+      mount();
+      expect(saveBy(`${prefix}-save`).disabled).toBe(true);
+      field.value = "0 4 * * *";
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      expect(saveBy(`${prefix}-save`).disabled).toBe(false);
+      document.querySelector(".refused")!.textContent = "That cron is not valid";
+      expect(saveBy(`${prefix}-save`).disabled).toBe(false);
+    });
+  }
+
+  test("a scheduleform whose button carries no id, as Create does, is left enabled (AC-7)", () => {
+    const field = saveOnlyForm("scheduleform", "");
+    mount();
+    expect(document.querySelector("button[type=submit]")!.hasAttribute("disabled")).toBe(false);
+    field.value = "0 4 * * *";
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(document.querySelector("button[type=submit]")!.hasAttribute("disabled")).toBe(false);
+  });
+});

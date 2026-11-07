@@ -9,7 +9,7 @@ import { Window } from "happy-dom";
 import type { SpecTarget } from "../../../src/render";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
 import { dependsOnFormId, dependsOnLine } from "../../../src/render/pages/specs-list/depends-on";
-import { cancelDependsOn, pickSetting, resetCards } from "../../../src/specs-client/depends-on";
+import { cancelDependsOn, cardAnswered, pickSetting, resetCards } from "../../../src/specs-client/depends-on";
 import { chosen, chosenSteps } from "../../../src/specs-client/state.ts";
 import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
 import { row as jobRow } from "../../render/pages/fixtures.ts";
@@ -60,6 +60,7 @@ const form = (rows: HTMLElement, folder: string) => rows.querySelector(`#${formI
 const box = (rows: HTMLElement, folder: string, dependency: string) =>
   form(rows, folder).querySelector(`input[name="dependsOn"][value="${dependency}"]`) as HTMLInputElement;
 const cancel = (rows: HTMLElement, folder: string) => rows.querySelector(`#${formId(folder)}-cancel`) as HTMLButtonElement;
+const save = (rows: HTMLElement, folder: string) => rows.querySelector(`#${formId(folder)}-save`) as HTMLButtonElement;
 const pickedBlock = (rows: HTMLElement, folder: string) => form(rows, folder).querySelector(".phases.picked") as HTMLElement;
 
 /** Tick a box the way a hand does: the change reaches the chip mover, then the page's own handler. */
@@ -173,5 +174,73 @@ describe("a redraw that locks the card", () => {
     expect(box(rows, A, B).checked).toBe(false);
     expect(pickedBlock(rows, A).contains(box(rows, A, B))).toBe(false);
     expect(cancel(rows, A).disabled).toBe(false);
+  });
+});
+
+describe("the Depends on line's Save follows Cancel", () => {
+  const setting = (rows: HTMLElement, name: string) =>
+    form(rows, A).querySelector(`[name="${name}"]`) as HTMLInputElement & HTMLSelectElement;
+  /** Save and Cancel read the same answer from the card. */
+  const together = (rows: HTMLElement): boolean => save(rows, A).disabled === cancel(rows, A).disabled;
+
+  test("is disabled as drawn, enabled by a tick and disabled again by unticking it (AC-1, AC-2)", () => {
+    const { rows, redraw } = list();
+    redraw();
+    expect(save(rows, A).disabled).toBe(true);
+    tick(rows, A, THIRD);
+    expect(save(rows, A).disabled).toBe(false);
+    tick(rows, A, THIRD, false);
+    expect(save(rows, A).disabled).toBe(true);
+  });
+
+  test("is enabled by a changed setting and disabled again when it is changed back (AC-2)", () => {
+    const { rows, redraw } = list();
+    redraw();
+    const checks = setting(rows, "criteriaChecks");
+    checks.value = "stop";
+    pickSetting(checks);
+    expect(save(rows, A).disabled).toBe(false);
+    checks.value = "off";
+    pickSetting(checks);
+    expect(save(rows, A).disabled).toBe(true);
+    const approach = setting(rows, "chooseApproach");
+    approach.checked = !approach.checked;
+    pickSetting(approach);
+    expect(save(rows, A).disabled).toBe(false);
+    approach.checked = !approach.checked;
+    pickSetting(approach);
+    expect(save(rows, A).disabled).toBe(true);
+  });
+
+  test("stays enabled through a redraw that keeps the change, and is disabled again by Cancel (AC-1)", () => {
+    const { rows, redraw } = list();
+    redraw();
+    tick(rows, A, THIRD);
+    redraw();
+    expect(save(rows, A).disabled).toBe(false);
+    cancelDependsOn(cancel(rows, A));
+    expect(save(rows, A).disabled).toBe(true);
+  });
+
+  test("equals Cancel after a tick, a change back, a redraw, Cancel, a save and a refusal (AC-3, AC-8)", () => {
+    const { rows, redraw } = list();
+    redraw();
+    expect(together(rows)).toBe(true);
+    tick(rows, A, THIRD);
+    expect(together(rows)).toBe(true);
+    tick(rows, A, THIRD, false);
+    expect(together(rows)).toBe(true);
+    tick(rows, A, THIRD);
+    redraw();
+    expect(together(rows)).toBe(true);
+    cardAnswered(form(rows, A), "refused");
+    expect(together(rows)).toBe(true);
+    expect(save(rows, A).disabled).toBe(false);
+    cancelDependsOn(cancel(rows, A));
+    expect(together(rows)).toBe(true);
+    tick(rows, A, THIRD);
+    cardAnswered(form(rows, A), "saved");
+    expect(together(rows)).toBe(true);
+    expect(save(rows, A).disabled).toBe(true);
   });
 });

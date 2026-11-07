@@ -31,6 +31,9 @@ const checksOf = (form: Element): HTMLSelectElement | null => form.querySelector
 const cancelOf = (form: Element): HTMLButtonElement | undefined =>
   (Array.from(form.querySelectorAll("button")) as HTMLButtonElement[]).find((b) => b.id === `${form.id}-cancel`);
 
+const saveOf = (form: Element): HTMLButtonElement | undefined =>
+  (Array.from(form.querySelectorAll("button")) as HTMLButtonElement[]).find((b) => b.id === `${form.id}-save`);
+
 /** A tick on a chip is the chip mover's cue (`ui/forms/depends-lift.ts`),
  *  which listens for `change`; a restore is silent, so the cue is sent. */
 const announce = (box: HTMLInputElement): void => {
@@ -77,7 +80,7 @@ function shownOf(form: Element): CardValues {
 let writing = false;
 
 /** The card's view put into the controls: every box and the level set to what
- *  it shows, a moved chip announced, and Cancel offered or not. */
+ *  it shows, a moved chip announced, and Save and Cancel offered or not. */
 function show(form: Element, view: CardView): void {
   writing = true;
   try {
@@ -103,6 +106,8 @@ function show(form: Element, view: CardView): void {
   }
   const cancel = cancelOf(form);
   if (cancel) cancel.disabled = !view.cancelOffered;
+  const save = saveOf(form);
+  if (save) save.disabled = !view.cancelOffered;
 }
 
 function send(form: Element, event: CardEvent): void {

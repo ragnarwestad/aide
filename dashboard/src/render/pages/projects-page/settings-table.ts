@@ -168,7 +168,7 @@ function settingsTableActions(
 ): string {
   if (editingGroup === file) {
     return (
-      `<span class="factions">${btn({ label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") })}` +
+      `<span class="factions">${btn({ id: "projectsettingsform-save", label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") })}` +
       // No `${prefix}-cancel` id like the other Cancel controls on this
       // page's siblings (a plain link, not a submit-form pair) —
       // `data-discard-changes` gives unsaved-changes.ts the same

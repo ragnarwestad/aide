@@ -129,7 +129,7 @@ from. Under the picker, in the same form and saved by the same Save, are the fou
 with, laid out as New spec's Options tab: the three analyze reads — Acceptance ticking required, "Acceptance criteria
 checks" and "Let me choose the approach" — take a change until analyze has run and while no job of the spec is queued,
 running or landing; "Let AI formulate acceptance criteria", which create has already used, is locked with
-no field name. A change not yet saved outlives a redraw and offers Cancel, as a tick does, and it outlives a job too: the locked card shows
+no field name. A change not yet saved outlives a redraw and offers Save and Cancel, which are pressable only while a field differs from what was saved, as a tick does, and it outlives a job too: the locked card shows
 what was saved meanwhile, and the change comes back when the job ends on a field that can still be changed. What can be changed,
 whether Save and Cancel show, and what Cancel puts back are decided in one place, `cardStep` (`src/project/spec-card.ts`), which the
 row's drawing, its page script, New spec and the tracking route all ask. On a spec with an open `aide/<folder>` branch the picker and the row's own line show the branch's `Depends on:`

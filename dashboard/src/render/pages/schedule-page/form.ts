@@ -209,7 +209,8 @@ export function renderScheduleForm(opts: ScheduleFormOptions, lang: Language = "
     notifyField(opts, lang) +
     browserField(opts, lang) +
     sandboxField(opts, lang) +
-    `<div class="factions">${btn({ label: t(lang, opts.entryName ? "list.checksSave" : "form.create"), variant: "primary" })}` +
+    // Only an existing entry's Save waits for a change; Create is left as drawn.
+    `<div class="factions">${btn({ id: opts.entryName ? "scheduleform-save" : undefined, label: t(lang, opts.entryName ? "list.checksSave" : "form.create"), variant: "primary" })}` +
     // A link, as the Config tab's Cancel is: it loads the tab as saved,
     // and `data-discard-changes` lets it past the leave question.
     (opts.cancelHref ? btnLink({ href: opts.cancelHref, label: t(lang, "dialog.cancel"), data: { "discard-changes": "" } }) : "") +
