@@ -364,17 +364,19 @@ export function testsRed(raw: unknown): TestsRed | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
   const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
-  const tests = Array.isArray(r.tests) ? r.tests.filter((t): t is string => typeof t === "string" && t !== "") : [];
-  const aligned = (value: unknown, length: number): string[] =>
-    Array.isArray(value) && value.length === length && value.every((v) => typeof v === "string")
-      ? value as string[]
-      : Array<string>(length).fill("");
-  const errors = aligned(r.errors, tests.length);
+  // Each test is paired with its error before a nameless one is dropped,
+  // so dropping it never shifts the errors of the tests after it.
+  const named = (names: unknown, errs: unknown): { names: string[]; errors: string[] } => {
+    const all = Array.isArray(names) ? names : [];
+    const aligned = Array.isArray(errs) && errs.length === all.length && errs.every((v) => typeof v === "string")
+      ? errs as string[] : undefined;
+    const kept = all.flatMap((t, i) => (typeof t === "string" && t !== "" ? [{ t, e: aligned?.[i] ?? "" }] : []));
+    return { names: kept.map((k) => k.t), errors: kept.map((k) => k.e) };
+  };
+  const { names: tests, errors } = named(r.tests, r.errors);
   const failed = num(r.failed);
-  const passedAlone = Array.isArray(r.passedAlone)
-    ? r.passedAlone.filter((t): t is string => typeof t === "string" && t !== "") : [];
+  const { names: passedAlone, errors: passedAloneErrors } = named(r.passedAlone, r.passedAloneErrors);
   const passedAloneCount = num(r.passedAloneCount) ?? passedAlone.length;
-  const passedAloneErrors = aligned(r.passedAloneErrors, passedAlone.length);
   if ((!tests.length && !passedAlone.length) || failed === undefined) return undefined;
   const total = num(r.total);
   return {

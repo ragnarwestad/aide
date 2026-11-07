@@ -32,6 +32,14 @@ describe("testsRedMessage", () => {
     });
   });
 
+  test("a test with no name drops only its own error, never the others'", () => {
+    const withBlank = red({
+      tests: ["e2e/a.spec.ts:5 › a works", "", "e2e/b.spec.ts:9 › b works"],
+      errors: ["expected 3, received 0", "orphan", "not found"],
+    });
+    expect(said(withBlank)?.values?.tests).toBe("e2e/a.spec.ts:5 › a works — expected 3, received 0; e2e/b.spec.ts:9 › b works — not found");
+  });
+
   test("an older result without errors still names its tests (AC-2)", () => {
     expect(said(red({ errors: undefined }))).toEqual({
       key: "runner.testsRedFailing",
