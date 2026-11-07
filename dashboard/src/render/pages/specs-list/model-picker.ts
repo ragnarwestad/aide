@@ -109,9 +109,9 @@ export function modelPicker(
     // which phases have run — derived from the same `used` the
     // pre-filled value is — is better than the browser re-deriving it.
     (used !== undefined ? ` data-ran="1"` : "") +
-    // Why it is locked, when it is, is said once for the whole phase
-    // line (`aiModel()`'s own shared "(?)") — not repeated
-    // on this select's own `title`.
+    // No `title` saying why it is locked: the State column says what is
+    // running, and a phase that has run cannot run again
+    // (`aiModel()` in phase-rows.ts).
     (locked ? " disabled" : "") +
     `>` +
     modelOptions(pickerModels(models, chosen, archived || alreadyRun, ranModelId), chosen, ranModelId) +

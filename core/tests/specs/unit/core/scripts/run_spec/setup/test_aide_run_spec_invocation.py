@@ -772,3 +772,20 @@ def test_a_short_analysis_is_not_offered_to_a_spec_sent_back_to_a_full_one(runne
     assert rc == 0, out
     lines = [l for l in out["prompt"].splitlines() if "A short analysis is allowed" in l]
     assert lines == ([] if case["sentBack"] else [SHORT_ANALYSIS_LINE]), out["prompt"]
+
+
+def test_implement_receives_archive_failure_evidence_in_its_prompt(runner, workspace, fake_claude, monkeypatch):
+    evidence = {"jobId": "archive-job", "detail": "TypeError: root.querySelector is not a function", "archiveStepRepos": [{"headAfter": "branch-tip"}]}
+    monkeypatch.setenv("AIDE_ARCHIVE_FAILURE_CONTEXT", json.dumps(evidence))
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement", dry_run=True)
+    assert rc == 0, out
+    assert json.dumps(evidence) in out["prompt"]
+
+
+@pytest.mark.parametrize("command", ["analyze", "archive"])
+def test_other_steps_do_not_receive_archive_failure_evidence(runner, workspace, fake_claude, monkeypatch, command):
+    evidence = '{"jobId":"archive-job","detail":"named-test failure"}'
+    monkeypatch.setenv("AIDE_ARCHIVE_FAILURE_CONTEXT", evidence)
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command=command, dry_run=True)
+    assert rc == 0, out
+    assert evidence not in out["prompt"]

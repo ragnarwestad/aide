@@ -183,10 +183,10 @@ test("the first job arrives and the last leaves without a reload, then search st
   writeFileSync(fakeRunner, `#!/bin/sh\nn=0\nwhile [ ! -f ${go} ] && [ $n -lt 1200 ]; do sleep 0.05; n=$((n+1)); done\n`, { mode: 0o755 });
   const page = await browser.newPage();
   try {
-    const { base, dir } = emptyHarness.start({
+    const { base } = emptyHarness.start({
+      emptySpecs: true,
       extra: { queueRunnerBin: fakeRunner, queueResultDir: join(own, "jobs"), queuePollMs: 200 },
     });
-    rmSync(join(dir, "root", "aide", "specs", SPEC), { recursive: true });
     // The board has started in this tab, so its empty Running tab is shown.
     await page.addInitScript(() => sessionStorage.setItem("aide-started", "1"));
     await page.goto(`${base}/`);

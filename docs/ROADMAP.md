@@ -29,6 +29,7 @@
   - [26. A check that nothing on a changed page runs past the screen's edge](#26-a-check-that-nothing-on-a-changed-page-runs-past-the-screens-edge)
   - [27. Asking for work where the conversation already is](#27-asking-for-work-where-the-conversation-already-is)
   - [28. A rule or skill is kept only while it helps](#28-a-rule-or-skill-is-kept-only-while-it-helps)
+  - [29. A defect the review finds leaves a check behind](#29-a-defect-the-review-finds-leaves-a-check-behind)
 
 ---
 
@@ -44,7 +45,7 @@ An idea that becomes a spec names it, and leaves this page once the spec is arch
 
 Each idea has a number that stays with it. A new idea gets the next number after the highest one ever given, and
 the number of an idea taken off the page is never used again, so a number can be referred to and still mean the
-same idea later. The next number is 29.
+same idea later. The next number is 30.
 
 ## To consider
 
@@ -549,3 +550,22 @@ Open questions:
 - Which changes are worth a round. A round costs money and hours, and most rule changes are small.
 - What counts as no difference, given that the measures in `docs/REPLAY.md` were set for choosing a model.
 - Whether rules already in place are replayed too, or only new changes.
+
+### 29. A defect the review finds leaves a check behind
+
+From two posts by @poteto: one (2026-11-01) on landing about 1,150 PRs in four days, where each defect the review
+bot found became a lint rule, and one (2026-11-02) saying that adversarial reviews are mostly a waste of tokens next
+to checks that run.
+
+In Implement, the review reports defects and the implement session fixes them in one more turn
+(`docs/AGENTS_AND_LOOPS.md`). The fix is made, but nothing stops the same kind of defect coming back in the next
+spec, and the next review has to find it again. The idea: a defect the review finds is fixed together with a check
+that catches it, such as a test, a lint rule or a code-health limit, and the check is shown red on the defect before
+the fix makes it green. Over time the checks take over what the review keeps finding, and a review that finds
+nothing new costs less than one that keeps finding the same things.
+
+Open questions:
+
+- Which defects deserve a check of their own, and which are one-off mistakes a test for the fix already covers.
+- Where a check that is not a test lives, so it runs in every project Aide is installed in and not only in Aide.
+- How the runner sees that the check was red before the fix, since the fix turn today only has to end green.
