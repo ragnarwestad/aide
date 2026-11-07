@@ -58,6 +58,7 @@ SKILLS=(
   "aide-implement"
   "aide-create"
   "aide-to-pdf"
+  "aide-untangle"
   "task-workflow-assistant"
   "tdd-coach"
   "documentation"

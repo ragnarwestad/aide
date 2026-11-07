@@ -164,6 +164,7 @@ Other, supporting skills:
 - **`/aide-close`** — closes a spec you have decided not to build: records the reason, moves it to `archive/`, and deletes its code branch unmerged
 - **`/aide-reopen`** — takes an archived spec back into the active list for another round of analysis or implementation; keeps every file unless asked to reset the analysis, plan and status
 - **`/aide-to-pdf`** — generates a PDF from a spec's documentation
+- **`/aide-untangle`** — maps where a codebase is tangled and where it breaks the size limits, and hands each fix over as spec text; changes no code
 
 ---
 
