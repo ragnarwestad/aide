@@ -105,7 +105,9 @@ function asLines(lang: Language, problem: string, solution: string | undefined):
 
 export function renderMessage(lang: Language, m: BoardMessage, catalog: Catalog = MESSAGES): string {
   const p = messageParts(lang, m, catalog);
-  return p.lines ? asLines(lang, p.problem, p.solution) : p.problem;
+  if (p.lines) return asLines(lang, p.problem, p.solution);
+  // A statement stands alone as a sentence of its own.
+  return catalog[m.key]?.statement !== undefined ? opensWithCapital(p.problem) : p.problem;
 }
 
 export function renderSentence(

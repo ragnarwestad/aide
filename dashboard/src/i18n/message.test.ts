@@ -4,10 +4,10 @@ import { renderMessage, renderSentence } from "./message.ts";
 describe("renderMessage", () => {
   test("renders a message with values substituted, per language", () => {
     expect(renderMessage("en", { key: "runner.dependencyNotArchived", values: { dependency: "80-x" } })).toBe(
-      "Problem: Held back: depends on 80-x, which is not archived yet",
+      "Held back: depends on 80-x, which is not archived yet",
     );
     expect(renderMessage("nb", { key: "runner.dependencyNotArchived", values: { dependency: "80-x" } })).toBe(
-      "Problem: Holdt tilbake: avhenger av 80-x, som ikke er arkivert ennå",
+      "Holdt tilbake: avhenger av 80-x, som ikke er arkivert ennå",
     );
   });
 

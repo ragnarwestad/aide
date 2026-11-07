@@ -33,7 +33,7 @@ function carriesFix(r: Sentence | Sentence[] | undefined): boolean {
   if (Array.isArray(r)) return r.length > 0 && r.every(carriesFix);
   if (r.values?.button === stepButton("create")) return false;
   if (r.values?.solution) return true;
-  const entry = (MESSAGES as Record<string, { solution: unknown }>)[r.key];
+  const entry = (MESSAGES as Record<string, { solution?: unknown }>)[r.key];
   if (entry?.solution) return true;
   return carriesFix(r.inner);
 }

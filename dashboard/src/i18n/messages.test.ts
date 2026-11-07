@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { MESSAGES, type MessageEntry } from "./messages.ts";
+import { MESSAGES, type MessageEntry, type MessageKey } from "./messages.ts";
+import { renderMessage } from "./message.ts";
 import { en } from "./en.ts";
 import { nb } from "./nb.ts";
 import { es } from "./es.ts";
@@ -59,16 +60,32 @@ describe("the sentences about a used-up usage limit ask for no press", () => {
     "wordPhase.stopProviderLimit", "push.stoppedProviderLimit",
   ];
 
-  test.each(KEYS)("%s has no fix and says why", (key) => {
+  test.each(KEYS)("%s is a statement and says why", (key) => {
     const entry = MESSAGES[key] as MessageEntry;
-    expect(entry.solution, key).toBeNull();
-    expect(entry.exempt, key).toBeTruthy();
+    expect(entry.solution, key).toBeUndefined();
+    expect(entry.statement, key).toBeTruthy();
+  });
+});
+
+describe("a sentence that informs is not a problem", () => {
+  const KEYS: MessageKey[] = [
+    "push.scheduleDone", "login.in", "readiness.gitRoot.ok", "readiness.checkout.willMake",
+    "runner.dependencyNotArchived", "runner.usageLimitHeld", "wordPhase.stopSentBack",
+  ];
+
+  test.each(KEYS)("%s is shown without a Problem label", (key) => {
+    expect(renderMessage("en", { key, values: { dir: "/x", method: "m", account: "a" } })).not.toStartWith("Problem:");
   });
 });
 
 describe("registered error sentences hold a fix apart from the problem", () => {
   test("every entry holds a fix in all five languages, or no fix and a reason (AC-1, AC-8)", () => {
     for (const [key, entry] of Object.entries(MESSAGES) as [string, MessageEntry][]) {
+      if (entry.statement !== undefined) {
+        expect(entry.statement, `${key} is a statement with no reason`).toBeTruthy();
+        expect(entry.solution, `${key} is a statement with a solution`).toBeUndefined();
+        continue;
+      }
       if (entry.solution === null) {
         expect(entry.exempt, `${key} has no solution and no exempt reason`).toBeTruthy();
         continue;

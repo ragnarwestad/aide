@@ -13,8 +13,14 @@ type Texts = { en: string; nb: string; es: string; de: string; fr: string };
 
 /** The language texts hold the problem alone. `solution` holds the one
  *  fix, in each language, or is `null` when there is nothing to resolve,
- *  and `exempt` says why (docs/error-sentences.md). */
-export type MessageEntry = Texts & ({ solution: Texts; exempt?: undefined } | { solution: null; exempt: string });
+ *  and `exempt` says why (docs/error-sentences.md). A `statement` is no
+ *  problem at all, such as a check that passed, and says why; it is shown
+ *  as its sentence alone, with no Problem or Solution label. */
+export type MessageEntry = Texts & (
+  | { solution: Texts; exempt?: undefined; statement?: undefined }
+  | { solution: null; exempt: string; statement?: undefined }
+  | { solution?: undefined; exempt?: undefined; statement: string }
+);
 
 export const MESSAGES = {
   // --- a message a producer wrote in English, with its fix apart ------------
@@ -133,8 +139,7 @@ export const MESSAGES = {
     es: "retenido: depende de {dependency}, que todavía no está archivada",
     de: "zurückgehalten: hängt ab von {dependency}, das noch nicht archiviert ist",
     fr: "retenu : dépend de {dependency}, qui n'est pas encore archivée",
-    solution: null,
-    exempt: "resolves on its own once the dependency is archived — nothing to press",
+    statement: "resolves on its own once the dependency is archived — nothing to press",
   },
   // A used-up usage limit: the step starts again by itself, so none of
   // these asks for a press. The blanks hold plain values; the render side
@@ -160,8 +165,7 @@ export const MESSAGES = {
     es: "retenido: espera el límite de uso de {provider} — empieza a las {at}",
     de: "zurückgehalten: wartet auf das Nutzungslimit von {provider} — es startet um {at}",
     fr: "retenu : attend la limite d'utilisation de {provider} — cela démarre à {at}",
-    solution: null,
-    exempt: "starts by itself when the limit resets — nothing to press",
+    statement: "starts by itself when the limit resets — nothing to press",
   },
   "runner.usageLimitHeldNoReset": {
     en: "held back: waits for {provider}'s usage limit — {provider} did not say when it resets, so the board tries again at {at}",
@@ -169,8 +173,7 @@ export const MESSAGES = {
     es: "retenido: espera el límite de uso de {provider} — {provider} no dijo cuándo se restablece, así que el dashboard lo intenta de nuevo a las {at}",
     de: "zurückgehalten: wartet auf das Nutzungslimit von {provider} — {provider} hat nicht gesagt, wann es zurückgesetzt wird, daher versucht das Dashboard es erneut um {at}",
     fr: "retenu : attend la limite d'utilisation de {provider} — {provider} n'a pas dit quand elle se réinitialise, donc le dashboard réessaie à {at}",
-    solution: null,
-    exempt: "the board tries again by itself — nothing to press",
+    statement: "the board tries again by itself — nothing to press",
   },
   "runner.usageLimitHeldProbe": {
     en: "held back: waits for {provider}'s usage limit — {provider} did not say when it resets; the board tried again at {at}, and this starts once that step has run",
@@ -178,8 +181,7 @@ export const MESSAGES = {
     es: "retenido: espera el límite de uso de {provider} — {provider} no dijo cuándo se restablece; el dashboard lo intentó de nuevo a las {at}, y esto empieza cuando ese paso haya terminado",
     de: "zurückgehalten: wartet auf das Nutzungslimit von {provider} — {provider} hat nicht gesagt, wann es zurückgesetzt wird; das Dashboard hat es erneut um {at} versucht, und das startet, sobald dieser Schritt gelaufen ist",
     fr: "retenu : attend la limite d'utilisation de {provider} — {provider} n'a pas dit quand elle se réinitialise ; le dashboard a réessayé à {at}, et cela démarre une fois cette étape exécutée",
-    solution: null,
-    exempt: "starts by itself once the step that was tried has run — nothing to press",
+    statement: "starts by itself once the step that was tried has run — nothing to press",
   },
   "runner.usageLimitRestarts": {
     en: "{who}: {limit} is used up — {step} starts again by itself at {at}.",
@@ -187,8 +189,7 @@ export const MESSAGES = {
     es: "{who}: {limit} está agotado — {step} se reinicia solo a las {at}.",
     de: "{who}: {limit} ist aufgebraucht — {step} startet von selbst neu um {at}.",
     fr: "{who} : {limit} est épuisé — {step} redémarre de lui-même à {at}.",
-    solution: null,
-    exempt: "starts again by itself when the limit resets — nothing to press",
+    statement: "starts again by itself when the limit resets — nothing to press",
   },
   "runner.usageLimitRestartsNoReset": {
     en: "{who}: {limit} is used up, and the AI did not say when it resets — {step} starts again by itself when the board tries again at {at}.",
@@ -196,8 +197,7 @@ export const MESSAGES = {
     es: "{who}: {limit} está agotado, y la IA no dijo cuándo se restablece — {step} se reinicia solo cuando el dashboard lo intente de nuevo a las {at}.",
     de: "{who}: {limit} ist aufgebraucht, und die KI hat nicht gesagt, wann es zurückgesetzt wird — {step} startet von selbst neu, wenn das Dashboard es erneut versucht um {at}.",
     fr: "{who} : {limit} est épuisé, et l'IA n'a pas dit quand elle se réinitialise — {step} redémarre de lui-même quand le dashboard réessaie à {at}.",
-    solution: null,
-    exempt: "the board tries again by itself — nothing to press",
+    statement: "the board tries again by itself — nothing to press",
   },
   "runner.runVanished": {
     en: "the run vanished without leaving a result",
@@ -1602,8 +1602,7 @@ export const MESSAGES = {
     es: "no queda nada que mergear — la branch no está en origin ({ref} en {root})",
     de: "es gibt nichts mehr zu mergen — der Branch ist nicht auf origin ({ref} in {root})",
     fr: "il ne reste rien à merger — la branch n'est pas sur origin ({ref} dans {root})",
-    solution: null,
-    exempt: "the branch already being gone is itself the resolution — nothing to press",
+    statement: "the branch already being gone is itself the resolution — nothing to press",
   },
   "landing.cannotSwitch": {
     en: "cannot switch to {base} ({ref} in {root})",
@@ -2019,8 +2018,7 @@ export const MESSAGES = {
     es: "la spec ya estaba archivada — nada que hacer",
     de: "die Spec war bereits archiviert — nichts zu tun",
     fr: "la spec était déjà archivée — rien à faire",
-    solution: null,
-    exempt: "already finished — nothing left to resolve",
+    statement: "already finished — nothing left to resolve",
   },
   "wordPhase.stopConflictOpen": {
     en: "a merge is open in the worktree",
@@ -2042,8 +2040,7 @@ export const MESSAGES = {
     es: "se alcanzó el límite de uso de la IA — el paso se reinicia solo cuando se restablezca el límite",
     de: "das Nutzungslimit der KI wurde erreicht — der Schritt startet von selbst neu, sobald das Limit zurückgesetzt ist",
     fr: "la limite d'utilisation de l'IA a été atteinte — l'étape redémarre d'elle-même une fois la limite réinitialisée",
-    solution: null,
-    exempt: "starts again by itself when the limit resets — nothing to press",
+    statement: "starts again by itself when the limit resets — nothing to press",
   },
 
   "wordPhase.stopModelRefused": {
@@ -2122,8 +2119,7 @@ export const MESSAGES = {
     es: "la spec no era pequeña después de todo y se devolvió a un análisis completo — el análisis y luego la implementación se ejecutan de nuevo por sí solos",
     de: "die Spec war doch nicht klein und wurde zu einer vollständigen Analyse zurückgeschickt — die Analyse und danach die Implementierung laufen von selbst erneut",
     fr: "la spec n'était finalement pas petite et a été renvoyée vers une analyse complète — l'analyse puis l'implémentation se relancent d'elles-mêmes",
-    solution: null,
-    exempt: "the analysis and implementation start again by themselves",
+    statement: "the analysis and implementation start again by themselves",
   },
   "wordPhase.stopSentBackRefused": {
     en: "it asked to send the spec back to a full analysis, but its analysis was already full or its description could not hold the line",
@@ -3007,8 +3003,7 @@ export const MESSAGES = {
     es: "{step} se detuvo por el límite de uso de la IA — se reinicia solo cuando el límite se restablezca.",
     de: "{step} wurde durch das Nutzungslimit der KI gestoppt — es startet von selbst neu, sobald das Limit zurückgesetzt ist.",
     fr: "{step} s'est arrêté sur la limite d'usage de l'IA — il redémarre de lui-même une fois la limite réinitialisée.",
-    solution: null,
-    exempt: "starts again by itself when the limit resets — nothing to press",
+    statement: "starts again by itself when the limit resets — nothing to press",
   },
 
   "push.stoppedModelAtCapacity": {
@@ -3059,8 +3054,7 @@ export const MESSAGES = {
     es: "{step} vio que la spec no era pequeña después de todo y la devolvió a un análisis completo — el análisis y luego {button} se ejecutan de nuevo por sí solos.",
     de: "{step} hat festgestellt, dass die Spec doch nicht klein war, und sie zu einer vollständigen Analyse zurückgeschickt — die Analyse und danach {button} laufen von selbst erneut.",
     fr: "{step} a constaté que la spec n'était finalement pas petite et l'a renvoyée vers une analyse complète — l'analyse puis {button} se relancent d'elles-mêmes.",
-    solution: null,
-    exempt: "the analysis and implementation start again by themselves",
+    statement: "the analysis and implementation start again by themselves",
   },
   "push.stoppedSharedFiles": {
     en: "{step} stopped: other open specs plan to change the same files as this spec",
@@ -3143,8 +3137,7 @@ export const MESSAGES = {
     es: "La ejecución terminó — abre el trabajo para leer su informe.",
     de: "Der Lauf ist fertig — öffne den Job, um den Bericht zu lesen.",
     fr: "L'exécution est terminée — ouvrez la tâche pour lire son rapport.",
-    solution: null,
-    exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
+    statement: "it reports a run that went well and opens the job's own page",
   },
   "push.scheduleFailed": {
     en: "The run failed — open the job to see why.",
@@ -3182,8 +3175,7 @@ export const MESSAGES = {
     es: "sesión iniciada con {method} como {account}",
     de: "angemeldet mit {method} als {account}",
     fr: "connecté avec {method} en tant que {account}",
-    solution: null,
-    exempt: "it says how the AI is logged in; there is nothing to put right",
+    statement: "it says how the AI is logged in; there is nothing to put right",
   },
   "login.inWith": {
     en: "logged in with {method}",
@@ -3191,8 +3183,7 @@ export const MESSAGES = {
     es: "sesión iniciada con {method}",
     de: "angemeldet mit {method}",
     fr: "connecté avec {method}",
-    solution: null,
-    exempt: "it says how the AI is logged in; there is nothing to put right",
+    statement: "it says how the AI is logged in; there is nothing to put right",
   },
   "login.inAs": {
     en: "logged in as {account}",
@@ -3200,8 +3191,7 @@ export const MESSAGES = {
     es: "sesión iniciada como {account}",
     de: "angemeldet als {account}",
     fr: "connecté en tant que {account}",
-    solution: null,
-    exempt: "it says how the AI is logged in; there is nothing to put right",
+    statement: "it says how the AI is logged in; there is nothing to put right",
   },
   "login.in": {
     en: "logged in",
@@ -3209,8 +3199,7 @@ export const MESSAGES = {
     es: "sesión iniciada",
     de: "angemeldet",
     fr: "connecté",
-    solution: null,
-    exempt: "it says the AI is logged in; there is nothing to put right",
+    statement: "it says the AI is logged in; there is nothing to put right",
   },
   "login.out": {
     en: "not logged in",
@@ -3232,8 +3221,7 @@ export const MESSAGES = {
     es: "La línea de comandos de {tool} no puede decir si tiene sesión iniciada.",
     de: "Die Kommandozeile von {tool} kann nicht sagen, ob sie angemeldet ist.",
     fr: "La ligne de commande de {tool} ne peut pas dire si elle est connectée.",
-    solution: null,
-    exempt: "the command line has no command that reports it, and nothing on the board can change that",
+    statement: "the command line has no command that reports it, and nothing on the board can change that",
   },
   "login.timedOut": {
     en: "whether it is logged in could not be read: {command} did not finish in time",
@@ -3269,8 +3257,7 @@ export const MESSAGES = {
     es: "proyecto",
     de: "Projekt",
     fr: "projet",
-    solution: null,
-    exempt: "a name inside a sentence; there is nothing to put right",
+    statement: "a name inside a sentence; there is nothing to put right",
   },
   "readiness.label.specs": {
     en: "specs",
@@ -3278,8 +3265,7 @@ export const MESSAGES = {
     es: "specs",
     de: "Specs",
     fr: "specs",
-    solution: null,
-    exempt: "a name inside a sentence; there is nothing to put right",
+    statement: "a name inside a sentence; there is nothing to put right",
   },
   "readiness.label.dashboard": {
     en: "dashboard's own",
@@ -3287,8 +3273,7 @@ export const MESSAGES = {
     es: "dashboard",
     de: "Dashboard",
     fr: "tableau de bord",
-    solution: null,
-    exempt: "a name inside a sentence; there is nothing to put right",
+    statement: "a name inside a sentence; there is nothing to put right",
   },
   "readiness.gitRoot.notRepo": {
     en: "{dir} is not a git repository, and every step of a run branches one",
@@ -3310,8 +3295,7 @@ export const MESSAGES = {
     es: "{dir} es su propio repositorio git",
     de: "{dir} ist ein eigenes Git-Repository",
     fr: "{dir} est son propre dépôt git",
-    solution: null,
-    exempt: "it says the check passed; there is nothing to put right",
+    statement: "it says the check passed; there is nothing to put right",
   },
   "readiness.gitRoot.inside": {
     en: "{dir} is not a repository of its own — it is inside the one at {top}, which is what a run would branch",
@@ -3333,8 +3317,7 @@ export const MESSAGES = {
     es: "las specs viven en {root} (su propio specs/, porque no se indicó ninguna raíz de specs)",
     de: "die Specs liegen in {root} (ihr eigenes specs/, weil kein Specs-Stamm angegeben wurde)",
     fr: "les specs se trouvent dans {root} (son propre specs/, car aucune racine de specs n'a été indiquée)",
-    solution: null,
-    exempt: "it says the check passed; there is nothing to put right",
+    statement: "it says the check passed; there is nothing to put right",
   },
   "readiness.specsRoot.ok": {
     en: "the specs live at {root}",
@@ -3342,8 +3325,7 @@ export const MESSAGES = {
     es: "las specs viven en {root}",
     de: "die Specs liegen in {root}",
     fr: "les specs se trouvent dans {root}",
-    solution: null,
-    exempt: "it says the check passed; there is nothing to put right",
+    statement: "it says the check passed; there is nothing to put right",
   },
   "readiness.specsRoot.missingConfigured": {
     en: "there is no specs root at {root}, and a run refuses without one",
@@ -3388,8 +3370,7 @@ export const MESSAGES = {
     es: "las specs están en el propio repositorio del proyecto",
     de: "die Specs liegen im eigenen Repository des Projekts",
     fr: "les specs sont dans le dépôt propre du projet",
-    solution: null,
-    exempt: "it says the check passed; there is nothing to put right",
+    statement: "it says the check passed; there is nothing to put right",
   },
   "readiness.specsRepo.other": {
     en: "the specs are in the repository at {top}, which a run branches too",
@@ -3397,8 +3378,7 @@ export const MESSAGES = {
     es: "las specs están en el repositorio de {top}, que una ejecución también ramifica",
     de: "die Specs liegen im Repository unter {top}, das ein Lauf ebenfalls verzweigt",
     fr: "les specs sont dans le dépôt de {top}, qu'une exécution branche aussi",
-    solution: null,
-    exempt: "it says the check passed; there is nothing to put right",
+    statement: "it says the check passed; there is nothing to put right",
   },
   "readiness.branch.unknown": {
     en: "the default branch of the {message} repository at {root} cannot be worked out",
@@ -3420,8 +3400,7 @@ export const MESSAGES = {
     es: "la copia ({message}) está en {base}",
     de: "der Checkout ({message}) steht auf {base}",
     fr: "la copie ({message}) est sur {base}",
-    solution: null,
-    exempt: "it says the check passed; there is nothing to put right",
+    statement: "it says the check passed; there is nothing to put right",
   },
   "readiness.branch.missing": {
     en: "the {message} checkout is on {current}, and a run cannot move it to {base}: there is no such branch, here or on origin",
@@ -3457,8 +3436,7 @@ export const MESSAGES = {
     es: "la copia ({message}) está en {current}, no en {base} — una ejecución la mueve antes a {base}",
     de: "der Checkout ({message}) steht auf {current}, nicht auf {base} — ein Lauf stellt ihn zuerst auf {base} um",
     fr: "la copie ({message}) est sur {current}, pas sur {base} — une exécution la déplace d'abord vers {base}",
-    solution: null,
-    exempt: "it says what a run does by itself; there is nothing to put right",
+    statement: "it says what a run does by itself; there is nothing to put right",
   },
   "readiness.checkout.noOrigin": {
     en: "the {message} repository at {root} has no origin remote, so the dashboard cannot make a checkout of its own — a run works in {root} itself, where editing it meanwhile can collide",
@@ -3475,8 +3453,7 @@ export const MESSAGES = {
     es: "el dashboard hace su propia copia del repositorio ({message}) en {dir} la primera vez que una ejecución la necesita",
     de: "das Dashboard legt seinen eigenen Checkout des Repositorys ({message}) unter {dir} an, sobald ein Lauf zum ersten Mal einen braucht",
     fr: "le tableau de bord fait sa propre copie du dépôt ({message}) dans {dir} la première fois qu'une exécution en a besoin",
-    solution: null,
-    exempt: "it says what the board does by itself; there is nothing to put right",
+    statement: "it says what the board does by itself; there is nothing to put right",
   },
   "readiness.links.none": {
     en: "no worktree links are configured",
@@ -3530,8 +3507,7 @@ export const MESSAGES = {
     es: "los enlaces de worktree están todos: {links}",
     de: "die Worktree-Links sind alle da: {links}",
     fr: "les liens de worktree sont tous là : {links}",
-    solution: null,
-    exempt: "it says the check passed; there is nothing to put right",
+    statement: "it says the check passed; there is nothing to put right",
   },
 } as const satisfies Record<string, MessageEntry>;
 

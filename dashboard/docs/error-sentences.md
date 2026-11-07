@@ -46,6 +46,9 @@ language; `solution: null` is a message with nothing to resolve, and `exempt` sa
 (`src/i18n/message.ts`) writes the labels and the line break, and starts each line with a capital, so the catalog's
 own texts stay lowercase. A test fails for an entry with neither.
 
+An entry that only informs, such as a check that passed, a run that finished or a wait that ends by itself, has no
+`solution` and says why in `statement`. It is shown as its sentence alone, with no Problem or Solution label.
+
 ### A message inside another
 
 A message whose text has a `{message}` blank takes only the problem of the message inside it, and the message shows one
