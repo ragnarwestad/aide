@@ -50,6 +50,28 @@ def test_a_run_that_deletes_another_spec_folder_is_downgraded_and_the_folder_res
     tree = git(workspace["specs"], "ls-tree", "-r", "--name-only", "aide/81-queue-and-runner")
     assert "80-neighbour/1-description.md" in tree, tree
 
+def test_a_change_to_another_spec_folder_the_session_committed_is_undone(runner, workspace, fake_claude):
+    other = workspace["specs"] / "80-neighbour"
+    other.mkdir()
+    (other / "1-description.md").write_text("# 80\n")
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add a neighbour")
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + 'echo "changed by the run" > "$specs/80-neighbour/1-description.md"\n'
+        + 'git -C "$specs" commit -qam "touch the neighbour"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "scope-violation", out
+    assert "80-neighbour" in out["error"], out
+    kept = git(workspace["specs"], "show", "aide/81-queue-and-runner:80-neighbour/1-description.md")
+    assert kept == "# 80", kept
+
+
 def test_a_neighbour_archived_on_main_and_merged_in_is_not_the_steps_own_write(
     runner, workspace, fake_claude
 ):

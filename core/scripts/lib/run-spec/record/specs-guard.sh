@@ -54,12 +54,19 @@ $( { git -C "$specs_repo_wt" status --porcelain --untracked-files=all -- . ${git
      specs_guard_own_commits; } | sort -u)
 EOF_PATHS
   if [ -n "$foreign_paths" ]; then
-    # Back to what the run started from: a tracked path is restored, an
-    # untracked one removed. Only the foreign paths — the spec's own
-    # folder is untouched.
+    # Back to what the run started from: a path that existed then is
+    # restored from that commit, which also undoes a change the session
+    # committed; one that did not is removed. Only the foreign paths —
+    # the spec's own folder is untouched.
+    specs_guard_start="${specs_ref_before:-HEAD}"
     while IFS= read -r foreign_path; do
       [ -z "$foreign_path" ] && continue
-      git -C "$specs_repo_wt" checkout -q -- "$foreign_path" 2>/dev/null || rm -rf "${specs_repo_wt:?}/${foreign_path:?}"
+      if git -C "$specs_repo_wt" cat-file -e "$specs_guard_start:$foreign_path" 2>/dev/null; then
+        git -C "$specs_repo_wt" checkout -q "$specs_guard_start" -- "$foreign_path"
+      else
+        git -C "$specs_repo_wt" rm -rq --cached --ignore-unmatch -- "$foreign_path" >/dev/null
+        rm -rf "${specs_repo_wt:?}/${foreign_path:?}"
+      fi
     done <<EOF_FOREIGN
 $foreign_paths
 EOF_FOREIGN
