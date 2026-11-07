@@ -1,4 +1,4 @@
-// The last answer each AI's Check gave, and what it found wanting -
+// The last answer each AI's Installation tab gave, and what it found wanting -
 // process-lifetime state read by the Settings page and by the header
 // notice directly, on `pending-restart.ts`'s precedent, rather than
 // threaded through `pageShell()`'s call sites. `serve/tool-check.ts` is
@@ -19,7 +19,7 @@ import type { ModelChoice } from "../../queue/types.ts";
 const LAST: Map<CheckableTool, ToolCheck> = new Map();
 
 /** The last reading of each tool's models, kept apart for the same
- *  reason as the usage: only a press of Check reads them. */
+ *  reason as the usage: only a provider's Models tab reads them. */
 const MODELS: Map<CheckableTool, ToolModels> = new Map();
 
 /** Which tools a run can use — the ones a model is configured for. Read
@@ -32,7 +32,7 @@ export function setConfiguredTools(source: () => CheckableTool[]): void {
 }
 
 /** The model choices as they are now, read live each time the notice is
- *  drawn: a Remove on the Models tab changes them with no new Check. */
+ *  drawn: a Remove on the Models tab changes them with no new reading. */
 let choices: (() => Record<string, ModelChoice> | undefined) | undefined;
 
 export function setModelChoices(source: () => Record<string, ModelChoice> | undefined): void {

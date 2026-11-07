@@ -1,4 +1,4 @@
-// What a press of Check reads of an AI's models. Claude is asked one model
+// What a provider's Models tab reads of an AI's models. Claude is asked one model
 // at a time through `/model`, which runs none; only the four families and
 // the configured full ids are asked, since Claude Code names every other
 // name it accepts as well. Codex and OpenCode list theirs.

@@ -17,13 +17,13 @@ describe("toolFailureSentence", () => {
     expect(s.text).toContain("boom");
   });
 
-  test("it points at the Check button on the Installation tab of the provider of that AI", () => {
+  test("it points at the Installation tab of the provider of that AI, and at no button", () => {
     const s = toolFailureSentence({ tool: "codex", model: "gpt-5.6-sol", terminalReason: "cli-error" })!;
     expect(s.text).toContain("Settings");
     expect(s.text).toContain("Providers tab");
     expect(s.text).toContain("Codex provider");
-    expect(s.text).toContain("Installation");
-    expect(s.text).toContain("Check");
+    expect(s.text).toContain("Installation tab");
+    expect(s.text).not.toContain("press Check");
   });
 
   test("the CLI's own words are hover detail, and are in the sentence too", () => {
@@ -58,7 +58,8 @@ describe("toolFailureSentence", () => {
     })!;
     expect(s.text).toContain("Settings");
     expect(s.text).toContain("Claude Code provider");
-    expect(s.text).toContain("Check");
+    expect(s.text).toContain("Installation tab");
+    expect(s.text).not.toContain("press Check");
   });
 
   test("a tool with no model still names the tool", () => {

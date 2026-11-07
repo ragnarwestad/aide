@@ -20,7 +20,7 @@ export const fr: Record<TranslationKey, string> = {
   "shell.tabSchedule": "Planification",
   "shell.restartWaiting": "Le déploiement attend {jobs} ; le service redémarre une fois terminés.",
   "shell.installWarning": "la dernière installation d'aide a rencontré un problème : {problem} — la sortie complète est dans {path}",
-  "shell.toolFault": "{tool}: {problems} — clique sur Vérifier dans {where}",
+  "shell.toolFault": "{tool}: {problems} — ouvre l’onglet Installation dans {where}",
   "shell.toolFaultWhere": "la page d'un fournisseur, sous l'onglet Fournisseurs de Settings",
   "shell.modelsGone": "{tool} : {models} n'est plus proposé — retire-le dans {where}",
   "shell.modelsGoneWhere": "la page d'un fournisseur, sous l'onglet Fournisseurs de Settings",
@@ -320,10 +320,7 @@ export const fr: Record<TranslationKey, string> = {
     "Codex lit les instructions d'aide dans {instructions}, ses hooks dans {hookConfig} et {hooks}, et ses skills dans {skills}, qu'il partage avec Copilot ; les scripts d'aide sont dans {scripts}.",
   "settings.where.opencode":
     "OpenCode n'apporte aucun modèle à lui : chaque modèle appartient à un fournisseur et s'appelle fournisseur/modèle. aide installe seulement ses instructions, dans {instructions}, et OpenCode trouve les skills d'aide là où elles sont déjà, dans {skills} et {claudeSkills}.",
-  "settings.checkHelpTitle":
-    "Ce que Vérifier découvre",
-  "settings.checkHelpAll":
-    "Un clic sur Vérifier lit les modèles et l'installation de cet outil, avec les dossiers de ce fournisseur. La connexion et l'utilisation sont lues à chaque ouverture de cette page.",
+  "settings.part.overview": "Aperçu",
   "settings.part.models": "Modèles",
   "settings.part.installation": "Installation",
   "settings.providers.none": "Aucun fournisseur n'a été ajouté.",
@@ -378,18 +375,6 @@ export const fr: Record<TranslationKey, string> = {
   "job.provider": "Fournisseur",
   "notice.providerRuns": "{step} s'exécute sur {who}",
   "notice.providerRan": "{step} s'est exécuté sur {who}",
-  "settings.checkHelp.models.claude":
-    "Cette vérification demande à Claude Code quelle version donne aujourd'hui chacun d'opus, sonnet, fable et haiku, avec /model, qui ne lance aucun modèle, et compare ce qu'il propose aux modèles qui peuvent être choisis dans le tableau de bord.",
-  "settings.checkHelp.models.codex":
-    "Cette vérification lit quels modèles Codex propose, depuis codex debug models, et les compare aux modèles qui peuvent être choisis dans le tableau de bord.",
-  "settings.checkHelp.models.opencode":
-    "Cette vérification lit quels modèles proposent les fournisseurs connectés d'OpenCode, depuis opencode models, et les compare aux modèles qui peuvent être choisis dans le tableau de bord.",
-  "settings.checkHelp.installation.claude":
-    "Cette vérification lance aide-preflight et claude auth status. Elle te dit si la ligne de commande est installée et en quelle version, si elle est connectée et avec quel compte, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt.",
-  "settings.checkHelp.installation.codex":
-    "Cette vérification lance aide-preflight et codex login status. Elle te dit si la ligne de commande est installée et en quelle version, si elle est connectée, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt.",
-  "settings.checkHelp.installation.opencode":
-    "Cette vérification lance aide-preflight et opencode auth list. Elle te dit si la ligne de commande est installée et en quelle version, si un fournisseur est connecté, où va chaque partie d'aide et si elle y est, et si les fichiers installés correspondent encore à ce dépôt. Ici, le fournisseur EST la connexion, puisqu'OpenCode atteint chaque modèle par l'un d'eux.",
   "settings.models.supported": "Actuellement pris en charge par Aide",
   "settings.models.available": "Disponibles",
   "settings.models.gone": "Plus disponibles",
@@ -409,8 +394,6 @@ export const fr: Record<TranslationKey, string> = {
   "tab.schedule": "Planification",
   "tab.report": "Rapport",
   "tab.settings": "Réglages",
-  "settings.checkButton": "Vérifier",
-  "settings.checking": "vérification…",
   "settings.help.page.title": "Ce que règle cette page",
   "settings.help.page.lead": "Ce que règle cette page.",
   "settings.help.page.body": "Chaque étape que la file peut exécuter a ici une ligne, et la ligne dit sur quoi cette étape s'exécute et combien de temps elle peut durer. Rien ici ne démarre quoi que ce soit ; c'est ce qu'utilise une exécution quand personne n'a choisi autre chose pour cette spec.",
@@ -442,6 +425,9 @@ export const fr: Record<TranslationKey, string> = {
   "settings.notifications.job": "Un job planifié notifie selon son propre choix — jamais, seulement quand l'exécution n'a pas réussi, ou à chaque exécution. Cela se règle dans le formulaire du job, sous l'onglet Planification du projet.",
   "settings.usage.readAt": "Utilisation lue {at}",
   "settings.usage.reading": "Lecture de l’utilisation…",
+  "settings.models.reading": "Lecture des modèles…",
+  "settings.install.reading": "Lecture de l’installation…",
+  "settings.read.failed": "Aucune réponse n’est revenue — rouvre l’onglet.",
   "settings.usage.unread": "Utilisation pas encore lue.",
   "settings.usage.failed": "L'utilisation n'a pas pu être lue : {reason}",
   "settings.usage.none": "Cette IA ne rapporte aucune fenêtre d'utilisation.",
@@ -449,10 +435,8 @@ export const fr: Record<TranslationKey, string> = {
   "settings.usage.usedResets": "{percent} % utilisé · réinitialisation {resets}",
   "settings.models.add": "Ajouter",
   "settings.models.adding": "ajout…",
-  "settings.models.unread": "Modèles pas encore lus.",
   "settings.models.failed": "Les modèles n'ont pas pu être lus : {reason}",
   "settings.models.readAt": "Modèles lus {at}",
-  "settings.install.unchecked": "Pas encore vérifié.",
   "settings.install.ran": "Exécuté :",
   "settings.install.checkedAt": "Vérifié {at}",
   "settings.install.fail": "ÉCHEC",

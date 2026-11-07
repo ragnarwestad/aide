@@ -76,7 +76,7 @@ async function addModel(ctx: RoutesContext, asked: Record<string, unknown>): Pro
     ? reading.offered.find((m) => sameModel(tool, m.model, model))
     : undefined;
   if (!read) {
-    return refuse(`${model} is not among the models ${ai} offered when it was last read — press Check on a ${ai} provider's page and try again`);
+    return refuse(`${model} is not among the models ${ai} offered when it was last read — open the Models tab of a ${ai} provider's page and try again`);
   }
 
   const key = keyFor(tool, model, Object.keys(choices));

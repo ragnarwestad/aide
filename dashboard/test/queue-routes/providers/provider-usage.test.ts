@@ -40,11 +40,11 @@ const tab = (base: string) => fetch(`${base}/settings?tab=providers&provider=Cla
 
 test("once the usage has been read, the tab shows that reading at once and reads nothing more", async () => {
   const { base, reads } = serve();
-  expect(await tab(base)).toContain("data-usage-from=\"");
+  expect(await tab(base)).toContain("data-read-from=\"");
   expect(await (await fetch(`${base}/settings/providers/usage?key=Claude`)).text()).toContain("Window of Claude");
   const again = await tab(base);
   expect(again).toContain("Window of Claude");
-  expect(again).not.toContain("data-usage-from=\"");
+  expect(again).not.toContain("data-read-from=\"");
   expect(reads).toEqual(["Claude"]);
 });
 
@@ -52,7 +52,7 @@ test("a provider edited since its usage was read is read again", async () => {
   const { base } = serve();
   await fetch(`${base}/settings/providers/usage?key=Claude`);
   await post(base, "/api/queue/settings/providers/edit", { key: "Claude", name: "Claude Work" });
-  expect(await tab(base)).toContain("data-usage-from=\"");
+  expect(await tab(base)).toContain("data-read-from=\"");
 });
 
 test("the usage of a provider that is not there is not found", async () => {

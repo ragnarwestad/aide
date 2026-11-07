@@ -79,6 +79,7 @@ test("Add walks the three steps, makes the ID from the name, and lands on the ne
     dialog().locator("button[data-add-save]").click(),
   ]);
   expect(await page.locator(".providerlist").innerText()).toContain("Claude Work");
+  await page.locator(`nav[data-aitabs] a`, { hasText: "Config" }).click();
   expect(await page.locator('#provider-form input[name="configDir"]').inputValue()).toBe(folder);
 });
 

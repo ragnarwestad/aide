@@ -1,8 +1,7 @@
-// The tool's panel on a provider's page: where aide installs for the tool,
-// one Check, then two tabs — Models and Installation — each showing its own
-// last reading, which that one Check made along with the other.
+// What a provider's page reads of its tool: the shape of a check, the
+// sentence naming where aide installs for the tool, and the usage block.
 //
-// The places in the opening sentence come from
+// The places in the sentence come from
 // core/scripts/lib/install-targets.txt (`places.ts`), the table
 // `aide-preflight` prints its own place lines from, so the sentence and
 // the check's output cannot name different places. What this file adds
@@ -12,13 +11,9 @@
 import { t, type Language } from "../../../i18n";
 import type { BoardMessage } from "../../../i18n/message.ts";
 import { esc } from "../../ui/html.ts";
-import { buttonForm, facts, helpPopover, messageSlot } from "../../ui/components";
-import { pickTab, tabBar } from "../../ui/tabs.ts";
+import { facts } from "../../ui/components";
 import { PROVIDER_TOOLS, type ProviderTool } from "../../../queue/providers/index.ts";
-import { INSTALL_TARGETS, placesOf } from "./places.ts";
 import { usageView, type ToolUsage } from "./usage.ts";
-import { modelsBlock, type ModelsPanel } from "./models.ts";
-import { installationBlock } from "./installation.ts";
 
 /** The tools a check can be asked about — the ones a provider can be for —
  *  and the shape of the answer. Declared HERE rather than beside the code
@@ -80,28 +75,6 @@ export function toolWhere(lang: Language, tool: CheckableTool, places: Record<st
   return t(lang, `settings.where.${tool}`, places);
 }
 
-/** The two tabs a provider's page has under its Check, in the order they
- *  are shown. The one Check above them reads both. */
-export const TOOL_PARTS = ["models", "installation"] as const;
-
-export type ToolPart = (typeof TOOL_PARTS)[number];
-
-/** The tabs under a provider's Check. */
-export const toolParts = (_tool: CheckableTool): readonly ToolPart[] => TOOL_PARTS;
-
-/** The open tab under the Check, off `?aitab=`: Models when none, or one
- *  that does not exist, is named. */
-export const toolPart = (raw: string | undefined, tool?: CheckableTool): ToolPart =>
-  pickTab(tool ? toolParts(tool) : TOOL_PARTS, raw, "models");
-
-/** The body of the "(?)" before the Check, as trusted markup: that one
- *  press reads both tabs, then what it reads for this tool on each. */
-export function checkHelp(lang: Language, tool: CheckableTool): string {
-  const parts = TOOL_PARTS.map((part) =>
-    `${t(lang, `settings.part.${part}`)}: ${t(lang, `settings.checkHelp.${part}.${tool}`)}`);
-  return esc([t(lang, "settings.checkHelpAll"), ...parts].join(" "));
-}
-
 /** How long ago the check was made, so a stale answer reads as one. The
  *  stamp is the moment it was obtained, never the moment the page was
  *  drawn: a check is a measurement, and it stops being true as soon as
@@ -134,55 +107,4 @@ export function usageBlock(usage: ToolUsage | undefined, now: number, lang: Lang
           : t(lang, "settings.usage.used", { percent: row.usedPercent })),
       })));
   }
-}
-
-/** What the open tab shows: the reading the last press of Check made. */
-function partBody(
-  part: ToolPart,
-  tool: CheckableTool,
-  readings: { check?: ToolCheck; models: ModelsPanel },
-  lang: Language,
-): string {
-  const { check, models } = readings;
-  if (part === "installation") return installationBlock(check, check ? stamp(check.at) : "", lang);
-  return modelsBlock(tool, models, models.reading ? stamp(models.reading.at) : "", lang, TOOL_TAB_LABELS[tool]);
-}
-
-/** The tool's panel on the page of the provider `provider.key`. `check` and
- *  `models.reading` are the last answers obtained for the tool in this
- *  server's lifetime, or absent when none has been asked for: nothing is run
- *  because a page was opened. `models` also carries the live choices the
- *  reading is set against. `lang` is the reader's, for the sentence, the
- *  tabs and the "(?)". `part` is the open tab, which is the only one drawn. */
-export function toolPanel(
-  provider: { key: string; tool: CheckableTool },
-  check: ToolCheck | undefined,
-  models: ModelsPanel = {},
-  lang: Language = "en",
-  part: ToolPart = "models",
-): string {
-  const { key, tool } = provider;
-  const id = "check-provider";
-  return (
-    `<section class="toolpanel" data-tool="${esc(tool)}">` +
-    `<p>${esc(toolWhere(lang, tool, placesOf(INSTALL_TARGETS, tool)))}</p>` +
-    // Posted by the page script, which loads the same tab again with the
-    // answers drawn below; a refusal stays in the form's own line.
-    buttonForm({
-      id,
-      action: "/api/queue/settings/check",
-      hook: "configactions reloadform",
-      hidden: { key },
-      before: helpPopover(t(lang, "settings.checkHelpTitle"), checkHelp(lang, tool)),
-      button: { id: `${id}-run`, label: t(lang, "settings.checkButton"), variant: "primary", pending: t(lang, "settings.checking") },
-      after: messageSlot("refused"),
-    }) +
-    tabBar(toolParts(tool), (p) => `/settings?tab=providers&provider=${encodeURIComponent(key)}&aitab=${p}`, part, {}, "", {
-      lang,
-      label: (p) => t(lang, `settings.part.${p}`),
-      data: { aitabs: "" },
-    }) +
-    partBody(part, tool, { check, models }, lang) +
-    `</section>`
-  );
 }

@@ -1,8 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
   CHECKABLE_TOOLS, OTHER_STEPS, renderSettingsPage, resolveSettingsTab, settingsRowChoice, SETTINGS_PANELS, SETTINGS_STEPS,
-  SPEC_STEPS, TOOL_PARTS, toolPanel, toolPart, toolParts, UNROWED_STEPS,
+  SPEC_STEPS, UNROWED_STEPS,
 } from "../../../src/render";
+import { PROVIDER_TABS, providerDetail, providerTab, providerTabPath } from "../../../src/render/pages/settings-page/provider-detail.ts";
+import { toolWhere } from "../../../src/render/pages/settings-page/tools.ts";
+import { INSTALL_TARGETS, placesOf } from "../../../src/render/pages/settings-page/places.ts";
+import { esc } from "../../../src/render/ui/html.ts";
 import { t } from "../../../src/i18n";
 import { tabLabel } from "../../../src/render/ui/tabs.ts";
 import { WORKFLOW_STEPS } from "../../../src/queue/steps.ts";
@@ -138,29 +142,92 @@ describe("the Settings tabs", () => {
   });
 });
 
-describe("the tabs under a provider's Check", () => {
-  /** Each inner tab the panel links to, as its address and its words. */
-  const innerTabs = (html: string) =>
-    [...html.matchAll(/<a [^>]*href="([^"]*aitab=[^"]*)"[^>]*>([^<]*)<\/a>/g)].map((m) => ({
-      href: m[1]!.replaceAll("&amp;", "&"),
-      label: m[2],
+describe("the tabs of a provider's page", () => {
+  const PROVIDER = { name: "Claude", tool: "claude" as const };
+  const STATUS = { key: "Claude", at: "2026-11-05T09:00:00.000Z", installed: true, version: "2.1.318 (Claude Code)" };
+  const USAGE = { tool: "claude" as const, at: "2026-11-05T09:00:00.000Z", windows: [{ name: "Window of Claude", usedPercent: 7 }] };
+  const draw = (aiTab?: string, tool: "claude" | "codex" | "opencode" = "claude") =>
+    providerDetail({ key: "Claude", provider: { ...PROVIDER, tool }, status: STATUS, usage: USAGE, aiTab }, Date.parse(STATUS.at), "en");
+  /** Each tab the page links to, as its address and its words. */
+  const tabs = (html: string) =>
+    [...html.matchAll(/<a [^>]*href="([^"]*aitab=[^"]*)"([^>]*)>([^<]*)<\/a>/g)].map((m) => ({
+      href: m[1]!.replaceAll("&amp;", "&"), label: m[3], current: m[2]!.includes("aria-current"),
     }));
 
-  test("they are Models and Installation, in that order, each a link to the provider's page (AC-3)", () => {
-    expect([...TOOL_PARTS]).toEqual(["models", "installation"]);
-    expect(toolParts("claude")).toEqual([...TOOL_PARTS]);
-    expect(innerTabs(toolPanel({ key: "Claude-2", tool: "claude" }, undefined))).toEqual(toolParts("claude").map((part) => ({
-      href: `/settings?tab=providers&provider=Claude-2&aitab=${part}`,
-      label: t("en", `settings.part.${part}`),
-    })));
+  test("they are Overview, Config, Models and Installation, in that order, each a link to the provider's page (AC-1)", () => {
+    expect([...PROVIDER_TABS]).toEqual(["overview", "config", "models", "installation"]);
+    expect(tabs(draw()).map(({ href, label }) => ({ href, label }))).toEqual([
+      { href: "/settings?tab=providers&provider=Claude&aitab=overview", label: "Overview" },
+      { href: "/settings?tab=providers&provider=Claude&aitab=config", label: "Config" },
+      { href: "/settings?tab=providers&provider=Claude&aitab=models", label: t("en", "settings.part.models") },
+      { href: "/settings?tab=providers&provider=Claude&aitab=installation", label: t("en", "settings.part.installation") },
+    ]);
+    expect(providerTabPath("Claude", "models")).toBe("/settings?tab=providers&provider=Claude&aitab=models");
   });
 
-  test("the page opens on Models, as does an unknown inner tab", () => {
-    for (const raw of [undefined, "", "nope", "Models", "subscription"]) expect(toolPart(raw)).toBe("models");
+  test("the page opens on Overview, as does an absent, empty or unknown tab (AC-1, AC-10)", () => {
+    for (const raw of [undefined, "", "nope", "Models", "subscription"]) expect(providerTab(raw)).toBe("overview");
+    expect(tabs(draw()).filter((x) => x.current).map((x) => x.label)).toEqual(["Overview"]);
   });
 
-  test("a named inner tab opens that tab, not Models", () => {
-    expect(toolPart("installation")).toBe("installation");
+  test("a named tab opens that tab, and the old Models and Installation links still do (AC-10)", () => {
+    for (const tab of PROVIDER_TABS) {
+      expect(providerTab(tab)).toBe(tab);
+      expect(tabs(draw(tab)).filter((x) => x.current).map((x) => x.href.split("aitab=")[1])).toEqual([tab]);
+    }
+  });
+
+  test("Overview holds the status and the usage, and neither the form nor a reading's place (AC-2)", () => {
+    const html = draw("overview");
+    expect(html).toContain("2.1.318");
+    expect(html).toContain("Window of Claude");
+    expect(html).not.toContain('id="provider-form"');
+    expect(html).not.toContain("data-read-from");
+  });
+
+  test("Config holds the form, whose Save and Cancel come back to Config, and no status or reading (AC-3)", () => {
+    const html = draw("config");
+    const here = providerTabPath("Claude", "config");
+    expect(html).toContain('id="provider-form"');
+    expect(html).toContain(`data-done="${here.replaceAll("&", "&amp;")}"`);
+    expect(html).toContain(`data-cancel-href="${here.replaceAll("&", "&amp;")}"`);
+    expect(html).not.toContain("Window of Claude");
+    expect(html).not.toContain("data-read-from");
+    expect(html).not.toContain(t("en", "settings.providers.status"));
+  });
+
+  test("Models holds a place that reads from the Models address, with its line saying it is being read (AC-4, AC-8)", () => {
+    const html = draw("models");
+    expect(html).toContain('data-read-from="/settings/providers/models?key=Claude"');
+    expect(html).toContain('aria-busy="true"');
+    expect(html).toContain(t("en", "settings.models.reading"));
+    expect(html).not.toContain('id="provider-form"');
+    expect(html).not.toContain("Window of Claude");
+  });
+
+  test.each(["claude", "codex", "opencode"] as const)("%s's Installation tab holds the sentence naming where aide installs, and a place that reads from the Installation address (AC-5, AC-8)", (tool) => {
+    const html = draw("installation", tool);
+    expect(html).toContain('data-read-from="/settings/providers/installation?key=Claude"');
+    expect(html).toContain(t("en", "settings.install.reading"));
+    expect(html).toContain(esc(toolWhere("en", tool, placesOf(INSTALL_TARGETS, tool))));
+  });
+
+  test("a place whose reading does not come back carries the sentence it shows then (AC-9)", () => {
+    for (const tab of ["models", "installation"]) {
+      expect(draw(tab)).toContain(`data-read-failed="${esc(t("en", "settings.read.failed"))}"`);
+    }
+  });
+
+  test("every tab has the line Remove's refusal is written into, exactly once", () => {
+    for (const tab of PROVIDER_TABS) expect(draw(tab).split('id="provider-refused"').length - 1).toBe(1);
+  });
+
+  test("no tab draws a Check, its form or its (?) (AC-6)", () => {
+    for (const tab of PROVIDER_TABS) {
+      const html = draw(tab);
+      expect(html).not.toContain("/api/queue/settings/check");
+      expect(html).not.toContain("check-provider");
+    }
   });
 });
 

@@ -20,7 +20,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.tabSchedule": "Programación",
   "shell.restartWaiting": "El despliegue espera a {jobs}; el servicio se reinicia cuando terminen.",
   "shell.installWarning": "la última instalación de aide encontró un problema: {problem} — la salida completa está en {path}",
-  "shell.toolFault": "{tool}: {problems} — pulsa Comprobar en {where}",
+  "shell.toolFault": "{tool}: {problems} — abre la pestaña Instalación en {where}",
   "shell.toolFaultWhere": "la página de un proveedor, en la pestaña Proveedores de Settings",
   "shell.modelsGone": "{tool}: {models} ya no se ofrece — quítalo en {where}",
   "shell.modelsGoneWhere": "la página de un proveedor, en la pestaña Proveedores de Settings",
@@ -320,10 +320,7 @@ export const es: Record<TranslationKey, string> = {
     "Codex lee las instrucciones de aide desde {instructions}, sus hooks desde {hookConfig} y {hooks}, y sus skills desde {skills}, que comparte con Copilot; los scripts de aide están en {scripts}.",
   "settings.where.opencode":
     "OpenCode no trae ningún modelo propio: cada modelo pertenece a un proveedor y se llama proveedor/modelo. aide solo instala sus instrucciones, en {instructions}, y OpenCode encuentra las skills de aide donde ya están, en {skills} y {claudeSkills}.",
-  "settings.checkHelpTitle":
-    "Qué averigua Comprobar",
-  "settings.checkHelpAll":
-    "Una pulsación de Comprobar lee los modelos y la instalación de esta herramienta, con las carpetas de este proveedor. La sesión y el uso se leen cada vez que se abre esta página.",
+  "settings.part.overview": "Resumen",
   "settings.part.models": "Modelos",
   "settings.part.installation": "Instalación",
   "settings.providers.none": "No se ha añadido ningún proveedor.",
@@ -378,18 +375,6 @@ export const es: Record<TranslationKey, string> = {
   "job.provider": "Proveedor",
   "notice.providerRuns": "{step} se ejecuta en {who}",
   "notice.providerRan": "{step} se ejecutó en {who}",
-  "settings.checkHelp.models.claude":
-    "Esta comprobación pregunta a Claude Code qué versión da hoy cada uno de opus, sonnet, fable y haiku, con /model, que no ejecuta ningún modelo, y compara lo que ofrece con los modelos que se pueden elegir en el dashboard.",
-  "settings.checkHelp.models.codex":
-    "Esta comprobación lee qué modelos ofrece Codex, de codex debug models, y los compara con los modelos que se pueden elegir en el dashboard.",
-  "settings.checkHelp.models.opencode":
-    "Esta comprobación lee qué modelos ofrecen los proveedores con sesión iniciada de OpenCode, de opencode models, y los compara con los modelos que se pueden elegir en el dashboard.",
-  "settings.checkHelp.installation.claude":
-    "Esta comprobación ejecuta aide-preflight y claude auth status. Te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada y con qué cuenta, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio.",
-  "settings.checkHelp.installation.codex":
-    "Esta comprobación ejecuta aide-preflight y codex login status. Te dice si la línea de comandos está instalada y qué versión, si tiene sesión iniciada, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio.",
-  "settings.checkHelp.installation.opencode":
-    "Esta comprobación ejecuta aide-preflight y opencode auth list. Te dice si la línea de comandos está instalada y qué versión, si un proveedor tiene sesión iniciada, dónde va cada parte de aide y si está ahí, y si los archivos instalados siguen coincidiendo con este repositorio. Aquí el proveedor ES la sesión, ya que OpenCode llega a cada modelo a través de uno.",
   "settings.models.supported": "Compatibles con Aide ahora",
   "settings.models.available": "Disponibles",
   "settings.models.gone": "Ya no disponibles",
@@ -409,8 +394,6 @@ export const es: Record<TranslationKey, string> = {
   "tab.schedule": "Programación",
   "tab.report": "Informe",
   "tab.settings": "Ajustes",
-  "settings.checkButton": "Comprobar",
-  "settings.checking": "comprobando…",
   "settings.help.page.title": "Qué ajusta esta página",
   "settings.help.page.lead": "Qué ajusta esta página.",
   "settings.help.page.body": "Cada paso que la cola puede ejecutar tiene aquí una fila, y la fila dice con qué se ejecuta ese paso y cuánto puede tardar. Nada de lo de aquí inicia nada; es lo que usa una ejecución cuando nadie eligió otra cosa para esa spec.",
@@ -442,6 +425,9 @@ export const es: Record<TranslationKey, string> = {
   "settings.notifications.job": "Un trabajo programado notifica según su propia elección — nunca, solo cuando la ejecución no tuvo éxito, o en cada ejecución. Se ajusta en el formulario del trabajo, en la pestaña Programación del proyecto.",
   "settings.usage.readAt": "Uso leído {at}",
   "settings.usage.reading": "Leyendo el uso…",
+  "settings.models.reading": "Leyendo los modelos…",
+  "settings.install.reading": "Leyendo la instalación…",
+  "settings.read.failed": "No llegó ninguna respuesta — abre la pestaña de nuevo.",
   "settings.usage.unread": "Uso aún sin leer.",
   "settings.usage.failed": "No se pudo leer el uso: {reason}",
   "settings.usage.none": "Esta IA no informa de ventanas de uso.",
@@ -449,10 +435,8 @@ export const es: Record<TranslationKey, string> = {
   "settings.usage.usedResets": "{percent} % usado · se reinicia {resets}",
   "settings.models.add": "Añadir",
   "settings.models.adding": "añadiendo…",
-  "settings.models.unread": "Modelos aún sin leer.",
   "settings.models.failed": "No se pudieron leer los modelos: {reason}",
   "settings.models.readAt": "Modelos leídos {at}",
-  "settings.install.unchecked": "Aún sin comprobar.",
   "settings.install.ran": "Ejecutó:",
   "settings.install.checkedAt": "Comprobado {at}",
   "settings.install.fail": "FALLO",

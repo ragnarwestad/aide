@@ -1,4 +1,4 @@
-// What a Check button actually finds out, and what it refuses to claim.
+// What the Installation tab's check actually finds out, and what it refuses to claim.
 //
 // The point of these tests is the LAST part: a question that could not
 // be answered has to stay unanswered on the page. A check that quietly

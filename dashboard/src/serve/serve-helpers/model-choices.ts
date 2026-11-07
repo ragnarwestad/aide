@@ -2,7 +2,7 @@ import type { QueueStore } from "../../queue/queue.ts";
 import { modelNamesOf, type NamedModel } from "../../queue/store/model-ids.ts";
 
 /** The models a page may offer, from the config, in the shape every model
- *  picker takes. A Claude alias that has run or been read by a press of Check
+ *  picker takes. A Claude alias that has run or been read by a provider's Models tab
  *  also carries `ranAs`: the id its newest run reported or Claude Code named,
  *  so an open picker can say what the alias gives today, and `named`: the
  *  name Claude Code gave it, kept beside the id. A choice named by

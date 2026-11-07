@@ -1,8 +1,7 @@
-// The Installation tab under a provider's Check: what the last check found —
-// the preflight's own lines and every command the check ran. The login is
-// not here: the provider's page shows it above the tab. Declared apart from
-// `tools.ts`, which draws the tab around it; the check's shape is imported
-// as a type only.
+// The Installation tab's reading: what the check found — the preflight's
+// own lines and every command the check ran. The login is not here: the
+// provider's Overview tab shows it. The check's shape is imported as a
+// type only.
 
 import { esc } from "../../ui/html.ts";
 import { rowMessage } from "../../ui/components";
@@ -11,8 +10,7 @@ import type { ToolCheck } from "./tools.ts";
 
 /** The Installation tab's body. `checkedAt` is the check's time as the tab
  *  stamps it. */
-export function installationBlock(check: ToolCheck | undefined, checkedAt: string, lang: Language = "en"): string {
-  if (!check) return `<p class="muted">${esc(t(lang, "settings.install.unchecked"))}</p>`;
+export function installationBlock(check: ToolCheck, checkedAt: string, lang: Language = "en"): string {
   if (check.error) {
     return rowMessage("failed", check.error, { tag: "p" });
   }

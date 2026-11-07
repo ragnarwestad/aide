@@ -1,13 +1,9 @@
-// A provider's tool panel opens with a sentence naming where aide installs
-// for that tool, from the same table the preflight prints, and has one Check
-// for both of its tabs, posting the provider's key, with what it reads behind
-// a "(?)" in the reader's language.
+// A provider's Installation tab opens with a sentence naming where aide
+// installs for that tool, from the same table the preflight prints.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { Window } from "happy-dom";
+import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { helpPopover } from "../../../src/render/ui/components";
 import { t } from "../../../src/i18n";
 import { esc } from "../../../src/render/ui/html.ts";
 import {
@@ -15,26 +11,9 @@ import {
   parseInstallTargets,
   placesOf,
 } from "../../../src/render/pages/settings-page/places.ts";
-import {
-  checkHelp, CHECKABLE_TOOLS, toolPanel, toolWhere, TOOL_PARTS,
-} from "../../../src/render/pages/settings-page/tools.ts";
-
-const windows: Window[] = [];
-afterEach(async () => {
-  while (windows.length) await windows.pop()!.happyDOM.close();
-});
-
-/** Each form on the panel that posts a Check, as the fields it posts. */
-function checkForms(html: string): Record<string, string>[] {
-  const win = new Window();
-  windows.push(win);
-  win.document.write(html);
-  return Array.from(win.document.querySelectorAll("form"))
-    .filter((f) => f.getAttribute("action") === "/api/queue/settings/check")
-    .map((f) => Object.fromEntries(
-      Array.from(f.querySelectorAll("input")).map((i) => [i.getAttribute("name") ?? "", i.getAttribute("value") ?? ""]),
-    ));
-}
+import { CHECKABLE_TOOLS, toolWhere } from "../../../src/render/pages/settings-page/tools.ts";
+import { providerDetail } from "../../../src/render/pages/settings-page/provider-detail.ts";
+import { modelsBlock } from "../../../src/render/pages/settings-page/models.ts";
 
 const TABLE = join(import.meta.dir, "../../../../core/scripts/lib/install-targets.txt");
 
@@ -52,7 +31,7 @@ describe("the table of places", () => {
   });
 });
 
-describe("the sentence above Check", () => {
+describe("the sentence on the Installation tab", () => {
   test.each([...CHECKABLE_TOOLS])("%s's names every place the table gives it", (tool) => {
     const rows = INSTALL_TARGETS.filter((row) => row.tool === tool);
     expect(rows.length).toBeGreaterThan(0);
@@ -74,29 +53,13 @@ describe("the sentence above Check", () => {
   });
 });
 
-describe("a provider's one Check", () => {
-  for (const tool of CHECKABLE_TOOLS) {
-    test.each([...TOOL_PARTS])(`${tool}'s %s tab holds one Check posting the provider's key alone, with the one (?) (AC-3)`, (part) => {
-      const html = toolPanel({ key: "Some-key", tool }, undefined, {}, "en", part);
-      expect(checkForms(html)).toEqual([{ key: "Some-key" }]);
-      expect(html).toContain(helpPopover(t("en", "settings.checkHelpTitle"), checkHelp("en", tool)));
-    });
-  }
-
-  test.each([...CHECKABLE_TOOLS])("%s's (?) opens with the sentence that one press reads both tabs (AC-3)", (tool) => {
-    expect(checkHelp("en", tool).startsWith(esc(t("en", "settings.checkHelpAll")))).toBe(true);
-  });
-});
-
-test("a Norwegian reader gets the Norwegian sentence, tabs, (?) and model headings", () => {
-  const html = toolPanel({ key: "Codex", tool: "codex" }, undefined, {
-    reading: { tool: "codex", at: "2026-10-03T13:30:00.000Z", offered: [] },
-  }, "nb");
-  expect(html).toContain(toolWhere("nb", "codex", placesOf(INSTALL_TARGETS, "codex")));
-  for (const part of TOOL_PARTS) expect(html).toContain(`>${t("nb", `settings.part.${part}`)}</a>`);
-  expect(html).toContain(helpPopover(t("nb", "settings.checkHelpTitle"), checkHelp("nb", "codex")));
+test("a Norwegian reader gets the Norwegian sentence, tabs and model headings", () => {
+  const detail = providerDetail({ key: "Codex", provider: { name: "Codex", tool: "codex" }, aiTab: "installation" }, 0, "nb");
+  expect(detail).toContain(esc(toolWhere("nb", "codex", placesOf(INSTALL_TARGETS, "codex"))));
+  for (const part of ["models", "installation"] as const) expect(detail).toContain(`>${t("nb", `settings.part.${part}`)}</a>`);
+  const models = modelsBlock("codex", { reading: { tool: "codex", at: "2026-10-03T13:30:00.000Z", offered: [] } }, "", "nb");
   for (const heading of ["supported", "available", "gone"] as const) {
-    expect(html).toContain(t("nb", `settings.models.${heading}`));
+    expect(models).toContain(t("nb", `settings.models.${heading}`));
   }
   expect(t("nb", "settings.models.supported")).not.toBe(t("en", "settings.models.supported"));
 });

@@ -1,6 +1,6 @@
 // The newest model id each choice resolves to, in the sidecar
 // `model-ids.json`: what the pickers say an alias gives today. A run records
-// the id it ran on; a press of Check, or an Add, records the id Claude Code
+// the id it ran on; opening a provider's Models tab, or an Add, records the id Claude Code
 // names for a Claude choice, so a choice that never ran shows its version
 // too. The newest of them wins. Best effort on disk — a sidecar that cannot
 // be read or written leaves the pickers showing the bare alias.
@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parseModelIds, persistPendingModels } from "../persist.ts";
 
-/** The newest record of a choice wins, a run's or a Check's. An empty id
+/** The newest record of a choice wins, a run's or a reading's. An empty id
  *  and an unresolved choice record nothing. */
 export function recordModelId(
   path: string | undefined,

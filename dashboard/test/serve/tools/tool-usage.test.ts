@@ -1,4 +1,4 @@
-// What a press of Check reads of an AI's usage, and what it refuses to
+// What a provider's Overview tab reads of an AI's usage, and what it refuses to
 // claim. A usage the board could not read is never shown as "none", and
 // the checks the board runs on its own read no usage at all.
 

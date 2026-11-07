@@ -20,7 +20,7 @@ export const de: Record<TranslationKey, string> = {
   "shell.tabSchedule": "Zeitplan",
   "shell.restartWaiting": "Das Deployment wartet auf {jobs}; der Dienst startet neu, sobald sie fertig sind.",
   "shell.installWarning": "aides letzte Installation hat ein Problem gefunden: {problem} — die ganze Ausgabe steht in {path}",
-  "shell.toolFault": "{tool}: {problems} — klicke bei {where} auf Prüfen",
+  "shell.toolFault": "{tool}: {problems} — öffne den Tab Installation bei {where}",
   "shell.toolFaultWhere": "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
   "shell.modelsGone": "{tool}: {models} nicht mehr angeboten — entferne sie auf {where}",
   "shell.modelsGoneWhere": "der Seite eines Anbieters, unter dem Tab Anbieter in Settings",
@@ -320,10 +320,7 @@ export const de: Record<TranslationKey, string> = {
     "Codex liest die Anweisungen von aide aus {instructions}, die Hooks aus {hookConfig} und {hooks} und die Skills aus {skills}, die es mit Copilot teilt; die Skripte von aide liegen in {scripts}.",
   "settings.where.opencode":
     "OpenCode bringt kein eigenes Modell mit: Jedes Modell gehört zu einem Anbieter und heißt Anbieter/Modell. aide installiert nur die Anweisungen, nach {instructions}, und OpenCode findet die Skills von aide dort, wo sie schon liegen, in {skills} und {claudeSkills}.",
-  "settings.checkHelpTitle":
-    "Was Prüfen herausfindet",
-  "settings.checkHelpAll":
-    "Ein Klick auf Prüfen liest die Modelle und die Installation dieses Werkzeugs mit den Ordnern dieses Anbieters. Die Anmeldung und der Verbrauch werden bei jedem Öffnen dieser Seite gelesen.",
+  "settings.part.overview": "Übersicht",
   "settings.part.models": "Modelle",
   "settings.part.installation": "Installation",
   "settings.providers.none": "Es wurde kein Anbieter hinzugefügt.",
@@ -378,18 +375,6 @@ export const de: Record<TranslationKey, string> = {
   "job.provider": "Anbieter",
   "notice.providerRuns": "{step} läuft auf {who}",
   "notice.providerRan": "{step} lief auf {who}",
-  "settings.checkHelp.models.claude":
-    "Diese Prüfung fragt Claude Code, welche Version opus, sonnet, fable und haiku heute jeweils liefern, mit /model, das kein Modell ausführt, und hält das Angebot gegen die Modelle, die im Dashboard gewählt werden können.",
-  "settings.checkHelp.models.codex":
-    "Diese Prüfung liest, welche Modelle Codex anbietet, aus codex debug models, und hält sie gegen die Modelle, die im Dashboard gewählt werden können.",
-  "settings.checkHelp.models.opencode":
-    "Diese Prüfung liest, welche Modelle die angemeldeten Anbieter von OpenCode anbieten, aus opencode models, und hält sie gegen die Modelle, die im Dashboard gewählt werden können.",
-  "settings.checkHelp.installation.claude":
-    "Diese Prüfung führt aide-preflight und claude auth status aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist und mit welchem Konto, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen.",
-  "settings.checkHelp.installation.codex":
-    "Diese Prüfung führt aide-preflight und codex login status aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob sie angemeldet ist, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen.",
-  "settings.checkHelp.installation.opencode":
-    "Diese Prüfung führt aide-preflight und opencode auth list aus. Sie sagt dir, ob die Kommandozeile installiert ist und in welcher Version, ob ein Anbieter angemeldet ist, wo jedes Teil von aide landet und ob es da ist, und ob die installierten Dateien noch zu diesem Repository passen. Hier IST der Anbieter die Anmeldung, da OpenCode jedes Modell über einen erreicht.",
   "settings.models.supported": "Derzeit von Aide unterstützt",
   "settings.models.available": "Verfügbar",
   "settings.models.gone": "Nicht mehr verfügbar",
@@ -409,8 +394,6 @@ export const de: Record<TranslationKey, string> = {
   "tab.schedule": "Zeitplan",
   "tab.report": "Bericht",
   "tab.settings": "Einstellungen",
-  "settings.checkButton": "Prüfen",
-  "settings.checking": "prüft…",
   "settings.help.page.title": "Was diese Seite einstellt",
   "settings.help.page.lead": "Was diese Seite einstellt.",
   "settings.help.page.body": "Jeder Schritt, den die Warteschlange ausführen kann, hat hier eine Zeile, und die Zeile sagt, womit der Schritt läuft und wie lange er dauern darf. Nichts hier startet etwas; es ist das, was ein Lauf verwendet, wenn niemand für diese eine Spec etwas anderes gewählt hat.",
@@ -442,6 +425,9 @@ export const de: Record<TranslationKey, string> = {
   "settings.notifications.job": "Ein geplanter Job benachrichtigt nach eigener Wahl — nie, nur wenn der Lauf nicht erfolgreich war, oder bei jedem Lauf. Das wird im Formular des Jobs eingestellt, im Tab Zeitplan des Projekts.",
   "settings.usage.readAt": "Verbrauch gelesen {at}",
   "settings.usage.reading": "Nutzung wird gelesen …",
+  "settings.models.reading": "Modelle werden gelesen …",
+  "settings.install.reading": "Installation wird gelesen …",
+  "settings.read.failed": "Es kam keine Antwort — öffne den Tab erneut.",
   "settings.usage.unread": "Verbrauch noch nicht gelesen.",
   "settings.usage.failed": "Der Verbrauch konnte nicht gelesen werden: {reason}",
   "settings.usage.none": "Diese KI meldet keine Verbrauchsfenster.",
@@ -449,10 +435,8 @@ export const de: Record<TranslationKey, string> = {
   "settings.usage.usedResets": "{percent} % verbraucht · wird zurückgesetzt {resets}",
   "settings.models.add": "Hinzufügen",
   "settings.models.adding": "fügt hinzu…",
-  "settings.models.unread": "Modelle noch nicht gelesen.",
   "settings.models.failed": "Die Modelle konnten nicht gelesen werden: {reason}",
   "settings.models.readAt": "Modelle gelesen {at}",
-  "settings.install.unchecked": "Noch nicht geprüft.",
   "settings.install.ran": "Ausgeführt:",
   "settings.install.checkedAt": "Geprüft {at}",
   "settings.install.fail": "FEHLER",

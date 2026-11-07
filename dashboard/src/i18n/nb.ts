@@ -20,7 +20,7 @@ export const nb: Record<TranslationKey, string> = {
   "shell.tabSchedule": "Kjøring",
   "shell.restartWaiting": "Deploy venter på {jobs}; tjenesten restarter når de er ferdige.",
   "shell.installWarning": "siste installasjon fant et problem: {problem} — hele utskriften står i {path}",
-  "shell.toolFault": "{tool}: {problems} — trykk Sjekk på {where}",
+  "shell.toolFault": "{tool}: {problems} — åpne Installasjon-fanen på {where}",
   "shell.toolFaultWhere": "siden til en provider, under Providere-fanen i Settings",
   "shell.modelsGone": "{tool}: {models} tilbys ikke lenger — fjern dem på {where}",
   "shell.modelsGoneWhere": "siden til en provider, under Providere-fanen i Settings",
@@ -323,10 +323,7 @@ export const nb: Record<TranslationKey, string> = {
     "Codex leser aides instruksjoner fra {instructions}, hookene fra {hookConfig} og {hooks}, og skillsene fra {skills}, som den deler med Copilot; aides skript ligger i {scripts}.",
   "settings.where.opencode":
     "OpenCode har ingen modell selv: hver modell hører til en leverandør og heter leverandør/modell. aide installerer bare instruksjonene, til {instructions}, og OpenCode finner aides skills der de allerede ligger, i {skills} og {claudeSkills}.",
-  "settings.checkHelpTitle":
-    "Hva Sjekk finner ut",
-  "settings.checkHelpAll":
-    "Ett trykk på Sjekk leser modellene og installasjonen til dette verktøyet, med mappene til denne provideren. Innloggingen og forbruket leses hver gang siden åpnes.",
+  "settings.part.overview": "Oversikt",
   "settings.part.models": "Modeller",
   "settings.part.installation": "Installasjon",
   "settings.providers.none": "Ingen provider er lagt til.",
@@ -381,18 +378,6 @@ export const nb: Record<TranslationKey, string> = {
   "job.provider": "Provider",
   "notice.providerRuns": "{step} kjører på {who}",
   "notice.providerRan": "{step} kjørte på {who}",
-  "settings.checkHelp.models.claude":
-    "Denne sjekken spør Claude Code hvilken versjon opus, sonnet, fable og haiku gir i dag, med /model, som ikke kjører noen modell, og holder det den tilbyr opp mot modellene som kan velges i dashbordet.",
-  "settings.checkHelp.models.codex":
-    "Denne sjekken leser hvilke modeller Codex tilbyr, fra codex debug models, og holder dem opp mot modellene som kan velges i dashbordet.",
-  "settings.checkHelp.models.opencode":
-    "Denne sjekken leser hvilke modeller de innloggede leverandørene til OpenCode tilbyr, fra opencode models, og holder dem opp mot modellene som kan velges i dashbordet.",
-  "settings.checkHelp.installation.claude":
-    "Denne sjekken kjører aide-preflight og claude auth status. Den forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn og med hvilken konto, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet.",
-  "settings.checkHelp.installation.codex":
-    "Denne sjekken kjører aide-preflight og codex login status. Den forteller om kommandolinjen er installert og hvilken versjon, om den er logget inn, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet.",
-  "settings.checkHelp.installation.opencode":
-    "Denne sjekken kjører aide-preflight og opencode auth list. Den forteller om kommandolinjen er installert og hvilken versjon, om en leverandør er logget inn, hvor hver del av aide havner og om den er der, og om de installerte filene fortsatt stemmer med dette repoet. Her ER leverandøren innloggingen, siden OpenCode når hver modell gjennom en.",
   "settings.models.supported": "Støttes av Aide nå",
   "settings.models.available": "Tilgjengelig",
   "settings.models.gone": "Ikke lenger tilgjengelig",
@@ -412,8 +397,6 @@ export const nb: Record<TranslationKey, string> = {
   "tab.schedule": "Kjøring",
   "tab.report": "Rapport",
   "tab.settings": "Innstillinger",
-  "settings.checkButton": "Sjekk",
-  "settings.checking": "sjekker…",
   "settings.help.page.title": "Hva denne siden stiller inn",
   "settings.help.page.lead": "Hva denne siden stiller inn.",
   "settings.help.page.body": "Hvert steg køen kan kjøre har en rad her, og raden sier hva steget kjører på og hvor lenge det kan ta. Ingenting her starter noe; det er det en kjøring bruker når ingen har valgt noe annet for den ene spesifikasjonen.",
@@ -445,6 +428,9 @@ export const nb: Record<TranslationKey, string> = {
   "settings.notifications.job": "En planlagt jobb varsler etter eget valg — aldri, bare når kjøringen ikke gikk bra, eller hver kjøring. Det settes i jobbens skjema, på Kjøring-fanen til prosjektet.",
   "settings.usage.readAt": "Forbruk lest {at}",
   "settings.usage.reading": "Leser bruken …",
+  "settings.models.reading": "Leser modellene …",
+  "settings.install.reading": "Leser installasjonen …",
+  "settings.read.failed": "Ingenting kom tilbake — åpne fanen på nytt.",
   "settings.usage.unread": "Forbruket er ikke lest ennå.",
   "settings.usage.failed": "Forbruket kunne ikke leses: {reason}",
   "settings.usage.none": "Denne AI-en melder ingen forbruksvinduer.",
@@ -452,10 +438,8 @@ export const nb: Record<TranslationKey, string> = {
   "settings.usage.usedResets": "{percent} % brukt · nullstilles {resets}",
   "settings.models.add": "Legg til",
   "settings.models.adding": "legger til…",
-  "settings.models.unread": "Modellene er ikke lest ennå.",
   "settings.models.failed": "Modellene kunne ikke leses: {reason}",
   "settings.models.readAt": "Modeller lest {at}",
-  "settings.install.unchecked": "Ikke sjekket ennå.",
   "settings.install.ran": "Kjørte:",
   "settings.install.checkedAt": "Sjekket {at}",
   "settings.install.fail": "FEIL",

@@ -43,14 +43,17 @@ const stubProbe: Probe = async (key) => ({ key, at: "2026-11-05T09:00:00.000Z", 
 const stubUsage = async (key: string, provider: Provider): Promise<ToolUsage> =>
   ({ tool: provider.tool, at: "2026-11-05T09:00:00.000Z", windows: [{ name: `Window of ${key}`, usedPercent: 7 }] });
 
-function serve(extra: Partial<QueueDefaults> = {}, config = CONFIG, providerProbe: Probe = stubProbe, usageProbe = stubUsage) {
+function serve(
+  extra: Partial<QueueDefaults> = {}, config = CONFIG, providerProbe: Probe = stubProbe, usageProbe = stubUsage,
+  toolProbe?: NonNullable<Parameters<typeof start>[0]>["toolProbe"],
+) {
   const { file, modelIdsPath } = ownFiles(config, ownDirs);
   const queueDefaults = {
     ...defaultsOf({ Opus: {}, "gpt-6": { tool: "codex" } }, { default: "Opus" }),
     providers: { Claude: { name: "Claude", tool: "claude" }, Codex: { name: "Codex", tool: "codex" } },
     ...extra,
   } as QueueDefaults;
-  const { base } = start({ queueDefaults, queueConfigFile: file, modelIdsPath, providerProbe, usageProbe });
+  const { base } = start({ queueDefaults, queueConfigFile: file, modelIdsPath, providerProbe, usageProbe, toolProbe });
   return { base, file, queueDefaults };
 }
 
@@ -312,7 +315,7 @@ describe("the pages that add and edit a provider", () => {
     const { base } = serve();
     const dir = folder();
     await post(base, ADD, { tool: "claude", name: "Capra", configDir: dir });
-    const page = await (await fetch(`${base}/settings/providers/edit?key=Capra`)).text();
+    const page = await (await fetch(`${base}/settings/providers/edit?key=Capra&aitab=config`)).text();
     const html = page.match(/<form id="provider-form"[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(html).toContain('name="name" type="text" value="Capra"');
     expect(html).toContain(`value="${dir}"`);
@@ -323,34 +326,10 @@ describe("the pages that add and edit a provider", () => {
 
   test("the name field does not stop an empty name in the browser, so the board's refusal reaches the form's line (AC-18)", async () => {
     const { base } = serve();
-    const html = await (await fetch(`${base}/settings/providers/edit?key=Claude`)).text();
+    const html = await (await fetch(`${base}/settings/providers/edit?key=Claude&aitab=config`)).text();
     const field = html.match(/<input id="provider-name"[^>]*>/)?.[0] ?? "";
     expect(field).toContain('name="name"');
     expect(field).not.toContain("required");
-  });
-
-  test("a models reading made with another provider of the tool is not shown on this provider's page (AC-3)", async () => {
-    const { base } = serve();
-    const { recordModels, forgetChecks } = await import("../../../src/render/ui/tool-checks.ts");
-    forgetChecks();
-    recordModels({ tool: "claude", at: "2026-11-05T09:00:00.000Z", offered: [{ model: "only-from-a" }], provider: "Claude", providerKey: "Claude" });
-    const own = await (await fetch(`${base}/settings/providers/edit?key=Claude&aitab=models`)).text();
-    expect(own).toContain("only-from-a");
-    await post(base, ADD, { tool: "claude", name: "Claude-B", configDir: folder() });
-    const other = await (await fetch(`${base}/settings/providers/edit?key=Claude-B&aitab=models`)).text();
-    expect(other).not.toContain("only-from-a");
-    forgetChecks();
-  });
-
-  test("a reading made for a provider that was renamed is not shown on a new provider that took its old name (AC-4)", async () => {
-    const { base } = serve();
-    const { recordModels, forgetChecks } = await import("../../../src/render/ui/tool-checks.ts");
-    forgetChecks();
-    recordModels({ tool: "claude", at: "2026-11-05T09:00:00.000Z", offered: [{ model: "only-from-old" }], provider: "Claude-B", providerKey: "Claude" });
-    await post(base, ADD, { tool: "claude", name: "Claude-B", configDir: folder() });
-    const other = await (await fetch(`${base}/settings/providers/edit?key=Claude-B&aitab=models`)).text();
-    expect(other).not.toContain("only-from-old");
-    forgetChecks();
   });
 
   test("an unknown provider has no edit page (AC-4)", async () => {
@@ -363,6 +342,25 @@ describe("the pages that add and edit a provider", () => {
     const res = await fetch(`${base}/settings/providers/edit?key=Codex&aitab=installation`, { redirect: "manual" });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/settings?tab=providers&provider=Codex&aitab=installation");
+  });
+
+  test("the Providers tab carries the four tabs of the chosen provider with Overview open, and a named tab opens (AC-1, AC-10)", async () => {
+    const { base } = serve();
+    const open = async (query: string) => {
+      const html = await (await fetch(`${base}/settings?tab=providers&provider=Claude${query}`)).text();
+      return [...html.matchAll(/<a [^>]*href="[^"]*aitab=(\w+)"([^>]*)>/g)].map((m) => ({ tab: m[1], current: m[2]!.includes("aria-current") }));
+    };
+    const tabs = ["overview", "config", "models", "installation"];
+    expect(await open("")).toEqual(tabs.map((tab) => ({ tab, current: tab === "overview" })));
+    expect(await open("&aitab=installation")).toEqual(tabs.map((tab) => ({ tab, current: tab === "installation" })));
+  });
+
+  test("the page answers at once while a models reading never does, on the Models tab (AC-8)", async () => {
+    const never = () => new Promise<never>(() => {});
+    const { base } = serve({}, CONFIG, stubProbe, stubUsage, { check: never, models: never });
+    const html = await (await fetch(`${base}/settings?tab=providers&provider=Claude&aitab=models`)).text();
+    expect(html).toContain('data-read-from="/settings/providers/models?key=Claude"');
+    expect(html).toContain('aria-busy="true"');
   });
 });
 
@@ -381,7 +379,7 @@ describe("what a provider's page shows of its own folders", () => {
     const html = await (await fetch(`${base}/settings/providers/edit?key=Codex`)).text();
     expect(asked.sort()).toEqual(["status:Claude", "status:Codex"]);
     expect(html).toContain("1.0 (Codex)");
-    expect(html).toContain('data-usage-from="/settings/providers/usage?key=Codex"');
+    expect(html).toContain('data-read-from="/settings/providers/usage?key=Codex"');
   });
 
   test("two providers of one tool each show their own login and usage and not the other's (AC-4)", async () => {

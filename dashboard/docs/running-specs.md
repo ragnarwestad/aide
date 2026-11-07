@@ -206,18 +206,28 @@ itself shows for the model. Each option sits under a group named after its tool.
 whole string is what `model` holds (`opencode/gemini-3.1-pro`). Nothing OpenCode offers is reachable until a provider is
 logged in (`opencode auth login`); the page of an OpenCode provider answers whether one is.
 
-**A provider's page has one Check and two tabs: Models and Installation**, under what was read as the page opened, and
-opens on Models. One press of Check reads both at once, with the provider's own folders in the environment, and each tab
-shows the answer from that press with the time of its reading. If one reading fails or times out, the other is still
-shown and the failed tab says so. The tab buttons only switch between the tabs. The address names the open tab
-(`/settings?tab=providers&provider=Claude&aitab=installation`). The models are read on a press and at no other time. The
-installation check also runs at start and before a waiting job, for Claude Code, Codex and OpenCode, which is what the
-notice about a login at the top of every page reads; that notice links to the Providers tab.
+**A provider's page has four tabs under its heading: Overview, Config, Models and Installation**, and opens on
+Overview. Overview holds the status (the tool's version and the login) and the usage. Config holds the form with the
+display name and the runtime fields, with Save and Cancel, and nothing else; both come back to Config. Models holds the
+models reading and the choices it is set against. Installation holds the sentence saying where Aide's skills, rules and
+scripts are for the tool, and the installation reading. The address names the open tab
+(`/settings?tab=providers&provider=Claude&aitab=installation`), so a reload or a link opens the same tab; `aitab` takes
+`overview`, `config`, `models` and `installation`, and anything else opens Overview.
+
+**Models and Installation read their own answer when the tab is opened,** with no press. The tab is drawn at once with
+a line saying it is being read, in a place as tall as a typical answer, and the page's script fills the place from the
+tab's own address (`/settings/providers/models?key=` and `/settings/providers/installation?key=`), so the page does not
+wait for the tool. A reading that fails or runs out of time says so in the tab's own line, and so does a request that
+does not come back. The models are read with the provider's own folders in the environment. Each opening reads again and
+records what it read: the models feed Add, the pickers and the notice about models no longer offered, and the
+installation check feeds the notice about a login. The installation check also runs at start and before a waiting job,
+for Claude Code, Codex and OpenCode, which is what that notice at the top of every page reads; the notice links to the
+Providers tab.
 
 **The notice about models no longer offered** at the top of every page names the choices of an AI that its last Models
 reading does not offer, and links to the Providers tab, where a provider's Models tab has Remove. Removing a choice
-clears the notice on the next page load. An AI with no Models reading since the board started, and one whose last
-reading failed, get no such notice. The Models reading is kept per tool and names the provider whose folders it was
+clears the notice on the next page load. An AI whose Models tab has not been opened since the board started, and one
+whose last reading failed, get no such notice. The Models reading is kept per tool and names the provider whose folders it was
 read with.
 
 **The chosen provider shows how much of its subscription is used**, read with the provider's folders: each usage
@@ -230,25 +240,25 @@ text has no line the board can read as a window, the page shows the text as it c
 
 **The Installation tab shows what `aide-preflight` printed**: whether the command line is installed and which version,
 where each piece of aide lands, whether the installed files match the repository, and every command the check ran. The
-login is not on the tab: the provider's page shows it above the tabs.
+login is not on the tab: the Overview tab shows it.
 
 **The Models tab lists the models under three headings.** "Currently supported by Aide" is every model choice of that
 AI. "Available" is the models the AI offers that are not choices, each with Add. "No longer available" is the choices it
 no longer offers, each with Remove; such a choice can still be picked until it is removed. Nothing is added or removed
-without a press, a model is added only when the last Check's Models reading read it, and a choice that is a step's
+without a press, a model is added only when the last Models reading read it, and a choice that is a step's
 default model is refused until another model is picked for that step. Claude Code is asked one model at a time with
 `claude -p --model <m> "/model"`, which runs no model: the four families `opus`, `sonnet`, `fable` and `haiku`, each
 with the version it gives today, and every Claude choice. Of the choices, only a full id Claude Code names is offered:
 the other names it takes (`best`, `default`, `opusplan`, the `[1m]` names) are listed as no longer offered. A fixed
 Claude version, such as `claude-opus-4-8`, is a choice written into `queue-config.json`. Codex's models come from `codex
 debug models`, without the ones it marks hidden, and OpenCode's from `opencode models`. The lists are gone after a
-restart until the next press.
+restart until the Models tab is opened again.
 
 **A Claude choice shows the version it gives** in every model picker and on a Claude provider's Models tab. The model id it resolves to
-is kept in `model-ids.json`, beside the queue's own file: a run records the id it ran on, and a press of Check or an Add
+is kept in `model-ids.json`, beside the queue's own file: a run records the id it ran on, and opening the Models tab or an Add
 records the id Claude Code names. `model-names.json` keeps the name Claude Code gave the choice for that id
 (`Opus 5.5 (1M context)` for `opus[1m]`). A choice written into `queue-config.json` by hand shows the bare name until
-the next press of Check.
+the Models tab is opened.
 
 **The tool is a choice per PHASE, not per row.** Every phase's dropdown lists every configured model, grouped per CLI,
 `Claude Code` first, then `Codex`; a tool with nothing configured draws no group. A row can run analyze on one CLI and
@@ -294,7 +304,7 @@ tool checks alike. A directory that does not exist is not added.
 `PATH` search. All three are read from the environment. `AIDE_CLAUDE_BIN` is also read from the project's `.aide/config`,
 which is how a project points its runs at a stand-in binary; a value written there for the other two does nothing.
 
-The tool checks run when the board starts, when Check is pressed, and for the tool a queued job's next step will run on,
+The tool checks run when the board starts, when a provider's Installation tab is opened, and for the tool a queued job's next step will run on,
 at most once a minute per tool. A check that finds something wrong puts a line at the top of every page, but only for a
 tool some model is configured for. The login check reads every provider of the tool, each with its own folder, so the
 line names the provider whose login is wrong ("Claude Code: Claude-2 not logged in"). A Claude Code login that names one account with an organization plan it cannot have is
@@ -478,7 +488,7 @@ the provider.
   narrow screen). Each row has the tool's icon, the name, the tool's version, the login and the plan (Claude Code's
   subscription, or the way Codex is logged in), and the provider's on/off switch. Above the list is **+**, which adds a
   provider, and when the status was read, with Check again. **Add provider** ends the list. Pressing a row chooses
-  that provider in place, without loading the page again (as do the tabs of its panel and Check again); the address
+  that provider in place, without loading the page again (as do the tabs of its page and Check again); the address
   names it (`/settings?tab=providers&provider=Claude`), and with none named the first is
   chosen. The tool of a provider does not change; to change it, add a provider. No provider is special: the ones the
   board made on its first start can be renamed and removed like the rest.
@@ -496,8 +506,8 @@ the provider.
   it, and it opens empty at the first step again. The old address of the Add page (`/settings/providers/new`) leads
   to the Providers tab.
 - **The chosen provider.** Beside the list: the name with the version and **Remove**, which asks first; then the
-  status (see Status); then one form with the display name and the runtime fields, with Save and Cancel; then the
-  usage and the tool's panel with its Check. Save shows its pending label while it saves; a refusal is written in the
+  four tabs. Overview has the status (see Status) and the usage; Config has one form with the display name and the
+  runtime fields, with Save and Cancel; Models and Installation have the readings made when they are opened. Save shows its pending label while it saves; a refusal is written in the
   form's own line and leaves every field as it was typed; Cancel puts back what was saved. Renaming a provider updates
   nothing else: phase defaults, schedule entries and jobs store the provider's key. The old address of a provider's
   page (`/settings/providers/edit?key=`) leads here.
@@ -532,7 +542,7 @@ the provider.
 - **Read as a step would meet it.** The status is read when Settings opens on its Providers tab (for the rows) and when
   a provider's page opens, and no other tab reads anything. The board's own process reads it, with the provider's folder in the environment, so it is what a
   step on that provider would meet, which a terminal's own login need not be: a login kept in the macOS keychain can be
-  readable from a terminal and not from the board's service. The login check at start, on Check and before a waiting
+  readable from a terminal and not from the board's service. The login check at start, on the Installation tab and before a waiting
   job reads every provider the same way.
 - **One login each.** Save refuses a provider whose login another provider of the same tool already uses: the same
   Claude config folder, the same Codex folder (the shadow home when there is one), or a second OpenCode provider.

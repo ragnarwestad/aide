@@ -45,18 +45,19 @@ export {
 } from "./pages/settings-page";
 export type { SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
 export {
-  CHECKABLE_TOOLS, TOOL_PARTS, TOOL_TAB_LABELS, toolPanel, toolPart, toolParts, usageBlock,
+  CHECKABLE_TOOLS, stamp, TOOL_TAB_LABELS, usageBlock,
 } from "./pages/settings-page/tools.ts";
+export { installationBlock } from "./pages/settings-page/installation.ts";
 export {
   PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_SWITCH_ROUTE,
-  PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, PROVIDER_USAGE_PATH, PROVIDERS_TAB_PATH, providerEditPath,
+  PROVIDER_EDIT_PATH, PROVIDER_INSTALLATION_PATH, PROVIDER_MODELS_PATH, PROVIDER_NEW_PATH, PROVIDER_USAGE_PATH, PROVIDERS_TAB_PATH, providerEditPath,
 } from "./pages/settings-page/providers.ts";
 export type { ProviderStatus } from "./pages/settings-page/providers.ts";
-export type { CheckableTool, ExtraCheck, ToolCheck, ToolPart } from "./pages/settings-page/tools.ts";
+export type { CheckableTool, ExtraCheck, ToolCheck } from "./pages/settings-page/tools.ts";
 export { usageView } from "./pages/settings-page/usage.ts";
 export type { ToolUsage, UsageView, UsageWindow } from "./pages/settings-page/usage.ts";
 export {
-  choiceModel, choiceOf, modelLists, MODELS_ADD_ROUTE, MODELS_REMOVE_ROUTE, sameModel,
+  choiceModel, choiceOf, modelLists, modelsBlock, MODELS_ADD_ROUTE, MODELS_REMOVE_ROUTE, sameModel,
 } from "./pages/settings-page/models.ts";
 export type { ModelsPanel, OfferedModel, ToolModels } from "./pages/settings-page/models.ts";
 

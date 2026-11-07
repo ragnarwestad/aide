@@ -77,7 +77,7 @@ function restartWaitingNotice(lang: Language): string {
  *  this the answer lives on a Settings tab nobody has a reason to open,
  *  and the first anyone learns of it is a run that failed. One line per
  *  tool, since two faulty tools are two different fixes. The line links to
- *  the Providers tab, where each provider's page has the Check that asks again. */
+ *  the Providers tab, where each provider's page has the Installation tab that asks again. */
 function toolFaultNotices(lang: Language): string {
   return toolsWithFaults()
     .map(({ tool, problems }) => {

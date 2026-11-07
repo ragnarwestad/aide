@@ -10,8 +10,8 @@
 //
 // What the preflight cannot answer is asked separately, and only where
 // there is something to ask: whether the AI is logged in, and for OpenCode
-// whether a provider is. Which models each AI offers is read by a press of
-// Check alone (`tool-models/`), never by this check, which also runs at
+// whether a provider is. Which models each AI offers is read by a provider's
+// Models tab alone (`tool-models/`), never by this check, which also runs at
 // start and before waiting jobs.
 
 import { homedir } from "node:os";

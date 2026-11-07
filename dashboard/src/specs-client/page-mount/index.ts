@@ -10,7 +10,7 @@ import { startReloadWhileIdle } from "../reload-while-idle";
 import { bindReportFrame } from "../report-frame";
 import { postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm } from "../schedule-actions";
 import { placeNamedRow } from "../spec-detail";
-import { fillUsage } from "../usage-slot";
+import { fillReadings } from "../read-slot";
 import { NEW_SPEC_FORM } from "../state";
 
 export function mountPage(doc: Document, options: { referrer: string }): () => void {
@@ -18,7 +18,7 @@ export function mountPage(doc: Document, options: { referrer: string }): () => v
   const cleanups: (() => void)[] = [];
   const providerAdd = doc.getElementById("provider-add") as HTMLDialogElement | null;
   if (providerAdd) bindProviderAdd(providerAdd);
-  void fillUsage(doc);
+  void fillReadings(doc);
   const pushPanel = doc.querySelector("[data-push-panel]") as HTMLElement | null;
   if (pushPanel) bindPushPanel(pushPanel);
   startOriginCheck(doc);

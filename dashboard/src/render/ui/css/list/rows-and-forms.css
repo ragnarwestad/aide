@@ -98,8 +98,8 @@ td form { margin: 0; display: inline-block; }
 .panelhead { display: flex; justify-content: space-between; align-items: baseline;
   flex-basis: 100%; gap: var(--sp-2); margin-bottom: var(--sp-2); }
 .panelhead .factions { display: flex; gap: var(--sp-2); flex: none; }
-/* The Settings page's own button rows (its Phases form and each tool's
-   Check form): always right-aligned, with a deliberate gap to what is
+/* The Settings page's own button rows (its Phases form and the Add and Remove
+   forms of the Models tab): always right-aligned, with a deliberate gap to what is
    above them. The Config tab has no such row above both tables: each
    table has its own `.panelhead`. */
 .configactions { display: flex; justify-content: flex-end; gap: var(--sp-2);

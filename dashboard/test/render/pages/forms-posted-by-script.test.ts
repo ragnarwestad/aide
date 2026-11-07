@@ -5,7 +5,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { renderJobDetailPage, renderProjectPage, toolPanel, type ProjectView } from "../../../src/render";
+import { renderJobDetailPage, modelsBlock, renderProjectPage, type ProjectView } from "../../../src/render";
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { setBoardInfo } from "../../../src/render/ui/board-info.ts";
 import { waitingForTestServerPage } from "../../../src/serve/routes/spec-edit/test-server-waiting.ts";
@@ -70,14 +70,13 @@ describe("each form the page script posts and loads again", () => {
       setBoardInfo("round");
       return pageShell("x", NAV, "/", "", "2026-09-20T00:00:00Z", { lang: "en" });
     }, "/api/self-run"],
-    ["a provider's Check", () => toolPanel({ key: "Claude", tool: "claude" }, undefined, {}, "en", "models"), "/api/queue/settings/check"],
-    ["an offered model's Add", () => toolPanel({ key: "Codex", tool: "codex" }, undefined, {
+    ["an offered model's Add", () => modelsBlock("codex", {
       reading: { tool: "codex", at: "2026-10-03T13:30:00Z", offered: [{ model: "gpt-5.5" }] },
-    }), "/api/queue/settings/models/add"],
-    ["a choice no longer offered's Remove", () => toolPanel({ key: "Codex", tool: "codex" }, undefined, {
+    }, "2026-10-03 13:30:00 UTC"), "/api/queue/settings/models/add"],
+    ["a choice no longer offered's Remove", () => modelsBlock("codex", {
       reading: { tool: "codex", at: "2026-10-03T13:30:00Z", offered: [] },
       choices: { "gpt-5.6-luna": { tool: "codex" } },
-    }), "/api/queue/settings/models/remove"],
+    }, "2026-10-03 13:30:00 UTC"), "/api/queue/settings/models/remove"],
     ["a schedule entry's Delete", () => projectPage({
       tab: "schedule",
       schedule: [{ name: "nightly", cron: "0 3 * * *", prompt: "p", enabled: true }],

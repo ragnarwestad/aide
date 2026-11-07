@@ -31,7 +31,7 @@ export function withModelId(choice: string | undefined, modelId: string | undefi
 }
 
 /** A picker's option: the alias, and what it gives today when a run or a
- *  Check has read it — `Opus 5.5` for `Opus`, rather than the alias and the
+ *  Models tab reading has read it — `Opus 5.5` for `Opus`, rather than the alias and the
  *  id side by side. The name Claude Code gave the choice wins while the id
  *  it gave it for is still the one the choice gives (`ranAs`, or the alias
  *  itself for a choice named by its id). Otherwise a choice named by its own

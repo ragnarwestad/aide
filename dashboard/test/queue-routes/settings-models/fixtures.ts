@@ -1,5 +1,5 @@
 // What the Settings model routes are tested with: a stand-in for every CLI
-// a press of Check or Add would start, a queue config of the test's own,
+// opening the Models tab or an Add would start, a queue config of the test's own,
 // and the live model choices as the Settings page offers them.
 
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -23,8 +23,8 @@ export const CLAUDE_READING: ToolModels = {
   ],
 };
 
-/** Stands in for every CLI a press of Check starts — the check and the
- *  models — counting which models were read. */
+/** Stands in for every CLI a provider's Models or Installation tab starts — the
+ *  check and the models — counting which models were read. */
 export function modelsProbe(readings: Partial<Record<CheckableTool, ToolModels>> = {}) {
   const probe = {
     modelReads: [] as { tool: CheckableTool; configured: string[]; env?: Record<string, string> }[],
@@ -72,11 +72,11 @@ export async function offeredChoices(base: string): Promise<Record<string, strin
 export const post = (base: string, path: string, body: Record<string, string>) =>
   fetch(`${base}${path}`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
 
-/** A press of a provider's one Check, which reads its tool's Installation and Models. */
-export const pressCheck = (base: string, key: string) =>
-  post(base, "/api/queue/settings/check", { key });
+/** The Models tab of a provider opened, which reads its tool's models. */
+export const openModelsTab = (base: string, key: string) =>
+  fetch(`${base}/settings/providers/models?key=${encodeURIComponent(key)}`);
 
-/** The providers a check is pressed on: one per tool, on the tool's own folders. */
+/** The providers a tab is read for: one per tool, on the tool's own folders. */
 export const PROVIDERS = {
   Claude: { name: "Claude", tool: "claude" as const },
   Codex: { name: "Codex", tool: "codex" as const },

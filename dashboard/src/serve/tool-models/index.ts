@@ -1,4 +1,4 @@
-// Which models each AI offers, read when a provider's Check is pressed and at no
+// Which models each AI offers, read when a provider's Models tab is opened and at no
 // other time: the start-up check and the re-check before a job call
 // `checkTool()`, which reads none of it, and four Claude Code processes a
 // round would be too many for either. Each reader asks the tool in a way
@@ -27,7 +27,7 @@ export interface ModelsOptions {
   scriptPath?: (name: string) => string;
   now?: () => Date;
   /** Added to the environment of every command: the folders of the
-   *  provider whose Check read the models. */
+   *  provider whose Models tab read the models. */
   env?: Record<string, string>;
 }
 

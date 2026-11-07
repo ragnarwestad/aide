@@ -21,7 +21,7 @@ export const en = {
   "shell.tabSchedule": "Schedule",
   "shell.restartWaiting": "Deploy is waiting for {jobs}; the service restarts when they are done.",
   "shell.installWarning": "aide's last install found a problem: {problem} — the full output is in {path}",
-  "shell.toolFault": "{tool}: {problems} — press Check on {where}",
+  "shell.toolFault": "{tool}: {problems} — open the Installation tab on {where}",
   "shell.toolFaultWhere": "a provider's page, under the Providers tab in Settings",
   "shell.modelsGone": "{tool}: {models} no longer offered — remove them on {where}",
   "shell.modelsGoneWhere": "a provider's page, under the Providers tab in Settings",
@@ -325,17 +325,14 @@ export const en = {
   "limit.credit": "Extra usage: {reason}.",
   "limit.plan": "Plan: {plan}.",
 
-  // An AI's tab on Settings: where aide installs for it, and what Check finds out.
+  // An AI's tab on Settings: where aide installs for it.
   "settings.where.claude":
     "Claude Code reads aide's skills from {skills} and its rules from {rules}; aide's scripts are in {scripts}.",
   "settings.where.codex":
     "Codex reads aide's instructions from {instructions}, its hooks from {hookConfig} and {hooks}, and its skills from {skills}, which it shares with Copilot; aide's scripts are in {scripts}.",
   "settings.where.opencode":
     "OpenCode brings no model of its own: every model belongs to a provider and is named provider/model. aide installs only its instructions, to {instructions}, and OpenCode finds aide's skills where they already are, in {skills} and {claudeSkills}.",
-  "settings.checkHelpTitle":
-    "What Check finds out",
-  "settings.checkHelpAll":
-    "One press of Check reads the models and the installation of this tool, with the folders of this provider. The login and the usage are read each time this page opens.",
+  "settings.part.overview": "Overview",
   "settings.part.models": "Models",
   "settings.part.installation": "Installation",
   "settings.providers.none": "No provider has been added.",
@@ -390,18 +387,6 @@ export const en = {
   "job.provider": "Provider",
   "notice.providerRuns": "{step} runs on {who}",
   "notice.providerRan": "{step} ran on {who}",
-  "settings.checkHelp.models.claude":
-    "This Check asks Claude Code which version each of opus, sonnet, fable and haiku gives today, with /model, which runs no model, and sets what it offers against the models that can be picked on the board.",
-  "settings.checkHelp.models.codex":
-    "This Check reads which models Codex offers, from codex debug models, and sets them against the models that can be picked on the board.",
-  "settings.checkHelp.models.opencode":
-    "This Check reads which models OpenCode's logged-in providers offer, from opencode models, and sets them against the models that can be picked on the board.",
-  "settings.checkHelp.installation.claude":
-    "This Check runs aide-preflight and claude auth status. It tells you whether the command line is installed and which version, whether it is logged in and with which account, where each piece of aide lands and whether it is there, and whether the installed files still match this repository.",
-  "settings.checkHelp.installation.codex":
-    "This Check runs aide-preflight and codex login status. It tells you whether the command line is installed and which version, whether it is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository.",
-  "settings.checkHelp.installation.opencode":
-    "This Check runs aide-preflight and opencode auth list. It tells you whether the command line is installed and which version, whether a provider is logged in, where each piece of aide lands and whether it is there, and whether the installed files still match this repository. A provider IS the login here, since OpenCode reaches every model through one.",
   "settings.models.supported": "Currently supported by Aide",
   "settings.models.available": "Available",
   "settings.models.gone": "No longer available",
@@ -421,8 +406,6 @@ export const en = {
   "tab.schedule": "Schedule",
   "tab.report": "Report",
   "tab.settings": "Settings",
-  "settings.checkButton": "Check",
-  "settings.checking": "checking…",
   "settings.help.page.title": "What this page sets",
   "settings.help.page.lead": "What this page sets.",
   "settings.help.page.body": "Every step the queue can run has a row here, and a row says what that step runs on and how long it may take. Nothing here starts anything; it is what a run uses when nobody picked something else for that one spec.",
@@ -454,6 +437,9 @@ export const en = {
   "settings.notifications.job": "A scheduled job notifies by its own choice — never, only when the run did not succeed, or every run. It is set on the job's form, on the project's Schedule tab.",
   "settings.usage.readAt": "Usage read {at}",
   "settings.usage.reading": "Reading the usage…",
+  "settings.models.reading": "Reading the models…",
+  "settings.install.reading": "Reading the installation…",
+  "settings.read.failed": "Nothing came back — open the tab again.",
   "settings.usage.unread": "Usage not read yet.",
   "settings.usage.failed": "The usage could not be read: {reason}",
   "settings.usage.none": "This AI reports no usage windows.",
@@ -461,10 +447,8 @@ export const en = {
   "settings.usage.usedResets": "{percent}% used · resets {resets}",
   "settings.models.add": "Add",
   "settings.models.adding": "adding…",
-  "settings.models.unread": "Models not read yet.",
   "settings.models.failed": "The models could not be read: {reason}",
   "settings.models.readAt": "Models read {at}",
-  "settings.install.unchecked": "Not checked yet.",
   "settings.install.ran": "Ran:",
   "settings.install.checkedAt": "Checked {at}",
   "settings.install.fail": "FAIL",

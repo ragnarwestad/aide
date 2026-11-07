@@ -115,8 +115,8 @@ export interface ServerOptions {
    *  on a machine with no job registered but a genuine hazard on one
    *  that has. Defaults to `createLaunchdRestart()`. */
   restart?: RestartHook;
-  /** What a press of Check runs in place of the real CLIs: the check and the
-   *  models read. A test seam, and both halves are required, so a test that
+  /** What a provider's Models and Installation tabs run in place of the real CLIs:
+   *  the models read and the check. A test seam, and both halves are required, so a test that
    *  sets it can never fall through to a real CLI on the other. */
   toolProbe?: {
     check: (tool: CheckableTool) => Promise<ToolCheck>;

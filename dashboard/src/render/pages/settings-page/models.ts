@@ -20,7 +20,7 @@ export interface OfferedModel {
   id?: string;
 }
 
-/** One reading of an AI's models, made when a provider's Check was pressed. */
+/** One reading of an AI's models, made when a provider's Models tab was opened. */
 export interface ToolModels {
   tool: CheckableTool;
   /** When the reading was made. Like a check, it is a moment. */
@@ -34,15 +34,12 @@ export interface ToolModels {
   error?: string;
   /** The name of the provider whose folders the reading was made with. */
   provider?: string;
-  /** The key of that provider: a rename keeps it, a new provider that takes
-   *  the old name does not. */
-  providerKey?: string;
 }
 
 /** What the tab is handed beside the reading: the live choices and the
  *  picker's own options, whose `ranAs` gives a Claude choice its version. */
 export interface ModelsPanel {
-  reading?: ToolModels;
+  reading: ToolModels;
   choices?: Record<string, ModelChoice>;
   options?: { name: string; tool?: string; ranAs?: string; named?: { id: string; name: string } }[];
 }
@@ -133,11 +130,9 @@ function supportedBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language,
   })));
 }
 
-/** What the last press of the Models tab's Check read of the AI's models,
- *  against its choices: nothing at all until a press has read them. */
+/** What the Models tab read of the AI's models, against its choices. */
 function readingBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language): string {
   const reading = panel.reading;
-  if (!reading) return `<p class="muted">${esc(t(lang, "settings.models.unread"))}</p>`;
   if (reading.error) return `<p class="muted">${esc(t(lang, "settings.models.failed", { reason: reading.error }))}</p>`;
   const lists = modelLists(tool, panel.choices, reading);
   const offered = lists.offered.length
@@ -158,7 +153,7 @@ function readingBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language): 
   );
 }
 
-/** An AI's Models tab: when its models were last read, the ones that can
+/** An AI's Models tab: when its models were read, the ones that can
  *  be picked, and the reading set against them. `readAt` is the reading's
  *  time as the tab stamps it; `toolName` is the AI's own name. */
 export function modelsBlock(
@@ -168,10 +163,8 @@ export function modelsBlock(
   lang: Language = "en",
   toolName: string = tool,
 ): string {
-  const read = panel.reading
-    ? `<p class="muted small">${esc(panel.reading.provider
-      ? t(lang, "settings.models.readAtWith", { at: readAt, provider: panel.reading.provider })
-      : t(lang, "settings.models.readAt", { at: readAt }))}</p>`
-    : "";
+  const read = `<p class="muted small">${esc(panel.reading.provider
+    ? t(lang, "settings.models.readAtWith", { at: readAt, provider: panel.reading.provider })
+    : t(lang, "settings.models.readAt", { at: readAt }))}</p>`;
   return read + supportedBlock(tool, panel, lang, toolName) + readingBlock(tool, panel, lang);
 }

@@ -303,8 +303,8 @@ describe("the completion hook and the landing window", () => {
   });
 
   // `cli-error` is the CLI itself failing rather than the work in it, so
-  // the row names which AI and model it failed on and points at the one
-  // control that can answer whether that AI is usable. The script's own
+  // the row names which AI and model it failed on and points at the tab
+  // that can answer whether that AI is usable. The script's own
   // words survive twice over: in the sentence, and as its hover detail.
   test("a CLI that failed names the AI and model it failed on", () => {
     const job = enqueue({ steps: ["archive"] });
@@ -314,7 +314,8 @@ describe("the completion hook and the landing window", () => {
     const text = sentence(store.get(job.id)?.error);
     expect(text).toContain("sonnet");
     expect(text).toContain("no");
-    expect(text).toContain("Check");
+    expect(text).toContain("Installation tab");
+    expect(text).not.toContain("press Check");
     expect(store.get(job.id)?.errorDetail).toBe("no");
   });
 

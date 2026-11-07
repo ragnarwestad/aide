@@ -19,6 +19,10 @@ export const PROVIDER_NEW_PATH = "/settings/providers/new";
 export const PROVIDER_EDIT_PATH = "/settings/providers/edit";
 /** A provider's usage, read now: the block the Providers tab fills in. */
 export const PROVIDER_USAGE_PATH = "/settings/providers/usage";
+/** A provider's models, read now: the block the Models tab fills in. */
+export const PROVIDER_MODELS_PATH = "/settings/providers/models";
+/** A provider's installation, read now: the block the Installation tab fills in. */
+export const PROVIDER_INSTALLATION_PATH = "/settings/providers/installation";
 export const PROVIDERS_TAB_PATH = "/settings?tab=providers";
 
 /** A provider's own place: the Providers tab with it chosen. */

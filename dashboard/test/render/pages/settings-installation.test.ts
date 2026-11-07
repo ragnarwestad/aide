@@ -5,7 +5,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import { toolPanel, type ToolCheck } from "../../../src/render";
+import { installationBlock, stamp, type ToolCheck } from "../../../src/render";
 import type { BoardMessage } from "../../../src/i18n/message.ts";
 
 const AT = "2026-10-03T13:30:00.000Z";
@@ -23,7 +23,7 @@ function parse(html: string): Document {
 }
 
 const installation = (check: ToolCheck) =>
-  parse(toolPanel({ key: "Claude", tool: check.tool }, check, {}, "en", "installation"));
+  parse(installationBlock(check, stamp(check.at), "en"));
 
 const LOGGED_IN: BoardMessage = { key: "login.inWithAs", values: { method: "claude.ai", account: "someone@example.com, Max" } };
 

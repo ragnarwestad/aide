@@ -1,4 +1,4 @@
-// A provider's tool panel holds one width whichever of its two tabs is open, and its tab row stays where it is. Installation's
+// A provider's tool panel holds one width whichever of its tabs is open, and its tab row stays where it is. Installation's
 // preflight output is the widest thing any tab holds; it must wrap or
 // scroll inside the panel rather than widen it. Only a real browser lays
 // the page out, so the widths are measured in Chromium.
@@ -6,7 +6,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser, type Page } from "playwright";
 import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
-import { forgetChecks, recordCheck } from "../../../src/render/ui/tool-checks.ts";
+import { forgetChecks } from "../../../src/render/ui/tool-checks.ts";
 
 browserDeadline();
 
@@ -30,16 +30,15 @@ beforeAll(async () => {
       },
       providerProbe: async (key: string) => ({ key, at: "2026-11-05T09:00:00.000Z", installed: true }),
       usageProbe: async () => ({ tool: "claude" as const, at: "2026-11-05T09:00:00.000Z", windows: [] }),
+      toolProbe: {
+        check: async () => ({
+          tool: "claude" as const, commands: ["aide-preflight claude"], at: new Date().toISOString(),
+          found: true, lines: [SENTENCE, CHECKSUM], extra: [],
+        }),
+        models: async () => ({ tool: "claude" as const, at: new Date().toISOString(), offered: [] }),
+      },
     },
   }).base;
-  recordCheck({
-    tool: "claude",
-    commands: ["aide-preflight claude"],
-    at: new Date().toISOString(),
-    found: true,
-    lines: [SENTENCE, CHECKSUM],
-    extra: [],
-  });
 });
 
 afterAll(async () => {
@@ -57,7 +56,9 @@ interface Layout {
   windowWidth: number;
 }
 
-function measure(p: Page): Promise<Layout> {
+async function measure(p: Page): Promise<Layout> {
+  // The tab's reading comes in after the page has drawn.
+  await p.locator("[data-read-from]").waitFor({ state: "detached" });
   return p.evaluate(() => {
     const r = document.querySelector("section.toolpanel[data-tool]")!.getBoundingClientRect();
     return {

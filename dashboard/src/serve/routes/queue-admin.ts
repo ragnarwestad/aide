@@ -3,7 +3,6 @@
 // for a project. Extracted from routes.ts (split of split
 // serve.ts step 2).
 import { realPathOrOriginal as realpathOr } from "../../git/real-path.ts";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
 import { MAIN_TEST_SERVER_KEY, restartMainTestServer, stopTestServer } from "../test-servers/lifecycle.ts";
@@ -12,14 +11,10 @@ import { listedModelName } from "../../queue/model-name.ts";
 import { persistQueueSettings } from "../../queue/queue.ts";
 import { providerKeyFrom, providerModelError } from "../../queue/providers/parse.ts";
 import { addProject, assessProjectReadiness, commitManifestEdits, detectRemoteTestCommand, projectNameError, removeProject, updateProjectSettings, type SaveManifest } from "../../project/project-admin";
-import { SETTINGS_STEPS, type ToolCheck, type ToolModels } from "../../render";
-import { providerLoginEnv } from "../../queue/providers/index.ts";
+import { SETTINGS_STEPS } from "../../render";
 import { SIDE_PARTS } from "../../queue/providers/side-tools.ts";
 import { splitFix } from "../../format/request-fixes.ts";
 import { MAX_CREATE_BODY, bodyToObject, json, readBounded, refusal } from "../serve-helpers";
-import { checkTool, recordCheck } from "../tool-check.ts";
-import { readModels, recordModels } from "../tool-models";
-import { recordClaudeVersions } from "./settings-models.ts";
 import type { RoutesContext } from "./";
 
 export async function handleQueueAdminRoutes(
@@ -44,53 +39,6 @@ export async function handleQueueAdminRoutes(
     return json({ ok: true, job: result.job });
   }
 
-  // Asking a provider's tool two things at once, as the tabs under Check on
-  // its page show them: whether it is usable on this host (Installation) and
-  // which models it offers (Models), the models read with the provider's own
-  // folders. One press reads both side by side; a reading that fails is
-  // stored as one that failed and the other is stored as it came. A GET never
-  // runs either: each spawns a CLI and reaches the network, so they happen
-  // when a button is pressed and at no other time. The usage is not read
-  // here: the provider's page reads it each time it opens.
-  if (path === "/api/queue/settings/check") {
-    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const body = await readBounded(req);
-    if ("refusal" in body) return body.refusal;
-    let raw: unknown;
-    try { raw = bodyToObject(body.text, req.headers.get("content-type")); }
-    catch { return json({ error: "malformed body" }, 400); }
-    const asked = (raw as Record<string, unknown> | null)?.key;
-    const key = typeof asked === "string" ? asked : "";
-    const provider = ctx.queue.defaults.providers?.[key];
-    if (!provider) {
-      return json({ error: `${key || "That"} is not a provider — open its page under Settings → Providers and press Check there` }, 400);
-    }
-    const tool = provider.tool;
-    const probe = ctx.opts.toolProbe;
-    const env = providerLoginEnv(provider, homedir());
-    // Every model value of this tool's choices, its key where it names
-    // none: what the models read are set against.
-    const configured = Object.entries(ctx.queue.defaults.modelChoices ?? {})
-      .filter(([, choice]) => (choice.tool ?? "claude") === tool)
-      .map(([name, choice]) => choice.model ?? name);
-    const at = new Date().toISOString();
-    const failed = (err: unknown) => (err instanceof Error ? err.message : String(err));
-    const [check, models] = await Promise.allSettled([
-      probe ? probe.check(tool) : checkTool(tool, { providers: () => ctx.queue.defaults.providers }),
-      probe ? probe.models(tool, { configured, env }) : readModels(tool, { configured, env }),
-    ]);
-    const checked: ToolCheck = check.status === "fulfilled" ? check.value
-      : { tool, at, found: false, lines: [], extra: [], error: `The check could not be run: ${failed(check.reason)}` };
-    const read: ToolModels = models.status === "fulfilled" ? { ...models.value, provider: provider.name, providerKey: key }
-      : { tool, at, offered: [], error: failed(models.reason), provider: provider.name, providerKey: key };
-    recordCheck(checked);
-    recordModels(read);
-    recordClaudeVersions(ctx.queue, read, ctx.opts.modelIdsPath);
-    return json({ ok: true, check: checked, models: read });
-  }
-
-  // Matched by string equality, so it and the check route above cannot
-  // shadow each other whatever the order.
   if (path === "/api/queue/settings") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const body = await readBounded(req);

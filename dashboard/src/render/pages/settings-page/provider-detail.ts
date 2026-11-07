@@ -1,18 +1,22 @@
 // The chosen provider, on the right of the Providers tab: its tool's mark,
-// its name and version with Remove, the status read as the tab opened, one
-// form with the display name and the tool's runtime fields, then the usage
-// and the tool's panel with its Check and models.
+// its name and version with Remove, then four tabs. Overview holds the
+// status read as the tab opened and the usage; Config holds the one form
+// with the display name and the tool's runtime fields; Models and
+// Installation each hold a place the page's script fills with that tab's
+// own reading once the page has drawn.
 
 import { esc } from "../../ui/html.ts";
 import { askButton, confirmDialog, messageSlot, saveCancelActions, TOOL_ICONS } from "../../ui/components";
+import { pickTab, tabBar } from "../../ui/tabs.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import { providerFields, type Provider, type ProviderField, type ProviderTool } from "../../../queue/providers/index.ts";
 import { TOOL_NAMES } from "../specs-list";
 import {
-  PROVIDER_USAGE_PATH, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_TAB_PATH, providerEditPath, providerStatusLines, versionNumber, type ProviderStatus,
+  PROVIDER_INSTALLATION_PATH, PROVIDER_MODELS_PATH, PROVIDER_USAGE_PATH, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_TAB_PATH,
+  providerEditPath, providerStatusLines, versionNumber, type ProviderStatus,
 } from "./providers.ts";
-import { toolPanel, toolPart, usageBlock, type ToolCheck } from "./tools.ts";
-import type { ModelsPanel } from "./models.ts";
+import { INSTALL_TARGETS, placesOf } from "./places.ts";
+import { toolWhere, usageBlock } from "./tools.ts";
 import type { ToolUsage } from "./usage.ts";
 
 /** The line a refusal is written into, named so the Remove dialog's form
@@ -27,12 +31,20 @@ export interface ProviderDetailOptions {
   /** No reading of the usage is kept: the tab draws a place for it, and
    *  the page's script asks for one there. */
   usagePending?: boolean;
-  /** The tool's last Check, and the models reading with what it is set against. */
-  check?: ToolCheck;
-  models?: ModelsPanel;
-  /** Which tab under the Check is open, off `?aitab=`. */
+  /** Which tab is open, off `?aitab=`. */
   aiTab?: string;
 }
+
+/** The tabs of a chosen provider's page, in the order they are shown. */
+export const PROVIDER_TABS = ["overview", "config", "models", "installation"] as const;
+export type ProviderTab = (typeof PROVIDER_TABS)[number];
+
+/** The open tab, off `?aitab=`: Overview when none, or one that does not
+ *  exist, is named. */
+export const providerTab = (raw: string | undefined): ProviderTab => pickTab(PROVIDER_TABS, raw, "overview");
+
+/** The address of one tab of a provider's page. */
+export const providerTabPath = (key: string, tab: ProviderTab): string => `${providerEditPath(key)}&aitab=${tab}`;
 
 /** Every field a provider of the tool has after its name, in the order the
  *  form asks for them. */
@@ -92,12 +104,22 @@ function removeControl(key: string, name: string, lang: Language): string {
   );
 }
 
-/** The usage, or a place for it the page's script fills in from
- *  `PROVIDER_USAGE_PATH`, as tall as a reading so nothing moves when it comes. */
+/** A place the page's script fills with what `from` answers once the page
+ *  has drawn: a line saying it is being read until then, and the sentence
+ *  to show if nothing comes back. `className` gives the place a height near
+ *  an answer's, so nothing moves when it comes. */
+function readSlot(className: string, path: string, key: string, reading: TranslationKey, lang: Language): string {
+  const from = `${path}?key=${encodeURIComponent(key)}`;
+  return (
+    `<div class="${className}" data-read-from="${esc(from)}" data-read-failed="${esc(t(lang, "settings.read.failed"))}" aria-busy="true">` +
+    `<p class="muted">${esc(t(lang, reading))}</p></div>`
+  );
+}
+
+/** The usage, or a place for it. */
 function usageSlot(o: ProviderDetailOptions, now: number, lang: Language): string {
   if (!o.usagePending) return `<div class="usageslot">${usageBlock(o.usage, now, lang)}</div>`;
-  const from = `${PROVIDER_USAGE_PATH}?key=${encodeURIComponent(o.key)}`;
-  return `<div class="usageslot" data-usage-from="${esc(from)}" aria-busy="true"><p class="muted">${esc(t(lang, "settings.usage.reading"))}</p></div>`;
+  return readSlot("usageslot", PROVIDER_USAGE_PATH, o.key, "settings.usage.reading", lang);
 }
 
 export function providerDetail(o: ProviderDetailOptions, now: number, lang: Language): string {
@@ -113,7 +135,7 @@ export function providerDetail(o: ProviderDetailOptions, now: number, lang: Lang
     ? `<h4>${esc(t(lang, "settings.providers.status"))}</h4>` +
       `<ul class="checklist">${providerStatusLines(o.status, provider, lang).map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`
     : "";
-  const here = providerEditPath(key);
+  const here = providerTabPath(key, "config");
   const form =
     `<form id="provider-form" class="providerform reloadform" method="post" action="${PROVIDERS_EDIT_ROUTE}"` +
     ` data-done="${esc(here)}" data-cancel-href="${esc(here)}">` +
@@ -127,8 +149,19 @@ export function providerDetail(o: ProviderDetailOptions, now: number, lang: Lang
     messageSlot("refused", "failed", { id: PROVIDER_REFUSED_LINE }) +
     saveCancelActions("providerform", {}, lang) +
     `</form>`;
-  return (
-    head + status + form + usageSlot(o, now, lang) +
-    toolPanel({ key, tool: provider.tool }, o.check, o.models ?? {}, lang, toolPart(o.aiTab))
-  );
+  const open = providerTab(o.aiTab);
+  const tabs = tabBar(PROVIDER_TABS, (tab) => providerTabPath(key, tab), open, {}, "", {
+    lang,
+    label: (tab) => (tab === "config" ? t(lang, "tab.config") : t(lang, `settings.part.${tab}`)),
+    data: { aitabs: "" },
+  });
+  const body =
+    open === "overview" ? status + usageSlot(o, now, lang)
+    : open === "config" ? form
+    : open === "models" ? readSlot("readslot", PROVIDER_MODELS_PATH, key, "settings.models.reading", lang)
+    : `<p>${esc(toolWhere(lang, provider.tool, placesOf(INSTALL_TARGETS, provider.tool)))}</p>` +
+      readSlot("readslot", PROVIDER_INSTALLATION_PATH, key, "settings.install.reading", lang);
+  // Remove's refusal is written into this line; Config draws it inside its form.
+  const refused = open === "config" ? "" : messageSlot("refused", "failed", { id: PROVIDER_REFUSED_LINE });
+  return head + refused + tabs + `<section class="toolpanel" data-tool="${esc(provider.tool)}">${body}</section>`;
 }

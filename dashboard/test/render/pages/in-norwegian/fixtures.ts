@@ -10,7 +10,7 @@ import { join } from "node:path";
 import {
   renderAddProjectPage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderSchedulePage,
   renderScheduleDetailPage, renderScheduleNewPage, renderSchedulePromptPage, renderSettingsPage,
-  CHECKABLE_TOOLS, type ProjectView, type ProviderStatus, type ToolCheck, type ToolModels, type ToolUsage,
+  CHECKABLE_TOOLS, installationBlock, modelsBlock, stamp, TOOL_TAB_LABELS, type ProjectView, type ProviderStatus, type ToolCheck, type ToolModels, type ToolUsage,
 } from "../../../../src/render";
 import type { GitRunner } from "../../../../src/git/branch-status.ts";
 import { assessProjectReadiness } from "../../../../src/project/project-admin/readiness.ts";
@@ -114,19 +114,22 @@ export function settingsStates(): PageState[] {
     const key = tool === "claude" ? "Konto" : tool === "codex" ? "Kodeks" : "Aapen";
     const reading = tool === "codex" ? CODEX_READING : { ...READING, tool };
     const usage = { ...USAGE, tool };
-    for (const part of ["models", "installation"]) {
-      states.push(chosen(`Provider › ${tool} › ${part}, before a reading`, key, { aiTab: part, models: { choices: {} } }));
-      states.push(chosen(`Provider › ${tool} › ${part}, after a reading`, key, {
-        aiTab: part, usage, check: checkOf(tool), models: { choices: {}, reading },
-      }));
+    for (const tab of ["overview", "config", "models", "installation"]) {
+      states.push(chosen(`Provider › ${tool} › ${tab}`, key, { aiTab: tab, usage }));
     }
+    // What the Models and Installation places are filled with, in Norwegian.
+    const answer = (page: string, html: string): PageState => ({ page, html, data: PROVIDER_DATA });
+    const models = (read: ToolModels) => modelsBlock(tool, { reading: read, choices: {} }, stamp(read.at), "nb", TOOL_TAB_LABELS[tool]);
+    states.push(
+      answer(`Provider › ${tool} › the Models answer`, models(reading)),
+      answer(`Provider › ${tool} › the Models answer, failed`, models({ tool, at: AT, offered: [], error: "ukjent" })),
+      answer(`Provider › ${tool} › the Installation answer`, installationBlock(checkOf(tool), stamp(AT), "nb")),
+      answer(`Provider › ${tool} › the Installation answer, failed`, installationBlock({ tool, at: AT, found: false, lines: [], extra: [], error: "ukjent" }, stamp(AT), "nb")),
+    );
   }
   states.push(
     chosen("Provider › codex, usage with no windows", "Kodeks", { usage: { tool: "codex", at: AT, windows: [] } }),
     chosen("Provider › not installed", "Fraverende"),
-    chosen("Provider › claude, models none offered", "Konto", {
-      models: { choices: {}, reading: { tool: "claude", at: AT, offered: [], provider: "Konto" } },
-    }),
   );
   return states;
 }

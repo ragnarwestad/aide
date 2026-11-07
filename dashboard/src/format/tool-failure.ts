@@ -3,8 +3,8 @@
 // A CLI's own words are the only thing the board has, and they vary from
 // useful to "Unexpected server error". So the sentence around them is
 // built here rather than trusted to arrive: which AI and which model the
-// step was on, and the one control that answers "is that AI actually
-// usable" - the Check button on that AI's own Settings tab.
+// step was on, and the one tab that answers "is that AI actually
+// usable" - the Installation tab of that AI's provider under Settings.
 //
 // It is the fallback. When the runner could sort the provider's own error
 // (`providerError`, `core/scripts/lib/run-spec/turn/provider-error.sh`),
@@ -35,7 +35,7 @@ export const toolLabel = (tool: string | undefined): string | undefined => (tool
  *  `spawn-failed` is a CLI that could not be started at all. Every other
  *  ending is about the work: a scope violation, a merge left open, a
  *  suite gone red. Naming the AI helps on all of them; sending a reader
- *  to press Check helps only on these, and a suggestion that fires on
+ *  to the Installation tab helps only on these, and a suggestion that fires on
  *  everything is one nobody reads. */
 const TOOL_LEVEL_ENDINGS = new Set(["cli-error", "spawn-failed"]);
 
@@ -51,7 +51,7 @@ const refusedForTheCli = (f: ToolFailure): boolean =>
 export interface ToolFailure {
   /** What the CLI itself said, if anything. */
   error?: string;
-  /** How the step ended, which decides whether Check is worth naming. */
+  /** How the step ended, which decides whether the Installation tab is worth naming. */
   terminalReason?: string;
   /** Which CLI ran the step, when the result named one. Absent when the
    *  run was refused before it started. */
@@ -83,8 +83,8 @@ export function toolFailureSentence(f: ToolFailure): ReturnType<typeof errorSent
   // The tool is named only when it is known: sending a reader to "a
   // provider" without saying which tool is worse than not sending them.
   const resolve = label
-    ? `Open Settings, the Providers tab, the ${label} provider the step ran on, and press Check on its Installation tab to see whether that AI is installed and logged in.`
-    : `Open Settings, the Providers tab, the provider this model's AI runs on, and press Check on its Installation tab to see whether it is installed and logged in.`;
+    ? `Open Settings, the Providers tab, the ${label} provider the step ran on, and open its Installation tab to see whether that AI is installed and logged in.`
+    : `Open Settings, the Providers tab, the provider this model's AI runs on, and open its Installation tab to see whether it is installed and logged in.`;
 
   return errorSentence({ what, resolve, detail: said });
 }

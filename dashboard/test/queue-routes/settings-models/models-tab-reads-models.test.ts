@@ -1,4 +1,4 @@
-// A press of a provider's Check reads its tool's models, with the provider's folders. For
+// Opening a provider's Models tab reads its tool's models, with the provider's folders. For
 // Claude it records the id each choice resolves to, exactly as a run
 // does, so every picker shows the version before any run has used it; and
 // it never changes a model choice.
@@ -9,7 +9,7 @@ import { forgetChecks } from "../../../src/serve/tool-check.ts";
 import { lastModels } from "../../../src/serve/tool-models";
 import type { ToolModels } from "../../../src/render";
 import { OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
-import { AT, CLAUDE_READING, defaultsOf, modelsProbe, offeredChoices, ownFiles, pressCheck, stubReads } from "./fixtures.ts";
+import { AT, CLAUDE_READING, defaultsOf, modelsProbe, offeredChoices, ownFiles, openModelsTab, stubReads } from "./fixtures.ts";
 
 const { harness, start: startServer } = setupQueueRoutesHarness("aide-check-models-");
 const start: typeof startServer = (extra, ...rest) => startServer({ ...stubReads, ...extra }, ...rest);
@@ -35,31 +35,29 @@ const CONFIG = `{
 
 const pageText = async (url: string): Promise<string> => (await fetch(url)).text();
 
-describe("a press of a provider's Check reads its tool's models", () => {
-  test("the answer carries the reading, and the tab is drawn from it", async () => {
+describe("opening a provider's Models tab reads its tool's models", () => {
+  test("the reading is kept under the provider's name, read with the tool's configured values (AC-11)", async () => {
     forgetChecks();
     const toolProbe = modelsProbe({ claude: CLAUDE_READING });
     const { base } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe });
-    const res = await pressCheck(base, "Claude");
+    const res = await openModelsTab(base, "Claude");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { models: ToolModels };
-    expect(body.models).toEqual({ ...CLAUDE_READING, provider: "Claude", providerKey: "Claude" });
-    expect(lastModels().claude).toEqual({ ...CLAUDE_READING, provider: "Claude", providerKey: "Claude" });
+    expect(lastModels().claude).toEqual({ ...CLAUDE_READING, provider: "Claude" });
     expect(toolProbe.modelReads).toEqual([{ tool: "claude", configured: ["opus", "fable"], env: {} }]);
   });
 
-  test("a Claude choice that never ran shows its version everywhere, also after a restart", async () => {
+  test("a Claude choice that never ran shows its version everywhere, also after a restart (AC-11)", async () => {
     forgetChecks();
     const { modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const toolProbe = modelsProbe({ claude: CLAUDE_READING });
     const first = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe, modelIdsPath });
     expect((await offeredChoices(first.base)).Fable).toBe("Fable");
-    expect((await pressCheck(first.base, "Claude")).status).toBe(200);
+    expect((await openModelsTab(first.base, "Claude")).status).toBe(200);
     expect(JSON.parse(readFileSync(modelIdsPath, "utf-8"))).toMatchObject({ Fable: "claude-fable-5-1", Opus: "claude-opus-5-5" });
 
     const shown = async (base: string) => {
       expect((await offeredChoices(base)).Fable).toBe("Fable 5.1");
-      expect(await pageText(`${base}/settings/providers/edit?key=Claude`)).toContain("Fable 5.1");
+      expect(await pageText(`${base}/settings/providers/models?key=Claude`)).toContain("Fable 5.1");
       expect(await pageText(`${base}/?${OPEN_81}`)).toContain(">Fable 5.1</option>");
     };
     await shown(first.base);
@@ -80,16 +78,16 @@ describe("a press of a provider's Check reads its tool's models", () => {
     };
     const first = start({ queueDefaults: defaultsOf(choices, { default: "Opus" }), toolProbe: modelsProbe({ claude: reading }), modelIdsPath });
     expect((await offeredChoices(first.base))["opus[1m]"]).toBe("opus[1m]");
-    await pressCheck(first.base, "Claude");
+    await openModelsTab(first.base, "Claude");
     expect((await offeredChoices(first.base))["opus[1m]"]).toBe("Opus 5.5 (1M context)");
-    expect(await pageText(`${first.base}/settings/providers/edit?key=Claude`)).toContain("Opus 5.5 (1M context)");
+    expect(await pageText(`${first.base}/settings/providers/models?key=Claude`)).toContain("Opus 5.5 (1M context)");
 
     forgetChecks();
     const afresh = start({ queueDefaults: defaultsOf(choices, { default: "Opus" }), toolProbe: modelsProbe(), modelIdsPath });
     expect((await offeredChoices(afresh.base))["opus[1m]"]).toBe("Opus 5.5 (1M context)");
   });
 
-  test("the newest of a run and a Check names the version", async () => {
+  test("the newest of a run and a reading names the version", async () => {
     forgetChecks();
     const { modelIdsPath } = ownFiles(CONFIG, ownDirs);
     // As a run left it.
@@ -101,14 +99,14 @@ describe("a press of a provider's Check reads its tool's models", () => {
     const readings = { claude: CLAUDE_READING };
     const { base } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe: modelsProbe(readings), modelIdsPath });
     expect((await offeredChoices(base)).Opus).toBe("Opus 5.4");
-    await pressCheck(base, "Claude");
+    await openModelsTab(base, "Claude");
     expect((await offeredChoices(base)).Opus).toBe("Opus 5.5");
     readings.claude = newer;
-    await pressCheck(base, "Claude");
+    await openModelsTab(base, "Claude");
     expect((await offeredChoices(base)).Opus).toBe("Opus 5.6");
   });
 
-  test("a press of each provider's Check leaves the config file and the choices as they were", async () => {
+  test("opening each provider's Models tab leaves the config file and the choices as they were", async () => {
     forgetChecks();
     const { file, modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const readings = {
@@ -121,7 +119,7 @@ describe("a press of a provider's Check reads its tool's models", () => {
     });
     const before = Object.keys(await offeredChoices(base));
     for (const key of ["Claude", "Codex", "OpenCode"]) {
-      expect((await pressCheck(base, key)).status).toBe(200);
+      expect((await openModelsTab(base, key)).status).toBe(200);
     }
     expect(readFileSync(file, "utf-8")).toBe(CONFIG);
     expect(Object.keys(await offeredChoices(base))).toEqual(before);
