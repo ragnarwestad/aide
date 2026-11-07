@@ -343,9 +343,8 @@ dialog[data-standing] > .progresspanel > :not([data-running-face]) { display: no
    and a taller layer scrolls inside itself. All of it sits on `[open]`,
    so a closed layer is not placed. */
 dialog.pageoverlay { border: 0; border-radius: var(--r); background: var(--surface);
-  box-shadow: var(--overlay-shadow); padding: var(--sp-5);
-  display: grid; place-items: center; }
-dialog.pageoverlay[open] { position: fixed; inset: 0; margin: auto;
+  box-shadow: var(--overlay-shadow); padding: var(--sp-5); }
+dialog.pageoverlay[open] { display: grid; place-items: center; position: fixed; inset: 0; margin: auto;
   box-sizing: border-box; width: fit-content; height: fit-content;
   max-width: calc(100% - 2 * var(--sp-4)); max-height: calc(100% - 2 * var(--sp-4));
   overflow: auto; }
