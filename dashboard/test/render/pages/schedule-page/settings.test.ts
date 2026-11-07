@@ -97,6 +97,26 @@ describe("the Settings tab", () => {
   });
 });
 
+describe("the Save of the entry's form", () => {
+  const NEW = () => {
+    const html = renderScheduleNewPage(NAV, "2026-09-30T00:00:00Z", {
+      project: "aide", values: { name: "", cron: "0 7 * * *", prompt: "" }, backHref: "/projects/aide?tab=schedule",
+      modelChoices: MODELS, defaultModels: { default: "sonnet" },
+    });
+    const window = new Window();
+    window.document.body.innerHTML = html;
+    return window.document as unknown as Document;
+  };
+
+  test("Edit's Save carries the id the page script waits on for a change, and New's Create carries none (AC-5, AC-7)", () => {
+    const save = page({ editing: true }).querySelector("form.scheduleform button[type=submit]")!;
+    expect(save.id).toBe("scheduleform-save");
+    const create = NEW().querySelector("form.scheduleform button[type=submit]")!;
+    expect(create.id).toBe("");
+    expect(create.hasAttribute("disabled")).toBe(false);
+  });
+});
+
 describe("New", () => {
   test("has the same fields a user fills in as the Settings tab's Edit", () => {
     const html = renderScheduleNewPage(NAV, "2026-09-30T00:00:00Z", {

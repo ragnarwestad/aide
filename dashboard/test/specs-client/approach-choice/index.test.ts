@@ -72,3 +72,14 @@ describe("the approach radios", () => {
     expect(cancel(rows).disabled).toBe(true);
   });
 });
+
+describe("the approach choice's Save", () => {
+  test("can be pressed with the recommended approach picked as drawn, before and after a redraw (AC-6)", () => {
+    const { rows, redraw } = list();
+    const save = () => rows.querySelector(`#${FORM}-save`) as HTMLButtonElement;
+    expect(radio(rows, "A").checked).toBe(true);
+    expect(save().disabled).toBe(false);
+    redraw();
+    expect(save().disabled).toBe(false);
+  });
+});

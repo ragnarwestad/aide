@@ -1,6 +1,9 @@
 // Save and Cancel enable together the instant a field inside the form
 // changes, and disable together again once Cancel restores the form to
-// what it held when the page was opened.
+// what it held when the page was opened. A form whose Cancel is a link
+// back to the saved page (the project's settings table and the Schedule
+// entry's form, being edited) has a Save alone, which waits for the first
+// change.
 //
 // Rendered-enabled-then-disabled-by-script, the same order
 // `bindTypedConfirm` (`specs-client/forms.ts`) already uses for the
@@ -11,7 +14,9 @@
 //
 // Keyed on `form.specform` — the only class the Checks tab's tick form
 // and every document tab's save form share (`overview.ts`, `panels.ts`)
-// — so this one script serves all five tabs with no per-tab branching.
+// — so this one script serves all five tabs with no per-tab branching;
+// the other prefixes below serve Settings, a provider's Config tab, a
+// project's settings table and a Schedule entry's form the same way.
 //
 // A form with `data-cancel-href` keeps its Cancel pressable from the start
 // and sends the page to that address after restoring the fields.
@@ -33,7 +38,7 @@
   // the spec page has the Checks/document form AND the tracking form
   // above the tabs, and they save different things.
   const bindAll = (): void => {
-    for (const prefix of ["specform", "settingsform", "providerform"]) bind(prefix);
+    for (const prefix of ["specform", "settingsform", "providerform", "projectsettingsform", "scheduleform"]) bind(prefix);
   };
   document.addEventListener("DOMContentLoaded", bindAll);
   // The Specs list draws the open spec's forms into a row after the page has
@@ -46,7 +51,8 @@
     const form = document.querySelector(`form.${prefix}`) as HTMLFormElement | null;
     const save = document.getElementById(`${prefix}-save`) as HTMLButtonElement | null;
     const cancel = document.getElementById(`${prefix}-cancel`) as HTMLButtonElement | null;
-    if (!form || !save || !cancel) return;
+    // A form whose Cancel is a link back to the saved page has only its Save here.
+    if (!form || !save) return;
     // On the form itself, so a second event for a form already bound adds nothing.
     if (form.hasAttribute("data-actions-bound")) return;
     form.setAttribute("data-actions-bound", "");
@@ -70,7 +76,7 @@
     const leaveTo = form.getAttribute("data-cancel-href");
     const setDirty = (dirty: boolean): void => {
       save.disabled = !dirty;
-      cancel.disabled = leaveTo ? false : !dirty;
+      if (cancel) cancel.disabled = leaveTo ? false : !dirty;
     };
     // A field inside the form that names another form — the phase
     // table's AI and model, saved the moment they are picked — changes
@@ -88,7 +94,7 @@
     form.addEventListener("change", (event) => { if (ours(event)) setDirty(true); });
     setDirty(false);
 
-    cancel.addEventListener("click", () => {
+    cancel?.addEventListener("click", () => {
       for (const { el, value, checked } of snapshot) {
         if (el.type === "checkbox" || el.type === "radio") (el as HTMLInputElement).checked = checked;
         else el.value = value;

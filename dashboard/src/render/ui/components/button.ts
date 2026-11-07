@@ -156,16 +156,18 @@ export function btnLink(o: {
  *  it runs, only re-enabling them once the form has seen an edit.
  *  Cancel renders `disabled` from the start: nothing asks it to work
  *  without that script, so there is nothing wrong with it needing one.
+ *  A form only the page script can post, such as the Depends on line, may
+ *  draw Save disabled too (`o.saveDisabled`).
  *
  *  `o.variant` is for the one form whose submit cannot be undone — Close
  *  deletes the spec's code branch without merging it — so it carries
  *  `danger` the way every other irreversible control does. */
 export function saveCancelActions(
-  prefix = "specform", o: { variant?: BtnVariant } = {}, lang: Language = "en",
+  prefix = "specform", o: { variant?: BtnVariant; saveDisabled?: boolean } = {}, lang: Language = "en",
 ): string {
   return (
     `<span class="factions">` +
-    btn({ id: `${prefix}-save`, label: t(lang, "list.checksSave"), variant: o.variant ?? "primary", pending: t(lang, "list.checksSaving") }) +
+    btn({ id: `${prefix}-save`, label: t(lang, "list.checksSave"), variant: o.variant ?? "primary", pending: t(lang, "list.checksSaving"), disabled: o.saveDisabled }) +
     btn({ id: `${prefix}-cancel`, label: t(lang, "dialog.cancel"), type: "button", disabled: true }) +
     `</span>`
   );

@@ -64,6 +64,15 @@ describe("the line the open row draws", () => {
     expect(html).toContain(`id="${dependsOnFormId(g)}-cancel"`);
   });
 
+  test("is drawn with Save disabled, since nothing is changed yet (AC-1)", () => {
+    const targets = [spec(FOLDER, { dependsOn: ["99-a-second-spec"] }), ...SIBLINGS];
+    const opts = optionsFor(targets);
+    const g = groupOf(targets, opts);
+    const html = dependsOnLine(g, opts);
+    const save = html.match(new RegExp(`<button id="${dependsOnFormId(g)}-save"[^>]*>`))![0];
+    expect(save).toContain(" disabled");
+  });
+
   test("two specs' forms have ids of their own", () => {
     const targets = [spec(FOLDER), spec("82-other-spec")];
     const opts = optionsFor(targets);
