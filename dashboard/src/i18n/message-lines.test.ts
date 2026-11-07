@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { MessageEntry, MessageKey } from "./messages.ts";
+import { MESSAGES, type MessageEntry, type MessageKey } from "./messages.ts";
 import { renderMessage, renderSentence, type BoardMessage } from "./message.ts";
 
 const all = (s: string) => ({ en: s, nb: s, es: s, de: s, fr: s });
@@ -111,4 +111,30 @@ describe("the board's own entries", () => {
   test("a message stored as plain text reads exactly as stored (AC-5)", () => {
     expect(renderSentence("nb", "cannot do x — fix y")).toBe("cannot do x — fix y");
   });
+});
+
+
+describe("information keeps its meaning when given a lead", () => {
+  const statements = Object.entries(MESSAGES).filter(([, entry]) => "statement" in entry).map(([key]) => key);
+
+  test.each(statements)("%s is still information with a phase name before it", (key) => {
+    const text = renderMessage("en", m("message.lead", {
+      values: { lead: "Analyze" }, inner: m(key, { values: { dependency: "aide:726" } }),
+    }));
+    expect(text).toStartWith("Analyze ");
+    expect(text).not.toMatch(/^(Problem|Solution):/m);
+  });
+});
+
+
+test("information beside an error keeps its own unlabelled line", () => {
+  const info = m("runner.dependencyNotArchived", { values: { dependency: "aide:726" } });
+  const text = renderSentence("en", [m("runner.notAnalyzed"), info])!;
+  expect(text.split("\n")).toContain(renderMessage("en", info));
+});
+
+
+test("a lead does not reclassify an older error stored as plain text", () => {
+  const text = renderMessage("en", m("message.lead", { values: { lead: "Analyze" }, inner: "legacy failure" }));
+  expect(text).toStartWith("Problem:");
 });
