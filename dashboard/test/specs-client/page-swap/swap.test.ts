@@ -31,3 +31,11 @@ test("rejects an answer that is not a board page (AC-5)", () => {
   const doc = page(`<html><body><main>Missing shell</main></body></html>`);
   expect(isBoardPage(doc, new URL("http://board.test/specs"))).toBe(false);
 });
+
+test("a page carries the server stamp the swap compares", async () => {
+  const { shellHead } = await import("../../../src/render/ui/shell.ts");
+  const { servedByAnother } = await import("../../../src/specs-client/page-swap/place");
+  const drawn = page(`${shellHead("Specs", { lang: "en" })}<main></main></body></html>`);
+  const other = new win!.DOMParser().parseFromString(`<html><head><meta name="aide-served-by" content="another"></head><body></body></html>`, "text/html") as unknown as Document;
+  expect(servedByAnother(drawn, other)).toBe(true);
+});

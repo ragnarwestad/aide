@@ -65,3 +65,27 @@ test("restores the shown address when a dirty form stays after Back or Forward (
   await Promise.resolve();
   expect(location.pathname).toBe("/specs");
 });
+
+/** The board page `/settings` answers with, drawn by the server process `servedBy`. */
+function answerServedBy(servedBy: string) {
+  globalThis.fetch = (async () => new Response(`<html><head><title>Settings</title><meta name="aide-served-by" content="${servedBy}"></head><body><header>Board</header><nav class="tabbar">Settings</nav><main>New</main></body></html>`, { headers: { "content-type": "text/html" } })) as unknown as typeof fetch;
+}
+
+test("loads the whole page when a newer server drew it, so its script is the new one too", async () => {
+  install();
+  document.head.insertAdjacentHTML("beforeend", `<meta name="aide-served-by" content="2026-11-07T10:00:00.000Z">`);
+  answerServedBy("2026-11-07T12:13:06.000Z");
+  const assigned: string[] = [];
+  Object.defineProperty(window.location, "assign", { value: (url: string) => assigned.push(url), configurable: true });
+  expect(await swapPage("/settings", { history: "push" })).toBe(false);
+  expect(assigned).toEqual(["/settings"]);
+  expect(document.querySelector("main")?.textContent).toBe("Old");
+});
+
+test("draws the page in place when the same server drew both", async () => {
+  install();
+  document.head.insertAdjacentHTML("beforeend", `<meta name="aide-served-by" content="2026-11-07T12:13:06.000Z">`);
+  answerServedBy("2026-11-07T12:13:06.000Z");
+  expect(await swapPage("/settings", { history: "push" })).toBe(true);
+  expect(document.querySelector("main")?.textContent).toBe("New");
+});

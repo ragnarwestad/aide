@@ -3,6 +3,18 @@ export function isBoardPage(next: Document, url: URL): boolean {
   return url.origin === origin && !!next.querySelector("body > header") && !!next.querySelector("body > main");
 }
 
+/** Hand-paired with `SERVED_BY_META` in `render/ui/shell.ts`. */
+const SERVED_BY_META = "aide-served-by";
+
+/** Whether `next` was drawn by another server process than `doc`: after a
+ *  Deploy, the page this script came with is older than the code serving. */
+export function servedByAnother(doc: Document, next: Document): boolean {
+  const servedBy = (d: Document) => d.querySelector(`meta[name="${SERVED_BY_META}"]`)?.getAttribute("content") ?? "";
+  const mine = servedBy(doc);
+  const theirs = servedBy(next);
+  return !!mine && !!theirs && mine !== theirs;
+}
+
 function syncElement(current: Element, fresh: Element): void {
   for (const attr of Array.from(current.attributes)) current.removeAttribute(attr.name);
   for (const attr of Array.from(fresh.attributes)) current.setAttribute(attr.name, attr.value);

@@ -395,6 +395,12 @@ export interface PageShellOpts {
   startAt?: string;
 }
 
+/** Which server process drew a page: a page drawn in place by a newer one
+ *  is loaded whole instead, so the page's script is the new one too
+ *  (`specs-client/page-swap/`). Hand-paired with `SERVED_BY_META` there. */
+export const SERVED_BY_META = "aide-served-by";
+const SERVED_BY = new Date().toISOString();
+
 /** The document up to and including `<body …>`: what a streamed page can
  *  send before it knows anything about its content. */
 export function shellHead(
@@ -411,6 +417,7 @@ export function shellHead(
 ${ICON_LINKS}
 ${PWA_LINKS}
 ${waitingMeta()}
+<meta name="${SERVED_BY_META}" content="${SERVED_BY}">
 ${opts.startAt ? `<meta name="aide-start" content="${esc(opts.startAt)}">\n` : ""}<style>${CSS}</style>
 <script>${START_PAGE_SCRIPT}${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${APP_BADGE_SCRIPT}${UNSAVED_CHANGES_SCRIPT}${NAV_BUSY_SCRIPT}${NAV_OVERLAY_SCRIPT}${PDF_BUSY_SCRIPT}${SPEC_FORM_ACTIONS_SCRIPT}${DEPENDS_LIFT_SCRIPT}${RESTART_WATCH_SCRIPT}</script>
 </head>

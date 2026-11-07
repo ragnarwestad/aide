@@ -23,7 +23,12 @@ adding or removing a project, saving project settings, completing an action dial
 The address bar and page title follow the content. Back and Forward fetch and show the page for their address.
 A different page starts at the top. An action that refreshes the same page keeps its scroll position.
 
-If the request fails or its answer is not a dashboard page, the browser loads the address normally.
+The browser loads the address normally in these cases:
+
+- the request fails;
+- the answer is not a dashboard page;
+- the service has restarted since the current page was loaded. Every page carries the time its service started,
+  so after a Deploy the first page change brings in the new service's script as well.
 
 ## Forms and slow answers
 

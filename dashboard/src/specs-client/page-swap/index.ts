@@ -1,7 +1,7 @@
 import { press, chosen, chosenSteps } from "../state";
 import { addScripts, onBack } from "../spec-detail/open";
 import { sameAddress, takesLink } from "./links";
-import { isBoardPage, placePage } from "./place";
+import { isBoardPage, placePage, servedByAnother } from "./place";
 
 export const PAGE_LEAVE = "aide-page-leave";
 export const PAGE_FETCHING = "aide-page-fetching";
@@ -77,6 +77,8 @@ export async function swapPage(target: string, options: SwapOptions): Promise<bo
     const html = await response.text();
     const next = new DOMParser().parseFromString(html, "text/html");
     if (!isBoardPage(next, finalUrl)) throw new Error("not a board page");
+    // A newer server drew it: loaded whole, so the script that runs it is the new one too.
+    if (servedByAnother(document, next)) throw new Error("served by a newer server");
     hooks.unmount?.();
     press.pressGen += 1;
     chosen.clear();
