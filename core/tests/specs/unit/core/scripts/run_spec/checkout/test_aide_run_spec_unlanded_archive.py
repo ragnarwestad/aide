@@ -9,6 +9,8 @@ there as from any implemented spec.
 import json
 import subprocess
 
+import pytest
+
 from ...conftest import READ_SPECS, git, run
 from ..run_spec_results import RESULT_OK
 from ..run_spec_status_files import with_status
@@ -42,28 +44,29 @@ def _archive_that_never_landed(runner, workspace):
     git(specs, "switch", "-q", "main")
 
 
-def _session_writing_into_the_open_folder(fake_claude, tmp_path):
+def _session_writing_into_the_open_folder(fake_claude, tmp_path, writes_code=True):
     seen = tmp_path / "folder-seen.txt"
     claude = fake_claude(
         "cat > /dev/null\n"
         + READ_SPECS
         + f'if [ -d "$specs/{FOLDER}" ]; then echo open >> {seen}; else echo missing >> {seen}; fi\n'
         + f'[ -d "$specs/{FOLDER}" ] && printf "the session\\n" > "$specs/{FOLDER}/3-solution.md"\n'
-        + "printf 'real work\\n' > implemented.txt\n"
-        + "git add -A && git commit -q -m 'the step' >/dev/null 2>&1 || true\n"
+        + ("printf 'real work\\n' > implemented.txt\n"
+           "git add -A && git commit -q -m 'the step' >/dev/null 2>&1 || true\n" if writes_code else "")
         + f"echo '{json.dumps(RESULT_OK)}'"
     )
     return claude, seen
 
 
-def test_an_implement_on_a_branch_whose_archive_never_landed_moves_the_folder_back(
-    runner, workspace, fake_claude, tmp_path
+@pytest.mark.parametrize("command", ["analyze", "implement"])
+def test_a_step_on_a_branch_whose_archive_never_landed_moves_the_folder_back(
+    runner, workspace, fake_claude, tmp_path, command
 ):
     with_status(workspace, ["create", "analyze", "implement"])
     _archive_that_never_landed(runner, workspace)
-    claude, seen = _session_writing_into_the_open_folder(fake_claude, tmp_path)
+    claude, seen = _session_writing_into_the_open_folder(fake_claude, tmp_path, writes_code=command == "implement")
 
-    rc, out, _ = run(runner, workspace, claude, command="implement")
+    rc, out, _ = run(runner, workspace, claude, command=command)
 
     assert out["terminalReason"] == "completed", out
     assert seen.read_text().splitlines()[0] == "open", "the session must find the folder where main has it"
