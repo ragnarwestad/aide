@@ -54,8 +54,8 @@ One line in the Tracking info of `4-status.md` is the whole record:
 - **Workflow steps completed:** create, analyze
 ```
 
-**The runner writes it, not the model**, and it writes a step onto the line only once the step's work is there to
-see:
+**The runner writes it after a headless step, and `aide-record-step` after an interactive analyze or implement that
+completed; the model never writes it by hand.** A step goes onto the line only once the step's work is there to see:
 
 - `implement` — code that actually changed.
 - `archive` — a folder actually under `archive/`.

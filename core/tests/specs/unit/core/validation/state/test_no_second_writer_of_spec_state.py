@@ -30,6 +30,7 @@ ALLOWED_BASH_FILES = {
     "core/scripts/aide-close-spec",          # Same stage-alongside-the-git-mv-rename as aide-archive-spec
     "core/scripts/lib/run-spec/publish/result.sh",   # aide-run-spec derives it after every completed step, so the gates read what the run just landed
     "core/scripts/aide-backfill-spec-state",  # doc comment only
+    "core/scripts/aide-record-step",         # a session's step: writes the state file through write_spec_state, as result.sh does
     "core/scripts/lib/spec-transitions.sh",  # Reads via read_spec_state, writes via write_spec_state — doc comments only, no second derivation
 }
 ALLOWED_DASHBOARD_FILES = {
