@@ -19,9 +19,9 @@ export async function runControlRoutes(
   if (modelPost) {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const [, project, specFolder] = modelPost;
-    const ref = ctx.specRef(project!, specFolder!);
-    if (!ref) return new Response("not found", { status: 404 });
     const spec = `${project}/${specFolder}`;
+    const ref = ctx.specRef(project!, specFolder!);
+    if (!ref) return json({ error: `the board does not know ${spec}`, spec }, 404);
     const sent = await readBounded(req);
     if ("refusal" in sent) return sent.refusal;
     let body: Record<string, unknown> = {};

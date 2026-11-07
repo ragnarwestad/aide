@@ -37,10 +37,10 @@ describe("create is the first phase line", () => {
       startedAt: "2026-08-19T10:00:00Z",
       ...extra,
     });
-  const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
+  const rows = (list: QueueRowView[], targets: SpecTarget[], opts: Partial<SpecsPageOptions> = {}) =>
     renderSpecsRows(
       list,
-      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, ...opts },
       Date.parse("2026-08-19T12:00:00Z"),
     );
   const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
@@ -118,6 +118,44 @@ describe("create is the first phase line", () => {
     const line = subRow(html, "create");
     expect(line).toContain("Running");
     expect(line).not.toContain("b-done");
+  });
+
+  test("an unlanded create row locks every AI and model picker (AC-1)", () => {
+    const choices = {
+      modelChoices: [{ name: "sonnet" }, { name: "codex-fast", tool: "codex" as const }],
+      providerChoices: [
+        { key: "Claude", name: "Claude", tool: "claude" as const },
+        { key: "Codex", name: "Codex", tool: "codex" as const },
+      ],
+    };
+    for (const state of ["queued", "running", "done"] as const) {
+      const html = rows(
+        [createJob("new-1234abcd", {
+          state,
+          landing: state === "done",
+          editableSteps: ["analyze", "implement", "archive"],
+        })],
+        [],
+        choices,
+      );
+      const selects = runLine(html).match(/<select[\s\S]*?<\/select>/g) ?? [];
+      expect(selects.length).toBeGreaterThan(0);
+      expect([state, ...selects.map((select) => select.match(/^<select[^>]*>/)?.[0])])
+        .toEqual([state, ...selects.map(() => expect.stringContaining(" disabled"))]);
+    }
+  });
+
+  test("a landed create row offers pickers allowed by ordinary phase rules (AC-2)", () => {
+    const html = rows(
+      [createJob("116-landed")],
+      [target("116-landed", { done: ["create"] })],
+      {
+        modelChoices: [{ name: "sonnet" }, { name: "codex-fast", tool: "codex" }],
+        providerChoices: [{ key: "Claude", name: "Claude", tool: "claude" }],
+      },
+    );
+    const analyze = subRow(html, "analyze");
+    expect(analyze.match(/<select[\s\S]*?<\/select>/g)?.every((select) => !/^<select[^>]* disabled/.test(select))).toBe(true);
   });
 
   test("a landed create job's line reads done, name as plain text", () => {

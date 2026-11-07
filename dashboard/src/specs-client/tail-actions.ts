@@ -128,7 +128,7 @@ export async function postTailModel(select: HTMLSelectElement, model: string, pr
       return;
     }
     chosen.delete(selectKey(select));
-    await showRefusal(refusalText(answer), answer?.spec);
+    await showRefusal(refusalText(answer, "change the model", res.status), answer?.spec);
   } catch {
     location.href = location.pathname + location.search;
   } finally {

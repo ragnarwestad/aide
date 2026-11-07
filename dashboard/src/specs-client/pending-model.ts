@@ -42,7 +42,9 @@ export async function postPendingModel(select: HTMLSelectElement, step: string, 
       body,
     });
     const answer = (await res.json().catch(() => null)) as ActionResult | null;
-    if (!(res.ok && answer?.ok)) await showRefusal(refusalText(answer), answer?.spec);
+    if (!(res.ok && answer?.ok)) {
+      await showRefusal(refusalText(answer, "change the model", res.status), answer?.spec);
+    }
   } catch {
     // Best effort: the pick still shows correctly for the rest of THIS
     // page load via the existing `chosen` map; the next hand-made pick

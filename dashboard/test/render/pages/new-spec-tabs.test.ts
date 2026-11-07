@@ -37,6 +37,19 @@ describe("which tab the New spec page opens", () => {
 });
 
 describe("what the New spec form posts", () => {
+  test("the Options tab keeps its AI and model choices enabled before creation", () => {
+    const doc = page({
+      modelChoices: [{ name: "sonnet" }, { name: "gpt-6", tool: "codex" }],
+      providerChoices: [
+        { key: "Claude", name: "Claude", tool: "claude" },
+        { key: "Codex", name: "Codex", tool: "codex" },
+      ],
+    });
+    const choices = panel(doc, "options")?.querySelectorAll('select[name^="provider."], select[name^="model."]') ?? [];
+    expect(choices.length).toBeGreaterThan(0);
+    expect([...choices].every((choice) => !(choice as HTMLSelectElement).disabled)).toBe(true);
+  });
+
   test("an untouched Options tab posts the same names and values as before", () => {
     const doc = page({ modelChoices: [{ name: "sonnet" }, { name: "fable" }] });
     expect(panel(doc, "options")?.hasAttribute("hidden")).toBe(true);

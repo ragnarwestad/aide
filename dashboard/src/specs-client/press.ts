@@ -53,10 +53,12 @@ export interface ActionResult {
  *  routes answer per step, the queue routes answer once. Written as a
  *  Problem line and, when the answer has a fix, a Solution line, labelled
  *  in the words the page carries (`data-problem`, `data-solution`). */
-export function refusalText(body: ActionResult | null): string {
+export function refusalText(body: ActionResult | null, action?: string, status?: number): string {
   const steps = (body?.results ?? []).filter((r) => r.error);
   const perStep = steps.map((r) => r.error).join("; ");
-  const problem = perStep || body?.error || "the request failed";
+  const problem = perStep || body?.error || (action && status !== undefined
+    ? `${action} failed with HTTP ${status}`
+    : "the request failed");
   const solution = perStep ? steps.find((r) => r.solution)?.solution : body?.solution;
   const dataset = typeof document === "undefined" ? undefined : document.body?.dataset;
   const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
@@ -202,7 +204,7 @@ export async function postForm(
       await onOk(answer);
       return;
     }
-    await onRefused(refusalText(answer), answer?.spec);
+    await onRefused(refusalText(answer, label || "the action", res.status), answer?.spec);
   } catch {
     // Offline, or the server restarting mid-request: the page reload is
     // the always-correct answer, because it asks the server again. With

@@ -25,6 +25,7 @@ export const SOURCE = await built.outputs[0]!.text();
 
 export interface Reply {
   ok: boolean;
+  status?: number;
   body?: unknown;
   throws?: boolean;
   /** Hold the request open until this settles — for what happens
@@ -380,6 +381,7 @@ export function harness(
     if (r.hold) await r.hold;
     return {
       ok: r.ok,
+      status: r.status ?? (r.ok ? 200 : 400),
       json: async () => r.body,
       text: async () => r.text ?? "<tr></tr>",
     };

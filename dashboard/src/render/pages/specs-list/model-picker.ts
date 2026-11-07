@@ -86,7 +86,7 @@ export function modelPicker(
   // A phase the running job has not reached is a phase whose
   // model can still be chosen, so the row-level lock is narrowed by
   // the server's own per-phase answer rather than applied wholesale.
-  const locked = archived || (busy && !live) || alreadyRun;
+  const locked = archived || (!g.named && !formIdOverride) || (busy && !live) || alreadyRun;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // Never read for an archived row, whose select is a record
   // of what happened, not a choice about what is to come.
@@ -361,7 +361,7 @@ export function aiPicker(
   // whether or not the row is locked.
   const archived = lockedAsArchived(g, step);
   // And the same `live` the model select beside it takes.
-  const locked = archived || (busy && !live) || alreadyRun;
+  const locked = archived || (!g.named && !formIdOverride) || (busy && !live) || alreadyRun;
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
   // The same pending pick `modelPicker` reads, so the two
   // controls cannot disagree about it either.
@@ -416,7 +416,7 @@ export function sidePickers(
   const chosen = resolveChosenModel(choices, configured, undefined, saved);
   const provider = opts.pendingProviders?.[key]?.[part] ?? "";
   const resting = resolveProvider({ ...opts, modelChoices: choices, providerChoices: providers }, part, chosen, [provider]);
-  const disabled = locked ? " disabled" : "";
+  const disabled = locked || !g.named ? " disabled" : "";
   const ai = providers.length === 0 || models.length === 0 ? "" : `<select name="provider.${part}" data-ai="model.${part}" data-side-picker form="${esc(runFormId(g))}"${disabled}>` +
     offeredProviders(providers, resting?.key).map((p) =>
       `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(defaultModelForTool(models, p.tool, chosen) ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`,

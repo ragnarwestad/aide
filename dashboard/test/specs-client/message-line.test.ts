@@ -45,4 +45,11 @@ describe("a refusal the page's script writes", () => {
     withLabels("Problem", "Løsning");
     expect(refusalText({ error: "unknown model x" })).toBe("Problem: Unknown model x");
   });
+
+  test("without an error names the failed action and HTTP status (AC-4)", () => {
+    withLabels("Problem", "Løsning");
+    expect(refusalText(null, "change the model", 404)).toBe(
+      "Problem: Change the model failed with HTTP 404",
+    );
+  });
 });

@@ -288,9 +288,11 @@ describe("POST /api/queue/specs/:project/:folder/model", () => {
     expect(select).toMatch(/<option value="fable"[^>]*selected/);
   });
 
-  test("an unknown spec is a 404, and GET is not a way in", async () => {
+  test("an unknown spec is a named JSON refusal, and GET is not a way in (AC-3)", async () => {
     const { base } = start({ queueDefaults: DEFAULTS });
-    expect((await pick(base, "aide", "nope", "analyze", "fable")).status).toBe(404);
+    const response = await pick(base, "aide", "nope", "analyze", "fable");
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "the board does not know aide/nope", spec: "aide/nope" });
     expect(
       (await fetch(`${base}/api/queue/specs/aide/81-queue-and-runner/model`, { headers: JSON_HEADERS })).status,
     ).toBe(405);

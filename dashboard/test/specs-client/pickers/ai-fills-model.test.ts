@@ -253,4 +253,25 @@ describe("a non-live pick posts itself to the spec-scoped route", () => {
     expect(posts(h)).toHaveLength(0);
     expect(h.requests.some((r) => r.url.includes("/api/queue/job-1/model"))).toBe(true);
   });
+
+  test("a refused live model change without an error names its action and HTTP status (AC-4)", async () => {
+    const h = harness(() => ({ ok: false, status: 502, body: null }));
+    await h.changeModel(3, "fable");
+    await flush();
+    expect(h.listRefused.textContent).toBe("Problem: Change the model failed with HTTP 502");
+  });
+
+  for (const reply of [
+    { ok: false, status: 404, body: null },
+    { ok: true, status: 200, body: { ok: false } },
+  ]) {
+    test(`a refused model change without an error names its action and HTTP ${reply.status} (AC-4)`, async () => {
+      const h = harness(() => reply);
+      await h.changeModel(0, "fable");
+      await flush();
+      expect(h.listRefused.textContent).toBe(
+        `Problem: Change the model failed with HTTP ${reply.status}`,
+      );
+    });
+  }
 });
