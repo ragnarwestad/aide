@@ -93,6 +93,8 @@ def test_a_recorder_that_ends_without_a_result_is_not_red_tests_ac_3(
     rc, out, _ = run(runner, workspace, claude, command="implement", runner_path=copied)
     assert out["terminalReason"] == "tests-not-started", out
     assert out["testsNotStarted"]["kind"] == "recorder-failed", out
+    # The board words this cause from its `error`, and reads nothing without one.
+    assert "did not write a readable result" in out["testsNotStarted"].get("error", ""), out
     assert "red: worker(s) 1" not in out["error"], out["error"]
     assert "did not write a readable result" in out["error"], out["error"]
     assert "test suite is red" not in prompts.read_text()

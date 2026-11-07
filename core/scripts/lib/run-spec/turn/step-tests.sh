@@ -158,7 +158,8 @@ run_red_files_again() {
 # says no test ran: aide-record-test-run refused (`ok:false`), or ended
 # without a result at all. Kind `spec-folder-missing` (with `folder`) for
 # a spec folder it could not find on the spec's branch, otherwise
-# `recorder-failed` (with `exitCode`). Prints nothing when the recorder
+# `recorder-failed` (with `exitCode`, and `error`: the recorder's own
+# refusal, or that it wrote no readable result). Prints nothing when the recorder
 # recorded a run, red or green: then the tests' own exit code speaks.
 recorder_failure() {   # $1 = the recorder's result file, $2 = its log, $3 = its exit code
   local result="$1" log="$2" rc="$3" error
@@ -171,7 +172,9 @@ recorder_failure() {   # $1 = the recorder's result file, $2 = its log, $3 = its
     "no such spec folder: "*)
       jq -cn --arg f "${error#no such spec folder: }" '{kind:"spec-folder-missing", folder:$f}' ;;
     *)
-      jq -cn --argjson rc "$rc" '{kind:"recorder-failed", exitCode:$rc}' ;;
+      error="$(jq -r '.error // empty' "$result" 2>/dev/null)"
+      [ -n "$error" ] || error="the test recorder did not write a readable result (exit code $rc)"
+      jq -cn --argjson rc "$rc" --arg e "$error" '{kind:"recorder-failed", exitCode:$rc, error:$e}' ;;
   esac
 }
 
@@ -345,11 +348,7 @@ $step_tests_failing"
         # that passed on their own, until both hit their time limit with
         # the change long done (2026-09-18).
         step_fix_how="Run the tests that failed, and the tests covering your fix, until they pass. Do not run the whole suite: the runner runs it itself after this turn, and its run is the one that counts. A failing test that has nothing to do with this change and passes on its own is load on the machine, not a fault: say so, and report done."
-        if [ "$command_name" = "archive" ]; then
-          step_fix_ask="Fix it — the merge with main, or what that merge broke. $step_fix_how Round $step_fix_round of $step_fix_rounds."
-        else
-          step_fix_ask="Fix it — your own tests and any existing test the change broke. $step_fix_how Then report done. Round $step_fix_round of $step_fix_rounds."
-        fi
+        step_fix_ask="Fix it — your own tests and any existing test the change broke. $step_fix_how Then report done. Round $step_fix_round of $step_fix_rounds."
         # The failing tests by name when the output named them; the lines
         # that say why go with them only when no name carries a file (a
         # turbo task, a bare bun test), since the name alone says too little.
