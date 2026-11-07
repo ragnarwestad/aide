@@ -34,7 +34,6 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 
 **Ask Claude to plan first:**
 - "Plan how you want to solve this before writing code"
-- "Think hard" for more thorough analysis
 
 ### Explore - Plan - Code workflow
 
@@ -49,7 +48,6 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 **2. Plan**
 ```text
 - "Make a plan for how we should implement this"
-- "Think hard about the edge cases"
 ```
 
 **3. Code (Implement)**
