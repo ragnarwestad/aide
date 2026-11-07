@@ -34,6 +34,7 @@ interface Parts {
   problem: string;
   solution?: string;
   lines: boolean;
+  information?: boolean;
 }
 
 /** A sentence that FOLLOWS another one starts with a capital: joined
@@ -69,17 +70,22 @@ function messageParts(lang: Language, m: BoardMessage, catalog: Catalog): Parts 
     if (m.values) for (const [k, v] of Object.entries(m.values)) out = out.replaceAll(`{${k}}`, () => String(v));
     return out;
   };
-  const lines = entry.solution !== undefined;
+  let lines = entry.solution !== undefined;
+  let information = entry.statement !== undefined;
   let problem = fill(entry[lang]);
   let innerSolution: string | undefined;
   if (m.inner !== undefined) {
     const inner = sentenceParts(lang, m.inner, catalog);
+    if (m.key === "message.lead" && inner.information) {
+      lines = false;
+      information = true;
+    }
     // A message in the two-line shape takes the problem of the one inside
     // it and keeps one fix; one that is not takes the inner one whole.
     problem = problem.replaceAll("{message}", () => (lines ? inner.problem : flat(inner)));
     innerSolution = inner.solution;
   }
-  if (!lines) return { problem, lines };
+  if (!lines) return { problem, lines, information };
   return { problem, solution: entry.solution ? fill(entry.solution[lang]) : innerSolution, lines };
 }
 
@@ -91,6 +97,7 @@ function sentenceParts(lang: Language, s: Sentence | Sentence[], catalog: Catalo
       problem: joined(parts.map((p) => (lines ? p.problem : flat(p)))),
       solution: parts.find((p) => p.solution)?.solution,
       lines,
+      information: parts.every((p) => p.information),
     };
   }
   return typeof s === "string" ? { problem: s, lines: false } : messageParts(lang, s, catalog);
@@ -121,11 +128,11 @@ export function renderSentence(
   if (!parts.some((p) => p.lines)) return joined(parts.map(flat));
   // Messages that share a fix share one Solution line; a message with a
   // fix of its own gets a Problem and a Solution line of its own.
-  const groups: { problems: string[]; solution?: string }[] = [];
+  const groups: { problems: string[]; solution?: string; information: boolean }[] = [];
   for (const p of parts) {
     const last = groups.at(-1);
-    if (last && last.solution === p.solution) last.problems.push(p.problem);
-    else groups.push({ problems: [p.problem], solution: p.solution });
+    if (last && last.solution === p.solution && last.information === !!p.information) last.problems.push(p.problem);
+    else groups.push({ problems: [p.problem], solution: p.solution, information: !!p.information });
   }
-  return groups.map((g) => asLines(lang, joined(g.problems), g.solution)).join("\n");
+  return groups.map((g) => g.information ? joined(g.problems.map(opensWithCapital)) : asLines(lang, joined(g.problems), g.solution)).join("\n");
 }

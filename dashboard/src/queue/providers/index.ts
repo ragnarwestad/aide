@@ -14,8 +14,8 @@ export { providerKeyFrom } from "./key.ts";
 export { providerLoginCommand } from "./login-command.ts";
 import { listedModelName, resolveStepModel } from "../model-name.ts";
 
-export const PROVIDER_TOOLS = ["claude", "codex", "opencode"] as const;
-export type ProviderTool = (typeof PROVIDER_TOOLS)[number];
+import { PROVIDER_TOOLS, type ProviderTool } from "./tools.ts";
+export { PROVIDER_TOOLS, type ProviderTool };
 
 export interface Provider {
   /** What the board shows: free text, one line, at most 64 characters. */

@@ -6,9 +6,10 @@ import { invalidRequest, NAME_RE } from "../parse-request.ts";
 import { listedModelName } from "../model-name.ts";
 import { PHASE_STEPS } from "../steps.ts";
 import type { QueueDefaults } from "../types.ts";
-import { runsModel, type ProviderTool } from "./index.ts";
+import { runsModel } from "./index.ts";
+import type { RunnableTool } from "./tools.ts";
 
-export const TOOL_LABELS: Record<ProviderTool | "fake-claude", string> = {
+export const TOOL_LABELS: Record<RunnableTool, string> = {
   claude: "Claude Code",
   "fake-claude": "Claude Code",
   codex: "Codex",

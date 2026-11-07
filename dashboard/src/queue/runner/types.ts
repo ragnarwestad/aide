@@ -3,6 +3,7 @@
 
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { Sentence } from "../../i18n/message.ts";
+import type { ResultTool } from "../providers/tools.ts";
 import type { BranchRef, ContextUse, Job, ProviderLimit, QueueStore, SharedFiles, StepRepoRange, TestedGreen, TokenUsage, WorkflowStep } from "../queue.ts";
 
 export interface SpawnResult {
@@ -30,7 +31,7 @@ export interface StepOutcome {
   costMeasured: boolean;
   /** Which CLI `aide-run-spec` actually started. `none` is a `create`
    *  step that skipped the AI session entirely. */
-  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
+  tool?: ResultTool;
   terminalReason: string;
   subtype?: string;
   sessionId?: string;

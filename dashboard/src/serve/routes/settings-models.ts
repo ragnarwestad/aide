@@ -11,6 +11,7 @@ import { trimmedText as text } from "../serve-helpers/http.ts";
 import { persistQueueSettings, type QueueStore } from "../../queue/queue.ts";
 import type { ModelChoice } from "../../queue/types.ts";
 import { NAME_RE } from "../../queue/parse-request.ts";
+import { asProviderTool, type ProviderTool } from "../../queue/providers/index.ts";
 import { listedModelName } from "../../queue/model-name.ts";
 import { recordModelName } from "../../queue/store/model-ids.ts";
 import { capitalizeFirst } from "../../format/error-sentence.ts";
@@ -21,9 +22,6 @@ import {
 import { isClaudeFamily, lastModels } from "../tool-models";
 import { json, parseBody } from "../serve-helpers";
 import type { RoutesContext } from "./";
-
-type ModelTool = "claude" | "codex" | "opencode";
-const isModelTool = (v: unknown): v is ModelTool => v === "claude" || v === "codex" || v === "opencode";
 
 /** Records, for each Claude choice the reading names, the id Claude Code
  *  resolves it to — exactly as a run records the id it ran on, so the
@@ -47,7 +45,7 @@ export function recordClaudeVersions(
  *  ones are written (`Haiku`), a Codex slug or Claude id as it is, an
  *  OpenCode model as the part after its provider, or `provider-model` when
  *  that is taken. Undefined when every candidate is taken. */
-function keyFor(tool: ModelTool, model: string, taken: string[]): string | undefined {
+function keyFor(tool: ProviderTool, model: string, taken: string[]): string | undefined {
   const clean = (key: string) => key.replace(/[^A-Za-z0-9._-]/g, "-").slice(0, 64);
   const free = (key: string) => NAME_RE.test(key) && !taken.some((t) => t.toLowerCase() === key.toLowerCase());
   const candidates =
@@ -60,8 +58,8 @@ function keyFor(tool: ModelTool, model: string, taken: string[]): string | undef
 async function addModel(ctx: RoutesContext, asked: Record<string, unknown>): Promise<Response> {
   const refuse = (error: string) => json({ error }, 400);
   if (!ctx.opts.queueConfigFile) return refuse("this server has no queue config file");
-  const tool = asked.tool;
-  if (!isModelTool(tool)) return refuse("unknown AI: models can be added for claude, codex and opencode");
+  const tool = asProviderTool(asked.tool);
+  if (!tool) return refuse("unknown AI: models can be added for claude, codex and opencode");
   const model = text(asked.model);
   const ai = TOOL_TAB_LABELS[tool];
   if (!model) return refuse(`no model was named — pick one on the Models tab of a ${ai} provider's page`);

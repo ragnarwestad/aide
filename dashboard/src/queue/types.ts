@@ -5,6 +5,7 @@ import type { Sentence } from "../i18n/message.ts";
 import type { JobState, StopReason, WorkflowStep } from "./steps.ts";
 import type { CriteriaChecks } from "../project/discover";
 import type { Provider } from "./providers/index.ts";
+import type { ResultTool, RunnableTool } from "./providers/tools.ts";
 
 /** What one step actually metered, as `aide-run-spec` read it out of
  *  claude's own result event. `total` is the sum of the other
@@ -82,7 +83,7 @@ export interface StepResult {
    *  Claude run. `none` is a `create` step that skipped the AI session
    *  entirely — the deterministic path, never a step this
    *  dashboard actually spawned a CLI for. */
-  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
+  tool?: ResultTool;
   /** Absent when the run could not measure it — an old result file, or
    *  a killed step, whose cost is over-charged by rule but whose token
    *  count has nothing to assume from. The page shows a dash. */
@@ -407,7 +408,7 @@ export interface ModelChoice {
    *  keeps meaning exactly what it meant. `fake-claude` names the
    *  scripted stand-in, so a project testing the machinery says so on
    *  its rows instead of borrowing Claude Code's name. */
-  tool?: "claude" | "codex" | "opencode" | "fake-claude";
+  tool?: RunnableTool;
   /** The literal `--model` value, when it differs from this entry's own
    *  key. The key is what the picker shows and what a request posts;
    *  this is what the CLI is actually handed, so a readable name like

@@ -1,5 +1,6 @@
 import type { QueueStore } from "../../queue/queue.ts";
 import { modelNamesOf, type NamedModel } from "../../queue/store/model-ids.ts";
+import type { RunnableTool } from "../../queue/providers/tools.ts";
 
 /** The models a page may offer, from the config, in the shape every model
  *  picker takes. A Claude alias that has run or been read by a provider's Models tab
@@ -10,7 +11,7 @@ import { modelNamesOf, type NamedModel } from "../../queue/store/model-ids.ts";
  *  the name already is the model. */
 export function modelChoiceOptions(queue: Pick<QueueStore, "defaults" | "modelIds">): {
   name: string;
-  tool?: "claude" | "codex" | "opencode" | "fake-claude";
+  tool?: RunnableTool;
   ranAs?: string;
   named?: NamedModel;
 }[] {

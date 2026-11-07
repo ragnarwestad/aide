@@ -8,6 +8,7 @@ import type { ProviderStatus } from "./providers.ts";
 import { providersTab } from "./provider-list.ts";
 import type { ProviderDetailOptions } from "./provider-detail.ts";
 import type { Provider } from "../../../queue/providers/index.ts";
+import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
 import { defaultModelForTool, modelOptions, offeredProviders, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
@@ -79,7 +80,7 @@ if (
 export const SETTINGS_STEPS = [...SPEC_STEPS, ...OTHER_STEPS] as const;
 
 export interface SettingsPageOptions {
-  modelChoices: { name: string; tool?: "claude" | "codex" | "opencode" | "fake-claude"; ranAs?: string; named?: { id: string; name: string } }[];
+  modelChoices: { name: string; tool?: RunnableTool; ranAs?: string; named?: { id: string; name: string } }[];
   defaultModels: Record<string, string>;
   /** The providers an AI choice lists, and the configured one per step. */
   providerChoices?: ProviderOption[];

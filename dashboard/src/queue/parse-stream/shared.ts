@@ -16,6 +16,7 @@
 //     normal case, not the exception.
 
 import { esc } from "../../format/html.ts";
+import type { ProviderTool, ResultTool } from "../providers/tools.ts";
 export { esc };
 
 /** Longest single entry. Past this a tool input is a file, not a label. */
@@ -86,7 +87,7 @@ export interface SummarizeOptions {
   // since a step that ran no AI writes no transcript to summarize, but
   // the caller's own `tool` reads off the same widened field and has to
   // type-check regardless.
-  tool?: "claude" | "codex" | "opencode" | "fake-claude" | "none";
+  tool?: ResultTool;
   /** The model's own text in full, as it wrote it, rather than one
    *  clipped line per block: what the Logs page shows. */
   whole?: boolean;
@@ -229,7 +230,7 @@ export function prose(text: string, whole: boolean): string {
  *  ones carrying a `part` object, so one parsable line settles it; a
  *  file that says none of them falls to claude, which is what every
  *  transcript written before there was a second tool is. */
-export function sniff(text: string): "claude" | "codex" | "opencode" {
+export function sniff(text: string): ProviderTool {
   for (const event of events(text)) {
     if (typeof event.type !== "string") continue;
     if (/^(thread|turn|item)\./.test(event.type)) return "codex";

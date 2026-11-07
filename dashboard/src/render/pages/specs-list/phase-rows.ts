@@ -219,10 +219,8 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
             // Inert, but not padlocked: the tick already says whether
             // this job will get to the step.
             plain: true,
-            // What the tick would do, or why the row will not take a
-            // click, is said once for the whole phase line now — the
-            // shared "(?)" `aiModel()` draws below — rather
-            // than repeated on this box's own `title`.
+            // No `title` saying why the row will not take a click:
+            // the State column says what is running (`aiModel()` below).
           })
         : finishedPhaseChip(p.step); // `create`'s own arm, same shape
       // The three choices this line offers, in one cell: the
