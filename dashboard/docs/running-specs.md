@@ -115,8 +115,8 @@ buttons, from a terminal or an AI session, and answers in one sentence with no l
 - **The model** is the phase's model from Models per phase. `--model <name>` runs the step on that model instead, and on
   a create it applies to every step the create runs.
 - **A spec** is named by its number or its folder. A number is looked up in the specs root of the checkout the command
-  runs in, or of the board host's checkout of the project named with `--project`; without such a checkout it is
-  matched against the project's jobs on the board, and otherwise the spec's folder is needed. The project is `--project`, else the one
+  runs in, or of the board host's checkout of the project named with `--project`; when that checkout is missing or
+  lacks the number, it is matched against the project's jobs on the board, and otherwise the spec's folder is needed. The project is `--project`, else the one
   the current directory belongs to.
 - **The board** is `AIDE_BOARD_URL` in `~/.aide/config` ([Configuration](../../docs/CONFIGURATION.md)). The command
   asks the board to fetch the project's specs first.

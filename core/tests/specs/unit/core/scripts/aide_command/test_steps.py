@@ -116,6 +116,17 @@ def test_a_number_in_another_project_is_resolved_from_a_job_the_board_holds_AC_8
     assert post["body"]["specFolder"] == "722-y"
 
 
+def test_a_number_the_local_specs_lack_is_resolved_from_a_job_the_board_holds(machine, board):
+    board.accepts(make_job(specFolder="783-new"),
+                  others=[make_job(id="job-9", steps=["create"], specFolder="783-new")])
+
+    result = machine.run("analyze", "783")
+
+    assert result.returncode == 0, result.stderr
+    [post] = board.posts()
+    assert post["body"] == {"project": "demo", "specFolder": "783-new", "steps": ["analyze"]}
+
+
 def test_a_number_that_cannot_be_resolved_posts_nothing_AC_8(machine, board):
     other = machine.run("analyze", "722", "--project", "other")
     unknown = machine.run("analyze", "799")

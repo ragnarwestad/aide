@@ -15,8 +15,8 @@
 # a mistake in how the command was called exits 2.
 #
 # A spec is named by its number or its folder. A number is looked up in the
-# specs root of the checkout the command runs in, so for another project
-# (--project) the spec is named by its folder.
+# specs root of the project's checkout on this machine, and else among the
+# jobs the board holds for the project.
 set -u
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -128,10 +128,18 @@ resolve_spec() {
     fi
     root="$(aide_specs_root "$target_root")"
     resolved="$(aide_resolve_spec "$arg" "$root")"
-    [ -n "$resolved" ] && { [ -d "$root/$resolved" ] || [ -d "$root/archive/$resolved" ]; } \
-      || die "no spec numbered $arg in $root"
+    if [ -n "$resolved" ] && { [ -d "$root/$resolved" ] || [ -d "$root/archive/$resolved" ]; }; then
+      spec_path="$resolved"
+      spec_folder="${resolved#archive/}"
+      return 0
+    fi
+    # A spec the board made since this machine last pulled its specs, or a
+    # project whose specs are not on this machine at all.
+    resolved=""
+    printf '%s' "$arg" | grep -qE '^[0-9]+$' && resolved="$(number_from_board "$arg")"
+    [ -n "$resolved" ] || die "no spec numbered $arg in $root, nor in a job the board holds for $project"
     spec_path="$resolved"
-    spec_folder="${resolved#archive/}"
+    spec_folder="$resolved"
   else
     printf '%s' "$arg" | grep -qE '^[A-Za-z0-9._-]{1,128}$' \
       || usage_error "$arg is neither a spec number nor a spec folder"
