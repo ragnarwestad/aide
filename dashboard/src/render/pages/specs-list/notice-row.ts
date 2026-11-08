@@ -189,7 +189,7 @@ export function specNoticeRow(
   const detail = notice.title ? helpPopover("more detail", esc(notice.title)) : "";
   return (
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
-    `<td colspan="${columns}">${rowMessageParts(notice.variant, parts, { hook: notice.hook })}${detail}</td></tr>` +
+    `<td colspan="${columns}">${rowMessageParts(notice.variant, parts, { hook: notice.hook, end: detail })}</td></tr>` +
     checks
   );
 }
