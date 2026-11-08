@@ -307,8 +307,9 @@ written: reviewers with distinct perspectives (feasibility, scope,
 coherence) attack `3-solution.md`, findings become must-fix/should-fix,
 and the plan is REVISED — not just annotated. The review also checks the
 Overlap decisions against the final plan: a shared filename alone is not
-a reason to require another spec first, and a decision that no longer
-matches the plan must be corrected in the analysis. See
+a reason to require another spec first, a rule one spec changes for every
+entry in a file is a reason when the other adds entries that use it, and a
+decision that no longer matches the plan must be corrected in the analysis. See
 `references/plan-review.md` for the full routine (three reviewers at
 every complexity, consolidation, and what gets written where). Hand the Feasibility and
 Coherence reviewers the acceptance criteria checks level from Step 1:
