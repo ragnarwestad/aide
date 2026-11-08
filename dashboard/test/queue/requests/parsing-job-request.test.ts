@@ -113,6 +113,14 @@ describe("persistQueueSettings", () => {
 });
 
 describe("parseJobRequest", () => {
+  test("accepts only the cleanup step under the cleanup key (AC-3)", () => {
+    const accepted = parseJobRequest({ ...REQ, specFolder: "cleanup", steps: ["cleanup"] }, { resolve, defaults: DEFAULTS });
+    expect(accepted.ok).toBe(true);
+    const wrongKey = parseJobRequest({ ...REQ, specFolder: "1-one", steps: ["cleanup"] }, { resolve, defaults: DEFAULTS });
+    expect(wrongKey.ok).toBe(false);
+    const mixed = parseJobRequest({ ...REQ, specFolder: "cleanup", steps: ["cleanup", "analyze"] }, { resolve, defaults: DEFAULTS });
+    expect(mixed.ok).toBe(false);
+  });
   test("a valid request becomes a job with the configured defaults", () => {
     const r = parseJobRequest({ ...REQ, steps: ["analyze", "implement"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(true);

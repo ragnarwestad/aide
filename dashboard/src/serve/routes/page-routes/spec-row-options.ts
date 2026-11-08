@@ -4,7 +4,7 @@
 
 import { providerPickerOptions } from "../../providers/options.ts";
 import type { Language } from "../../../i18n";
-import { closeOrReopenStep, isDeployJob } from "../../../queue/queue.ts";
+import { closeOrReopenStep, isCleanupJob, isDeployJob } from "../../../queue/queue.ts";
 import { jobsShown, type SpecsPageOptions } from "../../../render";
 import type { JobLike } from "../../../render/pages/jobs-page/rows.ts";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
@@ -35,7 +35,7 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
       const job = ctx.queue.get(jobId);
       if (!job) return [];
       if (step === "deploy") return deploySteps(job, lang);
-      return step === "schedule" ? scheduleSteps(job, lang) : closeOrReopenSteps(job, step, lang);
+      return step === "schedule" || step === "cleanup" ? scheduleSteps(job, lang) : closeOrReopenSteps(job, step, lang);
     },
     // The same capability check `spec-page.ts` and `project-pages.ts` call,
     // and the cached answer of whether origin holds the spec's branch in the
@@ -76,6 +76,6 @@ export function listedSpecJobs<J extends JobLike>(ctx: Pick<RoutesContext, "allo
     jobsShown(jobs, { scheduleEntryExists: () => false }).filter((j) => closeOrReopenStep(j)).map((j) => j.id),
   );
   return jobs.filter(
-    (j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-") && !isDeployJob(j) && !own.has(j.id),
+    (j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-") && !isDeployJob(j) && !isCleanupJob(j) && !own.has(j.id),
   );
 }

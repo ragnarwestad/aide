@@ -30,6 +30,8 @@ import { analysisSessionToResume, archiveFailureContext, stepTool } from "./serv
 import { openRunLog } from "../queue/runner/run-log-path.ts";
 import { followOnJob } from "./routes/spec-edit/shared.ts";
 import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
+import { createCleanupJob, hostCleanupDependencies } from "./process-cleanup";
+import type { TestServerStore } from "./test-servers/store.ts";
 
 export interface RunnerSetupContext {
   store: QueueStore;
@@ -71,6 +73,7 @@ export interface RunnerSetupContext {
   landScheduleRun: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   /** Starts a `deploy` step, which this process runs itself. */
   startDeploy: (job: Job, resultFile: string) => SpawnResult;
+  testServerStore: TestServerStore;
   /** The spec's own on-disk folder — the same `specDir` →
    *  `peekMachinerySpecDir` chain `spec-views/spec-page.ts` already uses
    *  to reach it, added here so `analyze`'s own spawn can read the
@@ -146,6 +149,7 @@ export function resumeCutLandingsAtBoot(ctx: RunnerSetupContext): void {
 export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
   if (!ctx.queueRunnerBin) return null;
   const runnerBin = ctx.queueRunnerBin;
+  const cleanupJob = createCleanupJob(hostCleanupDependencies(() => ctx.store.list(), ctx.testServerStore));
   return new Runner({
     store: ctx.store,
     projectDir: ctx.machineryProjectDir,
@@ -158,6 +162,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     spawn: (job, step, resultFile, sessionId, streamFile) => {
       mkdirSync(dirname(resultFile), { recursive: true });
       if (step === "deploy") return ctx.startDeploy(job, resultFile);
+      if (step === "cleanup") return cleanupJob.start(job, resultFile, streamFile);
       // `aide-emit-run` reports each TDD phase and is
       // inert unless `AIDE_RUN_URL` says where — so a headless step
       // reported into silence, because nothing from launchd down to

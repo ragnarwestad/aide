@@ -179,7 +179,6 @@ export function createServer(opts: ServerOptions) {
     testServersPortExposed: opts.testServersPortExposed,
     port: opts.port,
   });
-
   const land = setupLand(state, {
     machineryProjectDir: resolution.machineryProjectDir,
     displayProjectDir: resolution.displayProjectDir,
@@ -243,7 +242,7 @@ export function createServer(opts: ServerOptions) {
     landStoppedStepBranch: land.landStoppedStepBranch,
     handleSharedFiles: (job, outcome) => applyOverlapDependencies(routesCtx, job, outcome),
     landScheduleRun: land.landScheduleRun,
-    startDeploy: land.deployJob.start,
+    startDeploy: land.deployJob.start, testServerStore,
     specDir: resolution.specDir,
     peekMachinerySpecDir: resolution.peekMachinerySpecDir,
     forgetSpecCaches: (dir, folder) => {

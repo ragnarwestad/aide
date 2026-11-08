@@ -13,7 +13,7 @@ import { DESCRIPTION_MAX } from "../project/description-bound.ts";
 import { parseCreateChoices } from "./create-choices.ts";
 import { listedModelName } from "./model-name.ts";
 import { parseProviderPick } from "./providers/parse.ts";
-import { ARCHIVE_ONLY_STEP, DEPLOY_KEY, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
+import { ARCHIVE_ONLY_STEP, CLEANUP_KEY, DEPLOY_KEY, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
 import { specReference } from "../project/spec-folder.ts";
 
@@ -94,10 +94,14 @@ export function parseJobRequest(
   if (isDeploy && r.specFolder !== DEPLOY_KEY) {
     return { ok: false, error: invalidRequest(`invalid specFolder: a deploy job's tracking key must be ${DEPLOY_KEY}`) };
   }
+  const isCleanup = Array.isArray(r.steps) && r.steps.length === 1 && r.steps[0] === "cleanup";
+  if (isCleanup && r.specFolder !== CLEANUP_KEY) {
+    return { ok: false, error: invalidRequest(`invalid specFolder: a cleanup job's tracking key must be ${CLEANUP_KEY}`) };
+  }
   const archivedOnly =
     !resolved.specFolders.includes(r.specFolder) &&
     (resolved.archivedFolders ?? []).includes(r.specFolder);
-  if (!isScheduleJob && !isDeploy && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
+  if (!isScheduleJob && !isDeploy && !isCleanup && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
     return { ok: false, error: invalidRequest(`unknown specFolder: ${specReference(r.project, r.specFolder)}`) };
   }
 
@@ -113,6 +117,9 @@ export function parseJobRequest(
   }
   if (!isDeploy && steps.includes("deploy")) {
     return { ok: false, error: invalidRequest("invalid entry in steps: deploy runs alone, under the deploy key") };
+  }
+  if (!isCleanup && steps.includes("cleanup")) {
+    return { ok: false, error: invalidRequest("invalid entry in steps: cleanup runs alone, under the cleanup key") };
   }
 
   // Checked here rather than beside the folder lookup above, so that the

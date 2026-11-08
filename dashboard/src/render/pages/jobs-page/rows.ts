@@ -5,7 +5,7 @@
 // the tests on plain objects.
 
 import { scheduleNameOf } from "../../../queue/schedule.ts";
-import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
+import { cleanupStep, closeOrReopenStep, deployStep, isCleanupJob } from "../../../queue/queue.ts";
 import { phaseKey } from "../specs-list/phase-messages/keys.ts";
 import { stepLabel, type MessageVariant } from "../../ui/components";
 import { t, type Language, type TranslationKey } from "../../../i18n";
@@ -105,7 +105,8 @@ export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
   for (const job of jobs.filter((j) => j.state !== "cancelled")) newest.set(sameJob(job), Math.max(newest.get(sameJob(job)) ?? 0, at(job)));
   return jobs.filter((job) => {
     const schedule = isScheduleJob(job);
-    if (!schedule && !closeOrReopenStep(job) && !deployStep(job)) return false;
+    if (!schedule && !closeOrReopenStep(job) && !deployStep(job) && !isCleanupJob(job)) return false;
+    if (isCleanupJob(job)) return true;
     if (inFlight(job)) return true;
     if (!waitsForPerson(job)) return false;
     if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;
@@ -126,6 +127,7 @@ export function specsStoodForByJobs(shown: readonly JobLike[]): Set<string> {
  *  the deploy and the project it deploys. */
 export function jobTitle(row: TitleRow, lang: Language = "en"): string {
   if (deployStep(row)) return `${stepLabel("deploy", lang)} ${row.project}`.trim();
+  if (cleanupStep(row)) return stepLabel("cleanup", lang);
   const step = closeOrReopenStep(row);
   return step ? `${stepLabel(step, lang)} ${specReference(row.project, row.specFolder)}` : scheduleNameOf(row.specFolder);
 }
@@ -135,7 +137,7 @@ export function jobTitle(row: TitleRow, lang: Language = "en"): string {
  *  it never folds with the spec's own row and the page hears the job's log grow
  *  while the row is open. */
 export function jobKey(row: Pick<JobLike, "project" | "specFolder" | "steps" | "stepIndex">): string {
-  const step = closeOrReopenStep(row) ?? deployStep(row);
+  const step = closeOrReopenStep(row) ?? deployStep(row) ?? cleanupStep(row);
   return step ? phaseKey(row.project, row.specFolder, step) : `${row.project}/${row.specFolder}`;
 }
 

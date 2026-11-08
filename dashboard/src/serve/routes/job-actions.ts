@@ -6,7 +6,8 @@ import { signalGroup } from "../serve-helpers/signal-group.ts";
 import { cancelLanding } from "../land-branch/cancel-landing.ts";
 import { readSpecState } from "../../project/parse-spec-state.ts";
 import { isLegalMove, phaseFromState } from "../../queue/spec-transitions.ts";
-import { isDeployJob } from "../../queue/queue.ts";
+import { isCleanupJob, isDeployJob } from "../../queue/queue.ts";
+import { cancelCleanupJob } from "../process-cleanup/job.ts";
 import { jobDismissible } from "../../render/pages/jobs-page/rows.ts";
 import { errorSentence } from "../../format/error-sentence.ts";
 import { splitFix } from "../../format/request-fixes.ts";
@@ -196,6 +197,7 @@ export async function handleJobActionRoutes(
       logRefusal("cancel", spec, reason);
       return json({ error: reason, spec }, 409);
     }
+    if (isCleanupJob(job)) cancelCleanupJob(job.id);
     // SIGTERM to the GROUP, never a bare pid: claude spawns
     // children, and a kill that only reaches the parent is not a
     // bound.

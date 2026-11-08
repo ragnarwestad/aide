@@ -51,13 +51,13 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // dashboard and every test alike).
 export type WorkflowStep =
   | "explore" | "create" | "analyze" | "implement" | "archive" | "reopen"
-  | "schedule" | "close" | "deploy";
+  | "schedule" | "close" | "deploy" | "cleanup";
 
 /** The steps the server runs itself, in its own process: the file the
  *  runner script reads does not name them, so `aide-run-spec --command`
  *  never takes one. They are queued, started and ended like any other
  *  step, but take no slot. */
-export const BOARD_STEPS = ["deploy"] as const;
+export const BOARD_STEPS = ["deploy", "cleanup"] as const;
 
 const KNOWN_STEPS: readonly WorkflowStep[] = [
   "explore", "create", "analyze", "implement", "archive", "reopen",
@@ -338,6 +338,9 @@ export function closeOrReopenStep(job: { steps: readonly string[]; stepIndex: nu
 /** The tracking key of a deploy job: no spec folder is called this. */
 export const DEPLOY_KEY = "deploy";
 
+/** The tracking key of the board's host-process cleanup job. */
+export const CLEANUP_KEY = "cleanup";
+
 /** The step a job is on when it is a deploy: the Running page draws such a
  *  job as a row of its own, never as a spec's. */
 export function deployStep(job: { steps: readonly string[]; stepIndex: number }): "deploy" | undefined {
@@ -347,6 +350,13 @@ export function deployStep(job: { steps: readonly string[]; stepIndex: number })
 /** Whether a job is the board's own deploy: the one step, under the one key. */
 export const isDeployJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
   job.steps.length === 1 && job.steps[0] === "deploy" && job.specFolder === DEPLOY_KEY;
+
+export function cleanupStep(job: { steps: readonly string[]; stepIndex: number }): "cleanup" | undefined {
+  return job.steps[job.stepIndex] === "cleanup" ? "cleanup" : undefined;
+}
+
+export const isCleanupJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
+  job.steps.length === 1 && job.steps[0] === "cleanup" && job.specFolder === CLEANUP_KEY;
 
 /** The steps that hold none of the runner's slots. A board step runs in the
  *  server's own process. A create takes about a minute and is what gives a

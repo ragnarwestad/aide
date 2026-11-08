@@ -88,6 +88,7 @@ export function renderTestServersPage(
   opts: TestServersPageOptions = {},
 ): string {
   const back = backLink(opts.backHref ?? "/", "Test servers");
+  const cleanup = buttonForm({ action: "/api/queue/cleanup", hook: "actionform", button: { label: "Clean up" }, after: messageSlot("refused") });
   // This codebase's own "nothing to show, show nothing" rule: most of
   // the time no board is running at all, and an empty table reads as
   // broken rather than as the ordinary case.
@@ -95,10 +96,10 @@ export function renderTestServersPage(
   // a second inside it took the frame's padding twice — the table then sat
   // 32 px inside the frame every other page's content lines up with.
   const body = !rows.length
-    ? `${back}<p class="muted">No test server is running right now.</p>`
+    ? `${back}${cleanup}<p class="muted">No test server is running right now.</p>`
     // The submit listener's delegation anchor (specs-client/index.ts) —
     // the same role `#jobrows` plays for the specs list.
-    : `${back}<div id="test-servers-rows" class="tablewrap"><table class="list testservers">` +
+    : `${back}${cleanup}<div id="test-servers-rows" class="tablewrap"><table class="list testservers">` +
       `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup><thead><tr>` +
       th("ts-project", "Project") + th("ts-spec", "Spec") + th("ts-branch", "Branch") +
       th("ts-status", "Status") + th("ts-address", "Address") + th("ts-stop", "") +
