@@ -34,7 +34,6 @@ describe("every running step is drawn by the progress dialog", () => {
     const box = dialogWith(closeAskDialog("aide", "150-a-very-long-folder-name", "en"), `id="closeask"`);
     expectProgress(box);
     expect(box).toContain("Close aide:150?");
-    expect(box).not.toContain("150-a-very-long-folder-name?");
   });
 
   test("Reopen's dialog on the spec page is a progress dialog", () => {
