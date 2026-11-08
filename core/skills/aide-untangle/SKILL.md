@@ -94,7 +94,9 @@ Work out each fix as if the system had known today's requirements from
 the start. Look for the one fix behind several findings — it often looks
 nothing like them. Write each fix above the findings it solves. A fix
 must leave pieces that change together together, pieces that do not
-untied, and everything depending on what changes less.
+untied, and everything depending on what changes less. Prefer the fix
+that deepens a module: more behind a smaller interface, so its callers
+know less and change less.
 
 Leave out a fix that costs more than the problem: say so in one line, and
 keep the finding on the list.
