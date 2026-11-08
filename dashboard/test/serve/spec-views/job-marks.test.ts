@@ -337,4 +337,52 @@ describe("scheduleSteps", () => {
     expect(text("Read the list")).toContain("read the list line");
     expect(text("Read the list")).not.toContain("wrote the report line");
   });
+
+  test("a running cleanup lists all four operations before any mark (AC-4, AC-6)", () => {
+    const got = scheduleSteps(job({ specFolder: "cleanup", steps: ["cleanup"], state: "running" }), "en");
+    expect(got.map(({ label, state }) => [label, state])).toEqual([
+      ["Read host processes and protect running jobs", undefined],
+      ["Find unknown test servers on board ports", undefined],
+      ["Find parentless test processes older than 6 hours", undefined],
+      ["Stop leftover processes", undefined],
+    ]);
+    expect(scheduleSteps(job({ specFolder: "cleanup", steps: ["cleanup"], state: "running" }), "nb").map(({ label }) => label)).toEqual([
+      "Les prosessene på maskinen og beskytt aktive jobber",
+      "Finn ukjente testservere på tavlens porter",
+      "Finn foreldreløse testprosesser eldre enn 6 timer",
+      "Stopp gjenværende prosesser",
+    ]);
+  });
+
+  test("cleanup marks update states and isolate each operation's log (AC-4, AC-5)", () => {
+    const file = step([
+      said("--- Step 1 of 4: Read host processes and protect running jobs — started"), said("read 12 processes"),
+      said("--- Step 1 of 4: Read host processes and protect running jobs — done"),
+      said("--- Step 2 of 4: Find unknown test servers on board ports — started"), said("checked port 8801"),
+    ], []);
+    const got = scheduleSteps(job({ specFolder: "cleanup", steps: ["cleanup"], state: "failed", streamFile: file }), "en");
+    expect(got.slice(0, 2).map((line) => line.state)).toEqual(["done", "failed"]);
+    const text = (index: number) => (got[index]?.logs ?? []).flatMap((part) => part.lines).join("\n");
+    expect(text(0)).toContain("read 12 processes");
+    expect(text(0)).not.toContain("checked port 8801");
+    expect(text(1)).toContain("checked port 8801");
+  });
+
+  test("the stop operation shows process identity and the skipped empty ending (AC-7, AC-8)", () => {
+    const stopped = step([
+      said("--- Step 4 of 4: Stop leftover processes — started"),
+      said("Stopped PID 241, age 9h, bun test orphan.ts"),
+      said("--- Step 4 of 4: Stop leftover processes — done"),
+    ], []);
+    const line = scheduleSteps(job({ specFolder: "cleanup", steps: ["cleanup"], streamFile: stopped }), "en")[3]!;
+    expect(line.logs?.flatMap((part) => part.lines).join("\n")).toContain("PID 241, age 9h, bun test orphan.ts");
+
+    const empty = step([
+      said("--- Step 4 of 4: Stop leftover processes — started"),
+      said("--- Step 4 of 4: Stop leftover processes — skipped: nothing to stop"),
+    ], []);
+    const emptyLine = scheduleSteps(job({ specFolder: "cleanup", steps: ["cleanup"], streamFile: empty }), "en")[3]!;
+    expect(emptyLine.state).toBe("done");
+    expect(emptyLine.logs?.flatMap((part) => part.lines).join("\n")).toContain("— skipped: nothing to stop");
+  });
 });

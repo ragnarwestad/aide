@@ -110,6 +110,22 @@ describe("a scheduled job in flight has a row", () => {
   });
 });
 
+describe("a cleanup job has a row only while it runs or waits for a person", () => {
+  const cleanup = (o: Partial<J>): J => job({ specFolder: "cleanup", steps: ["cleanup"], ...o });
+
+  test("includes a running cleanup job (AC-1)", () => {
+    expect(ids([cleanup({ id: "running", state: "running" })])).toEqual(["running"]);
+  });
+
+  test("removes a completed cleanup job (AC-2)", () => {
+    expect(ids([cleanup({ id: "done", state: "done" })])).toEqual([]);
+  });
+
+  test("keeps a cleanup job that waits for a person (AC-3)", () => {
+    expect(ids([cleanup({ id: "failed", state: "failed" })])).toEqual(["failed"]);
+  });
+});
+
 describe("a spec's job is never a job row: its spec's row stands for it", () => {
   test("running, queued, landing, failed and held-back spec jobs are not returned", () => {
     const jobs = [

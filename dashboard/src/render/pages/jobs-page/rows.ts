@@ -106,7 +106,6 @@ export function jobsShown<T extends JobLike & { dismissedAt?: string }>(
   return jobs.filter((job) => {
     const schedule = isScheduleJob(job);
     if (!schedule && !closeOrReopenStep(job) && !deployStep(job) && !isCleanupJob(job)) return false;
-    if (isCleanupJob(job)) return true;
     if (inFlight(job)) return true;
     if (!waitsForPerson(job)) return false;
     if ((newest.get(sameJob(job)) ?? 0) > at(job)) return false;

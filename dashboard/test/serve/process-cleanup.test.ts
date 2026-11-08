@@ -1,5 +1,9 @@
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { cleanupProcesses, type CleanupProcess } from "../../src/serve/process-cleanup";
+import type { CleanupProgress } from "../../src/serve/process-cleanup/engine.ts";
 import { parseHostProcessLine } from "../../src/serve/process-cleanup/host.ts";
 import { cancelCleanupJob, cleanupTranscriptLine, createCleanupJob } from "../../src/serve/process-cleanup/job.ts";
 import { stepLog } from "../../src/queue/parse-stream";
@@ -10,14 +14,14 @@ const process = (overrides: Partial<CleanupProcess> = {}): CleanupProcess => ({
   command: "bun test", cwd: "/tmp/aide-pytest-example", ...overrides,
 });
 
-const run = async (processes: CleanupProcess[], ports: Map<number, number> = new Map(), protectedPids: number[] = []) => {
+const run = async (processes: CleanupProcess[], ports: Map<number, number> = new Map(), protectedPids: number[] = [], progress?: (event: CleanupProgress) => void) => {
   const signals: [number, NodeJS.Signals][] = [];
   const alive = new Set(processes.map((p) => p.pid));
   const result = await cleanupProcesses({
     now: () => now, processes: async () => processes, portOwner: async (port) => ports.get(port),
     registeredPids: () => new Set<number>(), protectedPids: () => new Set(protectedPids),
     protectedRoots: () => [], signal: (pid, signal) => { signals.push([pid, signal]); if (signal === "SIGTERM" && pid !== 202) alive.delete(pid); return true; },
-    alive: (pid) => alive.has(pid), wait: async () => {}, ports: [8801], graceMs: 1,
+    alive: (pid) => alive.has(pid), wait: async () => {}, ports: [8801], graceMs: 1, progress,
   });
   return { result, signals };
 };
@@ -101,5 +105,47 @@ describe("process cleanup", () => {
   test("writes one empty result line (AC-10)", async () => {
     const { result } = await run([]);
     expect(result.log.trim().split("\n")).toEqual(["Nothing to stop."]);
+  });
+
+  test("reports the four operation boundaries and stopped process detail", async () => {
+    const events: CleanupProgress[] = [];
+    const p = process({ pid: 240, command: "bun dashboard/src/index.ts" });
+    await run([p], new Map([[8801, 240]]), [], (event) => events.push(event));
+    expect(events.map(({ step, state }) => [step, state])).toEqual([
+      ["protect", "started"], ["protect", "done"],
+      ["ports", "started"], ["ports", "done"],
+      ["orphans", "started"], ["orphans", "done"],
+      ["stop", "started"], ["stop", "detail"], ["stop", "done"],
+    ]);
+    expect(events).toContainEqual({ step: "stop", state: "detail", text: "Stopped PID 240, age 7h, bun dashboard/src/index.ts" });
+  });
+
+  test("reports an empty stop operation as skipped", async () => {
+    const events: CleanupProgress[] = [];
+    await run([], new Map(), [], (event) => events.push(event));
+    expect(events.at(-1)).toEqual({ step: "stop", state: "skipped" });
+  });
+
+  test("reports a stop operation as stopped when a candidate survives both signals", async () => {
+    const events: CleanupProgress[] = [];
+    await run([process({ pid: 202 })], new Map(), [], (event) => events.push(event));
+    expect(events.at(-1)).toEqual({ step: "stop", state: "stopped", text: "PID 202 is still running" });
+  });
+
+  test("writes numbered cleanup marks and detail to the job transcript", async () => {
+    const folder = mkdtempSync(join(tmpdir(), "cleanup-job-"));
+    const resultFile = join(folder, "result.json");
+    const streamFile = join(folder, "stream.jsonl");
+    writeFileSync(streamFile, "");
+    const cleanup = createCleanupJob({
+      now: () => now, processes: async () => [], portOwner: async () => undefined,
+      registeredPids: () => new Set(), protectedPids: () => new Set(), protectedRoots: () => [],
+      signal: () => true, alive: () => false, wait: async () => {}, ports: [], graceMs: 1,
+    });
+    cleanup.start({ id: "cleanup-marks" } as never, resultFile, streamFile);
+    while (!existsSync(resultFile)) await Promise.resolve();
+    const transcript = readFileSync(streamFile, "utf8");
+    expect(transcript).toContain("--- Step 1 of 4: Read host processes and protect running jobs — started");
+    expect(transcript).toContain("--- Step 4 of 4: Stop leftover processes — skipped: nothing to stop");
   });
 });

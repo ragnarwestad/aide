@@ -9,6 +9,20 @@ export interface CleanupProcess {
   cwd?: string;
 }
 
+export const CLEANUP_OPERATIONS = [
+  { step: "protect", title: "Read host processes and protect running jobs" },
+  { step: "ports", title: "Find unknown test servers on board ports" },
+  { step: "orphans", title: "Find parentless test processes older than 6 hours" },
+  { step: "stop", title: "Stop leftover processes" },
+] as const;
+
+export type CleanupOperation = (typeof CLEANUP_OPERATIONS)[number]["step"];
+type CleanupTerminalState = "started" | "done" | "skipped";
+type CleanupTextState = "detail" | "stopped";
+export type CleanupProgress =
+  | { step: CleanupOperation; state: CleanupTerminalState }
+  | { step: CleanupOperation; state: CleanupTextState; text: string };
+
 export interface CleanupDependencies {
   now: () => number;
   processes: () => Promise<CleanupProcess[]>;
@@ -22,6 +36,7 @@ export interface CleanupDependencies {
   ports: readonly number[];
   graceMs: number;
   cancelled?: () => boolean;
+  progress?: (event: CleanupProgress) => void;
 }
 
 const ORPHAN_AGE_MS = 6 * 60 * 60_000;
@@ -51,8 +66,11 @@ function protectedTree(processes: CleanupProcess[], roots: Set<number>): Set<num
 }
 
 const ageText = (ms: number): string => `${Math.floor(ms / 3_600_000)}h`;
+const DONE_PROGRESS = "done" as const;
+const STOPPED_PROGRESS = "stopped" as const;
 
 export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ stopped: number[]; log: string }> {
+  deps.progress?.({ step: "protect", state: "started" });
   const snapshot = await deps.processes();
   const byPid = new Map(snapshot.map((process) => [process.pid, process]));
   const registered = deps.registeredPids();
@@ -61,18 +79,28 @@ export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ sto
     if (deps.protectedRoots().some((root) => under(process.cwd, root))) protectedPids.add(process.pid);
   }
   protectedPids = protectedTree(snapshot, protectedPids);
+  deps.progress?.({ step: "protect", state: DONE_PROGRESS });
+
+  deps.progress?.({ step: "ports", state: "started" });
   const portPids = new Set<number>();
   for (const port of deps.ports) {
     const pid = await deps.portOwner(port);
     if (pid !== undefined && !registered.has(pid)) portPids.add(pid);
   }
+  deps.progress?.({ step: "ports", state: DONE_PROGRESS });
+
+  deps.progress?.({ step: "orphans", state: "started" });
   const selected = snapshot.filter((process) => {
     if (protectedPids.has(process.pid)) return false;
     if (portPids.has(process.pid)) return true;
     const temporary = TEMP_ROOT.test(process.cwd ?? "") || TEMP_ROOT.test(process.command);
     return process.ppid === 1 && deps.now() - process.startedAt > ORPHAN_AGE_MS && temporary;
   });
+  deps.progress?.({ step: "orphans", state: DONE_PROGRESS });
+
+  deps.progress?.({ step: "stop", state: "started" });
   const stopped: CleanupProcess[] = [];
+  const survivors: CleanupProcess[] = [];
   for (const candidate of selected) {
     if (deps.cancelled?.()) break;
     const current = new Map((await deps.processes()).map((process) => [process.pid, process])).get(candidate.pid);
@@ -84,7 +112,17 @@ export async function cleanupProcesses(deps: CleanupDependencies): Promise<{ sto
       deps.signal(candidate.pid, "SIGKILL");
       await deps.wait(deps.graceMs);
     }
-    if (!deps.alive(candidate.pid)) stopped.push(byPid.get(candidate.pid) ?? candidate);
+    if (!deps.alive(candidate.pid)) {
+      const process = byPid.get(candidate.pid) ?? candidate;
+      stopped.push(process);
+      deps.progress?.({ step: "stop", state: "detail", text: `Stopped PID ${process.pid}, age ${ageText(deps.now() - process.startedAt)}, ${process.command}` });
+    } else {
+      survivors.push(candidate);
+    }
+  }
+  if (!deps.cancelled?.()) {
+    if (survivors.length) deps.progress?.({ step: "stop", state: STOPPED_PROGRESS, text: `PID ${survivors.map(({ pid }) => pid).join(", ")} is still running` });
+    else deps.progress?.({ step: "stop", state: stopped.length ? DONE_PROGRESS : "skipped" });
   }
   return {
     stopped: stopped.map((process) => process.pid),

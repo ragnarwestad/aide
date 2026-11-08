@@ -5,10 +5,23 @@
 import type { Language } from "../../i18n";
 import { renderSentence } from "../../i18n/message.ts";
 import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
-import type { Job } from "../../queue/queue.ts";
+import { stepKey } from "../../queue/parse-stream/step-marks.ts";
+import { isCleanupJob, type Job } from "../../queue/queue.ts";
 import { tailFileAt } from "../serve-helpers";
 import { deployPlan } from "../deploy-job/plan.ts";
+import { CLEANUP_OPERATIONS } from "../process-cleanup/engine.ts";
 import { readRunLog } from "./job-detail.ts";
+
+const CLEANUP_LABELS: Record<Language, readonly [string, string, string, string]> = {
+  en: CLEANUP_OPERATIONS.map(({ title }) => title) as [string, string, string, string],
+  nb: ["Les prosessene på maskinen og beskytt aktive jobber", "Finn ukjente testservere på tavlens porter", "Finn foreldreløse testprosesser eldre enn 6 timer", "Stopp gjenværende prosesser"],
+  es: ["Leer los procesos del equipo y proteger los trabajos activos", "Buscar servidores de prueba desconocidos en los puertos del panel", "Buscar procesos de prueba sin proceso padre de más de 6 horas", "Detener los procesos restantes"],
+  de: ["Host-Prozesse lesen und laufende Jobs schützen", "Unbekannte Testserver auf Board-Ports finden", "Elternlose Testprozesse finden, die älter als 6 Stunden sind", "Übrig gebliebene Prozesse stoppen"],
+  fr: ["Lire les processus de l’hôte et protéger les tâches actives", "Trouver les serveurs de test inconnus sur les ports du tableau", "Trouver les processus de test sans parent de plus de 6 heures", "Arrêter les processus restants"],
+};
+
+const cleanupPlan = (lang: Language): PlannedStep[] =>
+  CLEANUP_LABELS[lang].map((label, index) => ({ key: stepKey(`${index + 1} of ${CLEANUP_OPERATIONS.length}`, ""), label }));
 
 export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?: string; logs: LogPart[] } {
   // The running step's file, and once it has ended and lands, its result's.
@@ -93,5 +106,5 @@ export function deploySteps(job: Job, lang: Language): CloseOrReopenStep[] {
 /** A scheduled job's steps: only those its log has marked, since its prompt
  *  plans none in advance. */
 export function scheduleSteps(job: Job, lang: Language): CloseOrReopenStep[] {
-  return jobSteps(job, [], lang);
+  return jobSteps(job, isCleanupJob(job) ? cleanupPlan(lang) : [], lang);
 }
