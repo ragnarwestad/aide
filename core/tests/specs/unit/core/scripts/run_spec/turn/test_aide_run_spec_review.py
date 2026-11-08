@@ -86,7 +86,8 @@ def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_se
     """Two defects: a third turn, resumed on the ORIGINAL implement
     session (never the review's own), fixes them; the runner's test run
     follows, and there is no fourth (second review) call. The reported
-    cost is the sum of all three turns."""
+    cost is the sum of all three turns: the resumed fix reports the
+    session's total, 0.30, of which 0.20 is its own."""
     with_status(workspace, ["create", "analyze"])
     claude = fake_claude(
         "prompt=\"$(cat)\"\n"
@@ -94,7 +95,7 @@ def test_defects_found_are_listed_then_handed_to_a_third_turn_the_fix_never_a_se
         f"  echo '{json.dumps(_result(REVIEW_SESSION, 'review: 2 defect(s) found' + chr(10) + '1. First defect' + chr(10) + '2. Second defect', 0.05))}'\n"
         f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
         "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
-        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.20))}'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.30))}'\n"
         "else\n"
         "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
         f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.10))}'\n"
@@ -163,7 +164,7 @@ def test_the_fix_turn_passes_no_name_so_the_session_keeps_its_own(runner, worksp
         f"  echo '{json.dumps(_result(REVIEW_SESSION, 'review: 1 defect(s) found' + chr(10) + '1. A defect', 0.05))}'\n"
         f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
         "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
-        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.20))}'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.30))}'\n"
         "else\n"
         "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
         f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.10))}'\n"
@@ -358,7 +359,7 @@ def _out_of_scope_reviewer(fake_claude, tmp_path):
         "  fi\n"
         f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
         "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
-        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.20))}'\n"
+        f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.30))}'\n"
         "else\n"
         "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
         f"  echo '{json.dumps(_result(IMPLEMENT_SESSION, 'done', 0.10))}'\n"

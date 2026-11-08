@@ -344,6 +344,12 @@ fi
 fi
 # How full the window got in this turn's calls (run-spec/turn/context-use.sh).
 context_use_turn "${turn_at:-0}"
+# A Claude result counts the whole session; the turn's and the step's share
+# of it (run-spec/turn/session-totals.sh). A stopped turn's flushed figures
+# are not believed, so they are not recorded either.
+if [ -z "$stopped" ] && [ -n "${result_json:-}" ]; then
+  case "$tool" in codex|opencode) ;; *) session_totals_apply "$session_out" "$(resumed_session)" "$result_json" ;; esac
+fi
 
 if [ -n "$stopped" ]; then
   terminal_reason="timeout"
