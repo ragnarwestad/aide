@@ -68,7 +68,7 @@ run_model_turn() {
   # run's clock (run-spec/turn/model-marks.sh).
   model_marks_begin "${turn_at:-0}"
   stopped=""
-  deadline=$(( started_at + ${timeout_sec%.*} ))
+  deadline="$(step_deadline)"
   while kill -0 "$child" 2>/dev/null; do
     if [ "$(date +%s)" -ge "$deadline" ]; then
       stopped="timeout"

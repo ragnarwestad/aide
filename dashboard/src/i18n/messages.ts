@@ -284,8 +284,8 @@ export const MESSAGES = {
   },
   // The provider had no room for the model the step ran on (no reset to wait
   // for): said for the step and the model, with the two moves the reader has.
-  // A step stopped at its own time limit ({limit}: "40 min"), in the
-  // session or in the runner's own run of the tests (`timeLimitMessage`).
+  // A step stopped at its own time limit ({limit}: "40 min"), or at one
+  // test run's own limit in the runner's run of the tests (`timeLimitMessage`).
   "runner.timeLimitSession": {
     en: "{button} stopped at the step's time limit of {limit}; what it had done is committed to the branch",
     nb: "{button} stoppet ved tidsgrensen for steget ({limit}); det som var gjort, er committet til grenen",
@@ -301,11 +301,11 @@ export const MESSAGES = {
     },
   },
   "runner.timeLimitTests": {
-    en: "{button} stopped at the step's time limit of {limit} while the project's tests were running; the work is committed to the branch",
-    nb: "{button} stoppet ved tidsgrensen for steget ({limit}) mens testene i prosjektet kjørte; arbeidet er committet til grenen",
-    es: "{button} se detuvo en el límite de tiempo del paso ({limit}) mientras corrían los tests del proyecto; el trabajo está confirmado en la rama",
-    de: "{button} wurde am Zeitlimit des Schritts ({limit}) angehalten, während die Tests des Projekts liefen; die Arbeit ist im Branch committet",
-    fr: "{button} s'est arrêté à la limite de temps de l'étape ({limit}) pendant que les tests du projet tournaient ; le travail est commité sur la branche",
+    en: "{button} stopped when one run of the project's tests reached its own limit of {limit}; the work is committed to the branch",
+    nb: "{button} stoppet da én kjøring av testene i prosjektet nådde sin egen grense på {limit}; arbeidet er committet til grenen",
+    es: "{button} se detuvo cuando una ejecución de los tests del proyecto alcanzó su propio límite de {limit}; el trabajo está confirmado en la rama",
+    de: "{button} wurde angehalten, als ein Lauf der Tests des Projekts sein eigenes Limit von {limit} erreichte; die Arbeit ist im Branch committet",
+    fr: "{button} s'est arrêté quand une exécution des tests du projet a atteint sa propre limite de {limit} ; le travail est commité sur la branche",
     solution: {
       en: "press {button} again to test it",
       nb: "trykk {button} igjen for å teste det",

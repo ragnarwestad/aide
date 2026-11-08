@@ -12,3 +12,13 @@ time_limit_words() {
     echo "${sec}-second"
   fi
 }
+
+# The step's limit counts the AI's turns, not the runner's own runs of the
+# project's tests: those wait on the host's load, not on the AI. Each such
+# run has a limit of its own, AIDE_TEST_RUN_LIMIT_SEC (an hour unless set),
+# and the time the runs took is added to the step's deadline.
+test_run_limit_sec="${AIDE_TEST_RUN_LIMIT_SEC:-3600}"
+step_tests_seconds=0
+step_deadline() {
+  echo $(( started_at + ${timeout_sec%.*} + step_tests_seconds ))
+}

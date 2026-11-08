@@ -1,6 +1,6 @@
-// A step stopped at its own time limit is worded by the board: the limit,
-// whether it ran out in the session or in the runner's own test run, and
-// what to press, in the reader's language.
+// A step stopped at a time limit is worded by the board: the limit,
+// whether it was the step's own in the session or one test run's own in the
+// runner's run of the tests, and what to press, in the reader's language.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";

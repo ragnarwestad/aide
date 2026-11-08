@@ -139,6 +139,8 @@ Every loop that sends work back goes to the session that did the work, and every
   the same AI and the analysis ended within the hour. Off unless set
   ([running specs](../dashboard/docs/running-specs.md)).
 - **`AIDE_TEST_FIX_ROUNDS`**: how many more turns red tests get. 2 unless set.
+- **`AIDE_TEST_RUN_LIMIT_SEC`**: how long one of the runner's own test runs may take. An hour unless set; the step's
+  own time limit does not count it.
 - **The AI, model and effort for each step**, chosen per spec. Review and Verify can also be chosen per spec; otherwise
   they use Models per phase, with Implement's own model and no verification as their final defaults.
 

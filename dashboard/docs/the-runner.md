@@ -152,11 +152,15 @@ did not complete, when its message says "at capacity", and from Claude Code's cl
 status 529 or a message saying overloaded or at capacity. A used-up limit and the step's own time limit win over it.
 opencode has no reader.
 
-**A step stopped at its own time limit** ends `timeout`, and the result carries `timeLimit`: the limit in `seconds`,
-and `during`, `session` when it ran out in the AI tool's turn or `tests` when it ran out in the runner's own run of the
-project's tests. The work so far is committed to the branch either way. The board's sentence names the limit (in whole
-minutes, else seconds) and says to press the step again — to carry on, or to test what is there — or to raise the step's
-time limit under Settings. The result carries no sentence of the runner's for it, so the row has no (?).
+**A step's time limit counts the AI tool's turns, not the runner's own runs of the project's tests.** Each such run has
+a limit of its own, `AIDE_TEST_RUN_LIMIT_SEC` (an hour unless set), and the time it took is added to the step's
+deadline.
+
+**A step stopped at a time limit** ends `timeout`, and the result carries `timeLimit`: the limit in `seconds`, and
+`during`, `session` when the step's own limit ran out in the AI tool's turn or `tests` when one test run reached its
+own limit. The work so far is committed to the branch either way. The board's sentence names the limit (in whole
+minutes, else seconds) and says to press the step again — to carry on, or to test what is there. The result carries no
+sentence of the runner's for it, so the row has no (?).
 
 ## The dashboard's own checkouts
 
@@ -396,7 +400,7 @@ evidence that the phase happened:
     verdict it cannot parse, or a turn that does not complete, counts as "found nothing" and is logged as an error.
   - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red goes back
     to the same session as a follow-up turn, at most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time
-    limit. Each red run's failing tests are read from its output by `aide-record-test-run` (`lib/failing-tests.sh`: Playwright,
+    limit, which the test runs themselves do not use up. Each red run's failing tests are read from its output by `aide-record-test-run` (`lib/failing-tests.sh`: Playwright,
     vitest, bun, pytest and turbo, without colour codes, never pnpm's error box or the recorder's JSON line), and a
     fix round's prompt names them; the log's own failing lines go only when no test is named, or no name carries a
     file. Before a still-red step ends, each named red file is run once more alone when the project has an
