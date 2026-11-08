@@ -51,7 +51,7 @@ WORKTREE_LINK_DENYLIST="build target dist .gradle"
 SHORT_ANALYSIS_GRADE="LOW"
 SHORT_ANALYSIS_MAX_FILES=3
 
-project_dir=""; command_name=""; spec_arg=""; timeout_sec=""
+project_dir=""; project_name=""; command_name=""; spec_arg=""; timeout_sec=""
 # Where the caller says this project's spec folders live. The dashboard
 # passes it, so the run makes a folder in the same place the landing
 # looks for it: the two used to work it out separately — the run from
@@ -166,6 +166,7 @@ push_mode_explicit="no"
 while [ $# -gt 0 ]; do
   case "$1" in
     --project-dir) project_dir="${2:-}"; shift 2 ;;
+    --project-name) project_name="${2:-}"; shift 2 ;;
     --specs-root) specs_root_arg="${2:-}"; shift 2 ;;
     --command) command_name="${2:-}"; shift 2 ;;
     --spec) spec_arg="${2:-}"; shift 2 ;;
@@ -250,7 +251,7 @@ refuse_fix() {
 # terminalReason timeout/provider-limit and on ok:false; neither applies here).
 already_landed() {
   local folder="$1" note line
-  note="spec $folder is already archived and its branch is gone from origin — nothing to do"
+  note="spec $(aide_spec_reference "$project_name" "$folder") is already archived and its branch is gone from origin — nothing to do"
   line="$(jq -cn --arg n "$note" \
     '{ok:true, exitCode:0, terminalReason:"already-landed", costUsd:0, costMeasured:false, note:$n}')"
   printf '%s\n' "$line"
@@ -265,6 +266,7 @@ already_landed() {
 is_positive_number() { [[ "$1" =~ ^[0-9]+([.][0-9]+)?$ ]] && [[ "$1" =~ [1-9] ]]; }
 
 [ -n "$project_dir" ] || refuse "missing --project-dir"
+[ -n "$project_name" ] || refuse "missing --project-name"
 [ -n "$command_name" ] || refuse "missing --command"
 [ -n "$spec_arg" ] || refuse "missing --spec"
 [ -n "$timeout_sec" ] || refuse "missing --timeout-sec"

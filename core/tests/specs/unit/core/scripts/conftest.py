@@ -293,6 +293,7 @@ def run(runner, ws, claude=None, codex=None, opencode=None, return_stderr=False,
     args = [str(kwargs.pop("runner_path", runner))]
     defaults = {
         "--project-dir": str(ws["project"]),
+        "--project-name": "aide",
         "--command": "analyze",
         "--spec": ws["folder"],
         # Room for a busy machine: the limit covers the runner's own test

@@ -14,6 +14,7 @@ import { waitsForPerson } from "../../../queue/steps.ts";
 import { heldBackResolvesOnItsOwn, inFlight, type QueueRowView } from "../../ui/job-state";
 import { usageLimitText } from "../../ui/job-state/provider-limit.ts";
 import type { SpecGroup } from "../specs-list";
+import { specReference } from "../../../project/spec-folder.ts";
 
 /** What a job and its row view have in common, and all the rules read. */
 export interface JobLike {
@@ -32,7 +33,7 @@ export interface JobLike {
 }
 
 type StateRow = Pick<QueueRowView, "state" | "landing" | "stepIndex"> & { steps: readonly string[] };
-type TitleRow = { specFolder: string; steps: readonly string[]; stepIndex: number };
+type TitleRow = { project: string; specFolder: string; steps: readonly string[]; stepIndex: number };
 
 export const isScheduleJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
   job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
@@ -123,10 +124,10 @@ export function specsStoodForByJobs(shown: readonly JobLike[]): Set<string> {
 /** What a job row is called, without its project, which the row draws
  *  before the name: the scheduled job, the Close or Reopen and its spec, or
  *  the deploy and the project it deploys. */
-export function jobTitle(row: TitleRow & { project?: string }, lang: Language = "en"): string {
-  if (deployStep(row)) return `${stepLabel("deploy", lang)} ${row.project ?? ""}`.trim();
+export function jobTitle(row: TitleRow, lang: Language = "en"): string {
+  if (deployStep(row)) return `${stepLabel("deploy", lang)} ${row.project}`.trim();
   const step = closeOrReopenStep(row);
-  return step ? `${stepLabel(step, lang)} ${row.specFolder}` : scheduleNameOf(row.specFolder);
+  return step ? `${stepLabel(step, lang)} ${specReference(row.project, row.specFolder)}` : scheduleNameOf(row.specFolder);
 }
 
 /** The row's key, in the tab's `open`: a scheduled job's tracking key, or for a

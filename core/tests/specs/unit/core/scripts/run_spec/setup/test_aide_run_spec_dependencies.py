@@ -48,8 +48,8 @@ def test_refuses_while_a_named_dependency_is_still_unmerged(
     # The message names the spec, the dependency, and that it is not
     # archived yet — nobody should have to guess which of the
     # two specs is the problem.
-    assert workspace["folder"] in out["error"]
-    assert "80-dependency" in out["error"]
+    assert "aide:81" in out["error"]
+    assert "aide:80" in out["error"]
     assert "not archived yet" in out["error"]
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
     assert not workspace["wtbase"].exists(), "and leave no worktree behind"
@@ -65,7 +65,7 @@ def test_analyze_waits_for_the_dependency_too(runner, workspace, fake_claude, lo
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 2
     assert out["terminalReason"] == "refused"
-    assert "80-dependency" in out["error"]
+    assert "aide:80" in out["error"]
     assert not fake_claude.calls.exists()
 
 def test_a_dependency_merged_but_not_archived_still_refuses(
@@ -90,7 +90,7 @@ def test_a_dependency_merged_but_not_archived_still_refuses(
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 2
     assert out["terminalReason"] == "refused"
-    assert "80-dependency" in out["error"]
+    assert "aide:80" in out["error"]
     assert "not archived yet" in out["error"]
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
@@ -109,7 +109,7 @@ def test_a_dependency_with_no_branch_and_not_archived_still_refuses(
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 2
     assert out["terminalReason"] == "refused"
-    assert "80-dependency" in out["error"]
+    assert "aide:80" in out["error"]
     assert "not archived yet" in out["error"]
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
@@ -122,7 +122,7 @@ def test_the_full_folder_name_resolves_as_well_as_the_number(
 
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement")
     assert rc == 2
-    assert "80-dependency" in out["error"]
+    assert "aide:80" in out["error"]
 
 def test_refuses_an_unknown_dependency(runner, workspace, fake_claude, local_origins):
     """A typo must stop the run rather than pass as 'nothing to wait

@@ -263,7 +263,7 @@ EOF_CMDS
         if [ -n "$step_tests_unrun" ]; then
           tests_not_started_json="$step_tests_unrun"
           if [ "$(jq -r '.kind' <<<"$step_tests_unrun")" = "spec-folder-missing" ]; then
-            stop_step tests-not-started "the step reported success, but the project's tests were not run — the spec's folder $(jq -r '.folder' <<<"$step_tests_unrun") was not found on the spec's branch, where the runner records the test run" \
+            stop_step tests-not-started "the step reported success, but the project's tests were not run — $(aide_spec_reference "$project_name" "$(jq -r '.folder' <<<"$step_tests_unrun")") was not found on the spec's branch, where the runner records the test run" \
               "press $step_button again for this step once the folder is back in place"
           else
             stop_step tests-not-started "the step reported success, but the project's tests were not run — the test recorder did not write a readable result (exit code $(jq -r '.exitCode' <<<"$step_tests_unrun"))" \

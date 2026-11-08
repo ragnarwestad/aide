@@ -6,6 +6,7 @@ import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers
 
 import { landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
+import { specReference } from "../../../project/spec-folder.ts";
 
 export async function branchControlRoutes(
   ctx: RoutesContext,
@@ -30,8 +31,9 @@ export async function branchControlRoutes(
   };
   const ref = ctx.specRef(project!, specFolder!);
   if (!ref) return new Response("not found", { status: 404 });
-  if (!ref.archived) return refuse(`${specFolder} is not archived — Delete branch is for an archived spec's leftover branch`);
-  if (ref.closed) return refuse(`${specFolder} is closed — its branch was never merged`);
+  const displaySpec = specReference(project!, specFolder!);
+  if (!ref.archived) return refuse(`${displaySpec} is not archived — Delete branch is for an archived spec's leftover branch`);
+  if (ref.closed) return refuse(`${displaySpec} is closed — its branch was never merged`);
   // The same two in-flight checks Close makes: a landing moves the
   // checkouts this deletes in, and a job for the spec may push the branch.
   if (landingInProject(ctx.queue.list(), project!)) return refuse("a landing is in progress");

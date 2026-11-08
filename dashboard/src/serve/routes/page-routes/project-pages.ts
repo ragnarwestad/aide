@@ -158,7 +158,7 @@ export async function projectPages(
         return Response.redirect(testServerUrlFor(req, already.url), 303);
       }
       if (already?.status === "failed") {
-        return testServerFailedPage(MAIN_TEST_SERVER_KEY, already.error, undefined, already.detail);
+        return testServerFailedPage(name, MAIN_TEST_SERVER_KEY, already.error, undefined, already.detail);
       }
       if (!already) {
         // A bookmarked or shared URL, with nobody's POST behind it —

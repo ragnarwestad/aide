@@ -23,6 +23,7 @@ import {
   type ParseResult,
 } from "../parse-request.ts";
 import { gerund, landingStepIndex } from "../../format/gerund.ts";
+import { specReference } from "../../project/spec-folder.ts";
 
 
 import { loadJobs, writeJobs } from "./mirror.ts";
@@ -163,7 +164,7 @@ export class QueueStore {
       return {
         ok: false,
         error:
-          `${clash.step} on ${parsed.job.specFolder} is already ${clash.job.state} ` +
+          `${clash.step} on ${specReference(parsed.job.project, parsed.job.specFolder)} is already ${clash.job.state} ` +
           `(job ${clash.job.id.slice(0, 8)}) — cancel that one first if you want to start over`,
       };
     }
@@ -180,7 +181,7 @@ export class QueueStore {
       return {
         ok: false,
         error:
-          `${parsed.job.steps[0]} on ${parsed.job.specFolder} cannot start while ` +
+          `${parsed.job.steps[0]} on ${specReference(parsed.job.project, parsed.job.specFolder)} cannot start while ` +
           `${gerund("en", lastStep)} is still in progress ` +
           `(job ${landing.id.slice(0, 8)}) — press ${stepButton(parsed.job.steps[0]!)} again in a moment, once the merge finishes`,
       };

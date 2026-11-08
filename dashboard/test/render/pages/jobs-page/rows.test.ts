@@ -258,7 +258,7 @@ describe("a Close or Reopen is a job row of its own, not its spec's", () => {
     const row = at("reopen", { project: "aide", specFolder: "534-a-card" });
     expect(jobKey(row)).toBe("aide/534-a-card:reopen");
     expect(jobKey(sched())).toBe("aide/schedule-nightly");
-    expect(jobTitle(row)).toBe("Reopen 534-a-card");
+    expect(jobTitle(row)).toBe("Reopen aide:534");
   });
 
   test("offers neither Stop nor Cancel: a half-done move would leave the spec between two places", () => {

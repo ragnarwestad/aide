@@ -12,6 +12,7 @@ import { errorSentence } from "../../format/error-sentence.ts";
 import { splitFix } from "../../format/request-fixes.ts";
 import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
+import { specReference } from "../../project/spec-folder.ts";
 
 /** The steps a spec's phase moves through: the ones the run route checks
  *  against the transition table. */
@@ -93,7 +94,7 @@ export async function handleJobActionRoutes(
           if (step === "implement" && phase === "analyzed" && !analyzedOnMain && completedPhases.includes("analyze")) {
             const spec = `${askedFor.project}/${askedFor.specFolder}`;
             const said = errorSentence({
-              what: `${askedFor.specFolder}'s analysis has run, but it has not been merged into main, which implement starts from`,
+              what: `${specReference(askedFor.project, askedFor.specFolder)}'s analysis has run, but it has not been merged into main, which implement starts from`,
               resolve: "press Analyze again to merge it",
             });
             logRefusal("run", spec, said.text);

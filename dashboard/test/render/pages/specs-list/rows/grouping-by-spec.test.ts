@@ -47,6 +47,14 @@ describe("the queue list groups by spec", () => {
     expect(heads(html)).toHaveLength(1);
   });
 
+  test("the spec's own head keeps its title and full-folder tooltip (AC-4)", () => {
+    const html = rows([job("j1", "analyze")]);
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
+    expect(head).toContain("86-grouped");
+    expect(head).toContain('title="hide the phases and controls of 86-grouped"');
+    expect(head).not.toContain("aide:86");
+  });
+
   test("a phase that never ran keeps its place in the order", () => {
     const html = rows([job("j1", "analyze"), job("j2", "implement")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);

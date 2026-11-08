@@ -57,6 +57,7 @@ test("saves the dependency and queues the remaining steps with an informational 
   const h = setup();
   await applyOverlapDependencies(h.ctx, h.job, outcome);
   expect(readFileSync(join(h.specs, "1-a", "1-description.md"), "utf8")).toContain("`2-b`");
+  expect(h.git(h.code, "log", "-1", "--pretty=%s")).toBe("Add dependencies for 1-a");
   expect(h.queued[0]).toMatchObject({ project: "aide", specFolder: "1-a", steps: ["analyze", "implement", "archive"], model: { analyze: "opus" } });
   expect(h.jobs.get("new-1")?.dependencyNotice).toMatchObject({ key: "runner.dependenciesAdded" });
 });

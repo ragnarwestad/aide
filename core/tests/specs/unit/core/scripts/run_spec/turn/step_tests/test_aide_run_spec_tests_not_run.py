@@ -58,16 +58,18 @@ def _claude_moving_the_folder_away(fake_claude, tmp_path):
     return claude, prompts
 
 
-def test_a_spec_folder_the_recorder_cannot_find_ends_tests_not_started_without_a_fix_round(
+def test_a_spec_folder_the_recorder_cannot_find_names_it_in_the_log_as_a_reference_ac_3(
     runner, workspace, fake_claude, tmp_path
 ):
     with_status(workspace, ["create", "analyze"])
     claude, prompts = _claude_moving_the_folder_away(fake_claude, tmp_path)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
+    rc, out, _, run_log = run(runner, workspace, claude, command="implement", return_stderr=True)
     assert out["ok"] is False, out
     assert out["terminalReason"] == "tests-not-started", out
     assert_written_as_in_fixture("testsNotStarted", out["testsNotStarted"])
     assert out["testsNotStarted"] == {"kind": "spec-folder-missing", "folder": FOLDER}, out
+    assert "aide:81" in run_log, run_log
+    assert FOLDER not in run_log, run_log
     assert "test suite is red" not in prompts.read_text(), "no fix round for tests that never ran"
 
 

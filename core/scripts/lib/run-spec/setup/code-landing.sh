@@ -193,12 +193,13 @@ elif [ -z "$spec_folder" ] && [ "$command_name" = "schedule" ]; then
   [[ "$spec_arg" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --spec: $spec_arg"
   [ -n "$prompt_file" ] || refuse "missing --prompt-file (required for schedule)"
 else
-  [ -n "$spec_folder" ] || refuse "unknown spec: $spec_arg (not under $specs_root)"
+  [ -n "$spec_folder" ] || refuse "unknown spec: $(aide_spec_reference "$project_name" "$spec_arg") (not under $specs_root)"
 fi
 spec_id="${spec_folder%%-*}"
 # What the branch, the worktree and the commit message are named after:
 # the real folder when there is one, the tracking key while there is not.
 spec_label="${spec_folder:-$spec_arg}"
+spec_reference="$(aide_spec_reference "$project_name" "$spec_label")"
 
 # `reopen` exists to bring a spec back OUT of archive/ — a spec the
 # resolver above found active is not its target, only a stale board row
@@ -209,7 +210,7 @@ spec_label="${spec_folder:-$spec_arg}"
 # hundred lines down, which `refuse`'s own `exit 2` never lets the run
 # reach.
 if [ "$command_name" = "reopen" ] && [ "$spec_folder_archived" != "yes" ]; then
-  refuse "$spec_folder is already active — nothing to reopen"
+  refuse "$spec_reference is already active — nothing to reopen"
 fi
 
 # A run reaches its project and its specs root, and nothing else.
