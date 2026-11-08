@@ -18,19 +18,6 @@ turn_tokens_add() {  # <tokens-json> <tokens-json>
     end' 2>/dev/null
 }
 
-# What a turn that resumed a session added to it. Claude and Codex report a
-# resumed session's usage as the whole session's so far, so the turn's own is
-# the difference from what the session had reported before (never below 0).
-# OpenCode's read already covers the turn's own bytes alone.
-turn_tokens_own() {  # <session's tokens before the turn> <tokens the turn reported>
-  if [ "$tool" = "opencode" ]; then printf '%s' "${2:-}"; return 0; fi
-  jq -cn --argjson before "${1:-null}" --argjson after "${2:-null}" '
-    if $before == null or $after == null then empty
-    else (reduce ("input", "output", "cacheRead", "cacheCreation") as $k ({}; .[$k] = ([$after[$k] - $before[$k], 0] | max)))
-      | . + {total: (.input + .output + .cacheRead + .cacheCreation)}
-    end' 2>/dev/null
-}
-
 # One turn of the model: run `argv` on the prompt in $1, wait it out under
 # the step's deadline, and read the result back into the step's own
 # globals ($terminal_reason, $error_msg, $cost, $session_out, ...). A

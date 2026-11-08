@@ -244,8 +244,8 @@ def test_a_codex_review_reports_its_tokens_and_no_dollar_figure_ac_1(runner, wor
     review = out["review"]
     assert review["tool"] == "codex" and review["outcome"] == "completed", review
     assert "costUsd" not in review, review
-    # Codex bills reasoning tokens as output: 4210 + (812 + 640) + 3900.
-    assert review["tokens"]["total"] == 9562, review
+    # Codex's own total: input (cached included) + output (reasoning included).
+    assert review["tokens"]["total"] == 4210 + 812, review
     assert_written_as_in_fixture("review", review)
 
 

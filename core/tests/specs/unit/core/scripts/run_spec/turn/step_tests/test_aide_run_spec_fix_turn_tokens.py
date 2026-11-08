@@ -10,7 +10,7 @@ from ...run_spec_status_files import with_status
 RED_MARKER = "test suite is red"
 FIRST_TURN = {"inputTokens": 10, "outputTokens": 100, "cacheReadInputTokens": 1000, "cacheCreationInputTokens": 50}
 FIX_TURN = {"inputTokens": 7, "outputTokens": 300, "cacheReadInputTokens": 2000, "cacheCreationInputTokens": 100}
-# A resumed session reports its whole usage so far, not the turn's own.
+# A resumed session reports its whole usage and cost so far, not the turn's own.
 SESSION_AFTER_FIX = {k: FIRST_TURN[k] + FIX_TURN[k] for k in FIRST_TURN}
 
 
@@ -32,7 +32,7 @@ def _red_until_the_fix(workspace, fake_claude, fix_usage):
         "prompt=\"$(cat)\"\n"
         f"if printf '%s' \"$prompt\" | grep -q '{RED_MARKER}'; then\n"
         "  printf 'green\\n' > green.txt && git add -A && git commit -q -m 'the test fix'\n"
-        f"  echo '{json.dumps(_result(0.20, fix_usage))}'\n"
+        f"  echo '{json.dumps(_result(0.30, fix_usage))}'\n"
         "else\n"
         "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
         f"  echo '{json.dumps(_result(0.10, FIRST_TURN))}'\n"

@@ -162,12 +162,12 @@
         "name": "a review on a tool with no dollar figure has tokens and no cost",
         "written": {
           "outcome": "completed", "tool": "codex", "durationSec": 22,
-          "tokens": { "input": 4210, "output": 1452, "cacheRead": 3900, "cacheCreation": 0, "total": 9562 },
+          "tokens": { "input": 310, "output": 812, "cacheRead": 3900, "cacheCreation": 0, "total": 5022 },
           "transcript": { "from": 24410, "to": 27980 }
         },
         "read": {
           "outcome": "completed", "tool": "codex", "durationSec": 22,
-          "tokens": { "input": 4210, "output": 1452, "cacheRead": 3900, "cacheCreation": 0, "total": 9562 },
+          "tokens": { "input": 310, "output": 812, "cacheRead": 3900, "cacheCreation": 0, "total": 5022 },
           "transcript": { "from": 24410, "to": 27980 }
         }
       },

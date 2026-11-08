@@ -134,10 +134,6 @@ sides_priced_again() {
 
 # The review's and the verification's records for the result, when they ran.
 review_json=""; verify_json=""; sides_priced=""
-# The implement session's own usage so far: Claude and Codex report a resumed
-# session's whole usage, and the turns that resume it (this file's fix turn,
-# run-spec/turn/step-tests.sh's) add only the difference.
-session_tokens="${tokens_json:-}"
 
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] \
   && { [ -n "$review_model" ] || [ -n "$review_tool" ]; }; then
@@ -251,9 +247,7 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] \
       run_model_turn "$work_dir/prompt-review-fix"
       cost="$(jq -n --arg a "$running_cost" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
       sides_priced_again
-      fix_tokens="$(turn_tokens_own "$session_tokens" "${tokens_json:-}")"
-      session_tokens="${tokens_json:-}"
-      tokens_json="$(turn_tokens_add "$running_tokens" "$fix_tokens")"
+      tokens_json="$(turn_tokens_add "$running_tokens" "${tokens_json:-}")"
       while IFS= read -r review_rejected; do
         stage "the implement session found it ${review_rejected}"
       done < <(printf '%s\n' "$turn_message" | grep -iE '^not a defect: ')

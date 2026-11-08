@@ -356,9 +356,7 @@ $step_tests_failing"
         step_cost_total="$(jq -n --arg a "$step_cost_total" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
         cost="$step_cost_total"
         sides_priced_again
-        step_fix_tokens="$(turn_tokens_own "$session_tokens" "${tokens_json:-}")"
-        session_tokens="${tokens_json:-}"
-        step_tokens_total="$(turn_tokens_add "$step_tokens_total" "$step_fix_tokens")"
+        step_tokens_total="$(turn_tokens_add "$step_tokens_total" "${tokens_json:-}")"
         tokens_json="$step_tokens_total"
         # A turn that did not end cleanly keeps its own verdict (timeout,
         # cli-error): nothing to test.

@@ -453,8 +453,9 @@ def _metered(session_id, text, cost, usage):
 
 def _every_session_claude(fake_claude):
     """An implement, a review that finds one defect, a verification that
-    keeps it and the fix turn — each reporting its own cost and tokens and
-    saying something no other turn says."""
+    keeps it and the fix turn, each saying something no other turn says. The
+    fix turn resumes the implement session, so it reports that session's
+    cost and tokens so far, as Claude does."""
     def reply(session, text, cost, usage):
         return f"echo '{json.dumps(_metered(session, text, cost, usage))}'"
     return fake_claude(
@@ -465,7 +466,7 @@ def _every_session_claude(fake_claude):
         f"  {reply(REVIEW_SESSION, 'review: 1 defect(s) found' + chr(10) + '1. REVIEW-SAYS-THIS', 0.05, REVIEW_USAGE)}\n"
         f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
         "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
-        f"  {reply(IMPLEMENT_SESSION, 'FIX-SAYS-THIS', 0.20, _session_so_far(IMPLEMENT_USAGE, FIX_USAGE))}\n"
+        f"  {reply(IMPLEMENT_SESSION, 'FIX-SAYS-THIS', 0.30, _session_so_far(IMPLEMENT_USAGE, FIX_USAGE))}\n"
         "else\n"
         "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
         f"  {reply(IMPLEMENT_SESSION, 'IMPLEMENT-SAYS-THIS', 0.10, IMPLEMENT_USAGE)}\n"
