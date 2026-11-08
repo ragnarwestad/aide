@@ -13,73 +13,29 @@
 // and the static generator import from it.
 
 export {
-  configValue,
-  resolveWorktreeLinks,
-  resolveCodeLanding,
-  resolvePreviewFrom,
-  resolveInstallCmd,
-  resolveTestCmd,
-  resolvePreviewCmd,
-  resolveAcPrefix,
-  resolveDescription,
-  type WorktreeLinksSource,
-  type CodeLanding,
-  type ConfigOverrideSource,
+  configValue, resolveWorktreeLinks, resolveCodeLanding, resolvePreviewFrom,
+  resolveInstallCmd, resolveTestCmd, resolvePreviewCmd, resolveAcPrefix, resolveDescription,
+  type WorktreeLinksSource, type CodeLanding, type ConfigOverrideSource,
 } from "./config.ts";
 
 export type { PreviewFrom } from "../parse-manifest.ts";
 
 export {
-  SPEC_FILES,
-  specFileText,
-  markdownSection,
-  specDescription,
-  specPhaseFile,
-  specArchivedDate,
-  specClosed,
-  specClosedDate,
-  specCloseReason,
+  SPEC_FILES, specFileText, markdownSection, specDescription, specPhaseFile, specArchivedDate,
+  specClosed, specClosedDate, specCloseReason,
 } from "./spec-files.ts";
 
-export {
-  dependsOnIn,
-  specDependsOn,
-  stripDependsOnLine,
-  withDependsOnLine,
-} from "./depends-on.ts";
+export { dependsOnIn, specDependsOn, stripDependsOnLine, withDependsOnLine } from "./depends-on.ts";
 
-export {
-  acceptanceNotRequiredIn,
-  specAcceptanceNotRequired,
-  stripAcceptanceLine,
-  withAcceptanceLine,
-} from "./acceptance.ts";
+export { acceptanceNotRequiredIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine } from "./acceptance.ts";
 
-export {
-  criteriaChecksIn,
-  parseCriteriaChecks,
-  withCriteriaChecksLine,
-  type CriteriaChecks,
-} from "./criteria-checks.ts";
+export { criteriaChecksIn, parseCriteriaChecks, withCriteriaChecksLine, type CriteriaChecks } from "./criteria-checks.ts";
 
 export { chooseApproachIn, withChooseApproachLine } from "./choose-approach.ts";
 
-export {
-  createChoicesIn,
-  specCreateChoices,
-  type CreateChoices,
-} from "./create-choices.ts";
+export { createChoicesIn, specCreateChoices, type CreateChoices } from "./create-choices.ts";
 
 export {
-  discoverProjects,
-  manifestInside,
-  gitignoreCandidates,
-  buildProjectViews,
-  specFolders,
-  type SpecRef,
-  type DiscoveredProject,
-  type OwnedSpecsRoot,
-  type ManifestFallback,
-  type SpecView,
-  type ProjectView,
+  discoverProjects, manifestInside, gitignoreCandidates, buildProjectViews, specFolders,
+  type SpecRef, type DiscoveredProject, type OwnedSpecsRoot, type ManifestFallback, type SpecView, type ProjectView,
 } from "./scan.ts";

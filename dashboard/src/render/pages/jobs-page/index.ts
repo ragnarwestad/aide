@@ -10,31 +10,15 @@ import { t } from "../../../i18n";
 import type { QueueRowView } from "../../ui/job-state";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { renderFailedCreateNotices } from "../specs-list/failed-create-notices.ts";
-import {
-  listRefusalLine,
-  refusalRowTemplate,
-} from "../specs-list/notice-row.ts";
+import { listRefusalLine, refusalRowTemplate } from "../specs-list/notice-row.ts";
 import { activeSpecRows, type SpecsPageOptions } from "../specs-list";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { jobsFilterBar, jobsHead } from "./filter-bar.ts";
 import { jobRow } from "./job-row.ts";
-import {
-  byTabPlace,
-  jobKey,
-  jobPlace,
-  specPlace,
-  specsStoodForByJobs,
-  type TabPlace,
-} from "./rows.ts";
+import { byTabPlace, jobKey, jobPlace, specPlace, specsStoodForByJobs, type TabPlace } from "./rows.ts";
 import { jobFacts, jobsViewRows, type RowFacts } from "./view.ts";
 
-export {
-  jobControl,
-  jobKey,
-  jobsShown,
-  jobTitle,
-  scheduleStreamKey,
-} from "./rows.ts";
+export { jobControl, jobKey, jobsShown, jobTitle, scheduleStreamKey } from "./rows.ts";
 export type { JobLike } from "./rows.ts";
 
 /** What the page draws: the scheduled jobs it shows, and the Specs
@@ -54,29 +38,16 @@ export interface JobsView {
 /** The rows in order, each with its `<project>/<folder>` key and the facts the
  *  view's filter and sort read: the Active specs, each once, among the
  *  scheduled jobs, by where each stands. */
-function entries(
-  v: JobsView,
-): { key: string; html: string; place: TabPlace; facts: RowFacts }[] {
+function entries(v: JobsView): { key: string; html: string; place: TabPlace; facts: RowFacts }[] {
   const now = v.now ?? Date.now();
   const lang = v.list.lang ?? "en";
   const moving = specsStoodForByJobs(v.shown);
-  const specs = activeSpecRows(v.specJobs, v.list, now)
-    .filter((s) => !moving.has(s.key))
-    .map((s) => ({
-      key: s.key,
-      html: s.html,
-      place: specPlace(s.group),
-      facts: s.group,
-    }));
+  const specs = activeSpecRows(v.specJobs, v.list, now).filter((s) => !moving.has(s.key)).map((s) => ({
+    key: s.key, html: s.html, place: specPlace(s.group), facts: s.group,
+  }));
   const jobs = v.shown.map((job) => ({
     key: jobKey(job),
-    html: jobRow(job, {
-      lang,
-      now,
-      filter: v.list.filter ?? {},
-      listPath: v.list.listPath ?? "/",
-      steps: v.list.closeOrReopenSteps,
-    }),
+    html: jobRow(job, { lang, now, filter: v.list.filter ?? {}, listPath: v.list.listPath ?? "/", steps: v.list.closeOrReopenSteps }),
     place: jobPlace(job),
     facts: jobFacts(job, now),
   }));
@@ -104,12 +75,7 @@ export function renderJobsRows(v: JobsView): string {
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">${t(lang, all.length ? "jobs.noRowMatchesFilter" : "jobs.nothingRunning")}</td></tr>`;
   return (
     notices +
-    jobsFilterBar(
-      all.map((e) => e.facts),
-      f,
-      lang,
-      v.list,
-    ) +
+    jobsFilterBar(all.map((e) => e.facts), f, lang, v.list) +
     `<div class="tablewrap"><table class="list speclist" data-list="jobs">${jobsHead(f, lang)}<tbody>${body}</tbody></table></div>`
   );
 }
@@ -118,24 +84,14 @@ export function renderJobsRows(v: JobsView): string {
  *  on the page or the view hides it, and the script then redraws the whole list. */
 export function renderJobsSpecRows(v: JobsView, key: string): string {
   const shown = jobsViewRows(entries(v), v.list.filter ?? {});
-  return `<table><tbody>${shown
-    .filter((r) => r.key === key)
-    .map((r) => r.html)
-    .join("")}</tbody></table>`;
+  return `<table><tbody>${shown.filter((r) => r.key === key).map((r) => r.html).join("")}</tbody></table>`;
 }
 
-export function renderJobsPage(
-  v: JobsView,
-  generatedAt: string,
-  entriesNav: NavEntry[],
-): string {
+export function renderJobsPage(v: JobsView, generatedAt: string, entriesNav: NavEntry[]): string {
   const lang = v.list.lang ?? "en";
   // The refusal line and the row it is copied into sit outside `#jobrows`, so
   // no redraw of the rows replaces either.
-  const body =
-    listRefusalLine() +
-    `<div id="jobrows">${renderJobsRows(v)}</div>` +
-    refusalRowTemplate();
+  const body = listRefusalLine() + `<div id="jobrows">${renderJobsRows(v)}</div>` + refusalRowTemplate();
   return pageShell("Running", entriesNav, "/", body, generatedAt, {
     hideHeading: true,
     script: v.list.script,

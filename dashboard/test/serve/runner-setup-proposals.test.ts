@@ -45,23 +45,11 @@ const creates = () => store.list().filter((j) => j.steps[0] === "create");
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), "aide-step-done-"));
   mkdirSync(join(root, "specs"), { recursive: true });
-  const dir = scheduleRunOutputDir(
-    join(root, "out"),
-    "aide",
-    "schedule-nyhetssjekk",
-    "run-1",
-  );
+  const dir = scheduleRunOutputDir(join(root, "out"), "aide", "schedule-nyhetssjekk", "run-1");
   mkdirSync(dir, { recursive: true });
-  writeFileSync(
-    join(dir, PROPOSALS_FILE),
-    JSON.stringify([{ title: "First", description: "d" }]),
-  );
+  writeFileSync(join(dir, PROPOSALS_FILE), JSON.stringify([{ title: "First", description: "d" }]));
   store = new QueueStore({
-    defaults: {
-      timeoutSec: { default: 1200 },
-      permissionMode: { default: "acceptEdits" },
-      model: { default: "sonnet" },
-    },
+    defaults: { timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" }, model: { default: "sonnet" } },
     resolve: () => ({ specFolders: [] }),
     allowCreateProject: (p) => p === "aide",
   });
@@ -70,28 +58,20 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("stepDoneHandler and a scheduled run's proposals", () => {
   test("a schedule step that ended ok queues a Create job per proposal and returns no landing", () => {
-    expect(
-      handler()(job(), "schedule", { ok: true, terminalReason: "completed" }),
-    ).toBeUndefined();
+    expect(handler()(job(), "schedule", { ok: true, terminalReason: "completed" })).toBeUndefined();
     expect(creates().map((j) => j.createTitle)).toEqual(["First"]);
   });
 
   test("a schedule step that did not end ok queues nothing", () => {
     handler()(job(), "schedule", { ok: false, terminalReason: "cli-error" });
-    handler()(job(), "schedule", {
-      ok: false,
-      terminalReason: "scope-violation",
-    });
+    handler()(job(), "schedule", { ok: false, terminalReason: "scope-violation" });
     handler()(job(), "schedule", { ok: false, terminalReason: "timeout" });
     expect(creates()).toEqual([]);
   });
 
   test("an ok step of any other kind reads no proposals", () => {
     for (const step of ["analyze", "implement", "explore"] as const) {
-      handler()(job({ steps: [step] }), step, {
-        ok: true,
-        terminalReason: "completed",
-      });
+      handler()(job({ steps: [step] }), step, { ok: true, terminalReason: "completed" });
     }
     expect(creates()).toEqual([]);
   });

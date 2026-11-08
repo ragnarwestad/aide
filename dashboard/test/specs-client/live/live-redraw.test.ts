@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { renderSpecsRows } from "../../../src/render";
-import { harness, flush, OK_ACTION } from "../fixtures.ts";
+import {
+  harness,
+  flush,
+  OK_ACTION,
+} from "../fixtures.ts";
 
 // --- The page changes when something changes -----------------------
 
@@ -81,18 +85,9 @@ describe("the rows are redrawn on a push, not on a timer", () => {
       h.elapsed.push(mark);
       const base = Date.parse(started);
       for (const [secs, label] of [
-        [0, "0s"],
-        [1, "1s"],
-        [45, "45s"],
-        [59, "59s"],
-        [60, "1m 00s"],
-        [61, "1m 01s"],
-        [125, "2m 05s"],
-        [3599, "59m 59s"],
-        [3600, "1h 00m"],
-        [3661, "1h 01m"],
-        [7325, "2h 02m"],
-        [86_400, "24h 00m"],
+        [0, "0s"], [1, "1s"], [45, "45s"], [59, "59s"],
+        [60, "1m 00s"], [61, "1m 01s"], [125, "2m 05s"], [3599, "59m 59s"],
+        [3600, "1h 00m"], [3661, "1h 01m"], [7325, "2h 02m"], [86_400, "24h 00m"],
       ] as const) {
         h.clock.at = base + secs * 1000;
         h.ticks.forEach((t) => t());
@@ -183,9 +178,7 @@ describe("the rows are redrawn on a push, not on a timer", () => {
     let release: () => void = () => {};
     const held = new Promise<void>((r) => (release = r));
     const h = harness((url) =>
-      url.includes("/cancel")
-        ? { ok: true, body: OK_ACTION, hold: held }
-        : { ok: true },
+      url.includes("/cancel") ? { ok: true, body: OK_ACTION, hold: held } : { ok: true },
     );
     h.visibility("visible");
     const pressed = h.submit();
@@ -320,9 +313,7 @@ describe("a redraw touches only the specs that changed", () => {
   const pages = (...texts: string[]) => {
     let at = 0;
     return harness((url) =>
-      url.includes("rows=1")
-        ? { ok: true, text: texts[Math.min(at++, texts.length - 1)]! }
-        : { ok: true },
+      url.includes("rows=1") ? { ok: true, text: texts[Math.min(at++, texts.length - 1)]! } : { ok: true },
     );
   };
 
@@ -410,10 +401,7 @@ describe("a redraw touches only the specs that changed", () => {
   });
 
   test("a spec that appeared while the tab was hidden is drawn in", async () => {
-    const h = pages(
-      page(group(A, "queued")),
-      page(group(A, "queued"), group(B, "queued")),
-    );
+    const h = pages(page(group(A, "queued")), page(group(A, "queued"), group(B, "queued")));
     await settle(h);
     const kept = h.rowFor(`spec-${A}`);
 
@@ -425,10 +413,7 @@ describe("a redraw touches only the specs that changed", () => {
   });
 
   test("a spec that went away takes its own rows and no others", async () => {
-    const h = pages(
-      page(group(A, "queued"), group(B, "queued")),
-      page(group(B, "queued")),
-    );
+    const h = pages(page(group(A, "queued"), group(B, "queued")), page(group(B, "queued")));
     await settle(h);
     const kept = h.rowFor(`spec-${B}`);
 
@@ -479,10 +464,7 @@ describe("a redraw touches only the specs that changed", () => {
       `<table class="list"><thead></thead><tbody>${groups.join("")}</tbody></table></div>`;
 
     test("a wholesale replace puts it back where it was", async () => {
-      const h = pages(
-        withCount(1, group(A, "queued")),
-        withCount(2, group(A, "running")),
-      );
+      const h = pages(withCount(1, group(A, "queued")), withCount(2, group(A, "running")));
       await settle(h);
       h.wrap().scrollTop = 420;
 
@@ -497,10 +479,7 @@ describe("a redraw touches only the specs that changed", () => {
     });
 
     test("and the keyed diff, which never touches the box, leaves it alone", async () => {
-      const h = pages(
-        withCount(1, group(A, "queued")),
-        withCount(1, group(A, "running")),
-      );
+      const h = pages(withCount(1, group(A, "queued")), withCount(1, group(A, "running")));
       await settle(h);
       const box = h.wrap();
       box.scrollTop = 137;
@@ -525,18 +504,9 @@ describe("a page that follows its job asks for its parts", () => {
   const PARTS = `<div data-follow-part="head"><p>Running</p></div>`;
   /** The answer of a job still in flight: the marker, then the parts. */
   const STILL_GOING = `<span hidden data-follow data-tab="steps" data-running="1"></span>${PARTS}`;
-  const followed = (
-    reply: (url: string) => { ok: boolean; text?: string } = () => ({
-      ok: true,
-      text: STILL_GOING,
-    }),
-  ) =>
-    harness(reply, "actionform", "?tab=steps", {
-      pathname: "/jobs/j1",
-      follow: MARKER,
-    });
-  const asks = (h: ReturnType<typeof harness>) =>
-    h.requests.filter((r) => r.url.includes("follow=1"));
+  const followed = (reply: (url: string) => { ok: boolean; text?: string } = () => ({ ok: true, text: STILL_GOING })) =>
+    harness(reply, "actionform", "?tab=steps", { pathname: "/jobs/j1", follow: MARKER });
+  const asks = (h: ReturnType<typeof harness>) => h.requests.filter((r) => r.url.includes("follow=1"));
   /** Each event comes two seconds after the last, the pace the asks keep. */
   const later = (h: ReturnType<typeof harness>) => void (h.clock.at += 2500);
 
@@ -576,10 +546,7 @@ describe("a page that follows its job asks for its parts", () => {
     let release: () => void = () => {};
     const held = new Promise<void>((r) => (release = r));
     const h = harness(
-      (url) =>
-        url.includes("/cancel")
-          ? { ok: true, body: OK_ACTION, hold: held }
-          : { ok: true, text: STILL_GOING },
+      (url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION, hold: held } : { ok: true, text: STILL_GOING }),
       "actionform",
       "?tab=steps",
       { pathname: "/jobs/j1", follow: MARKER },
@@ -609,12 +576,7 @@ describe("a page that follows its job asks for its parts", () => {
   });
 
   test("a page opened with ?live=0 asks nothing", async () => {
-    const h = harness(
-      () => ({ ok: true, text: PARTS }),
-      "actionform",
-      "?live=0",
-      { pathname: "/jobs/j1", follow: MARKER },
-    );
+    const h = harness(() => ({ ok: true, text: PARTS }), "actionform", "?live=0", { pathname: "/jobs/j1", follow: MARKER });
     h.visibility("visible");
     h.visibility("hidden");
     h.visibility("visible");
@@ -633,12 +595,7 @@ describe("the redraw asks the page's own address", () => {
     ["/", "/?"],
     ["/specs", "/specs?"],
   ])("on %s the rows are asked at %s", async (pathname, prefix) => {
-    const h = harness(
-      () => ({ ok: true, text: "<tr>fresh</tr>" }),
-      "actionform",
-      "?open=aide%2F81-x",
-      { pathname },
-    );
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "actionform", "?open=aide%2F81-x", { pathname });
     h.visibility("visible");
     h.live()!.emit("changed");
     await flush();
@@ -651,12 +608,7 @@ describe("the redraw asks the page's own address", () => {
     ["/", "/?"],
     ["/specs", "/specs?"],
   ])("on %s one spec's fold asks %s with only=", async (pathname, prefix) => {
-    const h = harness(
-      () => ({ ok: true, text: "<tr>fresh</tr>" }),
-      "rowrun",
-      "",
-      { pathname },
-    );
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "rowrun", "", { pathname });
     h.clickFold();
     await flush();
     const first = asked(h)[0] ?? "";
@@ -667,12 +619,7 @@ describe("the redraw asks the page's own address", () => {
 
 describe("a row the address opens by its job shuts at its chevron", () => {
   test("pressing an open row's chevron with only `created` naming it lets go of `created`", async () => {
-    const h = harness(
-      () => ({ ok: true, text: "<tr>fresh</tr>" }),
-      "rowrun",
-      "?created=c1",
-      { pathname: "/" },
-    );
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "rowrun", "?created=c1", { pathname: "/" });
     h.foldAttrs["aria-expanded"] = "true";
     h.clickFold();
     await flush();

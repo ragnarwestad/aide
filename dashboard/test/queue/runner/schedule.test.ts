@@ -4,27 +4,18 @@
 // `startedAt ?? createdAt`, and not before.
 import { describe, expect, test } from "bun:test";
 import {
-  isDue,
-  mostRecentFireTime,
-  nextFireTime,
-  scheduleOutputDir,
-  scheduleTrackingKey,
+  isDue, mostRecentFireTime, nextFireTime, scheduleOutputDir, scheduleTrackingKey,
   type ScheduleJobRef,
 } from "../../../src/queue/schedule.ts";
 import type { ScheduleEntry } from "../../../src/queue/schedule.ts";
 
 const ENTRY: ScheduleEntry = {
-  name: "nightly-report",
-  cron: "0 3 * * *",
-  prompt: "docs/nightly.md",
-  enabled: true,
+  name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true,
 };
 
 describe("scheduleTrackingKey", () => {
   test("names the job-store key a schedule entry's runs are filed under", () => {
-    expect(scheduleTrackingKey("nightly-report")).toBe(
-      "schedule-nightly-report",
-    );
+    expect(scheduleTrackingKey("nightly-report")).toBe("schedule-nightly-report");
   });
 });
 
@@ -52,10 +43,7 @@ describe("isDue", () => {
   test("due when the newest job predates the most recent fire", () => {
     const now = new Date("2026-08-26T05:00:00Z"); // most recent fire: 03:00 today
     const jobs: ScheduleJobRef[] = [
-      {
-        specFolder: "schedule-nightly-report",
-        createdAt: "2026-08-25T03:00:01Z",
-      },
+      { specFolder: "schedule-nightly-report", createdAt: "2026-08-25T03:00:01Z" },
     ];
     expect(isDue(ENTRY, now, jobs)).toBe(true);
   });
@@ -63,10 +51,7 @@ describe("isDue", () => {
   test("not due while a job is already queued for this window (startedAt unset)", () => {
     const now = new Date("2026-08-26T05:00:00Z");
     const jobs: ScheduleJobRef[] = [
-      {
-        specFolder: "schedule-nightly-report",
-        createdAt: "2026-08-26T03:00:05Z",
-      },
+      { specFolder: "schedule-nightly-report", createdAt: "2026-08-26T03:00:05Z" },
     ];
     expect(isDue(ENTRY, now, jobs)).toBe(false);
   });
@@ -100,10 +85,7 @@ describe("isDue", () => {
   test("a job for a DIFFERENT entry never counts toward this one's due-ness", () => {
     const now = new Date("2026-08-26T05:00:00Z");
     const jobs: ScheduleJobRef[] = [
-      {
-        specFolder: "schedule-weekly-digest",
-        createdAt: "2026-08-26T04:00:00Z",
-      },
+      { specFolder: "schedule-weekly-digest", createdAt: "2026-08-26T04:00:00Z" },
     ];
     expect(isDue(ENTRY, now, jobs)).toBe(true);
   });

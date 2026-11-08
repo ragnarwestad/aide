@@ -9,9 +9,7 @@ export const NEW_SPEC_TAB_STRIP = "nav[data-new-spec-tabs]";
 
 /** The tab a strip link names, from its own `?tab=`. */
 const tabOf = (link: Element): string | null =>
-  new URLSearchParams(
-    (link.getAttribute("href") ?? "").split("?")[1] ?? "",
-  ).get("tab");
+  new URLSearchParams((link.getAttribute("href") ?? "").split("?")[1] ?? "").get("tab");
 
 /** Shows the panel `key` names and hides the other, and marks its tab current. */
 export function showTab(form: Element, strip: Element, key: string): void {
@@ -35,8 +33,7 @@ export function bindNewSpecTabs(doc: Document): void {
   // `document`, which leave a prevented click alone: no leave question,
   // no page cover. A click with a modifier opens the tab's own address.
   strip.addEventListener("click", ((event: MouseEvent) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0)
-      return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     const link = (event.target as Element | null)?.closest?.("a.tab");
     const key = link ? tabOf(link) : null;
     if (!key) return;
@@ -49,9 +46,7 @@ export function bindNewSpecTabs(doc: Document): void {
   form.addEventListener(
     "invalid",
     (event: Event) => {
-      const panel = (event.target as Element | null)?.closest?.(
-        "[data-tab-panel]",
-      ) as HTMLElement | null;
+      const panel = (event.target as Element | null)?.closest?.("[data-tab-panel]") as HTMLElement | null;
       const key = panel?.getAttribute("data-tab-panel");
       if (panel?.hidden && key) showTab(form, strip, key);
     },

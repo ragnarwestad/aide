@@ -21,8 +21,7 @@ const ANY_HEADING = /^#+ /;
 const RECORD_LINE = /^\s*-\s*`([^`]+)`(.*)$/;
 
 /** A path as the record writes it: less a leading `./` and a trailing `:<line>` or `:<from>-<to>`. */
-const barePath = (p: string): string =>
-  p.replace(/^\.\//, "").replace(/:[0-9]+(-[0-9]+)?$/, "");
+const barePath = (p: string): string => p.replace(/^\.\//, "").replace(/:[0-9]+(-[0-9]+)?$/, "");
 
 /** The newest round's `### Overlapping specs` record: one `{spec, files}` per line,
  *  `- \`<spec>\` — \`<file>\`, \`<file>\``. Read as `record_json`, `newest_round`
@@ -68,11 +67,7 @@ export function openOverlappingSpecs(
   for (const { spec, files } of record) {
     const ref = refOf(spec);
     if (!ref || ref.archived || ref.closed) continue;
-    open.push({
-      folder: spec,
-      label: ref.title ? `${specNumber(spec)} ${ref.title}` : spec,
-      files,
-    });
+    open.push({ folder: spec, label: ref.title ? `${specNumber(spec)} ${ref.title}` : spec, files });
   }
   return open;
 }

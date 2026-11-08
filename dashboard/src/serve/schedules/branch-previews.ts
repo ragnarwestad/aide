@@ -3,10 +3,7 @@
 // manifest says `deployment.previewFrom: cloudflare-pages`, and kept for
 // the specs list to read. Nothing here runs while a page is drawn.
 
-import {
-  specBranch,
-  type BranchStatusChecker,
-} from "../../git/branch-status.ts";
+import { specBranch, type BranchStatusChecker } from "../../git/branch-status.ts";
 import { askBranchPreview } from "../../integrations/branch-previews.ts";
 import type { GhRunner } from "../../integrations/pull-requests.ts";
 import type { PreviewFrom } from "../../project/discover";
@@ -43,29 +40,19 @@ export interface BranchPreviewContext {
  *  later push hides the link. An address kept for a spec no longer asked
  *  about is dropped. The open pages are told once, and only when an
  *  address appeared, changed or went. */
-export async function refreshBranchPreviews(
-  ctx: BranchPreviewContext,
-): Promise<void> {
+export async function refreshBranchPreviews(ctx: BranchPreviewContext): Promise<void> {
   if (ctx.running) return;
   ctx.running = true;
   try {
     const projectAsks = new Map<string, boolean>();
     const asks: { key: string; root: string; branch: string }[] = [];
     for (const t of ctx.targets()) {
-      if (!projectAsks.has(t.project))
-        projectAsks.set(
-          t.project,
-          ctx.previewFrom(t.project) === "cloudflare-pages",
-        );
+      if (!projectAsks.has(t.project)) projectAsks.set(t.project, ctx.previewFrom(t.project) === "cloudflare-pages");
       if (!projectAsks.get(t.project)) continue;
       const root = ctx.machineryProjectDir(t.project);
       if (!codeBranchOnOrigin(ctx.branchStatus, root, t.specFolder)) continue;
       if (ctx.stepRunning(t.project, t.specFolder)) continue;
-      asks.push({
-        key: `${t.project}/${t.specFolder}`,
-        root,
-        branch: specBranch(t.specFolder),
-      });
+      asks.push({ key: `${t.project}/${t.specFolder}`, root, branch: specBranch(t.specFolder) });
     }
     let moved = false;
     for (const key of [...ctx.branchPreviews.keys()]) {
@@ -73,11 +60,7 @@ export async function refreshBranchPreviews(
       ctx.branchPreviews.delete(key);
       moved = true;
     }
-    const answers = await Promise.all(
-      asks.map((a) =>
-        askBranchPreview(ctx.ghRun, a.root, a.branch).catch(() => null),
-      ),
-    );
+    const answers = await Promise.all(asks.map((a) => askBranchPreview(ctx.ghRun, a.root, a.branch).catch(() => null)));
     asks.forEach((a, i) => {
       const answer = answers[i];
       if (!answer) return;

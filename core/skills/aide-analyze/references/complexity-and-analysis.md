@@ -23,9 +23,9 @@ it, in this order.
 existing code the change modifies. New code counts for nothing until
 something uses it.
 
-| Reach                                                 | LOW                                       | MEDIUM                          | HIGH                                                                                       |
-| ----------------------------------------------------- | ----------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------ |
-| What depends on the existing code the change modifies | nothing outside the change, or one caller | several callers inside one part | a shared module used across parts, an interface between two parts, or a stored data format |
+| Reach                                                 | LOW                                                   | MEDIUM                                | HIGH                                                                                                |
+|-------------------------------------------------------|-------------------------------------------------------|---------------------------------------|-----------------------------------------------------------------------------------------------------|
+| What depends on the existing code the change modifies | nothing outside the change, or one caller             | several callers inside one part       | a shared module used across parts, an interface between two parts, or a stored data format          |
 
 **2. Behaviour.** When the change only adds behaviour — every existing
 caller and user gets what it got before, and something new is offered

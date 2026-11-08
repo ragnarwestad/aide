@@ -18,34 +18,21 @@ import { join } from "node:path";
  *  answers as itself rather than throwing, so the comparison is then
  *  exactly the string one it replaces. */
 export function sameRoot(a: string, b: string): boolean {
-  if (a === b) return true;
-  return real(a) === real(b);
+  return a === b || real(a) === real(b);
 }
 import type { Job } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner";
 import { renderSentence, type Sentence } from "../../i18n/message.ts";
-import {
-  deleteBranchOnly,
-  mergeBranchIntoDefault,
-  type RepoMergeResult,
-} from "../../git/branch-merge/index.ts";
+import { deleteBranchOnly, mergeBranchIntoDefault, type RepoMergeResult } from "../../git/branch-merge/index.ts";
 import { landSpecFolderOnly } from "../../git/spec-folder-landing.ts";
 import { specFileText } from "../../project/discover";
 import { STATUS_SPEC_FILE } from "../../render";
 import { isGoneHistoryRoot, logSkippedRoot } from "./gone-root.ts";
 import { installAfterMerge } from "./install.ts";
-import {
-  handedToMerge,
-  rememberMergedUnderRoots,
-  rememberUnderRoots,
-} from "./handed-to-merge.ts";
+import { handedToMerge, rememberMergedUnderRoots, rememberUnderRoots } from "./handed-to-merge.ts";
 import { isDashboardRoot } from "./restart.ts";
 import type { LandContext, Landing } from "./types.ts";
-import {
-  clearsLandingError,
-  firstLandingError as firstOf,
-  keepsItsStopReason,
-} from "./stopped-reason.ts";
+import { clearsLandingError, createNumberRetryLimit, firstLandingError as firstOf, keepsItsStopReason } from "./stopped-reason.ts";
 import { takeLandingCancel } from "./cancel-landing.ts";
 
 /** Merge a step's own branch into the default branch of every repo it
@@ -78,18 +65,10 @@ import { takeLandingCancel } from "./cancel-landing.ts";
  *  of its own (a conflict, a red suite). A retry that merely refused
  *  again used to overwrite "main moved on origin under this landing
  *  twice" with "cannot fast-forward main". */
-export function pickRefusal(
-  first: RepoMergeResult,
-  last: RepoMergeResult,
-): RepoMergeResult {
+export function pickRefusal(first: RepoMergeResult, last: RepoMergeResult): RepoMergeResult {
   if (first.ok) return last;
   if (last.reason && last.reason !== first.reason) return last;
-  return {
-    ...last,
-    error: first.error,
-    detail: first.detail ?? last.detail,
-    reason: first.reason,
-  };
+  return { ...last, error: first.error, detail: first.detail ?? last.detail, reason: first.reason };
 }
 
 export async function landBranch(
@@ -98,10 +77,7 @@ export async function landBranch(
   outcome: Partial<StepOutcome>,
   what: Landing,
 ): Promise<void> {
-  const firstLandingError = (
-    msg: Sentence | Sentence[],
-    held = false,
-  ): Sentence | Sentence[] =>
+  const firstLandingError = (msg: Sentence | Sentence[], held = false): Sentence | Sentence[] =>
     firstOf(ctx.queue.get(job.id)?.landingError, msg, what.step, held);
   try {
     const branch = outcome.branch;
@@ -139,18 +115,14 @@ export async function landBranch(
      *  commit moving a folder is not a change anyone reviews, and the
      *  description scopes this to the code. */
     const leaveOpen = (root: string): boolean =>
-      what.step === "archive" &&
-      codeRoots.has(root) &&
-      ctx.codeLanding(job.project) === "pr";
+      what.step === "archive" && codeRoots.has(root) && ctx.codeLanding(job.project) === "pr";
     /** The code root's branch on a `close` landing: deleted,
      *  never merged — the specs root merges normally, carrying the move
      *  and the `**Closed:**` stamp. Specs inside the code root land
      *  their folder alone first (`handed.specOnly`). */
-    const discard = (root: string): boolean =>
-      what.step === "close" && codeRoots.has(root);
+    const discard = (root: string): boolean => what.step === "close" && codeRoots.has(root);
     if (!branch || repos.length === 0) {
-      if (what.nothingToLand)
-        ctx.queue.update(job.id, { error: what.nothingToLand });
+      if (what.nothingToLand) ctx.queue.update(job.id, { error: what.nothingToLand });
       return;
     }
     const failures: Sentence[] = [];
@@ -188,10 +160,7 @@ export async function landBranch(
         }
         // Guessing which branch to merge INTO is the one guess with no
         // safe direction.
-        failures.push({
-          key: "landing.cannotWorkOutDefaultBranch",
-          values: { root: repo.root },
-        });
+        failures.push({ key: "landing.cannotWorkOutDefaultBranch", values: { root: repo.root } });
         continue;
       }
       // Up to three tries with a pause: this landing races the runs
@@ -203,49 +172,21 @@ export async function landBranch(
       // The lock goes around the git-mutating call and nothing else:
       // `defaultBranch` above only asks a question, and holding the
       // root while asking it would serialize page loads too.
-      const handed = handedToMerge(
-        ctx,
-        job,
-        what,
-        repo.root,
-        branch,
-        codeRoots,
-      );
+      const handed = handedToMerge(ctx, job, what, repo.root, branch, codeRoots);
       const merge = () =>
-        ctx.mergeLock.run(repo.root, () =>
-          handed.specOnly
-            ? landSpecFolderOnly(
-                ctx.gitRun,
-                repo.root,
-                branch,
-                base,
-                handed.specOnly,
-              )
+        ctx.mergeLock.run(
+          repo.root,
+          () => handed.specOnly
+            ? landSpecFolderOnly(ctx.gitRun, repo.root, branch, base, handed.specOnly)
             : discard(repo.root)
               ? deleteBranchOnly(ctx.gitRun, repo.root, branch)
-              : mergeBranchIntoDefault(
-                  ctx.gitRun,
-                  repo.root,
-                  branch,
-                  base,
-                  undefined,
-                  handed.gate,
-                  handed.finalizeCreate,
-                  handed.hooks,
-                ),
+              : mergeBranchIntoDefault(ctx.gitRun, repo.root, branch, base, undefined, handed.gate, handed.finalizeCreate, handed.hooks),
         );
       retryUnlanded.set(repo.root, merge);
       let result = await merge();
       // A red suite is an answer: the gate already gave it its retry.
       const first = result;
-      const retryLimit =
-        !result.ok &&
-        result.error &&
-        !Array.isArray(result.error) &&
-        typeof result.error === "object" &&
-        result.error.key === "landing.createAssignNumberFailed"
-          ? 1
-          : 0;
+      const retryLimit = createNumberRetryLimit(result);
       for (
         let retry = 0;
         !result.ok && result.reason !== "tests-red" && retry < retryLimit;
@@ -260,11 +201,7 @@ export async function landBranch(
         // that just ran under this repo's own merge — never guessed
         // from `outcome`, which still carries the provisional key a
         // create step wrote its files under.
-        if (result.assignedSpecFolder)
-          what.landed = {
-            ...what.landed,
-            specFolder: result.assignedSpecFolder,
-          };
+        if (result.assignedSpecFolder) what.landed = { ...what.landed, specFolder: result.assignedSpecFolder };
         ctx.branchStatus.invalidate(repo.root, branch);
         // The open-branch cache is the other half of the same
         // correction, and it is what the archived row reads. The branch
@@ -272,8 +209,7 @@ export async function landBranch(
         // a branch still on origin because its delete failed IS open,
         // so it is taken back here, and the sentence for that
         // case is written from `deleteErrors` below.
-        if (result.branchDeleteError)
-          rememberUnderRoots(ctx, job.project, repo.root, branch);
+        if (result.branchDeleteError) rememberUnderRoots(ctx, job.project, repo.root, branch);
         // Merged, so only a cleanup is left — never for a close's discarded
         // branch or a folder copied alone, whose branch did not merge.
         if (result.branchDeleteError && !result.discarded && !handed.specOnly) {
@@ -296,10 +232,7 @@ export async function landBranch(
             // held up (2026-09-03). The person restarts it — Deploy on the
             // board, or launchctl — when it suits; until then the served
             // page runs the older code, and the log says so.
-            if (
-              (await installAfterMerge(ctx, result)) &&
-              isDashboardRoot(ctx, repo.root)
-            ) {
+            if ((await installAfterMerge(ctx, result)) && isDashboardRoot(ctx, repo.root)) {
               console.error(
                 `queue: a code change landed in the dashboard's own checkout (${repo.root}) — the served page still runs the older code; restart it with Deploy when it suits`,
               );
@@ -330,14 +263,8 @@ export async function landBranch(
           deleteErrors.push(
             typeof del === "object"
               ? {
-                  key: result.detail
-                    ? ("landing.branchDeleteFailedWhy" as const)
-                    : del.key,
-                  values: {
-                    ...del.values,
-                    root: repo.root,
-                    ...(result.detail ? { detail: result.detail } : {}),
-                  },
+                  key: result.detail ? ("landing.branchDeleteFailedWhy" as const) : del.key,
+                  values: { ...del.values, root: repo.root, ...(result.detail ? { detail: result.detail } : {}) },
                 }
               : del,
           );
@@ -355,12 +282,7 @@ export async function landBranch(
         // side: the branch is not on origin at all.
         ctx.branchStatus.invalidate(repo.root, branch);
       } else {
-        failures.push(
-          result.error ?? {
-            key: "landing.cannotMergeFallback",
-            values: { branch, root: repo.root },
-          },
-        );
+        failures.push(result.error ?? { key: "landing.cannotMergeFallback", values: { branch, root: repo.root } });
         if (result.detail) failureDetails.push(result.detail);
         if (result.reason === "conflict") reason = "conflict";
         if (result.reason === "tests-red") reason = "tests-red";
@@ -396,16 +318,8 @@ export async function landBranch(
     // exists for the landing that reported ok while a branch stayed on
     // origin, and beside a conflict its "run archive again" — once per
     // root — contradicted the sentence the reader had just been given.
-    if (
-      what.step === "archive" &&
-      reason !== "tests-red" &&
-      failures.length === 0
-    ) {
-      const firstHolding = await ctx.rootsStillHolding(
-        job.project,
-        branch,
-        true,
-      );
+    if (what.step === "archive" && reason !== "tests-red" && failures.length === 0) {
+      const firstHolding = await ctx.rootsStillHolding(job.project, branch, true);
       for (const root of firstHolding) {
         if (leaveOpen(root) || leftBehindRoots.has(root)) continue;
         const retry = retryUnlanded.get(root);
@@ -414,11 +328,7 @@ export async function landBranch(
         if (retried.ok) ctx.branchStatus.invalidate(root, branch);
       }
       const holding: string[] = [];
-      for (const root of await ctx.rootsStillHolding(
-        job.project,
-        branch,
-        true,
-      )) {
+      for (const root of await ctx.rootsStillHolding(job.project, branch, true)) {
         // A root the loop above CHOSE not to merge is not a root that
         // failed to merge. Without this, every working
         // PR-mode archive reports itself as an unlanded failure — the
@@ -444,14 +354,8 @@ export async function landBranch(
         // wrong.
         failures.push(
           holding.length === 1
-            ? {
-                key: "landing.stillOnOriginRunArchiveAgain",
-                values: { branch, root: holding[0]! },
-              }
-            : {
-                key: "landing.stillOnOriginRunArchiveAgainMany",
-                values: { branch, roots: holding.join(", ") },
-              },
+            ? { key: "landing.stillOnOriginRunArchiveAgain", values: { branch, root: holding[0]! } }
+            : { key: "landing.stillOnOriginRunArchiveAgainMany", values: { branch, roots: holding.join(", ") } },
         );
         // Only where nothing more specific was found: a conflict is
         // the reason, and "unlanded" is what a conflict LOOKS like
@@ -481,29 +385,16 @@ export async function landBranch(
       // goes behind it as detail, in the catalog's source language,
       // rather than joined onto the sentence with a semicolon.
       const [first, ...rest] = failures as [Sentence, ...Sentence[]];
-      const detail = [
-        ...rest.map((f) => renderSentence("en", f) ?? ""),
-        ...failureDetails,
-      ].filter(Boolean);
+      const detail = [...rest.map((f) => renderSentence("en", f) ?? ""), ...failureDetails].filter(Boolean);
       const patch = {
         error: first,
         errorDetail: detail.length ? detail.join("\n") : undefined,
         errorReason: reason,
         landingError: firstLandingError(first, held),
-        landingErrorDetail:
-          ctx.queue.get(job.id)?.landingErrorDetail ??
-          (detail.length ? detail.join("\n") : undefined),
+        landingErrorDetail: ctx.queue.get(job.id)?.landingErrorDetail ?? (detail.length ? detail.join("\n") : undefined),
         ...(held ? { stopReason: "tests-red" as const } : {}),
       };
-      const result = takeLandingCancel(job.id)
-        ? ctx.queue.transition(job.id, "landing-cancelled", {
-            finishedAt: new Date().toISOString(),
-          })
-        : ctx.queue.transition(
-            job.id,
-            held ? "landing-held" : "landing-failed",
-            patch,
-          );
+      const result = takeLandingCancel(job.id) ? ctx.queue.transition(job.id, "landing-cancelled", { finishedAt: new Date().toISOString() }) : ctx.queue.transition(job.id, held ? "landing-held" : "landing-failed", patch);
       // The runner may already have queued this job's next step, or
       // held it for a reason of its own, in the gap between this
       // step's own completion and this landing settling
@@ -512,11 +403,7 @@ export async function landBranch(
       // job that has moved on is waiting for something else — only
       // `landingError`, the permanent record of this attempt,
       // survives onto it.
-      if (!result.ok)
-        ctx.queue.update(job.id, {
-          landingError: patch.landingError,
-          landingErrorDetail: patch.landingErrorDetail,
-        });
+      if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorDetail: patch.landingErrorDetail });
       return;
     }
     // Landed. The branch is on the default branch now, so the job stops
@@ -533,9 +420,7 @@ export async function landBranch(
     // `archive` is the row a reader is looking at when the spec goes
     // quiet, and a link they have to go hunting for on an older row is
     // a link that is not there.
-    const review = stillOpen.length
-      ? ctx.queue.pullRequestFor(job.project, job.specFolder)
-      : {};
+    const review = stillOpen.length ? ctx.queue.pullRequestFor(job.project, job.specFolder) : {};
     const keepsItsReason = keepsItsStopReason(ctx.queue.get(job.id));
     // This step's own landing resolves this step's own failure
     // (`stopped-reason.ts`).
@@ -543,9 +428,7 @@ export async function landBranch(
     ctx.queue.update(job.id, {
       ...what.landed,
       ...cleared,
-      branchUrl: stillOpen.length
-        ? (stillOpen[0]!.url ?? job.branchUrl)
-        : undefined,
+      branchUrl: stillOpen.length ? (stillOpen[0]!.url ?? job.branchUrl) : undefined,
       branchUrls: stillOpen,
       prUrl: review.prUrl,
       branchDeleteError: deleteErrors.length ? deleteErrors : undefined,
@@ -567,24 +450,15 @@ export async function landBranch(
     const landedFolder = what.landed?.specFolder ?? job.specFolder;
     const landedRoot = ctx.machinerySpecsRoot(job.project);
     const landedDir = landedRoot
-      ? [
-          join(landedRoot, "archive", landedFolder),
-          join(landedRoot, landedFolder),
-        ].find(
+      ? [join(landedRoot, "archive", landedFolder), join(landedRoot, landedFolder)].find(
           (candidate) => specFileText(candidate, STATUS_SPEC_FILE) !== null,
         )
       : undefined;
-    if (landedDir)
-      await ctx.warmSpec({ dir: landedDir, specFolder: landedFolder });
+    if (landedDir) await ctx.warmSpec({ dir: landedDir, specFolder: landedFolder });
     // The landing moved the spec's history and its file: both cached
     // answers are due for a fresh read, under whichever of the two
     // paths the folder is read from now.
-    for (const dir of landedRoot
-      ? [
-          join(landedRoot, "archive", landedFolder),
-          join(landedRoot, landedFolder),
-        ]
-      : []) {
+    for (const dir of landedRoot ? [join(landedRoot, "archive", landedFolder), join(landedRoot, landedFolder)] : []) {
       ctx.workflowHistory.forget(dir, landedFolder);
       ctx.branchFileSteps.forget(dir, landedFolder);
     }
@@ -618,11 +492,7 @@ export async function landBranch(
     const result = ctx.queue.transition(job.id, "landing-failed", patch);
     // Same reasoning as the ordinary failure branch above:
     // a job that has moved on keeps only the permanent record.
-    if (!result.ok)
-      ctx.queue.update(job.id, {
-        landingError: patch.landingError,
-        landingErrorDetail: patch.landingErrorDetail,
-      });
+    if (!result.ok) ctx.queue.update(job.id, { landingError: patch.landingError, landingErrorDetail: patch.landingErrorDetail });
   } finally {
     // After every repo, after the report, and after `onLanded` — on
     // the throwing path too. The process does not survive this call.

@@ -8,22 +8,11 @@ import { existsSync } from "node:fs";
  *  said so, rather than failing a landing whose work is otherwise in
  *  order. A root the step itself named, or the only root there is, is
  *  never skipped — the failure it always was stands. */
-export function isGoneHistoryRoot(
-  root: string,
-  repos: { root: string }[],
-  outcomeRoots: { root: string }[],
-): boolean {
-  return (
-    !existsSync(root) &&
-    !outcomeRoots.some((r) => r.root === root) &&
-    repos.length > 1
-  );
+export function isGoneHistoryRoot(root: string, repos: { root: string }[], outcomeRoots: { root: string }[]): boolean {
+  return !existsSync(root) && !outcomeRoots.some((r) => r.root === root) && repos.length > 1;
 }
 
-export function logSkippedRoot(
-  job: { project: string; specFolder: string },
-  root: string,
-): void {
+export function logSkippedRoot(job: { project: string; specFolder: string }, root: string): void {
   console.error(
     `queue: landing ${job.project}/${job.specFolder} skips ${root} — no such directory ` +
       "(a branch record from before this dashboard's files moved)",

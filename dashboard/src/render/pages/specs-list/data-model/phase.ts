@@ -33,12 +33,7 @@ export interface Phase {
   /** What this phase's own git history says beyond whether it happened
    *  why its last run did not finish, and whether
    *  `4-status.md` agrees that it ran at all. */
-  history: {
-    stopped?: string;
-    fileDisagrees?: boolean;
-    historyDone?: boolean;
-    settling?: boolean;
-  };
+  history: { stopped?: string; fileDisagrees?: boolean; historyDone?: boolean; settling?: boolean };
   /** What this phase ran on, when it is a LOCKED phase's own record
    *  from `ArchivedSpecView.models`, never set for a live
    *  phase (whose "what it ran on" is `attempts[0]?.model`, read

@@ -17,15 +17,7 @@
 // Modelled on `projects-page.ts`, which is the other served page with
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
-import {
-  backLink,
-  btn,
-  field,
-  messageSlot,
-  phaseChip,
-  phases,
-  helpPopover,
-} from "../../ui/components";
+import { backLink, btn, field, messageSlot, phaseChip, phases, helpPopover} from "../../ui/components";
 import { DESCRIPTION_MAX, TITLE_MAX } from "../../../queue/parse-request.ts";
 import { esc } from "../../ui/html.ts";
 import { t, type Language } from "../../../i18n";
@@ -115,10 +107,7 @@ export function dependsOnField(
   // field as its only real control, and its buttons belong beside the
   // label rather than under a list tall enough to push them off screen.
   o: {
-    wide?: boolean;
-    locked?: string[];
-    project?: string;
-    actions?: string;
+    wide?: boolean; locked?: string[]; project?: string; actions?: string;
     /** The id of the form the boxes post with, for a picker drawn on a
      *  row of a list rather than inside the form itself. */
     form?: string;
@@ -181,10 +170,7 @@ export function dependsOnField(
   const picked = specs.filter((t) => checked.has(t.specFolder));
   const rest = specs.filter((t) => !checked.has(t.specFolder));
   const lockedBlock = (o.locked ?? []).map(lockedChip).join("");
-  const help = helpPopover(
-    t(lang, "newSpec.dependsHelpTitle"),
-    esc(t(lang, "newSpec.dependsHelp")),
-  );
+  const help = helpPopover(t(lang, "newSpec.dependsHelpTitle"), esc(t(lang, "newSpec.dependsHelp")));
   // The New-spec page's own shape — picked box and pick list
   // side by side, both framed the same way, no outer title
   // (the left column's own label is it) and no "none" placeholder
@@ -195,15 +181,15 @@ export function dependsOnField(
   if (o.sideBySide) {
     return (
       `<span class="field${o.wide ? " wide" : ""} depends-pair">` +
-      `<span class="depends-col">` +
-      `<span class="fieldhead"><span class="lbl">${esc(o.sideBySide.dependsOnLabel)}</span>` +
-      `<span class="fieldend">${help}</span></span>` +
-      phases(lockedBlock + picked.map(chip).join(""), "picked") +
-      `</span>` +
-      `<span class="depends-col">` +
-      `<span class="lbl">${esc(o.sideBySide.selectLabel)}</span>` +
-      phases(rest.map(chip).join("")) +
-      `</span>` +
+        `<span class="depends-col">` +
+          `<span class="fieldhead"><span class="lbl">${esc(o.sideBySide.dependsOnLabel)}</span>` +
+          `<span class="fieldend">${help}</span></span>` +
+          phases(lockedBlock + picked.map(chip).join(""), "picked") +
+        `</span>` +
+        `<span class="depends-col">` +
+          `<span class="lbl">${esc(o.sideBySide.selectLabel)}</span>` +
+          phases(rest.map(chip).join("")) +
+        `</span>` +
       `</span>`
     );
   }
@@ -219,13 +205,8 @@ export function dependsOnField(
     t(lang, "newSpec.dependsOnLine"),
     phases(o.disabled ? "" : rest.map(chip).join("")),
     {
-      group: true,
-      wide: o.wide,
-      actions: o.actions,
-      after:
-        phases(lockedBlock + picked.map(chip).join(""), "picked") +
-        `<span class="muted" data-none>${esc(t(lang, "newSpec.none"))}</span>` +
-        help,
+      group: true, wide: o.wide, actions: o.actions,
+      after: phases(lockedBlock + picked.map(chip).join(""), "picked") + `<span class="muted" data-none>${esc(t(lang, "newSpec.none"))}</span>` + help,
     },
   );
 }
@@ -252,11 +233,7 @@ const panel = (key: NewSpecTab, open: NewSpecTab, body: string): string =>
 // It posts a project NAME, a title and a description. What the spec ends
 // up being CALLED is decided by `/aide-create` alone: nothing here, and
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
-function newSpecForm(
-  opts: NewSpecPageOptions,
-  projects: string[],
-  open: NewSpecTab,
-): string {
+function newSpecForm(opts: NewSpecPageOptions, projects: string[], open: NewSpecTab): string {
   const lang = opts.lang ?? "en";
   const chosen = projects.find((p) => p === opts.prefill?.project);
   // What can be changed on this page is the card's to say (`project/spec-card.ts`).
@@ -276,12 +253,7 @@ function newSpecForm(
       // title and the description below. `id` is what `for` below points at.
       `<select name="project" id="new-spec-project" required>` +
         `<option value=""${chosen ? "" : " selected"}>${esc(t(lang, "newSpec.chooseProject"))}</option>` +
-        projects
-          .map(
-            (p) =>
-              `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`,
-          )
-          .join("") +
+        projects.map((p) => `<option value="${esc(p)}"${p === chosen ? " selected" : ""}>${esc(p)}</option>`).join("") +
         `</select>`,
       { wide: true, for: "new-spec-project" },
     ) +
@@ -337,27 +309,15 @@ export function renderNewSpecPage(
   // `form=`, and the form holds no button of its own: `postForm()` gives
   // the busy word to the form's first button, and only without one to a
   // button naming it (`specs-client/press.ts`).
-  const create = btn({
-    label: t(lang, "form.create"),
-    variant: "primary",
-    pending: t(lang, "form.creating"),
-    form: FORM_ID,
-  });
+  const create = btn({ label: t(lang, "form.create"), variant: "primary", pending: t(lang, "form.creating"), form: FORM_ID });
   const tabs = tabBar(NEW_SPEC_TABS, NEW_SPEC_ROUTE, open, {}, "", {
     lang,
-    label: (key) =>
-      t(lang, key === "spec" ? "newSpec.tabSpec" : "newSpec.tabOptions"),
+    label: (key) => t(lang, key === "spec" ? "newSpec.tabSpec" : "newSpec.tabOptions"),
     data: { "new-spec-tabs": "" },
   });
   const body = projects.length
-    ? backLink(opts.backHref ?? "/", t(lang, "newSpec.pageTitle"), create, {
-        lang,
-      }) +
-      tabs +
-      newSpecForm(opts, projects, open)
-    : backLink(opts.backHref ?? "/", t(lang, "newSpec.pageTitle"), "", {
-        lang,
-      }) +
+    ? backLink(opts.backHref ?? "/", t(lang, "newSpec.pageTitle"), create, { lang }) + tabs + newSpecForm(opts, projects, open)
+    : backLink(opts.backHref ?? "/", t(lang, "newSpec.pageTitle"), "", { lang }) +
       // The link on `/` is simply not offered when there is nothing to
       // create in, but this page has an address of its own and can be
       // reached anyway — and an empty form with an empty dropdown

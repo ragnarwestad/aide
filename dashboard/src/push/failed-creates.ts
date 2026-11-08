@@ -31,12 +31,7 @@ const KEEP_DISMISSED = 50;
 
 export function failedCreateFrom(job: Job): FailedCreate {
   // The detail that belongs to the reason: the landing's when its record won.
-  const detail =
-    job.landingError !== undefined
-      ? job.landingErrorDetail
-      : job.error !== undefined
-        ? job.errorDetail
-        : undefined;
+  const detail = job.landingError !== undefined ? job.landingErrorDetail : job.error !== undefined ? job.errorDetail : undefined;
   return {
     id: job.id,
     project: job.project,
@@ -55,8 +50,7 @@ const knownSentence = (s: unknown): boolean => {
   if (typeof m.key !== "string" || !(m.key in MESSAGES)) return false;
   return m.inner === undefined || knownReason(m.inner);
 };
-const knownReason = (r: unknown): boolean =>
-  Array.isArray(r) ? r.every(knownSentence) : knownSentence(r);
+const knownReason = (r: unknown): boolean => (Array.isArray(r) ? r.every(knownSentence) : knownSentence(r));
 
 /** Only records this build can word: a removed message key would make every page throw. */
 function read(path: string): FailedCreate[] {
@@ -69,13 +63,8 @@ function read(path: string): FailedCreate[] {
   if (!Array.isArray(raw)) return [];
   return (raw as Partial<FailedCreate>[]).filter(
     (r): r is FailedCreate =>
-      !!r &&
-      typeof r.id === "string" &&
-      typeof r.project === "string" &&
-      typeof r.title === "string" &&
-      typeof r.description === "string" &&
-      typeof r.failedAt === "string" &&
-      knownReason(r.reason),
+      !!r && typeof r.id === "string" && typeof r.project === "string" && typeof r.title === "string" &&
+      typeof r.description === "string" && typeof r.failedAt === "string" && knownReason(r.reason),
   );
 }
 
@@ -92,13 +81,7 @@ export interface FailedCreates {
 export function createFailedCreates(path: string | undefined): FailedCreates {
   let memory: FailedCreate[] = path ? read(path) : [];
   const save = (records: FailedCreate[]): void => {
-    const dismissed = records
-      .filter((r) => r.dismissedAt)
-      .sort(
-        (a, b) =>
-          b.dismissedAt!.localeCompare(a.dismissedAt!) ||
-          b.failedAt.localeCompare(a.failedAt),
-      );
+    const dismissed = records.filter((r) => r.dismissedAt).sort((a, b) => b.dismissedAt!.localeCompare(a.dismissedAt!) || b.failedAt.localeCompare(a.failedAt));
     const drop = new Set(dismissed.slice(KEEP_DISMISSED).map((r) => r.id));
     memory = records.filter((r) => !drop.has(r.id));
     if (!path) return;
@@ -124,12 +107,7 @@ export function createFailedCreates(path: string | undefined): FailedCreates {
       const all = current();
       const one = all.find((r) => r.id === id);
       if (!one) return false;
-      if (!one.dismissedAt)
-        save(
-          all.map((r) =>
-            r.id === id ? { ...r, dismissedAt: new Date().toISOString() } : r,
-          ),
-        );
+      if (!one.dismissedAt) save(all.map((r) => (r.id === id ? { ...r, dismissedAt: new Date().toISOString() } : r)));
       return true;
     },
   };

@@ -8,17 +8,10 @@ afterEach(() => {
 });
 
 describe("the job page's own Back link, read off the Referer header", () => {
-  const AUTH = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
 
   const jobId = async (base: string): Promise<string> => {
-    const made = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify(JOB),
-    });
+    const made = await fetch(`${base}/api/queue`, { method: "POST", headers: AUTH, body: JSON.stringify(JOB) });
     const { job } = (await made.json()) as { job: { id: string } };
     return job.id;
   };
@@ -27,9 +20,7 @@ describe("the job page's own Back link, read off the Referer header", () => {
     const { base } = start();
     const id = await jobId(base);
     const html = await (
-      await fetch(`${base}/jobs/${id}?tab=steps`, {
-        headers: { referer: `${base}/jobs/${id}` },
-      })
+      await fetch(`${base}/jobs/${id}?tab=steps`, { headers: { referer: `${base}/jobs/${id}` } })
     ).text();
     expect(html).toMatch(/<a class="backlink"[^>]*href="\/"/);
   });

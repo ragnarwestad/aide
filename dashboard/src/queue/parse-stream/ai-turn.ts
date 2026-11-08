@@ -27,9 +27,7 @@ export interface Owned {
 function positionOf(entries: StreamEntry[], owned: Owned): number {
   if (owned.end) return entries.length;
   const { owner, n } = owned.spawn;
-  const at = entries.findLastIndex(
-    (e) => e.item?.thread === owner && e.item.n <= n,
-  );
+  const at = entries.findLastIndex((e) => e.item?.thread === owner && e.item.n <= n);
   return n === 0 || at < 0 ? 0 : at + 1;
 }
 
@@ -43,21 +41,11 @@ export interface BuiltPart {
 export function aiParts(
   turn: AiTurn,
   opts: SummarizeOptions,
-  o: {
-    final: boolean;
-    claude: Map<string, SubagentPart>;
-    spawns: Owned[];
-    reader?: (thread: string) => string | undefined;
-  },
+  o: { final: boolean; claude: Map<string, SubagentPart>; spawns: Owned[]; reader?: (thread: string) => string | undefined },
 ): BuiltPart[] {
-  const entries = summarizeEntries(turn.text, {
-    ...opts,
-    only: undefined,
-    numbering: turn.before,
-  });
+  const entries = summarizeEntries(turn.text, { ...opts, only: undefined, numbering: turn.before });
   const texts = entries.map((e) => e.text);
-  const tail =
-    turn.last && o.final ? finalTail(texts, turn.text, opts) : undefined;
+  const tail = turn.last && o.final ? finalTail(texts, turn.text, opts) : undefined;
   const lines = tail ? [...texts.slice(0, tail.kept), ...tail.added] : texts;
   const kept = tail?.kept ?? texts.length;
   // A split is after how many of the lines, the part it puts there and a line of the call, if the stream has none.
@@ -67,30 +55,19 @@ export function aiParts(
     if (part) splits.push({ at: i + 1, part });
   });
   for (const owned of o.spawns) {
-    splits.push({
-      at: positionOf(entries, owned),
-      part: codexSubagent(owned.spawn, o.reader?.(owned.spawn.thread)),
-      call: spawnLine(owned.spawn),
-    });
+    splits.push({ at: positionOf(entries, owned), part: codexSubagent(owned.spawn, o.reader?.(owned.spawn.thread)), call: spawnLine(owned.spawn) });
   }
   // Lines the final message replaced stand before the part that followed them.
-  const placed = splits
-    .map((s) => ({ ...s, at: s.at > kept ? lines.length : s.at }))
-    .sort((a, b) => a.at - b.at);
+  const placed = splits.map((s) => ({ ...s, at: s.at > kept ? lines.length : s.at })).sort((a, b) => a.at - b.at);
 
-  const errors = summarizeEntries(turn.text, { ...opts, only: "errors" }).map(
-    (e) => e.text,
-  );
+  const errors = summarizeEntries(turn.text, { ...opts, only: "errors" }).map((e) => e.text);
   const out: BuiltPart[] = [];
   const push = (part: LogPart) => {
     out.push({ part, errors: out.length === 0 ? errors : [] });
   };
   let from = 0;
   for (const s of placed) {
-    const own = [
-      ...lines.slice(from, s.at),
-      ...(s.call === undefined ? [] : [s.call]),
-    ];
+    const own = [...lines.slice(from, s.at), ...(s.call === undefined ? [] : [s.call])];
     if (own.length) push({ by: "ai", lines: own });
     push(s.part);
     from = s.at;

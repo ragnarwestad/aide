@@ -6,9 +6,7 @@
    .specfile already gives for a preformatted file too wide to wrap
    Unconditional, not phone-only — a narrow WINDOW on a
    desktop has the same problem. */
-.tablewrap {
-  overflow-x: auto;
-}
+.tablewrap { overflow-x: auto; }
 
 /* And the spec list scrolls DOWN inside the same box. The
    25-row cap that kept this list short is gone, so it is as long as the
@@ -34,13 +32,8 @@
    Undone entirely at phone width (narrow.css) instead of being made
    phone-safe here: the design wants no box at all there, not a differently
    sized one — see that file's own comment. */
-#jobrows {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  --speclist-width: 49rem;
-}
+#jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
+  --speclist-width: 49rem; }
 /* The same width as the table it scrolls, for the same reason the
    search line above it takes it: the scrollbar belongs against the
    list. Left at full width, the box goes on spanning the frame while
@@ -59,22 +52,11 @@
    right edge, which without it is the cards' right border. Padding on
    both sides, and the same amount added to the box, keeps the table at
    its width and in line with the search line above it. */
-#jobrows .tablewrap {
-  overflow-y: auto;
-  flex: 1 1 auto;
-  min-height: 0;
-  max-width: calc(var(--speclist-width) + 2px + 2 * var(--sp-3));
-  width: 100%;
-  box-sizing: border-box;
-  margin-inline: auto;
-  padding-inline: var(--sp-3);
-  padding-bottom: var(--sp-3);
-}
+#jobrows .tablewrap { overflow-y: auto; flex: 1 1 auto; min-height: 0;
+  max-width: calc(var(--speclist-width) + 2px + 2 * var(--sp-3)); width: 100%; box-sizing: border-box;
+  margin-inline: auto; padding-inline: var(--sp-3); padding-bottom: var(--sp-3); }
 
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
+table { border-collapse: collapse; width: 100%; }
 /* Only the specs list stops stretching to the frame.
    `table.list` alone is shared with the Schedule, Settings, Project and
    New-spec tables — none of them has a State-style column, and none
@@ -91,53 +73,34 @@ table {
    of its own. The column widths below still sum to `--speclist-width`,
    and `table-layout: fixed` scales them down by the few pixels a
    vertical scrollbar or the border takes rather than overflowing. */
-table.speclist {
-  width: 100%;
-  box-sizing: border-box;
-  table-layout: fixed;
-}
+table.speclist { width: 100%; box-sizing: border-box; table-layout: fixed; }
 /* The Settings table's own exception, the same idea as
    `.speclist` above scoped to this one table — three narrow-content
    columns (a label, two selects, one number input) otherwise stretch to
    the page's full width, and the unclaimed space in the AI/Model cell
    reads as "Timeout is far to the right" rather than beside its
    neighbours. Auto layout sizes the table to its own columns instead. */
-table.settingstable {
-  width: auto;
-}
-table.settingstable tr[data-side] th {
-  padding-left: 2rem;
-}
+table.settingstable { width: auto; }
+table.settingstable tr[data-side] th { padding-left: 2rem; }
 /* The Providers table's rows open the provider's page, outside the link
    in the name (`followScheduleRow`, specs-client/schedule-actions.ts). */
-table.settingstable tr[data-row-href] {
-  cursor: pointer;
-}
-table.settingstable tr[data-row-href]:hover :is(th, td) {
-  background: var(--surface-2);
-}
+table.settingstable tr[data-row-href] { cursor: pointer; }
+table.settingstable tr[data-row-href]:hover :is(th, td) { background: var(--surface-2); }
 /* A project's settings table: Value and Comment share what the Name
    column leaves, evenly — the Comment carries the longest text on the
    page (where a value came from, and the test command's suggestion),
    and auto layout otherwise handed most of the width to the values. */
 table.list col[data-col="setting-value"],
-table.list col[data-col="setting-comment"] {
-  width: 42%;
-}
+table.list col[data-col="setting-comment"] { width: 42%; }
 /* A path has no break the browser will take on its own, so auto layout
    sized the Value column to the whole path and left the Comment a
    ribbon six words tall — the 42% above is a hint auto layout drops when
    a cell cannot be made narrower. `anywhere` is what makes it narrower:
    unlike `break-word` it counts in the min-content width the layout is
    computed from, which is the number that has to change. */
-table.list td[data-col="setting-value"] {
-  overflow-wrap: anywhere;
-}
+table.list td[data-col="setting-value"] { overflow-wrap: anywhere; }
 /* An edit field is as wide as its cell, at every width. */
-table.list td[data-col="setting-value"] :is(textarea, select) {
-  width: 100%;
-  box-sizing: border-box;
-}
+table.list td[data-col="setting-value"] :is(textarea, select) { width: 100%; box-sizing: border-box; }
 /* The five text settings are textareas that wrap; they wear the cell's
    own look, not the platform's, and are sized by script, not by hand. */
 table.list td[data-col="setting-value"] textarea {
@@ -159,24 +122,14 @@ table.settingstable tr.settingsgroup th {
   color: var(--muted);
   text-align: left;
 }
-table.settingstable tbody:first-of-type tr.settingsgroup th {
-  padding-top: var(--sp-3);
-}
+table.settingstable tbody:first-of-type tr.settingsgroup th { padding-top: var(--sp-3); }
 
 /* The Settings page's per-AI panel: prose, and what the check found.
    The output block is the preflight's own terminal text, so it keeps its
    line breaks and its monospace. */
-.toolpanel p {
-  max-width: 70ch;
-}
-.checklist {
-  list-style: none;
-  padding-left: 0;
-  margin: var(--sp-3) 0;
-}
-.checklist li {
-  margin-bottom: var(--sp-2);
-}
+.toolpanel p { max-width: 70ch; }
+.checklist { list-style: none; padding-left: 0; margin: var(--sp-3) 0; }
+.checklist li { margin-bottom: var(--sp-2); }
 .checklist li > span:first-child {
   display: inline-block;
   min-width: 3.5em;
@@ -239,12 +192,8 @@ table.settingstable tbody:first-of-type tr.settingsgroup th {
    (with the cell's own padding, a 40px target) and no wider, since the
    control is the one thing on the row that is not information. Taken off
    Phase, which the head row no longer spans. */
-table.speclist > colgroup > col[data-col="fold"] {
-  width: 4.0816%;
-}
-table.speclist > colgroup > col[data-col="spec"] {
-  width: 10.2041%;
-}
+table.speclist > colgroup > col[data-col="fold"] { width: 4.0816%; }
+table.speclist > colgroup > col[data-col="spec"] { width: 10.2041%; }
 /* What a phase line actually puts here, measured in a browser with this
    stylesheet: the AI/model pair (256px), the tick box (40, the width it
    shares with its "Select" caption) and the gap and the cell's own left
@@ -253,9 +202,7 @@ table.speclist > colgroup > col[data-col="spec"] {
    column and Spec beside it, and keeps whatever is left. 19rem is NOT
    enough — the model select wraps
    onto a second line, and the whole open row grows a line with it. */
-table.speclist > colgroup > col[data-col="phase"] {
-  width: 40.8163%;
-}
+table.speclist > colgroup > col[data-col="phase"] { width: 40.8163%; }
 /* The badge alone since the button left this cell, and the badge is one
    word: the widest a spec row can draw is "implementing" (97px) or its
    Norwegian "implementerer" (102), measured in a browser with this
@@ -263,20 +210,14 @@ table.speclist > colgroup > col[data-col="phase"] {
    longer word than either. It held 11rem while the badge could read
    "arkivering holdt tilbake" — which is the row's own notice line's
    sentence now, not a state. */
-table.speclist > colgroup > col[data-col="state"] {
-  width: 18.3673%;
-}
+table.speclist > colgroup > col[data-col="state"] { width: 18.3673%; }
 /* The two figure columns — Time and Cost/Tokens — are one width, the
    widest of the two: they hold the same KIND of thing, a short value
    under a one-word heading, and 4.5rem left them crowded against their
    own headings. Their width comes out of the list's own total, not off
    a neighbouring column. */
-table.speclist > colgroup > col[data-col="started"] {
-  width: 13.2653%;
-}
-table.speclist > colgroup > col[data-col="cost"] {
-  width: 13.2654%;
-}
+table.speclist > colgroup > col[data-col="started"] { width: 13.2653%; }
+table.speclist > colgroup > col[data-col="cost"] { width: 13.2654%; }
 /* Under 848px the list no longer fits the page (its 49rem plus the
    page's own 2 × 32px), and the two figure columns leave one at a
    time from the right — Cost, then Time — rather than all at once at
@@ -288,58 +229,24 @@ table.speclist > colgroup > col[data-col="cost"] {
    and the heading go — the <col> keeps a width of 0 so the fixed
    layout has six columns to lay out, as it always has. */
 @media (max-width: 53rem) {
-  #jobrows {
-    --speclist-width: 42.5rem;
-  }
-  table.speclist th[data-col="cost"],
-  table.speclist td[data-col="cost"] {
-    display: none;
-  }
-  table.speclist > colgroup > col[data-col="fold"] {
-    width: 4.7059%;
-  }
-  table.speclist > colgroup > col[data-col="spec"] {
-    width: 11.7647%;
-  }
-  table.speclist > colgroup > col[data-col="phase"] {
-    width: 47.0588%;
-  }
-  table.speclist > colgroup > col[data-col="state"] {
-    width: 21.1765%;
-  }
-  table.speclist > colgroup > col[data-col="started"] {
-    width: 15.2941%;
-  }
-  table.speclist > colgroup > col[data-col="cost"] {
-    width: 0;
-  }
+  #jobrows { --speclist-width: 42.5rem; }
+  table.speclist th[data-col="cost"], table.speclist td[data-col="cost"] { display: none; }
+  table.speclist > colgroup > col[data-col="fold"] { width: 4.7059%; }
+  table.speclist > colgroup > col[data-col="spec"] { width: 11.7647%; }
+  table.speclist > colgroup > col[data-col="phase"] { width: 47.0588%; }
+  table.speclist > colgroup > col[data-col="state"] { width: 21.1765%; }
+  table.speclist > colgroup > col[data-col="started"] { width: 15.2941%; }
+  table.speclist > colgroup > col[data-col="cost"] { width: 0; }
 }
 @media (max-width: 46.5rem) {
-  #jobrows {
-    --speclist-width: 36rem;
-  }
-  table.speclist th[data-col="started"],
-  table.speclist td[data-col="started"] {
-    display: none;
-  }
-  table.speclist > colgroup > col[data-col="fold"] {
-    width: 5.5556%;
-  }
-  table.speclist > colgroup > col[data-col="spec"] {
-    width: 13.8888%;
-  }
-  table.speclist > colgroup > col[data-col="phase"] {
-    width: 55.5556%;
-  }
-  table.speclist > colgroup > col[data-col="state"] {
-    width: 25%;
-  }
-  table.speclist > colgroup > col[data-col="started"] {
-    width: 0;
-  }
-  table.speclist > colgroup > col[data-col="cost"] {
-    width: 0;
-  }
+  #jobrows { --speclist-width: 36rem; }
+  table.speclist th[data-col="started"], table.speclist td[data-col="started"] { display: none; }
+  table.speclist > colgroup > col[data-col="fold"] { width: 5.5556%; }
+  table.speclist > colgroup > col[data-col="spec"] { width: 13.8888%; }
+  table.speclist > colgroup > col[data-col="phase"] { width: 55.5556%; }
+  table.speclist > colgroup > col[data-col="state"] { width: 25%; }
+  table.speclist > colgroup > col[data-col="started"] { width: 0; }
+  table.speclist > colgroup > col[data-col="cost"] { width: 0; }
 }
 /* The Test servers table: a `table.list` with columns of its
    own, so nothing written for the specs list's `data-col`s reaches it.
@@ -348,16 +255,9 @@ table.speclist > colgroup > col[data-col="cost"] {
    its cell, so a longer name makes the row taller and never a column
    wider. Its body cells are the specs list's spec-row cells — the rule
    above each row — through the two selectors at `tr.spechead` below. */
-table.list.testservers {
-  table-layout: fixed;
-  width: 100%;
-}
-table.testservers td {
-  overflow-wrap: anywhere;
-}
-table.testservers .btn {
-  white-space: nowrap;
-}
+table.list.testservers { table-layout: fixed; width: 100%; }
+table.testservers td { overflow-wrap: anywhere; }
+table.testservers .btn { white-space: nowrap; }
 /* Measured in Chromium with this stylesheet: the frame is the window less
    129px, up to 1088px. The cells that cannot wrap hold at these widths
    with a little to spare — Project's longest name in 96px, Status "starting"
@@ -365,24 +265,12 @@ table.testservers .btn {
    Branch, which are folder names, wrap inside their cell at any width.
    The six percentages give exactly those widths at the last window that
    shows all six (929px, a 800px frame). */
-table.testservers > colgroup > col[data-col="ts-project"] {
-  width: 12%;
-}
-table.testservers > colgroup > col[data-col="ts-spec"] {
-  width: 24%;
-}
-table.testservers > colgroup > col[data-col="ts-branch"] {
-  width: 22.5%;
-}
-table.testservers > colgroup > col[data-col="ts-status"] {
-  width: 9.5%;
-}
-table.testservers > colgroup > col[data-col="ts-address"] {
-  width: 22.5%;
-}
-table.testservers > colgroup > col[data-col="ts-stop"] {
-  width: 9.5%;
-}
+table.testservers > colgroup > col[data-col="ts-project"] { width: 12%; }
+table.testservers > colgroup > col[data-col="ts-spec"] { width: 24%; }
+table.testservers > colgroup > col[data-col="ts-branch"] { width: 22.5%; }
+table.testservers > colgroup > col[data-col="ts-status"] { width: 9.5%; }
+table.testservers > colgroup > col[data-col="ts-address"] { width: 22.5%; }
+table.testservers > colgroup > col[data-col="ts-stop"] { width: 9.5%; }
 /* Branch is `aide/<spec folder>`, which the Spec column already says, so
    it leaves first; then Project, which is in the Spec link's own path;
    then Status. Spec, Address and Stop stay at every width. A column
@@ -397,112 +285,50 @@ table.testservers > colgroup > col[data-col="ts-stop"] {
    last set holds Spec, Address and Stop in the 296px a 360px phone
    leaves. */
 @media (max-width: 58rem) {
-  table.testservers > colgroup > col[data-col="ts-branch"] {
-    visibility: collapse;
-  }
-  table.testservers > colgroup > col[data-col="ts-project"] {
-    width: 15.4%;
-  }
-  table.testservers > colgroup > col[data-col="ts-spec"] {
-    width: 30.8%;
-  }
-  table.testservers > colgroup > col[data-col="ts-branch"] {
-    width: 0;
-  }
-  table.testservers > colgroup > col[data-col="ts-status"] {
-    width: 12.3%;
-  }
-  table.testservers > colgroup > col[data-col="ts-address"] {
-    width: 29.2%;
-  }
-  table.testservers > colgroup > col[data-col="ts-stop"] {
-    width: 12.3%;
-  }
+  table.testservers > colgroup > col[data-col="ts-branch"] { visibility: collapse; }
+  table.testservers > colgroup > col[data-col="ts-project"] { width: 15.4%; }
+  table.testservers > colgroup > col[data-col="ts-spec"] { width: 30.8%; }
+  table.testservers > colgroup > col[data-col="ts-branch"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-status"] { width: 12.3%; }
+  table.testservers > colgroup > col[data-col="ts-address"] { width: 29.2%; }
+  table.testservers > colgroup > col[data-col="ts-stop"] { width: 12.3%; }
 }
 @media (max-width: 46.5rem) {
-  table.testservers > colgroup > col[data-col="ts-project"] {
-    visibility: collapse;
-  }
-  table.testservers > colgroup > col[data-col="ts-project"] {
-    width: 0;
-  }
-  table.testservers > colgroup > col[data-col="ts-spec"] {
-    width: 36.5%;
-  }
-  table.testservers > colgroup > col[data-col="ts-branch"] {
-    width: 0;
-  }
-  table.testservers > colgroup > col[data-col="ts-status"] {
-    width: 14.5%;
-  }
-  table.testservers > colgroup > col[data-col="ts-address"] {
-    width: 34.5%;
-  }
-  table.testservers > colgroup > col[data-col="ts-stop"] {
-    width: 14.5%;
-  }
+  table.testservers > colgroup > col[data-col="ts-project"] { visibility: collapse; }
+  table.testservers > colgroup > col[data-col="ts-project"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-spec"] { width: 36.5%; }
+  table.testservers > colgroup > col[data-col="ts-branch"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-status"] { width: 14.5%; }
+  table.testservers > colgroup > col[data-col="ts-address"] { width: 34.5%; }
+  table.testservers > colgroup > col[data-col="ts-stop"] { width: 14.5%; }
 }
 @media (max-width: 42rem) {
-  table.testservers > colgroup > col[data-col="ts-status"] {
-    visibility: collapse;
-  }
-  table.testservers > colgroup > col[data-col="ts-project"] {
-    width: 0;
-  }
-  table.testservers > colgroup > col[data-col="ts-spec"] {
-    width: 36.5%;
-  }
-  table.testservers > colgroup > col[data-col="ts-branch"] {
-    width: 0;
-  }
-  table.testservers > colgroup > col[data-col="ts-status"] {
-    width: 0;
-  }
-  table.testservers > colgroup > col[data-col="ts-address"] {
-    width: 36.5%;
-  }
-  table.testservers > colgroup > col[data-col="ts-stop"] {
-    width: 27%;
-  }
+  table.testservers > colgroup > col[data-col="ts-status"] { visibility: collapse; }
+  table.testservers > colgroup > col[data-col="ts-project"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-spec"] { width: 36.5%; }
+  table.testservers > colgroup > col[data-col="ts-branch"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-status"] { width: 0; }
+  table.testservers > colgroup > col[data-col="ts-address"] { width: 36.5%; }
+  table.testservers > colgroup > col[data-col="ts-stop"] { width: 27%; }
 }
-th,
-td {
-  text-align: left;
-  padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
-  vertical-align: top;
-}
-thead th {
-  font-size: var(--fs-s);
-  font-weight: 500;
-  color: var(--heading);
-  border-bottom: 1px solid var(--line);
-}
-table.list {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-}
+th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
+  vertical-align: top; }
+thead th { font-size: var(--fs-s); font-weight: 500; color: var(--heading);
+  border-bottom: 1px solid var(--line); }
+table.list { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); }
 /* The space between two columns is ONE cell's padding, not two
    (2026-09-08): 12px on each side of every cell put 24px between every
    pair, and neither half was meant as the gap. The left one is kept
    because it is also the indent a phase line reads as — the right one
    is dropped, and the last column's own edge is the table's padding
    below. */
-table.list th {
-  padding: var(--sp-2) 0 var(--sp-2) var(--sp-3);
-  background: var(--surface-2);
-}
-table.list td {
-  padding: 10px 0 10px var(--sp-3);
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
-}
+table.list th { padding: var(--sp-2) 0 var(--sp-2) var(--sp-3); background: var(--surface-2); }
+table.list td { padding: 10px 0 10px var(--sp-3); border-bottom: 1px solid var(--line);
+  vertical-align: middle; }
 /* Except against the table's own right edge, where the cost would
    otherwise sit flush on the border. */
-table.list th:last-child,
-table.list td:last-child {
-  padding-right: var(--sp-3);
-}
+table.list th:last-child, table.list td:last-child { padding-right: var(--sp-3); }
 /* The State column stands clear of the phase controls before it: 12px
    more than the ordinary gap between two columns, on every row that
    draws the column — the spec's own line, the caption line and each
@@ -514,40 +340,24 @@ table.list td:last-child {
    above it. 12px a side is exactly the badge's width, centred by the
    cell itself on every row, holder or not. */
 table.list td[data-col="state"] {
-  padding-left: var(--sp-3);
-  padding-right: var(--sp-3);
-  text-align: center;
-}
+  padding-left: var(--sp-3); padding-right: var(--sp-3); text-align: center; }
 /* Time and Cost/Tokens: one short value under a one-word heading,
    both centred instead of one left and one right by accident of which
    default each fell into. */
 table.list td[data-col="started"],
-table.list td[data-col="cost"] {
-  text-align: center;
-}
+table.list td[data-col="cost"] { text-align: center; }
 /* And the slot gives up the fixed width it holds a COLUMN still with:
    6.5rem is wider than what the clearance leaves on either side, so a
    slot that kept it had nothing left to centre in. Centred, the button
    stays on the column's midline whatever its label says — which is the
    same promise the fixed width makes on the row above. */
-table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot {
-  width: auto;
-}
+table.list tr.subrow[data-caption="1"] td[data-col="state"] > .actionslot { width: auto; }
 /* The Running list keeps a job's Stop or Cancel in the state cell, under
    its badge: centred on the column's midline as the badge is, with the
    row gap above it rather than touching the badge. */
-table.speclist[data-list="jobs"]
-  tr.specstate
-  > td[data-col="state"]
-  > .actionslot {
-  display: flex;
-  width: auto;
-  justify-content: center;
-  margin-top: var(--sp-2);
-}
-table.list thead a {
-  color: var(--muted);
-}
+table.speclist[data-list="jobs"] tr.specstate > td[data-col="state"] > .actionslot {
+  display: flex; width: auto; justify-content: center; margin-top: var(--sp-2); }
+table.list thead a { color: var(--muted); }
 /* Every column is pinned to its own content, State included — `0`,
    not `1%`: a PERCENTAGE width is only honoured once the table
    itself has a definite width to resolve against (ordinary layout,
@@ -568,10 +378,7 @@ table.list th[data-col="spec"],
 table.list th[data-col="created"],
 table.list th[data-col="started"],
 table.list th[data-col="cost"],
-table.list th[data-col="state"] {
-  width: 0;
-  white-space: nowrap;
-}
+table.list th[data-col="state"] { width: 0; white-space: nowrap; }
 /* A column header is a control: a flat that shows on hover, and on the
    sorted column a chevron that the ascending state turns round. */
 /* The chevron's own positioning context: the <th> itself,
@@ -607,19 +414,11 @@ table.list th[data-col="state"] {
 /* Every other list's header is the chevron's context the same way, as a
    plain `relative`: without it the chevron is placed against the box
    around the table and sits past its right edge. */
-table.list thead th {
-  position: relative;
-}
-table.speclist thead th {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
+table.list thead th { position: relative; }
+table.speclist thead th { position: sticky; top: 0; z-index: 5; }
 /* A row the address names is scrolled to just below those pinned headings,
    not under them: their padding and one line of their text. */
-#jobrows .tablewrap {
-  scroll-padding-top: calc(2 * var(--sp-2) + 1lh);
-}
+#jobrows .tablewrap { scroll-padding-top: calc(2 * var(--sp-2) + 1lh); }
 /* Every sortable column shares one rule: the label centres in the
    FULL column width, narrowed only by its own reserved padding.
    box-sizing: border-box is what makes that padding a genuine
@@ -630,40 +429,12 @@ table.speclist thead th {
    makes `width: 100%` mean the padding-INCLUSIVE box, so padding
    narrows the space the label centres in without moving .sortlink's
    own outer edge at all, and no compensating margin is needed. */
-.sortlink {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 2px 20px;
-  margin: -2px 0;
-  border-radius: var(--r-s);
-  text-decoration: none;
-}
-.sortlink:hover {
-  background: var(--surface);
-  color: var(--text);
-  text-decoration: none;
-}
-.sortlink.on {
-  color: var(--text);
-  font-weight: 600;
-}
-.sortlink svg {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  transition:
-    transform 120ms ease,
-    opacity 120ms ease;
-  opacity: 0.35;
-}
-.sortlink.on svg,
-.sortlink:hover svg {
-  opacity: 1;
-}
-.sortlink.asc svg {
-  transform: translateY(-50%) rotate(180deg);
-}
+.sortlink { display: flex; align-items: center; justify-content: center; width: 100%;
+  box-sizing: border-box; padding: 2px 20px; margin: -2px 0; border-radius: var(--r-s);
+  text-decoration: none; }
+.sortlink:hover { background: var(--surface); color: var(--text); text-decoration: none; }
+.sortlink.on { color: var(--text); font-weight: 600; }
+.sortlink svg { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
+.sortlink.on svg, .sortlink:hover svg { opacity: 1; }
+.sortlink.asc svg { transform: translateY(-50%) rotate(180deg); }

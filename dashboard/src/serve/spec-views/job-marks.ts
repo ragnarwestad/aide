@@ -4,25 +4,13 @@
 // it stopped at and why.
 import type { Language } from "../../i18n";
 import { renderSentence } from "../../i18n/message.ts";
-import {
-  stepLog,
-  stepMarks,
-  stepPlan,
-  stepSlices,
-  stepTokens,
-  type LogPart,
-  type PlannedStep,
-  type StepMark,
-} from "../../queue/parse-stream";
+import { stepLog, stepMarks, stepPlan, stepSlices, stepTokens, type LogPart, type PlannedStep, type StepMark } from "../../queue/parse-stream";
 import type { Job } from "../../queue/queue.ts";
 import { tailFileAt } from "../serve-helpers";
 import { deployPlan } from "../deploy-job/plan.ts";
 import { readRunLog } from "./job-detail.ts";
 
-export function jobMarks(
-  job: Job,
-  lang: Language,
-): { marks: StepMark[]; reason?: string; logs: LogPart[] } {
+export function jobMarks(job: Job, lang: Language): { marks: StepMark[]; reason?: string; logs: LogPart[] } {
   // The running step's file, and once it has ended and lands, its result's.
   const result = job.results.at(-1);
   const file = job.streamFile ?? result?.streamFile;
@@ -33,24 +21,16 @@ export function jobMarks(
     final: job.state !== "running",
   });
   const marks = stepMarks(logs, stepTokens(transcript.text, result?.tool));
-  const settled =
-    job.state !== "queued" &&
-    job.state !== "running" &&
-    !(job.state === "done" && job.landing);
+  const settled = job.state !== "queued" && job.state !== "running" && !(job.state === "done" && job.landing);
   // A done job whose merge into main stopped stays done, with the landing's
   // own record (`landingError`) and the merge step marked stopped.
-  const mergeStopped =
-    job.landingError !== undefined || marks.some((m) => m.state === "failed");
-  if (!settled || (job.state === "done" && !mergeStopped))
-    return { marks, logs };
+  const mergeStopped = job.landingError !== undefined || marks.some((m) => m.state === "failed");
+  if (!settled || (job.state === "done" && !mergeStopped)) return { marks, logs };
   // The step it stopped at: one the log says stopped, or else the last
   // one the log left running.
-  const failed =
-    marks.find((m) => m.state === "failed") ??
-    marks.findLast((m) => m.state === "running");
+  const failed = marks.find((m) => m.state === "failed") ?? marks.findLast((m) => m.state === "running");
   if (failed) failed.state = "failed";
-  const said =
-    job.state === "done" ? job.landingError : (job.error ?? job.landingError);
+  const said = job.state === "done" ? job.landingError : (job.error ?? job.landingError);
   const reason = renderSentence(lang, said) || failed?.why;
   return reason ? { marks, reason, logs } : { marks, logs };
 }
@@ -74,74 +54,33 @@ export interface CloseOrReopenStep {
  *  yet is waiting), then any step the log marked that the plan did not name. `start` is when the run
  *  began, which a step's stamp counts from; `running` is whether the run still goes, so a step a dead
  *  run left open does not count for ever. */
-export function stepLinesOf(
-  marks: StepMark[],
-  logs: LogPart[],
-  plan: PlannedStep[],
-  start: number,
-  running: boolean,
-): CloseOrReopenStep[] {
+export function stepLinesOf(marks: StepMark[], logs: LogPart[], plan: PlannedStep[], start: number, running: boolean): CloseOrReopenStep[] {
   const marked = new Map(marks.map((m) => [m.key, m]));
   const slices = stepSlices(logs);
-  const own = (key: string) =>
-    slices.has(key) ? { logs: slices.get(key)! } : {};
+  const own = (key: string) => (slices.has(key) ? { logs: slices.get(key)! } : {});
   const keys = new Set(plan.map((p) => p.key));
   const timed = (m: StepMark | undefined) => {
     if (m?.startedSec === undefined) return {};
     if (m.endedSec !== undefined) return { seconds: m.endedSec - m.startedSec };
-    return running && m.state === "running" && Number.isFinite(start)
-      ? { since: new Date(start + m.startedSec * 1000).toISOString() }
-      : {};
+    return running && m.state === "running" && Number.isFinite(start) ? { since: new Date(start + m.startedSec * 1000).toISOString() } : {};
   };
-  const used = (m: StepMark | undefined) =>
-    m?.tokens !== undefined ? { tokens: m.tokens } : {};
+  const used = (m: StepMark | undefined) => (m?.tokens !== undefined ? { tokens: m.tokens } : {});
   return [
-    ...plan.map((p) => ({
-      key: p.key,
-      label: p.label,
-      state: marked.get(p.key)?.state,
-      ...timed(marked.get(p.key)),
-      ...used(marked.get(p.key)),
-      ...own(p.key),
-    })),
-    ...marks
-      .filter((m) => !keys.has(m.key))
-      .map((m) => ({
-        key: m.key,
-        label: m.title,
-        state: m.state,
-        ...timed(m),
-        ...used(m),
-        ...own(m.key),
-      })),
+    ...plan.map((p) => ({ key: p.key, label: p.label, state: marked.get(p.key)?.state, ...timed(marked.get(p.key)), ...used(marked.get(p.key)), ...own(p.key) })),
+    ...marks.filter((m) => !keys.has(m.key)).map((m) => ({ key: m.key, label: m.title, state: m.state, ...timed(m), ...used(m), ...own(m.key) })),
   ];
 }
 
 /** A job's steps as its row on the Running page lists them. */
-function jobSteps(
-  job: Job,
-  plan: PlannedStep[],
-  lang: Language,
-): CloseOrReopenStep[] {
+function jobSteps(job: Job, plan: PlannedStep[], lang: Language): CloseOrReopenStep[] {
   const { marks, logs } = jobMarks(job, lang);
   // A done job whose merge into main is still landing goes on.
-  const going =
-    job.state === "running" || (job.state === "done" && !!job.landing);
-  return stepLinesOf(
-    marks,
-    logs,
-    plan,
-    Date.parse(job.stepStartedAt ?? job.startedAt ?? ""),
-    going,
-  );
+  const going = job.state === "running" || (job.state === "done" && !!job.landing);
+  return stepLinesOf(marks, logs, plan, Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), going);
 }
 
 /** A Close's or Reopen's steps: every step its skill plans. */
-export function closeOrReopenSteps(
-  job: Job,
-  step: string,
-  lang: Language,
-): CloseOrReopenStep[] {
+export function closeOrReopenSteps(job: Job, step: string, lang: Language): CloseOrReopenStep[] {
   return jobSteps(job, stepPlan(step), lang);
 }
 

@@ -7,9 +7,7 @@ import { withModelId } from "../../../../src/render/ui/components/model-label.ts
 describe("withModelId", () => {
   test("reads a Claude id as its name, in the family word's place", () => {
     expect(withModelId("Opus", "claude-opus-5-5")).toBe("Opus 5.5");
-    expect(withModelId("Claude Sonnet", "claude-sonnet-5")).toBe(
-      "Claude Sonnet 5",
-    );
+    expect(withModelId("Claude Sonnet", "claude-sonnet-5")).toBe("Claude Sonnet 5");
     expect(withModelId("opus", "claude-opus-5-5")).toBe("Opus 5.5");
     expect(withModelId("Haiku", "claude-haiku-4-5-20251001")).toBe("Haiku 4.5");
   });

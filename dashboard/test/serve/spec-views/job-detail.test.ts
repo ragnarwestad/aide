@@ -12,15 +12,7 @@ import { aiLabel } from "../../../src/serve/spec-views/job-detail.ts";
 import type { SpecViewsContext } from "../../../src/serve/spec-views";
 import type { Job } from "../../../src/queue/queue.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
-import {
-  feasibility,
-  ran,
-  said,
-  S,
-  started,
-  T,
-  writeSessions,
-} from "../../helpers/codex-fixtures.ts";
+import { feasibility, ran, said, S, started, T, writeSessions } from "../../helpers/codex-fixtures.ts";
 
 const dirs: string[] = [];
 function tempStreamFile(lines: unknown[]): string {
@@ -32,10 +24,7 @@ function tempStreamFile(lines: unknown[]): string {
 }
 /** The step's run log, beside its transcript where the runner keeps it. */
 function withRunLog(streamFile: string, lines: string[]): string {
-  writeFileSync(
-    streamFile.replace(/\.stream\.jsonl$/, ".run.log"),
-    lines.join("\n") + "\n",
-  );
+  writeFileSync(streamFile.replace(/\.stream\.jsonl$/, ".run.log"), lines.join("\n") + "\n");
   return streamFile;
 }
 afterEach(() => {
@@ -92,29 +81,8 @@ function makeCtx(overrides: Partial<SpecViewsContext> = {}): SpecViewsContext {
 describe("jobDetailView's per-step fields", () => {
   test("populates logs/errors/changedFiles from the step's own streamFile and repos", async () => {
     const streamFile = tempStreamFile([
-      {
-        type: "assistant",
-        timestamp: "2026-09-13T10:00:00.000Z",
-        message: {
-          content: [
-            {
-              type: "tool_use",
-              id: "t1",
-              name: "Bash",
-              input: { command: "bun test" },
-            },
-          ],
-        },
-      },
-      {
-        type: "user",
-        timestamp: "2026-09-13T10:00:01.000Z",
-        message: {
-          content: [
-            { type: "tool_result", tool_use_id: "t1", is_error: false },
-          ],
-        },
-      },
+      { type: "assistant", timestamp: "2026-09-13T10:00:00.000Z", message: { content: [{ type: "tool_use", id: "t1", name: "Bash", input: { command: "bun test" } }] } },
+      { type: "user", timestamp: "2026-09-13T10:00:01.000Z", message: { content: [{ type: "tool_result", tool_use_id: "t1", is_error: false }] } },
       { type: "result", subtype: "success", result: "All done." },
     ]);
     const { run } = fakeGit({
@@ -123,16 +91,9 @@ describe("jobDetailView's per-step fields", () => {
     const job = makeJob({
       results: [
         {
-          step: "implement",
-          ok: true,
-          costUsd: 1,
-          costMeasured: true,
-          terminalReason: "completed",
-          streamFile,
-          tool: "claude",
-          repos: [
-            { root: "/repos/aide", headBefore: "sha1", headAfter: "sha2" },
-          ],
+          step: "implement", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed",
+          streamFile, tool: "claude",
+          repos: [{ root: "/repos/aide", headBefore: "sha1", headAfter: "sha2" }],
         },
       ],
     });
@@ -140,15 +101,11 @@ describe("jobDetailView's per-step fields", () => {
     const view = await jobDetailView(makeCtx({ gitRun: run }), job);
 
     expect(view.results).toHaveLength(1);
-    expect(view.results[0]!.logs).toEqual([
-      { by: "ai", lines: ["Bash bun test", "All done."] },
-    ]);
+    expect(view.results[0]!.logs).toEqual([{ by: "ai", lines: ["Bash bun test", "All done."] }]);
     expect(view.results[0]!.errors).toEqual([]);
     expect("finalMessage" in view.results[0]!).toBe(false);
     expect("commands" in view.results[0]!).toBe(false);
-    expect(view.results[0]!.changedFiles).toEqual([
-      { path: "src/queue/runner.ts", added: 4, removed: 1, binary: false },
-    ]);
+    expect(view.results[0]!.changedFiles).toEqual([{ path: "src/queue/runner.ts", added: 4, removed: 1, binary: false }]);
   });
 
   // The Logs page is the complete step: a mark written at the start of a
@@ -156,34 +113,13 @@ describe("jobDetailView's per-step fields", () => {
   test("a finished step's Log holds every line, from the first byte of its transcript", async () => {
     const mark = "--- Step 1 of 9: Read the description — started";
     const filler = "x".repeat(1000);
-    const later = Array.from({ length: 400 }, (_, i) => ({
-      type: "assistant",
-      message: { content: [{ type: "text", text: `${i} ${filler}` }] },
-    }));
-    const streamFile = tempStreamFile([
-      {
-        type: "assistant",
-        message: { content: [{ type: "text", text: mark }] },
-      },
-      ...later,
-    ]);
+    const later = Array.from({ length: 400 }, (_, i) => ({ type: "assistant", message: { content: [{ type: "text", text: `${i} ${filler}` }] } }));
+    const streamFile = tempStreamFile([{ type: "assistant", message: { content: [{ type: "text", text: mark }] } }, ...later]);
     const job = makeJob({
-      results: [
-        {
-          step: "analyze",
-          ok: true,
-          costUsd: 1,
-          costMeasured: true,
-          terminalReason: "completed",
-          streamFile,
-          tool: "claude",
-        },
-      ],
+      results: [{ step: "analyze", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed", streamFile, tool: "claude" }],
     });
 
-    const lines = (
-      await jobDetailView(makeCtx(), job)
-    ).results[0]!.logs!.flatMap((p) => p.lines);
+    const lines = (await jobDetailView(makeCtx(), job)).results[0]!.logs!.flatMap((p) => p.lines);
 
     expect(lines[0]).toBe(mark);
     expect(lines).toHaveLength(401);
@@ -191,15 +127,7 @@ describe("jobDetailView's per-step fields", () => {
 
   test("a result with no streamFile leaves logs/errors/changedFiles undefined", async () => {
     const job = makeJob({
-      results: [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 1,
-          costMeasured: true,
-          terminalReason: "completed",
-        },
-      ],
+      results: [{ step: "implement", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed" }],
     });
 
     const view = await jobDetailView(makeCtx(), job);
@@ -210,29 +138,14 @@ describe("jobDetailView's per-step fields", () => {
   });
 
   test("repos with headBefore === headAfter yields an empty changedFiles, not undefined", async () => {
-    const streamFile = tempStreamFile([
-      { type: "result", subtype: "success", result: "nothing to do" },
-    ]);
-    const { run, calls } = fakeGit({
-      "diff --numstat": { code: 0, stdout: "1\t1\tx.ts\n" },
-    });
+    const streamFile = tempStreamFile([{ type: "result", subtype: "success", result: "nothing to do" }]);
+    const { run, calls } = fakeGit({ "diff --numstat": { code: 0, stdout: "1\t1\tx.ts\n" } });
     const job = makeJob({
       results: [
         {
-          step: "implement",
-          ok: true,
-          costUsd: 0,
-          costMeasured: true,
-          terminalReason: "completed",
-          streamFile,
-          tool: "claude",
-          repos: [
-            {
-              root: "/repos/aide",
-              headBefore: "sameSha",
-              headAfter: "sameSha",
-            },
-          ],
+          step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed",
+          streamFile, tool: "claude",
+          repos: [{ root: "/repos/aide", headBefore: "sameSha", headAfter: "sameSha" }],
         },
       ],
     });
@@ -246,89 +159,30 @@ describe("jobDetailView's per-step fields", () => {
 
 describe("jobDetailView's log and error lines", () => {
   const twoCommands = (message: string, tail: unknown[] = []) => [
-    {
-      type: "assistant",
-      message: {
-        content: [
-          {
-            type: "tool_use",
-            id: "t1",
-            name: "Bash",
-            input: { command: "bun test" },
-          },
-        ],
-      },
-    },
-    {
-      type: "user",
-      message: {
-        content: [{ type: "tool_result", tool_use_id: "t1", is_error: true }],
-      },
-    },
-    {
-      type: "assistant",
-      message: {
-        content: [
-          {
-            type: "tool_use",
-            id: "t2",
-            name: "Bash",
-            input: { command: "git status" },
-          },
-        ],
-      },
-    },
-    {
-      type: "user",
-      message: {
-        content: [{ type: "tool_result", tool_use_id: "t2", is_error: false }],
-      },
-    },
+    { type: "assistant", message: { content: [{ type: "tool_use", id: "t1", name: "Bash", input: { command: "bun test" } }] } },
+    { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t1", is_error: true }] } },
+    { type: "assistant", message: { content: [{ type: "tool_use", id: "t2", name: "Bash", input: { command: "git status" } }] } },
+    { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t2", is_error: false }] } },
     ...tail,
     { type: "result", subtype: "success", result: message },
   ];
   const finished = (streamFile: string) =>
     makeJob({
-      results: [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 0,
-          costMeasured: true,
-          terminalReason: "completed",
-          streamFile,
-          tool: "claude",
-        },
-      ],
+      results: [{ step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile, tool: "claude" }],
     });
 
   test("errors holds the failed command and the log holds both, in one ai part", async () => {
-    const view = await jobDetailView(
-      makeCtx(),
-      finished(tempStreamFile(twoCommands("Done."))),
-    );
+    const view = await jobDetailView(makeCtx(), finished(tempStreamFile(twoCommands("Done."))));
 
     expect(view.results[0]!.errors).toEqual(["Bash bun test"]);
-    expect(view.results[0]!.logs).toEqual([
-      { by: "ai", lines: ["Bash bun test", "Bash git status", "Done."] },
-    ]);
+    expect(view.results[0]!.logs).toEqual([{ by: "ai", lines: ["Bash bun test", "Bash git status", "Done."] }]);
   });
 
   test("the log ends with the whole final message once, when the last line only repeats it", async () => {
-    const said = {
-      type: "assistant",
-      message: { content: [{ type: "text", text: "Done." }] },
-    };
-    const view = await jobDetailView(
-      makeCtx(),
-      finished(tempStreamFile(twoCommands("Done.", [said]))),
-    );
+    const said = { type: "assistant", message: { content: [{ type: "text", text: "Done." }] } };
+    const view = await jobDetailView(makeCtx(), finished(tempStreamFile(twoCommands("Done.", [said]))));
 
-    expect(view.results[0]!.logs![0]!.lines).toEqual([
-      "Bash bun test",
-      "Bash git status",
-      "Done.",
-    ]);
+    expect(view.results[0]!.logs![0]!.lines).toEqual(["Bash bun test", "Bash git status", "Done."]);
   });
 
   test("the parts come from a real transcript and the run log beside it, and Aide's error line is in errors", async () => {
@@ -339,15 +193,8 @@ describe("jobDetailView's log and error lines", () => {
     ]);
     const view = await jobDetailView(makeCtx(), finished(stream));
 
-    expect(view.results[0]!.logs!.map((p) => p.by)).toEqual([
-      "aide-before",
-      "ai",
-      "aide-after",
-    ]);
-    expect(view.results[0]!.errors).toEqual([
-      "Bash bun test",
-      "10:52:13 +427s error: the tests are red — handing them back",
-    ]);
+    expect(view.results[0]!.logs!.map((p) => p.by)).toEqual(["aide-before", "ai", "aide-after"]);
+    expect(view.results[0]!.errors).toEqual(["Bash bun test", "10:52:13 +427s error: the tests are red — handing them back"]);
   });
 
   test("the running step carries its parts, its error lines and no final message", async () => {
@@ -355,10 +202,7 @@ describe("jobDetailView's log and error lines", () => {
       "aide-run-spec 10:45:08 +0s fetching main",
       "aide-run-spec 10:45:09 +1s model turn started (transcript at byte 0)",
     ]);
-    const view = await jobDetailView(
-      makeCtx(),
-      makeJob({ state: "running", streamFile: stream }),
-    );
+    const view = await jobDetailView(makeCtx(), makeJob({ state: "running", streamFile: stream }));
 
     expect(view.runningStep!.logs).toEqual([
       { by: "aide-before", lines: ["10:45:08 +0s fetching main"] },
@@ -368,21 +212,14 @@ describe("jobDetailView's log and error lines", () => {
   });
 
   test("a running step still preparing has its own lines as aide-before", async () => {
-    const stream = withRunLog(tempStreamFile([]), [
-      "aide-run-spec 10:45:08 +0s waiting for the checkout lock",
-    ]);
-    const view = await jobDetailView(
-      makeCtx(),
-      makeJob({ state: "running", streamFile: stream }),
-    );
+    const stream = withRunLog(tempStreamFile([]), ["aide-run-spec 10:45:08 +0s waiting for the checkout lock"]);
+    const view = await jobDetailView(makeCtx(), makeJob({ state: "running", streamFile: stream }));
 
     expect(view.runningStep!.logs.map((p) => p.by)).toEqual(["aide-before"]);
   });
 });
 
-const twoCommandsOnly = () => [
-  { type: "result", subtype: "success", result: "x" },
-];
+const twoCommandsOnly = () => [{ type: "result", subtype: "success", result: "x" }];
 
 describe("the AI's label", () => {
   test("names the tool and the model choice, each word capitalised", () => {
@@ -395,17 +232,7 @@ describe("the AI's label", () => {
   test("a finished step carries the label of the choice its job named", async () => {
     const job = makeJob({
       model: { implement: "sonnet" },
-      results: [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 0,
-          costMeasured: true,
-          terminalReason: "completed",
-          streamFile: tempStreamFile(twoCommandsOnly()),
-          tool: "claude",
-        },
-      ],
+      results: [{ step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: tempStreamFile(twoCommandsOnly()), tool: "claude" }],
     });
     const view = await jobDetailView(makeCtx(), job);
 
@@ -413,20 +240,10 @@ describe("the AI's label", () => {
   });
 
   test("a step that reported a model id carries it after the label, and one that did not carries the label alone", async () => {
-    const step = {
-      step: "implement" as const,
-      ok: true,
-      costUsd: 0,
-      costMeasured: true,
-      terminalReason: "completed",
-      streamFile: tempStreamFile(twoCommandsOnly()),
-    };
+    const step = { step: "implement" as const, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: tempStreamFile(twoCommandsOnly()) };
     const job = makeJob({
       model: { implement: "opus" },
-      results: [
-        { ...step, tool: "claude", modelId: "claude-opus-5-5" },
-        { ...step, tool: "codex" },
-      ],
+      results: [{ ...step, tool: "claude", modelId: "claude-opus-5-5" }, { ...step, tool: "codex" }],
     });
     const view = await jobDetailView(makeCtx(), job);
 
@@ -436,8 +253,7 @@ describe("the AI's label", () => {
 });
 
 describe("jobDetailView reads a Codex step's session files", () => {
-  const stream = () =>
-    tempStreamFile([started(T), said("m1"), ran("c1"), said("m2")]);
+  const stream = () => tempStreamFile([started(T), said("m1"), ran("c1"), said("m2")]);
   const withHome = async <R>(run: () => Promise<R>): Promise<R> => {
     const home = mkdtempSync(join(tmpdir(), "job-detail-codex-"));
     writeSessions(home, { [T]: feasibility.parent, [S]: feasibility.child });
@@ -453,97 +269,46 @@ describe("jobDetailView reads a Codex step's session files", () => {
 
   test("a finished step's log holds the subagent's part", async () => {
     const job = makeJob({
-      results: [
-        {
-          step: "analyze",
-          ok: true,
-          costUsd: 0,
-          costMeasured: true,
-          terminalReason: "completed",
-          streamFile: stream(),
-          tool: "codex",
-        },
-      ],
+      results: [{ step: "analyze", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: stream(), tool: "codex" }],
     });
     const view = await withHome(() => jobDetailView(makeCtx(), job));
 
-    expect(view.results[0]!.logs!.map((p) => p.by)).toEqual([
-      "ai",
-      "subagent",
-      "ai",
-    ]);
+    expect(view.results[0]!.logs!.map((p) => p.by)).toEqual(["ai", "subagent", "ai"]);
   });
 
   test("a running step's log holds it too", async () => {
-    const view = await withHome(() =>
-      jobDetailView(
-        makeCtx(),
-        makeJob({ state: "running", streamFile: stream() }),
-      ),
-    );
+    const view = await withHome(() => jobDetailView(makeCtx(), makeJob({ state: "running", streamFile: stream() })));
 
-    expect(view.runningStep!.logs.map((p) => p.by)).toEqual([
-      "ai",
-      "subagent",
-      "ai",
-    ]);
+    expect(view.runningStep!.logs.map((p) => p.by)).toEqual(["ai", "subagent", "ai"]);
   });
 });
 
 describe("jobDetailView's screenshots", () => {
   const finishedStep = (streamFile: string) => ({
-    step: "implement" as const,
-    ok: true,
-    costUsd: 1,
-    costMeasured: true,
-    terminalReason: "completed",
-    streamFile,
-    tool: "claude" as const,
+    step: "implement" as const, ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed", streamFile, tool: "claude" as const,
   });
 
   test("a finished step lists the PNGs in its screenshots folder by name, each with its link", async () => {
-    const streamFile = tempStreamFile([
-      { type: "result", subtype: "success", result: "done" },
-    ]);
+    const streamFile = tempStreamFile([{ type: "result", subtype: "success", result: "done" }]);
     const folder = streamFile.replace(/\.stream\.jsonl$/, ".screenshots");
     mkdirSync(folder);
-    for (const name of ["02-jobs-390.png", "01-jobs-1440.png", "not-taken.txt"])
-      writeFileSync(join(folder, name), "x");
+    for (const name of ["02-jobs-390.png", "01-jobs-1440.png", "not-taken.txt"]) writeFileSync(join(folder, name), "x");
 
-    const view = await jobDetailView(
-      makeCtx(),
-      makeJob({ results: [finishedStep(streamFile)] }),
-    );
+    const view = await jobDetailView(makeCtx(), makeJob({ results: [finishedStep(streamFile)] }));
 
     expect(view.results[0]!.screenshots).toEqual([
-      {
-        file: "01-jobs-1440.png",
-        href: "/jobs/job-1/screenshots/implement/01-jobs-1440.png",
-      },
-      {
-        file: "02-jobs-390.png",
-        href: "/jobs/job-1/screenshots/implement/02-jobs-390.png",
-      },
+      { file: "01-jobs-1440.png", href: "/jobs/job-1/screenshots/implement/01-jobs-1440.png" },
+      { file: "02-jobs-390.png", href: "/jobs/job-1/screenshots/implement/02-jobs-390.png" },
     ]);
   });
 
   test("a step with no screenshots folder, or one with no PNG, has no screenshots", async () => {
-    const without = tempStreamFile([
-      { type: "result", subtype: "success", result: "done" },
-    ]);
-    const empty = tempStreamFile([
-      { type: "result", subtype: "success", result: "done" },
-    ]);
+    const without = tempStreamFile([{ type: "result", subtype: "success", result: "done" }]);
+    const empty = tempStreamFile([{ type: "result", subtype: "success", result: "done" }]);
     mkdirSync(empty.replace(/\.stream\.jsonl$/, ".screenshots"));
-    writeFileSync(
-      join(empty.replace(/\.stream\.jsonl$/, ".screenshots"), "not-taken.txt"),
-      "why",
-    );
+    writeFileSync(join(empty.replace(/\.stream\.jsonl$/, ".screenshots"), "not-taken.txt"), "why");
 
-    const view = await jobDetailView(
-      makeCtx(),
-      makeJob({ results: [finishedStep(without), finishedStep(empty)] }),
-    );
+    const view = await jobDetailView(makeCtx(), makeJob({ results: [finishedStep(without), finishedStep(empty)] }));
 
     expect(view.results[0]!.screenshots).toBeUndefined();
     expect(view.results[1]!.screenshots).toBeUndefined();

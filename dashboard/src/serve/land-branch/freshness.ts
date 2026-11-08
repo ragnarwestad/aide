@@ -38,23 +38,13 @@ import type { LandContext } from "./types.ts";
  *  criterion is open any more. The commit says why the LAST archive run
  *  stopped; whether that still holds is the Checks tab's to say, and it
  *  says so in `acceptanceOpen`, read fresh on every render. */
-function stillStopped(
-  stopped: Record<string, string>,
-  t: SpecTarget,
-): Record<string, string> {
-  if (
-    stopped.archive !== "acceptance-criteria-unticked" ||
-    t.acceptanceOpen !== false
-  )
-    return stopped;
+function stillStopped(stopped: Record<string, string>, t: SpecTarget): Record<string, string> {
+  if (stopped.archive !== "acceptance-criteria-unticked" || t.acceptanceOpen !== false) return stopped;
   const { archive: _archive, ...rest } = stopped;
   return rest;
 }
 
-export function withFreshness(
-  ctx: LandContext,
-  list: SpecTarget[],
-): SpecTarget[] {
+export function withFreshness(ctx: LandContext, list: SpecTarget[]): SpecTarget[] {
   return list.map((t) => {
     if (!t.dir) return t;
     // The one canonical `{done, stopped, fileDisagrees,
@@ -67,12 +57,7 @@ export function withFreshness(
     // with a real, empty history — and the row then keeps what the
     // spec's own files say rather than a false negative.
     const resolved = resolveWorkflowState(
-      ctx.workflowHistory,
-      ctx.branchFileSteps,
-      t.dir,
-      t.specFolder,
-      t.reopenedAfter,
-      t.fileSteps,
+      ctx.workflowHistory, ctx.branchFileSteps, t.dir, t.specFolder, t.reopenedAfter, t.fileSteps,
     );
     if (!resolved) return t;
     const createdAtPeek = ctx.specCreatedAt.peekCreatedAt(t.dir, t.specFolder);
@@ -96,8 +81,7 @@ export function withFreshness(
       // job's own time, which is the field this replaces.
       createdAt: createdAtPeek.createdAt ?? undefined,
     };
-    if (!ctx.freshness.peekStale(t.dir, t.specFolder, t.reopenedAfter).stale)
-      return withHistory;
+    if (!ctx.freshness.peekStale(t.dir, t.specFolder, t.reopenedAfter).stale) return withHistory;
     return {
       ...withHistory,
       analyzeStale: true,

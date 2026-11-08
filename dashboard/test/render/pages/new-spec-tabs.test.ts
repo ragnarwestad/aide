@@ -4,10 +4,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import {
-  renderNewSpecPage,
-  type NewSpecPageOptions,
-} from "../../../src/render";
+import { renderNewSpecPage, type NewSpecPageOptions } from "../../../src/render";
 import { t } from "../../../src/i18n";
 
 const windows: Window[] = [];
@@ -19,17 +16,11 @@ afterEach(async () => {
 function page(opts: Partial<NewSpecPageOptions> = {}): Document {
   const win = new Window();
   windows.push(win);
-  win.document.write(
-    renderNewSpecPage([], "2026-10-03T00:00:00Z", {
-      createProjects: ["aide"],
-      ...opts,
-    }),
-  );
+  win.document.write(renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"], ...opts }));
   return win.document as unknown as Document;
 }
 
-const panel = (doc: Document, key: string) =>
-  doc.querySelector(`[data-tab-panel="${key}"]`) as HTMLElement | null;
+const panel = (doc: Document, key: string) => doc.querySelector(`[data-tab-panel="${key}"]`) as HTMLElement | null;
 
 describe("which tab the New spec page opens", () => {
   test.each([
@@ -54,31 +45,19 @@ describe("what the New spec form posts", () => {
         { key: "Codex", name: "Codex", tool: "codex" },
       ],
     });
-    const choices =
-      panel(doc, "options")?.querySelectorAll(
-        'select[name^="provider."], select[name^="model."]',
-      ) ?? [];
+    const choices = panel(doc, "options")?.querySelectorAll('select[name^="provider."], select[name^="model."]') ?? [];
     expect(choices.length).toBeGreaterThan(0);
-    expect(
-      [...choices].every((choice) => !(choice as HTMLSelectElement).disabled),
-    ).toBe(true);
+    expect([...choices].every((choice) => !(choice as HTMLSelectElement).disabled)).toBe(true);
   });
 
   test("an untouched Options tab posts the same names and values as before", () => {
     const doc = page({ modelChoices: [{ name: "sonnet" }, { name: "fable" }] });
     expect(panel(doc, "options")?.hasAttribute("hidden")).toBe(true);
     const form = doc.getElementById("new-spec-form") as HTMLFormElement;
-    (form.querySelector('input[name="title"]') as HTMLInputElement).value =
-      "A title";
-    (
-      form.querySelector('textarea[name="description"]') as HTMLTextAreaElement
-    ).value = "A description";
-    const FormDataCtor = (
-      doc.defaultView as unknown as { FormData: typeof FormData }
-    ).FormData;
-    const posted = [...new FormDataCtor(form).entries()].map(
-      ([name, value]) => [name, String(value)],
-    );
+    (form.querySelector('input[name="title"]') as HTMLInputElement).value = "A title";
+    (form.querySelector('textarea[name="description"]') as HTMLTextAreaElement).value = "A description";
+    const FormDataCtor = (doc.defaultView as unknown as { FormData: typeof FormData }).FormData;
+    const posted = [...new FormDataCtor(form).entries()].map(([name, value]) => [name, String(value)]);
     expect(posted.sort()).toEqual(
       [
         ["project", ""],
@@ -102,12 +81,7 @@ describe("what the New spec form posts", () => {
 describe("the tab words", () => {
   test("a Norwegian page names its tabs from the Norwegian catalogue", () => {
     const doc = page({ lang: "nb" });
-    const words = [
-      ...doc.querySelectorAll("nav[data-new-spec-tabs] a.tab"),
-    ].map((a) => a.textContent);
-    expect(words).toStrictEqual([
-      t("nb", "newSpec.tabSpec"),
-      t("nb", "newSpec.tabOptions"),
-    ]);
+    const words = [...doc.querySelectorAll("nav[data-new-spec-tabs] a.tab")].map((a) => a.textContent);
+    expect(words).toStrictEqual([t("nb", "newSpec.tabSpec"), t("nb", "newSpec.tabOptions")]);
   });
 });

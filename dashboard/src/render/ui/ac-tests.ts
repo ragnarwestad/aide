@@ -17,9 +17,7 @@ function displayName(name: string): string {
   return shortened.trim() ? shortened : name;
 }
 
-export function prepareAcTests(
-  tests: AcTest[],
-): { file: string; names: string[] }[] {
+export function prepareAcTests(tests: AcTest[]): { file: string; names: string[] }[] {
   const groups = new Map<string, { file: string; names: string[] }>();
   for (const test of tests) {
     let group = groups.get(test.file);
@@ -34,11 +32,7 @@ export function prepareAcTests(
 
 /** `scope` is the spec's key; with the criterion's number and the file it names
  *  a fold, so the page script can open it again after a redraw. */
-export function acTestsLine(
-  row: { task: string; tests?: AcTest[]; untested?: boolean },
-  lang: Language,
-  scope = "",
-): string {
+export function acTestsLine(row: { task: string; tests?: AcTest[]; untested?: boolean }, lang: Language, scope = ""): string {
   if (row.untested) {
     const id = /^(AC-\d+):/.exec(row.task)?.[1] ?? "";
     return `<span class="checktests untested">${esc(t(lang, "checks.noTestNames", { id }))}</span>`;
@@ -46,7 +40,7 @@ export function acTestsLine(
   if (!row.tests?.length) return "";
   // The number and not the id: the markup holds no `AC-` text.
   const number = /^AC-(\d+):/.exec(row.task)?.[1] ?? "";
-  const folds = prepareAcTests(row.tests).map((group) =>
+  const folds = prepareAcTests(row.tests).map(group =>
     foldDisclosure({
       summary: `${esc(group.file)} (${group.names.length})`,
       body: group.names.map(esc).join("<br>"),

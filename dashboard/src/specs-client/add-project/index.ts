@@ -8,25 +8,15 @@ const TEST_COMMAND_ROUTE = "/api/queue/projects/test-command";
 
 /** The command the server finds for `gitUrl`, or `null` for no answer of
  *  any kind: a refusal, a failed request or a repository it cannot read. */
-async function detectedTestCommand(
-  gitUrl: string,
-  fetchImpl: typeof fetch,
-): Promise<string | null> {
+async function detectedTestCommand(gitUrl: string, fetchImpl: typeof fetch): Promise<string | null> {
   try {
     const res = await fetchImpl(TEST_COMMAND_ROUTE, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-      },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ gitUrl }),
     });
-    const body = (await res.json().catch(() => null)) as {
-      testCmd?: unknown;
-    } | null;
-    return res.ok && typeof body?.testCmd === "string" && body.testCmd
-      ? body.testCmd
-      : null;
+    const body = (await res.json().catch(() => null)) as { testCmd?: unknown } | null;
+    return res.ok && typeof body?.testCmd === "string" && body.testCmd ? body.testCmd : null;
   } catch {
     return null;
   }
@@ -35,16 +25,9 @@ async function detectedTestCommand(
 /** Binds the Git URL field's `change` to the Test command field's
  *  placeholder. Returns without binding anything when either field is
  *  missing. The listener returns its work, so a test can wait for it. */
-export function bindAddProjectForm(
-  form: HTMLFormElement,
-  fetchImpl: typeof fetch = fetch,
-): void {
-  const gitUrl = form.querySelector(
-    'input[name="gitUrl"]',
-  ) as HTMLInputElement | null;
-  const testCmd = form.querySelector(
-    'input[name="testCmd"]',
-  ) as HTMLInputElement | null;
+export function bindAddProjectForm(form: HTMLFormElement, fetchImpl: typeof fetch = fetch): void {
+  const gitUrl = form.querySelector('input[name="gitUrl"]') as HTMLInputElement | null;
+  const testCmd = form.querySelector('input[name="testCmd"]') as HTMLInputElement | null;
   if (!gitUrl || !testCmd) return;
   const drawn = testCmd.placeholder;
   gitUrl.addEventListener("change", async () => {
@@ -53,7 +36,6 @@ export function bindAddProjectForm(
     if (!address) return;
     const command = await detectedTestCommand(address, fetchImpl);
     // An answer about an address the field no longer holds is dropped.
-    if (command && gitUrl.value.trim() === address)
-      testCmd.placeholder = command;
+    if (command && gitUrl.value.trim() === address) testCmd.placeholder = command;
   });
 }

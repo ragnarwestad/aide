@@ -41,40 +41,23 @@ export interface ToolModels {
 export interface ModelsPanel {
   reading: ToolModels;
   choices?: Record<string, ModelChoice>;
-  options?: {
-    name: string;
-    tool?: string;
-    ranAs?: string;
-    named?: { id: string; name: string };
-  }[];
+  options?: { name: string; tool?: string; ranAs?: string; named?: { id: string; name: string } }[];
 }
 
 export const MODELS_ADD_ROUTE = "/api/queue/settings/models/add";
 export const MODELS_REMOVE_ROUTE = "/api/queue/settings/models/remove";
 
-const add = (lang: Language) => ({
-  label: t(lang, "settings.models.add"),
-  pending: t(lang, "settings.models.adding"),
-});
-const remove = (lang: Language) => ({
-  label: t(lang, "project.remove"),
-  pending: t(lang, "dialog.removing"),
-});
+const add = (lang: Language) => ({ label: t(lang, "settings.models.add"), pending: t(lang, "settings.models.adding") });
+const remove = (lang: Language) => ({ label: t(lang, "project.remove"), pending: t(lang, "dialog.removing") });
 
 /** What a choice hands its command line: its own `model`, else its key. */
-export const choiceModel = (key: string, choice: ModelChoice): string =>
-  choice.model ?? key;
+export const choiceModel = (key: string, choice: ModelChoice): string => choice.model ?? key;
 
 /** Whether a choice runs on `tool`. A stand-in's runs on none of them. */
-export const choiceOf = (tool: CheckableTool, choice: ModelChoice): boolean =>
-  (choice.tool ?? "claude") === tool;
+export const choiceOf = (tool: CheckableTool, choice: ModelChoice): boolean => (choice.tool ?? "claude") === tool;
 
 /** Claude Code takes a model name in any case; Codex and OpenCode do not. */
-export const sameModel = (
-  tool: CheckableTool,
-  a: string,
-  b: string,
-): boolean =>
+export const sameModel = (tool: CheckableTool, a: string, b: string): boolean =>
   tool === "claude" ? a.toLowerCase() === b.toLowerCase() : a === b;
 
 export interface ModelLists {
@@ -100,12 +83,8 @@ export function modelLists(
   if (!reading) return { supported: own, offered: [], gone: [] };
   return {
     supported: own,
-    offered: reading.offered.filter(
-      (m) => !own.some((c) => sameModel(tool, c.model, m.model)),
-    ),
-    gone: own.filter(
-      (c) => !reading.offered.some((m) => sameModel(tool, c.model, m.model)),
-    ),
+    offered: reading.offered.filter((m) => !own.some((c) => sameModel(tool, c.model, m.model))),
+    gone: own.filter((c) => !reading.offered.some((m) => sameModel(tool, c.model, m.model))),
   };
 }
 
@@ -113,9 +92,7 @@ export function modelLists(
  *  another AI's with its own name beside, when that says something more. */
 function offeredLabel(tool: CheckableTool, m: OfferedModel): string {
   if (!m.name || m.name === m.model) return m.model;
-  return tool === "claude"
-    ? `${m.model} → ${m.name}`
-    : `${m.model} (${m.name})`;
+  return tool === "claude" ? `${m.model} → ${m.name}` : `${m.model} (${m.name})`;
 }
 
 /** One row's button, in a form of its own. The id carries the row's
@@ -132,11 +109,7 @@ export function rowForm(
     action,
     hook: "configactions reloadform",
     hidden,
-    button: {
-      id: `${id}-run`,
-      ...button,
-      ariaLabel: `${button.label} ${what}`,
-    },
+    button: { id: `${id}-run`, ...button, ariaLabel: `${button.label} ${what}` },
     after: messageSlot("refused"),
   });
 }
@@ -146,78 +119,37 @@ export function rowForm(
  *  the model its command line is given. Drawn whether or not a reading is
  *  in memory, since the version is kept across a restart and the reading
  *  is not. */
-function supportedBlock(
-  tool: CheckableTool,
-  panel: ModelsPanel,
-  lang: Language,
-  toolName: string,
-): string {
+function supportedBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language, toolName: string): string {
   const heading = `<h3>${esc(t(lang, "settings.models.supported"))}</h3>`;
   const { supported } = modelLists(tool, panel.choices, undefined);
-  if (!supported.length)
-    return (
-      heading +
-      `<p class="muted">${esc(t(lang, "settings.models.noneSupported", { tool: toolName }))}</p>`
-    );
+  if (!supported.length) return heading + `<p class="muted">${esc(t(lang, "settings.models.noneSupported", { tool: toolName }))}</p>`;
   const option = (name: string) => panel.options?.find((o) => o.name === name);
-  return (
-    heading +
-    facts(
-      supported.map(({ name, model }) => ({
-        label: esc(name),
-        value: esc(
-          tool === "claude"
-            ? aliasLabel(name, option(name)?.ranAs, option(name)?.named)
-            : model,
-        ),
-      })),
-    )
-  );
+  return heading + facts(supported.map(({ name, model }) => ({
+    label: esc(name),
+    value: esc(tool === "claude" ? aliasLabel(name, option(name)?.ranAs, option(name)?.named) : model),
+  })));
 }
 
 /** What the Models tab read of the AI's models, against its choices. */
-function readingBlock(
-  tool: CheckableTool,
-  panel: ModelsPanel,
-  lang: Language,
-): string {
+function readingBlock(tool: CheckableTool, panel: ModelsPanel, lang: Language): string {
   const reading = panel.reading;
-  if (reading.error)
-    return `<p class="muted">${esc(t(lang, "settings.models.failed", { reason: reading.error }))}</p>`;
+  if (reading.error) return `<p class="muted">${esc(t(lang, "settings.models.failed", { reason: reading.error }))}</p>`;
   const lists = modelLists(tool, panel.choices, reading);
   const offered = lists.offered.length
-    ? facts(
-        lists.offered.map((m, i) => ({
-          label: esc(offeredLabel(tool, m)),
-          value: rowForm(
-            MODELS_ADD_ROUTE,
-            `models-add-${tool}-${i}`,
-            { tool, model: m.model },
-            add(lang),
-            m.model,
-          ),
-        })),
-      )
+    ? facts(lists.offered.map((m, i) => ({
+      label: esc(offeredLabel(tool, m)),
+      value: rowForm(MODELS_ADD_ROUTE, `models-add-${tool}-${i}`, { tool, model: m.model }, add(lang), m.model),
+    })))
     : `<p class="muted">${esc(t(lang, "settings.models.allSupported"))}</p>`;
   const gone = lists.gone.length
-    ? facts(
-        lists.gone.map((c, i) => ({
-          label: esc(c.name === c.model ? c.name : `${c.name} (${c.model})`),
-          value: rowForm(
-            MODELS_REMOVE_ROUTE,
-            `models-remove-${tool}-${i}`,
-            { name: c.name },
-            remove(lang),
-            c.name,
-          ),
-        })),
-      )
+    ? facts(lists.gone.map((c, i) => ({
+      label: esc(c.name === c.model ? c.name : `${c.name} (${c.model})`),
+      value: rowForm(MODELS_REMOVE_ROUTE, `models-remove-${tool}-${i}`, { name: c.name }, remove(lang), c.name),
+    })))
     : `<p class="muted">${esc(t(lang, "settings.models.noneGone"))}</p>`;
   return (
-    `<h3>${esc(t(lang, "settings.models.available"))}</h3>` +
-    offered +
-    `<h3>${esc(t(lang, "settings.models.gone"))}</h3>` +
-    gone
+    `<h3>${esc(t(lang, "settings.models.available"))}</h3>` + offered +
+    `<h3>${esc(t(lang, "settings.models.gone"))}</h3>` + gone
   );
 }
 
@@ -231,17 +163,8 @@ export function modelsBlock(
   lang: Language = "en",
   toolName: string = tool,
 ): string {
-  const read = `<p class="muted small">${esc(
-    panel.reading.provider
-      ? t(lang, "settings.models.readAtWith", {
-          at: readAt,
-          provider: panel.reading.provider,
-        })
-      : t(lang, "settings.models.readAt", { at: readAt }),
-  )}</p>`;
-  return (
-    read +
-    supportedBlock(tool, panel, lang, toolName) +
-    readingBlock(tool, panel, lang)
-  );
+  const read = `<p class="muted small">${esc(panel.reading.provider
+    ? t(lang, "settings.models.readAtWith", { at: readAt, provider: panel.reading.provider })
+    : t(lang, "settings.models.readAt", { at: readAt }))}</p>`;
+  return read + supportedBlock(tool, panel, lang, toolName) + readingBlock(tool, panel, lang);
 }

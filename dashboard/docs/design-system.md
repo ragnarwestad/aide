@@ -20,6 +20,7 @@
 The design system the pages are built from: tokens, components, the class vocabulary,
 and the layout rules that keep them consistent.
 
+
 One design foundation, and nothing outside it: every colour, type size, space and radius is declared once and reached
 through a variable, and a control has one class wherever it appears — never a version per form it sits in.
 
@@ -78,7 +79,7 @@ of facts, a form holding one button or a checkbox with its words beside it, whic
 `test/guards/five-shapes-one-component-each.test.ts` checks:
 
 | Component             | Variants                                                                                                                              |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | `btn()`               | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`; `form`, `value`, `data-*` and `aria-label` when asked         |
 | `btnLink()`           | a link that looks like a button: every `btn()` variant but `busy`, and `small`; never disabled — that is a disabled `btn()`           |
 | `buttonForm()`        | a form whose only control is one button — a `btn()` or a dialog's close cross: a post or its close, hooks, hidden fields, a (?) first |
@@ -147,6 +148,7 @@ A CSS comment's prose reaches the browser as page content: the stylesheet is inl
 is read by whoever views source, not just by the next editor. It is also why a test looking for an English word in a
 response can be failed by a comment that happens to hold it — `test/queue-detail/queue-detail-spec-page-routes.test.ts`
 writes distinctive sentinels rather than English words for exactly that reason.
+
 
 ## Spacing lives in the container, not the component
 
@@ -292,9 +294,9 @@ one place these five names live.
 - `translations` — the registry (`{ en, nb, es, de, fr }`).
 - `LANGUAGES` — the list the header menu and `serve-helpers/http.ts`'s `?lang=`/cookie validation both iterate, so
   neither has to name a language by hand.
-  Every other file that needs a per-language answer (`provider-limit.ts`'s locale table,
-  `format/gerund.ts` and `format/step-label.ts`'s verb/name tables) is a `Record<Language, …>` lookup, with an
-  English fallback for the two of those that are not required to cover every language.
+Every other file that needs a per-language answer (`provider-limit.ts`'s locale table,
+`format/gerund.ts` and `format/step-label.ts`'s verb/name tables) is a `Record<Language, …>` lookup, with an
+English fallback for the two of those that are not required to cover every language.
 
 **Adding a sixth language is two separate, catalogue-only changes — not one:**
 
@@ -332,8 +334,8 @@ all: the spec page, a project's page and Settings.
 
 The board line reads:
 
-- "_machine_ - Prod" — on the prod board.
-- "_machine_ - Test - _spec number_" plus a Stop button — on a test server, with the spec's folder and branch in the
+- "*machine* - Prod" — on the prod board.
+- "*machine* - Test - *spec number*" plus a Stop button — on a test server, with the spec's folder and branch in the
   line's `title`.
 
 `board-info.ts` holds which one this process is, set once at boot

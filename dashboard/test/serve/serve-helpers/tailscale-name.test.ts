@@ -1,30 +1,15 @@
 // The machine's own Tailscale name: parsed from `tailscale status --json`,
 // looked up lazily, one lookup at a time, retried after a failure.
 import { describe, expect, test } from "bun:test";
-import {
-  createHostAllowlist,
-  parseSelfDnsName,
-} from "../../../src/serve/serve-helpers";
+import { createHostAllowlist, parseSelfDnsName } from "../../../src/serve/serve-helpers";
 
 describe("parseSelfDnsName", () => {
   test("drops the trailing dot and lower-cases", () => {
-    expect(
-      parseSelfDnsName({ Self: { DNSName: "RW-MacMini.tail1234.ts.net." } }),
-    ).toBe("rw-macmini.tail1234.ts.net");
+    expect(parseSelfDnsName({ Self: { DNSName: "RW-MacMini.tail1234.ts.net." } })).toBe("rw-macmini.tail1234.ts.net");
   });
 
   test("anything else is undefined", () => {
-    for (const bad of [
-      null,
-      undefined,
-      1,
-      "x",
-      {},
-      { Self: null },
-      { Self: { DNSName: "" } },
-      { Self: { DNSName: 4 } },
-      { Self: { DNSName: "." } },
-    ]) {
+    for (const bad of [null, undefined, 1, "x", {}, { Self: null }, { Self: { DNSName: "" } }, { Self: { DNSName: 4 } }, { Self: { DNSName: "." } }]) {
       expect(parseSelfDnsName(bad)).toBeUndefined();
     }
   });
@@ -35,15 +20,8 @@ describe("createHostAllowlist", () => {
 
   test("loopback names and `extra` answer at once, without a lookup", async () => {
     let calls = 0;
-    const hosts = createHostAllowlist({
-      extra: ["Board.Example.com"],
-      lookup: async () => {
-        calls++;
-        return NAME;
-      },
-    });
-    for (const n of ["localhost", "127.0.0.1", "[::1]", "board.example.com"])
-      expect(await hosts.has(n)).toBe(true);
+    const hosts = createHostAllowlist({ extra: ["Board.Example.com"], lookup: async () => { calls++; return NAME; } });
+    for (const n of ["localhost", "127.0.0.1", "[::1]", "board.example.com"]) expect(await hosts.has(n)).toBe(true);
     expect(calls).toBe(0);
   });
 
@@ -56,13 +34,7 @@ describe("createHostAllowlist", () => {
 
   test("a success is never asked for again", async () => {
     let calls = 0;
-    const hosts = createHostAllowlist({
-      extra: [],
-      lookup: async () => {
-        calls++;
-        return NAME;
-      },
-    });
+    const hosts = createHostAllowlist({ extra: [], lookup: async () => { calls++; return NAME; } });
     await hosts.has(NAME);
     await hosts.has("x.example");
     await hosts.has(NAME);
@@ -110,12 +82,7 @@ describe("createHostAllowlist", () => {
   });
 
   test("a lookup that throws counts as a failure", async () => {
-    const hosts = createHostAllowlist({
-      extra: [],
-      lookup: async () => {
-        throw new Error("no tailscale");
-      },
-    });
+    const hosts = createHostAllowlist({ extra: [], lookup: async () => { throw new Error("no tailscale"); } });
     expect(await hosts.has(NAME)).toBe(false);
   });
 });

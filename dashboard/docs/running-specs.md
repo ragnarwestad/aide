@@ -15,7 +15,7 @@
 - [When an AI's usage limit is used up](#when-an-ais-usage-limit-is-used-up)
 - [Providers](#providers)
 - [Notifications](#notifications)
-  - [Push notifications on a phone or laptop](#push-notifications-on-a-phone-or-laptop)
+    - [Push notifications on a phone or laptop](#push-notifications-on-a-phone-or-laptop)
 - [The Running tab](#the-running-tab)
 - [Live runs](#live-runs)
 
@@ -33,6 +33,7 @@ Seven pages sit beside this one:
 - [The specs list and the spec page](the-specs-list.md) — what a row says, and what its controls do
 - [Projects](projects.md) — adding one, and whether a run can start there
 - [Branches and landing](landing.md) — how each step's branch is merged, and what stops one from landing
+
 
 The spec list runs Aide's workflow steps headless on this machine: each step is a
 `claude -p "/aide-<step> <spec>"` process started by Aide's `aide-run-spec`. A job is an ordered list of steps; a
@@ -101,7 +102,7 @@ spec.
 buttons, from a terminal or an AI session, and answers in one sentence with no link.
 
 | Command                                                 | What it queues                                                     |
-| ------------------------------------------------------- | ------------------------------------------------------------------ |
+|---------------------------------------------------------|--------------------------------------------------------------------|
 | `aide create <project> "<title>"`                       | A create, as the New spec form does                                |
 | `aide analyze`, `implement`, `archive`, `reopen <spec>` | That step, as the button on the spec's row does                    |
 | `aide close <spec> --reason "<why>"`                    | Close, as the Close button does                                    |
@@ -180,8 +181,13 @@ is checked BEFORE a step starts:
   },
   "push": "branch",
   "concurrency": 2,
-  "projects": ["aide", "<another-project>"],
-  "notifyCommand": ["/Users/<you>/aide-dashboard/notify-slack.sh"]
+  "projects": [
+    "aide",
+    "<another-project>"
+  ],
+  "notifyCommand": [
+    "/Users/<you>/aide-dashboard/notify-slack.sh"
+  ]
 }
 ```
 
@@ -380,12 +386,7 @@ under a `schedules` key keyed by project name:
 {
   "schedules": {
     "aide": [
-      {
-        "name": "nightly-report",
-        "cron": "0 3 * * *",
-        "prompt": "docs/nightly-report.md",
-        "model": "claude-opus-5"
-      }
+      { "name": "nightly-report", "cron": "0 3 * * *", "prompt": "docs/nightly-report.md", "model": "claude-opus-5" }
     ]
   }
 }
@@ -549,7 +550,6 @@ the provider.
   Add saves the provider and shows it beside the list. A refusal stays in the dialog with the reason; Cancel closes
   it, and it opens empty at the first step again. The old address of the Add page (`/settings/providers/new`) leads
   to the Providers tab.
-
 - **The chosen provider.** Beside the list: the name with the version and **Remove**, which asks first; then the
   four tabs. Config has one form with the display name and the runtime fields, with Save and Cancel; Usage has the
   login (see Status) and the usage; Models and Installation have the readings made when they are opened. Save shows its pending label while it saves; a refusal is written in the
@@ -582,7 +582,7 @@ the provider.
   (the e-mail and the plan where the tool reports them) or that it is not logged in, and, where the tool reports it,
   the date the login ends (Claude Code does). For a provider that is not logged in the page gives the command that logs
   it in, with its folder filled in (`CLAUDE_CONFIG_DIR=~/.claude-2 claude auth login`, `CODEX_HOME=~/.codex-p codex
-login`, `opencode auth login`). A login that could not be read says so and asks to open the page again; it is never
+  login`, `opencode auth login`). A login that could not be read says so and asks to open the page again; it is never
   shown as not logged in.
 - **Read as a step would meet it.** The status is read when Settings opens on its Providers tab (for the rows) and when
   a provider's page opens, and no other tab reads anything. The board's own process reads it, with the provider's folder in the environment, so it is what a

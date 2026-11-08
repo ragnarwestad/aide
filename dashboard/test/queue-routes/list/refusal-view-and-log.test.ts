@@ -16,9 +16,7 @@ describe("a refusal names its spec and reaches the log", () => {
 
   /** `console.error` for the duration of one test. serve.log is both
    *  streams of the same launchd job, so the call IS the log line. */
-  async function capturingLog<T>(
-    fn: () => Promise<T>,
-  ): Promise<{ result: T; lines: string[] }> {
+  async function capturingLog<T>(fn: () => Promise<T>): Promise<{ result: T; lines: string[] }> {
     const lines: string[] = [];
     const original = console.error;
     console.error = (...args: unknown[]) => {
@@ -44,11 +42,7 @@ describe("a refusal names its spec and reaches the log", () => {
         method: "POST",
         redirect: "manual",
         headers: FORM,
-        body: new URLSearchParams({
-          project: "aide",
-          specFolder: "81-queue-and-runner",
-          steps: "nonsense",
-        }),
+        body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "nonsense" }),
       }),
     );
     expect(res.status).toBe(400);
@@ -65,10 +59,7 @@ describe("a refusal names its spec and reaches the log", () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-      },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ ...JOB, steps: ["nonsense"] }),
     });
     expect(res.status).toBe(400);

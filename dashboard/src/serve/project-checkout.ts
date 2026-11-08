@@ -10,18 +10,12 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { projectCheckout } from "../git/branch-status.ts";
-import {
-  dashboardCheckoutRoot,
-  type DashboardCheckout,
-} from "../git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import { resolveCodeLanding, type CodeLanding } from "../project/discover";
 import type { Job } from "../queue/queue.ts";
 import type { ScheduleStore } from "../queue/schedule-store.ts";
 import type { SpecTarget } from "../render";
-import {
-  clearCheckoutFault,
-  setCheckoutFault,
-} from "../render/ui/checkout-faults.ts";
+import { clearCheckoutFault, setCheckoutFault } from "../render/ui/checkout-faults.ts";
 
 export interface ProjectCheckoutContext {
   queueProjectRoot: string | undefined;
@@ -33,10 +27,8 @@ export interface ProjectCheckoutContext {
   readScan: () => { specsRoots: Map<string, string> } | null;
 }
 
-export const displayProjectDir = (
-  ctx: ProjectCheckoutContext,
-  project: string,
-) => projectCheckout(ctx.queueProjectRoot, project);
+export const displayProjectDir = (ctx: ProjectCheckoutContext, project: string) =>
+  projectCheckout(ctx.queueProjectRoot, project);
 
 /** Whether this project's archived code merges into its default branch
  *  or waits for a pull request, read fresh off the
@@ -51,24 +43,16 @@ export const displayProjectDir = (
  *  Save and its Update the day this ships. `ensureCheckout` is what
  *  moves it over, and the readiness check is where a clone that cannot
  *  be made is reported by name. */
-export function machineryProjectDir(
-  ctx: ProjectCheckoutContext,
-  project: string,
-): string {
+export function machineryProjectDir(ctx: ProjectCheckoutContext, project: string): string {
   const owned = dashboardCheckoutRoot(ctx.checkoutBase, project);
-  return existsSync(join(owned, ".git"))
-    ? owned
-    : displayProjectDir(ctx, project);
+  return existsSync(join(owned, ".git")) ? owned : displayProjectDir(ctx, project);
 }
 
 /** Read per call rather than cached: it is one small YAML file, the
  *  same cost class as the `4-status.md` reads `targets()` already does
  *  per spec, and an operator changing the choice on the settings page
  *  should see the next job honour it rather than the next restart. */
-export function codeLanding(
-  ctx: ProjectCheckoutContext,
-  project: string,
-): CodeLanding {
+export function codeLanding(ctx: ProjectCheckoutContext, project: string): CodeLanding {
   return resolveCodeLanding(machineryProjectDir(ctx, project));
 }
 
@@ -80,50 +64,31 @@ export function codeLanding(
  *  schedule job whose entry has since been removed: `aide-run-spec` refuses by name when
  *  `--prompt-file` is missing or the file is gone, rather than this
  *  guessing at one. */
-export function promptFileFor(
-  ctx: ProjectCheckoutContext,
-  job: Job,
-  step: string,
-): string | undefined {
+export function promptFileFor(ctx: ProjectCheckoutContext, job: Job, step: string): string | undefined {
   if (step !== "schedule") return undefined;
   if (!job.specFolder.startsWith("schedule-")) return undefined;
   const name = job.specFolder.slice("schedule-".length);
-  return ctx.scheduleStore.list(job.project).find((e) => e.name === name)
-    ?.prompt;
+  return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.prompt;
 }
 
 /** Whether a `schedule` step starts Claude with the logged-in Chrome:
  *  its entry's own `chrome`, read fresh at spawn time like the prompt
  *  path above. False for every other step, and for an entry since removed. */
-export function chromeFor(
-  ctx: ProjectCheckoutContext,
-  job: Job,
-  step: string,
-): boolean {
+export function chromeFor(ctx: ProjectCheckoutContext, job: Job, step: string): boolean {
   if (step !== "schedule") return false;
   if (!job.specFolder.startsWith("schedule-")) return false;
   const name = job.specFolder.slice("schedule-".length);
-  return (
-    ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.chrome ===
-    true
-  );
+  return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.chrome === true;
 }
 
 /** Whether a `schedule` step runs Claude without its sandbox: its entry's
  *  own `sandbox: false`, read fresh at spawn time like `chrome` above.
  *  False for every other step, and for an entry since removed. */
-export function noSandboxFor(
-  ctx: ProjectCheckoutContext,
-  job: Job,
-  step: string,
-): boolean {
+export function noSandboxFor(ctx: ProjectCheckoutContext, job: Job, step: string): boolean {
   if (step !== "schedule") return false;
   if (!job.specFolder.startsWith("schedule-")) return false;
   const name = job.specFolder.slice("schedule-".length);
-  return (
-    ctx.scheduleStore.list(job.project).find((e) => e.name === name)
-      ?.sandbox === false
-  );
+  return ctx.scheduleStore.list(job.project).find((e) => e.name === name)?.sandbox === false;
 }
 
 /** Where a project's spec folders are LISTED from: the
@@ -142,20 +107,14 @@ export function noSandboxFor(
  *  other: the `fs.watch` loop watches the person's own checkout for
  *  local edits and must go on watching it, and `refreshDrift` reads
  *  nothing off the walk but `p.name`. */
-export function ownedSpecsRoot(
-  ctx: ProjectCheckoutContext,
-  project: string,
-): string | undefined {
+export function ownedSpecsRoot(ctx: ProjectCheckoutContext, project: string): string | undefined {
   return ctx.resolvedCheckouts.get(project)?.specs;
 }
 
 /** The specs root the machinery works in: the dashboard's own once it
  *  has one, and otherwise the scan's answer — the person's, which is
  *  the root everything used before this spec. */
-export function machinerySpecsRoot(
-  ctx: ProjectCheckoutContext,
-  project: string,
-): string | undefined {
+export function machinerySpecsRoot(ctx: ProjectCheckoutContext, project: string): string | undefined {
   const owned = ctx.resolvedCheckouts.get(project);
   if (owned) return owned.specs;
   ctx.targets();

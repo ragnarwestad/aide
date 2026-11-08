@@ -6,21 +6,10 @@
 // Add and on a save, before anything is written or cloned.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  addProject,
-  specsPathError,
-  updateProjectSettings,
-} from "../../../src/project/project-admin";
+import { addProject, specsPathError, updateProjectSettings } from "../../../src/project/project-admin";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];
@@ -35,22 +24,18 @@ afterEach(() => {
 });
 
 describe("the rule", () => {
-  test.each([
-    ["aide-specs/claude-plattform"],
-    ["./specs"],
-    ["../aide-specs/x"],
-    ["~/develop/aide-specs/x"],
-  ])("%p is refused, and the refusal says what to write instead", (value) => {
-    const error = specsPathError(value);
-    expect(error).toContain("full path");
-    expect(error).toContain(value);
-    expect(error).toContain("/Users/<you>/develop/aide-specs/<project>");
-  });
+  test.each([["aide-specs/claude-plattform"], ["./specs"], ["../aide-specs/x"], ["~/develop/aide-specs/x"]])(
+    "%p is refused, and the refusal says what to write instead",
+    (value) => {
+      const error = specsPathError(value);
+      expect(error).toContain("full path");
+      expect(error).toContain(value);
+      expect(error).toContain("/Users/<you>/develop/aide-specs/<project>");
+    },
+  );
 
   test("a full path passes, and so does an empty value, which clears the setting", () => {
-    expect(
-      specsPathError("/Users/someone/develop/aide-specs/claude-plattform"),
-    ).toBeNull();
+    expect(specsPathError("/Users/someone/develop/aide-specs/claude-plattform")).toBeNull();
     expect(specsPathError("")).toBeNull();
   });
 });
@@ -72,9 +57,7 @@ describe("Add refuses it before anything is cloned", () => {
     expect(existsSync(join(projectsRoot, "claude-plattform"))).toBe(false);
     // The folder a relative path would have made, read from this
     // process's own directory.
-    expect(
-      existsSync(join(process.cwd(), "aide-specs", "claude-plattform")),
-    ).toBe(false);
+    expect(existsSync(join(process.cwd(), "aide-specs", "claude-plattform"))).toBe(false);
   });
 });
 
@@ -82,24 +65,12 @@ describe("a save refuses it before either file is written", () => {
   test("the config keeps its old value, and no folder is made", async () => {
     const dir = join(root(), "claude-plattform");
     mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(
-      join(dir, ".aide", "project.yaml"),
-      "name: claude-plattform\n",
-    );
-    writeFileSync(
-      join(dir, ".aide", "config"),
-      "AIDE_SPECS_PATH=/somewhere/claude-plattform\n",
-    );
-    const result = await updateProjectSettings(fakeGit({}).run, dir, {
-      specsPath: "aide-specs/claude-plattform",
-    });
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: claude-plattform\n");
+    writeFileSync(join(dir, ".aide", "config"), "AIDE_SPECS_PATH=/somewhere/claude-plattform\n");
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { specsPath: "aide-specs/claude-plattform" });
     expect(result.ok).toBe(false);
     expect(result.steps.at(-1)!.error).toContain("full path");
-    expect(readFileSync(join(dir, ".aide", "config"), "utf-8")).toBe(
-      "AIDE_SPECS_PATH=/somewhere/claude-plattform\n",
-    );
-    expect(
-      existsSync(join(process.cwd(), "aide-specs", "claude-plattform")),
-    ).toBe(false);
+    expect(readFileSync(join(dir, ".aide", "config"), "utf-8")).toBe("AIDE_SPECS_PATH=/somewhere/claude-plattform\n");
+    expect(existsSync(join(process.cwd(), "aide-specs", "claude-plattform"))).toBe(false);
   });
 });

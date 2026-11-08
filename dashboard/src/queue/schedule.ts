@@ -60,13 +60,11 @@ export interface ScheduleEntry {
 
 /** What the form posts for the browser choice: `yes` asks for Chrome,
  *  `no` clears it. */
-export const isScheduleChrome = (v: unknown): v is "yes" | "no" =>
-  v === "yes" || v === "no";
+export const isScheduleChrome = (v: unknown): v is "yes" | "no" => v === "yes" || v === "no";
 
 /** What the form posts for the sandbox choice: `on` keeps it, `off` runs
  *  without it. */
-export const isScheduleSandbox = (v: unknown): v is "on" | "off" =>
-  v === "on" || v === "off";
+export const isScheduleSandbox = (v: unknown): v is "on" | "off" => v === "on" || v === "off";
 
 /** When a scheduled job's run sends a push: never, when the run did not
  *  succeed (`failed`, `stopped` or `interrupted`), or every run. */
@@ -76,9 +74,8 @@ export type ScheduleNotify = (typeof SCHEDULE_NOTIFY)[number];
 export const DEFAULT_SCHEDULE_NOTIFY: ScheduleNotify = "failure";
 /** The one place the default is applied: the observer, the form and the
  *  store's readers all ask here. */
-export const scheduleNotifyOf = (
-  entry: Pick<ScheduleEntry, "notify">,
-): ScheduleNotify => entry.notify ?? DEFAULT_SCHEDULE_NOTIFY;
+export const scheduleNotifyOf = (entry: Pick<ScheduleEntry, "notify">): ScheduleNotify =>
+  entry.notify ?? DEFAULT_SCHEDULE_NOTIFY;
 export const isScheduleNotify = (v: unknown): v is ScheduleNotify =>
   typeof v === "string" && (SCHEDULE_NOTIFY as readonly string[]).includes(v);
 
@@ -89,12 +86,7 @@ export const isScheduleNotify = (v: unknown): v is ScheduleNotify =>
  *  going to exist as for one that does (the entry is dropped when the
  *  store reads it, before anything else looks at it). */
 export function escapesRoot(path: string): boolean {
-  if (
-    path.startsWith("/") ||
-    path.startsWith("\\") ||
-    /^[A-Za-z]:[\\/]/.test(path)
-  )
-    return true;
+  if (path.startsWith("/") || path.startsWith("\\") || /^[A-Za-z]:[\\/]/.test(path)) return true;
   const normalized = normalizePath(path).replace(/\\/g, "/");
   return normalized === ".." || normalized.startsWith("../");
 }
@@ -107,8 +99,7 @@ export const scheduleTrackingKey = (name: string): string => `schedule-${name}`;
 
 /** The entry name inside a scheduled job's tracking key: the inverse of
  *  `scheduleTrackingKey`. */
-export const scheduleNameOf = (key: string): string =>
-  key.slice("schedule-".length);
+export const scheduleNameOf = (key: string): string => key.slice("schedule-".length);
 
 /** The most recent time `cron` was due at or before `now`, or `null` for
  *  a `cron` string that does not parse — which, since the store
@@ -116,9 +107,7 @@ export const scheduleNameOf = (key: string): string =>
  *  is asked to check some other way (a test, a future caller). */
 export function mostRecentFireTime(cron: string, now: Date): Date | null {
   try {
-    return CronExpressionParser.parse(cron, { currentDate: now })
-      .prev()
-      .toDate();
+    return CronExpressionParser.parse(cron, { currentDate: now }).prev().toDate();
   } catch {
     return null;
   }
@@ -129,9 +118,7 @@ export function mostRecentFireTime(cron: string, now: Date): Date | null {
  *  entry's next run. */
 export function nextFireTime(cron: string, now: Date): Date | null {
   try {
-    return CronExpressionParser.parse(cron, { currentDate: now })
-      .next()
-      .toDate();
+    return CronExpressionParser.parse(cron, { currentDate: now }).next().toDate();
   } catch {
     return null;
   }
@@ -165,11 +152,7 @@ export interface ScheduleJobRef {
  *  so without it a cron whose most recent fire already lies in the past
  *  reads as due the instant the entry is saved. An entry with no
  *  `since` — every hand-written one — computes exactly as before. */
-export function isDue(
-  entry: ScheduleEntry,
-  now: Date,
-  jobs: readonly ScheduleJobRef[],
-): boolean {
+export function isDue(entry: ScheduleEntry, now: Date, jobs: readonly ScheduleJobRef[]): boolean {
   if (!entry.enabled) return false;
   const fire = mostRecentFireTime(entry.cron, now);
   if (!fire) return false;
@@ -177,11 +160,7 @@ export function isDue(
   const since = Date.parse(entry.since ?? "") || -Infinity;
   const newest = jobs
     .filter((j) => j.specFolder === key)
-    .reduce(
-      (latest, j) =>
-        Math.max(latest, Date.parse(j.startedAt ?? j.createdAt) || 0),
-      since,
-    );
+    .reduce((latest, j) => Math.max(latest, Date.parse(j.startedAt ?? j.createdAt) || 0), since);
   return fire.getTime() > newest;
 }
 
@@ -189,22 +168,13 @@ export function isDue(
  *  survives past the run — keyed on the same (project, tracking key)
  *  identity `scheduleTrackingKey` already uses, so the URL a reader
  *  bookmarks never moves between runs. */
-export const DEFAULT_SCHEDULE_OUTPUT_ROOT = join(
-  homedir(),
-  ".aide",
-  "dashboard",
-  "schedule-output",
-);
+export const DEFAULT_SCHEDULE_OUTPUT_ROOT = join(homedir(), ".aide", "dashboard", "schedule-output");
 
 /** The one function both the write side (`runner-setup.ts`'s spawn) and
  *  the read side (the serving route, the Schedule page) import — never a
  *  second implementation of the join, the exact hand-paired-pair failure
  *  mode `dashboard/CLAUDE.md` already names six instances of. */
-export function scheduleOutputDir(
-  root: string,
-  project: string,
-  specFolder: string,
-): string {
+export function scheduleOutputDir(root: string, project: string, specFolder: string): string {
   return join(root, project, specFolder);
 }
 
@@ -212,12 +182,7 @@ export function scheduleOutputDir(
  *  entry's, named by the job id. An earlier run's report survives the
  *  next run, and a directory that starts empty means "no `index.html`"
  *  is "this run wrote none". */
-export function scheduleRunOutputDir(
-  root: string,
-  project: string,
-  specFolder: string,
-  jobId: string,
-): string {
+export function scheduleRunOutputDir(root: string, project: string, specFolder: string, jobId: string): string {
   return join(scheduleOutputDir(root, project, specFolder), "runs", jobId);
 }
 
@@ -226,26 +191,13 @@ export function scheduleRunOutputDir(
  *  empty tags all say nothing. */
 function hasContent(html: string): boolean {
   if (/<img\b/i.test(html)) return true;
-  return (
-    html
-      .replace(/<[^>]*>/g, "")
-      .replace(/&nbsp;/gi, " ")
-      .trim() !== ""
-  );
+  return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/gi, " ").trim() !== "";
 }
 
 /** The one function that says a run "wrote a report": the run's own
  *  `index.html`, or `null` when it is missing or blank. */
-export function readScheduleRunReport(
-  root: string,
-  project: string,
-  specFolder: string,
-  jobId: string,
-): string | null {
-  const file = join(
-    scheduleRunOutputDir(root, project, specFolder, jobId),
-    "index.html",
-  );
+export function readScheduleRunReport(root: string, project: string, specFolder: string, jobId: string): string | null {
+  const file = join(scheduleRunOutputDir(root, project, specFolder, jobId), "index.html");
   if (!existsSync(file)) return null;
   try {
     const html = readFileSync(file, "utf-8");

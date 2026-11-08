@@ -1,18 +1,10 @@
 // The scanner behind the HTTP-routes guard, on small fixture strings. The
 // real tree against the real page is http-routes-page.test.ts.
 import { describe, expect, test } from "bun:test";
-import {
-  compareRoutes,
-  routesOnPage,
-  scanSource,
-  type PageRoute,
-  type SourceRoute,
-} from "../helpers/route-scan";
+import { compareRoutes, routesOnPage, scanSource, type PageRoute, type SourceRoute } from "../helpers/route-scan";
 
-const scan = (
-  text: string,
-  constants: Record<string, string> = {},
-): SourceRoute[] => scanSource({ "fixture.ts": text }, constants);
+const scan = (text: string, constants: Record<string, string> = {}): SourceRoute[] =>
+  scanSource({ "fixture.ts": text }, constants);
 
 const row = (method: string, path: string): PageRoute => ({
   method,
@@ -28,16 +20,12 @@ const NOT_ALLOWED = `return new Response("method not allowed", { status: 405 });
 describe("scanSource reads the ways a route is matched", () => {
   test("a literal path with the method its block checks", () => {
     const src = `if (path === "/api/queue/archive") {\n  if (req.method !== "POST") ${NOT_ALLOWED}\n}`;
-    expect(scan(src)).toEqual([
-      { path: "/api/queue/archive", methods: ["POST"] },
-    ]);
+    expect(scan(src)).toEqual([{ path: "/api/queue/archive", methods: ["POST"] }]);
   });
 
   test("a path held in an exported constant", () => {
     const src = `if (path === FOO_ROUTE) {\n  if (req.method !== "GET") ${NOT_ALLOWED}\n}`;
-    expect(scan(src, { FOO_ROUTE: "/foo" })).toEqual([
-      { path: "/foo", methods: ["GET"] },
-    ]);
+    expect(scan(src, { FOO_ROUTE: "/foo" })).toEqual([{ path: "/foo", methods: ["GET"] }]);
   });
 
   test("a path held in a constant local to the file", () => {
@@ -46,36 +34,26 @@ describe("scanSource reads the ways a route is matched", () => {
   });
 
   test("a constant it cannot resolve throws instead of being skipped", () => {
-    expect(() => scan(`if (path === NOWHERE_ROUTE) return null;`)).toThrow(
-      /NOWHERE_ROUTE/,
-    );
+    expect(() => scan(`if (path === NOWHERE_ROUTE) return null;`)).toThrow(/NOWHERE_ROUTE/);
   });
 
   test("a startsWith prefix becomes a wildcard path", () => {
-    expect(scan(`if (path.startsWith("/queue/")) return redirect();`)).toEqual([
-      { path: "/queue/*", methods: [] },
-    ]);
+    expect(scan(`if (path.startsWith("/queue/")) return redirect();`)).toEqual([{ path: "/queue/*", methods: [] }]);
   });
 
   test("an inline regex, every capture a wildcard", () => {
     const src = `const m = path.match(/^\\/api\\/queue\\/([A-Za-z0-9-]+)\\/cancel$/);\nif (m) {\n  if (req.method !== "POST") ${NOT_ALLOWED}\n}`;
-    expect(scan(src)).toEqual([
-      { path: "/api/queue/*/cancel", methods: ["POST"] },
-    ]);
+    expect(scan(src)).toEqual([{ path: "/api/queue/*/cancel", methods: ["POST"] }]);
   });
 
   test("a capture holding a slash inside its class stays one wildcard", () => {
     const src = `const m = path.match(/^\\/projects\\/([^/]+)\\/remove$/);\nif (m) {\n  if (req.method !== "GET") ${NOT_ALLOWED}\n}`;
-    expect(scan(src)).toEqual([
-      { path: "/projects/*/remove", methods: ["GET"] },
-    ]);
+    expect(scan(src)).toEqual([{ path: "/projects/*/remove", methods: ["GET"] }]);
   });
 
   test("a named regex used through exec", () => {
     const src = `const DISMISS = /^\\/api\\/x\\/([^/]+)\\/dismiss$/;\nconst m = DISMISS.exec(path);\nif (!m) return null;\nif (req.method !== "POST") ${NOT_ALLOWED}`;
-    expect(scan(src)).toEqual([
-      { path: "/api/x/*/dismiss", methods: ["POST"] },
-    ]);
+    expect(scan(src)).toEqual([{ path: "/api/x/*/dismiss", methods: ["POST"] }]);
   });
 
   test("a regex alternation gives one path per alternative", () => {
@@ -90,9 +68,7 @@ describe("scanSource reads the ways a route is matched", () => {
 describe("scanSource reads the methods of a path", () => {
   test("GET then POST gives both", () => {
     const src = `if (path === "/api/queue") {\n  if (req.method === "GET") {\n    return json({});\n  }\n  if (req.method !== "POST") ${NOT_ALLOWED}\n}`;
-    expect(scan(src)).toEqual([
-      { path: "/api/queue", methods: ["GET", "POST"] },
-    ]);
+    expect(scan(src)).toEqual([{ path: "/api/queue", methods: ["GET", "POST"] }]);
   });
 
   test("two paths in one condition share the block after them", () => {
@@ -128,14 +104,7 @@ describe("routesOnPage reads the table rows", () => {
 
   test("a row is a first cell of method and path, query string kept", () => {
     expect(routesOnPage(page)).toEqual([
-      {
-        method: "GET",
-        path: "/api/queue",
-        kind: "read",
-        takes: "nothing",
-        answers: "jobs",
-        madeFor: "interface",
-      },
+      { method: "GET", path: "/api/queue", kind: "read", takes: "nothing", answers: "jobs", madeFor: "interface" },
       {
         method: "GET",
         path: "/specs/<project>/<spec>?startTestServer=1",
@@ -149,68 +118,42 @@ describe("routesOnPage reads the table rows", () => {
 });
 
 describe("compareRoutes", () => {
-  const archive: SourceRoute[] = [
-    { path: "/api/queue/archive", methods: ["POST"] },
-  ];
+  const archive: SourceRoute[] = [{ path: "/api/queue/archive", methods: ["POST"] }];
 
   test("a route with no row is named as missing, and has no gap once it has one", () => {
-    expect(compareRoutes(archive, []).missingRows).toEqual([
-      "POST /api/queue/archive",
-    ]);
-    expect(compareRoutes(archive, [row("POST", "/api/queue/archive")])).toEqual(
-      {
-        missingRows: [],
-        unknownRows: [],
-        wrongMethod: [],
-      },
-    );
+    expect(compareRoutes(archive, []).missingRows).toEqual(["POST /api/queue/archive"]);
+    expect(compareRoutes(archive, [row("POST", "/api/queue/archive")])).toEqual({
+      missingRows: [],
+      unknownRows: [],
+      wrongMethod: [],
+    });
   });
 
   test("a method the source states, with only the other method's row, is missing", () => {
-    const both: SourceRoute[] = [
-      { path: "/api/queue", methods: ["GET", "POST"] },
-    ];
-    expect(compareRoutes(both, [row("GET", "/api/queue")]).missingRows).toEqual(
-      ["POST /api/queue"],
-    );
+    const both: SourceRoute[] = [{ path: "/api/queue", methods: ["GET", "POST"] }];
+    expect(compareRoutes(both, [row("GET", "/api/queue")]).missingRows).toEqual(["POST /api/queue"]);
   });
 
   test("a row with no route behind it is unknown", () => {
-    expect(
-      compareRoutes(archive, [row("POST", "/api/queue/<id>/archive")])
-        .unknownRows,
-    ).toEqual(["POST /api/queue/<id>/archive"]);
+    expect(compareRoutes(archive, [row("POST", "/api/queue/<id>/archive")]).unknownRows).toEqual([
+      "POST /api/queue/<id>/archive",
+    ]);
   });
 
   test("a row whose method the source does not state is a wrong method", () => {
-    const create: SourceRoute[] = [
-      { path: "/api/queue/create", methods: ["POST"] },
-    ];
-    expect(
-      compareRoutes(create, [row("GET", "/api/queue/create")]).wrongMethod,
-    ).toEqual(["GET /api/queue/create"]);
+    const create: SourceRoute[] = [{ path: "/api/queue/create", methods: ["POST"] }];
+    expect(compareRoutes(create, [row("GET", "/api/queue/create")]).wrongMethod).toEqual(["GET /api/queue/create"]);
   });
 
   test("a path whose source states no method accepts a row with any method", () => {
     const any: SourceRoute[] = [{ path: "/queue", methods: [] }];
-    expect(compareRoutes(any, [row("GET", "/queue")])).toEqual({
-      missingRows: [],
-      unknownRows: [],
-      wrongMethod: [],
-    });
+    expect(compareRoutes(any, [row("GET", "/queue")])).toEqual({ missingRows: [], unknownRows: [], wrongMethod: [] });
   });
 
   test("a query string on a row is dropped before it is matched", () => {
     const spec: SourceRoute[] = [{ path: "/specs/*/*", methods: ["GET"] }];
-    const rows = [
-      row("GET", "/specs/<project>/<spec>"),
-      row("GET", "/specs/<project>/<spec>?startTestServer=1"),
-    ];
-    expect(compareRoutes(spec, rows)).toEqual({
-      missingRows: [],
-      unknownRows: [],
-      wrongMethod: [],
-    });
+    const rows = [row("GET", "/specs/<project>/<spec>"), row("GET", "/specs/<project>/<spec>?startTestServer=1")];
+    expect(compareRoutes(spec, rows)).toEqual({ missingRows: [], unknownRows: [], wrongMethod: [] });
   });
 
   test("the fallback row GET /<file> is the one row with no handler to find", () => {

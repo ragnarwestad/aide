@@ -1,6 +1,10 @@
 {
   "title": "An archive that moves nothing",
-  "steps": ["analyze", "implement", "archive"],
+  "steps": [
+    "analyze",
+    "implement",
+    "archive"
+  ],
   "expected": "not-archived",
   "expect": {
     "state": "failed",

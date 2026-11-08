@@ -12,70 +12,32 @@ import type { Language } from "../i18n";
  *  that every `WORKFLOW_STEPS` member is in the Norwegian one, so an
  *  omission fails `make test` rather than surfacing on the board. */
 export const STEP_LABELS: Record<string, string> = {
-  create: "Create",
-  analyze: "Analyze",
-  implement: "Implement",
-  archive: "Archive",
-  explore: "Explore",
-  reopen: "Reopen",
-  reset: "Reset",
-  schedule: "Schedule",
-  close: "Close",
-  deploy: "Deploy",
+  create: "Create", analyze: "Analyze", implement: "Implement", archive: "Archive",
+  explore: "Explore", reopen: "Reopen", reset: "Reset",
+  schedule: "Schedule", close: "Close", deploy: "Deploy",
 };
 export const STEP_LABELS_NB: Record<string, string> = {
-  create: "Opprett",
-  analyze: "Analyser",
-  implement: "Implementer",
-  archive: "Arkiver",
-  explore: "Utforsk",
-  reopen: "Gjenåpne",
-  reset: "Tilbakestill",
-  schedule: "Kjøring",
-  close: "Lukk",
-  deploy: "Deploy",
+  create: "Opprett", analyze: "Analyser", implement: "Implementer", archive: "Arkiver",
+  explore: "Utforsk", reopen: "Gjenåpne", reset: "Tilbakestill",
+  schedule: "Kjøring", close: "Lukk", deploy: "Deploy",
 };
 export const STEP_LABELS_ES: Record<string, string> = {
-  create: "Crear",
-  analyze: "Analizar",
-  implement: "Implementar",
-  archive: "Archivar",
-  explore: "Explorar",
-  reopen: "Reabrir",
-  reset: "Restablecer",
-  schedule: "Programación",
-  close: "Cerrar",
-  deploy: "Despliegue",
+  create: "Crear", analyze: "Analizar", implement: "Implementar", archive: "Archivar",
+  explore: "Explorar", reopen: "Reabrir", reset: "Restablecer",
+  schedule: "Programación", close: "Cerrar", deploy: "Despliegue",
 };
 export const STEP_LABELS_DE: Record<string, string> = {
-  create: "Erstellen",
-  analyze: "Analysieren",
-  implement: "Implementieren",
-  archive: "Archivieren",
-  explore: "Erkunden",
-  reopen: "Wiedereröffnen",
-  reset: "Zurücksetzen",
-  schedule: "Zeitplan",
-  close: "Schließen",
-  deploy: "Deploy",
+  create: "Erstellen", analyze: "Analysieren", implement: "Implementieren", archive: "Archivieren",
+  explore: "Erkunden", reopen: "Wiedereröffnen", reset: "Zurücksetzen",
+  schedule: "Zeitplan", close: "Schließen", deploy: "Deploy",
 };
 export const STEP_LABELS_FR: Record<string, string> = {
-  create: "Créer",
-  analyze: "Analyser",
-  implement: "Implémenter",
-  archive: "Archiver",
-  explore: "Explorer",
-  reopen: "Rouvrir",
-  reset: "Réinitialiser",
-  schedule: "Planification",
-  close: "Fermer",
-  deploy: "Déploiement",
+  create: "Créer", analyze: "Analyser", implement: "Implémenter", archive: "Archiver",
+  explore: "Explorer", reopen: "Rouvrir", reset: "Réinitialiser",
+  schedule: "Planification", close: "Fermer", deploy: "Déploiement",
 };
 const STEP_LABEL_TABLES: Partial<Record<Language, Record<string, string>>> = {
-  nb: STEP_LABELS_NB,
-  es: STEP_LABELS_ES,
-  de: STEP_LABELS_DE,
-  fr: STEP_LABELS_FR,
+  nb: STEP_LABELS_NB, es: STEP_LABELS_ES, de: STEP_LABELS_DE, fr: STEP_LABELS_FR,
 };
 
 export const stepLabel = (step: string, lang: Language = "en"): string =>
@@ -84,5 +46,4 @@ export const stepLabel = (step: string, lang: Language = "en"): string =>
 /** The word on the row's own button for a step, in English whatever the
  *  language, because the button is. A scheduled job starts with Run now;
  *  every spec step uses its phase label. */
-export const stepButton = (step: string): string =>
-  step === "schedule" ? "Run now" : stepLabel(step);
+export const stepButton = (step: string): string => step === "schedule" ? "Run now" : stepLabel(step);

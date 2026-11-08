@@ -6,12 +6,7 @@
 // `#jobrows`.
 
 import { isThisPage, type Here } from "./back-link";
-import {
-  postForm,
-  refusalText,
-  writeLine,
-  type ActionResult,
-} from "./press.ts";
+import { postForm, refusalText, writeLine, type ActionResult } from "./press.ts";
 import { swapPage } from "./page-swap";
 
 /** The Enabled checkbox on a list row: no form, no confirm — the tick
@@ -20,20 +15,14 @@ import { swapPage } from "./page-swap";
  *  while the request is out; put back to its old value on a refusal,
  *  left alone on success since the box already shows what was asked
  *  for. */
-export async function postScheduleEnabled(
-  box: HTMLInputElement,
-  fetchImpl: typeof fetch = fetch,
-): Promise<void> {
+export async function postScheduleEnabled(box: HTMLInputElement, fetchImpl: typeof fetch = fetch): Promise<void> {
   const to = box.getAttribute("data-post-to") ?? "";
   const wanted = box.checked;
   box.disabled = true;
   try {
     const res = await fetchImpl(to, {
       method: "POST",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-      },
+      headers: { accept: "application/json", "content-type": "application/json" },
       body: JSON.stringify({ enabled: wanted ? "1" : "0" }),
     });
     if (!res.ok) box.checked = !wanted;
@@ -49,21 +38,13 @@ export async function postScheduleEnabled(
  *  or running. A refusal, or a request that did not get through, is
  *  written into the page's `.refused` slot, and the next
  *  accepted press empties it again. */
-export async function postScheduleRun(
-  form: HTMLFormElement,
-  fetchImpl: typeof fetch = fetch,
-): Promise<void> {
+export async function postScheduleRun(form: HTMLFormElement, fetchImpl: typeof fetch = fetch): Promise<void> {
   const button = form.querySelector("button") as HTMLButtonElement | null;
-  const slot = form
-    .closest("main")
-    ?.querySelector(".refused") as HTMLElement | null;
+  const slot = form.closest("main")?.querySelector(".refused") as HTMLElement | null;
   const say = (text: string): void => writeLine(slot, text);
   if (button) button.disabled = true;
   try {
-    const res = await fetchImpl(form.action, {
-      method: "POST",
-      headers: { accept: "application/json" },
-    });
+    const res = await fetchImpl(form.action, { method: "POST", headers: { accept: "application/json" } });
     const body = (await res.json().catch(() => null)) as ActionResult | null;
     if (res.ok && body?.ok) {
       say("");
@@ -135,18 +116,12 @@ const ROW_CONTROLS = "a, button, input, select, textarea, label, form, dialog";
  *  opens what the row's name links to (`data-row-href`). A click with a
  *  modifier key is left alone, so the name link still opens a new tab.
  *  Answers where it went, or null. */
-export function followScheduleRow(
-  event: MouseEvent,
-  go: (href: string) => void,
-): string | null {
+export function followScheduleRow(event: MouseEvent, go: (href: string) => void): string | null {
   if (event.defaultPrevented || event.button !== 0) return null;
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
-    return null;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return null;
   const target = event.target as Element | null;
   if (!target?.closest || target.closest(ROW_CONTROLS)) return null;
-  const href = target
-    .closest("tr[data-row-href]")
-    ?.getAttribute("data-row-href");
+  const href = target.closest("tr[data-row-href]")?.getAttribute("data-row-href");
   if (!href) return null;
   go(href);
   return href;
@@ -171,20 +146,12 @@ export async function runCronPreview(
     return;
   }
   try {
-    const res = await fetchImpl(
-      `/api/queue/schedule/cron-next?cron=${encodeURIComponent(cron)}`,
-      {
-        headers: { accept: "application/json" },
-      },
-    );
-    const body = (await res.json().catch(() => null)) as {
-      next?: string;
-      error?: string;
-    } | null;
+    const res = await fetchImpl(`/api/queue/schedule/cron-next?cron=${encodeURIComponent(cron)}`, {
+      headers: { accept: "application/json" },
+    });
+    const body = (await res.json().catch(() => null)) as { next?: string; error?: string } | null;
     if (res.ok && body?.next) {
-      target.textContent = (
-        target.dataset?.template ?? "Next run: {at}"
-      ).replace("{at}", () => body.next!);
+      target.textContent = (target.dataset?.template ?? "Next run: {at}").replace("{at}", () => body.next!);
       target.classList.remove("err");
     } else {
       target.textContent = body?.error ?? "not a valid cron expression";

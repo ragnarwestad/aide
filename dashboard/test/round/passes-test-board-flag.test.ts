@@ -14,16 +14,7 @@
 // after — well before it would otherwise reach queuing the fixture
 // specs.
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import {
-  chmodSync,
-  existsSync,
-  mkdtempSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -39,15 +30,9 @@ function tmp(prefix: string): string {
 }
 
 function git(cwd: string, args: string[]): void {
-  const proc = Bun.spawnSync({
-    cmd: ["git", "-C", cwd, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+  const proc = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
   if (proc.exitCode !== 0) {
-    throw new Error(
-      `git ${args.join(" ")} in ${cwd} failed: ${proc.stderr.toString()}`,
-    );
+    throw new Error(`git ${args.join(" ")} in ${cwd} failed: ${proc.stderr.toString()}`);
   }
 }
 
@@ -56,11 +41,7 @@ afterEach(() => {
 });
 
 function decoyPort() {
-  const server = Bun.serve({
-    port: 0,
-    hostname: "127.0.0.1",
-    fetch: () => Response.json({ jobs: [] }),
-  });
+  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => Response.json({ jobs: [] }) });
   return { port: server.port, stop: () => server.stop(true) };
 }
 
@@ -84,13 +65,7 @@ const FAKE_BUN =
   `fi\n` +
   `exit 0\n`;
 function fakeBun(): string {
-  const binPath = join(
-    homedir(),
-    "Library",
-    "Caches",
-    "aide-tests",
-    "fake-bun",
-  );
+  const binPath = join(homedir(), "Library", "Caches", "aide-tests", "fake-bun");
   if (!existsSync(binPath) || readFileSync(binPath, "utf-8") !== FAKE_BUN) {
     mkdirSync(join(binPath, ".."), { recursive: true });
     const staged = `${binPath}.${process.pid}`;
@@ -119,17 +94,11 @@ function writeParseArgs(checkout: string, knowsTestBoard: boolean): void {
  *  or the server it started — named by the round's own temp checkout,
  *  which only it carries on its command line. */
 function leftovers(aide: string): string[] {
-  const ps = Bun.spawnSync({
-    cmd: ["ps", "-axo", "pid=,command="],
-    stdout: "pipe",
-  }).stdout.toString();
+  const ps = Bun.spawnSync({ cmd: ["ps", "-axo", "pid=,command="], stdout: "pipe" }).stdout.toString();
   return ps.split("\n").filter((l) => l.includes(aide));
 }
 
-async function runToExit(
-  args: string[],
-  env: Record<string, string>,
-): Promise<{ code: number }> {
+async function runToExit(args: string[], env: Record<string, string>): Promise<{ code: number }> {
   const proc = Bun.spawn({
     cmd: ["/bin/bash", RUN, ...args],
     stdout: "pipe",
@@ -150,33 +119,14 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
     mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "baseline",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
     git(seed, ["remote", "add", "origin", originBare]);
     git(seed, ["push", "-q", "origin", "main"]);
     git(seed, ["checkout", "-q", "-b", "424-headeren-sier-hvilket-board"]);
-    writeFileSync(
-      join(seed, "dashboard", "src", "serve", "serve.ts"),
-      "// board\n",
-    );
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// board\n");
     writeParseArgs(seed, true);
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "board work",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "board work"]);
     git(seed, ["push", "-q", "origin", "424-headeren-sier-hvilket-board"]);
 
     const aide = tmp("aide-round-aide-");
@@ -189,15 +139,7 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
     const decoy = decoyPort();
     try {
       const { code } = await runToExit(
-        [
-          aide,
-          "--branch",
-          "424-headeren-sier-hvilket-board",
-          "--port",
-          String(decoy.port),
-          "--timeout",
-          "5",
-        ],
+        [aide, "--branch", "424-headeren-sier-hvilket-board", "--port", String(decoy.port), "--timeout", "5"],
         { AIDE_ROUND_BUN: binPath, FAKE_BUN_LOG: logPath },
       );
       // The decoy's own port-already-held refusal — proof this test never
@@ -210,12 +152,8 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
       // hours, 2026-09-19).
       expect(leftovers(aide)).toEqual([]);
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
-      const serveLine = lines.find(
-        (l) => l.includes("src/serve/serve.ts") && l.includes("serve"),
-      );
-      expect(serveLine).toContain(
-        "--test-board 424-headeren-sier-hvilket-board",
-      );
+      const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
+      expect(serveLine).toContain("--test-board 424-headeren-sier-hvilket-board");
     } finally {
       await decoy.stop();
     }
@@ -233,33 +171,14 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
     mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "baseline",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
     git(seed, ["remote", "add", "origin", originBare]);
     git(seed, ["push", "-q", "origin", "main"]);
     git(seed, ["checkout", "-q", "-b", "426-older-branch"]);
-    writeFileSync(
-      join(seed, "dashboard", "src", "serve", "serve.ts"),
-      "// older\n",
-    );
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// older\n");
     writeParseArgs(seed, false);
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "older work",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "older work"]);
     git(seed, ["push", "-q", "origin", "426-older-branch"]);
     const aide = tmp("aide-round-aide-");
     git(tmpdir(), ["clone", "-q", originBare, aide]);
@@ -271,15 +190,7 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
     const decoy = decoyPort();
     try {
       await runToExit(
-        [
-          aide,
-          "--branch",
-          "426-older-branch",
-          "--port",
-          String(decoy.port),
-          "--timeout",
-          "5",
-        ],
+        [aide, "--branch", "426-older-branch", "--port", String(decoy.port), "--timeout", "5"],
         { AIDE_ROUND_BUN: binPath, FAKE_BUN_LOG: logPath },
       );
       // A round that ends leaves nothing of itself running: kept, each
@@ -287,9 +198,7 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
       // hours, 2026-09-19).
       expect(leftovers(aide)).toEqual([]);
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
-      const serveLine = lines.find(
-        (l) => l.includes("src/serve/serve.ts") && l.includes("serve"),
-      );
+      const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
       expect(serveLine).toBeDefined();
       for (const line of lines) expect(line).not.toContain("--test-board");
     } finally {
@@ -309,15 +218,7 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
     writeParseArgs(seed, true);
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "baseline",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
     git(seed, ["remote", "add", "origin", originBare]);
     git(seed, ["push", "-q", "origin", "main"]);
     const aide = tmp("aide-round-aide-");
@@ -338,9 +239,7 @@ describe("run passes --test-board to its serve.ts serve invocation", () => {
       // hours, 2026-09-19).
       expect(leftovers(aide)).toEqual([]);
       const lines = readFileSync(logPath, "utf-8").trim().split("\n");
-      const serveLine = lines.find(
-        (l) => l.includes("src/serve/serve.ts") && l.includes("serve"),
-      );
+      const serveLine = lines.find((l) => l.includes("src/serve/serve.ts") && l.includes("serve"));
       expect(serveLine).toContain(`--test-board ${aide.split("/").pop()}`);
     } finally {
       await decoy.stop();

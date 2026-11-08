@@ -10,15 +10,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { renderSpecsRows, type SpecTarget } from "../../../src/render";
-import {
-  withFreshness,
-  type LandContext,
-} from "../../../src/serve/land-branch";
-import {
-  targets,
-  type ScanState,
-  type SpecLookupContext,
-} from "../../../src/serve/spec-lookup.ts";
+import { withFreshness, type LandContext } from "../../../src/serve/land-branch";
+import { targets, type ScanState, type SpecLookupContext } from "../../../src/serve/spec-lookup.ts";
 import { openKeys, row } from "../../render/pages/fixtures.ts";
 
 const FOLDER = "480-transition";
@@ -39,10 +32,7 @@ function projectsRoot(): string {
   mkdirSync(join(project, ".aide"), { recursive: true });
   writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
   mkdirSync(specDir, { recursive: true });
-  writeFileSync(
-    join(specDir, "1-description.md"),
-    "# Transition - Description\n",
-  );
+  writeFileSync(join(specDir, "1-description.md"), "# Transition - Description\n");
   writeFileSync(
     join(specDir, "4-status.md"),
     "# Transition - Status\n\n## Tracking info\n\n- **Workflow steps completed:** create, analyze\n",
@@ -79,9 +69,7 @@ const landCtx = (historyAt: number): LandContext =>
     },
     specCreatedAt: { peekCreatedAt: () => ({ createdAt: null, checkedAt: 1 }) },
     freshness: { peekStale: () => ({ stale: false }) },
-    branchFileSteps: {
-      peekFileSteps: () => ({ steps: null, checkedAt: null }),
-    },
+    branchFileSteps: { peekFileSteps: () => ({ steps: null, checkedAt: null }) },
   }) as unknown as LandContext;
 
 describe("the files-disagree notice waits for the disk scan", () => {
@@ -91,10 +79,7 @@ describe("the files-disagree notice waits for the disk scan", () => {
     expect(Date.parse(resolved.sourcesCheckedAt!)).toBeLessThanOrEqual(at);
   });
 
-  const page = (
-    read: { at: number; list: SpecTarget[] },
-    endedAt: number,
-  ): string => {
+  const page = (read: { at: number; list: SpecTarget[] }, endedAt: number): string => {
     const { at, list } = read;
     const resolved = withFreshness(landCtx(at + 2000), list);
     const implemented = row({
@@ -104,13 +89,7 @@ describe("the files-disagree notice waits for the disk scan", () => {
       stepIndex: 0,
       state: "done",
       results: [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 1,
-          terminalReason: "completed",
-          at: new Date(endedAt).toISOString(),
-        },
+        { step: "implement", ok: true, costUsd: 1, terminalReason: "completed", at: new Date(endedAt).toISOString() },
       ],
     });
     return renderSpecsRows(

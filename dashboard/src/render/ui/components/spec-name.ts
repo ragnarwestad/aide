@@ -16,10 +16,7 @@ import { isSpecFolder } from "../shell.ts";
 /** The project's name as a link to its page. Every link carries
  *  `data-goto`: it leaves the page for another document, and a clicked
  *  one is marked waiting. */
-export function projectLink(
-  project: string,
-  o: { className?: string } = {},
-): string {
+export function projectLink(project: string, o: { className?: string } = {}): string {
   const cls = o.className ? ` class="${esc(o.className)}"` : "";
   return `<a${cls} data-goto href="${esc(projectPagePath(project))}">${esc(project)}</a>`;
 }
@@ -66,10 +63,7 @@ export function jobsSentence(
   values: Record<string, string | number>,
   names: string[],
 ): { text: string; html: string } {
-  const text = t(lang, key, {
-    ...values,
-    jobs: names.map(shortJobName).join(", "),
-  });
+  const text = t(lang, key, { ...values, jobs: names.map(shortJobName).join(", ") });
   const pieces = t(lang, key, { ...values, jobs: JOBS_MARK }).split(JOBS_MARK);
   const html = pieces
     .map((piece, i) => esc(i === 0 ? capitalizeFirst(piece) : piece))

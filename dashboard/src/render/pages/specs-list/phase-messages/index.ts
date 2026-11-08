@@ -3,13 +3,7 @@
 // address (`?phases=`), like the row's own fold and the criteria's
 // (`?checks=`), so it survives the live redraw and works with script off.
 
-import {
-  badge,
-  foldArrow,
-  rowMessage,
-  stepLabel,
-  type ProgressStepState,
-} from "../../../ui/components";
+import { badge, foldArrow, rowMessage, stepLabel, type ProgressStepState } from "../../../ui/components";
 import { esc, tokens } from "../../../ui/html.ts";
 import { durationLabel } from "../../../ui/job-state";
 import { withModelId } from "../../../ui/components/model-label.ts";
@@ -54,8 +48,7 @@ export interface PhaseMessages {
   running: boolean;
 }
 
-const unfoldedKeys = (raw: string | undefined): Set<string> =>
-  new Set((raw ?? "").split(",").filter(Boolean));
+const unfoldedKeys = (raw: string | undefined): Set<string> => new Set((raw ?? "").split(",").filter(Boolean));
 
 /** Whether this phase has run or is running, by what the line already
  *  knows. A phase that is only queued, or that nothing touched, has no
@@ -67,44 +60,27 @@ export function phaseHasRun(g: SpecGroup, p: Phase): boolean {
     p.fileResult !== undefined ||
     p.timeSpentMs !== undefined ||
     p.attempts.some(
-      (a) =>
-        (a.results ?? []).some((r) => r.step === p.step) ||
-        (a.state !== "queued" && a.state !== "cancelled"),
+      (a) => (a.results ?? []).some((r) => r.step === p.step) || (a.state !== "queued" && a.state !== "cancelled"),
     )
   );
 }
 
 /** Whether a phase line opens to a log: it has run, or it has something
  *  to explain about its state even with no run kept. */
-const hasLog = (
-  g: SpecGroup,
-  p: Phase,
-  ran: boolean,
-  lang: Language,
-): boolean => ran || phaseExplanations(g, p, lang).length > 0;
+const hasLog = (g: SpecGroup, p: Phase, ran: boolean, lang: Language): boolean =>
+  ran || phaseExplanations(g, p, lang).length > 0;
 
 /** The › at the head of a phase line that has a log. Adds or removes only
  *  this phase's key and keeps every other part of the view. */
-export function phaseMessagesFold(
-  g: SpecGroup,
-  p: Phase,
-  opts: SpecsPageOptions,
-  ran: boolean,
-): string {
+export function phaseMessagesFold(g: SpecGroup, p: Phase, opts: SpecsPageOptions, ran: boolean): string {
   const lang = opts.lang ?? "en";
   if (!hasLog(g, p, ran, lang)) return "";
   const key = phaseKey(g.project, g.specFolder, p.step);
   const unfolded = unfoldedKeys(opts.filter?.phases);
   const shut = !unfolded.has(key);
-  const next = shut
-    ? [...unfolded, key]
-    : [...unfolded].filter((k) => k !== key);
+  const next = shut ? [...unfolded, key] : [...unfolded].filter((k) => k !== key);
   return foldArrow({
-    href: queuePath(
-      opts.filter ?? {},
-      { phases: next.join(",") },
-      opts.listPath,
-    ),
+    href: queuePath(opts.filter ?? {}, { phases: next.join(",") }, opts.listPath),
     open: !shut,
     lang,
     title: "list.phaseFoldTitle",
@@ -123,50 +99,28 @@ export function phaseMessagesRow(
 ): { tag: string; cells: string }[] {
   const key = phaseKey(g.project, g.specFolder, p.step);
   const lang = opts.lang ?? "en";
-  if (!unfoldedKeys(opts.filter?.phases).has(key) || !hasLog(g, p, ran, lang))
-    return [];
+  if (!unfoldedKeys(opts.filter?.phases).has(key) || !hasLog(g, p, ran, lang)) return [];
   const found = opts.phaseMessages?.(
     p.attempts.map((a) => a.id),
     p.step,
   );
   const tab = specTabPath(g.project, g.specFolder, "steps");
-  const href = esc(
-    found?.step ? `${tab}&step=${encodeURIComponent(found.step)}` : tab,
-  );
+  const href = esc(found?.step ? `${tab}&step=${encodeURIComponent(found.step)}` : tab);
   // The model this phase ran on, first: from the newest attempt's result
   // while the queue remembers one, else from the phase's own file (an
   // archived phase names the recorded word, `opus`).
   const newest = p.attempts[0];
   const modelId = newest ? newest.modelId : p.modelId;
-  const ranOn = withModelId(
-    newest ? newest.model : p.model?.split(" ").slice(1).join(" ") || undefined,
-    modelId,
-  );
-  const modelLine = modelId
-    ? `<p class="muted small" data-model-id>${esc(t(lang, "list.phaseModel", { model: ranOn ?? "" }))}</p>`
-    : "";
+  const ranOn = withModelId(newest ? newest.model : p.model?.split(" ").slice(1).join(" ") || undefined, modelId);
+  const modelLine = modelId ? `<p class="muted small" data-model-id>${esc(t(lang, "list.phaseModel", { model: ranOn ?? "" }))}</p>` : "";
   // Plain text, escaped once here: a log part's lines are already escaped,
   // so these are never put among them.
-  const explained = phaseExplanations(g, p, lang)
-    .map((s) => rowMessage("info", s, { tag: "p" }))
-    .join("");
-  const body =
-    modelLine +
-    explained +
-    (!found
-      ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
-      : logBox(found.logs, found.aiModel, lang));
+  const explained = phaseExplanations(g, p, lang).map((s) => rowMessage("info", s, { tag: "p" })).join("");
+  const body = modelLine + explained + (!found
+    ? `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`
+    : logBox(found.logs, found.aiModel, lang));
   return [
-    ...(found
-      ? stepRows(found.steps, {
-          prefix: key,
-          filter: opts.filter ?? {},
-          listPath: opts.listPath,
-          lang,
-          now,
-          underPhase: true,
-        })
-      : []),
+    ...(found ? stepRows(found.steps, { prefix: key, filter: opts.filter ?? {}, listPath: opts.listPath, lang, now, underPhase: true }) : []),
     {
       tag: `<tr class="phasemsgs" data-msgs="${esc(p.step)}">`,
       cells: `<td colspan="${LIST_COLUMNS}">${body}<a class="phasemsgopen" href="${href}">${esc(t(lang, "list.phaseOpenLog"))}</a></td>`,
@@ -175,21 +129,16 @@ export function phaseMessagesRow(
 }
 
 /** A step's state, in the badge a phase line uses; a step not reached yet in a muted word. */
-export function stepState(
-  state: ProgressStepState | undefined,
-  lang: Language,
-): string {
+export function stepState(state: ProgressStepState | undefined, lang: Language): string {
   if (state === "done") return badge("done", t(lang, "dialog.stepDone"));
-  if (state === "running")
-    return badge("running", t(lang, "dialog.stepRunning"));
+  if (state === "running") return badge("running", t(lang, "dialog.stepRunning"));
   if (state === "failed") return badge("refused", t(lang, "dialog.stepFailed"));
   return `<span class="muted small">${esc(t(lang, "dialog.stepWaiting"))}</span>`;
 }
 
 /** A step's time: its seconds once ended, counting from its start while it runs. */
 function stepTime(s: JobStep, now: number): string {
-  if (s.seconds !== undefined)
-    return `<span class="muted small">${durationLabel(s.seconds * 1000)}</span>`;
+  if (s.seconds !== undefined) return `<span class="muted small">${durationLabel(s.seconds * 1000)}</span>`;
   if (s.since) {
     return `<span class="muted small" data-elapsed="${esc(s.since)}">${durationLabel(Math.max(0, now - Date.parse(s.since)))}</span>`;
   }
@@ -203,14 +152,7 @@ function stepTime(s: JobStep, now: number): string {
  *  steps, which stand one level in under the phase's name; a job's own steps stand under no phase. */
 export function stepRows(
   steps: JobStep[],
-  o: {
-    prefix: string;
-    filter: SpecsFilter;
-    listPath?: string;
-    lang: Language;
-    now: number;
-    underPhase?: boolean;
-  },
+  o: { prefix: string; filter: SpecsFilter; listPath?: string; lang: Language; now: number; underPhase?: boolean },
 ): { tag: string; cells: string }[] {
   const unfolded = [...unfoldedKeys(o.filter.phases)];
   return steps.flatMap((s, i) => {
@@ -235,32 +177,17 @@ export function stepRows(
         `<td class="num" data-col="cost">${s.tokens !== undefined ? tokens(s.tokens) : "–"}</td>`,
     };
     return open && s.logs?.length
-      ? [
-          row,
-          {
-            tag: `<tr class="phasemsgs" data-msgs="${esc(s.key)}"${o.underPhase ? ' data-phasesteplog="1"' : ""}>`,
-            cells: `<td colspan="${LIST_COLUMNS}">${logBox(s.logs, undefined, o.lang)}</td>`,
-          },
-        ]
+      ? [row, { tag: `<tr class="phasemsgs" data-msgs="${esc(s.key)}"${o.underPhase ? ' data-phasesteplog="1"' : ""}>`, cells: `<td colspan="${LIST_COLUMNS}">${logBox(s.logs, undefined, o.lang)}</td>` }]
       : [row];
   });
 }
 
 /** A step's Log in its box, part by part, or a line saying it has none. The
  *  box opens at its end, where the last thing the step did is. */
-export function logBox(
-  logs: LogPart[],
-  aiModel: string | undefined,
-  lang: Language,
-): string {
+export function logBox(logs: LogPart[], aiModel: string | undefined, lang: Language): string {
   const parts = drawnParts(logs, aiModel, lang);
-  if (parts.length === 0)
-    return `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoMessages"))}</p>`;
+  if (parts.length === 0) return `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoMessages"))}</p>`;
   return `<div class="logbox"><ul class="phasemsglist">${parts
-    .map(
-      (part) =>
-        `<li class="muted">— ${esc(part.writer)} —</li>` +
-        part.lines.map((m) => `<li>${m}</li>`).join(""),
-    )
+    .map((part) => `<li class="muted">— ${esc(part.writer)} —</li>` + part.lines.map((m) => `<li>${m}</li>`).join(""))
     .join("")}</ul></div>`;
 }

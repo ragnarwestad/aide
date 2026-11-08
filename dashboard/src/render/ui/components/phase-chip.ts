@@ -64,23 +64,13 @@ export function phaseChip(o: {
   postTo?: string;
 }): string {
   const locked = !!o.disabled && !o.plain;
-  const state = locked
-    ? "off"
-    : o.done
-      ? "done"
-      : o.checked
-        ? "checked"
-        : "default";
+  const state = locked ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
   // `done` is a FACT about the phase, not one of the four looks: a step
   // the spec has already had can also be the step a job is running
   // right now, and a chip that showed only the second lost the first.
-  const cls = ["phase", state, o.done && state !== "done" ? "done" : ""]
-    .filter(Boolean)
-    .join(" ");
+  const cls = ["phase", state, o.done && state !== "done" ? "done" : ""].filter(Boolean).join(" ");
   const mark = locked ? `<span class="box">${ICON_LOCK}</span>` : "";
-  const tick = o.done
-    ? ` <span class="box" title="already done">${ICON_CHECK}</span>`
-    : "";
+  const tick = o.done ? ` <span class="box" title="already done">${ICON_CHECK}</span>` : "";
   return (
     `<label class="${cls}" ${o.dataAttr}="${esc(o.value)}"` +
     `${o.title ? ` title="${esc(o.title)}"` : ""}>` +

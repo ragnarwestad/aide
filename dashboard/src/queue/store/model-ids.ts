@@ -28,16 +28,11 @@ export function recordModelId(
   if (path) persistPendingModels(path, table);
 }
 
-export function loadModelIds(
-  path: string | undefined,
-  into: Record<string, string>,
-): void {
+export function loadModelIds(path: string | undefined, into: Record<string, string>): void {
   if (path) loadModelNames(path, modelNamesOf(into));
   if (!path || !existsSync(path)) return;
   try {
-    const parsed = parseModelIds(
-      JSON.parse(readFileSync(path, "utf-8")) as unknown,
-    );
+    const parsed = parseModelIds(JSON.parse(readFileSync(path, "utf-8")) as unknown);
     if (parsed) Object.assign(into, parsed);
   } catch {
     // a corrupt file is not worth crashing over — start empty
@@ -54,12 +49,9 @@ export interface NamedModel {
  *  store's own shape does not change for them. */
 const NAMES = new WeakMap<Record<string, string>, Record<string, NamedModel>>();
 
-export const modelNamesPath = (idsPath: string): string =>
-  join(dirname(idsPath), "model-names.json");
+export const modelNamesPath = (idsPath: string): string => join(dirname(idsPath), "model-names.json");
 
-export function modelNamesOf(
-  table: Record<string, string>,
-): Record<string, NamedModel> {
+export function modelNamesOf(table: Record<string, string>): Record<string, NamedModel> {
   let names = NAMES.get(table);
   if (!names) {
     names = {};
@@ -90,17 +82,9 @@ function loadModelNames(path: string, into: Record<string, NamedModel>): void {
   try {
     const raw = JSON.parse(readFileSync(file, "utf-8")) as unknown;
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return;
-    for (const [choice, entry] of Object.entries(
-      raw as Record<string, unknown>,
-    )) {
+    for (const [choice, entry] of Object.entries(raw as Record<string, unknown>)) {
       const e = entry as Partial<NamedModel> | null;
-      if (
-        e &&
-        typeof e.id === "string" &&
-        e.id &&
-        typeof e.name === "string" &&
-        e.name
-      ) {
+      if (e && typeof e.id === "string" && e.id && typeof e.name === "string" && e.name) {
         into[choice] = { id: e.id, name: e.name };
       }
     }

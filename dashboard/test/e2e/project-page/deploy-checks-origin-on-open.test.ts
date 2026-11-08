@@ -10,13 +10,7 @@ import { chromium, type Browser } from "playwright";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { browserDeadline } from "../../helpers/browser-deadline.ts";
 import {
-  INSTALLS,
-  behindBy,
-  harness,
-  loadUntil,
-  ownDirs,
-  projectsRoot,
-  serve,
+  INSTALLS, behindBy, harness, loadUntil, ownDirs, projectsRoot, serve,
 } from "../../project/detail/project-detail-route-fixtures.ts";
 
 browserDeadline();
@@ -31,9 +25,7 @@ beforeAll(async () => {
   const root = projectsRoot({ aide: INSTALLS });
   const inner = behindBy(root, "aide", 0);
   const run: GitRunner = async (dir, args) =>
-    args[0] === "rev-list"
-      ? { code: 0, stdout: `${ahead}\n` }
-      : inner.run(dir, args);
+    args[0] === "rev-list" ? { code: 0, stdout: `${ahead}\n` } : inner.run(dir, args);
   // The timer is long enough never to tick again: only the boot's own check
   // and the one the tab makes can have asked.
   base = serve(root, { run }, 600_000);
@@ -43,8 +35,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await browser.close();
   harness.cleanup();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 describe("opening the Deploy tab asks origin", () => {
@@ -56,9 +47,7 @@ describe("opening the Deploy tab asks origin", () => {
       if (req.resourceType() === "document") documents += 1;
     });
     await page.goto(`${base}/projects/aide?tab=deploy&live=0`);
-    await page
-      .getByText("1 commit behind origin")
-      .waitFor({ state: "visible", timeout: 5000 });
+    await page.getByText("1 commit behind origin").waitFor({ state: "visible", timeout: 5000 });
     expect(await page.getByRole("button", { name: "Deploy" }).count()).toBe(0);
     expect(documents).toBe(1);
     await page.close();

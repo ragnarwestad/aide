@@ -40,11 +40,6 @@ export async function diffStatBetween(
     .map((line) => {
       const [a, r, path] = line.split("\t");
       const binary = a === "-" || r === "-";
-      return {
-        path: path ?? "",
-        added: binary ? 0 : Number(a) || 0,
-        removed: binary ? 0 : Number(r) || 0,
-        binary,
-      };
+      return { path: path ?? "", added: binary ? 0 : Number(a) || 0, removed: binary ? 0 : Number(r) || 0, binary };
     });
 }

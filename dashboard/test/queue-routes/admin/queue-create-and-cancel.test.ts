@@ -12,8 +12,7 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 test("a form POST and a JSON caller both get JSON", async () => {
@@ -22,11 +21,7 @@ test("a form POST and a JSON caller both get JSON", async () => {
     method: "POST",
     redirect: "manual",
     headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps: "analyze",
-    }),
+    body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
   });
   expect(form.status).toBe(200);
   expect(((await form.json()) as { ok: boolean }).ok).toBe(true);
@@ -39,7 +34,7 @@ test("a form POST and a JSON caller both get JSON", async () => {
     body: JSON.stringify({ ...JOB, steps: ["implement"] }),
   });
   expect(json.status).toBe(200);
-  const listed = (await (await fetch(`${base}/api/queue`)).json()) as {
+  const listed = (await (await fetch(`${base}/api/queue`, )).json()) as {
     jobs: { project: string }[];
   };
   expect(listed.jobs.length).toBe(2);
@@ -59,7 +54,7 @@ test("an unknown project is 400 and stores nothing; an oversize body is 413", as
     body: JSON.stringify({ ...JOB, pad: "x".repeat(5000) }),
   });
   expect(big.status).toBe(413);
-  const listed = (await (await fetch(`${base}/api/queue`)).json()) as {
+  const listed = (await (await fetch(`${base}/api/queue`, )).json()) as {
     jobs: unknown[];
   };
   expect(listed.jobs).toEqual([]);
@@ -67,80 +62,38 @@ test("an unknown project is 400 and stores nothing; an oversize body is 413", as
 
 test("cancel marks the job cancelled", async () => {
   const { base } = start();
-  const headers = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
+  const headers = { "content-type": "application/json", accept: "application/json" };
   const made = (await (
-    await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(JOB),
-    })
+    await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
   ).json()) as { job: { id: string } };
   const id = made.job.id;
-  expect(
-    (await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers }))
-      .status,
-  ).toBe(200);
-  const after = (await (
-    await fetch(`${base}/api/queue`, { headers })
-  ).json()) as {
+  expect((await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers })).status).toBe(200);
+  const after = (await (await fetch(`${base}/api/queue`, { headers })).json()) as {
     jobs: { id: string; state: string }[];
   };
   expect(after.jobs.find((j) => j.id === id)?.state).toBe("cancelled");
-  expect(
-    (await fetch(`${base}/api/queue/nope/cancel`, { method: "POST", headers }))
-      .status,
-  ).toBe(404);
+  expect((await fetch(`${base}/api/queue/nope/cancel`, { method: "POST", headers })).status).toBe(404);
 });
 
 // Only a job that still owns its work can be cancelled. A finished
 // job's state is history — done, failed, stopped — and Cancel must not
 // rewrite it to "cancelled" as though someone had ended the run.
 test("cancel refuses a job that has already finished, and leaves its state alone", async () => {
-  const headers = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
-  for (const state of [
-    "done",
-    "failed",
-    "stopped",
-    "cancelled",
-    "interrupted",
-  ]) {
+  const headers = { "content-type": "application/json", accept: "application/json" };
+  for (const state of ["done", "failed", "stopped", "cancelled", "interrupted"]) {
     const site = mkdtempSync(join(tmpdir(), "aide-cancel-finished-"));
     ownDirs.push(site);
     const id = `fin-${state}`;
-    writeFileSync(
-      join(site, "queue.json"),
-      JSON.stringify([
-        {
-          id,
-          project: "aide",
-          specFolder: "81-queue-and-runner",
-          steps: ["analyze"],
-          stepIndex: 0,
-          state,
-          timeoutSec: { default: 1200 },
-          permissionMode: {},
-          model: {},
-          createdAt: "2026-08-17T00:00:00Z",
-          finishedAt: "2026-08-17T00:10:00Z",
-        },
-      ]),
-    );
+    writeFileSync(join(site, "queue.json"), JSON.stringify([{
+      id, project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0, state,
+        timeoutSec: { default: 1200 }, permissionMode: {}, model: {},
+      createdAt: "2026-08-17T00:00:00Z", finishedAt: "2026-08-17T00:10:00Z",
+    }]));
     const { base } = start({ queueMirrorPath: join(site, "queue.json") });
-    const res = await fetch(`${base}/api/queue/${id}/cancel`, {
-      method: "POST",
-      headers,
-    });
+    const res = await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers });
     expect(res.status).toBe(409);
     expect(((await res.json()) as { error: string }).error).toContain(state);
-    const after = (await (
-      await fetch(`${base}/api/queue`, { headers })
-    ).json()) as {
+    const after = (await (await fetch(`${base}/api/queue`, { headers })).json()) as {
       jobs: { id: string; state: string }[];
     };
     expect(after.jobs.find((j) => j.id === id)?.state).toBe(state);
@@ -153,71 +106,31 @@ test("cancel refuses a job that has already finished, and leaves its state alone
 // a row that says it ended. Only a queued one, which has no run yet, is
 // cancelled.
 test("cancel refuses a running deploy and leaves it running; a queued deploy, held back or not, is cancelled", async () => {
-  const headers = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
-  const deploy = (
-    id: string,
-    state: string,
-    extra: Record<string, unknown> = {},
-  ) => ({
-    id,
-    project: "aide",
-    specFolder: "deploy",
-    steps: ["deploy"],
-    stepIndex: 0,
-    state,
-    timeoutSec: { default: 1200 },
-    permissionMode: {},
-    model: {},
-    results: [],
-    createdAt: "2026-10-13T08:00:00Z",
-    ...extra,
+  const headers = { "content-type": "application/json", accept: "application/json" };
+  const deploy = (id: string, state: string, extra: Record<string, unknown> = {}) => ({
+    id, project: "aide", specFolder: "deploy", steps: ["deploy"], stepIndex: 0, state,
+    timeoutSec: { default: 1200 }, permissionMode: {}, model: {}, results: [],
+    createdAt: "2026-10-13T08:00:00Z", ...extra,
   });
   const site = mkdtempSync(join(tmpdir(), "aide-cancel-deploy-"));
   ownDirs.push(site);
-  writeFileSync(
-    join(site, "queue.json"),
-    JSON.stringify([
-      deploy("dep-running", "running", {
-        startedAt: "2026-10-13T08:00:01Z",
-        pid: process.pid,
-        pgid: 0,
-      }),
-      deploy("dep-queued", "queued"),
-      deploy("dep-held", "queued", {
-        errorReason: "held-back",
-        error: { key: "runner.landingPause" },
-      }),
-    ]),
-  );
+  writeFileSync(join(site, "queue.json"), JSON.stringify([
+    deploy("dep-running", "running", { startedAt: "2026-10-13T08:00:01Z", pid: process.pid, pgid: 0 }),
+    deploy("dep-queued", "queued"),
+    deploy("dep-held", "queued", { errorReason: "held-back", error: { key: "runner.landingPause" } }),
+  ]));
   const { base } = start({ queueMirrorPath: join(site, "queue.json") });
   const states = async () =>
     Object.fromEntries(
-      (
-        (await (await fetch(`${base}/api/queue`, { headers })).json()) as {
-          jobs: { id: string; state: string }[];
-        }
-      ).jobs.map((j) => [j.id, j.state]),
+      ((await (await fetch(`${base}/api/queue`, { headers })).json()) as { jobs: { id: string; state: string }[] }).jobs.map((j) => [j.id, j.state]),
     );
 
-  const refused = await fetch(`${base}/api/queue/dep-running/cancel`, {
-    method: "POST",
-    headers,
-  });
+  const refused = await fetch(`${base}/api/queue/dep-running/cancel`, { method: "POST", headers });
   expect(refused.status).toBe(409);
   expect((await states())["dep-running"]).toBe("running");
 
   for (const id of ["dep-queued", "dep-held"]) {
-    expect(
-      (
-        await fetch(`${base}/api/queue/${id}/cancel`, {
-          method: "POST",
-          headers,
-        })
-      ).status,
-    ).toBe(200);
+    expect((await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers })).status).toBe(200);
   }
   const after = await states();
   expect(after["dep-queued"]).toBe("cancelled");

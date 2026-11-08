@@ -25,7 +25,7 @@ checkouts a step works in, what a finished step publishes — and, last, how to 
 `core/scripts/lib/run-spec/`, twenty-nine files in five folders named for when they run. The ones this page describes:
 
 | For a change to                                     | Open                                      |
-| --------------------------------------------------- | ----------------------------------------- |
+|-----------------------------------------------------|-------------------------------------------|
 | The flags and what each refuses                     | `run-spec/setup/arguments.sh`             |
 | What a step may not reach, and the sandbox settings | `run-spec/setup/sandbox.sh`               |
 | The worktrees, their paths and the links into them  | `run-spec/checkout/checkouts.sh`          |
@@ -54,6 +54,7 @@ Two pages sit beside this one:
 - [Running specs](running-specs.md) — the queue that starts these runs
 - [Branches and landing](landing.md) — how a step's branch is merged afterwards
 
+
 ## What a run does, in order
 
 1. The checkouts it will touch are put onto their default branch and brought up to date, under the per-root lock.
@@ -74,13 +75,13 @@ Every Claude session a run starts gets a display name, so `claude --resume` on t
 a tool that reads Claude Code's session files say which project, spec and step a session belonged to. The runner passes
 it as `--name`; `<project>` is the project's name on the board, the same as the first segment of the worktree path.
 
-| The session                                     | Its name                          |
-| ----------------------------------------------- | --------------------------------- |
-| A step on a spec: analyze, implement, archive … | `<project> <spec number> <step>`  |
-| The review after an implement                   | `<project> <spec number> review`  |
-| The verification of the review's defects        | `<project> <spec number> verify`  |
-| A create, which has no number yet               | `<project> new create`            |
-| A scheduled job                                 | `<project> schedule <entry name>` |
+| The session                                     | Its name                                        |
+|-------------------------------------------------|-------------------------------------------------|
+| A step on a spec: analyze, implement, archive … | `<project> <spec number> <step>`                |
+| The review after an implement                   | `<project> <spec number> review`                |
+| The verification of the review's defects        | `<project> <spec number> verify`                |
+| A create, which has no number yet               | `<project> new create`                          |
+| A scheduled job                                 | `<project> schedule <entry name>`               |
 
 A turn that continues a session passes no name, so the session keeps the one it has: the fix turn after a review or a
 red test run stays `<project> <spec number> implement`, and an implement that continues its analysis's session stays
@@ -110,14 +111,14 @@ tool's stderr when it wrote no result. The runner also sorts it, and the result 
 
 <!-- markdownlint-disable MD060 -->
 
-| `kind`      | When                                                                                                               |
-| ----------- | ------------------------------------------------------------------------------------------------------------------ |
-| `forbidden` | An explicit 403, including one whose text or error name also mentions authentication                               |
-| `login`     | A 401, Claude Code's `authentication_failed`, a missing or invalid key or token, an expired session, not logged in |
-| `network`   | The tool could not reach the provider: DNS, a refused connection, `fetch failed` or another network error          |
-| `provider`  | A 5xx, Claude Code's `server_error`, overloaded or a connection that broke after opening                           |
-| `other`     | Anything else                                                                                                      |
-| `silent`    | The turn ended with no reason; this kind has no `message`                                                          |
+| `kind`      | When                                                                                                                   |
+|-------------|------------------------------------------------------------------------------------------------------------------------|
+| `forbidden` | An explicit 403, including one whose text or error name also mentions authentication                                  |
+| `login`     | A 401, Claude Code's `authentication_failed`, a missing or invalid key or token, an expired session, not logged in    |
+| `network`   | The tool could not reach the provider: DNS, a refused connection, `fetch failed` or another network error            |
+| `provider`  | A 5xx, Claude Code's `server_error`, overloaded or a connection that broke after opening                            |
+| `other`     | Anything else                                                                                                          |
+| `silent`    | The turn ended with no reason; this kind has no `message`                                                              |
 
 <!-- markdownlint-enable MD060 -->
 
@@ -151,11 +152,15 @@ did not complete, when its message says "at capacity", and from Claude Code's cl
 status 529 or a message saying overloaded or at capacity. A used-up limit and the step's own time limit win over it.
 opencode has no reader.
 
-**A step stopped at its own time limit** ends `timeout`, and the result carries `timeLimit`: the limit in `seconds`,
-and `during`, `session` when it ran out in the AI tool's turn or `tests` when it ran out in the runner's own run of the
-project's tests. The work so far is committed to the branch either way. The board's sentence names the limit (in whole
-minutes, else seconds) and says to press the step again — to carry on, or to test what is there — or to raise the step's
-time limit under Settings. The result carries no sentence of the runner's for it, so the row has no (?).
+**A step's time limit counts the AI tool's turns, not the runner's own runs of the project's tests.** Each such run has
+a limit of its own, `AIDE_TEST_RUN_LIMIT_SEC` (an hour unless set), and the time it took is added to the step's
+deadline.
+
+**A step stopped at a time limit** ends `timeout`, and the result carries `timeLimit`: the limit in `seconds`, and
+`during`, `session` when the step's own limit ran out in the AI tool's turn or `tests` when one test run reached its
+own limit. The work so far is committed to the branch either way. The board's sentence names the limit (in whole
+minutes, else seconds) and says to press the step again — to carry on, or to test what is there. The result carries no
+sentence of the runner's for it, so the row has no (?).
 
 ## The dashboard's own checkouts
 
@@ -239,16 +244,16 @@ and, for every kind whose own line matters, `message`. A root the run left unpus
 
 <!-- markdownlint-disable MD060 -->
 
-| `kind`       | When                                                                                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `auth`       | GitHub does not take the machine's SSH key: `Permission denied (publickey)`                                         |
-| `no-write`   | The accepted key or account cannot write: `Permission to … denied`, or a 403; carries `message`                     |
-| `https-auth` | GitHub does not accept the HTTPS login: authentication failed, no username or a 401; carries `message`              |
-| `github`     | GitHub had an error: a 5xx, `Internal Server Error`, or a connection that broke after GitHub answered               |
+| `kind`       | When                                                                                                             |
+|--------------|------------------------------------------------------------------------------------------------------------------|
+| `auth`       | GitHub does not take the machine's SSH key: `Permission denied (publickey)`                                    |
+| `no-write`   | The accepted key or account cannot write: `Permission to … denied`, or a 403; carries `message`                  |
+| `https-auth` | GitHub does not accept the HTTPS login: authentication failed, no username or a 401; carries `message`           |
+| `github`     | GitHub had an error: a 5xx, `Internal Server Error`, or a connection that broke after GitHub answered            |
 | `network`    | The serving host could not reach origin: DNS, connection timeout or refusal, unreachable network; carries `message` |
-| `refused`    | Origin turned the push down: a protected branch, a hook, a non-fast-forward; carries `message`                      |
-| `other`      | Anything else; carries `message`                                                                                    |
-| `none`       | git said nothing                                                                                                    |
+| `refused`    | Origin turned the push down: a protected branch, a hook, a non-fast-forward; carries `message`                   |
+| `other`      | Anything else; carries `message`                                                                                 |
+| `none`       | git said nothing                                                                                                 |
 
 <!-- markdownlint-enable MD060 -->
 
@@ -395,7 +400,7 @@ evidence that the phase happened:
     verdict it cannot parse, or a turn that does not complete, counts as "found nothing" and is logged as an error.
   - **A green test run the runner made itself** (`run-spec/turn/step-tests.sh`), which always follows. Red goes back
     to the same session as a follow-up turn, at most `AIDE_TEST_FIX_ROUNDS` (2) more rounds within the step's time
-    limit. Each red run's failing tests are read from its output by `aide-record-test-run` (`lib/failing-tests.sh`: Playwright,
+    limit, which the test runs themselves do not use up. Each red run's failing tests are read from its output by `aide-record-test-run` (`lib/failing-tests.sh`: Playwright,
     vitest, bun, pytest and turbo, without colour codes, never pnpm's error box or the recorder's JSON line), and a
     fix round's prompt names them; the log's own failing lines go only when no test is named, or no name carries a
     file. Before a still-red step ends, each named red file is run once more alone when the project has an
@@ -523,7 +528,7 @@ the skill to mark each approach `(recommended)`, `(real alternative)` or `(consi
 **The acceptance criteria checks.** The level (`off`, `warn` or `stop`) is chosen on the New spec form, passed to
 `create` as `--criteria-checks` and recorded as the `Acceptance criteria checks:` line. Analyze states it in the prompt;
 a spec without the line is read as `off`. At `stop`, a completed analyze whose Plan review `**Criteria check:**` line
-names a fault after `—` ends `acceptance-criteria` (`run-spec/record/criteria-check.sh`, after the scope guard): `ok`
+names a fault after ` — ` ends `acceptance-criteria` (`run-spec/record/criteria-check.sh`, after the scope guard): `ok`
 false, the commit subject ending `(stopped: acceptance-criteria)`, the error naming each fault, and the result's
 `criteriaFaults` sorting them into `missing`, `notEars`, `noScenario`, `contradictions` (each an `AC-a/AC-b` pair) and
 `cannotBuild`. The runner reads the line and never judges the criteria itself. `none found`, or no line, completes the

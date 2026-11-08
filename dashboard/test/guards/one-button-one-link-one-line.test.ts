@@ -8,14 +8,8 @@ import { read } from "./source.ts";
 
 const MESSAGE = "src/render/ui/components/message.ts";
 
-const matching = (
-  files: { file: string; text: string }[],
-  needle: RegExp,
-  except?: string,
-): string[] =>
-  files
-    .filter((f) => f.file !== except && needle.test(f.text))
-    .map((f) => f.file);
+const matching = (files: { file: string; text: string }[], needle: RegExp, except?: string): string[] =>
+  files.filter((f) => f.file !== except && needle.test(f.text)).map((f) => f.file);
 
 describe("one button, one button link, one message line", () => {
   const render = read("src/render/**/*.ts");
@@ -36,18 +30,12 @@ describe("one button, one button link, one message line", () => {
   test("no element anywhere is given the btn class by hand, so none is made to look like a button", () => {
     // `btn` anywhere in a class attribute's value, in either quote, not
     // only first; `btn-…` or `…-btn` is another class.
-    expect(
-      matching(all, /class=\\?(["'])[^"'>]*(?<![\w-])btn(?![\w-])/),
-    ).toEqual([]);
+    expect(matching(all, /class=\\?(["'])[^"'>]*(?<![\w-])btn(?![\w-])/)).toEqual([]);
   });
 
   test("no client script gives an element the btn class", () => {
-    expect(
-      matching(client, /classList\.(add|toggle)\([^)]*["'`]btn["'`]/),
-    ).toEqual([]);
-    expect(
-      matching(client, /className\s*=\s*["'`]([^"'`]*\s)?btn(?![\w-])/),
-    ).toEqual([]);
+    expect(matching(client, /classList\.(add|toggle)\([^)]*["'`]btn["'`]/)).toEqual([]);
+    expect(matching(client, /className\s*=\s*["'`]([^"'`]*\s)?btn(?![\w-])/)).toEqual([]);
   });
 
   test("no file but the message component writes a message line", () => {

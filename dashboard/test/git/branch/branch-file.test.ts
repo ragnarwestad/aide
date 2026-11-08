@@ -15,24 +15,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
-import {
-  commitTimeOf,
-  readStatusFromBranch,
-  writeStatusToBranch,
-} from "../../../src/git/branch-file.ts";
+import { commitTimeOf, readStatusFromBranch, writeStatusToBranch } from "../../../src/git/branch-file.ts";
 
 const BRANCH = "aide/291-example-spec";
 const REL_PATH = "aide/291-example-spec/4-status.md";
 
 describe("readStatusFromBranch (fake GitRunner)", () => {
-  const fake = (
-    answers: Record<string, { code: number; stdout?: string }>,
-  ): GitRunner => {
+  const fake = (answers: Record<string, { code: number; stdout?: string }>): GitRunner => {
     return async (_dir, args) => {
       const line = args.join(" ");
       for (const [prefix, answer] of Object.entries(answers)) {
-        if (line.startsWith(prefix))
-          return { code: answer.code, stdout: answer.stdout ?? "" };
+        if (line.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
       }
       return { code: 1, stdout: "" };
     };
@@ -41,27 +34,16 @@ describe("readStatusFromBranch (fake GitRunner)", () => {
   test("returns the branch's own text and the commit that last touched it", async () => {
     const run = fake({
       "fetch --quiet origin": { code: 0 },
-      "log -1 --format=%H refs/remotes/origin/": {
-        code: 0,
-        stdout: "deadbeef1234\n",
-      },
-      "show refs/remotes/origin/": {
-        code: 0,
-        stdout: "# Status\n\nreal branch content\n",
-      },
+      "log -1 --format=%H refs/remotes/origin/": { code: 0, stdout: "deadbeef1234\n" },
+      "show refs/remotes/origin/": { code: 0, stdout: "# Status\n\nreal branch content\n" },
     });
     const result = await readStatusFromBranch(run, "/root", BRANCH, REL_PATH);
-    expect(result).toEqual({
-      text: "# Status\n\nreal branch content\n",
-      sha: "deadbeef1234",
-    });
+    expect(result).toEqual({ text: "# Status\n\nreal branch content\n", sha: "deadbeef1234" });
   });
 
   test("a branch origin does not have any more is null", async () => {
     const run = fake({ "fetch --quiet origin": { code: 128 } });
-    expect(
-      await readStatusFromBranch(run, "/root", BRANCH, REL_PATH),
-    ).toBeNull();
+    expect(await readStatusFromBranch(run, "/root", BRANCH, REL_PATH)).toBeNull();
   });
 
   test("a path with no history on that branch is null", async () => {
@@ -69,23 +51,18 @@ describe("readStatusFromBranch (fake GitRunner)", () => {
       "fetch --quiet origin": { code: 0 },
       "log -1 --format=%H refs/remotes/origin/": { code: 0, stdout: "" },
     });
-    expect(
-      await readStatusFromBranch(run, "/root", BRANCH, REL_PATH),
-    ).toBeNull();
+    expect(await readStatusFromBranch(run, "/root", BRANCH, REL_PATH)).toBeNull();
   });
 });
 
 describe("writeStatusToBranch (fake GitRunner)", () => {
-  const recording = (
-    answers: Record<string, { code: number; stdout?: string }>,
-  ) => {
+  const recording = (answers: Record<string, { code: number; stdout?: string }>) => {
     const calls: { args: string[]; env?: Record<string, string> }[] = [];
     const run: GitRunner = async (_dir, args, _timeoutMs, env) => {
       calls.push({ args, env });
       const line = args.join(" ");
       for (const [prefix, answer] of Object.entries(answers)) {
-        if (line.startsWith(prefix))
-          return { code: answer.code, stdout: answer.stdout ?? "" };
+        if (line.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
       }
       return { code: 1, stdout: "" };
     };
@@ -96,10 +73,7 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
     "fetch --quiet origin": { code: 0 },
     "rev-parse tip1234567^{tree}": { code: 0, stdout: "tiptree1234\n" },
     "rev-parse refs/remotes/origin/": { code: 0, stdout: "tip1234567\n" },
-    "log -1 --format=%H refs/remotes/origin/": {
-      code: 0,
-      stdout: "based0n1234\n",
-    },
+    "log -1 --format=%H refs/remotes/origin/": { code: 0, stdout: "based0n1234\n" },
     "hash-object -w": { code: 0, stdout: "newblob1234\n" },
     "read-tree": { code: 0 },
     "update-index": { code: 0 },
@@ -130,21 +104,12 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
 
   test("GIT_INDEX_FILE is scoped to the plumbing calls that need it, via the widened env parameter", async () => {
     const { run, calls } = recording(HAPPY_PATH);
-    await writeStatusToBranch(
-      run,
-      "/root",
-      BRANCH,
-      [{ relPath: REL_PATH, text: "new content\n" }],
-      "based0n1234",
-      "tick a row",
-    );
+    await writeStatusToBranch(run, "/root", BRANCH, [{ relPath: REL_PATH, text: "new content\n" }], "based0n1234", "tick a row");
     const readTree = calls.find((c) => c.args[0] === "read-tree");
     const updateIndex = calls.find((c) => c.args[0] === "update-index");
     const writeTree = calls.find((c) => c.args[0] === "write-tree");
     expect(readTree?.env?.GIT_INDEX_FILE).toBeTruthy();
-    expect(updateIndex?.env?.GIT_INDEX_FILE).toBe(
-      readTree?.env?.GIT_INDEX_FILE,
-    );
+    expect(updateIndex?.env?.GIT_INDEX_FILE).toBe(readTree?.env?.GIT_INDEX_FILE);
     expect(writeTree?.env?.GIT_INDEX_FILE).toBe(readTree?.env?.GIT_INDEX_FILE);
     const fetch = calls.find((c) => c.args[0] === "fetch");
     expect(fetch?.env).toBeUndefined();
@@ -181,10 +146,7 @@ describe("writeStatusToBranch (fake GitRunner)", () => {
   });
 
   test("refuses when the branch is no longer on origin", async () => {
-    const { run } = recording({
-      "fetch --quiet origin": { code: 0 },
-      "rev-parse refs/remotes/origin/": { code: 128 },
-    });
+    const { run } = recording({ "fetch --quiet origin": { code: 0 }, "rev-parse refs/remotes/origin/": { code: 128 } });
     const result = await writeStatusToBranch(
       run,
       "/root",
@@ -209,13 +171,8 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
   });
 
   function git(cwd: string, ...args: string[]): string {
-    const out = Bun.spawnSync({
-      cmd: ["git", "-C", cwd, ...args],
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    if (out.exitCode !== 0)
-      throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+    const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
+    if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
     return out.stdout.toString();
   }
 
@@ -243,30 +200,11 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
    *  call for the same branch commits on top of whatever is already
    *  there, so it can stand in for a RACE (a second commit landing
    *  after the page's own read). */
-  function pushBranch(
-    origin: string,
-    _seedFrom: string,
-    branch: string,
-    relPath: string,
-    text: string,
-  ): void {
-    const work = join(
-      origin,
-      "..",
-      `${branch.replace(/\//g, "-")}-work-${Math.random().toString(36).slice(2)}`,
-    );
+  function pushBranch(origin: string, _seedFrom: string, branch: string, relPath: string, text: string): void {
+    const work = join(origin, "..", `${branch.replace(/\//g, "-")}-work-${Math.random().toString(36).slice(2)}`);
     Bun.spawnSync({ cmd: ["git", "clone", "-q", origin, work] });
     const remoteHas = Bun.spawnSync({
-      cmd: [
-        "git",
-        "-C",
-        work,
-        "ls-remote",
-        "--exit-code",
-        "--heads",
-        "origin",
-        `refs/heads/${branch}`,
-      ],
+      cmd: ["git", "-C", work, "ls-remote", "--exit-code", "--heads", "origin", `refs/heads/${branch}`],
     });
     if (remoteHas.exitCode === 0) {
       git(work, "fetch", "-q", "origin", branch);
@@ -274,9 +212,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
     } else {
       git(work, "checkout", "-qb", branch);
     }
-    Bun.spawnSync({
-      cmd: ["mkdir", "-p", join(work, relPath.replace(/\/[^/]+$/, ""))],
-    });
+    Bun.spawnSync({ cmd: ["mkdir", "-p", join(work, relPath.replace(/\/[^/]+$/, ""))] });
     writeFileSync(join(work, relPath), text);
     git(work, "config", "user.name", "Test");
     git(work, "config", "user.email", "test@example.com");
@@ -341,14 +277,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
     const run = createGitRunner();
 
     const before = await readStatusFromBranch(run, clone, branch, relPath);
-    const headBeforeCommitCount = git(
-      clone,
-      "log",
-      "--oneline",
-      `origin/${branch}`,
-    )
-      .trim()
-      .split("\n").length;
+    const headBeforeCommitCount = git(clone, "log", "--oneline", `origin/${branch}`).trim().split("\n").length;
 
     const result = await writeStatusToBranch(
       run,
@@ -371,14 +300,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
     expect(status?.sha).toBe(state?.sha);
     // Exactly one new commit landed, not two.
     await run(clone, ["fetch", "-q", "origin", branch]);
-    const headAfterCommitCount = git(
-      clone,
-      "log",
-      "--oneline",
-      `origin/${branch}`,
-    )
-      .trim()
-      .split("\n").length;
+    const headAfterCommitCount = git(clone, "log", "--oneline", `origin/${branch}`).trim().split("\n").length;
     expect(headAfterCommitCount).toBe(headBeforeCommitCount + 1);
   });
 
@@ -393,13 +315,7 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
     const before = await readStatusFromBranch(run, clone, branch, relPath);
     // The race: a headless run's own commit lands on origin between the
     // page's render and this Save press.
-    pushBranch(
-      origin,
-      where,
-      branch,
-      relPath,
-      "# Status\n\nheadless run got there first\n",
-    );
+    pushBranch(origin, where, branch, relPath, "# Status\n\nheadless run got there first\n");
 
     const result = await writeStatusToBranch(
       run,
@@ -426,8 +342,6 @@ describe("branch-file real-repo suite (real git, no fakes)", () => {
 
     expect(at).toBe(git(clone, "log", "-1", "--format=%aI", read!.sha).trim());
     expect(await commitTimeOf(run, clone, "0".repeat(40))).toBeNull();
-    expect(
-      await commitTimeOf(run, join(where, "not-there"), read!.sha),
-    ).toBeNull();
+    expect(await commitTimeOf(run, join(where, "not-there"), read!.sha)).toBeNull();
   });
 });

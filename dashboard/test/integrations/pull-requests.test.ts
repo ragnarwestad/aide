@@ -5,55 +5,31 @@
 
 import { describe, expect, test } from "bun:test";
 import {
-  askPullRequest,
-  pullRequestListArgs,
-  readPullRequestList,
-  type GhRunner,
+  askPullRequest, pullRequestListArgs, readPullRequestList, type GhRunner,
 } from "../../src/integrations/pull-requests.ts";
 
-const list = (...requests: { state: string; headRefOid?: string }[]): string =>
-  JSON.stringify(requests);
+const list = (...requests: { state: string; headRefOid?: string }[]): string => JSON.stringify(requests);
 
 describe("readPullRequestList", () => {
   test("a merged request alone gives its head", () => {
-    expect(
-      readPullRequestList(list({ state: "MERGED", headRefOid: "abc123" })),
-    ).toEqual({ merged: true, headSha: "abc123" });
+    expect(readPullRequestList(list({ state: "MERGED", headRefOid: "abc123" }))).toEqual({ merged: true, headSha: "abc123" });
   });
 
   test("the newest merged request is the one that counts", () => {
-    const stdout = list(
-      { state: "MERGED", headRefOid: "new" },
-      { state: "MERGED", headRefOid: "old" },
-    );
-    expect(readPullRequestList(stdout)).toEqual({
-      merged: true,
-      headSha: "new",
-    });
+    const stdout = list({ state: "MERGED", headRefOid: "new" }, { state: "MERGED", headRefOid: "old" });
+    expect(readPullRequestList(stdout)).toEqual({ merged: true, headSha: "new" });
   });
 
   test("an open request wins over a merged one", () => {
-    const stdout = list(
-      { state: "MERGED", headRefOid: "old" },
-      { state: "OPEN", headRefOid: "new" },
-    );
+    const stdout = list({ state: "MERGED", headRefOid: "old" }, { state: "OPEN", headRefOid: "new" });
     expect(readPullRequestList(stdout)).toEqual({ merged: false });
-    expect(
-      readPullRequestList(
-        list(
-          { state: "OPEN", headRefOid: "new" },
-          { state: "MERGED", headRefOid: "old" },
-        ),
-      ),
-    ).toEqual({
+    expect(readPullRequestList(list({ state: "OPEN", headRefOid: "new" }, { state: "MERGED", headRefOid: "old" }))).toEqual({
       merged: false,
     });
   });
 
   test("a request closed without merging, or none at all, is not merged", () => {
-    expect(
-      readPullRequestList(list({ state: "CLOSED", headRefOid: "x" })),
-    ).toEqual({ merged: false });
+    expect(readPullRequestList(list({ state: "CLOSED", headRefOid: "x" }))).toEqual({ merged: false });
     expect(readPullRequestList("[]")).toEqual({ merged: false });
   });
 
@@ -71,21 +47,13 @@ describe("askPullRequest", () => {
       asked.push({ dir, args });
       return { code: 0, stdout: list({ state: "MERGED", headRefOid: "abc" }) };
     };
-    expect(await askPullRequest(run, "/code/aide", "aide/37-x")).toEqual({
-      merged: true,
-      headSha: "abc",
-    });
-    expect(asked).toEqual([
-      { dir: "/code/aide", args: pullRequestListArgs("aide/37-x") },
-    ]);
+    expect(await askPullRequest(run, "/code/aide", "aide/37-x")).toEqual({ merged: true, headSha: "abc" });
+    expect(asked).toEqual([{ dir: "/code/aide", args: pullRequestListArgs("aide/37-x") }]);
     expect(pullRequestListArgs("aide/37-x")).toContain("aide/37-x");
   });
 
   test("a failed gh is no answer", async () => {
-    const run: GhRunner = async () => ({
-      code: 1,
-      stdout: list({ state: "MERGED", headRefOid: "abc" }),
-    });
+    const run: GhRunner = async () => ({ code: 1, stdout: list({ state: "MERGED", headRefOid: "abc" }) });
     expect(await askPullRequest(run, "/code/aide", "aide/37-x")).toBeNull();
   });
 });

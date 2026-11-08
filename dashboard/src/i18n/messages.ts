@@ -16,12 +16,11 @@ type Texts = { en: string; nb: string; es: string; de: string; fr: string };
  *  and `exempt` says why (docs/error-sentences.md). A `statement` is no
  *  problem at all, such as a check that passed, and says why; it is shown
  *  as its sentence alone, with no Problem or Solution label. */
-export type MessageEntry = Texts &
-  (
-    | { solution: Texts; exempt?: undefined; statement?: undefined }
-    | { solution: null; exempt: string; statement?: undefined }
-    | { solution?: undefined; exempt?: undefined; statement: string }
-  );
+export type MessageEntry = Texts & (
+  | { solution: Texts; exempt?: undefined; statement?: undefined }
+  | { solution: null; exempt: string; statement?: undefined }
+  | { solution?: undefined; exempt?: undefined; statement: string }
+);
 
 export const MESSAGES = {
   // --- a message a producer wrote in English, with its fix apart ------------
@@ -32,13 +31,7 @@ export const MESSAGES = {
     es: "{problem}",
     de: "{problem}",
     fr: "{problem}",
-    solution: {
-      en: "{solution}",
-      nb: "{solution}",
-      es: "{solution}",
-      de: "{solution}",
-      fr: "{solution}",
-    },
+    solution: { en: "{solution}", nb: "{solution}", es: "{solution}", de: "{solution}", fr: "{solution}" },
   },
   "message.lead": {
     en: "{lead} {message}",
@@ -98,13 +91,7 @@ export const MESSAGES = {
     es: "Analyze no terminó de evaluar el solapamiento con {specs}",
     de: "Analyze hat die Überschneidung mit {specs} nicht vollständig bewertet",
     fr: "Analyze n’a pas terminé l’évaluation du chevauchement avec {specs}",
-    solution: {
-      en: "run Analyze again to complete the assessment",
-      nb: "kjør Analyser igjen for å fullføre vurderingen",
-      es: "ejecuta Analyze de nuevo para completar la evaluación",
-      de: "starte Analyze erneut, um die Bewertung abzuschließen",
-      fr: "relancez Analyze pour terminer l’évaluation",
-    },
+    solution: { en: "run Analyze again to complete the assessment", nb: "kjør Analyser igjen for å fullføre vurderingen", es: "ejecuta Analyze de nuevo para completar la evaluación", de: "starte Analyze erneut, um die Bewertung abzuschließen", fr: "relancez Analyze pour terminer l’évaluation" },
   },
   "runner.dependencyCycle": {
     en: "dependencies were not added because they would create a cycle: {chain}",
@@ -112,13 +99,7 @@ export const MESSAGES = {
     es: "no se añadieron dependencias porque crearían un ciclo: {chain}",
     de: "Abhängigkeiten wurden nicht hinzugefügt, da ein Kreis entstehen würde: {chain}",
     fr: "les dépendances n’ont pas été ajoutées car elles créeraient un cycle : {chain}",
-    solution: {
-      en: "review Depends on, then run Analyze again",
-      nb: "se over Depends on, og kjør Analyser igjen",
-      es: "revisa Depends on y ejecuta Analyze de nuevo",
-      de: "prüfe Depends on und starte Analyze erneut",
-      fr: "vérifiez Depends on puis relancez Analyze",
-    },
+    solution: { en: "review Depends on, then run Analyze again", nb: "se over Depends on, og kjør Analyser igjen", es: "revisa Depends on y ejecuta Analyze de nuevo", de: "prüfe Depends on und starte Analyze erneut", fr: "vérifiez Depends on puis relancez Analyze" },
   },
   "runner.autoDependenciesFailed": {
     en: "the automatic dependency update could not finish: {reason}",
@@ -126,13 +107,7 @@ export const MESSAGES = {
     es: "la actualización automática de dependencias no pudo completarse: {reason}",
     de: "die automatische Aktualisierung der Abhängigkeiten konnte nicht abgeschlossen werden: {reason}",
     fr: "la mise à jour automatique des dépendances n’a pas pu aboutir : {reason}",
-    solution: {
-      en: "review Depends on, then run Analyze again",
-      nb: "se over Depends on, og kjør Analyser igjen",
-      es: "revisa Depends on y ejecuta Analyze de nuevo",
-      de: "prüfe Depends on und starte Analyze erneut",
-      fr: "vérifiez Depends on puis relancez Analyze",
-    },
+    solution: { en: "review Depends on, then run Analyze again", nb: "se over Depends on, og kjør Analyser igjen", es: "revisa Depends on y ejecuta Analyze de nuevo", de: "prüfe Depends on und starte Analyze erneut", fr: "vérifiez Depends on puis relancez Analyze" },
   },
   "runner.landingPause": {
     en: "held back: a merge is still running — this starts when it has finished",
@@ -140,8 +115,7 @@ export const MESSAGES = {
     es: "retenido: un merge sigue en curso — esto empieza cuando termine",
     de: "zurückgehalten: ein Merge läuft noch — das startet, sobald er fertig ist",
     fr: "retenu : un merge est encore en cours — cela démarre une fois terminé",
-    statement:
-      "the queued work starts by itself when the current merge finishes",
+    statement: "the queued work starts by itself when the current merge finishes",
   },
   "runner.archiveRunning": {
     en: "held back: another archive is running in this project — it starts when that one has merged",
@@ -149,8 +123,7 @@ export const MESSAGES = {
     es: "retenido: otro archive está en curso en este proyecto — empieza cuando ese se haya mergeado",
     de: "zurückgehalten: in diesem Projekt läuft bereits ein anderes Archive — das startet, sobald jenes gemergt ist",
     fr: "retenu : un autre archive est en cours dans ce projet — cela démarre une fois celui-là mergé",
-    statement:
-      "the queued work starts by itself when the current merge finishes",
+    statement: "the queued work starts by itself when the current merge finishes",
   },
   "runner.notAnalyzed": {
     en: "held back: not analyzed yet",
@@ -186,8 +159,7 @@ export const MESSAGES = {
     es: "retenido: depende de {dependency}, que todavía no está archivada",
     de: "zurückgehalten: hängt ab von {dependency}, das noch nicht archiviert ist",
     fr: "retenu : dépend de {dependency}, qui n'est pas encore archivée",
-    statement:
-      "resolves on its own once the dependency is archived — nothing to press",
+    statement: "resolves on its own once the dependency is archived — nothing to press",
   },
   // A used-up usage limit: the step starts again by itself, so none of
   // these asks for a press. The blanks hold plain values; the render side
@@ -229,8 +201,7 @@ export const MESSAGES = {
     es: "retenido: espera el límite de uso de {provider} — {provider} no dijo cuándo se restablece; el dashboard lo intentó de nuevo a las {at}, y esto empieza cuando ese paso haya terminado",
     de: "zurückgehalten: wartet auf das Nutzungslimit von {provider} — {provider} hat nicht gesagt, wann es zurückgesetzt wird; das Dashboard hat es erneut um {at} versucht, und das startet, sobald dieser Schritt gelaufen ist",
     fr: "retenu : attend la limite d'utilisation de {provider} — {provider} n'a pas dit quand elle se réinitialise ; le dashboard a réessayé à {at}, et cela démarre une fois cette étape exécutée",
-    statement:
-      "starts by itself once the step that was tried has run — nothing to press",
+    statement: "starts by itself once the step that was tried has run — nothing to press",
   },
   "runner.usageLimitRestarts": {
     en: "{who}: {limit} is used up — {step} starts again by itself at {at}.",
@@ -238,8 +209,7 @@ export const MESSAGES = {
     es: "{who}: {limit} está agotado — {step} se reinicia solo a las {at}.",
     de: "{who}: {limit} ist aufgebraucht — {step} startet von selbst neu um {at}.",
     fr: "{who} : {limit} est épuisé — {step} redémarre de lui-même à {at}.",
-    statement:
-      "starts again by itself when the limit resets — nothing to press",
+    statement: "starts again by itself when the limit resets — nothing to press",
   },
   "runner.usageLimitRestartsNoReset": {
     en: "{who}: {limit} is used up, and the AI did not say when it resets — {step} starts again by itself when the board tries again at {at}.",
@@ -252,15 +222,15 @@ export const MESSAGES = {
   "runner.runVanished": {
     en: "the run vanished without leaving a result after two attempts",
     nb: "kjøringen forsvant uten å etterlate et resultat etter to forsøk",
-    es: "la ejecución desapareció sin dejar un resultado",
-    de: "der Lauf ist verschwunden, ohne ein Ergebnis zu hinterlassen",
-    fr: "l'exécution a disparu sans laisser de résultat",
+    es: "la ejecución desapareció sin dejar un resultado después de dos intentos",
+    de: "der Lauf ist nach zwei Versuchen verschwunden, ohne ein Ergebnis zu hinterlassen",
+    fr: "l'exécution a disparu sans laisser de résultat après deux tentatives",
     solution: {
       en: "check the board service on the serving host",
       nb: "sjekk dashboard-tjenesten på serveren",
-      es: "pulsa {button} de nuevo",
-      de: "klicke erneut auf {button}",
-      fr: "cliquez de nouveau sur {button}",
+      es: "revisa el servicio del dashboard en el servidor",
+      de: "prüfe den Dashboard-Dienst auf dem Server",
+      fr: "vérifiez le service du dashboard sur le serveur",
     },
   },
   // The bash cross-check's own verdict on a step that reported success
@@ -314,8 +284,8 @@ export const MESSAGES = {
   },
   // The provider had no room for the model the step ran on (no reset to wait
   // for): said for the step and the model, with the two moves the reader has.
-  // A step stopped at its own time limit ({limit}: "40 min"), in the
-  // session or in the runner's own run of the tests (`timeLimitMessage`).
+  // A step stopped at its own time limit ({limit}: "40 min"), or at one
+  // test run's own limit in the runner's run of the tests (`timeLimitMessage`).
   "runner.timeLimitSession": {
     en: "{button} stopped at the step's time limit of {limit}; what it had done is committed to the branch",
     nb: "{button} stoppet ved tidsgrensen for steget ({limit}); det som var gjort, er committet til grenen",
@@ -331,11 +301,11 @@ export const MESSAGES = {
     },
   },
   "runner.timeLimitTests": {
-    en: "{button} stopped at the step's time limit of {limit} while the project's tests were running; the work is committed to the branch",
-    nb: "{button} stoppet ved tidsgrensen for steget ({limit}) mens testene i prosjektet kjørte; arbeidet er committet til grenen",
-    es: "{button} se detuvo en el límite de tiempo del paso ({limit}) mientras corrían los tests del proyecto; el trabajo está confirmado en la rama",
-    de: "{button} wurde am Zeitlimit des Schritts ({limit}) angehalten, während die Tests des Projekts liefen; die Arbeit ist im Branch committet",
-    fr: "{button} s'est arrêté à la limite de temps de l'étape ({limit}) pendant que les tests du projet tournaient ; le travail est commité sur la branche",
+    en: "{button} stopped when one run of the project's tests reached its own limit of {limit}; the work is committed to the branch",
+    nb: "{button} stoppet da én kjøring av testene i prosjektet nådde sin egen grense på {limit}; arbeidet er committet til grenen",
+    es: "{button} se detuvo cuando una ejecución de los tests del proyecto alcanzó su propio límite de {limit}; el trabajo está confirmado en la rama",
+    de: "{button} wurde angehalten, als ein Lauf der Tests des Projekts sein eigenes Limit von {limit} erreichte; die Arbeit ist im Branch committet",
+    fr: "{button} s'est arrêté quand une exécution des tests du projet a atteint sa propre limite de {limit} ; le travail est commité sur la branche",
     solution: {
       en: "press {button} again to test it",
       nb: "trykk {button} igjen for å teste det",
@@ -868,8 +838,7 @@ export const MESSAGES = {
     de: "{spec}: {files}",
     fr: "{spec} : {files}",
     solution: null,
-    exempt:
-      "a part of runner.sharedFilesStopped and wordPhase.stopSharedFilesNamed, which carry the resolution",
+    exempt: "a part of runner.sharedFilesStopped and wordPhase.stopSharedFilesNamed, which carry the resolution",
   },
   "runner.testsRedImplement": {
     en: "implement reported success, but the project's tests are red on its result — the runner ran them itself, and what failed is shown below",
@@ -1317,15 +1286,15 @@ export const MESSAGES = {
   "runner.serverRestarted": {
     en: "the server restarted during both attempts, and neither left a result",
     nb: "serveren startet på nytt under begge forsøkene, og ingen av dem etterlot et resultat",
-    es: "el servidor se reinició mientras este paso estaba en curso, y no dejó ningún resultado",
-    de: "der Server wurde neu gestartet, während dieser Schritt lief, und hat kein Ergebnis hinterlassen",
-    fr: "le serveur a redémarré pendant que cette étape était en cours, et elle n'a laissé aucun résultat",
+    es: "el servidor se reinició durante ambos intentos, y ninguno dejó un resultado",
+    de: "der Server wurde während beider Versuche neu gestartet, und keiner hat ein Ergebnis hinterlassen",
+    fr: "le serveur a redémarré pendant les deux tentatives, et aucune n'a laissé de résultat",
     solution: {
       en: "check the board service on the serving host",
       nb: "sjekk dashboard-tjenesten på serveren",
-      es: "pulsa {button} de nuevo",
-      de: "klicke erneut auf {button}",
-      fr: "cliquez de nouveau sur {button}",
+      es: "revisa el servicio del dashboard en el servidor",
+      de: "prüfe den Dashboard-Dienst auf dem Server",
+      fr: "vérifiez le service du dashboard sur le serveur",
     },
   },
 
@@ -1360,17 +1329,17 @@ export const MESSAGES = {
     },
   },
   "landing.createAssignNumberFailed": {
-    en: "could not assign this spec its number",
-    nb: "klarte ikke å gi denne specen nummeret sitt",
-    es: "no se pudo asignar el número a esta spec",
-    de: "dieser Spec konnte keine Nummer zugewiesen werden",
-    fr: "impossible d'attribuer son numéro à cette spec",
+    en: "could not assign this spec its number after two attempts",
+    nb: "klarte ikke å gi denne specen nummeret sitt etter to forsøk",
+    es: "no se pudo asignar el número a esta spec después de dos intentos",
+    de: "dieser Spec konnte nach zwei Versuchen keine Nummer zugewiesen werden",
+    fr: "impossible d'attribuer son numéro à cette spec après deux tentatives",
     solution: {
-      en: "nothing was pushed; press Create again",
-      nb: "ingenting ble pushet; trykk Opprett igjen",
-      es: "no se hizo push de nada; pulsa Crear de nuevo",
-      de: "es wurde nichts gepusht; klicke erneut auf Erstellen",
-      fr: "rien n'a été poussé ; cliquez de nouveau sur Créer",
+      en: "check the specs checkout on the serving host; nothing was pushed",
+      nb: "sjekk specs-repoet på serveren; ingenting ble pushet",
+      es: "revisa el checkout de specs en el servidor; no se hizo push de nada",
+      de: "prüfe den Specs-Checkout auf dem Server; es wurde nichts gepusht",
+      fr: "vérifiez le checkout des specs sur le serveur ; rien n'a été poussé",
     },
   },
   "landing.stepLandingFailed": {
@@ -1648,8 +1617,7 @@ export const MESSAGES = {
     es: "no queda nada que mergear — la branch no está en origin ({ref} en {root})",
     de: "es gibt nichts mehr zu mergen — der Branch ist nicht auf origin ({ref} in {root})",
     fr: "il ne reste rien à merger — la branch n'est pas sur origin ({ref} dans {root})",
-    statement:
-      "the branch already being gone is itself the resolution — nothing to press",
+    statement: "the branch already being gone is itself the resolution — nothing to press",
   },
   "landing.cannotSwitch": {
     en: "cannot switch to {base} ({ref} in {root})",
@@ -1702,8 +1670,7 @@ export const MESSAGES = {
     de: "lokal gemergt, aber der Push von {base} ist fehlgeschlagen: {pushError} ({ref} in {root})",
     fr: "mergé localement, mais le push de {base} a échoué : {pushError} ({ref} dans {root})",
     solution: null,
-    exempt:
-      "the branch is already merged locally; git's own error names the failure and there is no further move",
+    exempt: "the branch is already merged locally; git's own error names the failure and there is no further move",
   },
   // The push of a merge failed, with why as the inner sentence (one of the
   // `git.push*` above); git's own lines are the detail.
@@ -2102,8 +2069,7 @@ export const MESSAGES = {
     es: "se alcanzó el límite de uso de la IA — el paso se reinicia solo cuando se restablezca el límite",
     de: "das Nutzungslimit der KI wurde erreicht — der Schritt startet von selbst neu, sobald das Limit zurückgesetzt ist",
     fr: "la limite d'utilisation de l'IA a été atteinte — l'étape redémarre d'elle-même une fois la limite réinitialisée",
-    statement:
-      "starts again by itself when the limit resets — nothing to press",
+    statement: "starts again by itself when the limit resets — nothing to press",
   },
 
   "wordPhase.stopModelRefused": {
@@ -3066,8 +3032,7 @@ export const MESSAGES = {
     es: "{step} se detuvo por el límite de uso de la IA — se reinicia solo cuando el límite se restablezca.",
     de: "{step} wurde durch das Nutzungslimit der KI gestoppt — es startet von selbst neu, sobald das Limit zurückgesetzt ist.",
     fr: "{step} s'est arrêté sur la limite d'usage de l'IA — il redémarre de lui-même une fois la limite réinitialisée.",
-    statement:
-      "starts again by itself when the limit resets — nothing to press",
+    statement: "starts again by itself when the limit resets — nothing to press",
   },
 
   "push.stoppedModelAtCapacity": {
@@ -3165,15 +3130,15 @@ export const MESSAGES = {
   "push.interrupted": {
     en: "{step} was cut off before it finished on both attempts",
     nb: "{step} ble avbrutt før det var ferdig på begge forsøkene",
-    es: "{step} se interrumpió antes de terminar",
-    de: "{step} wurde abgebrochen, bevor es fertig war",
-    fr: "{step} a été interrompu avant d'avoir terminé",
+    es: "{step} se interrumpió antes de terminar en ambos intentos",
+    de: "{step} wurde bei beiden Versuchen abgebrochen, bevor es fertig war",
+    fr: "{step} a été interrompu avant d'avoir terminé lors des deux tentatives",
     solution: {
       en: "check the board service on the serving host",
       nb: "sjekk dashboard-tjenesten på serveren",
-      es: "pulsa {button} de nuevo",
-      de: "klicke erneut auf {button}",
-      fr: "cliquez de nouveau sur {button}",
+      es: "revisa el servicio del dashboard en el servidor",
+      de: "prüfe den Dashboard-Dienst auf dem Server",
+      fr: "vérifiez le service du dashboard sur le serveur",
     },
   },
   "push.createFailed": {
@@ -3210,8 +3175,7 @@ export const MESSAGES = {
     de: "Der Lauf ist fehlgeschlagen — öffne den Job, um zu sehen, warum.",
     fr: "L'exécution a échoué — ouvrez la tâche pour voir pourquoi.",
     solution: null,
-    exempt:
-      "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
+    exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
   },
   "push.scheduleStopped": {
     en: "The run was stopped before it finished — open the job to see where.",
@@ -3220,8 +3184,7 @@ export const MESSAGES = {
     de: "Der Lauf wurde gestoppt, bevor er fertig war — öffne den Job, um zu sehen, wo.",
     fr: "L'exécution s'est arrêtée avant d'être terminée — ouvrez la tâche pour voir où.",
     solution: null,
-    exempt:
-      "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
+    exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
   },
   "push.scheduleInterrupted": {
     en: "The run was cut off before it finished — open the job to see how far it got.",
@@ -3230,8 +3193,7 @@ export const MESSAGES = {
     de: "Der Lauf wurde abgebrochen, bevor er fertig war — öffne den Job, um zu sehen, wie weit er kam.",
     fr: "L'exécution a été interrompue avant d'être terminée — ouvrez la tâche pour voir jusqu'où elle est allée.",
     solution: null,
-    exempt:
-      "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
+    exempt: "it reports how a run ended and opens the job's own page; there is no button to press or step to take",
   },
 
   // --- the login line on an AI's Installation tab (serve/tool-check.ts) ---
@@ -3288,8 +3250,7 @@ export const MESSAGES = {
     es: "La línea de comandos de {tool} no puede decir si tiene sesión iniciada.",
     de: "Die Kommandozeile von {tool} kann nicht sagen, ob sie angemeldet ist.",
     fr: "La ligne de commande de {tool} ne peut pas dire si elle est connectée.",
-    statement:
-      "the command line has no command that reports it, and nothing on the board can change that",
+    statement: "the command line has no command that reports it, and nothing on the board can change that",
   },
   "login.timedOut": {
     en: "whether it is logged in could not be read: {command} did not finish in time",
@@ -3416,8 +3377,7 @@ export const MESSAGES = {
     de: "es wurde kein Specs-Stamm angegeben, deshalb sucht ein Lauf nach {root} — und dieses Verzeichnis gibt es nicht",
     fr: "aucune racine de specs n'a été indiquée, donc une exécution cherche {root} — et ce répertoire n'existe pas",
     solution: null,
-    exempt:
-      "it says what is missing; the Config tab holds the setting to change",
+    exempt: "it says what is missing; the Config tab holds the setting to change",
   },
   "readiness.specsRepo.none": {
     en: "{root} is in no git repository, so nothing would commit the spec a run writes there",
@@ -3505,8 +3465,7 @@ export const MESSAGES = {
     es: "la copia ({message}) está en {current}, no en {base} — una ejecución la mueve antes a {base}",
     de: "der Checkout ({message}) steht auf {current}, nicht auf {base} — ein Lauf stellt ihn zuerst auf {base} um",
     fr: "la copie ({message}) est sur {current}, pas sur {base} — une exécution la déplace d'abord vers {base}",
-    statement:
-      "it says what a run does by itself; there is nothing to put right",
+    statement: "it says what a run does by itself; there is nothing to put right",
   },
   "readiness.checkout.noOrigin": {
     en: "the {message} repository at {root} has no origin remote, so the dashboard cannot make a checkout of its own — a run works in {root} itself, where editing it meanwhile can collide",
@@ -3515,8 +3474,7 @@ export const MESSAGES = {
     de: "das Repository ({message}) unter {root} hat kein Remote origin, deshalb kann das Dashboard keinen eigenen Checkout anlegen — ein Lauf arbeitet in {root} selbst, wo Bearbeiten zwischendurch kollidieren kann",
     fr: "le dépôt ({message}) dans {root} n'a pas de remote origin, donc le tableau de bord ne peut pas en faire une copie à lui — une exécution travaille dans {root} même, où l'éditer entre-temps peut provoquer des collisions",
     solution: null,
-    exempt:
-      "it says what is missing and what follows from it; the project's own remote is for its owner to add",
+    exempt: "it says what is missing and what follows from it; the project's own remote is for its owner to add",
   },
   "readiness.checkout.willMake": {
     en: "the dashboard makes its own checkout of the {message} repository at {dir} the first time a run needs one",
@@ -3524,8 +3482,7 @@ export const MESSAGES = {
     es: "el dashboard hace su propia copia del repositorio ({message}) en {dir} la primera vez que una ejecución la necesita",
     de: "das Dashboard legt seinen eigenen Checkout des Repositorys ({message}) unter {dir} an, sobald ein Lauf zum ersten Mal einen braucht",
     fr: "le tableau de bord fait sa propre copie du dépôt ({message}) dans {dir} la première fois qu'une exécution en a besoin",
-    statement:
-      "it says what the board does by itself; there is nothing to put right",
+    statement: "it says what the board does by itself; there is nothing to put right",
   },
   "readiness.links.none": {
     en: "no worktree links are configured",
@@ -3562,8 +3519,7 @@ export const MESSAGES = {
     de: "ein Lauf lehnt einen Worktree-Link ab, hinter dem nichts steht: {entry} ist nicht in {root}",
     fr: "une exécution refuse un lien de worktree sans cible : {entry} n'est pas dans {root}",
     solution: null,
-    exempt:
-      "it says which path is missing; the Config tab holds the setting to change",
+    exempt: "it says which path is missing; the Config tab holds the setting to change",
   },
   "readiness.links.missingMany": {
     en: "a run refuses a worktree link with nothing to link: {entries} are not in {root}",
@@ -3572,8 +3528,7 @@ export const MESSAGES = {
     de: "ein Lauf lehnt einen Worktree-Link ab, hinter dem nichts steht: {entries} sind nicht in {root}",
     fr: "une exécution refuse un lien de worktree sans cible : {entries} ne sont pas dans {root}",
     solution: null,
-    exempt:
-      "it says which paths are missing; the Config tab holds the setting to change",
+    exempt: "it says which paths are missing; the Config tab holds the setting to change",
   },
   "readiness.links.ok": {
     en: "the worktree links are all there: {links}",

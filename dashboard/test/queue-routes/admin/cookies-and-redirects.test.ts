@@ -5,7 +5,10 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { rmSync } from "node:fs";
-import { JOB, setupQueueRoutesHarness } from "../fixtures.ts";
+import {
+  JOB,
+  setupQueueRoutesHarness,
+} from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -14,8 +17,7 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // Two boards on one host keep their own cookies, and a header a
@@ -28,33 +30,19 @@ describe("port-scoped cookies and the headerAuth bind", () => {
     const b = start();
     expect(a.server.port).not.toBe(b.server.port);
 
-    const resA = await fetch(`${a.base}/specs?sort=started&state=done`, {
-      redirect: "manual",
-    });
-    const resB = await fetch(`${b.base}/specs?sort=cost&state=active`, {
-      redirect: "manual",
-    });
+    const resA = await fetch(`${a.base}/specs?sort=started&state=done`, { redirect: "manual" });
+    const resB = await fetch(`${b.base}/specs?sort=cost&state=active`, { redirect: "manual" });
     const cookiesA = resA.headers.getSetCookie();
     const cookiesB = resB.headers.getSetCookie();
 
-    expect(
-      cookiesA.some((c) => c.startsWith(`aide_sort_${a.server.port}=`)),
-    ).toBe(true);
-    expect(
-      cookiesB.some((c) => c.startsWith(`aide_sort_${b.server.port}=`)),
-    ).toBe(true);
-    expect(
-      cookiesA.some((c) => c.startsWith(`aide_state_${a.server.port}=`)),
-    ).toBe(true);
-    expect(
-      cookiesB.some((c) => c.startsWith(`aide_state_${b.server.port}=`)),
-    ).toBe(true);
+    expect(cookiesA.some((c) => c.startsWith(`aide_sort_${a.server.port}=`))).toBe(true);
+    expect(cookiesB.some((c) => c.startsWith(`aide_sort_${b.server.port}=`))).toBe(true);
+    expect(cookiesA.some((c) => c.startsWith(`aide_state_${a.server.port}=`))).toBe(true);
+    expect(cookiesB.some((c) => c.startsWith(`aide_state_${b.server.port}=`))).toBe(true);
 
     // A real browser keeps ONE cookie jar for `127.0.0.1`, so both
     // boards' cookies arrive on every request to either.
-    const jar = [...cookiesA, ...cookiesB]
-      .map((c) => c.split(";")[0])
-      .join("; ");
+    const jar = [...cookiesA, ...cookiesB].map((c) => c.split(";")[0]).join("; ");
     const checkA = await fetch(`${a.base}/specs`, { headers: { cookie: jar } });
     const checkB = await fetch(`${b.base}/specs`, { headers: { cookie: jar } });
     expect(checkA.status).toBe(200);
@@ -63,26 +51,12 @@ describe("port-scoped cookies and the headerAuth bind", () => {
 
   test("headerAuth on a loopback bind starts, and the pages answer as they do without it", async () => {
     const { base } = start({ bindHost: "127.0.0.1", headerAuth: HEADER_AUTH });
-    expect(
-      (
-        await fetch(`${base}/`, {
-          headers: { "X-Test-User": "alice@example.com" },
-        })
-      ).status,
-    ).toBe(200);
-    expect(
-      (
-        await fetch(`${base}/`, {
-          headers: { "X-Test-User": "mallory@example.com" },
-        })
-      ).status,
-    ).toBe(200);
+    expect((await fetch(`${base}/`, { headers: { "X-Test-User": "alice@example.com" } })).status).toBe(200);
+    expect((await fetch(`${base}/`, { headers: { "X-Test-User": "mallory@example.com" } })).status).toBe(200);
   });
 
   test("headerAuth on a non-loopback bind refuses to start", () => {
-    expect(() =>
-      start({ bindHost: "0.0.0.0", headerAuth: HEADER_AUTH }),
-    ).toThrow(/loopback|127\.0\.0\.1/i);
+    expect(() => start({ bindHost: "0.0.0.0", headerAuth: HEADER_AUTH })).toThrow(/loopback|127\.0\.0\.1/i);
   });
 });
 
@@ -90,18 +64,14 @@ describe("port-scoped cookies and the headerAuth bind", () => {
 describe("the Specs list is at /specs", () => {
   test("GET /queue redirects to /specs with the query string intact", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/queue?state=active&sort=cost`, {
-      redirect: "manual",
-    });
+    const res = await fetch(`${base}/queue?state=active&sort=cost`, { redirect: "manual" });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe(`/specs?state=active&sort=cost`);
   });
 
   test("GET /specs answers the list itself, with no redirect", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/specs?state=active&sort=cost`, {
-      redirect: "manual",
-    });
+    const res = await fetch(`${base}/specs?state=active&sort=cost`, { redirect: "manual" });
     expect(res.status).toBe(200);
     expect(await res.text()).toContain('id="jobrows"');
   });
@@ -111,20 +81,11 @@ describe("the Specs list is at /specs", () => {
   // job link already sent out.
   test("GET /queue/<id> redirects to /jobs/<id>, tab and all", async () => {
     const { base } = start();
-    const headers = {
-      "content-type": "application/json",
-      accept: "application/json",
-    };
+    const headers = { "content-type": "application/json", accept: "application/json" };
     const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(JOB),
-      })
+      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
     ).json()) as { job: { id: string } };
-    const res = await fetch(`${base}/queue/${made.job.id}?tab=steps`, {
-      redirect: "manual",
-    });
+    const res = await fetch(`${base}/queue/${made.job.id}?tab=steps`, { redirect: "manual" });
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe(`/jobs/${made.job.id}?tab=steps`);
   });
@@ -133,20 +94,11 @@ describe("the Specs list is at /specs", () => {
   // page answers where it always has, with no redirect hop in front.
   test("GET /jobs/<id> renders the job page itself, no redirect", async () => {
     const { base } = start();
-    const headers = {
-      "content-type": "application/json",
-      accept: "application/json",
-    };
+    const headers = { "content-type": "application/json", accept: "application/json" };
     const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(JOB),
-      })
+      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
     ).json()) as { job: { id: string } };
-    const res = await fetch(`${base}/jobs/${made.job.id}`, {
-      redirect: "manual",
-    });
+    const res = await fetch(`${base}/jobs/${made.job.id}`, { redirect: "manual" });
     expect(res.status).toBe(200);
     expect(res.headers.get("location")).toBeNull();
     expect(await res.text()).toContain("81-queue-and-runner");
@@ -156,37 +108,19 @@ describe("the Specs list is at /specs", () => {
   // saved from then still lands on the same page and tab.
   test("an old /specs/<id> address goes on to /jobs/<id>, its tab and step kept", async () => {
     const { base } = start();
-    const headers = {
-      "content-type": "application/json",
-      accept: "application/json",
-    };
+    const headers = { "content-type": "application/json", accept: "application/json" };
     const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(JOB),
-      })
+      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
     ).json()) as { job: { id: string } };
-    const res = await fetch(`${base}/specs/${made.job.id}?tab=steps&step=0`, {
-      redirect: "manual",
-    });
+    const res = await fetch(`${base}/specs/${made.job.id}?tab=steps&step=0`, { redirect: "manual" });
     expect(res.status).toBe(301);
-    expect(res.headers.get("location")).toBe(
-      `/jobs/${made.job.id}?tab=steps&step=0`,
-    );
+    expect(res.headers.get("location")).toBe(`/jobs/${made.job.id}?tab=steps&step=0`);
   });
 
   test("the JSON surface is not renamed and no redirect swallows it", async () => {
     const { base } = start();
-    const headers = {
-      "content-type": "application/json",
-      accept: "application/json",
-    };
-    const made = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(JOB),
-    });
+    const headers = { "content-type": "application/json", accept: "application/json" };
+    const made = await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
     expect(made.status).toBe(200);
     const id = ((await made.json()) as { job: { id: string } }).job.id;
 
@@ -199,9 +133,7 @@ describe("the Specs list is at /specs", () => {
     expect(((await one.json()) as { job: { id: string } }).job.id).toBe(id);
 
     const cancel = await fetch(`${base}/api/queue/${id}/cancel`, {
-      method: "POST",
-      headers,
-      redirect: "manual",
+      method: "POST", headers, redirect: "manual",
     });
     expect(cancel.status).toBe(200);
   });

@@ -4,35 +4,19 @@
 import { describe, expect, spyOn, test } from "bun:test";
 import { streamedPage } from "../../../src/serve/serve-helpers";
 
-const HEADERS = () =>
-  new Headers({ "content-type": "text/html; charset=utf-8" });
+const HEADERS = () => new Headers({ "content-type": "text/html; charset=utf-8" });
 
 describe("streamedPage", () => {
   test("the rest is already being built before any chunk is read", () => {
     let calls = 0;
-    streamedPage({
-      head: "<head>",
-      rest: async () => {
-        calls++;
-        return "<rest>";
-      },
-      failedRest: "<failed>",
-      headers: HEADERS(),
-    });
+    streamedPage({ head: "<head>", rest: async () => { calls++; return "<rest>"; }, failedRest: "<failed>", headers: HEADERS() });
     expect(calls).toBe(1);
   });
 
   test("the head is readable while the rest is still held back", async () => {
     let release!: (s: string) => void;
-    const held = new Promise<string>((r) => {
-      release = r;
-    });
-    const res = streamedPage({
-      head: "<head>",
-      rest: () => held,
-      failedRest: "<failed>",
-      headers: HEADERS(),
-    });
+    const held = new Promise<string>((r) => { release = r; });
+    const res = streamedPage({ head: "<head>", rest: () => held, failedRest: "<failed>", headers: HEADERS() });
     const reader = res.body!.getReader();
     const first = await reader.read();
     expect(new TextDecoder().decode(first.value)).toBe("<head>");
@@ -44,15 +28,8 @@ describe("streamedPage", () => {
 
   test("closing the stream while the rest is held back cancels cleanly", async () => {
     let release!: (s: string) => void;
-    const held = new Promise<string>((r) => {
-      release = r;
-    });
-    const res = streamedPage({
-      head: "<head>",
-      rest: () => held,
-      failedRest: "<failed>",
-      headers: HEADERS(),
-    });
+    const held = new Promise<string>((r) => { release = r; });
+    const res = streamedPage({ head: "<head>", rest: () => held, failedRest: "<failed>", headers: HEADERS() });
     const reader = res.body!.getReader();
     await reader.read();
     await reader.cancel();
@@ -65,9 +42,7 @@ describe("streamedPage", () => {
     try {
       const res = streamedPage({
         head: "<head>",
-        rest: async () => {
-          throw new Error("git fell over");
-        },
+        rest: async () => { throw new Error("git fell over"); },
         failedRest: "<failed>",
         headers: HEADERS(),
       });
@@ -80,12 +55,7 @@ describe("streamedPage", () => {
   });
 
   test("the headers are the ones given, and the status is 200", () => {
-    const res = streamedPage({
-      head: "h",
-      rest: async () => "r",
-      failedRest: "f",
-      headers: HEADERS(),
-    });
+    const res = streamedPage({ head: "h", rest: async () => "r", failedRest: "f", headers: HEADERS() });
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
   });

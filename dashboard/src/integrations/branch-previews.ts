@@ -31,9 +31,7 @@ export function branchPreviewArgs(branch: string): string[] {
 }
 
 const isCloudflarePages = (r: CheckRun): boolean =>
-  r?.name === "Cloudflare Pages" &&
-  typeof r.app?.slug === "string" &&
-  r.app.slug.startsWith("cloudflare");
+  r?.name === "Cloudflare Pages" && typeof r.app?.slug === "string" && r.app.slug.startsWith("cloudflare");
 
 /** The `https://` address on the summary's "Branch Preview URL" row —
  *  never the "Preview URL" row above it, which is fixed to one commit. */
@@ -54,25 +52,14 @@ export function readBranchPreview(stdout: string): BranchPreviewAnswer | null {
   }
   const runs = (parsed as { check_runs?: unknown } | null)?.check_runs;
   if (!Array.isArray(runs)) return null;
-  const newest = (runs as CheckRun[])
-    .filter(isCloudflarePages)
-    .sort((a, b) => b.id - a.id)[0];
-  if (
-    !newest ||
-    newest.status !== "completed" ||
-    newest.conclusion !== "success"
-  )
-    return {};
+  const newest = (runs as CheckRun[]).filter(isCloudflarePages).sort((a, b) => b.id - a.id)[0];
+  if (!newest || newest.status !== "completed" || newest.conclusion !== "success") return {};
   const address = branchAddress(newest.output?.summary ?? "");
   return address ? { address } : {};
 }
 
 /** `null` when `gh` could not answer. */
-export async function askBranchPreview(
-  run: GhRunner,
-  codeRoot: string,
-  branch: string,
-): Promise<BranchPreviewAnswer | null> {
+export async function askBranchPreview(run: GhRunner, codeRoot: string, branch: string): Promise<BranchPreviewAnswer | null> {
   const result = await run(codeRoot, branchPreviewArgs(branch));
   return result.code === 0 ? readBranchPreview(result.stdout) : null;
 }

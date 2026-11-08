@@ -6,11 +6,7 @@
 export type { Language, TranslationKey } from "./translations.ts";
 export { LANGUAGES } from "./translations.ts";
 
-import {
-  translations,
-  type Language,
-  type TranslationKey,
-} from "./translations.ts";
+import { translations, type Language, type TranslationKey } from "./translations.ts";
 
 export function t(
   lang: Language,
@@ -19,8 +15,7 @@ export function t(
 ): string {
   let text: string = translations[lang][key];
   if (params) {
-    for (const [k, v] of Object.entries(params))
-      text = text.replaceAll(`{${k}}`, () => String(v));
+    for (const [k, v] of Object.entries(params)) text = text.replaceAll(`{${k}}`, () => String(v));
   }
   return text;
 }

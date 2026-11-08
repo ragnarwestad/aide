@@ -35,9 +35,7 @@ const analyzeSubject = (specFolder: string): string =>
  *  ` (model: …)` group `workflow-history.ts` documents in its grammar.
  *  Nothing after it: a stopped run carries ` (stopped: …)` last. */
 const isFinishedAnalyze = (line: string, subject: string): boolean =>
-  line === subject ||
-  (line.startsWith(`${subject} (model: `) &&
-    /^ \(model: [^)]+\)$/.test(line.slice(subject.length)));
+  line === subject || (line.startsWith(`${subject} (model: `) && /^ \(model: [^)]+\)$/.test(line.slice(subject.length)));
 
 /** The last commit touching `pathspec` — which one, and when — or null
  *  if git cannot say. Scoped to ONE path on purpose: a plan-merge commit
@@ -55,13 +53,7 @@ export async function lastCommitOf(
   dir: string,
   pathspec: string,
 ): Promise<{ sha: string; at: string } | null> {
-  const out = await run(dir, [
-    "log",
-    "-1",
-    "--format=%H%x09%aI",
-    "--",
-    pathspec,
-  ]);
+  const out = await run(dir, ["log", "-1", "--format=%H%x09%aI", "--", pathspec]);
   if (out.code !== 0) return null;
   const [sha, at] = out.stdout.trim().split("\t");
   return sha && at ? { sha, at } : null;
@@ -197,13 +189,7 @@ export async function descriptionDiffers(
   dir: string,
   analyzedSha: string,
 ): Promise<boolean> {
-  const out = await run(dir, [
-    "diff",
-    "--quiet",
-    analyzedSha,
-    "--",
-    "1-description.md",
-  ]);
+  const out = await run(dir, ["diff", "--quiet", analyzedSha, "--", "1-description.md"]);
   return out.code === 1;
 }
 
@@ -212,10 +198,7 @@ export async function descriptionDiffers(
  *  the person — so "no analyze commit" means "cannot prove staleness",
  *  never "assume stale": a spec analysed by hand must not wear a badge
  *  that nothing it does can clear. */
-export function isAnalyzeStale(
-  descriptionAt: string | null,
-  analyzeAt: string | null,
-): boolean {
+export function isAnalyzeStale(descriptionAt: string | null, analyzeAt: string | null): boolean {
   if (!descriptionAt || !analyzeAt) return false;
   const described = Date.parse(descriptionAt);
   const analyzed = Date.parse(analyzeAt);
@@ -235,10 +218,7 @@ export class DescriptionFreshnessChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<
-    string,
-    { at: number; stale: boolean; due?: boolean }
-  >();
+  private readonly cache = new Map<string, { at: number; stale: boolean; due?: boolean }>();
 
   constructor(opts: DescriptionFreshnessOptions) {
     this.run = opts.run;
@@ -250,11 +230,7 @@ export class DescriptionFreshnessChecker {
    *  finished analyze. Everything else — an unreadable checkout, a spec
    *  outside git, a timeout — is false, which leaves the page saying
    *  exactly what it said before this feature existed. */
-  async isStale(
-    dir: string,
-    specFolder: string,
-    boundarySha?: string,
-  ): Promise<boolean> {
+  async isStale(dir: string, specFolder: string, boundarySha?: string): Promise<boolean> {
     // JSON rather than a separator character, for the reason
     // branch-status.ts gives: a NUL here makes git treat the source
     // file as binary, and every future diff of it pays for that.
@@ -272,12 +248,7 @@ export class DescriptionFreshnessChecker {
       // No description commit ends it here: the second lookup cannot
       // change the answer, and it costs a subprocess per spec.
       if (describedAt) {
-        const analyzed = await lastAnalyzeCommit(
-          this.run,
-          dir,
-          specFolder,
-          boundarySha,
-        );
+        const analyzed = await lastAnalyzeCommit(this.run, dir, specFolder, boundarySha);
         // The dates first, because they cost nothing beyond the lookup
         // already made: a description older than the analysis cannot be
         // stale whatever it says. Only when they point the other way is
@@ -301,8 +272,7 @@ export class DescriptionFreshnessChecker {
   forget(dir: string, specFolder: string): void {
     for (const [key, hit] of this.cache) {
       const parsed = JSON.parse(key) as [string, string, string | null];
-      if (parsed[0] === dir && parsed[1] === specFolder)
-        this.cache.set(key, { ...hit, due: true });
+      if (parsed[0] === dir && parsed[1] === specFolder) this.cache.set(key, { ...hit, due: true });
     }
   }
 
@@ -317,20 +287,12 @@ export class DescriptionFreshnessChecker {
    *
    *  Keyed the same way `isStale` keys, boundary included: the boundary
    *  is part of the QUESTION. */
-  peekStale(
-    dir: string,
-    specFolder: string,
-    boundarySha?: string,
-  ): {
+  peekStale(dir: string, specFolder: string, boundarySha?: string): {
     stale: boolean;
     checkedAt: number | null;
   } {
-    const hit = this.cache.get(
-      JSON.stringify([dir, specFolder, boundarySha ?? null]),
-    );
-    return hit
-      ? { stale: hit.stale, checkedAt: hit.at }
-      : { stale: false, checkedAt: null };
+    const hit = this.cache.get(JSON.stringify([dir, specFolder, boundarySha ?? null]));
+    return hit ? { stale: hit.stale, checkedAt: hit.at } : { stale: false, checkedAt: null };
   }
 }
 
@@ -353,10 +315,7 @@ export class SpecCreatedAtChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<
-    string,
-    { at: number; createdAt: string | null }
-  >();
+  private readonly cache = new Map<string, { at: number; createdAt: string | null }>();
 
   constructor(opts: SpecCreatedAtOptions) {
     this.run = opts.run;
@@ -390,14 +349,9 @@ export class SpecCreatedAtChecker {
    *  asked; a real, timestamped `null` is a spec git could not date.
    *  The Started cell shows a dash for both, which is what it showed
    *  before this column meant anything. */
-  peekCreatedAt(
-    dir: string,
-    specFolder: string,
-  ): { createdAt: string | null; checkedAt: number | null } {
+  peekCreatedAt(dir: string, specFolder: string): { createdAt: string | null; checkedAt: number | null } {
     const hit = this.cache.get(JSON.stringify([dir, specFolder]));
-    return hit
-      ? { createdAt: hit.createdAt, checkedAt: hit.at }
-      : { createdAt: null, checkedAt: null };
+    return hit ? { createdAt: hit.createdAt, checkedAt: hit.at } : { createdAt: null, checkedAt: null };
   }
 
   /** How long a RESOLVED archived answer stands — a day, not
@@ -412,10 +366,7 @@ export class SpecCreatedAtChecker {
   // contains `archive/` and cannot collide with a live one, but the two
   // questions keep different TTL rules and a shared map would have to
   // carry both.
-  private readonly archivedCache = new Map<
-    string,
-    { at: number; createdAt: string | null }
-  >();
+  private readonly archivedCache = new Map<string, { at: number; createdAt: string | null }>();
 
   /** How many archived lookups run at once. The sweep asks every
    *  archived spec in one go, and hundreds of `git log --follow` side by
@@ -425,9 +376,7 @@ export class SpecCreatedAtChecker {
   private readonly archivedWaiting: (() => void)[] = [];
 
   private async archivedSlot<T>(work: () => Promise<T>): Promise<T> {
-    if (
-      this.archivedInFlight >= SpecCreatedAtChecker.ARCHIVED_LOOKUPS_AT_ONCE
-    ) {
+    if (this.archivedInFlight >= SpecCreatedAtChecker.ARCHIVED_LOOKUPS_AT_ONCE) {
       await new Promise<void>((resolve) => this.archivedWaiting.push(resolve));
     }
     this.archivedInFlight++;
@@ -447,23 +396,16 @@ export class SpecCreatedAtChecker {
    *  on the same terms as `createdAt` — a missing or
    *  independently-rewritten `1-description.md` is an honest "cannot
    *  date", not a crash. */
-  async createdAtForArchived(
-    dir: string,
-    specFolder: string,
-  ): Promise<string | null> {
+  async createdAtForArchived(dir: string, specFolder: string): Promise<string | null> {
     const key = JSON.stringify([dir, specFolder]);
     const hit = this.archivedCache.get(key);
     const at = this.now();
-    const ttl = hit?.createdAt
-      ? SpecCreatedAtChecker.ARCHIVED_RESOLVED_TTL_MS
-      : this.ttlMs;
+    const ttl = hit?.createdAt ? SpecCreatedAtChecker.ARCHIVED_RESOLVED_TTL_MS : this.ttlMs;
     if (hit && at - hit.at < ttl) return hit.createdAt;
 
     let createdAt: string | null = null;
     try {
-      createdAt = await this.archivedSlot(() =>
-        firstCommitAtFollowingRenames(this.run, dir, "1-description.md"),
-      );
+      createdAt = await this.archivedSlot(() => firstCommitAtFollowingRenames(this.run, dir, "1-description.md"));
     } catch {
       createdAt = null;
     }
@@ -489,18 +431,10 @@ export class SpecCreatedAtChecker {
     if (hit?.createdAt) return { createdAt: hit.createdAt, checkedAt: hit.at };
     const live =
       basename(dirname(dir)) === "archive"
-        ? this.cache.get(
-            JSON.stringify([
-              join(dirname(dirname(dir)), specFolder),
-              specFolder,
-            ]),
-          )
+        ? this.cache.get(JSON.stringify([join(dirname(dirname(dir)), specFolder), specFolder]))
         : undefined;
-    if (live?.createdAt)
-      return { createdAt: live.createdAt, checkedAt: live.at };
-    return hit
-      ? { createdAt: hit.createdAt, checkedAt: hit.at }
-      : { createdAt: null, checkedAt: null };
+    if (live?.createdAt) return { createdAt: live.createdAt, checkedAt: live.at };
+    return hit ? { createdAt: hit.createdAt, checkedAt: hit.at } : { createdAt: null, checkedAt: null };
   }
 }
 
@@ -528,10 +462,7 @@ export class SpecFileCommitChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<
-    string,
-    { at: number; commit: { sha: string; at: string } | null }
-  >();
+  private readonly cache = new Map<string, { at: number; commit: { sha: string; at: string } | null }>();
 
   constructor(opts: SpecFileCommitOptions) {
     this.run = opts.run;
@@ -539,10 +470,7 @@ export class SpecFileCommitChecker {
     this.now = opts.now ?? Date.now;
   }
 
-  async commitFor(
-    dir: string,
-    file: string,
-  ): Promise<{ sha: string; at: string } | null> {
+  async commitFor(dir: string, file: string): Promise<{ sha: string; at: string } | null> {
     // JSON, for the reason the checkers above give: a NUL in a source
     // file makes git treat that file as binary from then on.
     const key = JSON.stringify([dir, file]);

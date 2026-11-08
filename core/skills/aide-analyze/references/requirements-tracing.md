@@ -57,10 +57,10 @@ in ascending id order, starting unticked:
 ```markdown
 ## Acceptance criteria
 
-| Task                                                     | Status | Notes |
-| -------------------------------------------------------- | ------ | ----- |
-| AC-1: <requirement text, verbatim from 1-description.md> | ⬜     |       |
-| AC-2: <requirement text, verbatim from 1-description.md> | ⬜     |       |
+| Task | Status | Notes |
+|------|--------|-------|
+| AC-1: <requirement text, verbatim from 1-description.md> | ⬜ | |
+| AC-2: <requirement text, verbatim from 1-description.md> | ⬜ | |
 ```
 
 A row's Notes cell stays empty when its requirement is tested as

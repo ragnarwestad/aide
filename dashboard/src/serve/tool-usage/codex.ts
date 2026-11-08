@@ -30,23 +30,17 @@ export function parseCodexRateLimits(result: unknown): UsageWindow[] {
   const windows: UsageWindow[] = [];
   for (const window of [limits.primary, limits.secondary]) {
     if (!isObject(window) || typeof window.usedPercent !== "number") continue;
-    const minutes =
-      typeof window.windowDurationMins === "number"
-        ? window.windowDurationMins
-        : 0;
+    const minutes = typeof window.windowDurationMins === "number" ? window.windowDurationMins : 0;
     windows.push({
       name: codexWindowName(minutes),
       usedPercent: Math.round(window.usedPercent),
-      ...(typeof window.resetsAt === "number"
-        ? { resetsAt: new Date(window.resetsAt * 1000).toISOString() }
-        : {}),
+      ...(typeof window.resetsAt === "number" ? { resetsAt: new Date(window.resetsAt * 1000).toISOString() } : {}),
     });
   }
   return windows;
 }
 
-export type ExchangeReply =
-  { answer: Record<string, unknown> } | { timedOut: true } | { error: string };
+export type ExchangeReply = { answer: Record<string, unknown> } | { timedOut: true } | { error: string };
 
 /** Writes `messages`, one per line, and answers with the line whose `id`
  *  is `id`. The server is started in a group of its own, and that group
@@ -61,10 +55,7 @@ export type UsageExchange = (
   env?: Record<string, string>,
 ) => Promise<ExchangeReply>;
 
-async function answerLine(
-  stdout: ReadableStream<Uint8Array>,
-  id: number,
-): Promise<ExchangeReply> {
+async function answerLine(stdout: ReadableStream<Uint8Array>, id: number): Promise<ExchangeReply> {
   const decoder = new TextDecoder();
   let buffered = "";
   for await (const chunk of stdout) {
@@ -87,13 +78,7 @@ async function answerLine(
   return { error: "codex app-server ended without answering." };
 }
 
-export const appServerExchange: UsageExchange = async (
-  argv,
-  messages,
-  id,
-  timeoutMs,
-  extraEnv = {},
-) => {
+export const appServerExchange: UsageExchange = async (argv, messages, id, timeoutMs, extraEnv = {}) => {
   const env = { ...spawnEnv(), ...extraEnv };
   const proc = Bun.spawn({
     cmd: scriptArgv(argv, env.PATH),
@@ -110,8 +95,7 @@ export const appServerExchange: UsageExchange = async (
     timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
   });
   try {
-    for (const message of messages)
-      proc.stdin.write(`${JSON.stringify(message)}\n`);
+    for (const message of messages) proc.stdin.write(`${JSON.stringify(message)}\n`);
     await proc.stdin.flush();
     return await Promise.race([answerLine(proc.stdout, id), timeout]);
   } catch (err) {
@@ -136,17 +120,7 @@ export const appServerExchange: UsageExchange = async (
  *  then the question itself, as request 2. */
 export const RATE_LIMITS_REQUEST_ID = 2;
 export const RATE_LIMITS_MESSAGES = [
-  {
-    id: 1,
-    method: "initialize",
-    params: {
-      clientInfo: {
-        name: "aide_dashboard",
-        title: "Aide dashboard",
-        version: "1.0.0",
-      },
-    },
-  },
+  { id: 1, method: "initialize", params: { clientInfo: { name: "aide_dashboard", title: "Aide dashboard", version: "1.0.0" } } },
   { method: "initialized" },
   { id: RATE_LIMITS_REQUEST_ID, method: "account/rateLimits/read" },
 ];
@@ -160,31 +134,13 @@ export async function readCodexUsage(
   timeoutMs: number,
   env?: Record<string, string>,
 ): Promise<ToolUsage> {
-  const reply = await exchange(
-    [bin, "app-server"],
-    RATE_LIMITS_MESSAGES,
-    RATE_LIMITS_REQUEST_ID,
-    timeoutMs,
-    env,
-  );
-  if ("timedOut" in reply)
-    return {
-      ...base,
-      windows: [],
-      error: "codex app-server did not answer in time.",
-    };
+  const reply = await exchange([bin, "app-server"], RATE_LIMITS_MESSAGES, RATE_LIMITS_REQUEST_ID, timeoutMs, env);
+  if ("timedOut" in reply) return { ...base, windows: [], error: "codex app-server did not answer in time." };
   if ("error" in reply) return { ...base, windows: [], error: reply.error };
   const { answer } = reply;
   if (isObject(answer.error)) {
-    const message =
-      typeof answer.error.message === "string"
-        ? answer.error.message
-        : JSON.stringify(answer.error);
-    return {
-      ...base,
-      windows: [],
-      error: `codex app-server refused account/rateLimits/read: ${message}`,
-    };
+    const message = typeof answer.error.message === "string" ? answer.error.message : JSON.stringify(answer.error);
+    return { ...base, windows: [], error: `codex app-server refused account/rateLimits/read: ${message}` };
   }
   return { ...base, windows: parseCodexRateLimits(answer.result) };
 }

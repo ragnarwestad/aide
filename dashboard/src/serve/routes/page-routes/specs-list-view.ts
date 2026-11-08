@@ -3,19 +3,9 @@
 // row open and the spec in it. One function builds the view, so the two
 // cannot cut and order the list differently.
 import {
-  ARCHIVED_STATE,
-  renderSpecGroupRows,
-  renderSpecsRows,
-  specPagePath,
-  type QueueRowView,
-  type SpecsPageOptions,
+  ARCHIVED_STATE, renderSpecGroupRows, renderSpecsRows, specPagePath, type QueueRowView, type SpecsPageOptions,
 } from "../../../render";
-import {
-  languageChoice,
-  sortChoice,
-  specsClientScript,
-  stateChoice,
-} from "../../serve-helpers";
+import { languageChoice, sortChoice, specsClientScript, stateChoice } from "../../serve-helpers";
 import { listedSpecJobs, specRowOptions } from "./spec-row-options.ts";
 import type { RoutesContext } from "..";
 
@@ -72,14 +62,8 @@ export async function specsListParts(
   let archivedSpecs = ctx.archivedSpecRows(chosenState);
   // The open spec's row is shown whatever the filter: an archived spec the
   // chosen state hides is built alone, so only this address pays for it.
-  if (
-    openKey &&
-    archivedKeys.includes(openKey) &&
-    !archivedSpecs.some((a) => `${a.project}/${a.folder}` === openKey)
-  ) {
-    const open = ctx
-      .archivedSpecRows(ARCHIVED_STATE)
-      .find((a) => `${a.project}/${a.folder}` === openKey);
+  if (openKey && archivedKeys.includes(openKey) && !archivedSpecs.some((a) => `${a.project}/${a.folder}` === openKey)) {
+    const open = ctx.archivedSpecRows(ARCHIVED_STATE).find((a) => `${a.project}/${a.folder}` === openKey);
     if (open) archivedSpecs = [...archivedSpecs, open];
   }
   // The reader's own choice of column, from the address or from the
@@ -128,12 +112,7 @@ export async function specsListParts(
     // row lead to that address, so they keep the row open.
     openSpec: { key: openKey },
     pdfAvailable: ctx.pdfToolAvailable,
-    listPath: openKey
-      ? specPagePath(
-          openKey.slice(0, openKey.indexOf("/")),
-          openKey.slice(openKey.indexOf("/") + 1),
-        )
-      : undefined,
+    listPath: openKey ? specPagePath(openKey.slice(0, openKey.indexOf("/")), openKey.slice(openKey.indexOf("/") + 1)) : undefined,
   };
   // Only the projects the queue may run. A project taken out of the
   // allowlist keeps its jobs in the history (and in /api/queue), but
@@ -143,11 +122,7 @@ export async function specsListParts(
   return {
     view,
     rows: () => Promise.all(listed.map(ctx.jobRow)),
-    setCookies: [
-      chosenSort.setCookie,
-      stateResult.setCookie,
-      langResult.setCookie,
-    ].filter((c): c is string => !!c),
+    setCookies: [chosenSort.setCookie, stateResult.setCookie, langResult.setCookie].filter((c): c is string => !!c),
   };
 }
 
@@ -165,18 +140,10 @@ export function listHeaders(parts: SpecsListParts): Headers {
  *  cookie set only on the full page would never be written by the very act
  *  of choosing. `only` is the one spec a › opened or shut, so the page
  *  swaps that row and not the whole list. */
-export async function specsRowsAnswer(
-  parts: SpecsListParts,
-  url: URL,
-): Promise<Response> {
+export async function specsRowsAnswer(parts: SpecsListParts, url: URL): Promise<Response> {
   const rows = await parts.rows();
   const only = url.searchParams.get("only");
-  return new Response(
-    only
-      ? renderSpecGroupRows(rows, parts.view, only)
-      : renderSpecsRows(rows, parts.view),
-    {
-      headers: listHeaders(parts),
-    },
-  );
+  return new Response(only ? renderSpecGroupRows(rows, parts.view, only) : renderSpecsRows(rows, parts.view), {
+    headers: listHeaders(parts),
+  });
 }

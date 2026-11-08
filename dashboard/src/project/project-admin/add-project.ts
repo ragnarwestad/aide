@@ -5,11 +5,7 @@
 import { existsSync, mkdirSync, symlinkSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
-import {
-  dashboardCheckoutRoot,
-  dashboardProjectsRoot,
-  dashboardSettingsFile,
-} from "../../git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, dashboardProjectsRoot, dashboardSettingsFile } from "../../git/dashboard-checkout.ts";
 import { isPreviewFrom } from "../parse-manifest.ts";
 import {
   minimalManifest,
@@ -20,18 +16,8 @@ import {
   writeAideConfig,
 } from "./manifest-io.ts";
 import { assessProjectReadiness } from "./readiness.ts";
-import {
-  applySettingsEdits,
-  manifestTracked,
-  seedSettingsFile,
-} from "./settings-state.ts";
-import {
-  fail,
-  type AddProjectRequest,
-  type ProjectAdminResult,
-  type ProjectStep,
-  type ProjectStepName,
-} from "./types.ts";
+import { applySettingsEdits, manifestTracked, seedSettingsFile } from "./settings-state.ts";
+import { fail, type AddProjectRequest, type ProjectAdminResult, type ProjectStep, type ProjectStepName } from "./types.ts";
 
 /** Whether a failed clone's stderr is git giving up on a login nobody
  *  was going to answer, rather than any other reason a clone fails.
@@ -78,15 +64,8 @@ function sshEquivalent(gitUrl: string): string | null {
  *  checkout and the projects root gets a link to it — one copy, read and
  *  written by the same server. Anywhere else the projects root holds the
  *  checkouts people edit, and the clone goes straight into it. */
-function cloneDestination(
-  projectsRoot: string,
-  name: string,
-  checkoutBase?: string,
-): string {
-  if (
-    checkoutBase &&
-    resolve(projectsRoot) === resolve(dashboardProjectsRoot(checkoutBase))
-  ) {
+function cloneDestination(projectsRoot: string, name: string, checkoutBase?: string): string {
+  if (checkoutBase && resolve(projectsRoot) === resolve(dashboardProjectsRoot(checkoutBase))) {
     return dashboardCheckoutRoot(checkoutBase, name);
   }
   return join(projectsRoot, name);
@@ -121,10 +100,7 @@ export async function addProject(
   // now: every project is cloned, and the entry is always the
   // dashboard's own.
   if (!gitUrl) {
-    return fail(
-      "name",
-      "say where the project comes from: its git address, which the dashboard clones",
-    );
+    return fail("name", "say where the project comes from: its git address, which the dashboard clones");
   }
   // Before the clone, like the name: a specs root the server would read
   // from its own folder is known to be wrong the moment it is typed.
@@ -135,24 +111,17 @@ export async function addProject(
   // how a team works. Refused here, before anything is cloned.
   const landing = (req.codeLanding ?? "").trim();
   if (!landing) {
-    return fail(
-      "codeLanding",
-      "choose how code lands: merge into the main branch, or a pull request",
-    );
+    return fail("codeLanding", "choose how code lands: merge into the main branch, or a pull request");
   }
 
   // Before the clone too: a word no reader recognises would be saved and
   // then read as `none`.
   const previewFrom = (req.previewFrom ?? "").trim() || "none";
-  if (!isPreviewFrom(previewFrom))
-    return fail("previewFrom", previewFromError(previewFrom));
+  if (!isPreviewFrom(previewFrom)) return fail("previewFrom", previewFromError(previewFrom));
 
   const steps: ProjectStep[] = [{ step: "name", ok: true }];
   const dir = join(projectsRoot, name);
-  const done = (): ProjectAdminResult => ({
-    ok: steps.every((s) => s.ok),
-    steps,
-  });
+  const done = (): ProjectAdminResult => ({ ok: steps.every((s) => s.ok), steps });
   const stop = (step: ProjectStepName, error: string): ProjectAdminResult => {
     steps.push({ step, ok: false, error });
     return done();
@@ -163,10 +132,7 @@ export async function addProject(
     // destination anyway, but not in words anybody wants to read, and
     // an empty one it would happily fill.
     if (existsSync(dir)) {
-      return stop(
-        "clone",
-        `"${name}" is already a directory under the projects root`,
-      );
+      return stop("clone", `"${name}" is already a directory under the projects root`);
     }
     const dest = cloneDestination(projectsRoot, name, checkoutBase);
     // A checkout the dashboard already made (install-serve clones its
@@ -179,13 +145,7 @@ export async function addProject(
     // of those. Here there is nobody to ask, so git must fail instead.
     const cloned = alreadyCloned
       ? { code: 0, stdout: "" }
-      : await run(dirname(dest), [
-          "-c",
-          "credential.helper=",
-          "clone",
-          gitUrl,
-          basename(dest),
-        ]);
+      : await run(dirname(dest), ["-c", "credential.helper=", "clone", gitUrl, basename(dest)]);
     if (cloned.code !== 0) {
       const said = (cloned.stderr ?? "").trim() || (cloned.stdout ?? "").trim();
       if (needsAuthentication(said)) {
@@ -197,19 +157,13 @@ export async function addProject(
             (ssh ? `: ${ssh}` : ""),
         );
       }
-      return stop(
-        "clone",
-        `the clone failed (exit ${cloned.code})${said ? `: ${said.slice(-200)}` : ""}`,
-      );
+      return stop("clone", `the clone failed (exit ${cloned.code})${said ? `: ${said.slice(-200)}` : ""}`);
     }
     if (dest !== dir) {
       try {
         symlinkSync(dest, dir);
       } catch (err) {
-        return stop(
-          "clone",
-          `could not link ${dir} to ${dest}: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        return stop("clone", `could not link ${dir} to ${dest}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
     steps.push({ step: "clone", ok: true });
@@ -221,9 +175,7 @@ export async function addProject(
   // not — is never written to: an untracked one only seeds the settings
   // file, so what somebody drafted by hand is not lost.
   const own = join(dir, ".aide", "project.yaml");
-  const settingsFile = checkoutBase
-    ? dashboardSettingsFile(checkoutBase, name)
-    : null;
+  const settingsFile = checkoutBase ? dashboardSettingsFile(checkoutBase, name) : null;
   // Only a yes counts as tracked. A git that cannot say (the directory is
   // no repository, which the readiness check reports by name) leaves the
   // settings file as the place to write: nothing here touches the
@@ -237,18 +189,10 @@ export async function addProject(
         note: "the project's own manifest (.aide/project.yaml) is used — what the form sets is committed to it",
       });
     } else if (!settingsFile) {
-      steps.push({
-        step: "manifest",
-        ok: true,
-        note: "no dashboard checkout root is set, so no settings are kept for it",
-      });
+      steps.push({ step: "manifest", ok: true, note: "no dashboard checkout root is set, so no settings are kept for it" });
     } else {
       const existed = existsSync(settingsFile);
-      seedSettingsFile(
-        settingsFile,
-        [own],
-        minimalManifest(name, req.description),
-      );
+      seedSettingsFile(settingsFile, [own], minimalManifest(name, req.description));
       steps.push({
         step: "manifest",
         ok: true,
@@ -258,10 +202,7 @@ export async function addProject(
       });
     }
   } catch (err) {
-    return stop(
-      "manifest",
-      `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    return stop("manifest", `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // Both keys go into the one file, and an unusable links value is
@@ -288,8 +229,7 @@ export async function addProject(
     const made = !existsSync(req.specsPath);
     try {
       mkdirSync(join(req.specsPath, "archive"), { recursive: true });
-      if (made)
-        specsNote = `made the specs root at ${req.specsPath}, with its archive/`;
+      if (made) specsNote = `made the specs root at ${req.specsPath}, with its archive/`;
     } catch (err) {
       specsNote = `could not make ${req.specsPath}: ${err instanceof Error ? err.message : String(err)}`;
     }
@@ -302,32 +242,18 @@ export async function addProject(
   if (req.specsPath) {
     try {
       writeAideConfig(dir, { AIDE_SPECS_PATH: req.specsPath });
-      steps.push({
-        step: "specsConfig",
-        ok: true,
-        ...(specsNote ? { note: specsNote } : {}),
-      });
+      steps.push({ step: "specsConfig", ok: true, ...(specsNote ? { note: specsNote } : {}) });
     } catch (err) {
-      return stop(
-        "specsConfig",
-        `could not write .aide/config: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      return stop("specsConfig", `could not write .aide/config: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
   const settingsEdits = !tracked && settingsFile;
   if (links && settingsEdits) {
     try {
-      applySettingsEdits(
-        settingsFile,
-        [{ key: "worktreeLinks", value: links }],
-        [own],
-      );
+      applySettingsEdits(settingsFile, [{ key: "worktreeLinks", value: links }], [own]);
       steps.push({ step: "worktreeLinks", ok: true });
     } catch (err) {
-      return stop(
-        "worktreeLinks",
-        `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      return stop("worktreeLinks", `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
   // Only `pr` is written: `merge` is what an absent key already means,
@@ -337,24 +263,14 @@ export async function addProject(
   // worse than one never written.
   if (landing !== "merge") {
     if (landing !== "pr") {
-      return stop(
-        "codeLanding",
-        `code landing must be merge or pr — not "${landing}"`,
-      );
+      return stop("codeLanding", `code landing must be merge or pr — not "${landing}"`);
     }
     if (settingsEdits) {
       try {
-        applySettingsEdits(
-          settingsFile,
-          [{ key: "codeLanding", value: landing }],
-          [own],
-        );
+        applySettingsEdits(settingsFile, [{ key: "codeLanding", value: landing }], [own]);
         steps.push({ step: "codeLanding", ok: true });
       } catch (err) {
-        return stop(
-          "codeLanding",
-          `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        return stop("codeLanding", `could not write ${settingsFile}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   }
@@ -364,15 +280,5 @@ export async function addProject(
   // assessment goes looking for, and an assessment taken before it
   // would report a project unable to run over a path this very call
   // had just configured.
-  return {
-    ...done(),
-    readiness: await assessProjectReadiness(
-      run,
-      dir,
-      undefined,
-      !tracked && settingsFile && existsSync(settingsFile)
-        ? settingsFile
-        : undefined,
-    ),
-  };
+  return { ...done(), readiness: await assessProjectReadiness(run, dir, undefined, !tracked && settingsFile && existsSync(settingsFile) ? settingsFile : undefined) };
 }

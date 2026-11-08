@@ -1,16 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import {
-  installTimestampedConsole,
-  stampLine,
-} from "../../../src/serve/serve-helpers/timestamped-console.ts";
+import { installTimestampedConsole, stampLine } from "../../../src/serve/serve-helpers/timestamped-console.ts";
 
 describe("the served dashboard's log lines carry the clock", () => {
   const at = () => new Date("2026-09-14T09:37:22.000Z");
 
   test("a line is stamped with the moment it was written", () => {
-    expect(stampLine("boards: stopping main on :8801", at)).toBe(
-      "2026-09-14T09:37:22.000Z boards: stopping main on :8801",
-    );
+    expect(stampLine("boards: stopping main on :8801", at)).toBe("2026-09-14T09:37:22.000Z boards: stopping main on :8801");
   });
 
   test("console.log and console.error both stamp, and the originals come back", () => {

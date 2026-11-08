@@ -9,10 +9,7 @@ const TREE = "4c06462edc4b82534d3a6dc5a54782ae597c2259";
 
 describe("reading what a step saw green", () => {
   test("a tree hash and its commands are read as they are", () => {
-    expect(testedGreen({ tree: TREE, commands: ["make test"] })).toEqual({
-      tree: TREE,
-      commands: ["make test"],
-    });
+    expect(testedGreen({ tree: TREE, commands: ["make test"] })).toEqual({ tree: TREE, commands: ["make test"] });
   });
 
   test.each([

@@ -53,8 +53,7 @@ export const press = { inFlight: 0, pressGen: 0 };
  *  something, and the swap behaves exactly as it did before. */
 export const chosen = new Map<string, string>();
 
-export const selectKey = (el: HTMLSelectElement): string =>
-  `${el.getAttribute("form") ?? ""}|${el.name}`;
+export const selectKey = (el: HTMLSelectElement): string => `${el.getAttribute("form") ?? ""}|${el.name}`;
 
 /** The same promise for the row's PHASE BOXES, which the select fix
  *  above left out — and they are the half a press actually runs.

@@ -11,16 +11,7 @@ import { join } from "node:path";
 import { pickRefusal } from "../../../src/serve/land-branch/merge.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
-import {
-  createOwnDirs,
-  gitFor,
-  repos,
-  installs,
-  serverWith,
-  merges,
-  stepWithResult,
-  repoOf,
-} from "./every-step-lands-fixtures.ts";
+import { createOwnDirs, gitFor, repos, installs, serverWith, merges, stepWithResult, repoOf } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -71,18 +62,12 @@ test.each(["analyze"])(
     const { base } = serverWithHarness(dir, paths, git);
 
     const landed = await stepWithResult(base, dir, step, {
-      branchUrls: [
-        { root: paths.specs, url: "https://example.test/aide-specs" },
-      ],
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
     });
 
     expect(landed.error).toBeFalsy();
     expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
-    expect(
-      git.calls.some(
-        (c) => repoOf(c.dir) === paths.specs && c.args[0] === "push",
-      ),
-    ).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === paths.specs && c.args[0] === "push")).toBe(true);
     // Landed, so the row stops advertising a branch at all.
     expect(landed.branchUrls).toEqual([]);
   },
@@ -140,9 +125,7 @@ describe("a landing that installs and asks for a restart", () => {
       (j) => j.state === "done",
     );
     const landed = await stepWithResult(base, dir, "archive", {
-      branchUrls: [
-        { root: paths.specs, url: "https://example.test/aide-specs" },
-      ],
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
     });
 
     expect(landed.error).toBeFalsy();
@@ -165,25 +148,10 @@ describe("a landing that installs and asks for a restart", () => {
   // own ("cannot fast-forward main") — the words that said what
   // happened were gone.
   test("pickRefusal keeps the first refusal's words unless a retry reached a verdict", () => {
-    const first = {
-      root: "/r",
-      ok: false,
-      error: "main moved on origin under this landing twice",
-      detail: "rejected",
-    };
+    const first = { root: "/r", ok: false, error: "main moved on origin under this landing twice", detail: "rejected" };
     const again = { root: "/r", ok: false, error: "cannot fast-forward main" };
-    expect(pickRefusal(first, again)).toEqual({
-      ...again,
-      error: first.error,
-      detail: "rejected",
-      reason: undefined,
-    });
-    const conflict = {
-      root: "/r",
-      ok: false,
-      error: "cannot merge — conflict",
-      reason: "conflict" as const,
-    };
+    expect(pickRefusal(first, again)).toEqual({ ...again, error: first.error, detail: "rejected", reason: undefined });
+    const conflict = { root: "/r", ok: false, error: "cannot merge — conflict", reason: "conflict" as const };
     expect(pickRefusal(first, conflict)).toBe(conflict);
     const fine = { root: "/r", ok: true };
     expect(pickRefusal(fine, again)).toBe(again);
@@ -220,9 +188,7 @@ describe("a landing that installs and asks for a restart", () => {
       (j) => j.state === "done",
     );
     const landed = await stepWithResult(base, dir, "archive", {
-      branchUrls: [
-        { root: paths.specs, url: "https://example.test/aide-specs" },
-      ],
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
     });
     expect(landed.error).toBeFalsy();
     for (let i = 0; i < 80 && !existsSync(marker); i++) await Bun.sleep(25);

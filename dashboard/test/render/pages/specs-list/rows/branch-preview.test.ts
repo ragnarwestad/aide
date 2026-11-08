@@ -4,11 +4,7 @@
 // address for the spec.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { row } from "../../fixtures.ts";
 
 const FOLDER = "40-x";
@@ -20,17 +16,9 @@ const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
   ...extra,
 });
 const noticeCell = (html: string): string =>
-  html.match(
-    new RegExp(
-      `<tr class="specnotice"[^>]*data-folder="${FOLDER}">[\\s\\S]*?</tr>`,
-    ),
-  )?.[0] ?? "";
+  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${FOLDER}">[\\s\\S]*?</tr>`))?.[0] ?? "";
 const render = (
-  o: {
-    rows?: QueueRowView[];
-    target?: SpecTarget;
-    branchPreview?: (project: string, folder: string) => string | undefined;
-  } = {},
+  o: { rows?: QueueRowView[]; target?: SpecTarget; branchPreview?: (project: string, folder: string) => string | undefined } = {},
 ): string =>
   noticeCell(
     renderSpecsRows(o.rows ?? [], {
@@ -48,55 +36,31 @@ describe("a row's preview link", () => {
 
   test("the address is asked about the spec's own project and folder", () => {
     const asked: string[] = [];
-    render({
-      branchPreview: (project, folder) => {
+    render({ branchPreview: (project, folder) => {
         asked.push(`${project}/${folder}`);
         return ADDRESS;
-      },
-    });
+      } });
     expect(asked).toContain(`woodstack/${FOLDER}`);
   });
 
   test("no implement in the history: no link", () => {
-    expect(
-      render({ target: target({ historyDone: ["analyze"] }) }),
-    ).not.toContain(ADDRESS);
+    expect(render({ target: target({ historyDone: ["analyze"] }) })).not.toContain(ADDRESS);
   });
 
   test("no address kept: no link", () => {
-    expect(render({ branchPreview: () => undefined })).not.toContain(
-      "pages.dev",
-    );
+    expect(render({ branchPreview: () => undefined })).not.toContain("pages.dev");
   });
 
   test("a row drawn without the option carries no link", () => {
     const html = noticeCell(
-      renderSpecsRows([], {
-        runnerAvailable: true,
-        targets: [target()],
-        testServerAvailable: () => false,
-      }),
+      renderSpecsRows([], { runnerAvailable: true, targets: [target()], testServerAvailable: () => false }),
     );
     expect(html).not.toContain("pages.dev");
   });
 
   test("a running analyze, implement or archive, or a queued archive: no link, and it is back once they end", () => {
-    const withJob = (
-      steps: string[],
-      stepIndex: number,
-      state: QueueRowView["state"],
-    ) =>
-      render({
-        rows: [
-          row({
-            project: "woodstack",
-            specFolder: FOLDER,
-            steps,
-            stepIndex,
-            state,
-          }),
-        ],
-      });
+    const withJob = (steps: string[], stepIndex: number, state: QueueRowView["state"]) =>
+      render({ rows: [row({ project: "woodstack", specFolder: FOLDER, steps, stepIndex, state })] });
     const steps = ["analyze", "implement", "archive"];
     expect(withJob(steps, 0, "running")).not.toContain(ADDRESS);
     expect(withJob(steps, 1, "running")).not.toContain(ADDRESS);
@@ -112,13 +76,7 @@ describe("a row's preview link", () => {
         targets: [],
         archived: [`aide/${FOLDER}`],
         archivedSpecs: [
-          {
-            project: "woodstack",
-            folder: FOLDER,
-            done: ["create", "analyze", "implement", "archive"],
-            models: {},
-            phaseOutcomes: {},
-          },
+          { project: "woodstack", folder: FOLDER, done: ["create", "analyze", "implement", "archive"], models: {}, phaseOutcomes: {} },
         ],
         filter: { state: "archived" },
         branchPreview: () => ADDRESS,

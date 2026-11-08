@@ -3,27 +3,12 @@
 // `spec-edit.ts`'s reset route and `queue-admin.ts`'s settings route —
 // refuse before any write, then a JSON answer. A saved create or edit
 // names the page the reader came from, for the page script to go to.
-import {
-  createScheduleEntry,
-  deleteScheduleEntry,
-  setScheduleEnabled,
-  updateScheduleEntry,
-} from "../../project/project-admin";
+import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
 import { splitFix } from "../../format/request-fixes.ts";
-import {
-  bodyToObject,
-  json,
-  logRefusal,
-  readBounded,
-  refusal,
-} from "../serve-helpers";
+import { bodyToObject, json, logRefusal, readBounded, refusal } from "../serve-helpers";
 import type { RoutesContext } from "./";
-import {
-  projectScheduleTab,
-  renamedBack,
-  scheduleBackPath,
-} from "./page-routes/schedule-edit-page.ts";
+import { projectScheduleTab, renamedBack, scheduleBackPath } from "./page-routes/schedule-edit-page.ts";
 
 const CRON_NEXT_ROUTE = "/api/queue/schedule/cron-next";
 
@@ -32,23 +17,14 @@ const str = (v: unknown): string => (typeof v === "string" ? v : "");
 /** Every model name the queue config lists — what a create/edit is
  *  validated against, so a name the queue would refuse at fire time is
  *  refused here instead, while a person is looking at the form. */
-const knownModels = (ctx: RoutesContext): string[] =>
-  Object.keys(ctx.queue.defaults.modelChoices ?? {});
-const knownProviders = (ctx: RoutesContext): string[] =>
-  Object.keys(ctx.queue.defaults.providers ?? {});
+const knownModels = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.modelChoices ?? {});
+const knownProviders = (ctx: RoutesContext): string[] => Object.keys(ctx.queue.defaults.providers ?? {});
 
-async function readJsonBody(
-  req: Request,
-): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
+async function readJsonBody(req: Request): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
   const sent = await readBounded(req);
   if ("refusal" in sent) return sent;
   try {
-    const body = sent.text
-      ? (bodyToObject(sent.text, req.headers.get("content-type")) as Record<
-          string,
-          unknown
-        >)
-      : {};
+    const body = sent.text ? (bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>) : {};
     return { body };
   } catch {
     return { refusal: json({ error: "malformed body" }, 400) };
@@ -66,28 +42,19 @@ export async function handleScheduleAdminRoutes(
   // differs — an exact match here never falls through to be read as a
   // project named "cron-next".
   if (path === CRON_NEXT_ROUTE) {
-    if (req.method !== "GET")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const cron = url.searchParams.get("cron") ?? "";
     const next = nextFireTime(cron, new Date());
-    if (!next)
-      return json({ error: `"${cron}" is not a valid cron expression` }, 400);
+    if (!next) return json({ error: `"${cron}" is not a valid cron expression` }, 400);
     return json({ next: next.toISOString() });
   }
 
-  const enabledPost = path.match(
-    /^\/api\/queue\/schedule\/([^/]+)\/([^/]+)\/enabled$/,
-  );
+  const enabledPost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)\/enabled$/);
   if (enabledPost) {
-    if (req.method !== "POST")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const project = decodeURIComponent(enabledPost[1]!);
     const name = decodeURIComponent(enabledPost[2]!);
-    if (!ctx.allowed.has(project))
-      return json(
-        { error: `"${project}" is not a project this dashboard knows` },
-        400,
-      );
+    if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
@@ -95,27 +62,17 @@ export async function handleScheduleAdminRoutes(
     // route — a plain `{enabled}` body is
     // never refused for missing confirmation.
     const enabled = body.enabled === "1" || body.enabled === true;
-    const result = setScheduleEnabled(
-      ctx.scheduleStore,
-      project,
-      name,
-      enabled,
-    );
+    const result = setScheduleEnabled(ctx.scheduleStore, project, name, enabled);
     if (!result.ok) return refusal(splitFix(result.error));
     return json({ ok: true, enabled });
   }
 
   const runPost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)\/run$/);
   if (runPost) {
-    if (req.method !== "POST")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const project = decodeURIComponent(runPost[1]!);
     const name = decodeURIComponent(runPost[2]!);
-    if (!ctx.allowed.has(project))
-      return json(
-        { error: `"${project}" is not a project this dashboard knows` },
-        400,
-      );
+    if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     // A thin wrapper over the same enqueue/tick pair `refreshSchedules`
     // itself calls — no new mechanism. It reads
     // the entry's own model for the same reason that tick does: "Run
@@ -123,40 +80,25 @@ export async function handleScheduleAdminRoutes(
     // not quietly run on a different model than the schedule does.
     const entry = ctx.scheduleStore.list(project).find((e) => e.name === name);
     const result = ctx.queue.enqueue({
-      project,
-      specFolder: scheduleTrackingKey(name),
-      steps: ["schedule"],
+      project, specFolder: scheduleTrackingKey(name), steps: ["schedule"],
       ...(entry?.model ? { model: entry.model } : {}),
       ...(entry?.provider ? { provider: entry.provider } : {}),
     });
     if (!result.ok) {
       logRefusal("run now", `${project}/${name}`, result.error);
-      {
-        const said = splitFix(result.error);
-        return refusal({
-          error: `Run now was refused for ${project}:${name}: ${said.error}`,
-          solution: said.solution,
-        });
-      }
+      { const said = splitFix(result.error); return refusal({ error: `Run now was refused for ${project}:${name}: ${said.error}`, solution: said.solution }); }
     }
     ctx.queue.update(result.job.id, { pressed: true });
     await ctx.tickRunner();
     return json({ ok: true, job: result.job });
   }
 
-  const deletePost = path.match(
-    /^\/api\/queue\/schedule\/([^/]+)\/([^/]+)\/delete$/,
-  );
+  const deletePost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)\/delete$/);
   if (deletePost) {
-    if (req.method !== "POST")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const project = decodeURIComponent(deletePost[1]!);
     const name = decodeURIComponent(deletePost[2]!);
-    if (!ctx.allowed.has(project))
-      return json(
-        { error: `"${project}" is not a project this dashboard knows` },
-        400,
-      );
+    if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     // No typed confirmation (2026-09-08): the dialog asks the question
@@ -168,42 +110,19 @@ export async function handleScheduleAdminRoutes(
 
   const editPost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)$/);
   if (editPost) {
-    if (req.method !== "POST")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const project = decodeURIComponent(editPost[1]!);
     const name = decodeURIComponent(editPost[2]!);
-    if (!ctx.allowed.has(project))
-      return json(
-        { error: `"${project}" is not a project this dashboard knows` },
-        400,
-      );
+    if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
-    const result = updateScheduleEntry(
-      ctx.scheduleStore,
-      project,
-      ctx.machineryProjectDir(project),
-      name,
-      {
-        name: str(body.name),
-        cron: str(body.cron),
-        prompt: str(body.prompt),
-        model: str(body.model),
-        provider: str(body.provider),
-        notify: str(body.notify),
-        chrome: str(body.chrome),
-        sandbox: str(body.sandbox),
-      },
-      knownModels(ctx),
-      knownProviders(ctx),
-    );
+    const result = updateScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), name, {
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
+    }, knownModels(ctx), knownProviders(ctx));
     if (!result.ok) return refusal(splitFix(result.error));
     const back = scheduleBackPath(body.back, projectScheduleTab(project));
-    return json({
-      ok: true,
-      location: renamedBack(back, project, name, str(body.name) || name),
-    });
+    return json({ ok: true, location: renamedBack(back, project, name, str(body.name) || name) });
   }
 
   // Project-agnostic, like `/api/queue/create`: no
@@ -212,39 +131,17 @@ export async function handleScheduleAdminRoutes(
   // segment — same `ctx.allowed.has(project)` guard every other route
   // in this file already runs, checked before any read or write.
   if (path === "/api/queue/schedule") {
-    if (req.method !== "POST")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const project = str(body.project);
-    if (!ctx.allowed.has(project))
-      return json(
-        { error: `"${project}" is not a project this dashboard knows` },
-        400,
-      );
-    const result = createScheduleEntry(
-      ctx.scheduleStore,
-      project,
-      ctx.machineryProjectDir(project),
-      {
-        name: str(body.name),
-        cron: str(body.cron),
-        prompt: str(body.prompt),
-        model: str(body.model),
-        provider: str(body.provider),
-        notify: str(body.notify),
-        chrome: str(body.chrome),
-        sandbox: str(body.sandbox),
-      },
-      knownModels(ctx),
-      knownProviders(ctx),
-    );
+    if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
+    const result = createScheduleEntry(ctx.scheduleStore, project, ctx.machineryProjectDir(project), {
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model), provider: str(body.provider), notify: str(body.notify), chrome: str(body.chrome), sandbox: str(body.sandbox),
+    }, knownModels(ctx), knownProviders(ctx));
     if (!result.ok) return refusal(splitFix(result.error));
-    return json({
-      ok: true,
-      location: scheduleBackPath(body.back, projectScheduleTab(project)),
-    });
+    return json({ ok: true, location: scheduleBackPath(body.back, projectScheduleTab(project)) });
   }
 
   return null;

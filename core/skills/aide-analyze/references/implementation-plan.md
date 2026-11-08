@@ -67,7 +67,7 @@ Unless the level is `off`, a criterion with a WHEN, WHILE or WHERE
 condition, wherever the condition is written, also gets a scenario for
 the case where that condition does not hold: what the system does then.
 
-End a criterion with _(browser)_ when only a real browser can answer it:
+End a criterion with *(browser)* when only a real browser can answer it:
 whether something is displayed, where it sits on the screen, what
 scrolls, what moves when its text changes. What the markup or the
 stylesheet says is not a browser question, and a criterion without the
@@ -97,7 +97,6 @@ why.
 ## The TDD tasks
 
 Structure the plan with TDD:
-
 - Task 0: Write tests (RED phase) — at least one failing test per acceptance criterion with a place, at the places Where the tests sit names
 - Task 1-N: Implementation (GREEN phase)
 - Testing strategy (VERIFY phase)

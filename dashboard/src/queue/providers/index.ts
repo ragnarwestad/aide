@@ -54,9 +54,7 @@ export function providerFields(tool: ProviderTool): ProviderField[] {
 }
 
 export const asProviderTool = (value: unknown): ProviderTool | undefined =>
-  (PROVIDER_TOOLS as readonly unknown[]).includes(value)
-    ? (value as ProviderTool)
-    : undefined;
+  (PROVIDER_TOOLS as readonly unknown[]).includes(value) ? (value as ProviderTool) : undefined;
 
 /** The refusal for a name a provider cannot have, or null when it can: one
  *  line of up to 64 characters, not only spaces. */
@@ -68,6 +66,7 @@ export function providerNameError(name: string): string | null {
   return null;
 }
 
+
 /** The range `claude --autocompact` takes, in tokens. */
 export const AUTO_COMPACT_MIN = 100_000;
 export const AUTO_COMPACT_MAX = 1_000_000;
@@ -75,19 +74,15 @@ export const AUTO_COMPACT_MAX = 1_000_000;
 /** The refusal for an auto-compact threshold Claude Code does not take, or
  *  null when it does. */
 export function autoCompactError(tokens: number): string | null {
-  return Number.isInteger(tokens) &&
-    tokens >= AUTO_COMPACT_MIN &&
-    tokens <= AUTO_COMPACT_MAX
+  return Number.isInteger(tokens) && tokens >= AUTO_COMPACT_MIN && tokens <= AUTO_COMPACT_MAX
     ? null
     : `Auto-compact takes a whole number of tokens from ${AUTO_COMPACT_MIN} to ${AUTO_COMPACT_MAX} — ${tokens} was given`;
 }
 
 /** Whether the provider stored under `key` is switched off. A key that is
  *  not a provider is not switched off: the caller finds it gone. */
-export const switchedOff = (
-  key: string | undefined,
-  providers: Record<string, Provider> | undefined,
-): boolean => key !== undefined && providers?.[key]?.enabled === false;
+export const switchedOff = (key: string | undefined, providers: Record<string, Provider> | undefined): boolean =>
+  key !== undefined && providers?.[key]?.enabled === false;
 
 /** `~/…` read against the home directory; any other path is kept. */
 export function expandDir(dir: string, home: string): string {
@@ -98,14 +93,9 @@ export function expandDir(dir: string, home: string): string {
 /** A provider runs the model choices of its own tool; Claude Code's also
  *  run the scripted stand-in, which is Claude Code's command line with the
  *  binary swapped. A choice with no tool is Claude Code's. */
-export function runsModel(
-  provider: Provider,
-  choice: ModelChoice | undefined,
-): boolean {
+export function runsModel(provider: Provider, choice: ModelChoice | undefined): boolean {
   const tool = choice?.tool ?? "claude";
-  return provider.tool === "claude"
-    ? tool === "claude" || tool === "fake-claude"
-    : tool === provider.tool;
+  return provider.tool === "claude" ? tool === "claude" || tool === "fake-claude" : tool === provider.tool;
 }
 
 /** The providers a picker lists: those that run at least one model choice,
@@ -129,46 +119,28 @@ export function providerChoices(
  *  are returned even when switched off, and the job's pick even when removed
  *  since: the caller holds the step, or finds the provider gone. */
 export function resolveStepProvider(
-  job: Pick<Job, "model"> & {
-    provider?: Record<string, string>;
-    modelChoice?: string;
-  },
+  job: Pick<Job, "model"> & { provider?: Record<string, string>; modelChoice?: string },
   step: string,
-  defaults: Pick<
-    QueueDefaults,
-    "model" | "modelChoices" | "providers" | "provider"
-  >,
+  defaults: Pick<QueueDefaults, "model" | "modelChoices" | "providers" | "provider">,
 ): string | undefined {
   const own = job.provider?.[step];
   if (own) return own;
   const providers = defaults.providers;
   if (!providers) return undefined;
   const model = resolveStepModel(job as Job, step, defaults.model);
-  const listed =
-    model && defaults.modelChoices
-      ? listedModelName(Object.keys(defaults.modelChoices), model)
-      : undefined;
-  const choice =
-    listed && "name" in listed
-      ? defaults.modelChoices?.[listed.name]
-      : undefined;
+  const listed = model && defaults.modelChoices ? listedModelName(Object.keys(defaults.modelChoices), model) : undefined;
+  const choice = listed && "name" in listed ? defaults.modelChoices?.[listed.name] : undefined;
   const wanted = defaults.provider?.[step];
-  if (wanted && providers[wanted] && runsModel(providers[wanted], choice))
-    return wanted;
-  return Object.entries(providers).find(
-    ([, p]) => p.enabled !== false && runsModel(p, choice),
-  )?.[0];
+  if (wanted && providers[wanted] && runsModel(providers[wanted], choice)) return wanted;
+  return Object.entries(providers).find(([, p]) => p.enabled !== false && runsModel(p, choice))?.[0];
 }
 
-const capitalised = (step: string): string =>
-  step.charAt(0).toUpperCase() + step.slice(1);
+const capitalised = (step: string): string => step.charAt(0).toUpperCase() + step.slice(1);
 
 /** Whether a job will still run: queued, running, or stopped waiting for a
  *  usage-limit reset. */
 export const willRun = (job: Job): boolean =>
-  job.state === "queued" ||
-  job.state === "running" ||
-  (job.state === "stopped" && job.usageLimitWait !== undefined);
+  job.state === "queued" || job.state === "running" || (job.state === "stopped" && job.usageLimitWait !== undefined);
 
 /** What uses the provider, one phrase each: the phase defaults that name it,
  *  the schedule entries that name it and the jobs that will still run on it.
@@ -181,23 +153,15 @@ export function providerUses(
 ): string[] {
   const uses: string[] = [];
   for (const [step, chosen] of Object.entries(defaults.provider ?? {})) {
-    if (step !== "default" && chosen === key)
-      uses.push(`the ${capitalised(step)} default`);
+    if (step !== "default" && chosen === key) uses.push(`the ${capitalised(step)} default`);
   }
   for (const [project, entries] of Object.entries(schedules)) {
-    for (const entry of entries)
-      if (entry.provider === key)
-        uses.push(`the schedule ${entry.name} in ${project}`);
+    for (const entry of entries) if (entry.provider === key) uses.push(`the schedule ${entry.name} in ${project}`);
   }
   for (const job of jobs) {
     if (!willRun(job)) continue;
-    const step = Object.entries(job.provider ?? {}).find(
-      ([, chosen]) => chosen === key,
-    )?.[0];
-    if (step)
-      uses.push(
-        `the ${job.state === "stopped" ? "waiting" : job.state} ${capitalised(step)} of ${job.project}/${job.specFolder}`,
-      );
+    const step = Object.entries(job.provider ?? {}).find(([, chosen]) => chosen === key)?.[0];
+    if (step) uses.push(`the ${job.state === "stopped" ? "waiting" : job.state} ${capitalised(step)} of ${job.project}/${job.specFolder}`);
   }
   return uses;
 }
@@ -215,12 +179,8 @@ export function sharesSessions(
   const second = b ? providers?.[b] : undefined;
   if (!a || !b || !first || !second) return false;
   if (a === b) return true;
-  return (
-    first.tool === "codex" &&
-    second.tool === "codex" &&
-    (first.codexHome || NORMAL_CODEX_HOME) ===
-      (second.codexHome || NORMAL_CODEX_HOME)
-  );
+  return first.tool === "codex" && second.tool === "codex"
+    && (first.codexHome || NORMAL_CODEX_HOME) === (second.codexHome || NORMAL_CODEX_HOME);
 }
 
 /** Every provider's own folders, expanded, for the sandbox to protect: the
@@ -233,19 +193,13 @@ export function providerFolders(
 ): { claude: string[]; codex: string[] } {
   const claude: string[] = [];
   const codex: string[] = [];
-  const add = (
-    list: string[],
-    dir: string | undefined,
-    normal: string,
-  ): void => {
+  const add = (list: string[], dir: string | undefined, normal: string): void => {
     if (!dir) return;
     const expanded = expandDir(dir, home);
-    if (expanded !== expandDir(normal, home) && !list.includes(expanded))
-      list.push(expanded);
+    if (expanded !== expandDir(normal, home) && !list.includes(expanded)) list.push(expanded);
   };
   for (const provider of Object.values(providers ?? {})) {
-    if (provider.tool === "claude")
-      add(claude, provider.configDir, NORMAL_CLAUDE_DIR);
+    if (provider.tool === "claude") add(claude, provider.configDir, NORMAL_CLAUDE_DIR);
     if (provider.tool === "codex") {
       add(codex, provider.codexHome, NORMAL_CODEX_HOME);
       add(codex, provider.shadowHome, NORMAL_CODEX_HOME);
@@ -259,30 +213,23 @@ export function providerFolders(
  *  provider with a config folder, `CODEX_HOME` for a Codex one (its shadow
  *  home when it has one, else its home), expanded against `home`. Nothing
  *  for a provider on its tool's own folder, and nothing for OpenCode. */
-export function providerLoginEnv(
-  provider: Provider,
-  home: string,
-): Record<string, string> {
-  if (provider.tool === "claude" && provider.configDir)
-    return { CLAUDE_CONFIG_DIR: expandDir(provider.configDir, home) };
+export function providerLoginEnv(provider: Provider, home: string): Record<string, string> {
+  if (provider.tool === "claude" && provider.configDir) return { CLAUDE_CONFIG_DIR: expandDir(provider.configDir, home) };
   const folder = provider.shadowHome || provider.codexHome;
-  if (provider.tool === "codex" && folder)
-    return { CODEX_HOME: expandDir(folder, home) };
+  if (provider.tool === "codex" && folder) return { CODEX_HOME: expandDir(folder, home) };
   return {};
 }
+
 
 /** One entry read off a file field by field: undefined when it is not a
  *  provider (a bad name, an unknown tool, a field of the wrong type). */
 export function parseProvider(raw: unknown): Provider | undefined {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
-    return undefined;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
   const e = raw as Record<string, unknown>;
   const tool = asProviderTool(e.tool);
-  if (!tool || typeof e.name !== "string" || providerNameError(e.name))
-    return undefined;
+  if (!tool || typeof e.name !== "string" || providerNameError(e.name)) return undefined;
   const out: Provider = { name: e.name, tool };
-  if (e.enabled !== undefined && typeof e.enabled !== "boolean")
-    return undefined;
+  if (e.enabled !== undefined && typeof e.enabled !== "boolean") return undefined;
   if (e.enabled === false) out.enabled = false;
   for (const field of [...providerFields(tool), "binary"] as const) {
     const value = e[field];
@@ -291,8 +238,7 @@ export function parseProvider(raw: unknown): Provider | undefined {
     if (value) out[field] = value;
   }
   if (tool === "claude" && e.autoCompact !== undefined) {
-    if (typeof e.autoCompact !== "number" || autoCompactError(e.autoCompact))
-      return undefined;
+    if (typeof e.autoCompact !== "number" || autoCompactError(e.autoCompact)) return undefined;
     out.autoCompact = e.autoCompact;
   }
   return out;
@@ -301,11 +247,8 @@ export function parseProvider(raw: unknown): Provider | undefined {
 /** The `providers` table read off a file: keys and entries that are not
  *  valid, and a name another entry already has in any case, are dropped.
  *  Undefined when none is left. */
-export function parseProviders(
-  raw: unknown,
-): Record<string, Provider> | undefined {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
-    return undefined;
+export function parseProviders(raw: unknown): Record<string, Provider> | undefined {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
   const out: Record<string, Provider> = {};
   const names = new Set<string>();
   for (const [key, entry] of Object.entries(raw as Record<string, unknown>)) {

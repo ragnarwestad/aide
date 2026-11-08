@@ -9,35 +9,19 @@ import { forgetChecks } from "../../../src/serve/tool-check.ts";
 import { lastModels } from "../../../src/serve/tool-models";
 import type { ToolModels } from "../../../src/render";
 import { OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
-import {
-  AT,
-  CLAUDE_READING,
-  defaultsOf,
-  modelsProbe,
-  offeredChoices,
-  ownFiles,
-  openModelsTab,
-  stubReads,
-} from "./fixtures.ts";
+import { AT, CLAUDE_READING, defaultsOf, modelsProbe, offeredChoices, ownFiles, openModelsTab, stubReads } from "./fixtures.ts";
 
-const { harness, start: startServer } =
-  setupQueueRoutesHarness("aide-check-models-");
-const start: typeof startServer = (extra, ...rest) =>
-  startServer({ ...stubReads, ...extra }, ...rest);
+const { harness, start: startServer } = setupQueueRoutesHarness("aide-check-models-");
+const start: typeof startServer = (extra, ...rest) => startServer({ ...stubReads, ...extra }, ...rest);
 const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
   forgetChecks();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
-const CHOICES = {
-  Opus: { model: "opus" },
-  Fable: { model: "fable" },
-  "gpt-5.5": { tool: "codex" as const },
-};
+const CHOICES = { Opus: { model: "opus" }, Fable: { model: "fable" }, "gpt-5.5": { tool: "codex" as const } };
 const CONFIG = `{
   // the operator's own note
   "model": { "default": "Opus" },
@@ -49,63 +33,37 @@ const CONFIG = `{
 }
 `;
 
-const pageText = async (url: string): Promise<string> =>
-  (await fetch(url)).text();
+const pageText = async (url: string): Promise<string> => (await fetch(url)).text();
 
 describe("opening a provider's Models tab reads its tool's models", () => {
   test("the reading is kept under the provider's name, read with the tool's configured values (AC-11)", async () => {
     forgetChecks();
     const toolProbe = modelsProbe({ claude: CLAUDE_READING });
-    const { base } = start({
-      queueDefaults: defaultsOf(CHOICES, { default: "Opus" }),
-      toolProbe,
-    });
+    const { base } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe });
     const res = await openModelsTab(base, "Claude");
     expect(res.status).toBe(200);
-    expect(lastModels().claude).toEqual({
-      ...CLAUDE_READING,
-      provider: "Claude",
-    });
-    expect(toolProbe.modelReads).toEqual([
-      { tool: "claude", configured: ["opus", "fable"], env: {} },
-    ]);
+    expect(lastModels().claude).toEqual({ ...CLAUDE_READING, provider: "Claude" });
+    expect(toolProbe.modelReads).toEqual([{ tool: "claude", configured: ["opus", "fable"], env: {} }]);
   });
 
   test("a Claude choice that never ran shows its version everywhere, also after a restart (AC-11)", async () => {
     forgetChecks();
     const { modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const toolProbe = modelsProbe({ claude: CLAUDE_READING });
-    const first = start({
-      queueDefaults: defaultsOf(CHOICES, { default: "Opus" }),
-      toolProbe,
-      modelIdsPath,
-    });
+    const first = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe, modelIdsPath });
     expect((await offeredChoices(first.base)).Fable).toBe("Fable");
     expect((await openModelsTab(first.base, "Claude")).status).toBe(200);
-    expect(JSON.parse(readFileSync(modelIdsPath, "utf-8"))).toMatchObject({
-      Fable: "claude-fable-5-1",
-      Opus: "claude-opus-5-5",
-    });
+    expect(JSON.parse(readFileSync(modelIdsPath, "utf-8"))).toMatchObject({ Fable: "claude-fable-5-1", Opus: "claude-opus-5-5" });
 
     const shown = async (base: string) => {
       expect((await offeredChoices(base)).Fable).toBe("Fable 5.1");
-      expect(
-        await pageText(
-          `${base}/settings?tab=providers&provider=Claude&aitab=models`,
-        ),
-      ).toContain("Fable 5.1");
-      expect(await pageText(`${base}/?${OPEN_81}`)).toContain(
-        ">Fable 5.1</option>",
-      );
+      expect(await pageText(`${base}/settings?tab=providers&provider=Claude&aitab=models`)).toContain("Fable 5.1");
+      expect(await pageText(`${base}/?${OPEN_81}`)).toContain(">Fable 5.1</option>");
     };
     await shown(first.base);
 
     forgetChecks();
-    const afresh = start({
-      queueDefaults: defaultsOf(CHOICES, { default: "Opus" }),
-      toolProbe: modelsProbe(),
-      modelIdsPath,
-    });
+    const afresh = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe: modelsProbe(), modelIdsPath });
     expect(lastModels().claude).toBeUndefined();
     await shown(afresh.base);
   });
@@ -116,39 +74,17 @@ describe("opening a provider's Models tab reads its tool's models", () => {
     const choices = { ...CHOICES, "opus[1m]": {} };
     const reading: ToolModels = {
       ...CLAUDE_READING,
-      named: [
-        {
-          model: "opus[1m]",
-          name: "Opus 5.5 (1M context)",
-          id: "claude-opus-5-5[1m]",
-        },
-      ],
+      named: [{ model: "opus[1m]", name: "Opus 5.5 (1M context)", id: "claude-opus-5-5[1m]" }],
     };
-    const first = start({
-      queueDefaults: defaultsOf(choices, { default: "Opus" }),
-      toolProbe: modelsProbe({ claude: reading }),
-      modelIdsPath,
-    });
+    const first = start({ queueDefaults: defaultsOf(choices, { default: "Opus" }), toolProbe: modelsProbe({ claude: reading }), modelIdsPath });
     expect((await offeredChoices(first.base))["opus[1m]"]).toBe("opus[1m]");
     await openModelsTab(first.base, "Claude");
-    expect((await offeredChoices(first.base))["opus[1m]"]).toBe(
-      "Opus 5.5 (1M context)",
-    );
-    expect(
-      await pageText(
-        `${first.base}/settings?tab=providers&provider=Claude&aitab=models`,
-      ),
-    ).toContain("Opus 5.5 (1M context)");
+    expect((await offeredChoices(first.base))["opus[1m]"]).toBe("Opus 5.5 (1M context)");
+    expect(await pageText(`${first.base}/settings?tab=providers&provider=Claude&aitab=models`)).toContain("Opus 5.5 (1M context)");
 
     forgetChecks();
-    const afresh = start({
-      queueDefaults: defaultsOf(choices, { default: "Opus" }),
-      toolProbe: modelsProbe(),
-      modelIdsPath,
-    });
-    expect((await offeredChoices(afresh.base))["opus[1m]"]).toBe(
-      "Opus 5.5 (1M context)",
-    );
+    const afresh = start({ queueDefaults: defaultsOf(choices, { default: "Opus" }), toolProbe: modelsProbe(), modelIdsPath });
+    expect((await offeredChoices(afresh.base))["opus[1m]"]).toBe("Opus 5.5 (1M context)");
   });
 
   test("the newest of a run and a reading names the version", async () => {
@@ -158,18 +94,10 @@ describe("opening a provider's Models tab reads its tool's models", () => {
     writeFileSync(modelIdsPath, JSON.stringify({ Opus: "claude-opus-5-4" }));
     const newer: ToolModels = {
       ...CLAUDE_READING,
-      offered: CLAUDE_READING.offered.map((m) =>
-        m.model === "opus"
-          ? { ...m, name: "Opus 5.6", id: "claude-opus-5-6" }
-          : m,
-      ),
+      offered: CLAUDE_READING.offered.map((m) => (m.model === "opus" ? { ...m, name: "Opus 5.6", id: "claude-opus-5-6" } : m)),
     };
     const readings = { claude: CLAUDE_READING };
-    const { base } = start({
-      queueDefaults: defaultsOf(CHOICES, { default: "Opus" }),
-      toolProbe: modelsProbe(readings),
-      modelIdsPath,
-    });
+    const { base } = start({ queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe: modelsProbe(readings), modelIdsPath });
     expect((await offeredChoices(base)).Opus).toBe("Opus 5.4");
     await openModelsTab(base, "Claude");
     expect((await offeredChoices(base)).Opus).toBe("Opus 5.5");
@@ -183,22 +111,11 @@ describe("opening a provider's Models tab reads its tool's models", () => {
     const { file, modelIdsPath } = ownFiles(CONFIG, ownDirs);
     const readings = {
       claude: CLAUDE_READING,
-      codex: {
-        tool: "codex" as const,
-        at: AT,
-        offered: [{ model: "gpt-6.1-sol" }],
-      },
-      opencode: {
-        tool: "opencode" as const,
-        at: AT,
-        offered: [{ model: "opencode/glm-5" }],
-      },
+      codex: { tool: "codex" as const, at: AT, offered: [{ model: "gpt-6.1-sol" }] },
+      opencode: { tool: "opencode" as const, at: AT, offered: [{ model: "opencode/glm-5" }] },
     };
     const { base } = start({
-      queueDefaults: defaultsOf(CHOICES, { default: "Opus" }),
-      toolProbe: modelsProbe(readings),
-      queueConfigFile: file,
-      modelIdsPath,
+      queueDefaults: defaultsOf(CHOICES, { default: "Opus" }), toolProbe: modelsProbe(readings), queueConfigFile: file, modelIdsPath,
     });
     const before = Object.keys(await offeredChoices(base));
     for (const key of ["Claude", "Codex", "OpenCode"]) {

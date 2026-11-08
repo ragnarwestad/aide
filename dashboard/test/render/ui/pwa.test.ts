@@ -14,13 +14,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { t } from "../../../src/i18n";
 import { LOADING_CSS, TOKENS_CSS } from "../../../src/render/ui/css";
 import { NEW_SPEC_ROUTE } from "../../../src/render/pages/projects-page/routes.ts";
-import {
-  APP_START_ROUTE,
-  PWA_FILES,
-  SERVICE_WORKER,
-  THEME_COLORS,
-  WAIT_SCRIPT,
-} from "../../../src/render/ui/pwa.ts";
+import { APP_START_ROUTE, PWA_FILES, SERVICE_WORKER, THEME_COLORS, WAIT_SCRIPT } from "../../../src/render/ui/pwa.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 const harness = queueHarness("aide-pwa-");
@@ -40,9 +34,10 @@ describe("the manifest", () => {
 
   test("it carries the fields a browser needs before it offers to install", async () => {
     const { base } = start();
-    const manifest = (await (
-      await fetch(`${base}/manifest.webmanifest`)
-    ).json()) as Record<string, unknown>;
+    const manifest = (await (await fetch(`${base}/manifest.webmanifest`)).json()) as Record<
+      string,
+      unknown
+    >;
     expect(manifest.name).toBe("aide -board");
     expect(typeof manifest.short_name).toBe("string");
     // An installed app opens on the address that picks the tab or the
@@ -59,29 +54,18 @@ describe("the manifest", () => {
 
   type Icon = { src: string; sizes: string; purpose: string; type: string };
   const icons = async (base: string) =>
-    (
-      (await (await fetch(`${base}/manifest.webmanifest`)).json()) as {
-        icons: Icon[];
-      }
-    ).icons;
+    ((await (await fetch(`${base}/manifest.webmanifest`)).json()) as { icons: Icon[] }).icons;
 
   test("it lists a 192 and a 512 PNG for the launcher", async () => {
     const { base } = start();
     const list = await icons(base);
     for (const sizes of ["192x192", "512x512"])
-      expect(
-        list.some(
-          (i) =>
-            i.type === "image/png" && i.sizes === sizes && i.purpose === "any",
-        ),
-      ).toBe(true);
+      expect(list.some((i) => i.type === "image/png" && i.sizes === sizes && i.purpose === "any")).toBe(true);
   });
 
   test("it lists a maskable PNG of at least 512", async () => {
     const { base } = start();
-    const m = (await icons(base)).find(
-      (i) => i.purpose === "maskable" && i.type === "image/png",
-    );
+    const m = (await icons(base)).find((i) => i.purpose === "maskable" && i.type === "image/png");
     expect(m).toBeDefined();
     expect(Number(m!.sizes.split("x")[0])).toBeGreaterThanOrEqual(512);
   });
@@ -106,25 +90,13 @@ describe("the manifest", () => {
 });
 
 describe("the manifest's shortcuts", () => {
-  type Shortcut = {
-    name: string;
-    url: string;
-    icons: { src: string; type: string }[];
-  };
+  type Shortcut = { name: string; url: string; icons: { src: string; type: string }[] };
   const shortcuts = async (base: string) =>
-    (
-      (await (await fetch(`${base}/manifest.webmanifest`)).json()) as {
-        shortcuts: Shortcut[];
-      }
-    ).shortcuts;
+    ((await (await fetch(`${base}/manifest.webmanifest`)).json()) as { shortcuts: Shortcut[] }).shortcuts;
 
   test("it lists Running, Specs and New spec, in that order", async () => {
     const { base } = start();
-    expect((await shortcuts(base)).map((s) => s.url)).toEqual([
-      "/",
-      "/specs",
-      NEW_SPEC_ROUTE,
-    ]);
+    expect((await shortcuts(base)).map((s) => s.url)).toEqual(["/", "/specs", NEW_SPEC_ROUTE]);
   });
 
   test("each is named for its page and carries an icon the board serves as a PNG", async () => {
@@ -136,9 +108,7 @@ describe("the manifest's shortcuts", () => {
       expect(shortcut.icons.length).toBeGreaterThan(0);
       for (const icon of shortcut.icons) {
         expect(icon.type).toBe("image/png");
-        expect(
-          (await fetch(`${base}${icon.src}`)).headers.get("content-type"),
-        ).toBe("image/png");
+        expect((await fetch(`${base}${icon.src}`)).headers.get("content-type")).toBe("image/png");
       }
     }
   });
@@ -149,9 +119,7 @@ describe("the service worker", () => {
     const { base } = start();
     const res = await fetch(`${base}/sw.js`);
     expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toBe(
-      "text/javascript; charset=utf-8",
-    );
+    expect(res.headers.get("content-type")).toBe("text/javascript; charset=utf-8");
     // A worker the browser holds on to is a worker a fix cannot reach:
     // `no-cache` makes it revalidate before using the copy it has.
     expect(res.headers.get("cache-control")).toBe("no-cache");
@@ -199,10 +167,7 @@ describe("the eight answer any request with a Host of the dashboard's own", () =
   test("each answers 200 with no credential at all", async () => {
     const { base } = start();
     for (const path of PATHS) {
-      expect([path, (await fetch(`${base}${path}`)).status]).toEqual([
-        path,
-        200,
-      ]);
+      expect([path, (await fetch(`${base}${path}`)).status]).toEqual([path, 200]);
     }
   });
 
@@ -214,15 +179,8 @@ describe("the eight answer any request with a Host of the dashboard's own", () =
 
   test("a POST to a PNG icon is refused too", async () => {
     const { base } = start();
-    for (const path of [
-      "/icon-192.png",
-      "/icon-512.png",
-      "/icon-512-maskable.png",
-    ])
-      expect([
-        path,
-        (await fetch(`${base}${path}`, { method: "POST" })).status,
-      ]).toEqual([path, 405]);
+    for (const path of ["/icon-192.png", "/icon-512.png", "/icon-512-maskable.png"])
+      expect([path, (await fetch(`${base}${path}`, { method: "POST" })).status]).toEqual([path, 405]);
   });
 });
 
@@ -245,30 +203,17 @@ function fakeWindow(refuseNavigate = false) {
  *  — no imports, no exports — so it is run as a function of the
  *  globals it uses, timers and clock included: a test decides whether
  *  the half-second timer or the server comes first, with no waiting. */
-function worker(
-  networkAnswer: (request: {
-    method: string;
-    url: string;
-  }) => Promise<Response>,
-  windows: ReturnType<typeof fakeWindow>[] = [],
-  navigator?: object,
-) {
+function worker(networkAnswer: (request: { method: string; url: string }) => Promise<Response>, windows: ReturnType<typeof fakeWindow>[] = [], navigator?: object) {
   const listeners: Record<string, (event: unknown) => void> = {};
   const shown: {
     title: string;
-    options: {
-      body?: string;
-      icon?: string;
-      badge?: string;
-      data?: { url?: string };
-    };
+    options: { body?: string; icon?: string; badge?: string; data?: { url?: string } };
   }[] = [];
   const opened: string[] = [];
   const clock = fakeClock();
   const self = {
     navigator,
-    addEventListener: (type: string, fn: (event: unknown) => void) =>
-      void (listeners[type] = fn),
+    addEventListener: (type: string, fn: (event: unknown) => void) => void (listeners[type] = fn),
     clients: {
       claim: () => Promise.resolve(),
       openWindow: async (url: string) => void opened.push(url),
@@ -277,35 +222,25 @@ function worker(
     registration: {
       showNotification: async (
         title: string,
-        options: {
-          body?: string;
-          icon?: string;
-          badge?: string;
-          data?: { url?: string };
-        },
-      ) => void shown.push({ title, options }),
+        options: { body?: string; icon?: string; badge?: string; data?: { url?: string } },
+      ) =>
+        void shown.push({ title, options }),
     },
   };
   // eslint-disable-next-line no-new-func -- the thing under test IS a script
-  new Function(
-    "self",
-    "fetch",
-    "setTimeout",
-    "clearTimeout",
-    "Date",
-    SERVICE_WORKER,
-  )(self, networkAnswer, clock.setTimeout, clock.clearTimeout, {
-    now: clock.now,
-  });
+  new Function("self", "fetch", "setTimeout", "clearTimeout", "Date", SERVICE_WORKER)(
+    self,
+    networkAnswer,
+    clock.setTimeout,
+    clock.clearTimeout,
+    { now: clock.now },
+  );
 
   /** An event that collects what `waitUntil` was handed, so a test can
    *  wait for the work the handler started. */
   const event = (extra: object) => {
     const waits: Promise<unknown>[] = [];
-    return {
-      ev: { ...extra, waitUntil: (p: Promise<unknown>) => void waits.push(p) },
-      done: () => Promise.all(waits),
-    };
+    return { ev: { ...extra, waitUntil: (p: Promise<unknown>) => void waits.push(p) }, done: () => Promise.all(waits) };
   };
 
   return {
@@ -322,12 +257,7 @@ function worker(
     /** A tap on a notification. */
     tap: async (url: string | undefined) => {
       let closed = false;
-      const e = event({
-        notification: {
-          close: () => void (closed = true),
-          data: url === undefined ? {} : { url },
-        },
-      });
+      const e = event({ notification: { close: () => void (closed = true), data: url === undefined ? {} : { url } } });
       listeners.notificationclick!(e.ev);
       await e.done();
       return closed;
@@ -335,11 +265,7 @@ function worker(
     /** One navigation through the worker; it answers when the worker does,
      *  so a slow one is awaited after `advance`. `undefined` means the
      *  worker declined to answer, which leaves the request to the browser. */
-    navigate: async (
-      mode = "navigate",
-      method = "GET",
-      url = "https://board.test/",
-    ): Promise<Response | undefined> => {
+    navigate: async (mode = "navigate", method = "GET", url = "https://board.test/"): Promise<Response | undefined> => {
       let answered: Promise<Response> | undefined;
       listeners.fetch!({
         request: { mode, method, url },
@@ -369,9 +295,7 @@ function fakeClock() {
       await settle();
       const target = now + ms;
       for (;;) {
-        const next = [...timers.entries()]
-          .filter(([, t]) => t.due <= target)
-          .sort((a, b) => a[1].due - b[1].due)[0];
+        const next = [...timers.entries()].filter(([, t]) => t.due <= target).sort((a, b) => a[1].due - b[1].due)[0];
         if (!next) break;
         now = next[1].due;
         timers.delete(next[0]);
@@ -397,11 +321,13 @@ function pending() {
 
 describe("the worker passes everything through and caches nothing", () => {
   test("it takes over as soon as it is installed", () => {
-    expect(
-      worker(async () => new Response("ok"))
-        .types()
-        .sort(),
-    ).toEqual(["activate", "fetch", "install", "notificationclick", "push"]);
+    expect(worker(async () => new Response("ok")).types().sort()).toEqual([
+      "activate",
+      "fetch",
+      "install",
+      "notificationclick",
+      "push",
+    ]);
   });
 
   test("it never touches the cache API — a stale queue is worse than no app", () => {
@@ -412,9 +338,7 @@ describe("the worker passes everything through and caches nothing", () => {
   });
 
   test("a page load is answered by the server, not by the worker", async () => {
-    const w = worker(
-      async () => new Response("the live page", { status: 200 }),
-    );
+    const w = worker(async () => new Response("the live page", { status: 200 }));
     expect(await (await w.navigate())!.text()).toBe("the live page");
   });
 
@@ -443,12 +367,7 @@ describe("the worker passes everything through and caches nothing", () => {
 
 /** The worker with a server that answers when the test says. */
 function slowServer() {
-  const requests: {
-    method: string;
-    url: string;
-    answer: (r: Response) => void;
-    fail: (e: Error) => void;
-  }[] = [];
+  const requests: { method: string; url: string; answer: (r: Response) => void; fail: (e: Error) => void }[] = [];
   const w = worker((request) => {
     const p = pending();
     requests.push({ ...request, answer: p.answer, fail: p.fail });
@@ -548,7 +467,7 @@ describe("the wait page itself", () => {
     const { w } = slowServer();
     const answer = w.navigate();
     await w.advance(500);
-    return await (await answer)!.text();
+    return (await (await answer)!.text());
   };
 
   test("it carries the board's tokens and the loading stylesheet, and asks the network for nothing", async () => {
@@ -556,8 +475,7 @@ describe("the wait page itself", () => {
     expect(html).toContain(TOKENS_CSS);
     expect(html).toContain(LOADING_CSS);
     expect(html).not.toMatch(/\ssrc=|<link|@import/);
-    for (const match of html.matchAll(/url\(([^)]{0,6})/g))
-      expect(match[1]).toMatch(/^["']?data:/);
+    for (const match of html.matchAll(/url\(([^)]{0,6})/g)) expect(match[1]).toMatch(/^["']?data:/);
   });
 });
 
@@ -567,30 +485,14 @@ function waitScript(asks: (n: number) => Promise<unknown>, leftMs = 29500) {
   let fetches = 0;
   let reloads = 0;
   const written: string[] = [];
-  const location = {
-    href: "https://board.test/specs",
-    reload: () => void reloads++,
-  };
-  const document = {
-    open: () => {},
-    write: (html: string) => void written.push(html),
-    close: () => {},
-  };
+  const location = { href: "https://board.test/specs", reload: () => void reloads++ };
+  const document = { open: () => {}, write: (html: string) => void written.push(html), close: () => {} };
   const fetchFake = (url: string) => {
     expect(url).toBe(location.href);
     return asks(++fetches);
   };
   // eslint-disable-next-line no-new-func -- the thing under test IS a script
-  new Function(
-    "fetch",
-    "location",
-    "document",
-    "setTimeout",
-    "clearTimeout",
-    "OFFLINE_PAGE",
-    "LEFT_MS",
-    WAIT_SCRIPT,
-  )(
+  new Function("fetch", "location", "document", "setTimeout", "clearTimeout", "OFFLINE_PAGE", "LEFT_MS", WAIT_SCRIPT)(
     fetchFake,
     location,
     document,
@@ -599,12 +501,7 @@ function waitScript(asks: (n: number) => Promise<unknown>, leftMs = 29500) {
     "<p>offline</p>",
     leftMs,
   );
-  return {
-    advance: clock.advance,
-    fetches: () => fetches,
-    reloads: () => reloads,
-    written,
-  };
+  return { advance: clock.advance, fetches: () => fetches, reloads: () => reloads, written };
 }
 
 describe("the wait page's script", () => {
@@ -647,9 +544,7 @@ describe("the wait page's script", () => {
 
   test("an answer that comes after the deadline does not reload over the not reachable page", async () => {
     let answer!: () => void;
-    const s = waitScript(
-      () => new Promise<void>((resolve) => void (answer = resolve)),
-    );
+    const s = waitScript(() => new Promise<void>((resolve) => void (answer = resolve)));
     await s.advance(29500);
     answer();
     await s.advance(0);
@@ -662,20 +557,8 @@ describe("the wait page's script", () => {
 describe("the worker shows every push and opens the spec on a tap", () => {
   test("a push becomes a notification with the title, the body and the spec's path", async () => {
     const w = worker(async () => new Response("ok"));
-    await w.push(() => ({
-      title: "aide · 81-x",
-      body: "Implement failed.",
-      url: "/specs/aide/81-x",
-    }));
-    expect(w.shown).toEqual([
-      {
-        title: "aide · 81-x",
-        options: expect.objectContaining({
-          body: "Implement failed.",
-          data: { url: "/specs/aide/81-x" },
-        }),
-      },
-    ]);
+    await w.push(() => ({ title: "aide · 81-x", body: "Implement failed.", url: "/specs/aide/81-x" }));
+    expect(w.shown).toEqual([{ title: "aide · 81-x", options: expect.objectContaining({ body: "Implement failed.", data: { url: "/specs/aide/81-x" } }) }]);
   });
 
   test("the badge it names is a file the board actually serves", () => {
@@ -736,8 +619,7 @@ describe("the worker sets the number on the app's icon when a push arrives", () 
    *  the call rejects, as an uninstalled tab's does. */
   function badged(refuses = false) {
     const calls: string[] = [];
-    const answer = () =>
-      refuses ? Promise.reject(new Error("not installed")) : Promise.resolve();
+    const answer = () => (refuses ? Promise.reject(new Error("not installed")) : Promise.resolve());
     const navigator = {
       setAppBadge: (n: number) => (calls.push(`set ${n}`), answer()),
       clearAppBadge: () => (calls.push("clear"), answer()),

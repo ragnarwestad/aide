@@ -8,11 +8,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { acceptanceNotRequiredIn } from "./acceptance.ts";
 import { chooseApproachIn } from "./choose-approach.ts";
-import {
-  CRITERIA_CHECKS,
-  criteriaChecksIn,
-  type CriteriaChecks,
-} from "./criteria-checks.ts";
+import { CRITERIA_CHECKS, criteriaChecksIn, type CriteriaChecks } from "./criteria-checks.ts";
 
 export interface CreateChoices {
   /** Whether archive waits for the acceptance rows to be ticked. */
@@ -27,8 +23,7 @@ export interface CreateChoices {
 
 // `[ \t]*`, never `\s*`, for the reason `depends-on.ts` gives: `\s`
 // matches a newline.
-const FORMULATE_LINE =
-  /^[ \t]*-[ \t]*\*\*Let AI formulate acceptance criteria:\*\*[ \t]*(.*?)[ \t]*$/m;
+const FORMULATE_LINE = /^[ \t]*-[ \t]*\*\*Let AI formulate acceptance criteria:\*\*[ \t]*(.*?)[ \t]*$/m;
 
 /** The four choices in a description's text. A level that is not one of
  *  the three is off, as `invocation.sh` reads it; the AI formulation is
@@ -37,13 +32,8 @@ export function createChoicesIn(text: string): CreateChoices {
   const level = criteriaChecksIn(text);
   return {
     acceptanceRequired: !acceptanceNotRequiredIn(text),
-    aiFormulate:
-      text.replace(/\r\n/g, "\n").match(FORMULATE_LINE)?.[1] !== "no",
-    criteriaChecks: (CRITERIA_CHECKS as readonly (string | null)[]).includes(
-      level,
-    )
-      ? (level as CriteriaChecks)
-      : "off",
+    aiFormulate: text.replace(/\r\n/g, "\n").match(FORMULATE_LINE)?.[1] !== "no",
+    criteriaChecks: (CRITERIA_CHECKS as readonly (string | null)[]).includes(level) ? (level as CriteriaChecks) : "off",
     chooseApproach: chooseApproachIn(text),
   };
 }
@@ -52,9 +42,7 @@ export function createChoicesIn(text: string): CreateChoices {
  *  when it cannot be read. */
 export function specCreateChoices(dir: string): CreateChoices | undefined {
   try {
-    return createChoicesIn(
-      readFileSync(join(dir, "1-description.md"), "utf-8"),
-    );
+    return createChoicesIn(readFileSync(join(dir, "1-description.md"), "utf-8"));
   } catch {
     return undefined;
   }

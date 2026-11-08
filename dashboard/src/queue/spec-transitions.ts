@@ -8,8 +8,7 @@
 
 import transitionsData from "../../../core/scripts/lib/transitions.json" with { type: "json" };
 
-export type SpecPhase =
-  "created" | "analyzed" | "implemented" | "archived" | "closed";
+export type SpecPhase = "created" | "analyzed" | "implemented" | "archived" | "closed";
 
 interface TransitionRow {
   phase: SpecPhase;
@@ -21,9 +20,7 @@ interface TransitionRow {
 
 const ROWS = transitionsData.rows as TransitionRow[];
 
-export type LegalMove =
-  | { ok: true; next: SpecPhase }
-  | { ok: false; reason: string; message: string };
+export type LegalMove = { ok: true; next: SpecPhase } | { ok: false; reason: string; message: string };
 
 /** The phase a spec with these `completedPhases` (from
  *  `4-status.json`) is in — the same rule
@@ -58,25 +55,13 @@ export function phaseFromState(
  *  this read-only use, exactly as core/scripts/lib/spec-transitions.sh's
  *  own `check_transition_condition` treats a condition no caller has
  *  defined a checker for. */
-export function isLegalMove(
-  phase: SpecPhase,
-  event: string,
-  specLabel: string,
-): LegalMove {
+export function isLegalMove(phase: SpecPhase, event: string, specLabel: string): LegalMove {
   const row = ROWS.find((r) => r.phase === phase && r.event === event);
   if (!row) {
-    return {
-      ok: false,
-      reason: "no-such-move",
-      message: `${specLabel} has no ${event} move from ${phase}`,
-    };
+    return { ok: false, reason: "no-such-move", message: `${specLabel} has no ${event} move from ${phase}` };
   }
   if (row.refusal) {
-    return {
-      ok: false,
-      reason: row.refusal.reason,
-      message: row.refusal.message.replace("%s", specLabel),
-    };
+    return { ok: false, reason: row.refusal.reason, message: row.refusal.message.replace("%s", specLabel) };
   }
   return { ok: true, next: row.next as SpecPhase };
 }

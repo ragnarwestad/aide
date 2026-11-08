@@ -10,15 +10,8 @@ import { mkdtempSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
-import {
-  stopTestServer,
-  type TestServersContext,
-} from "../../../src/serve/test-servers/lifecycle.ts";
-import {
-  parseWorktrees,
-  recoverTestServers,
-  sweepDeadTestServers,
-} from "../../../src/serve/test-servers/recover.ts";
+import { stopTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
+import { parseWorktrees, recoverTestServers, sweepDeadTestServers } from "../../../src/serve/test-servers/recover.ts";
 import { workDirOf } from "../../../src/serve/test-servers/port-owner.ts";
 
 /** A work directory shaped the way the round leaves one: `mktemp -d`'s
@@ -35,26 +28,17 @@ const porcelain = (work: string, branch: string, commit: string): string =>
   `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
   `worktree ${join(work, "checkout")}\nHEAD ${commit}\nbranch refs/heads/${branch}\n`;
 
-function makeCtx(
-  o: {
-    worktrees?: string;
-    onPort?: (
-      port: number,
-    ) => Promise<{ pid: number; workDir: string } | undefined>;
-    store?: TestServerStore;
-  } = {},
-): TestServersContext {
+function makeCtx(o: {
+  worktrees?: string;
+  onPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
+  store?: TestServerStore;
+} = {}): TestServersContext {
   return {
     store: o.store ?? new TestServerStore(),
     aideCheckout: () => "/checkout/aide",
     startCommand: (_p, { branch, port }) => [
-      "/checkout/aide/dashboard/test/round/run",
-      "/checkout/aide",
-      "--branch",
-      branch,
-      "--port",
-      String(port),
-      "--keep",
+      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
+      "--branch", branch, "--port", String(port), "--keep",
     ],
     previewAvailable: () => true,
     gitRun: async (_dir, args) =>
@@ -75,9 +59,7 @@ function makeCtx(
 describe("git worktree list --porcelain", () => {
   test("a branch per worktree, with the commit it is on", () => {
     expect(
-      parseWorktrees(
-        "worktree /a\nHEAD abc\nbranch refs/heads/main\n\nworktree /b\nHEAD def\nbranch refs/heads/aide/415-x\n",
-      ),
+      parseWorktrees("worktree /a\nHEAD abc\nbranch refs/heads/main\n\nworktree /b\nHEAD def\nbranch refs/heads/aide/415-x\n"),
     ).toEqual([
       { path: "/a", branch: "main", commit: "abc" },
       { path: "/b", branch: "aide/415-x", commit: "def" },
@@ -85,9 +67,7 @@ describe("git worktree list --porcelain", () => {
   });
 
   test("a detached worktree is listed with an empty branch", () => {
-    expect(parseWorktrees("worktree /a\nHEAD abc\ndetached\n")).toEqual([
-      { path: "/a", branch: "", commit: "abc" },
-    ]);
+    expect(parseWorktrees("worktree /a\nHEAD abc\ndetached\n")).toEqual([{ path: "/a", branch: "", commit: "abc" }]);
   });
 });
 
@@ -98,8 +78,7 @@ describe("finding a test server again", () => {
     const ctx = makeCtx({
       store,
       worktrees: porcelain(work, "aide/415-x", "b67707e"),
-      onPort: async (port) =>
-        port === 8801 ? { pid: 238, workDir: work } : undefined,
+      onPort: async (port) => (port === 8801 ? { pid: 238, workDir: work } : undefined),
     });
 
     const found = await recoverTestServers(ctx, ["aide"]);
@@ -123,22 +102,20 @@ describe("finding a test server again", () => {
     const store = new TestServerStore();
     const ctx = makeCtx({
       store,
-      worktrees:
-        `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
+      worktrees: `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
         `worktree ${join(work, "checkout")}\nHEAD b67707e\ndetached\n`,
-      onPort: async (port) =>
-        port === 8802 ? { pid: 238, workDir: work } : undefined,
+      onPort: async (port) => (port === 8802 ? { pid: 238, workDir: work } : undefined),
     });
     const found = await recoverTestServers(ctx, ["aide"]);
     expect(found).toHaveLength(1);
     const entry = store.get("aide", "main");
-    expect([
-      entry?.status,
-      entry?.port,
-      entry?.branch,
-      entry?.commit,
-      entry?.recovered,
-    ]).toEqual(["running", 8802, "main", "b67707e", true]);
+    expect([entry?.status, entry?.port, entry?.branch, entry?.commit, entry?.recovered]).toEqual([
+      "running",
+      8802,
+      "main",
+      "b67707e",
+      true,
+    ]);
   });
 
   // Everything else on the machine that happens to hold one of these
@@ -195,19 +172,14 @@ describe("finding a test server again", () => {
       },
     });
     await recoverTestServers(ctx, ["aide"]);
-    expect([asked, store.get("aide", "415-x")?.status]).toEqual([
-      0,
-      "starting",
-    ]);
+    expect([asked, store.get("aide", "415-x")?.status]).toEqual([0, "starting"]);
   });
 
   // Nothing here has ever had a test server, so nothing is asked of
   // git — a project without the round is most of them.
   test("a project the round cannot run on is not asked about at all", async () => {
     const asked: string[][] = [];
-    const ctx = makeCtx({
-      worktrees: porcelain(roundWorkDir(), "aide/415-x", "b67707e"),
-    });
+    const ctx = makeCtx({ worktrees: porcelain(roundWorkDir(), "aide/415-x", "b67707e") });
     ctx.startCommand = () => undefined;
     ctx.gitRun = async (_dir, args) => {
       asked.push(args);
@@ -228,14 +200,12 @@ describe("finding a test server again", () => {
     const ctx = makeCtx({
       store,
       worktrees: porcelain(work, "aide/415-x", "b67707e"),
-      onPort: async (port) =>
-        port === 8801 ? { pid: 238, workDir: work } : undefined,
+      onPort: async (port) => (port === 8801 ? { pid: 238, workDir: work } : undefined),
     });
     ctx.previewAvailable = () => false;
     const listing = ctx.gitRun;
     ctx.gitRun = async (dir, args) => {
-      if (args[0] === "worktree" && args[1] === "remove")
-        removed.push(args[3] ?? "");
+      if (args[0] === "worktree" && args[1] === "remove") removed.push(args[3] ?? "");
       return listing(dir, args);
     };
 
@@ -243,17 +213,12 @@ describe("finding a test server again", () => {
     expect(store.get("aide", "415-x")?.status).toBe("running");
 
     store.delete("aide", "415-x");
-    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([
-      join(work, "checkout"),
-    ]);
+    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([join(work, "checkout")]);
     expect(removed).toEqual([join(work, "checkout")]);
   });
 
   test("a checkout git cannot be asked about recovers nothing, and does not throw", async () => {
-    const ctx = makeCtx({
-      worktrees: undefined,
-      onPort: async () => ({ pid: 1, workDir: "/w" }),
-    });
+    const ctx = makeCtx({ worktrees: undefined, onPort: async () => ({ pid: 1, workDir: "/w" }) });
     expect(await recoverTestServers(ctx, ["aide"])).toEqual([]);
   });
 });
@@ -304,39 +269,29 @@ describe("stopping a board that was found again", () => {
 // What is left is a registration that refuses the next checkout of that
 // branch — the next click on the spec's own link.
 describe("the worktrees of test servers that are gone", () => {
-  const removals = (calls: string[][]) =>
-    calls.filter((a) => a[0] === "worktree" && a[1] === "remove");
+  const removals = (calls: string[][]) => calls.filter((a) => a[0] === "worktree" && a[1] === "remove");
 
   test("a round worktree nothing is listening for is removed", async () => {
     const work = roundWorkDir();
     const calls: string[][] = [];
-    const ctx = makeCtx({
-      worktrees: porcelain(work, "aide/415-x", "b67707e"),
-    });
+    const ctx = makeCtx({ worktrees: porcelain(work, "aide/415-x", "b67707e") });
     const gitRun = ctx.gitRun;
     ctx.gitRun = async (dir, args) => {
       calls.push(args);
       return gitRun(dir, args);
     };
-    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([
-      join(work, "checkout"),
-    ]);
+    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([join(work, "checkout")]);
     expect(removals(calls)).toHaveLength(1);
-    expect(calls.some((a) => a[0] === "worktree" && a[1] === "prune")).toBe(
-      true,
-    );
+    expect(calls.some((a) => a[0] === "worktree" && a[1] === "prune")).toBe(true);
   });
 
   test("a dead main board's detached worktree is removed too", async () => {
     const work = roundWorkDir();
     const ctx = makeCtx({
-      worktrees:
-        `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
+      worktrees: `worktree /checkout/aide\nHEAD 1111111\nbranch refs/heads/main\n\n` +
         `worktree ${join(work, "checkout")}\nHEAD b67707e\ndetached\n`,
     });
-    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([
-      join(work, "checkout"),
-    ]);
+    expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([join(work, "checkout")]);
   });
 
   // `recoverTestServers` runs first and puts a live board in the registry;
@@ -347,8 +302,7 @@ describe("the worktrees of test servers that are gone", () => {
     const ctx = makeCtx({
       store,
       worktrees: porcelain(work, "aide/415-x", "b67707e"),
-      onPort: async (port) =>
-        port === 8801 ? { pid: 238, workDir: work } : undefined,
+      onPort: async (port) => (port === 8801 ? { pid: 238, workDir: work } : undefined),
     });
     await recoverTestServers(ctx, ["aide"]);
     expect(await sweepDeadTestServers(ctx, ["aide"])).toEqual([]);
@@ -380,23 +334,15 @@ describe("which process on a port is a test server", () => {
   });
 
   test("this dashboard's own --root is not one", () => {
-    expect(
-      workDirOf(
-        "bun run serve.ts serve --root /Users/x/aide-dashboard/projects --bind 127.0.0.1",
-      ),
-    ).toBeUndefined();
+    expect(workDirOf("bun run serve.ts serve --root /Users/x/aide-dashboard/projects --bind 127.0.0.1")).toBeUndefined();
   });
 
   test("a --root at the very end of the line is still read", () => {
-    expect(workDirOf("bun run serve.ts serve --root /tmp/w/root")).toBe(
-      "/tmp/w",
-    );
+    expect(workDirOf("bun run serve.ts serve --root /tmp/w/root")).toBe("/tmp/w");
   });
 
   // The directory is named "root", not merely started that way.
   test("a directory whose name only begins with root is not one", () => {
-    expect(
-      workDirOf("bun run serve.ts serve --root /tmp/w/rootless --site /x"),
-    ).toBeUndefined();
+    expect(workDirOf("bun run serve.ts serve --root /tmp/w/rootless --site /x")).toBeUndefined();
   });
 });

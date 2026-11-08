@@ -2,19 +2,10 @@
 // in whole lines, for the (?) behind the message.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  installAfterMerge,
-  type LandContext,
-} from "../../../../src/serve/land-branch";
+import { installAfterMerge, type LandContext } from "../../../../src/serve/land-branch";
 import type { RepoMergeResult } from "../../../../src/git/branch-merge/index.ts";
 import { outputTail } from "../../../../src/format/output-tail.ts";
 
@@ -39,25 +30,16 @@ function checkout(script: string): { root: string; cmd: string } {
 
 describe("an install that fails", () => {
   test("names its command and exit code, with its last lines of stderr as the detail", async () => {
-    const lines = Array.from({ length: 12 }, (_, i) => `line ${i + 1}`).join(
-      "\\n",
-    );
+    const lines = Array.from({ length: 12 }, (_, i) => `line ${i + 1}`).join("\\n");
     const { root, cmd } = checkout(`printf '${lines}\\n' >&2; exit 3`);
     const result: RepoMergeResult = { root, ok: true };
     await installAfterMerge(ctx, result);
-    expect(result.installError).toEqual({
-      key: "landing.installCommandFailed",
-      values: { command: cmd, code: 3 },
-    });
-    expect(result.installDetail).toBe(
-      Array.from({ length: 8 }, (_, i) => `line ${i + 5}`).join("\n"),
-    );
+    expect(result.installError).toEqual({ key: "landing.installCommandFailed", values: { command: cmd, code: 3 } });
+    expect(result.installDetail).toBe(Array.from({ length: 8 }, (_, i) => `line ${i + 5}`).join("\n"));
   });
 
   test("falls back to stdout when it wrote nothing to stderr", async () => {
-    const { root } = checkout(
-      "echo 'npm ERR! missing script: install'; exit 1",
-    );
+    const { root } = checkout("echo 'npm ERR! missing script: install'; exit 1");
     const result: RepoMergeResult = { root, ok: true };
     await installAfterMerge(ctx, result);
     expect(result.installDetail).toBe("npm ERR! missing script: install");
@@ -67,16 +49,10 @@ describe("an install that fails", () => {
     const root = mkdtempSync(join(tmpdir(), "aide-install-says-"));
     dirs.push(root);
     mkdirSync(join(root, ".aide"), { recursive: true });
-    writeFileSync(
-      join(root, ".aide", "config"),
-      "AIDE_INSTALL_CMD=/no/such/install-program\n",
-    );
+    writeFileSync(join(root, ".aide", "config"), "AIDE_INSTALL_CMD=/no/such/install-program\n");
     const result: RepoMergeResult = { root, ok: true };
     await installAfterMerge(ctx, result);
-    expect(result.installError).toEqual({
-      key: "landing.installCommandNotRun",
-      values: { command: "/no/such/install-program" },
-    });
+    expect(result.installError).toEqual({ key: "landing.installCommandNotRun", values: { command: "/no/such/install-program" } });
     expect(result.installDetail).toBeTruthy();
   });
 });

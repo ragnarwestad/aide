@@ -2,81 +2,57 @@
 // the keys nothing uses are left out of the result, the way `schedule` and
 // `criteriaChecks` are.
 import { describe, expect, test } from "bun:test";
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseManifest } from "../../src/project/parse-manifest.ts";
 
 const fixture = (name: string) =>
-  readFileSync(
-    join(import.meta.dir, "..", "fixtures", "manifests", name),
-    "utf-8",
-  );
+  readFileSync(join(import.meta.dir, "..", "fixtures", "manifests", name), "utf-8");
 
 const RETIRED_TOP_LEVEL = [
-  "stack",
-  "dependencies",
-  "logging",
-  "statistics",
-  "reports",
-  "docs",
-  "reuse",
-  "generated",
-  "installCmd",
+  "stack", "dependencies", "logging", "statistics", "reports", "docs", "reuse", "generated", "installCmd",
 ];
 
 describe("parseManifest ignores the keys nothing reads", () => {
   test("a manifest with every retired key reads the kept ones and drops the rest", () => {
-    const result = parseManifest(
-      [
-        "name: x",
-        "generated: 2026-01-01",
-        "stack:",
-        "  language: TypeScript",
-        "dependencies: [a, b]",
-        "deployment:",
-        "  host: Somewhere",
-        "  command: make deploy",
-        "  url: https://x.example",
-        "  note: be careful",
-        "  preview: https://{branch}.x.example",
-        "  previewFrom: command",
-        "logging:",
-        "  where: [Sentry]",
-        "statistics: [https://stats.example]",
-        "reports:",
-        "  - title: Weekly",
-        "docs: [docs/README.md]",
-        "reuse: [src/lib]",
-        "installCmd: make install",
-        "AIDE_TEST_CMD: make test",
-        "",
-      ].join("\n"),
-    );
+    const result = parseManifest([
+      "name: x",
+      "generated: 2026-01-01",
+      "stack:",
+      "  language: TypeScript",
+      "dependencies: [a, b]",
+      "deployment:",
+      "  host: Somewhere",
+      "  command: make deploy",
+      "  url: https://x.example",
+      "  note: be careful",
+      "  preview: https://{branch}.x.example",
+      "  previewFrom: command",
+      "logging:",
+      "  where: [Sentry]",
+      "statistics: [https://stats.example]",
+      "reports:",
+      "  - title: Weekly",
+      "docs: [docs/README.md]",
+      "reuse: [src/lib]",
+      "installCmd: make install",
+      "AIDE_TEST_CMD: make test",
+      "",
+    ].join("\n"));
     if (!result.ok) throw new Error(result.error);
     expect(result.data.name).toBe("x");
     expect(result.data.AIDE_TEST_CMD).toBe("make test");
     expect(result.data.deployment).toEqual({ previewFrom: "command" });
-    for (const key of RETIRED_TOP_LEVEL)
-      expect(result.data).not.toHaveProperty(key);
+    for (const key of RETIRED_TOP_LEVEL) expect(result.data).not.toHaveProperty(key);
   });
 
   test("the real manifests still read, without the keys they carry", () => {
-    for (const [file, name] of [
-      ["paceup.yaml", "paceup"],
-      ["atlasaurus.yaml", "atlasaurus"],
-    ]) {
+    for (const [file, name] of [["paceup.yaml", "paceup"], ["atlasaurus.yaml", "atlasaurus"]]) {
       const result = parseManifest(fixture(file));
       if (!result.ok) throw new Error(result.error);
       expect(result.data.name).toBe(name);
-      for (const key of RETIRED_TOP_LEVEL)
-        expect(result.data).not.toHaveProperty(key);
+      for (const key of RETIRED_TOP_LEVEL) expect(result.data).not.toHaveProperty(key);
       expect(result.data.deployment).toBeUndefined();
     }
   });
@@ -100,21 +76,15 @@ describe("parseManifest ignores the keys nothing reads", () => {
 describe("deployment.previewFrom", () => {
   test("each of the three words is kept", () => {
     for (const word of ["cloudflare-pages", "command", "none"] as const) {
-      const result = parseManifest(
-        `name: x\ndeployment:\n  previewFrom: ${word}\n`,
-      );
+      const result = parseManifest(`name: x\ndeployment:\n  previewFrom: ${word}\n`);
       if (!result.ok) throw new Error(result.error);
       expect(result.data.deployment?.previewFrom).toBe(word);
     }
   });
 
   test("an unknown word, an absent key and the old URL template read as no previewFrom", () => {
-    const unknown = parseManifest(
-      "name: x\ndeployment:\n  previewFrom: vercel\n",
-    );
-    const oldTemplate = parseManifest(
-      'name: x\ndeployment:\n  preview: "https://{branch}.x.pages.dev"\n',
-    );
+    const unknown = parseManifest("name: x\ndeployment:\n  previewFrom: vercel\n");
+    const oldTemplate = parseManifest('name: x\ndeployment:\n  preview: "https://{branch}.x.pages.dev"\n');
     for (const result of [unknown, oldTemplate]) {
       if (!result.ok) throw new Error(result.error);
       expect(result.data.deployment).toBeUndefined();
@@ -164,7 +134,7 @@ describe("codeLanding", () => {
 describe("schedule", () => {
   test("a manifest's schedule: list is not read — jobs live in the queue config", () => {
     const result = parseManifest(
-      'name: x\nschedule:\n  - name: nightly\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n',
+      "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
     );
     if (!result.ok) throw new Error(result.error);
     expect(result.data.name).toBe("x");
@@ -183,15 +153,7 @@ describe("criteriaChecks", () => {
 // The runner reads the manifest in bash, the board in TypeScript. Both have
 // to give the same value for one line, comment or no comment.
 describe("the bash reader and parseManifest read a line alike", () => {
-  const lib = join(
-    import.meta.dir,
-    "..",
-    "..",
-    "..",
-    "core",
-    "scripts",
-    "_aide-spec-lib.sh",
-  );
+  const lib = join(import.meta.dir, "..", "..", "..", "core", "scripts", "_aide-spec-lib.sh");
   const LINES = [
     "acPrefix: F{spec} # feature",
     'acPrefix: "F{spec} # x"',
@@ -211,15 +173,7 @@ describe("the bash reader and parseManifest read a line alike", () => {
       mkdirSync(join(root, ".aide"));
       writeFileSync(join(root, ".aide", "project.yaml"), text);
       const out = Bun.spawnSync({
-        cmd: [
-          "bash",
-          "-c",
-          'source "$1"; aide_manifest_get "$2" "$3"',
-          "_",
-          lib,
-          "acPrefix",
-          root,
-        ],
+        cmd: ["bash", "-c", 'source "$1"; aide_manifest_get "$2" "$3"', "_", lib, "acPrefix", root],
         stdout: "pipe",
       }).stdout.toString();
       return out.endsWith("\n") ? out.slice(0, -1) : out;

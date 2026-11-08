@@ -11,20 +11,8 @@ const DASHBOARD = join(REPO, "dashboard");
 const CONFIGURATION = join(REPO, "docs", "CONFIGURATION.md");
 
 const RETIRED_KEYS = [
-  "stack",
-  "dependencies",
-  "logging",
-  "statistics",
-  "reports",
-  "docs",
-  "reuse",
-  "generated",
-  "installCmd",
-  "deployment.host",
-  "deployment.command",
-  "deployment.url",
-  "deployment.note",
-  "deployment.preview",
+  "stack", "dependencies", "logging", "statistics", "reports", "docs", "reuse", "generated", "installCmd",
+  "deployment.host", "deployment.command", "deployment.url", "deployment.note", "deployment.preview",
 ];
 
 const pages = [
@@ -39,36 +27,24 @@ const pages = [
 /** The keys in the first column of the `.aide/project.yaml` section's table. */
 function manifestTableKeys(): string[] {
   const text = readFileSync(CONFIGURATION, "utf-8");
-  const section = text
-    .split(/^## /m)
-    .find((s) => s.startsWith(".aide/project.yaml"));
-  if (!section)
-    throw new Error("docs/CONFIGURATION.md has no .aide/project.yaml section");
+  const section = text.split(/^## /m).find((s) => s.startsWith(".aide/project.yaml"));
+  if (!section) throw new Error("docs/CONFIGURATION.md has no .aide/project.yaml section");
   return [...section.matchAll(/^\| `([^`]+)`/gm)].map((m) => m[1]!);
 }
 
 /** A manifest that sets the key to a value of the shape the parser accepts. */
 function manifestSetting(key: string): string {
-  if (key === "deployment.previewFrom")
-    return "name: p\ndeployment:\n  previewFrom: command\n";
+  if (key === "deployment.previewFrom") return "name: p\ndeployment:\n  previewFrom: command\n";
   if (key === "codeLanding") return "name: p\ncodeLanding: pr\n";
   const [head, ...rest] = key.split(".");
-  if (rest.length === 0)
-    return head === "name" ? "name: x\n" : `name: p\n${head}: x\n`;
+  if (rest.length === 0) return head === "name" ? "name: x\n" : `name: p\n${head}: x\n`;
   return `name: p\n${head}:\n  ${rest.join(".")}: x\n`;
 }
 
 describe("the configuration reference's manifest table", () => {
   test("names at least the keys a run reads", () => {
     const keys = manifestTableKeys();
-    for (const key of [
-      "AIDE_TEST_CMD",
-      "worktreeLinks",
-      "codeLanding",
-      "name",
-      "acPrefix",
-    ])
-      expect(keys).toContain(key);
+    for (const key of ["AIDE_TEST_CMD", "worktreeLinks", "codeLanding", "name", "acPrefix"]) expect(keys).toContain(key);
   });
 
   test("every key in it reads back through the parser", () => {
@@ -77,8 +53,7 @@ describe("the configuration reference's manifest table", () => {
       if (!result.ok) throw new Error(result.error);
       const path = key.split(".");
       let value: unknown = result.data;
-      for (const part of path)
-        value = (value as Record<string, unknown> | undefined)?.[part];
+      for (const part of path) value = (value as Record<string, unknown> | undefined)?.[part];
       expect([key, value === undefined]).toEqual([key, false]);
     }
   });
@@ -87,11 +62,8 @@ describe("the configuration reference's manifest table", () => {
 /** The keys in the first column of the `~/.aide/config` section's table. */
 function machineTableKeys(): string[] {
   const text = readFileSync(CONFIGURATION, "utf-8");
-  const section = text
-    .split(/^## /m)
-    .find((s) => s.startsWith("~/.aide/config"));
-  if (!section)
-    throw new Error("docs/CONFIGURATION.md has no ~/.aide/config section");
+  const section = text.split(/^## /m).find((s) => s.startsWith("~/.aide/config"));
+  if (!section) throw new Error("docs/CONFIGURATION.md has no ~/.aide/config section");
   return [...section.matchAll(/^\| `([^`]+)`/gm)].map((m) => m[1]!);
 }
 
@@ -106,9 +78,7 @@ describe("the configuration reference's ~/.aide/config table", () => {
       .filter((f) => f.isFile())
       .map((f) => readFileSync(join(scripts, f.name), "utf-8"));
     for (const key of machineTableKeys()) {
-      const reads = sources.some((text) =>
-        text.includes(`aide_config_get ${key} "$HOME"`),
-      );
+      const reads = sources.some((text) => text.includes(`aide_config_get ${key} "$HOME"`));
       expect([key, reads]).toEqual([key, true]);
     }
   });
@@ -120,8 +90,7 @@ describe("no page names a manifest key that nothing reads", () => {
     for (const page of pages) {
       const text = readFileSync(page, "utf-8");
       for (const key of RETIRED_KEYS) {
-        if (text.includes(`\`${key}\``))
-          hits.push(`${page.slice(REPO.length + 1)}: ${key}`);
+        if (text.includes(`\`${key}\``)) hits.push(`${page.slice(REPO.length + 1)}: ${key}`);
       }
     }
     expect(hits).toEqual([]);

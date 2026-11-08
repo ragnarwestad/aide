@@ -16,13 +16,11 @@ export function runSpecSource(): string {
  *  when it finds none, so a moved folder fails a test rather than leaving it
  *  reading nothing. */
 export function runSpecParts(): string[] {
-  const dir = new URL("../../../core/scripts/lib/run-spec", import.meta.url)
-    .pathname;
+  const dir = new URL("../../../core/scripts/lib/run-spec", import.meta.url).pathname;
   const parts = (readdirSync(dir, { recursive: true }) as string[])
     .filter((f) => f.endsWith(".sh"))
     .sort()
     .map((f) => join(dir, f));
-  if (parts.length < 20)
-    throw new Error(`only ${parts.length} runner phases under ${dir}`);
+  if (parts.length < 20) throw new Error(`only ${parts.length} runner phases under ${dir}`);
   return parts;
 }

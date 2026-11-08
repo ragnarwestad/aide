@@ -7,8 +7,7 @@ import { STATUS_SPEC_FILE } from "../../render";
  *  in one place: the GET that would have rendered the form and the POST
  *  that would have written the file both say it, and the page a reader
  *  lands on is the spec's own. */
-export const ARCHIVED_REFUSAL =
-  "this spec is archived — it is a record, and cannot be edited";
+export const ARCHIVED_REFUSAL = "this spec is archived — it is a record, and cannot be edited";
 
 /** What a Save's commit RECORDS. Two routes — the
  *  document tabs' own Save (any of the four files) and the
@@ -28,12 +27,6 @@ export const tickMessage = (specFolder: string): string =>
  *  that one file (`deploy/render-plist.ts`), so `console.error` IS the
  *  log line — and until now no request handler wrote one at all, which
  *  left a day of refused merges with nothing on disk to read back. */
-export function logRefusal(
-  action: string,
-  spec: string | undefined,
-  reason: string,
-): void {
-  console.error(
-    `queue: ${action} refused for ${spec ?? "an unknown spec"} — ${reason}`,
-  );
+export function logRefusal(action: string, spec: string | undefined, reason: string): void {
+  console.error(`queue: ${action} refused for ${spec ?? "an unknown spec"} — ${reason}`);
 }

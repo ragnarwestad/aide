@@ -4,13 +4,7 @@
 // draws the rows themselves.
 
 import { NEW_SPEC_ROUTE } from "../projects-page";
-import {
-  btn,
-  btnLink,
-  helpPopover,
-  ICON_CHEVRON,
-  ICON_SEARCH,
-} from "../../ui/components";
+import { btn, btnLink, helpPopover, ICON_CHEVRON, ICON_SEARCH } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { t, type Language, type TranslationKey } from "../../../i18n";
 import {
@@ -45,11 +39,7 @@ export function queueHref(f: SpecsFilter, patch: SpecsFilter): string {
 /** The same address unescaped, for a caller that escapes it itself. `path`
  *  is the page the rows sit on: the Specs list's own unless the Jobs tab
  *  draws them. */
-export function queuePath(
-  f: SpecsFilter,
-  patch: SpecsFilter = {},
-  path = "/specs",
-): string {
+export function queuePath(f: SpecsFilter, patch: SpecsFilter = {}, path = "/specs"): string {
   const merged = { ...f, ...patch };
   const q = Object.entries(merged)
     .filter(([, v]) => v)
@@ -65,17 +55,10 @@ export function queuePath(
 // five-second refresh, and fine for that: nothing here is being typed
 // into.
 function runsHelp(lang: Language): string {
-  return helpPopover(
-    t(lang, "list.searchHelpTitle"),
-    t(lang, "list.searchHelpBody"),
-  );
+  return helpPopover(t(lang, "list.searchHelpTitle"), t(lang, "list.searchHelpBody"));
 }
 
-export function filterBar(
-  groups: SpecGroup[],
-  f: SpecsFilter,
-  opts: SpecsPageOptions,
-): string {
+export function filterBar(groups: SpecGroup[], f: SpecsFilter, opts: SpecsPageOptions): string {
   const lang = opts.lang ?? "en";
   const current = stateFilter(f.state).key;
   // Counts are of what the OTHER filter already allows, so the numbers
@@ -111,43 +94,26 @@ export function filterBar(
   const searching = (f.q ?? "").trim() !== "";
   const uncountedArchived = searching
     ? 0
-    : (opts.archived ?? []).filter((k) => !built.has(k) && !closedKeys.has(k))
-        .length;
+    : (opts.archived ?? []).filter((k) => !built.has(k) && !closedKeys.has(k)).length;
   const uncountedClosed = searching
     ? 0
-    : (opts.archived ?? []).filter((k) => !built.has(k) && closedKeys.has(k))
-        .length;
+    : (opts.archived ?? []).filter((k) => !built.has(k) && closedKeys.has(k)).length;
   // The Not verified entry's own unbuilt: the archived specs that have a
   // count and no built row. Counted for this entry alone — the shared
   // `matchesState(s, ARCHIVED_STATE)` above is true for any entry naming
   // no `states`, and would add every unbuilt archived key to it.
-  const uncountedNotVerified = searching
-    ? 0
-    : (opts.notVerified ?? []).filter((k) => !built.has(k)).length;
+  const uncountedNotVerified = searching ? 0 : (opts.notVerified ?? []).filter((k) => !built.has(k)).length;
   // A chip per project stood here until 2026-08-23. It was one control
   // that grew with the machine: fine at two projects, unreadable at
   // twenty, and the dashboard now serves whatever a person has. Nothing
   // replaced it, deliberately — nobody had asked to filter by project,
   // and the list is short enough to read. Build something when the need
   // is real, and a dropdown is the shape that does not grow.
-  const state = stateDropdown(
-    f,
-    current,
-    counted,
-    {
-      archived: uncountedArchived,
-      closed: uncountedClosed,
-      notVerified: uncountedNotVerified,
-    },
-    lang,
-  );
+  const state = stateDropdown(f, current, counted, { archived: uncountedArchived, closed: uncountedClosed, notVerified: uncountedNotVerified }, lang);
   return searchForm(
     {
       action: "/specs",
-      hidden: FILTER_KEYS.filter((k) => k !== "q" && f[k]).map((k) => [
-        k,
-        f[k]!,
-      ]),
+      hidden: FILTER_KEYS.filter((k) => k !== "q" && f[k]).map((k) => [k, f[k]!]),
       q: f.q ?? "",
       clearHref: queueHref(f, { q: "" }),
       after: state + newSpecLink(opts, lang),
@@ -182,11 +148,7 @@ function stateDropdown(
     const on = s.key === current;
     const count =
       counted.filter((g) => matchesStateFilter(s, g)).length +
-      (s.where
-        ? uncounted.notVerified
-        : matchesState(s, ARCHIVED_STATE)
-          ? uncounted.archived
-          : 0) +
+      (s.where ? uncounted.notVerified : matchesState(s, ARCHIVED_STATE) ? uncounted.archived : 0) +
       // An unbuilt closed key never reaches "Archived"
       // (CLOSED_STATE is not in that entry's `states`), only "All".
       (!s.where && matchesState(s, CLOSED_STATE) ? uncounted.closed : 0);
@@ -227,11 +189,7 @@ export interface MenuOption {
  *  carries `role="radiogroup"`/`role="radio"`: a radio glyph is what
  *  "pick one of these" looks and announces like. `filter` names the control
  *  for the page script and the tests. */
-export function menuDropdown(o: {
-  filter: string;
-  ariaLabel: string;
-  options: MenuOption[];
-}): string {
+export function menuDropdown(o: { filter: string; ariaLabel: string; options: MenuOption[] }): string {
   const options = o.options
     .map(
       (opt) =>
@@ -277,9 +235,7 @@ export function searchForm(
   },
   lang: Language,
 ): string {
-  const keep = o.hidden
-    .map(([k, v]) => `<input type="hidden" name="${k}" value="${esc(v)}">`)
-    .join("");
+  const keep = o.hidden.map(([k, v]) => `<input type="hidden" name="${k}" value="${esc(v)}">`).join("");
   const q = o.q.trim();
   const clearLabel = t(lang, "list.searchClearTitle");
   return (
@@ -315,23 +271,12 @@ export function searchForm(
 
 /** The columns' widths are declared on the column group, in this order. */
 const COLUMNS = ["fold", "spec", "phase", "state", "started", "cost"];
-const columnGroup = (): string =>
-  `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
+const columnGroup = (): string => `<colgroup>${COLUMNS.map((c) => `<col data-col="${c}">`).join("")}</colgroup>`;
 
 /** The five headings the list's table carries. Cost's heading holds both units; the reader's choice
  *  shows one. */
-const HEADINGS: {
-  key: string;
-  label: TranslationKey;
-  cls?: string;
-  attrs: string;
-  labelHtml?: (lang: Language) => string;
-}[] = [
-  {
-    key: "created",
-    label: "list.colCreated",
-    attrs: ' colspan="2" data-col="created"',
-  },
+const HEADINGS: { key: string; label: TranslationKey; cls?: string; attrs: string; labelHtml?: (lang: Language) => string }[] = [
+  { key: "created", label: "list.colCreated", attrs: ' colspan="2" data-col="created"' },
   { key: "spec", label: "list.colSpec", attrs: ' data-col="spec"' },
   { key: "state", label: "list.colState", attrs: ' data-col="state"' },
   { key: "started", label: "list.colTime", attrs: ' data-col="started"' },
@@ -340,8 +285,7 @@ const HEADINGS: {
     label: "list.colCost",
     cls: "num",
     attrs: ' data-col="cost"',
-    labelHtml: (lang) =>
-      `<span class="u-usd">${t(lang, "list.colCost")}</span><span class="u-tok">${t(lang, "list.colTokens")}</span>`,
+    labelHtml: (lang) => `<span class="u-usd">${t(lang, "list.colCost")}</span><span class="u-tok">${t(lang, "list.colTokens")}</span>`,
   },
 ];
 
@@ -367,13 +311,7 @@ export function sortHead(
   // are named on the cell rather than counted by position, because the
   // column ORDER has already changed once (see below) and an
   // `nth-child` rule would have broken silently when it did.
-  const th = (
-    key: string,
-    label: string,
-    cls = "",
-    labelHtml?: string,
-    attrs = "",
-  ) => {
+  const th = (key: string, label: string, cls = "", labelHtml?: string, attrs = "") => {
     const on = key === sort;
     // Every sortable column carries the chevron — faint until hovered,
     // so the reader can see the column CAN be sorted; full on the sorted
@@ -382,15 +320,9 @@ export function sortHead(
     // will go on the first click is what its chevron points.
     const mark = ICON_CHEVRON;
     const linkCls = on
-      ? dir === "asc"
-        ? "sortlink on asc"
-        : "sortlink on"
-      : SORT_DEFAULT_DIR[key] === "asc"
-        ? "sortlink asc"
-        : "sortlink";
-    const aria = on
-      ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"`
-      : "";
+      ? (dir === "asc" ? "sortlink on asc" : "sortlink on")
+      : (SORT_DEFAULT_DIR[key] === "asc" ? "sortlink asc" : "sortlink");
+    const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
     return (
       `<th class="${cls}"${attrs}${aria}>` +
       `<a class="${linkCls}" data-nav href="${o.href(key)}">` +
@@ -429,19 +361,8 @@ export function sortHead(
     columnGroup() +
     `<thead><tr>` +
     HEADINGS.map((h) => {
-      const label =
-        h.key === "spec"
-          ? o.specLabel
-          : h.key === "state" && o.specsList
-            ? "list.colStateAlone"
-            : h.label;
-      return th(
-        h.key,
-        t(lang, label),
-        h.cls ?? "",
-        h.labelHtml?.(lang),
-        h.attrs,
-      );
+      const label = h.key === "spec" ? o.specLabel : h.key === "state" && o.specsList ? "list.colStateAlone" : h.label;
+      return th(h.key, t(lang, label), h.cls ?? "", h.labelHtml?.(lang), h.attrs);
     }).join("") +
     `</tr></thead>`
   );
@@ -449,29 +370,16 @@ export function sortHead(
 
 /** The Specs list's head: the column the view is sorted by, marked, and a
  *  heading's link turning it round when it is the one already sorted by. */
-export function sortableHead(
-  f: SpecsFilter,
-  lang: Language = "en",
-  specsList = false,
-): string {
+export function sortableHead(f: SpecsFilter, lang: Language = "en", specsList = false): string {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
-  const dir =
-    f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
+  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   return sortHead(
     {
       now: { sort, dir },
       // Clicking the column you are already sorted by turns it round.
       href: (key) => {
-        const next =
-          key === sort
-            ? dir === "asc"
-              ? "desc"
-              : "asc"
-            : SORT_DEFAULT_DIR[key]!;
-        return queueHref(f, {
-          sort: key,
-          dir: next === SORT_DEFAULT_DIR[key] ? "" : next,
-        });
+        const next = key === sort ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
+        return queueHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next });
       },
       specLabel: "list.colSpec",
       specsList,
@@ -494,14 +402,8 @@ export function sortableHead(
 //
 // The Running tab draws it too, in the same slot of its own search row and
 // in its empty message, from this one function.
-export function newSpecLink(
-  opts: Pick<SpecsPageOptions, "createProjects">,
-  lang: Language,
-): string {
+export function newSpecLink(opts: Pick<SpecsPageOptions, "createProjects">, lang: Language): string {
   if ((opts.createProjects ?? []).length === 0) return "";
-  return btnLink({
-    href: NEW_SPEC_ROUTE,
-    label: t(lang, "list.newSpec"),
-    variant: "primary",
-  });
+  return btnLink({ href: NEW_SPEC_ROUTE, label: t(lang, "list.newSpec"), variant: "primary" });
 }
+

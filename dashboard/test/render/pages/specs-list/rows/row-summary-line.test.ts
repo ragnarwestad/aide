@@ -9,10 +9,7 @@ import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/pa
 
 // Split out of listing-and-units.test.ts by theme.
 describe("one line per row for what is going on and what is next", () => {
-  const target = (
-    specFolder: string,
-    extra: Partial<SpecTarget> = {},
-  ): SpecTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -24,11 +21,7 @@ describe("one line per row for what is going on and what is next", () => {
   const rows = (list: QueueRowView[], targets: SpecTarget[] = []) =>
     renderSpecsRows(
       list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-      },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-08-18T12:00:00Z"),
     );
   // The sentence used to sit in the state cell, under the badge it
@@ -38,31 +31,19 @@ describe("one line per row for what is going on and what is next", () => {
   // stays as the reader of that div — it is how these tests say the
   // div is not there.
   const stateCell = (html: string) => {
-    const head =
-      html.match(
-        /<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/,
-      )?.[0] ?? "";
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
     // By its COLUMN, not its position: the header is two rows now and
     // the chevron has a cell of its own, so counting cells says nothing.
     return head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
   };
   const hint = (html: string) =>
-    stateCell(html).match(
-      /<div class="muted small">([\s\S]*?)<\/div>\s*<\/td>/,
-    )?.[1] ?? "";
+    stateCell(html).match(/<div class="muted small">([\s\S]*?)<\/div>\s*<\/td>/)?.[1] ?? "";
   /** The FIRST line — the badge itself. Once nothing is
    *  running it carries the whole sentence, and `hint` above is empty. */
   const chip = (html: string) => {
-    const head =
-      html.match(
-        /<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/,
-      )?.[0] ?? "";
-    const state =
-      head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
-    return (
-      state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ??
-      ""
-    );
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const state = head.match(/<td[^>]*data-col="state"[\s\S]*?<\/td>/)?.[0] ?? "";
+    return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
   };
 
   // It used to say "never run — tick a phase
@@ -87,19 +68,10 @@ describe("one line per row for what is going on and what is next", () => {
   // third time.
   test("a running job's chip carries the phase word; the sentence stays empty", () => {
     const html = rows(
-      [
-        row({
-          specFolder: "101-a",
-          steps: ["analyze", "implement"],
-          stepIndex: 0,
-          state: "running",
-        }),
-      ],
+      [row({ specFolder: "101-a", steps: ["analyze", "implement"], stepIndex: 0, state: "running" })],
       [target("101-a")],
     );
-    const head = html.match(
-      /<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/,
-    )![0];
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)![0];
     expect(head).toContain(">Analyzing<");
     expect(head).not.toContain("to follow");
     expect(hint(html)).toBe("");
@@ -109,17 +81,9 @@ describe("one line per row for what is going on and what is next", () => {
   // button reading "Implement". The four states keep their badge; the
   // sentence goes.
   test("a job that stopped short is not told how to try again", () => {
-    for (const state of [
-      "failed",
-      "stopped",
-      "cancelled",
-      "interrupted",
-    ] as const) {
+    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
       const cell = stateCell(
-        rows(
-          [row({ specFolder: "101-a", steps: ["implement"], state })],
-          [target("101-a")],
-        ),
+        rows([row({ specFolder: "101-a", steps: ["implement"], state })], [target("101-a")]),
       );
       expect(cell).not.toContain("press Run");
       expect(cell).not.toContain('<div class="muted small">');
@@ -133,10 +97,7 @@ describe("one line per row for what is going on and what is next", () => {
   // the button it was for is gone; it says what can HAPPEN next instead, and
   // for a branch left open that is the archive step which lands it.
   test("a finished spec with a branch still out says which phase is next", () => {
-    const html = rows(
-      [row({ specFolder: "101-a", state: "done" })],
-      [target("101-a")],
-    );
+    const html = rows([row({ specFolder: "101-a", state: "done" })], [target("101-a")]);
     expect(chip(html)).toBe("Ready");
     expect(html).toContain(">Analyze</button>");
     expect(hint(html)).toBe("");
@@ -233,19 +194,12 @@ describe("one line per row for what is going on and what is next", () => {
   // into a state that stopped. The badge is what carries it, not a retry
   // sentence below the badge.
   test("a job that stopped short keeps its own badge, whatever the files say", () => {
-    for (const state of [
-      "failed",
-      "stopped",
-      "cancelled",
-      "interrupted",
-    ] as const) {
+    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
       const html = rows(
         [row({ specFolder: "101-a", steps: ["implement"], state })],
         [target("101-a", { done: ["analyze"] })],
       );
-      expect(chip(html)).toContain(
-        state.charAt(0).toUpperCase() + state.slice(1),
-      );
+      expect(chip(html)).toContain(state.charAt(0).toUpperCase() + state.slice(1));
       expect(chip(html)).not.toContain(">Ready<");
       expect(hint(html)).toBe("");
     }
@@ -266,9 +220,9 @@ describe("one line per row for what is going on and what is next", () => {
     // left to add.
     expect(hint(html)).toBe("");
     expect(html.match(/the Slack webhook/g)).toHaveLength(1);
-    expect(
-      html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "",
-    ).toContain("Archive held back: the Slack webhook");
+    expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
+      "Archive held back: the Slack webhook",
+    );
   });
 
   // Unticked Acceptance criteria share
@@ -292,9 +246,9 @@ describe("one line per row for what is going on and what is next", () => {
       ],
     );
     expect(chip(html)).toBe("Ready");
-    expect(
-      html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "",
-    ).toContain("Click the link to start a test server running this branch");
+    expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
+      "Click the link to start a test server running this branch",
+    );
   });
 
   // For the four states that stopped short the file's reason is said in
@@ -302,19 +256,14 @@ describe("one line per row for what is going on and what is next", () => {
   // in the one place on the row that has the width for it. The line
   // below says what to press.
   test("a run that stopped short says the held-back reason in the row's panel", () => {
-    for (const state of [
-      "failed",
-      "stopped",
-      "cancelled",
-      "interrupted",
-    ] as const) {
+    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
       const html = rows(
         [row({ specFolder: "101-a", steps: ["archive"], state })],
         [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
       );
-      expect(
-        html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "",
-      ).toContain("Archive held back: the Slack webhook");
+      expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
+        "Archive held back: the Slack webhook",
+      );
       // And nothing under the badge at all any more.
       expect(hint(html)).toBe("");
       expect(stateCell(html)).not.toContain('<div class="muted small">');

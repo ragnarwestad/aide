@@ -23,14 +23,8 @@ export function runCli() {
   convertProvidersAtBoot(opts);
   // The one place the tool checks are turned on: a person serving the
   // board wants to know, on the page, whether each AI is usable here.
-  const s = createServer({
-    ...opts,
-    checkToolsOnStart: true,
-    tailscaleName: lookupTailscaleName,
-  });
-  console.log(
-    `aide-dashboard serving ${opts.projectRoot ?? "no project root"} on :${s.port}`,
-  );
+  const s = createServer({ ...opts, checkToolsOnStart: true, tailscaleName: lookupTailscaleName });
+  console.log(`aide-dashboard serving ${opts.projectRoot ?? "no project root"} on :${s.port}`);
   const warning = bindWarning(opts.bindHost);
   if (warning) console.error(warning);
 }

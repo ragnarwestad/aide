@@ -47,11 +47,7 @@ function unescapeLine(line: string): string {
       i += run;
       continue;
     }
-    if (
-      ch === "\\" &&
-      i + 1 < line.length &&
-      ESCAPABLE.includes(line[i + 1]!)
-    ) {
+    if (ch === "\\" && i + 1 < line.length && ESCAPABLE.includes(line[i + 1]!)) {
       out += line[i + 1]!;
       i += 2;
       continue;
@@ -72,12 +68,7 @@ export function unescapeMarkdown(text: string): string {
       const opener = FENCE.exec(line);
       if (fence) {
         // Only a run of the SAME character, at least as long, closes it.
-        if (
-          opener &&
-          opener[1]![0] === fence[0] &&
-          opener[1]!.length >= fence.length
-        )
-          fence = null;
+        if (opener && opener[1]![0] === fence[0] && opener[1]!.length >= fence.length) fence = null;
         return line;
       }
       if (opener) {

@@ -39,9 +39,7 @@ describe("clearArchiveHeldBack", () => {
     ].join("\n");
 
   test("the section goes, and nothing around it does", () => {
-    const out = clearArchiveHeldBack(
-      withSection("- the Slack webhook (Phase 4, still unchecked)"),
-    )!;
+    const out = clearArchiveHeldBack(withSection("- the Slack webhook (Phase 4, still unchecked)"))!;
     expect(out).not.toBeNull();
     expect(out).not.toContain("## Archive held back");
     expect(out).not.toContain("the Slack webhook");
@@ -68,14 +66,7 @@ describe("clearArchiveHeldBack", () => {
   });
 
   test("a section running to the end of the file goes with it", () => {
-    const trailing = [
-      "# 190 - Status",
-      "",
-      "## Archive held back",
-      "",
-      "- the webhook",
-      "",
-    ].join("\n");
+    const trailing = ["# 190 - Status", "", "## Archive held back", "", "- the webhook", ""].join("\n");
     expect(clearArchiveHeldBack(trailing)).toBe("# 190 - Status\n");
   });
 
@@ -98,29 +89,17 @@ describe("clearArchiveHeldBack", () => {
 // what a reader opens.
 describe("the reopen boundary", () => {
   const withMark = (line: string) =>
-    [
-      "# 198 - Status",
-      "",
-      "## Tracking info",
-      "",
-      "- **Task:** `198-slug/`",
-      line,
-      "",
-    ].join("\n");
+    ["# 198 - Status", "", "## Tracking info", "", "- **Task:** `198-slug/`", line, ""].join("\n");
 
   test("the canonical line yields the sha the history starts from", () => {
     const status = parseStatus(
-      withMark(
-        "- **Reopened:** 2026-08-23 (history before `1d0fe79` does not count)",
-      ),
+      withMark("- **Reopened:** 2026-08-23 (history before `1d0fe79` does not count)"),
     );
     expect(status.reopenedAfter).toBe("1d0fe79");
   });
 
   test("a spec that has never been reopened has no boundary at all", () => {
-    expect(
-      parseStatus(withMark("- **Archived:** 2026-08-22")).reopenedAfter,
-    ).toBeUndefined();
+    expect(parseStatus(withMark("- **Archived:** 2026-08-22")).reopenedAfter).toBeUndefined();
   });
 
   // The LAST mark wins. A spec reopened twice starts from its current
@@ -146,9 +125,7 @@ describe("the reopen boundary", () => {
   // in this codebase takes. A boundary guessed at would hide a round that
   // really did run.
   test("a mark with no sha in it is not a boundary", () => {
-    expect(
-      parseStatus(withMark("- **Reopened:** 2026-08-23")).reopenedAfter,
-    ).toBeUndefined();
+    expect(parseStatus(withMark("- **Reopened:** 2026-08-23")).reopenedAfter).toBeUndefined();
   });
 });
 
@@ -183,19 +160,10 @@ describe("the work-round boundary", () => {
 // shared table it is: one file, read by a test on each side, the way
 // WORKFLOW_STEPS and the code-landing precedence table already are.
 describe("the shared row-counting fixture (TypeScript half)", () => {
-  const FIXTURE: {
-    cases: { name: string; body: string; done: number; total: number }[];
-  } = JSON.parse(
-    readFileSync(
-      join(
-        import.meta.dir,
-        "..",
-        "..",
-        "../../core/tests/fixtures/status-row-counting.json",
-      ),
-      "utf-8",
-    ),
-  );
+  const FIXTURE: { cases: { name: string; body: string; done: number; total: number }[] } =
+    JSON.parse(
+      readFileSync(join(import.meta.dir, "..", "..", "../../core/tests/fixtures/status-row-counting.json"), "utf-8"),
+    );
 
   for (const c of FIXTURE.cases) {
     test(`${c.name}: ${c.done} of ${c.total}`, () => {

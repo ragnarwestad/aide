@@ -25,13 +25,13 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
+
 const BRANCH = "aide/89-merge-from-the-dashboard";
 const ROOT = "/repos/aide";
 const noWait = async (_ms: number): Promise<void> => {};
 
 const argv = (calls: GitCall[]): string[] => calls.map((c) => c.args.join(" "));
-const ran = (calls: GitCall[], prefix: string): boolean =>
-  argv(calls).some((a) => a.startsWith(prefix));
+const ran = (calls: GitCall[], prefix: string): boolean => argv(calls).some((a) => a.startsWith(prefix));
 
 /** The table every test below starts from: a clean checkout that
  *  reaches step 6 and attempts the push — steps 1-5 all succeed so the
@@ -39,10 +39,7 @@ const ran = (calls: GitCall[], prefix: string): boolean =>
  *  under test. */
 const REACHES_STEP_6 = {
   ...CLEAN_MASTER,
-  "ls-remote --exit-code": {
-    code: 0,
-    stdout: "deadbeef\trefs/heads/aide/89-merge-from-the-dashboard\n",
-  },
+  "ls-remote --exit-code": { code: 0, stdout: "deadbeef\trefs/heads/aide/89-merge-from-the-dashboard\n" },
   "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
   "pull -q --ff-only": { code: 0 },
   "merge -q --ff-only origin/": { code: 0 },
@@ -61,26 +58,13 @@ describe("pushWithRetry: a push rejected because the remote moved", () => {
       ...REACHES_STEP_6,
       "ls-remote origin": { code: 0 },
       reset: { code: 0 },
-      push: [
-        { code: 1, stderr: "! [rejected] master -> master (fetch first)" },
-        { code: 0 },
-      ],
+      push: [{ code: 1, stderr: "! [rejected] master -> master (fetch first)" }, { code: 0 }],
     });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(true);
     expect(result.error).toBeUndefined();
     const sequence = argv(git.calls).filter(
-      (a) =>
-        a === "push -q origin HEAD:refs/heads/master" ||
-        a.startsWith("reset") ||
-        (a.startsWith("merge -q") && a.includes("refs/remotes/")) ||
-        a.startsWith("pull -q --rebase"),
+      (a) => a === "push -q origin HEAD:refs/heads/master" || a.startsWith("reset") || (a.startsWith("merge -q") && a.includes("refs/remotes/")) || a.startsWith("pull -q --rebase"),
     );
     expect(sequence).toEqual([
       `merge -q --ff-only refs/remotes/origin/${BRANCH}`,
@@ -104,14 +88,7 @@ describe("pushWithRetry: a push rejected because the remote moved", () => {
       gates += 1;
       return { ok: true };
     };
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-      gate,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
     expect(result.ok).toBe(true);
     expect(gates).toBe(2);
   });
@@ -123,28 +100,14 @@ describe("pushWithRetry: a push rejected because the remote moved", () => {
       reset: { code: 0 },
       push: { code: 1, stderr: "! [rejected] master -> master (fetch first)" },
     });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
-    expect(sentence(result.error)).toContain(
-      "moved on origin under this merge twice",
-    );
-    expect(sentence(result.error)).toContain(
-      "Check the checkout on the serving host",
-    );
+    expect(sentence(result.error)).toContain("moved on origin under this merge twice");
+    expect(sentence(result.error)).toContain("Check the checkout on the serving host");
     expect(result.reason).toBeUndefined();
     const seq = argv(git.calls);
-    expect(
-      seq.filter((a) => a === "push -q origin HEAD:refs/heads/master"),
-    ).toHaveLength(2);
-    expect(
-      seq.filter((a) => a === "reset -q --hard origin/master"),
-    ).toHaveLength(2);
+    expect(seq.filter((a) => a === "push -q origin HEAD:refs/heads/master")).toHaveLength(2);
+    expect(seq.filter((a) => a === "reset -q --hard origin/master")).toHaveLength(2);
     // The resets happen in the landing's own worktree, and the worktree
     // is then removed — so "never left ahead" is stronger than it was:
     // nothing of the attempt is left on disk at all. The last calls are
@@ -155,6 +118,30 @@ describe("pushWithRetry: a push rejected because the remote moved", () => {
 });
 
 describe("pushWithRetry: a push origin itself turned down", () => {
+  test("a temporary GitHub failure is pushed a second time even when ls-remote succeeds (AC-4)", async () => {
+    const git = fakeGit({
+      ...REACHES_STEP_6,
+      "ls-remote origin": { code: 0 },
+      push: [
+        { code: 1, stderr: "remote: Internal Server Error" },
+        { code: 0 },
+      ],
+    });
+    const result = await mergeBranchIntoDefault(
+      git.run,
+      ROOT,
+      BRANCH,
+      "master",
+      noWait,
+    );
+    expect(result.ok).toBe(true);
+    expect(
+      argv(git.calls).filter(
+        (a) => a === "push -q origin HEAD:refs/heads/master",
+      ),
+    ).toHaveLength(2);
+  });
+
   test("is not a base that moved: it is refused once, in origin's own words", async () => {
     const said = [
       "remote: fatal error in commit_refs_rules",
@@ -163,11 +150,26 @@ describe("pushWithRetry: a push origin itself turned down", () => {
       ")",
       "error: failed to push some refs to 'github.com:ragnarwestad/aide-specs.git'",
     ].join("\n");
+    const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, reset: { code: 0 }, push: { code: 1, stderr: said } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
+    expect(result.ok).toBe(false);
+    expect(sentence(result.error)).not.toContain("moved on origin");
+    expect(sentence(result.error)).toContain("fatal error in commit_refs_rules");
+    expect(argv(git.calls).filter((a) => a === "push -q origin HEAD:refs/heads/master")).toHaveLength(1);
+  });
+});
+
+describe("pushWithRetry: a push that cannot reach origin at all", () => {
+  test("a base-moved retry that loses the network stops after two pushes (AC-10)", async () => {
     const git = fakeGit({
       ...REACHES_STEP_6,
-      "ls-remote origin": { code: 0 },
+      "ls-remote origin": [{ code: 0 }, { code: 1 }],
       reset: { code: 0 },
-      push: { code: 1, stderr: said },
+      push: [
+        { code: 1, stderr: "! [rejected] master -> master (fetch first)" },
+        { code: 1, stderr: "fatal: Could not resolve host: github.com" },
+        { code: 0 },
+      ],
     });
     const result = await mergeBranchIntoDefault(
       git.run,
@@ -177,19 +179,13 @@ describe("pushWithRetry: a push origin itself turned down", () => {
       noWait,
     );
     expect(result.ok).toBe(false);
-    expect(sentence(result.error)).not.toContain("moved on origin");
-    expect(sentence(result.error)).toContain(
-      "fatal error in commit_refs_rules",
-    );
     expect(
       argv(git.calls).filter(
         (a) => a === "push -q origin HEAD:refs/heads/master",
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
-});
 
-describe("pushWithRetry: a push that cannot reach origin at all", () => {
   test("is retried, waited, up to the bound, then refused if it never recovers", async () => {
     const waits: number[] = [];
     const wait = async (ms: number) => {
@@ -198,18 +194,9 @@ describe("pushWithRetry: a push that cannot reach origin at all", () => {
     const git = fakeGit({
       ...REACHES_STEP_6,
       "ls-remote origin": { code: 1 },
-      push: {
-        code: 1,
-        stderr: "fatal: unable to access 'origin' — Could not resolve host",
-      },
+      push: { code: 1, stderr: "fatal: unable to access 'origin' — Could not resolve host" },
     });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      wait,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", wait);
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain(ROOT);
     expect(sentence(result.error)).toContain(BRANCH);
@@ -225,13 +212,7 @@ describe("pushWithRetry: a push that cannot reach origin at all", () => {
         { code: 0 },
       ],
     });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(true);
     expect(result.error).toBeUndefined();
   });
@@ -246,23 +227,14 @@ describe("pushWithRetry: a second merge that hits a real conflict", () => {
     // fast-forward nor the real merge goes through.
     "merge -q --ff-only origin/": { code: 0 },
     "merge -q --ff-only": [{ code: 0 }, { code: 1 }],
-    "merge -q --no-edit": {
-      code: 1,
-      stderr: "CONFLICT (content): Merge conflict",
-    },
+    "merge -q --no-edit": { code: 1, stderr: "CONFLICT (content): Merge conflict" },
     "merge --abort": { code: 0 },
     push: { code: 1, stderr: "! [rejected] master -> master (fetch first)" },
   };
 
   test("aborts the merge and refuses as a conflict, with one push attempted", async () => {
     const git = fakeGit(CONFLICTING);
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("conflict");
     expect(ran(git.calls, "merge --abort")).toBe(true);
@@ -278,12 +250,9 @@ describe("pushWithRetry: a second merge that hits a real conflict", () => {
     // nothing — reading it as an auto-resolution would be reading the
     // word, not the rule.
     const touchingTheBranch = argv(git.calls).filter(
-      (a) =>
-        a.startsWith("merge") || a.startsWith("push") || a.startsWith("rebase"),
+      (a) => a.startsWith("merge") || a.startsWith("push") || a.startsWith("rebase"),
     );
-    expect(
-      touchingTheBranch.some((a) => a.includes("-X") || a.includes("--force")),
-    ).toBe(false);
+    expect(touchingTheBranch.some((a) => a.includes("-X") || a.includes("--force"))).toBe(false);
   });
 });
 
@@ -298,24 +267,9 @@ describe("the bash and TypeScript retry bounds agree", () => {
     const bashSrc = runSpecSource();
     const bashMatch = bashSrc.match(/^PUSH_RETRY_WAITS=\(([^)]*)\)/m);
     expect(bashMatch).not.toBeNull();
-    const bashWaitsMs = bashMatch![1]!
-      .trim()
-      .split(/\s+/)
-      .map((n) => Number(n) * 1000);
+    const bashWaitsMs = bashMatch![1]!.trim().split(/\s+/).map((n) => Number(n) * 1000);
 
-    const tsSrc = readFileSync(
-      join(
-        import.meta.dir,
-        "..",
-        "..",
-        "..",
-        "src",
-        "git",
-        "branch-merge",
-        "retry.ts",
-      ),
-      "utf-8",
-    );
+    const tsSrc = readFileSync(join(import.meta.dir, "..", "..", "..", "src", "git", "branch-merge", "retry.ts"), "utf-8");
     const tsMatch = tsSrc.match(/const PUSH_RETRY_WAITS_MS = \[([^\]]*)\];/);
     expect(tsMatch).not.toBeNull();
     const tsWaitsMs = tsMatch![1]!.split(",").map((n) => Number(n.trim()));
@@ -323,6 +277,7 @@ describe("the bash and TypeScript retry bounds agree", () => {
     expect(tsWaitsMs).toEqual(bashWaitsMs);
   });
 });
+
 
 describe("a dirty test-run.json in the checkout never blocks the fast-forward", () => {
   test("it is discarded before the checkout catches up, and nothing else is", async () => {
@@ -335,13 +290,7 @@ describe("a dirty test-run.json in the checkout never blocks the fast-forward", 
       checkout: { code: 0 },
       push: { code: 0 },
     });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(true);
     const seq = argv(git.calls);
     const discard = seq.indexOf("checkout -q -- :(top,glob)**/test-run.json");
@@ -350,34 +299,16 @@ describe("a dirty test-run.json in the checkout never blocks the fast-forward", 
     const catchUp = seq.indexOf("merge -q --ff-only origin/master");
     expect(discard).toBeGreaterThan(-1);
     expect(catchUp).toBeGreaterThan(discard);
-    expect(seq.filter((a) => a.startsWith("checkout"))).toEqual([
-      "checkout -q -- :(top,glob)**/test-run.json",
-    ]);
+    expect(seq.filter((a) => a.startsWith("checkout"))).toEqual(["checkout -q -- :(top,glob)**/test-run.json"]);
   });
 });
 
+
 describe("the landing's test gate: the suite runs once on the merge, before the push", () => {
   test("red drops the local merge, pushes nothing, and says so", async () => {
-    const git = fakeGit({
-      ...REACHES_STEP_6,
-      "ls-remote origin": { code: 0 },
-      checkout: { code: 0 },
-      reset: { code: 0 },
-      push: { code: 0 },
-    });
-    const gate = async () => ({
-      ok: false,
-      error: "the project's tests are red on the merge",
-      detail: "FAILED test_x",
-    });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-      gate,
-    );
+    const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, checkout: { code: 0 }, reset: { code: 0 }, push: { code: 0 } });
+    const gate = async () => ({ ok: false, error: "the project's tests are red on the merge", detail: "FAILED test_x" });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("tests-red");
     expect(sentence(result.error)).toContain("tests are red");
@@ -385,9 +316,7 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
     // and the checkout are for whoever goes looking, so they ride in the
     // detail — unlike every refusal beside this one, where the checkout
     // IS the place a person has to go.
-    expect(sentence(result.error)).toBe(
-      "the project's tests are red on the merge",
-    );
+    expect(sentence(result.error)).toBe("the project's tests are red on the merge");
     expect(result.detail).toContain("FAILED test_x");
     expect(result.detail).toContain(`${BRANCH} in ${ROOT}`);
     const seq = argv(git.calls);
@@ -396,54 +325,23 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
   });
 
   test("green pushes, and the gate ran after the merge and before the push", async () => {
-    const git = fakeGit({
-      ...REACHES_STEP_6,
-      "ls-remote origin": { code: 0 },
-      checkout: { code: 0 },
-      push: { code: 0 },
-    });
+    const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, checkout: { code: 0 }, push: { code: 0 } });
     const order: string[] = [];
     const gate = async () => {
-      order.push(
-        `gate after ${argv(git.calls).filter((a) => a.startsWith("merge") && a.includes("refs/remotes/")).length} merges`,
-      );
+      order.push(`gate after ${argv(git.calls).filter((a) => a.startsWith("merge") && a.includes("refs/remotes/")).length} merges`);
       return { ok: true };
     };
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-      gate,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
     expect(result.ok).toBe(true);
     expect(order).toEqual(["gate after 1 merges"]);
     const seq = argv(git.calls);
-    expect(
-      seq.indexOf("push -q origin HEAD:refs/heads/master"),
-    ).toBeGreaterThan(
-      seq.indexOf(
-        "merge -q --ff-only refs/remotes/origin/aide/89-merge-from-the-dashboard",
-      ),
-    );
+    expect(seq.indexOf("push -q origin HEAD:refs/heads/master")).toBeGreaterThan(seq.indexOf("merge -q --ff-only refs/remotes/origin/aide/89-merge-from-the-dashboard"));
     expect(ran(git.calls, "reset -q --hard")).toBe(false);
   });
 
   test("without a gate nothing changes: merge, then push", async () => {
-    const git = fakeGit({
-      ...REACHES_STEP_6,
-      "ls-remote origin": { code: 0 },
-      checkout: { code: 0 },
-      push: { code: 0 },
-    });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-    );
+    const git = fakeGit({ ...REACHES_STEP_6, "ls-remote origin": { code: 0 }, checkout: { code: 0 }, push: { code: 0 } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(true);
     expect(ran(git.calls, "push -q origin HEAD:refs/heads/master")).toBe(true);
   });
@@ -465,14 +363,7 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
       gates += 1;
       return { ok: true };
     };
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-      gate,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
     expect(result.ok).toBe(true);
     expect(gates).toBe(0);
     expect(ran(git.calls, "push -q origin HEAD:refs/heads/master")).toBe(true);
@@ -497,14 +388,7 @@ describe("the landing's test gate: the suite runs once on the merge, before the 
       gates += 1;
       return { ok: true };
     };
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-      gate,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, gate);
     expect(result.ok).toBe(true);
     expect(gates).toBe(1);
   });

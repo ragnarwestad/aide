@@ -5,13 +5,8 @@ import { renderSettingsPage } from "../../src/render";
 
 const page = (over: Record<string, unknown> = {}) =>
   renderSettingsPage([], "2026-09-19T10:00:00Z", {
-    modelChoices: [],
-    defaultModels: {},
-    timeoutSec: { default: 1200 },
-    tab: "notifications",
-    pushPublicKey: "PUBLIC-KEY-1",
-    lang: "nb",
-    ...over,
+    modelChoices: [], defaultModels: {}, timeoutSec: { default: 1200 }, tab: "notifications",
+    pushPublicKey: "PUBLIC-KEY-1", lang: "nb", ...over,
   } as Parameters<typeof renderSettingsPage>[2]);
 
 describe("the Notifications tab", () => {

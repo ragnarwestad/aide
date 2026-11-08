@@ -11,75 +11,23 @@ import { providerDetailFor } from "../providers/page.ts";
 import { selectedProviderKey } from "../../../render/pages/settings-page/providers.ts";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import {
-  buildProjectViews,
-  manifestInside,
-  gitignoreCandidates,
-  resolveCodeLanding,
-  resolveInstallCmd,
-  resolvePreviewFrom,
-} from "../../../project/discover";
-import {
-  groupForEditParam,
-  projectSettings,
-} from "../../../project/project-settings.ts";
+import { buildProjectViews, manifestInside, gitignoreCandidates, resolveCodeLanding, resolveInstallCmd, resolvePreviewFrom } from "../../../project/discover";
+import { groupForEditParam, projectSettings } from "../../../project/project-settings.ts";
 import { isDeployJob, UNFINISHED } from "../../../queue/queue.ts";
-import {
-  DEFAULT_DASHBOARD_CHECKOUT_ROOT,
-  dashboardSettingsFile,
-} from "../../../git/dashboard-checkout.ts";
-import {
-  assessProjectReadiness,
-  manifestTracked,
-  settingsHome,
-} from "../../../project/project-admin";
-import {
-  ADD_PROJECT_ROUTE,
-  PROJECTS_ROUTE,
-  SETTINGS_ROUTE,
-  TEST_SERVERS_ROUTE,
-  renderAddProjectPage,
-  renderProjectPage,
-  renderProjectsPage,
-  renderSettingsPage,
-  renderTestServersPage,
-  resolveBackHref,
-  resolveSettingsTab,
-  specPagePath,
-  type ProviderStatus,
-  type TestServerRow,
-} from "../../../render";
-import {
-  MAIN_TEST_SERVER_KEY,
-  refreshTestServerStatus,
-} from "../../test-servers/lifecycle.ts";
-import {
-  testServerFailedPage,
-  testServerUrlFor,
-  waitingForTestServerPage,
-} from "../spec-edit/test-server-waiting.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardSettingsFile } from "../../../git/dashboard-checkout.ts";
+import { assessProjectReadiness, manifestTracked, settingsHome } from "../../../project/project-admin";
+import { ADD_PROJECT_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE, TEST_SERVERS_ROUTE, renderAddProjectPage, renderProjectPage, renderProjectsPage, renderSettingsPage, renderTestServersPage, resolveBackHref, resolveSettingsTab, specPagePath, type ProviderStatus, type TestServerRow } from "../../../render";
+import { MAIN_TEST_SERVER_KEY, refreshTestServerStatus } from "../../test-servers/lifecycle.ts";
+import { testServerFailedPage, testServerUrlFor, waitingForTestServerPage } from "../spec-edit/test-server-waiting.ts";
 import { isSpecFolder } from "../../../render/ui/shell.ts";
-import {
-  languageChoice,
-  modelChoiceOptions,
-  processSettings,
-  specsClientScript,
-} from "../../serve-helpers";
+import { languageChoice, modelChoiceOptions, processSettings, specsClientScript } from "../../serve-helpers";
 import type { RoutesContext } from "..";
 
 /** Every provider's status, read side by side. */
-async function readProviderStatuses(
-  ctx: RoutesContext,
-): Promise<Record<string, ProviderStatus>> {
+async function readProviderStatuses(ctx: RoutesContext): Promise<Record<string, ProviderStatus>> {
   const read = ctx.opts.providerProbe ?? readProviderStatus;
   const providers = Object.entries(ctx.queue.defaults.providers ?? {});
-  return Object.fromEntries(
-    await Promise.all(
-      providers.map(
-        async ([key, provider]) => [key, await read(key, provider)] as const,
-      ),
-    ),
-  );
+  return Object.fromEntries(await Promise.all(providers.map(async ([key, provider]) => [key, await read(key, provider)] as const)));
 }
 
 export async function projectPages(
@@ -89,42 +37,26 @@ export async function projectPages(
   path: string,
 ): Promise<Response | null> {
   if (path === SETTINGS_ROUTE) {
-    if (req.method !== "GET")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const langResult = languageChoice(url, req);
     // The one tab that shows a provider's status reads it as it opens, and
     // no other tab reads anything: a read can hold the page for as long as
     // its timeout.
     const tab = url.searchParams.get("tab") ?? undefined;
-    const providerStatuses =
-      resolveSettingsTab(tab) === "providers"
-        ? await readProviderStatuses(ctx)
-        : undefined;
-    const providers = ctx.queue.defaults.providers;
-    const chosen = providerStatuses
-      ? selectedProviderKey(providers, url.searchParams.get("provider"))
+    const providerStatuses = resolveSettingsTab(tab) === "providers"
+      ? await readProviderStatuses(ctx)
       : undefined;
+    const providers = ctx.queue.defaults.providers;
+    const chosen = providerStatuses ? selectedProviderKey(providers, url.searchParams.get("provider")) : undefined;
     const providerDetail = chosen
-      ? await providerDetailFor(
-          ctx,
-          chosen,
-          providers![chosen]!,
-          providerStatuses?.[chosen],
-          url.searchParams.get("aitab") ?? undefined,
-          langResult.lang,
-        )
+      ? await providerDetailFor(ctx, chosen, providers![chosen]!, providerStatuses?.[chosen], url.searchParams.get("aitab") ?? undefined, langResult.lang)
       : undefined;
     const html = renderSettingsPage(ctx.nav(), new Date().toISOString(), {
       modelChoices: modelChoiceOptions(ctx.queue),
       defaultModels: ctx.queue.defaults.model,
       ...providerPickerOptions(ctx.queue),
       timeoutSec: ctx.queue.defaults.timeoutSec,
-      backHref: resolveBackHref(
-        req.headers.get("referer"),
-        url.origin,
-        "/",
-        url.pathname,
-      ),
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
       script: await specsClientScript(),
       lang: langResult.lang,
       currentUrl: langResult.currentUrl,
@@ -136,14 +68,12 @@ export async function projectPages(
       process: processSettings(ctx.runner, ctx.opts.queueConcurrency),
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie)
-      headers.append("set-cookie", langResult.setCookie);
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 
   if (path === TEST_SERVERS_ROUTE) {
-    if (req.method !== "GET")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     // Refresh and filter in one pass: the dead-board check may
     // remove an entry right here (a "running" board whose process has
     // since died) — dropped from this page the same read that found it
@@ -171,38 +101,23 @@ export async function projectPages(
           : `/api/queue/projects/${encodeURIComponent(project)}/test-server/stop`,
       }));
     const langResult = languageChoice(url, req);
-    const html = renderTestServersPage(
-      ctx.nav(),
-      new Date().toISOString(),
-      rows,
-      {
-        backHref: resolveBackHref(
-          req.headers.get("referer"),
-          url.origin,
-          "/",
-          url.pathname,
-        ),
-        lang: langResult.lang,
-        currentUrl: langResult.currentUrl,
-        script: await specsClientScript(),
-      },
-    );
+    const html = renderTestServersPage(ctx.nav(), new Date().toISOString(), rows, {
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/", url.pathname),
+      lang: langResult.lang,
+      currentUrl: langResult.currentUrl,
+      script: await specsClientScript(),
+    });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie)
-      headers.append("set-cookie", langResult.setCookie);
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 
   if (path === ADD_PROJECT_ROUTE) {
-    if (req.method !== "GET")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     // Send the reader to the page that now explains it, instead of the
     // file that no longer exists.
     if (!ctx.opts.projectRoot) {
-      return new Response(null, {
-        status: 302,
-        headers: { location: PROJECTS_ROUTE },
-      });
+      return new Response(null, { status: 302, headers: { location: PROJECTS_ROUTE } });
     }
     const langResult = languageChoice(url, req);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
@@ -211,15 +126,13 @@ export async function projectPages(
       currentUrl: langResult.currentUrl,
     });
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie)
-      headers.append("set-cookie", langResult.setCookie);
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 
   const settingsPage = path.match(/^\/projects\/([^/]+)\/settings$/);
   if (settingsPage) {
-    if (req.method !== "GET")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(settingsPage[1]!);
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
       return new Response("no such project\n", { status: 404 });
@@ -232,40 +145,27 @@ export async function projectPages(
 
   const projectPage = path.match(/^\/projects\/([^/]+)$/);
   if (projectPage) {
-    if (req.method !== "GET")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const name = decodeURIComponent(projectPage[1]!);
-    if (!ctx.opts.projectRoot)
-      return new Response("no such project\n", { status: 404 });
+    if (!ctx.opts.projectRoot) return new Response("no such project\n", { status: 404 });
     // The tab the Deploy button's POST opened WAITS here, the same
     // way `spec-page.ts`'s own `?startTestServer=1` does — but this GET never
     // starts or restarts a board itself (the POST route already did, or
     // nobody ever pressed the button at all).
     if (url.searchParams.get("startTestServer") === "1") {
-      const already = refreshTestServerStatus(
-        ctx.testServers,
-        name,
-        MAIN_TEST_SERVER_KEY,
-      );
+      const already = refreshTestServerStatus(ctx.testServers, name, MAIN_TEST_SERVER_KEY);
       if (already?.status === "running" && already.url) {
         return Response.redirect(testServerUrlFor(req, already.url), 303);
       }
       if (already?.status === "failed") {
-        return testServerFailedPage(
-          MAIN_TEST_SERVER_KEY,
-          already.error,
-          undefined,
-          already.detail,
-        );
+        return testServerFailedPage(MAIN_TEST_SERVER_KEY, already.error, undefined, already.detail);
       }
       if (!already) {
         // A bookmarked or shared URL, with nobody's POST behind it —
         // nothing to wait for.
         return new Response(null, {
           status: 303,
-          headers: {
-            location: `/projects/${encodeURIComponent(name)}?tab=deploy`,
-          },
+          headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
         });
       }
       return waitingForTestServerPage(name, MAIN_TEST_SERVER_KEY);
@@ -273,11 +173,7 @@ export async function projectPages(
     // Read fresh, uncached, exactly as `/projects` does: nothing polls
     // this page, so a scan per request is cheap enough to redo every
     // time — and no invalidation to get wrong.
-    const view = buildProjectViews(
-      ctx.opts.projectRoot,
-      ctx.ownedSpecsRoot,
-      manifestInside(ctx.machineryProjectDir),
-    ).find((p) => p.name === name);
+    const view = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === name);
     if (!view) return new Response("no such project\n", { status: 404 });
     const dir = ctx.displayProjectDir(name);
     // Fail open, the way the drift check on `/projects` does. Every
@@ -286,11 +182,7 @@ export async function projectPages(
     // so this catches the case where git is not there to be run at
     // all: the reader came for the project's page, and the half of it
     // that needs no git is still worth serving.
-    const readiness = await assessProjectReadiness(
-      ctx.gitRun,
-      dir,
-      ctx.machineryProjectDir(name),
-    ).catch(() => null);
+    const readiness = await assessProjectReadiness(ctx.gitRun, dir, ctx.machineryProjectDir(name)).catch(() => null);
     // Read-only, like `/projects`' own drift map: `peekDrift` is a
     // cache lookup, never a git call — the page's own "never merges,
     // pulls, fetches or checks anything out" contract
@@ -299,18 +191,15 @@ export async function projectPages(
     const boardItself = ctx.deploy.isBoard(driftRoot);
     // The board's own Deploy needs an install command; every other project
     // is only counted against origin, whatever it has configured.
-    const drift =
-      !boardItself || resolveInstallCmd(driftRoot).value
-        ? ctx.branchStatus.peekDrift(driftRoot)
-        : undefined;
+    const drift = !boardItself || resolveInstallCmd(driftRoot).value
+      ? ctx.branchStatus.peekDrift(driftRoot)
+      : undefined;
     // Only meaningful for the one project this very process runs from —
     // every other project's checkout HEAD has nothing to do with this
     // server's own boot-time SHA, so the comparison stays undefined there.
     const { sha: servingSha, repoRoot: servingRepoRoot } = ctx.readServing();
     const serving =
-      servingSha &&
-      servingRepoRoot &&
-      resolve(driftRoot) === resolve(servingRepoRoot)
+      servingSha && servingRepoRoot && resolve(driftRoot) === resolve(servingRepoRoot)
         ? await (async () => {
             const head = await ctx.gitRun(driftRoot, ["rev-parse", "HEAD"]);
             if (head.code !== 0) return undefined;
@@ -319,45 +208,24 @@ export async function projectPages(
             // Only fetched while origin itself has not
             // been checked yet — the one sentence that needs to say what
             // the served commit actually is, never a bare hash.
-            if (drift?.checkedAt !== null)
-              return { sha: servingSha, checkoutHead, current };
-            const subj = await ctx.gitRun(driftRoot, [
-              "log",
-              "-1",
-              "--format=%s",
-              checkoutHead,
-            ]);
-            const newestSubject =
-              subj.code === 0 ? subj.stdout.trim() : undefined;
-            if (current)
-              return { sha: servingSha, checkoutHead, current, newestSubject };
-            const count = await ctx.gitRun(driftRoot, [
-              "rev-list",
-              "--count",
-              `${servingSha}..${checkoutHead}`,
-            ]);
+            if (drift?.checkedAt !== null) return { sha: servingSha, checkoutHead, current };
+            const subj = await ctx.gitRun(driftRoot, ["log", "-1", "--format=%s", checkoutHead]);
+            const newestSubject = subj.code === 0 ? subj.stdout.trim() : undefined;
+            if (current) return { sha: servingSha, checkoutHead, current, newestSubject };
+            const count = await ctx.gitRun(driftRoot, ["rev-list", "--count", `${servingSha}..${checkoutHead}`]);
             // Same guard `branch-status.ts`'s own `commitsBehindOrigin`
             // uses for the identical command: a zero exit with
             // non-numeric stdout must not render as "NaN commits behind".
-            const parsed =
-              count.code === 0 ? Number.parseInt(count.stdout.trim(), 10) : NaN;
+            const parsed = count.code === 0 ? Number.parseInt(count.stdout.trim(), 10) : NaN;
             const behindCount = Number.isFinite(parsed) ? parsed : undefined;
-            return {
-              sha: servingSha,
-              checkoutHead,
-              current,
-              newestSubject,
-              behindCount,
-            };
+            return { sha: servingSha, checkoutHead, current, newestSubject, behindCount };
           })().catch(() => undefined)
         : undefined;
     // The manifest a run reads is the dashboard's own checkout's.
     // A clone that is still being made, or has none yet, answers
     // with the project's own directory, as everything did before.
     const machinery = ctx.machineryProjectDir(name);
-    const manifestDir = existsSync(join(machinery, ".aide", "project.yaml"))
-      ? machinery
-      : dir;
+    const manifestDir = existsSync(join(machinery, ".aide", "project.yaml")) ? machinery : dir;
     const langResult = languageChoice(url, req);
     const html = renderProjectPage(
       view,
@@ -368,12 +236,7 @@ export async function projectPages(
       {
         // The page the reader came from, so a project opened from a
         // spec's row goes back to that row; Projects without one.
-        backHref: resolveBackHref(
-          req.headers.get("referer"),
-          url.origin,
-          PROJECTS_ROUTE,
-          url.pathname,
-        ),
+        backHref: resolveBackHref(req.headers.get("referer"), url.origin, PROJECTS_ROUTE, url.pathname),
         script: await specsClientScript(),
         // Specs root and Worktree links are no longer read a second
         // time here: `projectSettings(dir, readiness)`
@@ -385,18 +248,8 @@ export async function projectPages(
         settingsHome: settingsHome(
           // Fail open like the readiness above: a git that is not there
           // leaves the page standing, and counts as "cannot say".
-          (
-            await manifestTracked(
-              ctx.gitRun,
-              ctx.machineryProjectDir(name),
-            ).catch(() => ({ tracked: null }))
-          ).tracked,
-          existsSync(
-            dashboardSettingsFile(
-              ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT,
-              name,
-            ),
-          ),
+          (await manifestTracked(ctx.gitRun, ctx.machineryProjectDir(name)).catch(() => ({ tracked: null }))).tracked,
+          existsSync(dashboardSettingsFile(ctx.opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT, name)),
         ),
         // The one resolver, never a second copy of the question: two
         // would eventually disagree, and the one that decides where a
@@ -405,14 +258,11 @@ export async function projectPages(
         // `.catch`, like `readiness` above: a git that throws must leave
         // the page standing. A name nobody could fetch is no name, and
         // the choice falls back to the general word.
-        defaultBranch:
-          (await ctx.branchStatus.defaultBranch(dir).catch(() => null)) ??
-          undefined,
+        defaultBranch: (await ctx.branchStatus.defaultBranch(dir).catch(() => null)) ?? undefined,
         schedule: ctx.scheduleStore.list(name),
         scheduleSort: {
           sort: url.searchParams.get("sort") ?? undefined,
-          dir:
-            (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
+          dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
         },
         scheduleModelNames: Object.keys(ctx.queue.defaults.modelChoices ?? {}),
         worktreeLinkCandidates: gitignoreCandidates(dir),
@@ -432,14 +282,12 @@ export async function projectPages(
       },
     );
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie)
-      headers.append("set-cookie", langResult.setCookie);
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 
   if (path === PROJECTS_ROUTE) {
-    if (req.method !== "GET")
-      return new Response("method not allowed", { status: 405 });
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     // No `--root`, no project set: an empty listing would read as "no
     // projects on this machine" rather than "this server was never told
     // where they are" — so render the ordinary (empty) listing with a
@@ -448,16 +296,12 @@ export async function projectPages(
     if (!ctx.opts.projectRoot) {
       const langResult = languageChoice(url, req);
       const html = renderProjectsPage([], new Date().toISOString(), ctx.nav(), {
-        error:
-          "this board was started with no project root, so it has no projects to list",
+        error: "this board was started with no project root, so it has no projects to list",
         lang: langResult.lang,
         currentUrl: langResult.currentUrl,
       });
-      const headers = new Headers({
-        "content-type": "text/html; charset=utf-8",
-      });
-      if (langResult.setCookie)
-        headers.append("set-cookie", langResult.setCookie);
+      const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
+      if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
       return new Response(html, { headers });
     }
     // Read fresh, uncached: unlike `/` nothing polls this page, so a
@@ -465,11 +309,8 @@ export async function projectPages(
     // invalidation to get wrong. Only the projects on the allowlist, as
     // on the specs list: a directory under the projects root that is not
     // on it is not one of the board's projects.
-    const projects = buildProjectViews(
-      ctx.opts.projectRoot,
-      ctx.ownedSpecsRoot,
-      manifestInside(ctx.machineryProjectDir),
-    ).filter((p) => ctx.allowed.has(p.name));
+    const projects = buildProjectViews(ctx.opts.projectRoot, ctx.ownedSpecsRoot, manifestInside(ctx.machineryProjectDir))
+      .filter((p) => ctx.allowed.has(p.name));
     // Whether a run could start in each project, asked on
     // every visit. The Add flow answered this exactly once, in the
     // query string of the redirect it landed on — so an operator who
@@ -511,8 +352,7 @@ export async function projectPages(
       },
     );
     const headers = new Headers({ "content-type": "text/html; charset=utf-8" });
-    if (langResult.setCookie)
-      headers.append("set-cookie", langResult.setCookie);
+    if (langResult.setCookie) headers.append("set-cookie", langResult.setCookie);
     return new Response(html, { headers });
   }
 
@@ -528,16 +368,7 @@ export async function projectPages(
 }
 
 /** The state of the project's deploy job while one is queued or running. */
-function deployUnderWay(
-  ctx: RoutesContext,
-  project: string,
-): "queued" | "running" | undefined {
-  const job = ctx.queue
-    .list()
-    .find(
-      (j) => j.project === project && isDeployJob(j) && UNFINISHED.has(j.state),
-    );
-  return job?.state === "queued" || job?.state === "running"
-    ? job.state
-    : undefined;
+function deployUnderWay(ctx: RoutesContext, project: string): "queued" | "running" | undefined {
+  const job = ctx.queue.list().find((j) => j.project === project && isDeployJob(j) && UNFINISHED.has(j.state));
+  return job?.state === "queued" || job?.state === "running" ? job.state : undefined;
 }

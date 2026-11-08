@@ -13,17 +13,8 @@ import { describe, expect, test } from "bun:test";
 import { runnerArgv } from "../../../src/serve/serve.ts";
 
 const job = {
-  id: "j1",
-  project: "aide",
-  specFolder: "new-0cdf3db8",
-  steps: ["create"],
-  stepIndex: 0,
-  model: {},
-  timeoutSec: {},
-  permissionMode: {},
-  state: "queued",
-  createdAt: "",
-  results: [],
+  id: "j1", project: "aide", specFolder: "new-0cdf3db8", steps: ["create"], stepIndex: 0,
+  model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
 } as unknown as Parameters<typeof runnerArgv>[0];
 
 const argv = (specsRoot?: string): string[] =>
@@ -39,9 +30,7 @@ describe("the specs root the run is given", () => {
     const args = argv("/checkouts/aide/specs/aide");
 
     expect(args).toContain("--specs-root");
-    expect(args[args.indexOf("--specs-root") + 1]).toBe(
-      "/checkouts/aide/specs/aide",
-    );
+    expect(args[args.indexOf("--specs-root") + 1]).toBe("/checkouts/aide/specs/aide");
   });
 
   test("is left out when the dashboard cannot resolve one", () => {
@@ -53,8 +42,6 @@ describe("the specs root the run is given", () => {
   test("comes before the command, so the script's own parser sees it", () => {
     const args = argv("/checkouts/aide/specs/aide");
 
-    expect(args.indexOf("--specs-root")).toBeLessThan(
-      args.indexOf("--command"),
-    );
+    expect(args.indexOf("--specs-root")).toBeLessThan(args.indexOf("--command"));
   });
 });

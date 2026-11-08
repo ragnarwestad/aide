@@ -91,12 +91,7 @@ describe("a press locks every control on its spec", () => {
     h.stepBoxes[1]!.disabled = true;
     await h.submit();
     expect(rowState(h)).toEqual({
-      run: false,
-      cancel: false,
-      box: false,
-      model: false,
-      ai: false,
-      otherRow: false,
+      run: false, cancel: false, box: false, model: false, ai: false, otherRow: false,
     });
     expect(h.stepBoxes[1]!.disabled).toBe(true);
   });
@@ -173,8 +168,7 @@ describe("a Save locks every control on its spec, and only its spec", () => {
     win = null;
   });
 
-  const head = (key: string) =>
-    `<tr class="spechead" id="spec-${key}"><td><a href="#">${key}</a></td></tr>`;
+  const head = (key: string) => `<tr class="spechead" id="spec-${key}"><td><a href="#">${key}</a></td></tr>`;
   const gap = `<tr class="specgap" aria-hidden="true"><td></td></tr>`;
   const checks = (key: string) =>
     `<tr class="specnotice"><td><form class="rowchecks" id="rowchecks-${key}" method="post" action="http://dash.test/api/specs/${key}/checks">` +
@@ -201,23 +195,18 @@ describe("a Save locks every control on its spec, and only its spec", () => {
     `<textarea name="text">old</textarea><button type="submit" class="btn primary" id="desc-save-${key}">Save</button>` +
     `<button type="button" class="btn">Cancel</button></form></td></tr></tbody></table></td></tr>`;
 
-  const running = (key: string) =>
-    head(key) + caption(key) + depends(key) + checks(key) + gap;
+  const running = (key: string) => head(key) + caption(key) + depends(key) + checks(key) + gap;
   const listed = (key: string) => head(key) + checks(key) + detail(key) + gap;
 
   /** The page, with a fetch that stays open until `answer` is called. */
   function page(rows: string) {
     win = new Window({ url: "http://dash.test/" });
-    win.document.write(
-      `<div id="jobrows"><table><tbody>${rows}</tbody></table></div>`,
-    );
+    win.document.write(`<div id="jobrows"><table><tbody>${rows}</tbody></table></div>`);
     (globalThis as { document?: unknown }).document = win.document;
     (globalThis as { location?: unknown }).location = win.location;
     (globalThis as unknown as { FormData: unknown }).FormData = win.FormData;
     let answer: (r: { ok: boolean; body: unknown }) => void = () => {};
-    const held = new Promise<{ ok: boolean; body: unknown }>((resolve) => {
-      answer = resolve;
-    });
+    const held = new Promise<{ ok: boolean; body: unknown }>((resolve) => { answer = resolve; });
     globalThis.fetch = (async () => {
       const r = await held;
       return { ok: r.ok, status: r.ok ? 200 : 409, json: async () => r.body };
@@ -228,47 +217,24 @@ describe("a Save locks every control on its spec, and only its spec", () => {
   const PRESSABLE = "button, select, textarea, input:not([type=hidden])";
   /** Every control on one spec's rows: its head row and the rows after it
    *  up to the next spec's, with nested tables. */
-  function controlsOf(
-    doc: Document,
-    key: string,
-  ): (
-    | HTMLButtonElement
-    | HTMLInputElement
-    | HTMLSelectElement
-    | HTMLTextAreaElement
-  )[] {
+  function controlsOf(doc: Document, key: string): (HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement)[] {
     const out: Element[] = [];
-    for (
-      let el: Element | null = doc.getElementById(`spec-${key}`);
-      el;
-      el = el.nextElementSibling
-    ) {
+    for (let el: Element | null = doc.getElementById(`spec-${key}`); el; el = el.nextElementSibling) {
       if (el.className === "spechead" && el.id !== `spec-${key}`) break;
       out.push(...Array.from(el.querySelectorAll(PRESSABLE)));
     }
     return out as never;
   }
-  const disabledOf = (els: { disabled: boolean }[]) =>
-    els.map((el) => el.disabled);
+  const disabledOf = (els: { disabled: boolean }[]) => els.map((el) => el.disabled);
   const press = (doc: Document, id: string) => {
     const save = doc.getElementById(id) as HTMLButtonElement;
-    const sent = postForm(
-      save.closest("form")!,
-      () => {},
-      () => {},
-    );
+    const sent = postForm(save.closest("form")!, () => {}, () => {});
     return { save, sent };
   };
 
   const pages = {
-    "the Running tab": {
-      rows: () => running("aide/a") + running("aide/b"),
-      saves: ["checks-save-aide/a", "depends-save-aide/a"],
-    },
-    "the Specs list": {
-      rows: () => listed("aide/a") + listed("aide/b"),
-      saves: ["checks-save-aide/a", "desc-save-aide/a"],
-    },
+    "the Running tab": { rows: () => running("aide/a") + running("aide/b"), saves: ["checks-save-aide/a", "depends-save-aide/a"] },
+    "the Specs list": { rows: () => listed("aide/a") + listed("aide/b"), saves: ["checks-save-aide/a", "desc-save-aide/a"] },
   };
 
   for (const [name, { rows, saves }] of Object.entries(pages)) {
@@ -301,14 +267,8 @@ describe("a Save locks every control on its spec, and only its spec", () => {
       const a = controlsOf(doc, "aide/a");
       // One phase box and Depends on's Cancel are drawn disabled: the
       // answer leaves them so.
-      (
-        doc.querySelector(
-          'input[name="steps"][value="implement"]',
-        ) as HTMLInputElement
-      ).disabled = true;
-      (
-        doc.getElementById("depends-cancel-aide/a") as HTMLButtonElement
-      ).disabled = true;
+      (doc.querySelector('input[name="steps"][value="implement"]') as HTMLInputElement).disabled = true;
+      (doc.getElementById("depends-cancel-aide/a") as HTMLButtonElement).disabled = true;
       const before = disabledOf(a);
       const { sent } = press(doc, "checks-save-aide/a");
       const run = a.find((el) => el.textContent === "Run")!;

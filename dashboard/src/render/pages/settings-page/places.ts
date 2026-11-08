@@ -22,8 +22,7 @@ export function parseInstallTargets(text: string): InstallTarget[] {
   for (const line of text.split("\n")) {
     const fields = line.trim().split(/\s+/).filter(Boolean);
     if (!fields.length || fields[0]!.startsWith("#")) continue;
-    if (fields.length !== 4)
-      throw new Error(`install-targets.txt: not four fields: ${line.trim()}`);
+    if (fields.length !== 4) throw new Error(`install-targets.txt: not four fields: ${line.trim()}`);
     const [tool, place, from, to] = fields as [string, string, string, string];
     rows.push({ tool, place, from, to });
   }
@@ -33,19 +32,12 @@ export function parseInstallTargets(text: string): InstallTarget[] {
 /** core/scripts/lib/install-targets.txt, read once at load, as the
  *  stylesheet is. */
 export const INSTALL_TARGETS = parseInstallTargets(
-  readFileSync(
-    join(
-      import.meta.dir,
-      "../../../../../core/scripts/lib/install-targets.txt",
-    ),
-    "utf-8",
-  ),
+  readFileSync(join(import.meta.dir, "../../../../../core/scripts/lib/install-targets.txt"), "utf-8"),
 );
 
 /** What a place holds, which the Installation tab labels it with: the
  *  five labels `settings.install.holds.<label>` says. */
-export type PlaceHolds =
-  "instructions" | "rules" | "skills" | "scripts" | "hooks";
+export type PlaceHolds = "instructions" | "rules" | "skills" | "scripts" | "hooks";
 
 /** What each place name in the table holds. */
 export const PLACE_HOLDS: Record<string, PlaceHolds> = {

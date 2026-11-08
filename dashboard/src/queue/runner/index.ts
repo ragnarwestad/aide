@@ -28,48 +28,25 @@
 // here, re-exporting them for every existing importer.
 
 import { specReference } from "../../project/spec-folder.ts";
-import {
-  cliErrorMessage,
-  noProgressMessage,
-  runnerWords,
-  runStopMessage,
-} from "./cross-check-message.ts";
+import { cliErrorMessage, noProgressMessage, runnerWords, runStopMessage } from "./cross-check-message.ts";
 import { gitFailureMessage } from "./git-failure.ts";
 import type { NotifyEvent } from "../../integrations/notify.ts";
-import {
-  renderSentence,
-  type BoardMessage,
-  type Sentence,
-} from "../../i18n/message.ts";
+import { renderSentence, type BoardMessage, type Sentence } from "../../i18n/message.ts";
 import { stepButton } from "../../format/step-label.ts";
 import { queuePriorityOrder, type Job, type WorkflowStep } from "../queue.ts";
-import {
-  modelIdOf,
-  tokenUsage,
-  type RunnerOptions,
-  type StepOutcome,
-} from "./types.ts";
+import { modelIdOf, tokenUsage, type RunnerOptions, type StepOutcome } from "./types.ts";
 import { isRunStop, takesSlot } from "../steps.ts";
 import { resolveStepModel } from "../model-name.ts";
 import { stepDetail, stepFailure } from "../../format/tool-failure.ts";
 import { endUntickedArchive } from "./unticked-archive.ts";
-import {
-  dependencyHold,
-  NOT_CHECKED,
-  type DependencyHolds,
-} from "./dependency-hold.ts";
+import { dependencyHold, NOT_CHECKED, type DependencyHolds } from "./dependency-hold.ts";
 import { projectHold } from "./project-holds.ts";
 import { clearStaleHolds, holdJob } from "./holds.ts";
 import { usageLimitWait } from "./usage-limit.ts";
 import { afterStep, stepResultEntry } from "./step-result.ts";
-import { outcomeRetryDecision, retryDecision } from "./retry.ts";
+import { outcomeRetryDecision, queueVanishedRetry } from "./retry.ts";
 
-export type {
-  SpawnResult,
-  Spawner,
-  StepOutcome,
-  RunnerOptions,
-} from "./types.ts";
+export type { SpawnResult, Spawner, StepOutcome, RunnerOptions } from "./types.ts";
 
 export class Runner {
   private readonly o: RunnerOptions;
@@ -79,8 +56,7 @@ export class Runner {
 
   constructor(opts: RunnerOptions) {
     this.o = opts;
-    this.maxConcurrent =
-      opts.maxConcurrent && opts.maxConcurrent > 0 ? opts.maxConcurrent : 1;
+    this.maxConcurrent = opts.maxConcurrent && opts.maxConcurrent > 0 ? opts.maxConcurrent : 1;
     this.day = opts.today();
   }
 
@@ -164,8 +140,7 @@ export class Runner {
     // archive had landed, and the two whole-queue pauses below wrote
     // nothing at all on their way out (2026-09-04).
     const heldNow = new Set<string>();
-    const hold = (job: Job, reason: BoardMessage): void =>
-      holdJob(this.o.store, heldNow, job, reason);
+    const hold = (job: Job, reason: BoardMessage): void => holdJob(this.o.store, heldNow, job, reason);
 
     // No job waits on a landing any more. A landing used to merge in the
     // SHARED main checkout — `git switch`, then the project's whole
@@ -185,8 +160,7 @@ export class Runner {
     // rather than held behind another archive with two reasons on one
     // row. Never started later by a tick: a person presses Archive.
     for (const job of this.o.store.list()) {
-      if (job.state === "queued" && !job.landing && acceptanceOpen?.has(job.id))
-        endUntickedArchive(this.o.store, job, this.o.now());
+      if (job.state === "queued" && !job.landing && acceptanceOpen?.has(job.id)) endUntickedArchive(this.o.store, job, this.o.now());
     }
     // Quick steps first, oldest first within each group; list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
@@ -201,11 +175,7 @@ export class Runner {
       // by a sentence — a sentence left from an earlier pass goes with
       // the other stale holds after the loop. A board step (a deploy)
       // and a create take no slot and wait for none (`takesSlot`).
-      if (
-        takesSlot(job) &&
-        this.runningJobs().filter(takesSlot).length >= this.maxConcurrent
-      )
-        continue;
+      if (takesSlot(job) && this.runningJobs().filter(takesSlot).length >= this.maxConcurrent) continue;
       // A job whose OWN landing is in flight is still not restarted:
       // its own next step waits for its merge, which is what `landing`
       // means. That is one row's own ordering, not a pause on the
@@ -215,11 +185,7 @@ export class Runner {
       // implement for one spec are ordered by nature, and git would
       // refuse the second worktree on that branch anyway — which is a
       // refusal mid-run, not a scheduling decision.
-      if (
-        this.runningJobs().some(
-          (r) => r.project === job.project && r.specFolder === job.specFolder,
-        )
-      ) {
+      if (this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
         continue;
       }
       // Two `archive` steps never run at once in the SAME project: both
@@ -271,10 +237,7 @@ export class Runner {
       if (dependency === NOT_CHECKED) continue;
       if (dependency !== undefined) {
         // Include the project so a dependency number is unambiguous across projects.
-        hold(job, {
-          key: "runner.dependencyNotArchived",
-          values: { dependency: specReference(job.project, dependency) },
-        });
+        hold(job, { key: "runner.dependencyNotArchived", values: { dependency: specReference(job.project, dependency) } });
         continue;
       }
       this.startOne(job);
@@ -286,9 +249,7 @@ export class Runner {
   private startOne(job: Job): boolean {
     const step = job.steps[job.stepIndex];
     if (!step) {
-      this.o.store.transition(job.id, "no-step-left", {
-        finishedAt: this.o.now(),
-      });
+      this.o.store.transition(job.id, "no-step-left", { finishedAt: this.o.now() });
       return false;
     }
 
@@ -314,13 +275,7 @@ export class Runner {
     const streamFile = `${this.o.resultDir}/${job.id}.${step}${attempt > 1 ? `.${attempt}` : ""}.stream.jsonl`;
     const sessionId = (this.o.newSessionId ?? (() => crypto.randomUUID()))();
     this.o.clearResult?.(resultFile);
-    const { pid, pgid } = this.o.spawn(
-      job,
-      step,
-      resultFile,
-      sessionId,
-      streamFile,
-    );
+    const { pid, pgid } = this.o.spawn(job, step, resultFile, sessionId, streamFile);
     this.o.store.transition(job.id, "start", {
       pid,
       pgid,
@@ -354,14 +309,11 @@ export class Runner {
       // No result yet. If the process is also gone, the run died without
       // leaving one — see reconcile().
       if (job.pid !== undefined && !this.o.isAlive(job.pid)) {
-        if (this.retry(job, "vanished")) continue;
+        if (queueVanishedRetry(this.o, job)) continue;
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
-          error: {
-            key: "runner.runVanished",
-            values: { button: stepButton(job.steps[job.stepIndex]!) },
-          },
+          error: { key: "runner.runVanished", values: { button: stepButton(job.steps[job.stepIndex]!) } },
         });
       }
     }
@@ -376,25 +328,17 @@ export class Runner {
       if (raw) {
         this.complete(job, raw as Partial<StepOutcome>);
       } else {
-        if (this.retry(job, "vanished")) continue;
+        if (queueVanishedRetry(this.o, job)) continue;
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
-          error: {
-            key: "runner.serverRestarted",
-            values: { button: stepButton(job.steps[job.stepIndex]!) },
-          },
+          error: { key: "runner.serverRestarted", values: { button: stepButton(job.steps[job.stepIndex]!) } },
         });
       }
     }
   }
 
-  private announce(
-    job: Job,
-    event: NotifyEvent["event"],
-    step: WorkflowStep | undefined,
-    reason?: string,
-  ): void {
+  private announce(job: Job, event: NotifyEvent["event"], step: WorkflowStep | undefined, reason?: string): void {
     this.o.notify?.({
       event,
       project: job.project,
@@ -406,38 +350,6 @@ export class Runner {
       branchUrl: job.branchUrl,
       at: this.o.now(),
     });
-  }
-
-  private retry(job: Job, kind: "vanished", base: Partial<Job> = {}): boolean {
-    const step = job.steps[job.stepIndex];
-    if (!step || step === "deploy") return false;
-    const attempts = job.retry?.action === step ? job.retry.attempts : 1;
-    const decision = retryDecision({
-      kind,
-      attempts,
-      now: Date.parse(this.o.now()),
-    });
-    if (!decision) return false;
-    this.o.store.transition(job.id, "retry", {
-      ...base,
-      retry: {
-        action: step,
-        attempts: attempts + 1,
-        ...(decision.retryAt > Date.parse(this.o.now())
-          ? { dueAt: new Date(decision.retryAt).toISOString() }
-          : {}),
-      },
-      pid: undefined,
-      pgid: undefined,
-      resultFile: undefined,
-      sessionId: undefined,
-      streamFile: undefined,
-      stepStartedAt: undefined,
-      error: undefined,
-      errorReason: undefined,
-      finishedAt: undefined,
-    });
-    return true;
   }
 
   // `Partial`, and deliberately so: the outcome is whatever JSON another
@@ -471,22 +383,10 @@ export class Runner {
     // name, which a re-run of the same step later in this job's life
     // could make ambiguous.
     const resultIndex = job.results.length;
-    const measures = {
-      cost,
-      tokens,
-      modelId,
-      at: landingWork ? undefined : this.o.now(),
-    };
-    const results = [
-      ...job.results,
-      stepResultEntry(job, step, outcome, measures, this.o.store.defaults),
-    ];
+    const measures = { cost, tokens, modelId, at: landingWork ? undefined : this.o.now() };
+    const results = [...job.results, stepResultEntry(job, step, outcome, measures, this.o.store.defaults)];
     // Against the choice the step ran on: what the pickers say an alias gives today.
-    if (modelId)
-      this.o.store.recordModelId(
-        resolveStepModel(job, step, this.o.store.defaults.model),
-        modelId,
-      );
+    if (modelId) this.o.store.recordModelId(resolveStepModel(job, step, this.o.store.defaults.model), modelId);
     if (landingWork) {
       // Runs once, whichever way the landing settles — the same
       // "always clear the flag" shape already used below, extended to
@@ -540,11 +440,7 @@ export class Runner {
     // who cannot tell it from a broken agent will ignore both.
     if (isRunStop(outcome.terminalReason)) {
       const stoppedAt = this.o.now();
-      const worded = runStopMessage(
-        step,
-        outcome,
-        resolveStepModel(job, step, this.o.store.defaults.model),
-      );
+      const worded = runStopMessage(step, outcome, resolveStepModel(job, step, this.o.store.defaults.model));
       const result = this.o.store.transition(job.id, "run-stopped", {
         ...base,
         stopReason: outcome.terminalReason,
@@ -553,19 +449,12 @@ export class Runner {
         error: worded ?? runnerWords(outcome),
         errorDetail: worded ? stepDetail(outcome) : undefined,
       });
-      this.announce(
-        result.ok ? result.job : job,
-        "stopped",
-        step,
-        outcome.terminalReason,
-      );
+      this.announce(result.ok ? result.job : job, "stopped", step, outcome.terminalReason);
       return;
     }
     if (!outcome.ok) {
       const failure = stepFailure(
-        noProgressMessage(step, outcome) ??
-          cliErrorMessage(step, outcome) ??
-          gitFailureMessage(outcome),
+        noProgressMessage(step, outcome) ?? cliErrorMessage(step, outcome) ?? gitFailureMessage(outcome),
         outcome,
         job.model[step] ?? job.modelChoice,
       );
@@ -582,18 +471,8 @@ export class Runner {
         errorReason: outcome.errorReason,
       });
       // The notifier gets a sentence: the runner's own where it sent one, else the board's, in English.
-      const reason =
-        outcome.error ??
-        renderSentence(
-          "en",
-          failure.error as Sentence | Sentence[] | undefined,
-        );
-      this.announce(
-        result.ok ? result.job : job,
-        "failed",
-        step,
-        reason ?? outcome.terminalReason,
-      );
+      const reason = outcome.error ?? renderSentence("en", failure.error as Sentence | Sentence[] | undefined);
+      this.announce(result.ok ? result.job : job, "failed", step, reason ?? outcome.terminalReason);
       return;
     }
 

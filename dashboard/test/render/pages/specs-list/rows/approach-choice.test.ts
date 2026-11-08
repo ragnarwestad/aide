@@ -6,26 +6,15 @@ import { describe, expect, test } from "bun:test";
 import type { QueueRowView, SpecTarget } from "../../../../../src/render";
 import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
 import { errorMarkNotices } from "../../../../../src/render/pages/specs-list/row-marks.ts";
-import {
-  approachHref,
-  approachItems,
-} from "../../../../../src/render/pages/specs-list/approach-choice";
+import { approachHref, approachItems } from "../../../../../src/render/pages/specs-list/approach-choice";
 import { specTabPath } from "../../../../../src/render";
 import { specNotice } from "../../../../../src/render/ui/job-state";
 import { row } from "../../fixtures.ts";
 
 const FOLDER = "590-choose-the-approach";
 const PENDING = [
-  {
-    letter: "A",
-    title: "Hold the chained implement",
-    mark: "recommended" as const,
-  },
-  {
-    letter: "B",
-    title: "End the job after analyze",
-    mark: "real alternative" as const,
-  },
+  { letter: "A", title: "Hold the chained implement", mark: "recommended" as const },
+  { letter: "B", title: "End the job after analyze", mark: "real alternative" as const },
 ];
 
 const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
@@ -48,12 +37,9 @@ const held = (): QueueRowView =>
     errorReason: "held-back",
   });
 
-const groupOf = (rows: QueueRowView[], t: SpecTarget = target()) =>
-  groupBySpec(rows, [t])[0]!;
+const groupOf = (rows: QueueRowView[], t: SpecTarget = target()) => groupBySpec(rows, [t])[0]!;
 const approachMarks = (rows: QueueRowView[], t?: SpecTarget) =>
-  errorMarkNotices(groupOf(rows, t), "en", () => false).filter(
-    (m) => m.kind === "approach-choice",
-  );
+  errorMarkNotices(groupOf(rows, t), "en", () => false).filter((m) => m.kind === "approach-choice");
 
 describe("the approach warning on a row", () => {
   test("stands on its own line while the chained job is held for the choice", () => {
@@ -65,19 +51,9 @@ describe("the approach warning on a row", () => {
 
   test("the held job's own sentence is not said a second time", () => {
     const g = groupOf([held()]);
-    const notice = specNotice(
-      g.lead,
-      undefined,
-      undefined,
-      errorMarkNotices(g, "en", () => false),
-      "en",
-    );
-    const texts = (notice?.parts ?? [{ text: notice?.text ?? "" }]).map(
-      (p) => p.text,
-    );
-    expect(
-      texts.filter((text) => /choose the approach/i.test(text)),
-    ).toHaveLength(1);
+    const notice = specNotice(g.lead, undefined, undefined, errorMarkNotices(g, "en", () => false), "en");
+    const texts = (notice?.parts ?? [{ text: notice?.text ?? "" }]).map((p) => p.text);
+    expect(texts.filter((text) => /choose the approach/i.test(text))).toHaveLength(1);
   });
 
   test("stands with no job at all, since Implement does not start on its own", () => {
@@ -85,26 +61,16 @@ describe("the approach warning on a row", () => {
   });
 
   test("is quiet while the analyze runs", () => {
-    const running = row({
-      specFolder: FOLDER,
-      steps: ["analyze", "implement"],
-      stepIndex: 0,
-      state: "running",
-    });
+    const running = row({ specFolder: FOLDER, steps: ["analyze", "implement"], stepIndex: 0, state: "running" });
     expect(approachMarks([running])).toHaveLength(0);
   });
 
   test("is gone with no pending choice: fewer than two real alternatives, or one chosen", () => {
-    expect(
-      approachMarks([held()], target({ approachChoice: undefined })),
-    ).toHaveLength(0);
+    expect(approachMarks([held()], target({ approachChoice: undefined }))).toHaveLength(0);
   });
 
   test("is gone once an Implement has completed since the analysis", () => {
-    const t = target({
-      done: ["create", "analyze", "implement"],
-      historyDone: ["create", "analyze", "implement"],
-    });
+    const t = target({ done: ["create", "analyze", "implement"], historyDone: ["create", "analyze", "implement"] });
     expect(approachMarks([], t)).toHaveLength(0);
   });
 });
@@ -113,26 +79,12 @@ describe("the approaches the warning offers", () => {
   test("names each real alternative by letter and title, links it to its lead, and checks the recommended one", () => {
     const solution = specTabPath("aide", FOLDER, "solution");
     expect(approachItems(groupOf([held()]))).toEqual([
-      {
-        letter: "A",
-        title: "Hold the chained implement",
-        href: `${solution}#approach-a`,
-        checked: true,
-        recommended: true,
-      },
-      {
-        letter: "B",
-        title: "End the job after analyze",
-        href: `${solution}#approach-b`,
-        checked: false,
-        recommended: false,
-      },
+      { letter: "A", title: "Hold the chained implement", href: `${solution}#approach-a`, checked: true, recommended: true },
+      { letter: "B", title: "End the job after analyze", href: `${solution}#approach-b`, checked: false, recommended: false },
     ]);
   });
 
   test("the link is the Solution tab's address with the letter in lower case", () => {
-    expect(approachHref("aide", FOLDER, "C")).toBe(
-      `${specTabPath("aide", FOLDER, "solution")}#approach-c`,
-    );
+    expect(approachHref("aide", FOLDER, "C")).toBe(`${specTabPath("aide", FOLDER, "solution")}#approach-c`);
   });
 });

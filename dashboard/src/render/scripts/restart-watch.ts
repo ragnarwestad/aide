@@ -17,9 +17,7 @@
     watching = true;
     const ask = async (): Promise<void> => {
       try {
-        const res = await fetch("/api/version", {
-          headers: { accept: "application/json" },
-        });
+        const res = await fetch("/api/version", { headers: { accept: "application/json" } });
         const answer = (await res.json()) as { startedAt?: string | null };
         if (answer.startedAt && answer.startedAt !== drawnBy) {
           location.reload();
@@ -32,11 +30,7 @@
     };
     setTimeout(ask, EVERY_MS);
   };
-  if (document.readyState === "loading")
-    document.addEventListener("DOMContentLoaded", watch);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watch);
   else watch();
-  document.addEventListener("aide-page-drawn", () => {
-    watching = false;
-    watch();
-  });
+  document.addEventListener("aide-page-drawn", () => { watching = false; watch(); });
 })();

@@ -17,32 +17,13 @@
 
 import { homedir } from "node:os";
 import { runScript, scriptFor } from "./land-branch/run-script.ts";
-import {
-  expandDir,
-  providerLoginCommand,
-  providerLoginEnv,
-  type Provider,
-} from "../queue/providers/index.ts";
-import {
-  forgetChecks,
-  lastChecks,
-  recordCheck,
-  setConfiguredTools,
-  setModelChoices,
-  toolsWithFaults,
-} from "../render/ui/tool-checks.ts";
+import { expandDir, providerLoginCommand, providerLoginEnv, type Provider } from "../queue/providers/index.ts";
+import { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults } from "../render/ui/tool-checks.ts";
 
 // The store lives in the render layer, which is where both readers are
 // and which may not import this file. Re-exported so a caller has one
 // import site for "check a tool and remember the answer".
-export {
-  forgetChecks,
-  lastChecks,
-  recordCheck,
-  setConfiguredTools,
-  setModelChoices,
-  toolsWithFaults,
-};
+export { forgetChecks, lastChecks, recordCheck, setConfiguredTools, setModelChoices, toolsWithFaults };
 import { CHECKABLE_TOOLS } from "../render";
 import type { CheckableTool, ExtraCheck, ToolCheck } from "../render";
 import type { BoardMessage } from "../i18n/message.ts";
@@ -65,35 +46,19 @@ export function stripAnsi(text: string): string {
 }
 
 const printedLines = (text: string): string[] =>
-  stripAnsi(text)
-    .split("\n")
-    .map((l) => l.trimEnd())
-    .filter((l) => l.trim().length > 0);
+  stripAnsi(text).split("\n").map((l) => l.trimEnd()).filter((l) => l.trim().length > 0);
 
 /** What `aide-preflight --facts` said; undefined when it gave no `cli`
  *  line, which an older preflight does not: it answers `--facts` with its
  *  banner and then "Unknown tool", and that is not a CLI that is missing. */
-function readFacts(
-  text: string,
-):
-  | {
-      found: boolean;
-      missing: string[];
-      paths: Record<string, string>;
-      behind: boolean;
-    }
-  | undefined {
+function readFacts(text: string): { found: boolean; missing: string[]; paths: Record<string, string>; behind: boolean } | undefined {
   const facts = printedLines(text).map((l) => l.split("\t"));
   const cli = facts.find((f) => f[0] === "cli");
   if (!cli) return undefined;
   return {
     found: cli[1] === "found",
-    missing: facts
-      .filter((f) => f[0] === "place" && f[3] === "missing")
-      .map((f) => f[1]!),
-    paths: Object.fromEntries(
-      facts.filter((f) => f[0] === "place" && f[2]).map((f) => [f[1]!, f[2]!]),
-    ),
+    missing: facts.filter((f) => f[0] === "place" && f[3] === "missing").map((f) => f[1]!),
+    paths: Object.fromEntries(facts.filter((f) => f[0] === "place" && f[2]).map((f) => [f[1]!, f[2]!])),
     behind: facts.some((f) => f[0] === "files" && f[1] === "behind"),
   };
 }
@@ -119,39 +84,24 @@ const LOGIN_QUESTION = "Is it logged in?";
 
 /** A login answer that could not be obtained: no answer, never a "no".
  *  `command` is the one that was asked, as a reader would type it. */
-function loginUnknown(
-  how: "timedOut" | "unreadable",
-  command: string,
-): ExtraCheck {
+function loginUnknown(how: "timedOut" | "unreadable", command: string): ExtraCheck {
   return {
-    question: LOGIN_QUESTION,
-    ok: null,
-    detail: "",
-    answer: {
-      key: how === "timedOut" ? "login.timedOut" : "login.unreadable",
-      values: { command },
-    },
+    question: LOGIN_QUESTION, ok: null, detail: "",
+    answer: { key: how === "timedOut" ? "login.timedOut" : "login.unreadable", values: { command } },
   };
 }
 
 /** Not logged in, with the command that logs it in. */
 function loginOut(command: string): ExtraCheck {
   return {
-    question: LOGIN_QUESTION,
-    ok: false,
-    detail: "",
-    problem: "not logged in",
+    question: LOGIN_QUESTION, ok: false, detail: "", problem: "not logged in",
     answer: { key: "login.out", values: { command } },
   };
 }
 
 /** Logged in: how, and as whom, as far as the tool says either. */
-function loggedIn(
-  method: string | undefined,
-  account: string | undefined,
-): BoardMessage {
-  if (method && account)
-    return { key: "login.inWithAs", values: { method, account } };
+function loggedIn(method: string | undefined, account: string | undefined): BoardMessage {
+  if (method && account) return { key: "login.inWithAs", values: { method, account } };
   if (method) return { key: "login.inWith", values: { method } };
   if (account) return { key: "login.inAs", values: { account } };
   return { key: "login.in" };
@@ -168,28 +118,16 @@ async function opencodeProviderCheck(
   bin: string,
   command: string,
 ): Promise<ExtraCheck> {
-  const providers = await run(
-    [bin, "auth", "list"],
-    process.cwd(),
-    CHECK_TIMEOUT_MS,
-  );
+  const providers = await run([bin, "auth", "list"], process.cwd(), CHECK_TIMEOUT_MS);
   if (providers.timedOut) return loginUnknown("timedOut", "opencode auth list");
-  if (providers.code !== 0)
-    return loginUnknown("unreadable", "opencode auth list");
+  if (providers.code !== 0) return loginUnknown("unreadable", "opencode auth list");
   // The CLI's own wording for none configured: "0 credentials" before
   // version 2, "No authenticated integrations" from it.
-  if (NO_CREDENTIALS.test(stripAnsi(providers.stdout)))
-    return loginOut(command);
-  return {
-    question: LOGIN_QUESTION,
-    ok: true,
-    detail: "",
-    answer: loggedIn(undefined, undefined),
-  };
+  if (NO_CREDENTIALS.test(stripAnsi(providers.stdout))) return loginOut(command);
+  return { question: LOGIN_QUESTION, ok: true, detail: "", answer: loggedIn(undefined, undefined) };
 }
 
-const str = (v: unknown): string | undefined =>
-  typeof v === "string" && v !== "" ? v : undefined;
+const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
 
 /** Which account and plan `claude auth status` says it runs on — asked
  *  from the board's own process, so it names the login a run will use,
@@ -216,16 +154,13 @@ function claudeAccount(parsed: Record<string, unknown>): string | undefined {
  *  names an account runs do not spend. An organization plan on a
  *  personal organization is the one pairing that cannot be real. */
 function mixedLogins(parsed: Record<string, unknown>): string | undefined {
-  const plan =
-    typeof parsed.subscriptionType === "string" ? parsed.subscriptionType : "";
-  const personal =
-    typeof parsed.email === "string" &&
-    parsed.orgName === `${parsed.email}'s Organization`;
+  const plan = typeof parsed.subscriptionType === "string" ? parsed.subscriptionType : "";
+  const personal = typeof parsed.email === "string" && parsed.orgName === `${parsed.email}'s Organization`;
   if (!personal || (plan !== "team" && plan !== "enterprise")) return undefined;
   const name = plan.charAt(0).toUpperCase() + plan.slice(1);
   return (
     `A ${name} plan does not belong to a personal account: the stored login is probably another account's ` +
-    'than the one named here, and runs use that one. On macOS it lives in the keychain: remove it with `security delete-generic-password -s "Claude Code-credentials"` and check again.'
+    "than the one named here, and runs use that one. On macOS it lives in the keychain: remove it with `security delete-generic-password -s \"Claude Code-credentials\"` and check again."
   );
 }
 
@@ -246,13 +181,7 @@ async function loginCheck(
 ): Promise<ExtraCheck> {
   const args = tool === "claude" ? ["auth", "status"] : ["login", "status"];
   const asked = [tool, ...args].join(" ");
-  const result = await run(
-    [bin, ...args],
-    process.cwd(),
-    CHECK_TIMEOUT_MS,
-    undefined,
-    env,
-  );
+  const result = await run([bin, ...args], process.cwd(), CHECK_TIMEOUT_MS, undefined, env);
   if (result.timedOut) return loginUnknown("timedOut", asked);
   const text = stripAnsi(`${result.stdout}\n${result.stderr}`).trim();
 
@@ -271,13 +200,9 @@ async function loginCheck(
           // Only what follows the answer: the tab draws the answer itself.
           detail: mixed ?? "",
           answer: loggedIn(str(parsed.authMethod), claudeAccount(parsed)),
-          ...(mixed
-            ? { problem: "the login in use is another account's" }
-            : {}),
+          ...(mixed ? { problem: "the login in use is another account's" } : {}),
           ...(ends ? { ends } : {}),
-          ...(plan
-            ? { plan: plan.charAt(0).toUpperCase() + plan.slice(1) }
-            : {}),
+          ...(plan ? { plan: plan.charAt(0).toUpperCase() + plan.slice(1) } : {}),
         };
       }
     } catch {
@@ -290,12 +215,7 @@ async function loginCheck(
   // Codex: one line, "Logged in using <how>", and an exit code that says it.
   if (result.code !== 0) return loginOut(command);
   const how = /^Logged in using (.+)$/m.exec(text)?.[1]?.trim();
-  return {
-    question: LOGIN_QUESTION,
-    ok: true,
-    detail: "",
-    answer: loggedIn(how, undefined),
-  };
+  return { question: LOGIN_QUESTION, ok: true, detail: "", answer: loggedIn(how, undefined) };
 }
 
 /** The time a login ends, as an ISO time, from what `claude auth status`
@@ -304,8 +224,7 @@ async function loginCheck(
 function loginEnds(value: unknown): string | undefined {
   let ms: number | undefined;
   if (typeof value === "string") ms = Date.parse(value);
-  else if (typeof value === "number" && Number.isFinite(value))
-    ms = value < 1e12 ? value * 1000 : value;
+  else if (typeof value === "number" && Number.isFinite(value)) ms = value < 1e12 ? value * 1000 : value;
   if (ms === undefined || Number.isNaN(ms)) return undefined;
   const when = new Date(ms);
   return Number.isNaN(when.getTime()) ? undefined : when.toISOString();
@@ -325,66 +244,32 @@ export async function askLogin(
   const env = provider ? providerLoginEnv(provider, home) : {};
   const command = provider
     ? providerLoginCommand(provider)
-    : tool === "claude"
-      ? "claude auth login"
-      : tool === "codex"
-        ? "codex login"
-        : "opencode auth login";
-  const answer =
-    tool === "opencode"
-      ? await opencodeProviderCheck(
-          (argv, cwd, ms) => run(argv, cwd, ms, undefined, env),
-          bin,
-          command,
-        )
-      : await loginCheck(tool, run, bin, command, env);
+    : tool === "claude" ? "claude auth login" : tool === "codex" ? "codex login" : "opencode auth login";
+  const answer = tool === "opencode"
+    ? await opencodeProviderCheck((argv, cwd, ms) => run(argv, cwd, ms, undefined, env), bin, command)
+    : await loginCheck(tool, run, bin, command, env);
   if (!provider) return answer;
-  const problem =
-    answer.ok === false
-      ? answer.problem === "not logged in"
-        ? `${provider.name} not logged in`
-        : `${provider.name}: ${answer.problem ?? "login"}`
-      : undefined;
-  return {
-    ...answer,
-    provider: provider.name,
-    ...(problem ? { problem } : {}),
-  };
+  const problem = answer.ok === false
+    ? answer.problem === "not logged in" ? `${provider.name} not logged in` : `${provider.name}: ${answer.problem ?? "login"}`
+    : undefined;
+  return { ...answer, provider: provider.name, ...(problem ? { problem } : {}) };
 }
 
-export async function checkTool(
-  tool: CheckableTool,
-  opts: CheckOptions = {},
-): Promise<ToolCheck> {
+export async function checkTool(tool: CheckableTool, opts: CheckOptions = {}): Promise<ToolCheck> {
   const path = opts.scriptPath ?? ((name: string) => scriptFor(name));
   const at = (opts.now ?? (() => new Date()))().toISOString();
   const run = opts.run ?? runScript;
 
-  const preflight = opts.scriptDir
-    ? scriptFor("aide-preflight", { beside: opts.scriptDir })
-    : path("aide-preflight");
-  const result = await run(
-    [preflight, "--facts", tool],
-    process.cwd(),
-    CHECK_TIMEOUT_MS,
-  );
+  const preflight = opts.scriptDir ? scriptFor("aide-preflight", { beside: opts.scriptDir }) : path("aide-preflight");
+  const result = await run([preflight, "--facts", tool], process.cwd(), CHECK_TIMEOUT_MS);
   if (result.timedOut) {
-    return {
-      tool,
-      at,
-      found: false,
-      extra: [],
-      error: "The check did not finish in time.",
-    };
+    return { tool, at, found: false, extra: [], error: "The check did not finish in time." };
   }
   const facts = result.code === 0 ? readFacts(result.stdout) : undefined;
   if (!facts) {
     const said = printedLines(`${result.stdout}\n${result.stderr}`).pop();
     return {
-      tool,
-      at,
-      found: false,
-      extra: [],
+      tool, at, found: false, extra: [],
       error: `The check gave no answer the board can read${said ? `: ${said}` : "."}`,
     };
   }
@@ -395,14 +280,10 @@ export async function checkTool(
   const extra: ExtraCheck[] = [];
   if (found) {
     // A switched-off provider runs nothing, so its login is no fault.
-    const own = Object.values(opts.providers?.() ?? {}).filter(
-      (p) => p.tool === tool && p.enabled !== false,
-    );
+    const own = Object.values(opts.providers?.() ?? {}).filter((p) => p.tool === tool && p.enabled !== false);
     if (own.length === 0) extra.push(await askLogin(tool, run, path(tool)));
     for (const provider of own) {
-      const bin = provider.binary
-        ? expandDir(provider.binary, opts.home ?? homedir())
-        : path(tool);
+      const bin = provider.binary ? expandDir(provider.binary, opts.home ?? homedir()) : path(tool);
       extra.push(await askLogin(tool, run, bin, provider, opts.home));
     }
   }
@@ -438,28 +319,24 @@ export const RECHECK_MS = 60_000;
  *  login changed under a running board is how seven runs were spent on
  *  the wrong account. */
 export function toolRechecker(
-  opts: CheckOptions & {
-    check?: (tool: CheckableTool) => Promise<ToolCheck>;
-  } = {},
+  opts: CheckOptions & { check?: (tool: CheckableTool) => Promise<ToolCheck> } = {},
 ): (tools: CheckableTool[]) => Promise<void> {
   const inFlight = new Set<CheckableTool>();
   const now = opts.now ?? (() => new Date());
   const check = opts.check ?? ((tool: CheckableTool) => checkTool(tool, opts));
   return async (tools) => {
-    await Promise.all(
-      [...new Set(tools)].map(async (tool) => {
-        const last = lastChecks()[tool];
-        if (inFlight.has(tool)) return;
-        if (last && now().getTime() - Date.parse(last.at) < RECHECK_MS) return;
-        inFlight.add(tool);
-        try {
-          recordCheck(await check(tool));
-        } catch {
-          // No answer is no new answer: the last one stands.
-        } finally {
-          inFlight.delete(tool);
-        }
-      }),
-    );
+    await Promise.all([...new Set(tools)].map(async (tool) => {
+      const last = lastChecks()[tool];
+      if (inFlight.has(tool)) return;
+      if (last && now().getTime() - Date.parse(last.at) < RECHECK_MS) return;
+      inFlight.add(tool);
+      try {
+        recordCheck(await check(tool));
+      } catch {
+        // No answer is no new answer: the last one stands.
+      } finally {
+        inFlight.delete(tool);
+      }
+    }));
   };
 }

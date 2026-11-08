@@ -13,11 +13,6 @@ import { join } from "node:path";
 export function sourceWithParts(pathUnderSrc: string): string {
   const src = new URL("../../src", import.meta.url).pathname;
   const dir = join(src, pathUnderSrc);
-  const parts = readdirSync(dir)
-    .filter((f) => f.endsWith(".ts") && f !== "index.ts")
-    .sort();
-  return [
-    readFileSync(join(dir, "index.ts"), "utf-8"),
-    ...parts.map((f) => readFileSync(join(dir, f), "utf-8")),
-  ].join("\n");
+  const parts = readdirSync(dir).filter((f) => f.endsWith(".ts") && f !== "index.ts").sort();
+  return [readFileSync(join(dir, "index.ts"), "utf-8"), ...parts.map((f) => readFileSync(join(dir, f), "utf-8"))].join("\n");
 }

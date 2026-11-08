@@ -5,8 +5,8 @@
 - [What it is](#what-it-is)
 - [How it's used](#how-its-used)
 - [Installation](#installation)
-  - [Requirements](#requirements)
-  - [Installing](#installing)
+    - [Requirements](#requirements)
+    - [Installing](#installing)
 - [Reference](#reference)
 
 ---
@@ -45,7 +45,7 @@ for whatever is missing. It is listed here so you can have it ready:
 Which command to run depends on where the dashboard will run:
 
 | Where it will run               | Command, from the repository root                   |
-| ------------------------------- | --------------------------------------------------- |
+|---------------------------------|-----------------------------------------------------|
 | This machine, on macOS          | `dashboard/install.sh`                              |
 | Another macOS machine, over ssh | `MINI=<host> make install-serve`, from `dashboard/` |
 | Linux, which has no launchd     | `dashboard/serve.sh`                                |

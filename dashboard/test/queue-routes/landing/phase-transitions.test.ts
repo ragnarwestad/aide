@@ -11,10 +11,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  createGitRunner,
-  type GitRunner,
-} from "../../../src/git/branch-status.ts";
+import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { WAITING_RUNNER } from "../../helpers/waiting-runner.ts";
 import { openQuery, setupQueueRoutesHarness } from "../fixtures.ts";
@@ -23,8 +20,7 @@ const { harness } = setupQueueRoutesHarness();
 const ownDirs: string[] = [];
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 const AUTH = { "content-type": "application/json", accept: "application/json" };
@@ -59,14 +55,9 @@ function heldMergeGit() {
   const run: GitRunner = async (dir, args) => {
     const a = args.join(" ");
     if (a.startsWith("log")) return real(dir, args);
-    if (a.startsWith("symbolic-ref"))
-      return { code: 0, stdout: "refs/remotes/origin/master\n" };
-    if (a.startsWith("rev-parse --abbrev-ref @{u}"))
-      return { code: 0, stdout: "origin/master\n" };
-    if (
-      a.startsWith("merge -q --ff-only") ||
-      a.startsWith("merge -q --no-edit")
-    ) {
+    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+    if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+    if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
       await gate;
       return { code: 0, stdout: "" };
     }
@@ -76,31 +67,20 @@ function heldMergeGit() {
   return { run, release: () => release() };
 }
 
-async function jobNow(
-  base: string,
-  id: string,
-): Promise<Record<string, unknown>> {
-  const body = (await (
-    await fetch(`${base}/api/queue/${id}`, { headers: AUTH })
-  ).json()) as {
+async function jobNow(base: string, id: string): Promise<Record<string, unknown>> {
+  const body = (await (await fetch(`${base}/api/queue/${id}`, { headers: AUTH })).json()) as {
     job: Record<string, unknown>;
   };
   return body.job;
 }
 
-async function settle(
-  base: string,
-  id: string,
-  until: (job: Record<string, unknown>) => boolean,
-) {
+async function settle(base: string, id: string, until: (job: Record<string, unknown>) => boolean) {
   for (let n = 0; n < 200; n++) {
     const job = await jobNow(base, id);
     if (until(job)) return job;
     await Bun.sleep(50);
   }
-  throw new Error(
-    `the job never reached the state asked for: ${JSON.stringify(await jobNow(base, id))}`,
-  );
+  throw new Error(`the job never reached the state asked for: ${JSON.stringify(await jobNow(base, id))}`);
 }
 
 const result = (specs: string) => ({
@@ -118,22 +98,13 @@ const result = (specs: string) => ({
  *  nothing else on the page, whose help texts may use the same words. */
 const rowOf = (html: string): string =>
   [
-    ...html.matchAll(
-      new RegExp(
-        `<tr class="[^"]*"[^>]*data-(?:folder|step)="(?:${SPEC}|create|analyze|implement|archive)"[^>]*>[\\s\\S]*?</tr>`,
-        "g",
-      ),
-    ),
+    ...html.matchAll(new RegExp(`<tr class="[^"]*"[^>]*data-(?:folder|step)="(?:${SPEC}|create|analyze|implement|archive)"[^>]*>[\\s\\S]*?</tr>`, "g")),
   ]
     .map((m) => m[0])
     .join("\n");
 
 const stateOf = (html: string, step: string): string =>
-  html.match(
-    new RegExp(
-      `<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?<td data-col="state">([\\s\\S]*?)</td>`,
-    ),
-  )?.[1] ?? "";
+  html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?<td data-col="state">([\\s\\S]*?)</td>`))?.[1] ?? "";
 
 describe("a chained job's row between its phases", () => {
   test("no point between analyze and implement reads as a fault", async () => {
@@ -153,17 +124,13 @@ describe("a chained job's row between its phases", () => {
       },
     });
     const page = async () =>
-      await (await fetch(`${base}/?${openQuery(`aide/${SPEC}`)}`)).text();
+      await (await fetch(`${base}/?${openQuery(`aide/${SPEC}`)}`, )).text();
 
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({
-          project: "aide",
-          specFolder: SPEC,
-          steps: ["analyze", "implement"],
-        }),
+        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze", "implement"] }),
       })
     ).json()) as { job: { id: string } };
     const id = made.job.id;
@@ -171,14 +138,8 @@ describe("a chained job's row between its phases", () => {
 
     // Analyze did its work: its commit and its line, as the step leaves them.
     ran(dir, ["analyze"]);
-    writeFileSync(
-      join(paths.spec, "4-status.md"),
-      statusSaying(["create", "analyze"]),
-    );
-    writeFileSync(
-      join(results, `${id}.json`),
-      JSON.stringify(result(paths.specs)),
-    );
+    writeFileSync(join(paths.spec, "4-status.md"), statusSaying(["create", "analyze"]));
+    writeFileSync(join(results, `${id}.json`), JSON.stringify(result(paths.specs)));
 
     // 1. Analyze is being merged, and the job already names implement.
     await settle(base, id, (j) => j.landing === true && j.state === "queued");
@@ -197,14 +158,8 @@ describe("a chained job's row between its phases", () => {
 
     // 3. Implement did its work and ended; it has no landing of its own.
     ran(dir, ["implement"]);
-    writeFileSync(
-      join(paths.spec, "4-status.md"),
-      statusSaying(["create", "analyze", "implement"]),
-    );
-    writeFileSync(
-      join(results, `${id}.json`),
-      JSON.stringify(result(paths.specs)),
-    );
+    writeFileSync(join(paths.spec, "4-status.md"), statusSaying(["create", "analyze", "implement"]));
+    writeFileSync(join(results, `${id}.json`), JSON.stringify(result(paths.specs)));
     await settle(base, id, (j) => j.state === "done" && !j.landing);
     const finished = await page();
     expect(stateOf(finished, "implement")).toContain("Done");

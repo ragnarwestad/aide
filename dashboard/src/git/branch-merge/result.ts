@@ -73,19 +73,10 @@ export interface RepoMergeResult {
  *  this says where: the branch being merged, or — on the deploy path,
  *  which has no feature branch — the default branch it is bringing up
  *  to date. */
-export const refuse = (
-  root: string,
-  ref: string,
-  why: BoardMessage,
-  detail?: string,
-): RepoMergeResult => ({
+export const refuse = (root: string, ref: string, why: BoardMessage, detail?: string): RepoMergeResult => ({
   root,
   ok: false,
-  error: {
-    key: why.key,
-    values: { ...why.values, ref, root },
-    ...(why.inner !== undefined ? { inner: why.inner } : {}),
-  },
+  error: { key: why.key, values: { ...why.values, ref, root }, ...(why.inner !== undefined ? { inner: why.inner } : {}) },
   ...(detail ? { detail } : {}),
 });
 
@@ -101,10 +92,6 @@ export const pushRefusal = (
   refuse(
     root,
     ref,
-    {
-      key: "landing.pushFailedTo",
-      values: { base },
-      inner: gitErrorSentence(pushed.cause ?? { kind: "none" }),
-    },
+    { key: "landing.pushFailedTo", values: { base }, inner: gitErrorSentence(pushed.cause ?? { kind: "none" }) },
     pushed.error || undefined,
   );

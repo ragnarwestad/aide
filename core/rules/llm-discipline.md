@@ -42,7 +42,7 @@ When modifying existing code:
 
 When your changes leave orphaned code behind:
 
-- Remove imports, variables, and functions that _your_ changes made unused.
+- Remove imports, variables, and functions that *your* changes made unused.
 - Leave dead code that was already there, unless asked to remove it.
 
 Rule of thumb: every line you change should be directly traceable to what

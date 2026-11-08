@@ -1,11 +1,7 @@
 // Split out of phase-rules.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { row, openKeys } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
@@ -32,10 +28,7 @@ const stateCell = (line: string): string =>
 // last attempt is a qualifier when it disagrees, and archive says "held
 // back" with its reason when a run declined to move the folder.
 describe("one rule per phase", () => {
-  const target = (
-    specFolder: string,
-    extra: Partial<SpecTarget> = {},
-  ): SpecTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -43,34 +36,22 @@ describe("one rule per phase", () => {
   const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
     renderSpecsRows(
       list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-      },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-08-19T12:00:00Z"),
     );
-  const head = (html: string) =>
-    html.match(
-      /<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/,
-    )?.[0] ?? "";
+  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>\s*<tr class="specstate"[\s\S]*?<\/tr>/)?.[0] ?? "";
   /** The Run button's own line, under the header. */
   /** Everything one row draws: its header line and, when it is open,
    *  the phase lines under it — where the boxes live. */
   const runLine = (html: string) =>
-    html.match(
-      /<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/,
-    )?.[0] ?? "";
+    html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    html.match(
-      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   /** The row's one panel, which is where every sentence a
    *  phase used to write under its own badge is said instead. */
-  const panel = (html: string) =>
-    html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   // The pips came off the list on 2026-09-07 — the button's own label
   // says how far a linear workflow has come, and the phase LINES say
   // each phase's own state in words. Every assertion that read a pip
@@ -100,14 +81,7 @@ describe("one rule per phase", () => {
 
   test("a cancelled re-run never overturns a finished analysis", () => {
     const html = rows(
-      [
-        row({
-          id: "recancelled",
-          specFolder: "108-recancelled",
-          steps: ["analyze"],
-          state: "cancelled",
-        }),
-      ],
+      [row({ id: "recancelled", specFolder: "108-recancelled", steps: ["analyze"], state: "cancelled" })],
       [target("108-recancelled", { done: ["analyze"] })],
     );
     const analyze = subRow(html, "analyze");
@@ -132,20 +106,11 @@ describe("one rule per phase", () => {
 
   test("an archive run that declined reads held back, not done", () => {
     const html = rows(
-      [
-        row({
-          id: "declined",
-          specFolder: "108-held",
-          steps: ["archive"],
-          state: "done",
-        }),
-      ],
+      [row({ id: "declined", specFolder: "108-held", steps: ["archive"], state: "done" })],
       [
         target("108-held", {
           done: BUILT,
-          archiveHeldBack: {
-            reason: "the Slack webhook (Phase 4, still unchecked)",
-          },
+          archiveHeldBack: { reason: "the Slack webhook (Phase 4, still unchecked)" },
         }),
       ],
     );
@@ -153,12 +118,10 @@ describe("one rule per phase", () => {
     expect(archive).toContain("Held back");
     // The REASON is the row's panel's, said once for the
     // whole row. The phase line keeps the word that is its own answer.
-    expect(archive).not.toContain(
+    expect(archive).not.toContain("the Slack webhook (Phase 4, still unchecked)");
+    expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
       "the Slack webhook (Phase 4, still unchecked)",
     );
-    expect(
-      html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "",
-    ).toContain("the Slack webhook (Phase 4, still unchecked)");
     // The one thing it must never read as, which is what it read as
     // before this spec: an ordinary finished step.
     expect(archive).not.toContain("b-done");
@@ -171,20 +134,8 @@ describe("one rule per phase", () => {
   // for something well before archive is even next.
   test("archive does not read held back while implement is still running", () => {
     const html = rows(
-      [
-        row({
-          id: "implementing",
-          specFolder: "298-implementing",
-          steps: ["implement"],
-          state: "running",
-        }),
-      ],
-      [
-        target("298-implementing", {
-          done: ["analyze"],
-          archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-        }),
-      ],
+      [row({ id: "implementing", specFolder: "298-implementing", steps: ["implement"], state: "running" })],
+      [target("298-implementing", { done: ["analyze"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
     );
     const archive = subRow(html, "archive");
     expect(archive).not.toContain("held back");
@@ -198,14 +149,7 @@ describe("one rule per phase", () => {
   // an eraser.
   test("a cancelled attempt does not make a finished phase read as not run", () => {
     const html = rows(
-      [
-        row({
-          id: "oops",
-          specFolder: "471-cancelled",
-          steps: ["implement", "archive"],
-          state: "cancelled",
-        }),
-      ],
+      [row({ id: "oops", specFolder: "471-cancelled", steps: ["implement", "archive"], state: "cancelled" })],
       [target("471-cancelled", { done: ["analyze", "implement"] })],
     );
     const implement = subRow(html, "implement");
@@ -215,20 +159,8 @@ describe("one rule per phase", () => {
 
   test("an archive run in flight outranks a stale held-back note", () => {
     const html = rows(
-      [
-        row({
-          id: "retry",
-          specFolder: "108-retry",
-          steps: ["archive"],
-          state: "running",
-        }),
-      ],
-      [
-        target("108-retry", {
-          done: BUILT,
-          archiveHeldBack: { reason: "the Slack webhook" },
-        }),
-      ],
+      [row({ id: "retry", specFolder: "108-retry", steps: ["archive"], state: "running" })],
+      [target("108-retry", { done: BUILT, archiveHeldBack: { reason: "the Slack webhook" } })],
     );
     expect(subRow(html, "archive")).toContain("b-running");
   });
@@ -244,25 +176,11 @@ describe("one rule per phase", () => {
     // this test proves, so the project is read as incapable of a test
     // server here, the same as `renderSpecsRows`'s other callers that
     // never opted in.
-    const list = [
-      row({
-        id: "lagging",
-        specFolder: "108-lagging",
-        steps: ["implement"],
-        state: "done",
-      }),
-    ];
-    const targets = [
-      target("108-lagging", { done: ["analyze"], historyDone: ["implement"] }),
-    ];
+    const list = [row({ id: "lagging", specFolder: "108-lagging", steps: ["implement"], state: "done" })];
+    const targets = [target("108-lagging", { done: ["analyze"], historyDone: ["implement"] })];
     const html = renderSpecsRows(
       list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-        testServerAvailable: () => false,
-      },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) }, testServerAvailable: () => false },
       Date.parse("2026-08-19T12:00:00Z"),
     );
     const implement = subRow(html, "implement");
@@ -282,14 +200,7 @@ describe("one rule per phase", () => {
 
   test("a finished implement job with no commit anywhere says run it again", () => {
     const html = rows(
-      [
-        row({
-          id: "unwritten",
-          specFolder: "108-unwritten",
-          steps: ["implement"],
-          state: "done",
-        }),
-      ],
+      [row({ id: "unwritten", specFolder: "108-unwritten", steps: ["implement"], state: "done" })],
       [target("108-unwritten", { done: ["analyze"] })],
     );
     const implement = subRow(html, "implement");
@@ -309,51 +220,23 @@ describe("one rule per phase", () => {
   // happened.
   test("a gracefully declined archive says so, not that the files disagree", () => {
     const html = rows(
-      [
-        row({
-          id: "declined",
-          specFolder: "299-declined",
-          steps: ["archive"],
-          state: "done",
-        }),
-      ],
-      [
-        target("299-declined", {
-          done: ["analyze"],
-          stopped: { archive: "acceptance-criteria-unticked" },
-        }),
-      ],
+      [row({ id: "declined", specFolder: "299-declined", steps: ["archive"], state: "done" })],
+      [target("299-declined", { done: ["analyze"], stopped: { archive: "acceptance-criteria-unticked" } })],
     );
     const archive = subRow(html, "archive");
     expect(archive).toContain("Stopped");
     expect(archive).not.toContain("acceptance-criteria-unticked");
     // The reason is a sentence with a move in it, not the script's own
     // token: a reader should not have to know what the token means.
-    expect(panel(html)).toContain(
-      "Archive stopped: the Acceptance criteria are not all ticked\nSolution: Tick the ACs in the panel below",
-    );
+    expect(panel(html)).toContain("Archive stopped: the Acceptance criteria are not all ticked\nSolution: Tick the ACs in the panel below");
     expect(panel(html)).not.toContain("acceptance-criteria-unticked");
-    expect(panel(html)).not.toContain(
-      "archive: last run reported done, but the files disagree",
-    );
+    expect(panel(html)).not.toContain("archive: last run reported done, but the files disagree");
   });
 
   test("a decline nobody has written a sentence for is said plainly, not hidden", () => {
     const html = rows(
-      [
-        row({
-          id: "odd",
-          specFolder: "299-odd",
-          steps: ["archive"],
-          state: "done",
-        }),
-      ],
-      [
-        target("299-odd", {
-          done: ["analyze"],
-          stopped: { archive: "something-new" },
-        }),
-      ],
+      [row({ id: "odd", specFolder: "299-odd", steps: ["archive"], state: "done" })],
+      [target("299-odd", { done: ["analyze"], stopped: { archive: "something-new" } })],
     );
     expect(panel(html)).toContain("stopped: something-new");
   });
@@ -365,10 +248,7 @@ describe("one rule per phase", () => {
 // nothing written at all — HAS run, and the Time column beside it draws
 // that run's duration, so its State cell must not read as never run.
 describe("a phase that ran never draws the not-run dash", () => {
-  const TARGET: SpecTarget = {
-    project: "aide",
-    specFolder: "419-ran-but-unlanded",
-  };
+  const TARGET: SpecTarget = { project: "aide", specFolder: "419-ran-but-unlanded" };
   const render = (historyDone: boolean): string =>
     renderSpecsRows(
       [
@@ -397,10 +277,7 @@ describe("a phase that ran never draws the not-run dash", () => {
       Date.parse("2026-09-09T09:00:00Z"),
     );
   const state = (html: string, step: string): string => {
-    const line =
-      html.match(
-        new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`),
-      )?.[0] ?? "";
+    const line = html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0] ?? "";
     return line.match(/<td data-col="state">.*?<\/td>/)?.[0] ?? "";
   };
 
@@ -437,17 +314,11 @@ describe("a phase in transition reads as what it is doing", () => {
   const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
     renderSpecsRows(
       list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-      },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-09-17T10:00:00Z"),
     );
   const subRow = (html: string, phase: string) =>
-    html.match(
-      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   const FAULTS = /nothing reached the files|disagree|run it again/;
 
   // A chained job moves on to its next step in the same write that
@@ -460,9 +331,7 @@ describe("a phase in transition reads as what it is doing", () => {
     stepIndex: 1,
     state: "queued",
     landing: true,
-    results: [
-      { step: "analyze", ok: true, costUsd: 1, terminalReason: "completed" },
-    ],
+    results: [{ step: "analyze", ok: true, costUsd: 1, terminalReason: "completed" }],
   });
 
   test("the landing belongs to the step being merged, not the one queued behind it", () => {
@@ -482,14 +351,7 @@ describe("a phase in transition reads as what it is doing", () => {
       stepIndex: 0,
       state: "done",
       startedAt: "2026-09-17T09:00:00Z",
-      results: [
-        {
-          step: "archive",
-          ok: true,
-          costUsd: 0,
-          terminalReason: "acceptance-criteria-unticked",
-        },
-      ],
+      results: [{ step: "archive", ok: true, costUsd: 0, terminalReason: "acceptance-criteria-unticked" }],
     });
     const round = row({
       id: "round",
@@ -501,13 +363,11 @@ describe("a phase in transition reads as what it is doing", () => {
     });
     const html = rows(
       [refused, round],
-      [
-        target({
-          done: ["create", "analyze", "implement"],
-          archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-          stopped: { archive: "acceptance-criteria-unticked" },
-        }),
-      ],
+      [target({
+        done: ["create", "analyze", "implement"],
+        archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+        stopped: { archive: "acceptance-criteria-unticked" },
+      })],
     );
     const archive = stateCell(subRow(html, "archive"));
     expect(archive).toContain(PHASE_NOT_RUN);
@@ -529,18 +389,8 @@ describe("a phase in transition reads as what it is doing", () => {
       state: "done",
       startedAt: "2026-09-17T09:00:00Z",
       results: [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 1,
-          terminalReason: "completed",
-        },
-        {
-          step: "archive",
-          ok: true,
-          costUsd: 0,
-          terminalReason: "acceptance-criteria-unticked",
-        },
+        { step: "implement", ok: true, costUsd: 1, terminalReason: "completed" },
+        { step: "archive", ok: true, costUsd: 0, terminalReason: "acceptance-criteria-unticked" },
       ],
     });
     const round = row({
@@ -553,12 +403,10 @@ describe("a phase in transition reads as what it is doing", () => {
     });
     const html = rows(
       [implementedBefore, round],
-      [
-        target({
-          done: ["create", "analyze", "implement"],
-          archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-        }),
-      ],
+      [target({
+        done: ["create", "analyze", "implement"],
+        archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+      })],
     );
     const implement = subRow(html, "implement");
     expect(stateCell(implement)).toContain(PHASE_NOT_RUN);
@@ -599,10 +447,7 @@ describe("a phase in transition reads as what it is doing", () => {
       state: "running",
       startedAt: "2026-09-17T09:50:00Z",
     });
-    const html = rows(
-      [round],
-      [target({ done: ["create", "analyze", "implement"] })],
-    );
+    const html = rows([round], [target({ done: ["create", "analyze", "implement"] })]);
     expect(stateCell(subRow(html, "analyze"))).toContain("Done");
   });
 
@@ -616,26 +461,13 @@ describe("a phase in transition reads as what it is doing", () => {
       steps: ["implement"],
       stepIndex: 0,
       state: "done",
-      results: [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 1,
-          terminalReason: "completed",
-          at,
-        },
-      ],
+      results: [{ step: "implement", ok: true, costUsd: 1, terminalReason: "completed", at }],
     });
 
   test("a step that ended after the files were last read says done, not that nothing reached them", () => {
     const html = rows(
       [implemented("2026-09-17T09:59:50Z")],
-      [
-        target({
-          done: ["create", "analyze"],
-          sourcesCheckedAt: "2026-09-17T09:59:40Z",
-        }),
-      ],
+      [target({ done: ["create", "analyze"], sourcesCheckedAt: "2026-09-17T09:59:40Z" })],
     );
     expect(stateCell(subRow(html, "implement"))).toContain("Done");
     expect(html).not.toMatch(FAULTS);
@@ -644,12 +476,7 @@ describe("a phase in transition reads as what it is doing", () => {
   test("once the files have been read since, a step they still do not show is said", () => {
     const html = rows(
       [implemented("2026-09-17T09:59:50Z")],
-      [
-        target({
-          done: ["create", "analyze"],
-          sourcesCheckedAt: "2026-09-17T09:59:55Z",
-        }),
-      ],
+      [target({ done: ["create", "analyze"], sourcesCheckedAt: "2026-09-17T09:59:55Z" })],
     );
     expect(html).toContain("nothing reached the files");
   });

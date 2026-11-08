@@ -11,19 +11,9 @@ import type { Provider } from "../../../queue/providers/index.ts";
 import type { RunnableTool } from "../../../queue/providers/tools.ts";
 import { t, type Language } from "../../../i18n";
 import { stepLabel } from "../../../format/step-label.ts";
-import {
-  defaultModelForTool,
-  modelOptions,
-  offeredProviders,
-  resolveChosenModel,
-  resolveProvider,
-  type ProviderOption,
-} from "../specs-list";
+import { defaultModelForTool, modelOptions, offeredProviders, resolveChosenModel, resolveProvider, type ProviderOption } from "../specs-list";
 import { WORKFLOW_STEPS } from "../../../queue/steps.ts";
-import {
-  SIDE_PARTS,
-  type SidePart,
-} from "../../../queue/providers/side-tools.ts";
+import { SIDE_PARTS, type SidePart } from "../../../queue/providers/side-tools.ts";
 
 export const SETTINGS_ROUTE = "/settings";
 
@@ -31,12 +21,7 @@ export const SETTINGS_ROUTE = "/settings";
  *  application's own tab bar, which this page hides. The models table
  *  keeps the key it had as the page's first tab, so `?tab=phases` still
  *  opens it. */
-export const SETTINGS_PANELS = [
-  "phases",
-  "providers",
-  "process",
-  "notifications",
-] as const;
+export const SETTINGS_PANELS = ["phases", "providers", "process", "notifications"] as const;
 export type SettingsPanel = (typeof SETTINGS_PANELS)[number];
 
 /** The tool tabs the row had once: a link that still names one opens
@@ -45,19 +30,14 @@ const REMOVED_TOOL_TABS = ["claude", "codex", "copilot", "opencode"] as const;
 
 /** Every value `?tab=` can name: a tab, the AI tab the row had once, or a
  *  removed tool tab. */
-export const SETTINGS_TABS = [
-  ...SETTINGS_PANELS,
-  "ai",
-  ...REMOVED_TOOL_TABS,
-] as const;
+export const SETTINGS_TABS = [...SETTINGS_PANELS, "ai", ...REMOVED_TOOL_TABS] as const;
 
 /** Which panel is open, off `?tab=`. The page opens on its models table,
  *  as does the AI tab it had once and an unknown or absent value. */
 export function resolveSettingsTab(raw: string | undefined): SettingsPanel {
   const tab = pickTab(SETTINGS_TABS, raw, "phases");
   if (tab === "ai") return "phases";
-  if ((REMOVED_TOOL_TABS as readonly string[]).includes(tab))
-    return "providers";
+  if ((REMOVED_TOOL_TABS as readonly string[]).includes(tab)) return "providers";
   return tab as SettingsPanel;
 }
 
@@ -65,12 +45,7 @@ export function resolveSettingsTab(raw: string | undefined): SettingsPanel {
  *  specs list. They are one group because that is the one thing they
  *  have in common, and it is the thing a reader is looking for. */
 export const SPEC_STEPS = [
-  "create",
-  "analyze",
-  "implement",
-  "archive",
-  "close",
-  "reopen",
+  "create", "analyze", "implement", "archive", "close", "reopen",
 ] as const;
 
 /** The steps that do not act on a spec. `schedule` runs a job from a
@@ -93,9 +68,7 @@ export const UNROWED_STEPS = ["explore", "deploy"] as const;
 const STEP_COVERAGE = [...SPEC_STEPS, ...OTHER_STEPS, ...UNROWED_STEPS];
 if (
   STEP_COVERAGE.length !== WORKFLOW_STEPS.length ||
-  !WORKFLOW_STEPS.every((step) =>
-    (STEP_COVERAGE as readonly string[]).includes(step),
-  )
+  !WORKFLOW_STEPS.every((step) => (STEP_COVERAGE as readonly string[]).includes(step))
 ) {
   throw new Error(
     `settings-page.ts groups every workflow step or names it unrowed: ` +
@@ -107,12 +80,7 @@ if (
 export const SETTINGS_STEPS = [...SPEC_STEPS, ...OTHER_STEPS] as const;
 
 export interface SettingsPageOptions {
-  modelChoices: {
-    name: string;
-    tool?: RunnableTool;
-    ranAs?: string;
-    named?: { id: string; name: string };
-  }[];
+  modelChoices: { name: string; tool?: RunnableTool; ranAs?: string; named?: { id: string; name: string } }[];
   defaultModels: Record<string, string>;
   /** The providers an AI choice lists, and the configured one per step. */
   providerChoices?: ProviderOption[];
@@ -155,15 +123,8 @@ export function settingsRowChoice(
   defaultModels: Record<string, string>,
   step: string,
 ): { model: string; tool: string } {
-  const model = resolveChosenModel(
-    models,
-    defaultModels[step] ?? defaultModels.default,
-    undefined,
-  );
-  return {
-    model,
-    tool: models.find((m) => m.name === model)?.tool ?? "claude",
-  };
+  const model = resolveChosenModel(models, defaultModels[step] ?? defaultModels.default, undefined);
+  return { model, tool: models.find((m) => m.name === model)?.tool ?? "claude" };
 }
 
 // The only other place this codebase already displays a timeout
@@ -176,12 +137,7 @@ const toMinutes = (sec: number): number => Math.round(sec / 60);
  *  three things to open. Each paragraph is a bold lead and a body, both
  *  plain text in the catalogue; the markup is built here. */
 const HELP_PARAGRAPHS = [
-  "page",
-  "onSpec",
-  "offSpec",
-  "default",
-  "aiModel",
-  "timeout",
+  "page", "onSpec", "offSpec", "default", "aiModel", "timeout",
 ] as const;
 
 function pageHelp(lang: Language): string {
@@ -192,11 +148,7 @@ function pageHelp(lang: Language): string {
   ).join("<br><br>");
 }
 
-export function renderSettingsPage(
-  entries: NavEntry[],
-  generatedAt: string,
-  opts: SettingsPageOptions,
-): string {
+export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opts: SettingsPageOptions): string {
   const lang = opts.lang ?? "en";
   const models = opts.modelChoices;
   const back = backLink(
@@ -210,105 +162,54 @@ export function renderSettingsPage(
   // depend on a choice actually being offered.
   const renderRow = (step: (typeof SETTINGS_STEPS)[number]): string => {
     const timeout = opts.timeoutSec[step] ?? opts.timeoutSec.default ?? 1200;
-    const timeoutCell =
-      `<td><input type="number" min="1" max="360" aria-label="${esc(t(lang, "settings.row.timeoutAria", { step: stepLabel(step, lang) }))}" ` +
+    const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="${esc(t(lang, "settings.row.timeoutAria", { step: stepLabel(step, lang) }))}" ` +
       `form="settings-form" name="timeoutSec.${step}" value="${toMinutes(timeout)}"></td>`;
     if (!models.length) {
       return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>${timeoutCell}</tr>`;
     }
     const configured = opts.defaultModels[step] ?? opts.defaultModels.default;
-    const { model: chosen } = settingsRowChoice(
-      models,
-      opts.defaultModels,
-      step,
-    );
+    const { model: chosen } = settingsRowChoice(models, opts.defaultModels, step);
     const providers = opts.providerChoices ?? [];
-    const resting = resolveProvider(
-      {
-        modelChoices: models,
-        providerChoices: providers,
-        defaultProviders: opts.defaultProviders,
-      },
-      step,
-      chosen,
-      [],
-    );
-    const ai = offeredProviders(providers, resting?.key)
-      .map((p) => {
-        const preferred = defaultModelForTool(models, p.tool, configured);
-        return `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(preferred ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`;
-      })
-      .join("");
-    return (
-      `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>` +
+    const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, step, chosen, []);
+    const ai = offeredProviders(providers, resting?.key).map((p) => {
+      const preferred = defaultModelForTool(models, p.tool, configured);
+      return `<option value="${esc(p.key)}" data-tool="${esc(p.tool)}" data-default="${esc(preferred ?? "")}"${p.key === resting?.key ? " selected" : ""}>${esc(p.name)}</option>`;
+    }).join("");
+    return `<tr data-step="${step}"><th scope="row">${esc(stepLabel(step, lang))}</th>` +
       `<td>${providers.length ? `<select aria-label="${esc(t(lang, "settings.row.aiAria", { step: stepLabel(step, lang) }))}" form="settings-form" name="provider.${step}" data-ai="model.${step}">${ai}</select>` : ""}</td>` +
       `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: stepLabel(step, lang) }))}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select></td>` +
-      `${timeoutCell}</tr>`
-    );
+      `${timeoutCell}</tr>`;
   };
   const renderSideRow = (part: SidePart): string => {
     if (!models.length) return "";
-    const { model: chosen } = settingsRowChoice(
-      models,
-      opts.defaultModels,
-      part,
-    );
+    const { model: chosen } = settingsRowChoice(models, opts.defaultModels, part);
     const label = t(lang, `settings.side.${part}`);
     const providers = opts.providerChoices ?? [];
-    const resting = resolveProvider(
-      {
-        modelChoices: models,
-        providerChoices: providers,
-        defaultProviders: opts.defaultProviders,
-      },
-      part,
-      chosen,
-      [],
-    );
-    const ai = offeredProviders(providers, resting?.key)
-      .map(
-        (provider) =>
-          `<option value="${esc(provider.key)}" data-tool="${esc(provider.tool)}" data-default="${esc(defaultModelForTool(models, provider.tool, chosen) ?? "")}"${provider.key === resting?.key ? " selected" : ""}>${esc(provider.name)}</option>`,
-      )
-      .join("");
-    const sideOptions = models
-      .map((choice) => {
-        const tool = choice.tool ?? "claude";
-        return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
-      })
-      .join("");
-    return (
-      `<tr data-side="${part}"><th scope="row">${esc(label)}</th>` +
+    const resting = resolveProvider({ modelChoices: models, providerChoices: providers, defaultProviders: opts.defaultProviders }, part, chosen, []);
+    const ai = offeredProviders(providers, resting?.key).map((provider) =>
+      `<option value="${esc(provider.key)}" data-tool="${esc(provider.tool)}" data-default="${esc(defaultModelForTool(models, provider.tool, chosen) ?? "")}"${provider.key === resting?.key ? " selected" : ""}>${esc(provider.name)}</option>`,
+    ).join("");
+    const sideOptions = models.map((choice) => {
+      const tool = choice.tool ?? "claude";
+      return `<option value="${esc(choice.name)}" data-tool="${esc(tool)}"${choice.name === chosen ? " selected" : ""}>${esc(choice.name)}</option>`;
+    }).join("");
+    return `<tr data-side="${part}"><th scope="row">${esc(label)}</th>` +
       `<td><select aria-label="${esc(t(lang, "settings.row.aiAria", { step: label }))}" form="settings-form" name="provider.${part}" data-ai="model.${part}" data-side-picker>${ai}</select></td>` +
-      `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: label }))}" form="settings-form" name="model.${part}" data-side-picker>${sideOptions}</select></td><td></td></tr>`
-    );
+      `<td><select aria-label="${esc(t(lang, "settings.row.modelAria", { step: label }))}" form="settings-form" name="model.${part}" data-side-picker>${sideOptions}</select></td><td></td></tr>`;
   };
   // One <tbody> per group, which is what makes the grouping structural
   // rather than a styled blank row: a reader of the markup, and anything
   // that walks the table, sees two bodies rather than one run of rows.
   const columns = models.length ? 4 : 2;
-  const group = (
-    label: string,
-    steps: readonly (typeof SETTINGS_STEPS)[number][],
-  ): string =>
+  const group = (label: string, steps: readonly (typeof SETTINGS_STEPS)[number][]): string =>
     `<tbody><tr class="settingsgroup"><th scope="rowgroup" colspan="${columns}">${esc(label)}</th></tr>` +
-    steps
-      .flatMap((step) =>
-        step === "implement"
-          ? [renderRow(step), ...SIDE_PARTS.map(renderSideRow)]
-          : [renderRow(step)],
-      )
-      .join("") +
+    steps.flatMap((step) => step === "implement" ? [renderRow(step), ...SIDE_PARTS.map(renderSideRow)] : [renderRow(step)]).join("") +
     `</tbody>`;
   const rows =
     group(t(lang, "settings.group.onSpec"), SPEC_STEPS) +
     group(t(lang, "settings.group.offSpec"), OTHER_STEPS);
-  const modelHeaders = models.length
-    ? `<th>${esc(t(lang, "schedule.ai"))}</th><th>${esc(t(lang, "schedule.model"))}</th>`
-    : "";
-  const noModelsNote = models.length
-    ? ""
-    : `<p class="muted">${esc(t(lang, "settings.noModels"))}</p>`;
+  const modelHeaders = models.length ? `<th>${esc(t(lang, "schedule.ai"))}</th><th>${esc(t(lang, "schedule.model"))}</th>` : "";
+  const noModelsNote = models.length ? "" : `<p class="muted">${esc(t(lang, "settings.noModels"))}</p>`;
   const phasesPanel =
     `<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings">` +
     messageSlot("refused", "failed") +
@@ -316,48 +217,23 @@ export function renderSettingsPage(
     noModelsNote +
     `<table class="settingstable"><thead><tr><th>${esc(t(lang, "settings.col.phase"))}</th>${modelHeaders}<th>${esc(t(lang, "settings.col.timeout"))}</th></tr></thead>${rows}</table>` +
     `<div class="configactions">` +
-    btn({
-      id: "settingsform-save",
-      label: t(lang, "list.checksSave"),
-      variant: "primary",
-      pending: t(lang, "list.checksSaving"),
-    }) +
-    btn({
-      id: "settingsform-cancel",
-      label: t(lang, "dialog.cancel"),
-      type: "button",
-      disabled: true,
-    }) +
+    btn({ id: "settingsform-save", label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") }) +
+    btn({ id: "settingsform-cancel", label: t(lang, "dialog.cancel"), type: "button", disabled: true }) +
     `</div></form>`;
   const open = resolveSettingsTab(opts.tab);
   const top = tabBar(SETTINGS_PANELS, SETTINGS_ROUTE, open, {}, "", { lang });
-  const panel =
-    open === "phases"
-      ? phasesPanel
-      : open === "providers"
-        ? providersTab(
-            {
-              providers: opts.providers,
-              statuses: opts.providerStatuses,
-              detail: opts.providerDetail,
-              now: Date.parse(generatedAt),
-            },
-            lang,
-          )
-        : open === "notifications"
-          ? notificationsPanel(opts.pushPublicKey, lang)
-          : opts.process
-            ? processPanel(opts.process, lang)
-            : "";
+  const panel = open === "phases"
+    ? phasesPanel
+    : open === "providers"
+      ? providersTab({ providers: opts.providers, statuses: opts.providerStatuses, detail: opts.providerDetail, now: Date.parse(generatedAt) }, lang)
+      : open === "notifications"
+        ? notificationsPanel(opts.pushPublicKey, lang)
+        : opts.process ? processPanel(opts.process, lang) : "";
   // `pageShell` wraps the body in `<main>`: a second one inside it takes
   // the frame's padding twice. The row sits directly in it, so page.css's
   // Settings rule centres it, and the panel after it.
   const body = `${back}${top}${panel}`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, {
-    script: opts.script,
-    hideHeading: true,
-    hideTabBar: true,
-    lang: opts.lang,
-    currentUrl: opts.currentUrl,
+    script: opts.script, hideHeading: true, hideTabBar: true, lang: opts.lang, currentUrl: opts.currentUrl,
   });
 }

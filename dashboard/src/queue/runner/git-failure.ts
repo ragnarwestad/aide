@@ -7,12 +7,7 @@
 // own English, with git's lines, stays the row's (?) detail.
 
 import type { Sentence } from "../../i18n/message.ts";
-import {
-  conflictFiles,
-  gitErrorSentence,
-  gitFetchSentence,
-  type GitError,
-} from "../../format/git-error.ts";
+import { conflictFiles, gitErrorSentence, gitFetchSentence, type GitError } from "../../format/git-error.ts";
 import type { StepOutcome } from "./types.ts";
 
 type Repo = "code" | "specs";
@@ -31,27 +26,16 @@ export interface Conflict {
   more: number;
 }
 
-const repoOf = (raw: unknown): Repo | undefined =>
-  raw === "code" || raw === "specs" ? raw : undefined;
-const text = (raw: unknown): string | undefined =>
-  typeof raw === "string" && raw.trim() ? raw.trim() : undefined;
+const repoOf = (raw: unknown): Repo | undefined => (raw === "code" || raw === "specs" ? raw : undefined);
+const text = (raw: unknown): string | undefined => (typeof raw === "string" && raw.trim() ? raw.trim() : undefined);
 
 /** One entry of `outcome.pushFailures`, read as defensively as any other
  *  field another process wrote: a kind the runner does not write, or a
  *  `refused`/`other` with no words, is nothing at all. */
 function gitErrorOf(r: Record<string, unknown>): GitError | undefined {
-  if (r.kind === "auth" || r.kind === "github" || r.kind === "none")
-    return { kind: r.kind };
+  if (r.kind === "auth" || r.kind === "github" || r.kind === "none") return { kind: r.kind };
   const message = text(r.message);
-  if (
-    (r.kind === "network" ||
-      r.kind === "no-write" ||
-      r.kind === "https-auth" ||
-      r.kind === "refused" ||
-      r.kind === "other") &&
-    message
-  )
-    return { kind: r.kind, message };
+  if ((r.kind === "network" || r.kind === "no-write" || r.kind === "https-auth" || r.kind === "refused" || r.kind === "other") && message) return { kind: r.kind, message };
   return undefined;
 }
 
@@ -73,12 +57,9 @@ export function conflictOf(raw: unknown): Conflict | undefined {
   const repo = repoOf(r.repo);
   const branch = text(r.branch);
   const base = text(r.base);
-  const files = Array.isArray(r.files)
-    ? r.files.filter((f): f is string => typeof f === "string" && f !== "")
-    : [];
+  const files = Array.isArray(r.files) ? r.files.filter((f): f is string => typeof f === "string" && f !== "") : [];
   if (!repo || !branch || !base || files.length === 0) return undefined;
-  const more =
-    typeof r.more === "number" && r.more > 0 ? Math.floor(r.more) : 0;
+  const more = typeof r.more === "number" && r.more > 0 ? Math.floor(r.more) : 0;
   return { repo, branch, base, files, more };
 }
 
@@ -88,45 +69,34 @@ export function conflictOf(raw: unknown): Conflict | undefined {
  *  same shape as one push failure): the repo, the base and why. A
  *  refusal for a conflict: the repo, the branch, the base and the files.
  *  Undefined for every other ending, or when the runner named none. */
-export function gitFailureMessage(
-  outcome: Partial<StepOutcome>,
-): Sentence | Sentence[] | undefined {
+export function gitFailureMessage(outcome: Partial<StepOutcome>): Sentence | Sentence[] | undefined {
   if (outcome.terminalReason === "unpushed") {
     const failed = pushFailures(outcome.pushFailures);
     if (failed.length === 0) return undefined;
-    const sentences = failed.map((f): Sentence => ({
-      key: f.repo === "code" ? "runner.notPushedCode" : "runner.notPushedSpecs",
-      values: { branch: f.branch },
-      inner: gitErrorSentence(f.error),
-    }));
+    const sentences = failed.map(
+      (f): Sentence => ({
+        key: f.repo === "code" ? "runner.notPushedCode" : "runner.notPushedSpecs",
+        values: { branch: f.branch },
+        inner: gitErrorSentence(f.error),
+      }),
+    );
     return sentences.length === 1 ? sentences[0] : sentences;
   }
-  if (
-    outcome.terminalReason === "refused" &&
-    outcome.fetchFailure !== undefined
-  ) {
+  if (outcome.terminalReason === "refused" && outcome.fetchFailure !== undefined) {
     const [f] = pushFailures([outcome.fetchFailure]);
     if (!f) return undefined;
     return {
-      key:
-        f.repo === "code" ? "runner.notFetchedCode" : "runner.notFetchedSpecs",
+      key: f.repo === "code" ? "runner.notFetchedCode" : "runner.notFetchedSpecs",
       values: { base: f.branch },
       inner: gitFetchSentence(f.error),
     };
   }
-  if (
-    outcome.terminalReason === "refused" &&
-    outcome.errorReason === "conflict"
-  ) {
+  if (outcome.terminalReason === "refused" && outcome.errorReason === "conflict") {
     const c = conflictOf(outcome.conflict);
     if (!c) return undefined;
     return {
       key: c.repo === "code" ? "runner.conflictCode" : "runner.conflictSpecs",
-      values: {
-        branch: c.branch,
-        base: c.base,
-        files: conflictFiles(c.files, c.more),
-      },
+      values: { branch: c.branch, base: c.base, files: conflictFiles(c.files, c.more) },
     };
   }
   return undefined;

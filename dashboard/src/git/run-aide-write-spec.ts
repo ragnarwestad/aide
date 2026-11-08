@@ -51,12 +51,7 @@ function resolveBin(): string {
   // puts the script: a bare name found nothing on the serving host, and
   // every tick from the Checks tab was refused (2026-09-02). The same
   // resolution install-after-merge.sh already hardcodes for bun.
-  const installed = join(
-    process.env.HOME || homedir(),
-    ".local",
-    "bin",
-    "aide-write-spec",
-  );
+  const installed = join(process.env.HOME || homedir(), ".local", "bin", "aide-write-spec");
   return existsSync(installed) ? installed : "aide-write-spec";
 }
 
@@ -66,11 +61,7 @@ function resolveBin(): string {
  *  the same "refuse, do not commit" shape every other write path here
  *  already returns — the caller decides what "refuse" means for its
  *  own commit. */
-export async function runAideWriteSpec(
-  folder: string,
-  file: string,
-  content: string,
-): Promise<AideWriteSpecResult> {
+export async function runAideWriteSpec(folder: string, file: string, content: string): Promise<AideWriteSpecResult> {
   const bin = resolveBin();
   let scratchDir: string | null = null;
   try {
@@ -85,15 +76,7 @@ export async function runAideWriteSpec(
     let proc;
     try {
       proc = Bun.spawn({
-        cmd: scriptArgv([
-          bin,
-          "--specs-root",
-          scratchDir,
-          "--folder",
-          folder,
-          "--file",
-          file,
-        ]),
+        cmd: scriptArgv([bin, "--specs-root", scratchDir, "--folder", folder, "--file", file]),
         stdin: "pipe",
         stdout: "pipe",
         stderr: "pipe",
@@ -113,10 +96,7 @@ export async function runAideWriteSpec(
     try {
       parsed = line ? JSON.parse(line) : {};
     } catch {
-      return {
-        ok: false,
-        error: `${bin} produced no readable result: ${stderr || stdout}`,
-      };
+      return { ok: false, error: `${bin} produced no readable result: ${stderr || stdout}` };
     }
     if (code !== 0 || !parsed.ok) {
       return { ok: false, error: parsed.error ?? `${bin} exited ${code}` };

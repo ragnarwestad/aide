@@ -28,8 +28,7 @@ const TOOL_TABS: Record<string, string> = {
 
 /** The name of `tool`'s own tab on the Settings page, or undefined for a
  *  tool that has none. */
-export const toolLabel = (tool: string | undefined): string | undefined =>
-  tool ? TOOL_TABS[tool] : undefined;
+export const toolLabel = (tool: string | undefined): string | undefined => (tool ? TOOL_TABS[tool] : undefined);
 
 /** The endings where "is this AI usable at all" is the live question.
  *  `cli-error` is the CLI itself failing rather than the work in it, and
@@ -65,15 +64,12 @@ export interface ToolFailure {
 /** The sentence, or undefined when there is nothing to name: a failure
  *  with neither a tool nor a model is not a tool failure, and wrapping
  *  it would say less than the original. */
-export function toolFailureSentence(
-  f: ToolFailure,
-): ReturnType<typeof errorSentence> | undefined {
+export function toolFailureSentence(f: ToolFailure): ReturnType<typeof errorSentence> | undefined {
   // An ending that is not about the AI keeps the step's own sentence
   // exactly as the script wrote it: "the step's own work did not reach
   // origin" is not improved by being told which model was running, and a
   // prefix on every failure is a prefix nobody reads.
-  if (!TOOL_LEVEL_ENDINGS.has(f.terminalReason ?? "") && !refusedForTheCli(f))
-    return undefined;
+  if (!TOOL_LEVEL_ENDINGS.has(f.terminalReason ?? "") && !refusedForTheCli(f)) return undefined;
   const label = f.tool ? (TOOL_TABS[f.tool] ?? f.tool) : undefined;
   if (!label && !f.model) return undefined;
 
@@ -82,9 +78,7 @@ export function toolFailureSentence(
   const on = label && f.model ? `${label} on ${f.model}` : (label ?? f.model);
 
   const said = f.error?.trim();
-  const what = said
-    ? `The step failed on ${on}: ${said}`
-    : `The step failed on ${on}.`;
+  const what = said ? `The step failed on ${on}: ${said}` : `The step failed on ${on}.`;
 
   // The tool is named only when it is known: sending a reader to "a
   // provider" without saying which tool is worse than not sending them.
@@ -99,15 +93,9 @@ export function toolFailureSentence(
  *  `errorLog`, and for a result without one — a refusal the board words
  *  (`fetchFailure`, `conflict`), a deploy, or a result from a runner that did
  *  not yet send it — the runner's own words, whole. */
-export function stepDetail(outcome: {
-  error?: unknown;
-  errorLog?: unknown;
-}): string | undefined {
-  if (typeof outcome.errorLog === "string" && outcome.errorLog.trim())
-    return outcome.errorLog;
-  return typeof outcome.error === "string" && outcome.error
-    ? outcome.error
-    : undefined;
+export function stepDetail(outcome: { error?: unknown; errorLog?: unknown }): string | undefined {
+  if (typeof outcome.errorLog === "string" && outcome.errorLog.trim()) return outcome.errorLog;
+  return typeof outcome.error === "string" && outcome.error ? outcome.error : undefined;
 }
 
 /** What a failed step's `error` and `errorDetail` should be, decided in
@@ -119,18 +107,9 @@ export function stepDetail(outcome: {
  *  the CLI's raw words only when there is neither. */
 export function stepFailure<M>(
   boardMessage: M | undefined,
-  outcome: {
-    error?: unknown;
-    errorLog?: unknown;
-    errorSolution?: unknown;
-    terminalReason?: string;
-    tool?: string;
-  },
+  outcome: { error?: unknown; errorLog?: unknown; errorSolution?: unknown; terminalReason?: string; tool?: string },
   model: string | undefined,
-): {
-  error: M | BoardMessage | string | undefined;
-  errorDetail: string | undefined;
-} {
+): { error: M | BoardMessage | string | undefined; errorDetail: string | undefined } {
   const said = stepDetail(outcome);
   if (boardMessage) return { error: boardMessage, errorDetail: said };
   const named = toolFailureSentence({
@@ -139,16 +118,8 @@ export function stepFailure<M>(
     model,
     terminalReason: outcome.terminalReason,
   });
-  if (named)
-    return {
-      error: writtenMessage(named.problem, named.solution),
-      errorDetail: named.title,
-    };
-  const fix =
-    typeof outcome.errorSolution === "string" && outcome.errorSolution
-      ? outcome.errorSolution
-      : undefined;
-  if (said && fix)
-    return { error: writtenMessage(said, fix), errorDetail: undefined };
+  if (named) return { error: writtenMessage(named.problem, named.solution), errorDetail: named.title };
+  const fix = typeof outcome.errorSolution === "string" && outcome.errorSolution ? outcome.errorSolution : undefined;
+  if (said && fix) return { error: writtenMessage(said, fix), errorDetail: undefined };
   return { error: said ?? outcome.terminalReason, errorDetail: undefined };
 }

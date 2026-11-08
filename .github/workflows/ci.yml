@@ -47,7 +47,7 @@ jobs:
         with:
           # The interpreter the repo's own .venv is built from (Homebrew's
           # python@3.14 on the developer's machine and the serving host).
-          python-version: "3.14"
+          python-version: '3.14'
       # The venv exists so the next line is the exact string CLAUDE.md
       # documents, rather than a bare `pytest` that runs the same tests
       # under a different name.

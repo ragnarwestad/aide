@@ -9,19 +9,13 @@ import { BranchStatusChecker } from "../../src/git/branch-status.ts";
 import type { GitRunner } from "../../src/git/branch-status.ts";
 import { BranchFileStepsChecker } from "../../src/git/branch-file-steps.ts";
 import {
-  DescriptionFreshnessChecker,
-  SpecCreatedAtChecker,
-  SpecFileCommitChecker,
+  DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
 } from "../../src/git/description-freshness.ts";
 import { WorkflowHistoryChecker } from "../../src/git/workflow-history.ts";
 import type { CheckoutEnsurer } from "../../src/git/checkout-ensurer.ts";
 import type { QueueStore } from "../../src/queue/queue.ts";
 import { createScheduleStore } from "../../src/queue/schedule-store.ts";
-import {
-  rereadProject,
-  warmSpec,
-  type ScheduleContext,
-} from "../../src/serve/schedules";
+import { rereadProject, warmSpec, type ScheduleContext } from "../../src/serve/schedules";
 import type { GitCall } from "../helpers/fake-git.ts";
 
 const WINDOW_MS = 60 * 60_000;
@@ -29,19 +23,14 @@ const WINDOW_MS = 60 * 60_000;
 const specs = [
   { project: "aide", specFolder: "10-first", dir: "/specs/aide/10-first" },
   { project: "aide", specFolder: "11-second", dir: "/specs/aide/11-second" },
-  {
-    project: "other",
-    specFolder: "20-elsewhere",
-    dir: "/specs/other/20-elsewhere",
-  },
+  { project: "other", specFolder: "20-elsewhere", dir: "/specs/other/20-elsewhere" },
 ];
 
 function context() {
   const calls: GitCall[] = [];
   const run: GitRunner = async (dir, args) => {
     calls.push({ dir, args });
-    if (args[0] === "log")
-      return { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" };
+    if (args[0] === "log") return { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" };
     return { code: 1, stdout: "" };
   };
   const history = new WorkflowHistoryChecker({ run, ttlMs: WINDOW_MS });
@@ -84,12 +73,7 @@ function context() {
 /** The history and freshness questions git was asked about one spec: the
  *  two the row's steps and its "plan is out of date" mark are drawn from. */
 const askedAbout = (calls: GitCall[], dir: string) =>
-  calls.filter(
-    (c) =>
-      c.dir === dir &&
-      c.args[0] === "log" &&
-      (c.args[1] === "--all" || c.args[1] === "-1"),
-  ).length;
+  calls.filter((c) => c.dir === dir && c.args[0] === "log" && (c.args[1] === "--all" || c.args[1] === "-1")).length;
 
 describe("rereadProject", () => {
   test("asks git again about every live spec of the project, and about no other project's, even inside the window (AC-2)", async () => {
@@ -100,15 +84,9 @@ describe("rereadProject", () => {
 
     await rereadProject(ctx, "aide");
 
-    expect(askedAbout(calls, "/specs/aide/10-first")).toBeGreaterThan(
-      before.get("/specs/aide/10-first")!,
-    );
-    expect(askedAbout(calls, "/specs/aide/11-second")).toBeGreaterThan(
-      before.get("/specs/aide/11-second")!,
-    );
-    expect(askedAbout(calls, "/specs/other/20-elsewhere")).toBe(
-      before.get("/specs/other/20-elsewhere")!,
-    );
+    expect(askedAbout(calls, "/specs/aide/10-first")).toBeGreaterThan(before.get("/specs/aide/10-first")!);
+    expect(askedAbout(calls, "/specs/aide/11-second")).toBeGreaterThan(before.get("/specs/aide/11-second")!);
+    expect(askedAbout(calls, "/specs/other/20-elsewhere")).toBe(before.get("/specs/other/20-elsewhere")!);
   });
 
   test("tells the open tabs exactly once, however many specs it read (AC-2)", async () => {

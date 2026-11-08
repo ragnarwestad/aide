@@ -25,14 +25,11 @@ export type GitError =
 
 const AUTH = /permission denied \(publickey/i;
 const NO_WRITE = /permission to \S+ denied|returned error: 403\b/i;
-const HTTPS_AUTH =
-  /authentication failed|could not read (username|password)|invalid username or password|returned error: 401\b/i;
+const HTTPS_AUTH = /authentication failed|could not read (username|password)|invalid username or password|returned error: 401\b/i;
 const GITHUB =
   /internal server error|returned error: 5[0-9][0-9]\b|http 5[0-9][0-9]\b|\b5[0-9][0-9] (bad gateway|service unavailable|gateway time-?out)|bad gateway|service unavailable|connection (reset|closed)|the remote end hung up unexpectedly/i;
-const NETWORK =
-  /could not resolve host|connection (timed out|refused)|operation timed out|network is unreachable|no route to host|temporary failure in name resolution/i;
-const REFUSED =
-  /\[(remote )?rejected\]|non-fast-forward|protected branch|\bGH[0-9]{3}\b|hook declined/i;
+const NETWORK = /could not resolve host|connection (timed out|refused)|operation timed out|network is unreachable|no route to host|temporary failure in name resolution/i;
+const REFUSED = /\[(remote )?rejected\]|non-fast-forward|protected branch|\bGH[0-9]{3}\b|hook declined/i;
 /** Lines that say nothing about why: where git pushed to, its hints, and
  *  the sentences it adds to every failure. */
 const NOT_THE_CAUSE =
@@ -67,9 +64,7 @@ export function gitError(said: string): GitError {
   const text = all.join("\n");
   if (AUTH.test(text)) return { kind: "auth" };
   const first =
-    all
-      .map((l) => l.replace(/^remote:\s*/, ""))
-      .find((l) => l.length > 0 && !NOT_THE_CAUSE.test(l)) ?? all[0]!;
+    all.map((l) => l.replace(/^remote:\s*/, "")).find((l) => l.length > 0 && !NOT_THE_CAUSE.test(l)) ?? all[0]!;
   const message = cut(
     first
       .replace(/^(! |error: |fatal: |ERROR: )/, "")
@@ -80,9 +75,7 @@ export function gitError(said: string): GitError {
   if (HTTPS_AUTH.test(text)) return { kind: "https-auth", message };
   if (GITHUB.test(text)) return { kind: "github" };
   if (NETWORK.test(text)) return { kind: "network", message };
-  return REFUSED.test(text)
-    ? { kind: "refused", message }
-    : { kind: "other", message };
+  return REFUSED.test(text) ? { kind: "refused", message } : { kind: "other", message };
 }
 
 /** Why a push failed, as the board's sentence: what happened, then what

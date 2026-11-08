@@ -1,57 +1,32 @@
 import { describe, expect, test } from "bun:test";
-import {
-  createEndedWithoutSpec,
-  createFailureReason,
-  isProvisionalKey,
-} from "../../src/queue/create-failure.ts";
+import { createEndedWithoutSpec, createFailureReason, isProvisionalKey } from "../../src/queue/create-failure.ts";
 import { parseCreateRequest } from "../../src/queue/parse-request.ts";
 import { DEFAULTS } from "../push/fixtures.ts";
 
 const KEY = "new-abc123de";
-const create = (over: Record<string, unknown> = {}) => ({
-  specFolder: KEY,
-  state: "failed",
-  ...over,
-});
+const create = (over: Record<string, unknown> = {}) => ({ specFolder: KEY, state: "failed", ...over });
 
 describe("a create that ended without a spec", () => {
   test.each(["failed", "stopped", "interrupted"])("%s is over", (state) => {
     expect(createEndedWithoutSpec(create({ state }))).toBe(true);
   });
 
-  test.each(["queued", "running", "cancelled", "done"])(
-    "%s is not a failure",
-    (state) => {
-      expect(createEndedWithoutSpec(create({ state }))).toBe(false);
-    },
-  );
+  test.each(["queued", "running", "cancelled", "done"])("%s is not a failure", (state) => {
+    expect(createEndedWithoutSpec(create({ state }))).toBe(false);
+  });
 
   test("a merge still under way is not over, whatever the state says", () => {
-    expect(
-      createEndedWithoutSpec(create({ state: "stopped", landing: true })),
-    ).toBe(false);
+    expect(createEndedWithoutSpec(create({ state: "stopped", landing: true }))).toBe(false);
   });
 
   test("its own merge failing while the job went on is a failure", () => {
-    expect(
-      createEndedWithoutSpec(
-        create({ state: "queued", landingError: "cannot fast-forward" }),
-      ),
-    ).toBe(true);
-    expect(
-      createEndedWithoutSpec(
-        create({ state: "queued", landingError: "x", landing: true }),
-      ),
-    ).toBe(false);
+    expect(createEndedWithoutSpec(create({ state: "queued", landingError: "cannot fast-forward" }))).toBe(true);
+    expect(createEndedWithoutSpec(create({ state: "queued", landingError: "x", landing: true }))).toBe(false);
   });
 
   test("a real spec folder never matches", () => {
-    expect(
-      createEndedWithoutSpec(create({ specFolder: "81-queue-and-runner" })),
-    ).toBe(false);
-    expect(
-      createEndedWithoutSpec(create({ specFolder: "schedule-weekly" })),
-    ).toBe(false);
+    expect(createEndedWithoutSpec(create({ specFolder: "81-queue-and-runner" }))).toBe(false);
+    expect(createEndedWithoutSpec(create({ specFolder: "schedule-weekly" }))).toBe(false);
   });
 });
 
@@ -75,16 +50,12 @@ describe("the provisional key", () => {
 
 describe("why a create ended", () => {
   test("the landing's record wins over the job's error", () => {
-    expect(
-      createFailureReason({ landingError: "merge failed", error: "held back" }),
-    ).toBe("merge failed");
+    expect(createFailureReason({ landingError: "merge failed", error: "held back" })).toBe("merge failed");
   });
   test("then the job's own error", () => {
     expect(createFailureReason({ error: "step failed" })).toBe("step failed");
   });
   test("with none, a generic sentence", () => {
-    expect(createFailureReason({})).toEqual({
-      key: "runner.createEndedNoReason",
-    });
+    expect(createFailureReason({})).toEqual({ key: "runner.createEndedNoReason" });
   });
 });

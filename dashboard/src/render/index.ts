@@ -20,27 +20,17 @@
 // inline CSS, no external references.
 
 export {
-  NEW_SPEC_ROUTE,
-  PROJECTS_ROUTE,
-  projectListBody,
+  NEW_SPEC_ROUTE, PROJECTS_ROUTE, projectListBody,
   navEntries,
   // `/projects/<name>` — the project's own page, served, so
   // what it says about the config file is true when it is read rather
   // than at some earlier time.
-  projectPagePath,
-  projectScheduleTab,
-  renderProjectPage,
+  projectPagePath, projectScheduleTab, renderProjectPage,
   renderProjectsPage,
   renderAddProjectPage,
   ADD_PROJECT_ROUTE,
 } from "./pages/projects-page";
-export type {
-  ProjectPageOptions,
-  ProjectView,
-  SpecView,
-  ProjectsPageOptions,
-  ProjectDrift,
-} from "./pages/projects-page";
+export type { ProjectPageOptions, ProjectView, SpecView, ProjectsPageOptions, ProjectDrift } from "./pages/projects-page";
 
 export { renderNewSpecPage } from "./pages/new-spec-page";
 export type { NewSpecPageOptions } from "./pages/new-spec-page";
@@ -50,99 +40,44 @@ export type { NavEntry } from "./ui/shell.ts";
 export { backLink, resolveBackHref } from "./ui/components";
 
 export {
-  OTHER_STEPS,
-  renderSettingsPage,
-  resolveSettingsTab,
-  SETTINGS_PANELS,
-  SETTINGS_ROUTE,
-  SETTINGS_STEPS,
-  SETTINGS_TABS,
-  settingsRowChoice,
-  SPEC_STEPS,
-  UNROWED_STEPS,
+  OTHER_STEPS, renderSettingsPage, resolveSettingsTab, SETTINGS_PANELS, SETTINGS_ROUTE, SETTINGS_STEPS,
+  SETTINGS_TABS, settingsRowChoice, SPEC_STEPS, UNROWED_STEPS,
 } from "./pages/settings-page";
 export type { SettingsPageOptions, SettingsPanel } from "./pages/settings-page";
 export {
-  CHECKABLE_TOOLS,
-  stamp,
-  TOOL_TAB_LABELS,
-  usageBlock,
+  CHECKABLE_TOOLS, stamp, TOOL_TAB_LABELS, usageBlock,
 } from "./pages/settings-page/tools.ts";
 export { installationBlock } from "./pages/settings-page/installation.ts";
 export {
-  PROVIDERS_ADD_ROUTE,
-  PROVIDERS_EDIT_ROUTE,
-  PROVIDERS_REMOVE_ROUTE,
-  PROVIDERS_SWITCH_ROUTE,
-  PROVIDER_EDIT_PATH,
-  PROVIDER_NEW_PATH,
-  PROVIDERS_TAB_PATH,
-  providerEditPath,
+  PROVIDERS_ADD_ROUTE, PROVIDERS_EDIT_ROUTE, PROVIDERS_REMOVE_ROUTE, PROVIDERS_SWITCH_ROUTE,
+  PROVIDER_EDIT_PATH, PROVIDER_NEW_PATH, PROVIDERS_TAB_PATH, providerEditPath,
 } from "./pages/settings-page/providers.ts";
 export type { ProviderStatus } from "./pages/settings-page/providers.ts";
-export type {
-  CheckableTool,
-  ExtraCheck,
-  ToolCheck,
-} from "./pages/settings-page/tools.ts";
+export type { CheckableTool, ExtraCheck, ToolCheck } from "./pages/settings-page/tools.ts";
 export { usageView } from "./pages/settings-page/usage.ts";
-export type {
-  ToolUsage,
-  UsageView,
-  UsageWindow,
-} from "./pages/settings-page/usage.ts";
+export type { ToolUsage, UsageView, UsageWindow } from "./pages/settings-page/usage.ts";
 export {
-  choiceModel,
-  choiceOf,
-  modelLists,
-  modelsBlock,
-  MODELS_ADD_ROUTE,
-  MODELS_REMOVE_ROUTE,
-  sameModel,
+  choiceModel, choiceOf, modelLists, modelsBlock, MODELS_ADD_ROUTE, MODELS_REMOVE_ROUTE, sameModel,
 } from "./pages/settings-page/models.ts";
-export type {
-  ModelsPanel,
-  OfferedModel,
-  ToolModels,
-} from "./pages/settings-page/models.ts";
+export type { ModelsPanel, OfferedModel, ToolModels } from "./pages/settings-page/models.ts";
 
 // /test-servers: every tracked test server,
 // across every project, in one place.
-export {
-  renderTestServersPage,
-  TEST_SERVERS_ROUTE,
-} from "./pages/test-servers-page.ts";
-export type {
-  TestServerRow,
-  TestServersPageOptions,
-} from "./pages/test-servers-page.ts";
+export { renderTestServersPage, TEST_SERVERS_ROUTE } from "./pages/test-servers-page.ts";
+export type { TestServerRow, TestServersPageOptions } from "./pages/test-servers-page.ts";
 
 // /schedule: the aggregate page listing every allowed
 // project's scheduled jobs, an entry's own page, and the page that
 // makes an entry.
 export {
-  renderSchedulePage,
-  renderScheduleDetailPage,
-  renderScheduleNewPage,
-  NEW_SCHEDULE_DEFAULTS,
-  scheduleNewPath,
-  renderReportPanel,
-  buildReportDocument,
-  SCHEDULE_ROUTE,
-  SCHEDULE_TABS,
-  schedulePagePath,
-  schedulePromptPath,
-  scheduleRunPath,
-  scheduleSettingsPath,
-  scheduleTabPath,
-  renderProposalsPanel,
-  renderSchedulePromptPage,
+  renderSchedulePage, renderScheduleDetailPage, renderScheduleNewPage,
+  NEW_SCHEDULE_DEFAULTS, scheduleNewPath,
+  renderReportPanel, buildReportDocument,
+  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, schedulePromptPath, scheduleRunPath, scheduleSettingsPath,
+  scheduleTabPath, renderProposalsPanel, renderSchedulePromptPage,
 } from "./pages/schedule-page";
 export type {
-  SchedulePageOptions,
-  SchedulePageRow,
-  ScheduleDetailPageOptions,
-  SchedulePromptPageOptions,
+  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, SchedulePromptPageOptions,
 } from "./pages/schedule-page";
 
 // The eight answers that make the dashboard an app you install.
@@ -165,55 +100,26 @@ export {
   WEBMANIFEST,
 } from "./ui/pwa.ts";
 
+
 // `stepBoxes` and `specSummary` used to be exported alongside these
 // two. They are internal now: both take a spec ROW rather than a
 // target, and a row is an internal shape with no caller outside
 // specs-list.ts.
 export {
-  ACTIVE_FILTER_KEY,
-  ARCHIVED_STATE,
-  FILTER_KEYS,
-  PHASE_LINES,
-  computeSpecTotalDurationMs,
-  filterShowsArchived,
-  NOT_VERIFIED_KEY,
-  parsePhaseKeys,
-  phaseKey,
-  phasePips,
-  phasesFor,
-  renderSpecGroupRows,
-  renderSpecsPage,
-  renderSpecsPageHead,
-  renderSpecsPageRest,
-  renderSpecsRows,
+  ACTIVE_FILTER_KEY, ARCHIVED_STATE, FILTER_KEYS, PHASE_LINES, computeSpecTotalDurationMs,
+  filterShowsArchived, NOT_VERIFIED_KEY, parsePhaseKeys, phaseKey, phasePips, phasesFor, renderSpecGroupRows, renderSpecsPage, renderSpecsPageHead,
+  renderSpecsPageRest, renderSpecsRows,
 } from "./pages/specs-list";
 export type {
-  ArchivedSpecView,
-  Phase,
-  PhaseMessages,
-  SpecsFilter,
-  SpecsPageOptions,
-  SpecTarget,
+  ArchivedSpecView, Phase, PhaseMessages, SpecsFilter, SpecsPageOptions, SpecTarget,
 } from "./pages/specs-list";
 
 export type { QueueRowView, SideRunView, StepResultView } from "./ui/job-state";
 
 export { renderJobDetailPage, renderJobFollowParts } from "./pages/job-page";
-export {
-  jobsShown,
-  jobsTabHasRows,
-  renderJobsPage,
-  renderJobsRows,
-  renderJobsSpecRows,
-  scheduleStreamKey,
-} from "./pages/jobs-page";
+export { jobsShown, jobsTabHasRows, renderJobsPage, renderJobsRows, renderJobsSpecRows, scheduleStreamKey } from "./pages/jobs-page";
 export type { JobsView } from "./pages/jobs-page";
-export type {
-  JobDetailView,
-  JobStepResultView,
-  JobTab,
-  SpecFileView,
-} from "./pages/job-page";
+export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./pages/job-page";
 
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs.
 // It shares the job page's tab bar and steps table rather than
@@ -233,10 +139,4 @@ export {
   specPagePath,
   specTabPath,
 } from "./pages/spec-page";
-export type {
-  ListView,
-  SpecCheckView,
-  SpecChecksView,
-  SpecPageView,
-  SpecStepsView,
-} from "./pages/spec-page";
+export type { ListView, SpecCheckView, SpecChecksView, SpecPageView, SpecStepsView } from "./pages/spec-page";

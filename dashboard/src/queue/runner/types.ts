@@ -4,18 +4,7 @@
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import type { ResultTool } from "../providers/tools.ts";
-import type {
-  BranchRef,
-  ContextUse,
-  Job,
-  ProviderLimit,
-  QueueStore,
-  SharedFiles,
-  StepRepoRange,
-  TestedGreen,
-  TokenUsage,
-  WorkflowStep,
-} from "../queue.ts";
+import type { BranchRef, ContextUse, Job, ProviderLimit, QueueStore, SharedFiles, StepRepoRange, TestedGreen, TokenUsage, WorkflowStep } from "../queue.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -229,13 +218,7 @@ export interface RunnerOptions {
 export function tokenUsage(raw: unknown): TokenUsage | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  const keys = [
-    "input",
-    "output",
-    "cacheRead",
-    "cacheCreation",
-    "total",
-  ] as const;
+  const keys = ["input", "output", "cacheRead", "cacheCreation", "total"] as const;
   if (keys.some((k) => typeof r[k] !== "number")) return undefined;
   return {
     input: r.input as number,
@@ -253,13 +236,7 @@ export function contextUse(raw: unknown): ContextUse | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
   const out: ContextUse = {};
-  for (const key of [
-    "fullest",
-    "beforeChecks",
-    "window",
-    "fullestPercent",
-    "beforeChecksPercent",
-  ] as const) {
+  for (const key of ["fullest", "beforeChecks", "window", "fullestPercent", "beforeChecksPercent"] as const) {
     const v = r[key];
     if (typeof v === "number" && Number.isFinite(v) && v >= 0) out[key] = v;
   }
@@ -278,16 +255,8 @@ export function stepRepoRanges(raw: unknown): StepRepoRange[] | undefined {
   for (const entry of raw) {
     if (entry === null || typeof entry !== "object") continue;
     const r = entry as Record<string, unknown>;
-    if (
-      typeof r.root === "string" &&
-      typeof r.headBefore === "string" &&
-      typeof r.headAfter === "string"
-    ) {
-      out.push({
-        root: r.root,
-        headBefore: r.headBefore,
-        headAfter: r.headAfter,
-      });
+    if (typeof r.root === "string" && typeof r.headBefore === "string" && typeof r.headAfter === "string") {
+      out.push({ root: r.root, headBefore: r.headBefore, headAfter: r.headAfter });
     }
   }
   return out;
@@ -299,13 +268,8 @@ export function stepRepoRanges(raw: unknown): StepRepoRange[] | undefined {
 export function testedGreen(raw: unknown): TestedGreen | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  if (typeof r.tree !== "string" || !/^[0-9a-f]{40,64}$/.test(r.tree))
-    return undefined;
-  if (
-    !Array.isArray(r.commands) ||
-    r.commands.length === 0 ||
-    !r.commands.every((c) => typeof c === "string")
-  ) {
+  if (typeof r.tree !== "string" || !/^[0-9a-f]{40,64}$/.test(r.tree)) return undefined;
+  if (!Array.isArray(r.commands) || r.commands.length === 0 || !r.commands.every((c) => typeof c === "string")) {
     return undefined;
   }
   return { tree: r.tree, commands: r.commands as string[] };
@@ -319,23 +283,14 @@ export function testedGreen(raw: unknown): TestedGreen | undefined {
 export function providerLimit(raw: unknown): ProviderLimit | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  if (typeof r.tool !== "string" || typeof r.window !== "string")
-    return undefined;
-  const text = (v: unknown): string | undefined =>
-    typeof v === "string" && v !== "" ? v : undefined;
+  if (typeof r.tool !== "string" || typeof r.window !== "string") return undefined;
+  const text = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
   const windows = Array.isArray(r.windows)
     ? r.windows.flatMap((w) => {
         if (w === null || typeof w !== "object") return [];
         const x = w as Record<string, unknown>;
-        if (typeof x.name !== "string" || typeof x.usedPercent !== "number")
-          return [];
-        return [
-          {
-            name: x.name,
-            usedPercent: x.usedPercent,
-            ...(text(x.resetsAt) ? { resetsAt: text(x.resetsAt) } : {}),
-          },
-        ];
+        if (typeof x.name !== "string" || typeof x.usedPercent !== "number") return [];
+        return [{ name: x.name, usedPercent: x.usedPercent, ...(text(x.resetsAt) ? { resetsAt: text(x.resetsAt) } : {}) }];
       })
     : undefined;
   return {
@@ -356,20 +311,8 @@ export function sharedFiles(raw: unknown): SharedFiles[] | undefined {
   const specs = raw.flatMap((e) => {
     if (e === null || typeof e !== "object") return [];
     const r = e as Record<string, unknown>;
-    const files = Array.isArray(r.files)
-      ? r.files.filter((f): f is string => typeof f === "string" && f !== "")
-      : [];
-    return typeof r.spec === "string" && r.spec !== "" && files.length
-      ? [
-          {
-            spec: r.spec,
-            files,
-            ...(typeof r.reason === "string" && r.reason.trim()
-              ? { reason: r.reason.trim() }
-              : {}),
-          },
-        ]
-      : [];
+    const files = Array.isArray(r.files) ? r.files.filter((f): f is string => typeof f === "string" && f !== "") : [];
+    return typeof r.spec === "string" && r.spec !== "" && files.length ? [{ spec: r.spec, files, ...(typeof r.reason === "string" && r.reason.trim() ? { reason: r.reason.trim() } : {}) }] : [];
   });
   return specs.length ? specs : undefined;
 }
@@ -378,13 +321,7 @@ export function sharedFiles(raw: unknown): SharedFiles[] | undefined {
  *  why the runner's test recorder did not run it (`run-spec/turn/step-tests.sh`). */
 export type TestsNotStarted =
   | { kind: "test-command-unresolved" }
-  | {
-      kind: "port-in-use";
-      port: number;
-      command?: string;
-      line?: string;
-      holder?: { pid: number; command?: string; spec?: string };
-    }
+  | { kind: "port-in-use"; port: number; command?: string; line?: string; holder?: { pid: number; command?: string; spec?: string } }
   | { kind: "server-timeout"; ms?: number; command?: string; line?: string }
   | { kind: "server-exited"; command?: string; line?: string }
   | { kind: "spec-folder-missing"; folder: string }
@@ -396,55 +333,26 @@ export type TestsNotStarted =
 export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  const num = (v: unknown): number | undefined =>
-    typeof v === "number" && Number.isFinite(v) ? v : undefined;
-  const text = (v: unknown): string | undefined =>
-    typeof v === "string" && v !== "" ? v : undefined;
-  if (r.kind === "test-command-unresolved")
-    return { kind: "test-command-unresolved" };
+  const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+  const text = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+  if (r.kind === "test-command-unresolved") return { kind: "test-command-unresolved" };
   if (r.kind === "port-in-use") {
     const port = num(r.port);
     if (port === undefined) return undefined;
-    const h =
-      r.holder !== null && typeof r.holder === "object"
-        ? (r.holder as Record<string, unknown>)
-        : undefined;
+    const h = r.holder !== null && typeof r.holder === "object" ? (r.holder as Record<string, unknown>) : undefined;
     const pid = num(h?.pid);
     const holder =
       pid === undefined
         ? undefined
-        : {
-            pid,
-            ...(text(h?.command) ? { command: text(h?.command) } : {}),
-            ...(text(h?.spec) ? { spec: text(h?.spec) } : {}),
-          };
-    return {
-      kind: "port-in-use",
-      port,
-      ...(text(r.command) ? { command: text(r.command) } : {}),
-      ...(text(r.line) ? { line: text(r.line) } : {}),
-      ...(holder ? { holder } : {}),
-    };
+        : { pid, ...(text(h?.command) ? { command: text(h?.command) } : {}), ...(text(h?.spec) ? { spec: text(h?.spec) } : {}) };
+    return { kind: "port-in-use", port, ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}), ...(holder ? { holder } : {}) };
   }
-  if (r.kind === "server-timeout")
-    return {
-      kind: "server-timeout",
-      ...(num(r.ms) !== undefined ? { ms: num(r.ms) } : {}),
-      ...(text(r.command) ? { command: text(r.command) } : {}),
-      ...(text(r.line) ? { line: text(r.line) } : {}),
-    };
-  if (r.kind === "server-exited")
-    return {
-      kind: "server-exited",
-      ...(text(r.command) ? { command: text(r.command) } : {}),
-      ...(text(r.line) ? { line: text(r.line) } : {}),
-    };
+  if (r.kind === "server-timeout") return { kind: "server-timeout", ...(num(r.ms) !== undefined ? { ms: num(r.ms) } : {}), ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}) };
+  if (r.kind === "server-exited") return { kind: "server-exited", ...(text(r.command) ? { command: text(r.command) } : {}), ...(text(r.line) ? { line: text(r.line) } : {}) };
   const folder = text(r.folder);
-  if (r.kind === "spec-folder-missing" && folder)
-    return { kind: "spec-folder-missing", folder };
+  if (r.kind === "spec-folder-missing" && folder) return { kind: "spec-folder-missing", folder };
   const error = text(r.error);
-  if (r.kind === "recorder-failed" && error)
-    return { kind: "recorder-failed", error };
+  if (r.kind === "recorder-failed" && error) return { kind: "recorder-failed", error };
   return undefined;
 }
 
@@ -466,35 +374,21 @@ export interface TestsRed {
 export function testsRed(raw: unknown): TestsRed | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  const num = (v: unknown): number | undefined =>
-    typeof v === "number" && Number.isFinite(v) ? v : undefined;
+  const num = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
   // Each test is paired with its error before a nameless one is dropped,
   // so dropping it never shifts the errors of the tests after it.
-  const named = (
-    names: unknown,
-    errs: unknown,
-  ): { names: string[]; errors: string[] } => {
+  const named = (names: unknown, errs: unknown): { names: string[]; errors: string[] } => {
     const all = Array.isArray(names) ? names : [];
-    const aligned =
-      Array.isArray(errs) &&
-      errs.length === all.length &&
-      errs.every((v) => typeof v === "string")
-        ? (errs as string[])
-        : undefined;
-    const kept = all.flatMap((t, i) =>
-      typeof t === "string" && t !== "" ? [{ t, e: aligned?.[i] ?? "" }] : [],
-    );
+    const aligned = Array.isArray(errs) && errs.length === all.length && errs.every((v) => typeof v === "string")
+      ? errs as string[] : undefined;
+    const kept = all.flatMap((t, i) => (typeof t === "string" && t !== "" ? [{ t, e: aligned?.[i] ?? "" }] : []));
     return { names: kept.map((k) => k.t), errors: kept.map((k) => k.e) };
   };
   const { names: tests, errors } = named(r.tests, r.errors);
   const failed = num(r.failed);
-  const { names: passedAlone, errors: passedAloneErrors } = named(
-    r.passedAlone,
-    r.passedAloneErrors,
-  );
+  const { names: passedAlone, errors: passedAloneErrors } = named(r.passedAlone, r.passedAloneErrors);
   const passedAloneCount = num(r.passedAloneCount) ?? passedAlone.length;
-  if ((!tests.length && !passedAlone.length) || failed === undefined)
-    return undefined;
+  if ((!tests.length && !passedAlone.length) || failed === undefined) return undefined;
   const total = num(r.total);
   return {
     ...(num(r.attempts) !== undefined ? { attempts: num(r.attempts) } : {}),
@@ -513,10 +407,7 @@ export function testsRed(raw: unknown): TestsRed | undefined {
  *  provider's own side failed, `other` for anything else, which carries
  *  the provider's own first line as `message`. */
 export type ProviderError =
-  | {
-      kind: "login" | "forbidden" | "network" | "provider" | "other";
-      message: string;
-    }
+  | { kind: "login" | "forbidden" | "network" | "provider" | "other"; message: string }
   | { kind: "silent" };
 
 /** `outcome.providerError`, read as defensively as `testsRed`: a kind the
@@ -525,15 +416,8 @@ export function providerError(raw: unknown): ProviderError | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
   if (r.kind === "silent") return { kind: "silent" };
-  if (
-    (r.kind === "login" ||
-      r.kind === "forbidden" ||
-      r.kind === "network" ||
-      r.kind === "provider" ||
-      r.kind === "other") &&
-    typeof r.message === "string" &&
-    r.message.trim()
-  ) {
+  if ((r.kind === "login" || r.kind === "forbidden" || r.kind === "network" || r.kind === "provider" || r.kind === "other")
+      && typeof r.message === "string" && r.message.trim()) {
     return { kind: r.kind, message: r.message.trim() };
   }
   return undefined;
@@ -548,12 +432,7 @@ export interface TimeLimit {
 export function timeLimit(raw: unknown): TimeLimit | undefined {
   if (raw === null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  if (
-    typeof r.seconds !== "number" ||
-    !Number.isFinite(r.seconds) ||
-    r.seconds <= 0
-  )
-    return undefined;
+  if (typeof r.seconds !== "number" || !Number.isFinite(r.seconds) || r.seconds <= 0) return undefined;
   if (r.during !== "session" && r.during !== "tests") return undefined;
   return { seconds: r.seconds, during: r.during };
 }
@@ -563,3 +442,4 @@ export function timeLimit(raw: unknown): TimeLimit | undefined {
 export function modelIdOf(raw: unknown): string | undefined {
   return typeof raw === "string" && raw ? raw : undefined;
 }
+

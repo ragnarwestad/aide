@@ -12,24 +12,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import {
-  SPEC,
-  SAVE,
-  DESCRIPTION_TAB,
-  FILE_SHA,
-  DESCRIPTION,
-  NEW_TEXT,
-  ARCHIVED,
-  ARCHIVED_TEXT,
-  createSpecSaveHarness,
-  fillAnalysisAndSolution,
-  specFilePath,
-  descriptionPath,
-  archivedDescriptionPath,
-  savable,
-  post,
-  answer,
-} from "./spec-save-fixtures.ts";
+import { SPEC, SAVE, DESCRIPTION_TAB, FILE_SHA, DESCRIPTION, NEW_TEXT, ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, fillAnalysisAndSolution, specFilePath, descriptionPath, archivedDescriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 
 const { harness, start, startArchived } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -50,9 +33,7 @@ afterEach(() => harness.cleanup());
 describe("POST the Save action", () => {
   test("writes the file, commits it and pushes it", async () => {
     const { base, dir } = start(savable("/host"));
-    const { status, body } = await answer(
-      await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.changed).toBe(true);
@@ -62,12 +43,8 @@ describe("POST the Save action", () => {
   // Its own branch in the save, and its own answer: no empty commit,
   // nothing pushed, and the answer is still a success.
   test("text identical to what is committed commits nothing", async () => {
-    const { base, dir } = start(
-      savable("/host", { "diff --cached --quiet HEAD": { code: 0 } }),
-    );
-    const { status, body } = await answer(
-      await post(base, { text: DESCRIPTION, baseSha: FILE_SHA }),
-    );
+    const { base, dir } = start(savable("/host", { "diff --cached --quiet HEAD": { code: 0 } }));
+    const { status, body } = await answer(await post(base, { text: DESCRIPTION, baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.changed).toBe(false);
@@ -82,20 +59,11 @@ describe("POST the Save action", () => {
     const { base, dir } = start(savable("/host"));
     const queued = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-      },
-      body: JSON.stringify({
-        project: "aide",
-        specFolder: SPEC,
-        steps: ["analyze"],
-      }),
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"] }),
     });
     expect(queued.status).toBe(200);
-    const { status, body } = await answer(
-      await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
     expect(status).toBe(409);
     expect(body.error).toContain("another job for this spec is still running");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
@@ -106,35 +74,24 @@ describe("POST the Save action", () => {
 
 describe("a save that cannot go through changes nothing", () => {
   for (const [what, extra, expected] of [
-    [
-      "uncommitted changes in the checkout",
-      { "diff --quiet HEAD": { code: 1 } },
-      "uncommitted",
-    ],
+    ["uncommitted changes in the checkout", { "diff --quiet HEAD": { code: 1 } }, "uncommitted"],
     [
       "a checkout parked on a spec branch",
       { "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/162-edit\n" } },
       "aide/162-edit",
     ],
-    [
-      "a checkout that has diverged",
-      { "merge-base --is-ancestor": { code: 1 } },
-      "fast-forward",
-    ],
+    ["a checkout that has diverged", { "merge-base --is-ancestor": { code: 1 } }, "fast-forward"],
     ["an unreachable origin", { fetch: { code: 128 } }, "origin"],
-    ["a push that fails", { push: { code: 1 } }, "push"],
+    ["both push attempts fail", { push: { code: 1 }, rebase: { code: 0 } }, "push"],
   ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
     test(`${what}: refused with the reason`, async () => {
       const { base, dir } = start(savable("/host", extra));
-      const { status, body } = await answer(
-        await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }),
-      );
+      const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
       expect(status).toBe(400);
       expect(body.error).toContain(expected);
       // A refused push is rolled back by git, which is mocked here — so
       // the bytes are only asserted for the refusals that never write.
-      if (!("push" in extra))
-        expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
+      if (!("push" in extra)) expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
     });
   }
 
@@ -142,9 +99,7 @@ describe("a save that cannot go through changes nothing", () => {
   // while an analyze step lands a new version of the very file.
   test("a description that moved under the editor is refused, not merged and not clobbered", async () => {
     const { base, dir } = start(savable("/host"));
-    const { status, body } = await answer(
-      await post(base, { text: NEW_TEXT, baseSha: "0000000ffffff" }),
-    );
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: "0000000ffffff" }));
     expect(status).toBe(400);
     expect(body.error).toContain("changed since");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
@@ -153,12 +108,8 @@ describe("a save that cannot go through changes nothing", () => {
   // The refusal comes back in the answer, and the page drawn afterwards
   // holds what is actually on disk, not the text that was refused.
   test("the reason comes back in the answer, and the editor still holds the text on disk", async () => {
-    const { base } = start(
-      savable("/host", { "diff --quiet HEAD": { code: 1 } }),
-    );
-    const { body } = await answer(
-      await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }),
-    );
+    const { base } = start(savable("/host", { "diff --quiet HEAD": { code: 1 } }));
+    const { body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
     expect(body.error).toContain("uncommitted");
     const html = await (await fetch(`${base}${DESCRIPTION_TAB}`)).text();
     expect(html).toContain("As it was.");
@@ -167,9 +118,7 @@ describe("a save that cannot go through changes nothing", () => {
 
   test("a body with no text field at all is refused rather than emptying the file", async () => {
     const { base, dir } = start(savable("/host"));
-    const { status, body } = await answer(
-      await post(base, { baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await post(base, { baseSha: FILE_SHA }));
     expect(status).toBe(400);
     expect(body.error).toBeTruthy();
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
@@ -177,15 +126,7 @@ describe("a save that cannot go through changes nothing", () => {
 
   test("a spec nobody has cannot be saved to, and GET is not a save", async () => {
     const { base } = start(savable("/host"));
-    expect(
-      (
-        await post(
-          base,
-          { text: NEW_TEXT },
-          `/api/queue/specs/aide/99-no-such/save`,
-        )
-      ).status,
-    ).toBe(404);
+    expect((await post(base, { text: NEW_TEXT }, `/api/queue/specs/aide/99-no-such/save`)).status).toBe(404);
     expect((await fetch(`${base}${SAVE}`)).status).toBe(405);
   });
 });
@@ -199,16 +140,13 @@ describe("a save that cannot go through changes nothing", () => {
 // route — carries a cap of its own.
 
 describe("the size of a real description", () => {
-  const long = (bytes: number) =>
-    `# Queue and runner - Description\n\n${"a lorem ipsum line.\n".repeat(Math.ceil(bytes / 20))}`;
+  const long = (bytes: number) => `# Queue and runner - Description\n\n${"a lorem ipsum line.\n".repeat(Math.ceil(bytes / 20))}`;
 
   test("a description well over the 4096-byte action cap is saved, not refused", async () => {
     const { base, dir } = start(savable("/host"));
     const text = long(5000);
     expect(text.length).toBeGreaterThan(4096);
-    const { status, body } = await answer(
-      await post(base, { text, baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await post(base, { text, baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(text);
@@ -225,16 +163,8 @@ describe("the size of a real description", () => {
     const { base } = start(savable("/host"));
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-      },
-      body: JSON.stringify({
-        project: "aide",
-        specFolder: SPEC,
-        steps: ["analyze"],
-        note: "x".repeat(5000),
-      }),
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze"], note: "x".repeat(5000) }),
     });
     expect(res.status).toBe(413);
   });
@@ -249,9 +179,7 @@ describe("the description's bound", () => {
   test("a description of 10,000 characters is saved (AC-1)", async () => {
     const { base, dir } = start(savable("/host"));
     const text = withDescription(10_000);
-    const { status, body } = await answer(
-      await post(base, { text, baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await post(base, { text, baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(text);
@@ -259,9 +187,7 @@ describe("the description's bound", () => {
 
   test("one of 10,001 is refused with a sentence naming 10000, and the file is unchanged (AC-1, AC-6)", async () => {
     const { base, dir } = start(savable("/host"));
-    const { status, body } = await answer(
-      await post(base, { text: withDescription(10_001), baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await post(base, { text: withDescription(10_001), baseSha: FILE_SHA }));
     expect(status).toBe(400);
     expect(body.error).toContain("10000");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
@@ -271,14 +197,10 @@ describe("the description's bound", () => {
     const { base, dir } = start(savable("/host"));
     fillAnalysisAndSolution(dir);
     const text = `# Q - Analysis\n\n## Description\n\n${"x".repeat(10_500)}\n`;
-    const { status, body } = await answer(
-      await post(base, { text, baseSha: FILE_SHA, file: "2-analysis.md" }),
-    );
+    const { status, body } = await answer(await post(base, { text, baseSha: FILE_SHA, file: "2-analysis.md" }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(readFileSync(specFilePath(dir, "2-analysis.md"), "utf-8")).toBe(
-      text,
-    );
+    expect(readFileSync(specFilePath(dir, "2-analysis.md"), "utf-8")).toBe(text);
   });
 });
 
@@ -352,23 +274,14 @@ describe("two specs sharing one checkout", () => {
 
     const first = post(base, { text: NEW_TEXT, baseSha: FILE_SHA });
     await firstIsInside;
-    const second = post(
-      base,
-      { text: NEW_TEXT, baseSha: FILE_SHA },
-      `/api/queue/specs/aide/${OTHER}/save`,
-    );
+    const second = post(base, { text: NEW_TEXT, baseSha: FILE_SHA }, `/api/queue/specs/aide/${OTHER}/save`);
     // Long enough for an unserialized second request to have started
     // its own sequence — which is exactly what the old lock key let it do.
     await Bun.sleep(60);
     expect(order).toEqual([`start ${SPEC}`]);
     release();
     await Promise.all([first, second]);
-    expect(order).toEqual([
-      `start ${SPEC}`,
-      `end ${SPEC}`,
-      `start ${OTHER}`,
-      `end ${OTHER}`,
-    ]);
+    expect(order).toEqual([`start ${SPEC}`, `end ${SPEC}`, `start ${OTHER}`, `end ${OTHER}`]);
   });
 });
 
@@ -377,18 +290,10 @@ describe("two specs sharing one checkout", () => {
 describe("POST the Save action against an archived spec", () => {
   test("writes nothing, and says why", async () => {
     const { base, dir } = startArchived(savable("/host"));
-    const { status, body } = await answer(
-      await post(
-        base,
-        { text: NEW_TEXT, baseSha: FILE_SHA },
-        `/api/queue/specs/aide/${ARCHIVED}/save`,
-      ),
-    );
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }, `/api/queue/specs/aide/${ARCHIVED}/save`));
     expect(status).toBe(400);
     expect(body.error).toContain("archived");
-    expect(readFileSync(archivedDescriptionPath(dir), "utf-8")).toBe(
-      ARCHIVED_TEXT,
-    );
+    expect(readFileSync(archivedDescriptionPath(dir), "utf-8")).toBe(ARCHIVED_TEXT);
   });
 });
 
@@ -405,9 +310,7 @@ describe("POST the Save action against an archived spec", () => {
 
 describe("the editor client disables Toast UI Editor's telemetry", () => {
   test("spec-editor/index.ts's own source sets usageStatistics: false", async () => {
-    const source = await Bun.file(
-      new URL("../../src/spec-editor/index.ts", import.meta.url),
-    ).text();
+    const source = await Bun.file(new URL("../../src/spec-editor/index.ts", import.meta.url)).text();
     expect(source).toContain("usageStatistics: false");
   });
 });

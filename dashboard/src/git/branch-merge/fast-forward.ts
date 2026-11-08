@@ -1,12 +1,6 @@
 import type { GitRunner } from "../branch-status.ts";
 import { refuse, type RepoMergeResult } from "./result.ts";
-import {
-  GIT_LOCKED,
-  LOCK_RETRIES,
-  LOCK_WAIT_MS,
-  sleep,
-  type Wait,
-} from "./retry.ts";
+import { GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, sleep, type Wait } from "./retry.ts";
 
 /** Bring `base` in `root` level with what origin has — no feature
  *  branch involved. This is steps 2-3 of `mergeBranchIntoDefault`
@@ -28,25 +22,15 @@ export async function fastForwardToOrigin(
     const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
     const on = current.stdout.trim();
     if (current.code !== 0 || on !== base) {
-      return refuse(root, base, {
-        key: "landing.deployWrongBranch",
-        values: { on: on || "an unknown branch", base },
-      });
+      return refuse(
+        root,
+        base,
+        { key: "landing.deployWrongBranch", values: { on: on || "an unknown branch", base } },
+      );
     }
     await run(root, ["fetch", "--quiet", "origin", base]);
-    let pulled = await run(root, [
-      "merge",
-      "-q",
-      "--ff-only",
-      `origin/${base}`,
-    ]);
-    for (
-      let n = 0;
-      pulled.code !== 0 &&
-      GIT_LOCKED.test(pulled.stderr ?? "") &&
-      n < LOCK_RETRIES;
-      n++
-    ) {
+    let pulled = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
+    for (let n = 0; pulled.code !== 0 && GIT_LOCKED.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
       await wait(LOCK_WAIT_MS);
       pulled = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
     }

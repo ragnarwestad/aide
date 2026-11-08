@@ -10,12 +10,7 @@
 // construction time would be.
 
 import { resumeCutLandings } from "../queue/runner/cut-landing.ts";
-import {
-  NORMAL_CODEX_HOME,
-  expandDir,
-  providerFolders,
-  resolveStepProvider,
-} from "../queue/providers/index.ts";
+import { NORMAL_CODEX_HOME, expandDir, providerFolders, resolveStepProvider } from "../queue/providers/index.ts";
 import { prepareShadowHome } from "./providers/shadow-home.ts";
 import { dirname, join } from "node:path";
 import { spawnEnv } from "./tool-path.ts";
@@ -23,29 +18,15 @@ import { scriptArgv } from "../integrations/script-argv.ts";
 import { homedir } from "node:os";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { Runner } from "../queue/runner";
-import {
-  DEFAULT_SCHEDULE_OUTPUT_ROOT,
-  scheduleRunOutputDir,
-} from "../queue/schedule.ts";
+import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleRunOutputDir } from "../queue/schedule.ts";
 import { proposeSpecs } from "../queue/propose-specs.ts";
 import { scheduleRunPath } from "../render";
 import type { QueueStore, Job, WorkflowStep } from "../queue/queue.ts";
 import type { SpawnResult, StepOutcome } from "../queue/runner";
 import type { Notifier } from "../integrations/notify.ts";
-import {
-  specAcceptanceNotRequired,
-  type CodeLanding,
-} from "../project/discover";
-import {
-  runnerArgv,
-  DEFAULT_QUEUE_CONCURRENCY,
-  logRefusal,
-} from "./serve-helpers";
-import {
-  analysisSessionToResume,
-  archiveFailureContext,
-  stepTool,
-} from "./serve-helpers/runner-argv.ts";
+import { specAcceptanceNotRequired, type CodeLanding } from "../project/discover";
+import { runnerArgv, DEFAULT_QUEUE_CONCURRENCY, logRefusal } from "./serve-helpers";
+import { analysisSessionToResume, archiveFailureContext, stepTool } from "./serve-helpers/runner-argv.ts";
 import { openRunLog } from "../queue/runner/run-log-path.ts";
 import { followOnJob } from "./routes/spec-edit/shared.ts";
 import { specsLiveInside } from "./land-branch/handed-to-merge.ts";
@@ -82,22 +63,11 @@ export interface RunnerSetupContext {
   noSandboxFor: (job: Job, step: string) => boolean;
   notifier: Notifier;
   landNewSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
-  landStepBranch: (
-    job: Job,
-    step: WorkflowStep,
-    outcome: Partial<StepOutcome>,
-  ) => Promise<void>;
+  landStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
   landArchivedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landClosedSpec: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
-  landStoppedStepBranch: (
-    job: Job,
-    step: WorkflowStep,
-    outcome: Partial<StepOutcome>,
-  ) => Promise<void>;
-  handleSharedFiles?: (
-    job: Job,
-    outcome: Partial<StepOutcome>,
-  ) => Promise<void>;
+  landStoppedStepBranch: (job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) => Promise<void>;
+  handleSharedFiles?: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   landScheduleRun: (job: Job, outcome: Partial<StepOutcome>) => Promise<void>;
   /** Starts a `deploy` step, which this process runs itself. */
   startDeploy: (job: Job, resultFile: string) => SpawnResult;
@@ -123,36 +93,24 @@ export interface RunnerSetupContext {
  *  row read from the old answers said "last run reported done, but
  *  nothing reached the files" for those seconds. */
 export function forgetSpecCachesFor(
-  ctx: Pick<
-    RunnerSetupContext,
-    "specDir" | "peekMachinerySpecDir" | "forgetSpecCaches"
-  >,
+  ctx: Pick<RunnerSetupContext, "specDir" | "peekMachinerySpecDir" | "forgetSpecCaches">,
   job: Pick<Job, "project" | "specFolder">,
 ): void {
   const found = ctx.specDir(job.project, job.specFolder);
   if (!found) return;
-  ctx.forgetSpecCaches(
-    ctx.peekMachinerySpecDir(job.project, found),
-    job.specFolder,
-  );
+  ctx.forgetSpecCaches(ctx.peekMachinerySpecDir(job.project, found), job.specFolder);
 }
 
 /** Forgetting alone leaves the old answers served until the schedule's
  *  next pass: for a step with a landing, the landing reads them again;
  *  for one without, this does. */
 export function rereadSpecCachesFor(
-  ctx: Pick<
-    RunnerSetupContext,
-    "specDir" | "peekMachinerySpecDir" | "rereadSpecCaches"
-  >,
+  ctx: Pick<RunnerSetupContext, "specDir" | "peekMachinerySpecDir" | "rereadSpecCaches">,
   job: Pick<Job, "project" | "specFolder">,
 ): void {
   const found = ctx.specDir(job.project, job.specFolder);
   if (!found) return;
-  ctx.rereadSpecCaches(
-    ctx.peekMachinerySpecDir(job.project, found),
-    job.specFolder,
-  );
+  ctx.rereadSpecCaches(ctx.peekMachinerySpecDir(job.project, found), job.specFolder);
 }
 
 /** Whether `analyze`'s own invocation of `job` should be told acceptance
@@ -168,9 +126,7 @@ export function acceptanceNotRequiredForAnalyze(
 ): boolean {
   const found = ctx.specDir(job.project, job.specFolder);
   if (!found) return false;
-  return specAcceptanceNotRequired(
-    ctx.peekMachinerySpecDir(job.project, found),
-  );
+  return specAcceptanceNotRequired(ctx.peekMachinerySpecDir(job.project, found));
 }
 
 /** A step's result file, or null while there is none. */
@@ -184,11 +140,7 @@ function readResultFile(path: string): unknown {
 
 /** At boot, after `reconcile`: the landings the last process never finished. */
 export function resumeCutLandingsAtBoot(ctx: RunnerSetupContext): void {
-  resumeCutLandings({
-    store: ctx.store,
-    readResult: readResultFile,
-    onStepDone: stepDoneHandler(ctx),
-  });
+  resumeCutLandings({ store: ctx.store, readResult: readResultFile, onStepDone: stepDoneHandler(ctx) });
 }
 
 export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
@@ -199,8 +151,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
     projectDir: ctx.machineryProjectDir,
     specsRoot: ctx.machinerySpecsRoot,
     runnerBin,
-    resultDir:
-      ctx.queueResultDir ?? join(homedir(), ".aide", "dashboard", "jobs"),
+    resultDir: ctx.queueResultDir ?? join(homedir(), ".aide", "dashboard", "jobs"),
     maxConcurrent: ctx.queueConcurrency ?? DEFAULT_QUEUE_CONCURRENCY,
     now: () => new Date().toISOString(),
     today: () => new Date().toISOString().slice(0, 10),
@@ -236,38 +187,22 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       const env: Record<string, string | undefined> = {
         ...spawnEnv(),
         AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl,
-        AIDE_ARCHIVE_FAILURE_CONTEXT:
-          step === "implement"
-            ? archiveFailureContext(job, ctx.store.list())
-            : undefined,
-        ...(ctx.queueConfigFile
-          ? { AIDE_QUEUE_CONFIG: ctx.queueConfigFile }
-          : {}),
-        ...(ctx.dashboardCheckoutRoot
-          ? { AIDE_CHECKOUT_ROOT: ctx.dashboardCheckoutRoot }
-          : {}),
-        ...(ctx.queueMirrorPath
-          ? { AIDE_QUEUE_MIRROR: ctx.queueMirrorPath }
-          : {}),
+        AIDE_ARCHIVE_FAILURE_CONTEXT: step === "implement" ? archiveFailureContext(job, ctx.store.list()) : undefined,
+        ...(ctx.queueConfigFile ? { AIDE_QUEUE_CONFIG: ctx.queueConfigFile } : {}),
+        ...(ctx.dashboardCheckoutRoot ? { AIDE_CHECKOUT_ROOT: ctx.dashboardCheckoutRoot } : {}),
+        ...(ctx.queueMirrorPath ? { AIDE_QUEUE_MIRROR: ctx.queueMirrorPath } : {}),
       };
       // Every folder a provider keeps a login in, so the runner's sandbox
       // keeps a step from writing to any of their settings.
       const folders = providerFolders(ctx.store.defaults.providers, homedir());
-      if (folders.claude.length)
-        env.AIDE_CLAUDE_CONFIG_DIRS = folders.claude.join("\n");
+      if (folders.claude.length) env.AIDE_CLAUDE_CONFIG_DIRS = folders.claude.join("\n");
       if (folders.codex.length) env.AIDE_CODEX_HOMES = folders.codex.join("\n");
       // A Codex step on a provider with a shadow home links in whatever the
       // shared CODEX_HOME gained since it was saved. A conflict is left: the
       // step runs on its login without the shared sessions.
-      const provider =
-        ctx.store.defaults.providers?.[
-          resolveStepProvider(job, step, ctx.store.defaults) ?? ""
-        ];
+      const provider = ctx.store.defaults.providers?.[resolveStepProvider(job, step, ctx.store.defaults) ?? ""];
       if (provider?.tool === "codex" && provider.shadowHome) {
-        prepareShadowHome(
-          expandDir(provider.codexHome || NORMAL_CODEX_HOME, homedir()),
-          expandDir(provider.shadowHome, homedir()),
-        );
+        prepareShadowHome(expandDir(provider.codexHome || NORMAL_CODEX_HOME, homedir()), expandDir(provider.shadowHome, homedir()));
       }
       // Only a `schedule` step's own spawn gets this: the
       // directory THIS run's prompt writes its output to, made
@@ -286,72 +221,57 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
         env.AIDE_SCHEDULE_OUTPUT_DIR = outputDir;
       }
       const proc = Bun.spawn({
-        cmd: scriptArgv(
-          runnerArgv(
-            job,
-            step,
-            resultFile,
-            {
-              runnerBin,
-              projectDir: ctx.machineryProjectDir(job.project),
-              // The same answer the landing uses to find the folder
-              // afterwards (`machinerySpecsRoot`), so the two cannot
-              // disagree about where a spec belongs.
-              specsRoot: ctx.machinerySpecsRoot(job.project),
-              // The global setting speaks for every project
-              // on this host at once; a project that reviews its code
-              // says so in its own committed manifest, and that
-              // answer wins. It only ever raises the mode TO `pr` —
-              // `merge` is the absence of an opinion, not an
-              // instruction to publish less than the host asked for.
-              //
-              // Both halves have to travel together: `landBranch`
-              // stops merging this project's code root, and a
-              // branch left open with no pull request describing it
-              // is worse than either behaviour on its own. Read per
-              // spawn, off disk, the same way `projectManifest` is
-              // read per render — one small YAML file, and an edit
-              // takes effect on the next job rather than the next
-              // deploy.
-              push:
-                ctx.codeLanding(job.project) === "pr"
-                  ? "pr"
-                  : (ctx.queuePush ?? "branch"),
-              promptFile: ctx.promptFileFor(job, step),
-              chrome: ctx.chromeFor(job, step),
-              noSandbox: ctx.noSandboxFor(job, step),
-              modelChoices: ctx.store.defaults.modelChoices,
-              timeoutSec: ctx.store.defaults.timeoutSec,
-              permissionMode: ctx.store.defaults.permissionMode,
-              model: ctx.store.defaults.model,
-              sidePicks:
-                ctx.store.pendingModels[`${job.project}/${job.specFolder}`],
-              sideProviders:
-                ctx.store.pendingProviders[`${job.project}/${job.specFolder}`],
-              providers: ctx.store.defaults.providers,
-              provider: ctx.store.defaults.provider,
-              acceptanceNotRequiredForAnalyze:
-                step === "analyze"
-                  ? acceptanceNotRequiredForAnalyze(ctx, job)
-                  : false,
-              resumeSession:
-                step === "implement" && ctx.store.defaults.resumeAnalysis
-                  ? analysisSessionToResume(
-                      job,
-                      ctx.store.list(),
-                      stepTool(job, step, ctx.store.defaults),
-                      Date.now(),
-                      {
-                        key: resolveStepProvider(job, step, ctx.store.defaults),
-                        providers: ctx.store.defaults.providers,
-                      },
-                    )
-                  : undefined,
-            },
-            sessionId,
-            streamFile,
-          ),
-        ),
+        cmd: scriptArgv(runnerArgv(
+          job,
+          step,
+          resultFile,
+          {
+            runnerBin,
+            projectDir: ctx.machineryProjectDir(job.project),
+            // The same answer the landing uses to find the folder
+            // afterwards (`machinerySpecsRoot`), so the two cannot
+            // disagree about where a spec belongs.
+            specsRoot: ctx.machinerySpecsRoot(job.project),
+            // The global setting speaks for every project
+            // on this host at once; a project that reviews its code
+            // says so in its own committed manifest, and that
+            // answer wins. It only ever raises the mode TO `pr` —
+            // `merge` is the absence of an opinion, not an
+            // instruction to publish less than the host asked for.
+            //
+            // Both halves have to travel together: `landBranch`
+            // stops merging this project's code root, and a
+            // branch left open with no pull request describing it
+            // is worse than either behaviour on its own. Read per
+            // spawn, off disk, the same way `projectManifest` is
+            // read per render — one small YAML file, and an edit
+            // takes effect on the next job rather than the next
+            // deploy.
+            push: ctx.codeLanding(job.project) === "pr" ? "pr" : (ctx.queuePush ?? "branch"),
+            promptFile: ctx.promptFileFor(job, step),
+            chrome: ctx.chromeFor(job, step),
+            noSandbox: ctx.noSandboxFor(job, step),
+            modelChoices: ctx.store.defaults.modelChoices,
+            timeoutSec: ctx.store.defaults.timeoutSec,
+            permissionMode: ctx.store.defaults.permissionMode,
+            model: ctx.store.defaults.model,
+            sidePicks: ctx.store.pendingModels[`${job.project}/${job.specFolder}`],
+            sideProviders: ctx.store.pendingProviders[`${job.project}/${job.specFolder}`],
+            providers: ctx.store.defaults.providers,
+            provider: ctx.store.defaults.provider,
+            acceptanceNotRequiredForAnalyze:
+              step === "analyze" ? acceptanceNotRequiredForAnalyze(ctx, job) : false,
+            resumeSession:
+              step === "implement" && ctx.store.defaults.resumeAnalysis
+                ? analysisSessionToResume(job, ctx.store.list(), stepTool(job, step, ctx.store.defaults), Date.now(), {
+                    key: resolveStepProvider(job, step, ctx.store.defaults),
+                    providers: ctx.store.defaults.providers,
+                  })
+                : undefined,
+          },
+          sessionId,
+          streamFile,
+        )),
         env,
         detached: true,
         // stdout is ignored (the result FILE is the contract), but
@@ -405,61 +325,22 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
  *  the schedule's next pass. */
 export function stepDoneHandler(
   ctx: RunnerSetupContext,
-): (
-  job: Job,
-  step: WorkflowStep | undefined,
-  outcome: Partial<StepOutcome>,
-) => void | Promise<unknown> {
+): (job: Job, step: WorkflowStep | undefined, outcome: Partial<StepOutcome>) => void | Promise<unknown> {
   return (job, step, outcome) => {
     forgetSpecCachesFor(ctx, job);
     const landing = landingFor(job, step, outcome);
     if (!landing) rereadSpecCachesFor(ctx, job);
-    if (
-      step === "analyze" &&
-      outcome.terminalReason === "shared-files" &&
-      ctx.handleSharedFiles
-    ) {
-      void Promise.resolve(landing).then(
-        () => {
-          setTimeout(
-            () =>
-              void ctx.handleSharedFiles!(job, outcome).catch((error) =>
-                logRefusal(
-                  "dependencies",
-                  `${job.project}/${job.specFolder}`,
-                  String(error),
-                ),
-              ),
-            0,
-          );
-        },
-        (error) =>
-          logRefusal(
-            "dependencies",
-            `${job.project}/${job.specFolder}`,
-            String(error),
-          ),
-      );
+    if (step === "analyze" && outcome.terminalReason === "shared-files" && ctx.handleSharedFiles) {
+      void Promise.resolve(landing).then(() => {
+        setTimeout(() => void ctx.handleSharedFiles!(job, outcome)
+          .catch((error) => logRefusal("dependencies", `${job.project}/${job.specFolder}`, String(error))), 0);
+      }, (error) => logRefusal("dependencies", `${job.project}/${job.specFolder}`, String(error)));
     }
     if (step === "implement" && outcome.terminalReason === "sent-back") {
-      queueFullAnalysisRound(
-        job,
-        ["analyze", "implement"],
-        landing,
-        "sent back",
-      );
+      queueFullAnalysisRound(job, ["analyze", "implement"], landing, "sent back");
     }
-    if (
-      step === "analyze" &&
-      outcome.terminalReason === "short-analysis-over-limit" &&
-      !overLimitBefore(job)
-    ) {
-      queueFullAnalysisRound(
-        job,
-        job.steps.slice(job.stepIndex),
-        landing,
-        "short analysis over a limit",
-      );
+    if (step === "analyze" && outcome.terminalReason === "short-analysis-over-limit" && !overLimitBefore(job)) {
+      queueFullAnalysisRound(job, job.steps.slice(job.stepIndex), landing, "short analysis over a limit");
     }
     return landing;
   };
@@ -468,19 +349,13 @@ export function stepDoneHandler(
    *  `short-analysis-over-limit`: the analyze after it was not offered a short
    *  analysis and wrote one anyway, and another round would loop. */
   function overLimitBefore(job: Job): boolean {
-    return ctx.store
-      .list()
-      .some(
-        (j) =>
-          j.id !== job.id &&
-          j.project === job.project &&
-          j.specFolder === job.specFolder &&
-          j.results.some(
-            (r) =>
-              r.step === "analyze" &&
-              r.terminalReason === "short-analysis-over-limit",
-          ),
-      );
+    return ctx.store.list().some(
+      (j) =>
+        j.id !== job.id &&
+        j.project === job.project &&
+        j.specFolder === job.specFolder &&
+        j.results.some((r) => r.step === "analyze" && r.terminalReason === "short-analysis-over-limit"),
+    );
   }
 
   /** A full analysis round for a spec whose analysis was found too small:
@@ -498,20 +373,13 @@ export function stepDoneHandler(
       .catch(() => undefined)
       .then(() => {
         setTimeout(() => {
-          const made = ctx.store.enqueue(
-            followOnJob(job.project, job.specFolder, steps, job),
-          );
-          if (!made.ok)
-            logRefusal(label, `${job.project}/${job.specFolder}`, made.error);
+          const made = ctx.store.enqueue(followOnJob(job.project, job.specFolder, steps, job));
+          if (!made.ok) logRefusal(label, `${job.project}/${job.specFolder}`, made.error);
         }, 0);
       });
   }
 
-  function landingFor(
-    job: Job,
-    step: WorkflowStep | undefined,
-    outcome: Partial<StepOutcome>,
-  ): Promise<unknown> | undefined {
+  function landingFor(job: Job, step: WorkflowStep | undefined, outcome: Partial<StepOutcome>): Promise<unknown> | undefined {
     if (outcome.ok) {
       if (step === "create") return ctx.landNewSpec(job, outcome);
       // `reopen` lands for exactly the reason `analyze` does, and
@@ -525,8 +393,7 @@ export function stepDoneHandler(
       // ticked for it go with it: the row's boxes and button start over
       // from Analyze rather than from whatever was ticked for the round
       // just discarded. A reopen that kept the files keeps the choice.
-      if (step === "reopen" && job.resetFiles)
-        ctx.store.forgetPendingSteps(job.project, job.specFolder);
+      if (step === "reopen" && job.resetFiles) ctx.store.forgetPendingSteps(job.project, job.specFolder);
       if (step === "analyze" || step === "reopen") {
         return ctx.landStepBranch(job, step, outcome);
       }
@@ -537,18 +404,14 @@ export function stepDoneHandler(
       // implement's code branch into main with the spec still active.
       // `already-landed` has nothing left to land either.
       if (step === "archive") {
-        return outcome.terminalReason === "completed"
-          ? ctx.landArchivedSpec(job, outcome)
-          : undefined;
+        return outcome.terminalReason === "completed" ? ctx.landArchivedSpec(job, outcome) : undefined;
       }
       // `close` lands on `closed` alone, the same rule
       // `archive` follows for `completed` — every other terminalReason
       // (`already-closed`, `already-archived`, `conflict-open`,
       // `refused`) moved nothing, so there is nothing to land.
       if (step === "close") {
-        return outcome.terminalReason === "closed"
-          ? ctx.landClosedSpec(job, outcome)
-          : undefined;
+        return outcome.terminalReason === "closed" ? ctx.landClosedSpec(job, outcome) : undefined;
       }
       // A green scheduled run may have left proposed specs beside its
       // report: queue a Create job for each. Independent of landing —
@@ -556,22 +419,16 @@ export function stepDoneHandler(
       // ($AIDE_SCHEDULE_OUTPUT_DIR), so this runs whether or not the
       // same job also committed anything.
       if (step === "schedule") {
-        proposeSpecs(
-          {
-            store: ctx.store,
-            outputRoot: ctx.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
-            specsRoot: ctx.machinerySpecsRoot,
-            reportPath: (name, runId) =>
-              scheduleRunPath(job.project, name, runId),
-            now: () => new Date().toISOString(),
-            log: logRefusal,
-          },
-          job,
-        );
+        proposeSpecs({
+          store: ctx.store,
+          outputRoot: ctx.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
+          specsRoot: ctx.machinerySpecsRoot,
+          reportPath: (name, runId) => scheduleRunPath(job.project, name, runId),
+          now: () => new Date().toISOString(),
+          log: logRefusal,
+        }, job);
         const pushed = outcome.branchUrls ?? [];
-        return pushed.length > 0
-          ? ctx.landScheduleRun(job, outcome)
-          : undefined;
+        return pushed.length > 0 ? ctx.landScheduleRun(job, outcome) : undefined;
       }
       // `implement` and `explore` fall through: the first
       // by design, the other because it leaves no spec branch
@@ -599,30 +456,21 @@ export function stepDoneHandler(
     // has no such safe landing promise.
     if (
       !step ||
-      ![
-        "timeout",
-        "provider-limit",
-        "shared-files",
-        "sent-back",
-        "short-analysis-over-limit",
-      ].includes(outcome.terminalReason ?? "")
-    )
-      return undefined;
+      !["timeout", "provider-limit", "shared-files", "sent-back", "short-analysis-over-limit"].includes(
+        outcome.terminalReason ?? "",
+      )
+    ) return undefined;
     if (step === "archive") return undefined;
     // The line the over-limit analyze recorded must reach the main checkout
     // the next prompt is read from, also where the specs live inside the code
     // root: `landStepBranch` lands the spec's own folder there and no code.
-    if (outcome.terminalReason === "short-analysis-over-limit")
-      return ctx.landStepBranch(job, step, outcome);
+    if (outcome.terminalReason === "short-analysis-over-limit") return ctx.landStepBranch(job, step, outcome);
     const codeRoot = ctx.machineryProjectDir(job.project);
     const pushed = outcome.branchUrls ?? [];
     if (pushed.length === 0) return undefined;
-    const sentBackWithSpecsInside =
-      step === "implement" &&
-      outcome.terminalReason === "sent-back" &&
-      specsLiveInside(codeRoot, ctx.machinerySpecsRoot(job.project));
-    if (pushed.some((r) => r.root === codeRoot) && !sentBackWithSpecsInside)
-      return undefined;
+    const sentBackWithSpecsInside = step === "implement" && outcome.terminalReason === "sent-back"
+      && specsLiveInside(codeRoot, ctx.machinerySpecsRoot(job.project));
+    if (pushed.some((r) => r.root === codeRoot) && !sentBackWithSpecsInside) return undefined;
     return ctx.landStoppedStepBranch(job, step, outcome);
   }
 }

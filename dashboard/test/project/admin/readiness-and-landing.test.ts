@@ -1,11 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  mkdtempSync,
-  rmSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -35,6 +29,7 @@ function checkoutFor(name: string): { projectsRoot: string; dir: string } {
   return { projectsRoot, dir };
 }
 
+
 // The checks answer for the checkout a RUN will use.
 //
 // Until now that was the person's own checkout, so the readiness check
@@ -45,17 +40,11 @@ function checkoutFor(name: string): { projectsRoot: string; dir: string } {
 // same way when it stopped mattering.
 describe("readiness answers for the checkout a run uses", () => {
   const READY: Record<string, { code: number; stdout?: string }> = {
-    "symbolic-ref --short refs/remotes/origin/HEAD": {
-      code: 0,
-      stdout: "origin/main\n",
-    },
+    "symbolic-ref --short refs/remotes/origin/HEAD": { code: 0, stdout: "origin/main\n" },
     "show-ref --verify --quiet refs/heads/main": { code: 0 },
     "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
     "worktree list --porcelain": { code: 0, stdout: "" },
-    "remote get-url origin": {
-      code: 0,
-      stdout: "https://example.test/aide.git\n",
-    },
+    "remote get-url origin": { code: 0, stdout: "https://example.test/aide.git\n" },
   };
 
   /** `answers` is layered over a ready checkout, and `only` narrows a
@@ -71,17 +60,12 @@ describe("readiness answers for the checkout a run uses", () => {
       const joined = args.join(" ");
       if (only === undefined || at === only) {
         for (const [prefix, answer] of Object.entries(answers)) {
-          if (joined.startsWith(prefix))
-            return { code: answer.code, stdout: answer.stdout ?? "" };
+          if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
         }
       }
-      if (joined.startsWith("rev-parse --show-toplevel"))
-        return { code: 0, stdout: `${at}\n` };
-      for (const [prefix, answer] of Object.entries(
-        only === undefined ? table : READY,
-      )) {
-        if (joined.startsWith(prefix))
-          return { code: answer.code, stdout: answer.stdout ?? "" };
+      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };
+      for (const [prefix, answer] of Object.entries(only === undefined ? table : READY)) {
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
       }
       return { code: 1, stdout: "" };
     };
@@ -89,10 +73,7 @@ describe("readiness answers for the checkout a run uses", () => {
 
   /** A person's checkout with a specs/ beside it, and a place for the
    *  dashboard's own clone that may or may not exist yet. */
-  function pair(opts: { owned?: boolean } = {}): {
-    person: string;
-    owned: string;
-  } {
+  function pair(opts: { owned?: boolean } = {}): { person: string; owned: string } {
     const base = root();
     const person = join(base, "aide");
     mkdirSync(join(person, "specs"), { recursive: true });
@@ -101,31 +82,21 @@ describe("readiness answers for the checkout a run uses", () => {
     return { person, owned };
   }
 
-  const named = (
-    r: Awaited<ReturnType<typeof assessProjectReadiness>>,
-    name: string,
-  ) => r.checks.filter((c) => c.check === name);
+  const named = (r: Awaited<ReturnType<typeof assessProjectReadiness>>, name: string) =>
+    r.checks.filter((c) => c.check === name);
   const blockers = (r: Awaited<ReturnType<typeof assessProjectReadiness>>) =>
-    r.checks
-      .filter((c) => c.blocking)
-      .map((c) => c.detail)
-      .join(" | ");
+    r.checks.filter((c) => c.blocking).map((c) => c.detail).join(" | ");
 
   test("the person's branch is not asked about at all any more", async () => {
     const { person, owned } = pair({ owned: true });
     const result = await assessProjectReadiness(
-      runner(
-        { "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "wip/mine\n" } },
-        person,
-      ),
+      runner({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "wip/mine\n" } }, person),
       person,
       owned,
     );
     expect(result.canRun).toBe(true);
     expect(result.note).not.toContain("wip/mine");
-    expect(named(result, "defaultBranch").map((c) => c.subject)).not.toContain(
-      person,
-    );
+    expect(named(result, "defaultBranch").map((c) => c.subject)).not.toContain(person);
   });
 
   test("the dashboard's own checkout is the one asked whether it can reach its default branch", async () => {
@@ -142,9 +113,7 @@ describe("readiness answers for the checkout a run uses", () => {
     expect(result.canRun).toBe(false);
     // The subject says WHICH checkout answered; the wording says whose
     // it is. Both, because a path alone reads as an accident.
-    expect(named(result, "defaultBranch").map((c) => c.subject)).toEqual([
-      owned,
-    ]);
+    expect(named(result, "defaultBranch").map((c) => c.subject)).toEqual([owned]);
     expect(blockers(result)).toContain("dashboard's own");
   });
 
@@ -158,11 +127,7 @@ describe("readiness answers for the checkout a run uses", () => {
   // editing can still meet.
   test("a person's checkout with no origin is reported, and does not refuse the run", async () => {
     const { person, owned } = pair();
-    const result = await assessProjectReadiness(
-      runner({ "remote get-url origin": { code: 1 } }),
-      person,
-      owned,
-    );
+    const result = await assessProjectReadiness(runner({ "remote get-url origin": { code: 1 } }), person, owned);
     expect(result.canRun).toBe(true);
     const said = named(result, "dashboardCheckout")[0]!;
     expect(said.ok).toBe(false);
@@ -183,14 +148,10 @@ describe("readiness answers for the checkout a run uses", () => {
   test("asked without one, the checks are the checkout's own, exactly as before", async () => {
     const { person } = pair();
     const result = await assessProjectReadiness(
-      runner({
-        "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "wip/mine\n" },
-      }),
+      runner({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "wip/mine\n" } }),
       person,
     );
-    expect(named(result, "defaultBranch").map((c) => c.subject)).toContain(
-      person,
-    );
+    expect(named(result, "defaultBranch").map((c) => c.subject)).toContain(person);
     expect(result.note).toContain("wip/mine");
   });
 });
@@ -205,22 +166,9 @@ describe("readiness answers for the checkout a run uses", () => {
 // machine quietly overrule what the repo says.
 describe("where a project's code-landing choice is read from", () => {
   const CASES: {
-    cases: {
-      name: string;
-      manifest: string | null;
-      config: string | null;
-      landing: "merge" | "pr";
-    }[];
+    cases: { name: string; manifest: string | null; config: string | null; landing: "merge" | "pr" }[];
   } = JSON.parse(
-    readFileSync(
-      join(
-        import.meta.dir,
-        "..",
-        "..",
-        "../../core/tests/fixtures/code-landing-precedence.json",
-      ),
-      "utf-8",
-    ),
+    readFileSync(join(import.meta.dir, "..", "..", "../../core/tests/fixtures/code-landing-precedence.json"), "utf-8"),
   );
 
   /** The same table `aide-run-spec`'s own test iterates over, out of the
@@ -235,11 +183,7 @@ describe("where a project's code-landing choice is read from", () => {
         join(dir, ".aide", "project.yaml"),
         `name: x\n${c.manifest ? `codeLanding: ${c.manifest}\n` : ""}`,
       );
-      if (c.config)
-        writeFileSync(
-          join(dir, ".aide", "config"),
-          `AIDE_CODE_LANDING=${c.config}\n`,
-        );
+      if (c.config) writeFileSync(join(dir, ".aide", "config"), `AIDE_CODE_LANDING=${c.config}\n`);
       expect(resolveCodeLanding(dir)).toBe(c.landing);
     });
   }
@@ -266,9 +210,7 @@ describe("saving the code-landing choice", () => {
     mkdirSync(join(dir, ".aide"), { recursive: true });
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: x\n");
     await updateProjectSettings(fakeGit({}).run, dir, { codeLanding: "pr" });
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toContain(
-      "codeLanding: pr",
-    );
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toContain("codeLanding: pr");
     expect(configValue(dir, "AIDE_CODE_LANDING")).toBeNull();
     expect(resolveCodeLanding(dir)).toBe("pr");
   });
@@ -276,17 +218,12 @@ describe("saving the code-landing choice", () => {
   test("saving it back to merge takes the key out again", async () => {
     const { dir } = checkoutFor("savesmerge");
     mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(
-      join(dir, ".aide", "project.yaml"),
-      "name: x\ncodeLanding: pr\n",
-    );
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: x\ncodeLanding: pr\n");
     await updateProjectSettings(fakeGit({}).run, dir, { codeLanding: "merge" });
     // `merge` is the default, so the manifest says nothing rather than
     // spelling out today's behaviour — the same shape an empty worktree
     // links value leaves behind.
-    expect(
-      readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"),
-    ).not.toContain("codeLanding");
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).not.toContain("codeLanding");
     expect(resolveCodeLanding(dir)).toBe("merge");
   });
 
@@ -294,15 +231,9 @@ describe("saving the code-landing choice", () => {
     const { dir } = checkoutFor("savesgarbage");
     mkdirSync(join(dir, ".aide"), { recursive: true });
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: x\n");
-    const result = await updateProjectSettings(fakeGit({}).run, dir, {
-      codeLanding: "rebase",
-    });
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { codeLanding: "rebase" });
     expect(result.ok).toBe(false);
-    expect(result.steps.some((s) => s.step === "codeLanding" && !s.ok)).toBe(
-      true,
-    );
-    expect(
-      readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"),
-    ).not.toContain("codeLanding");
+    expect(result.steps.some((s) => s.step === "codeLanding" && !s.ok)).toBe(true);
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).not.toContain("codeLanding");
   });
 });

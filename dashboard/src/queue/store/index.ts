@@ -12,12 +12,7 @@ import {
   type TransitionEvent,
   type WorkflowStep,
 } from "../steps.ts";
-import type {
-  CreateProjectAllower,
-  Job,
-  ProjectResolver,
-  QueueDefaults,
-} from "../types.ts";
+import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "../types.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import { mergeBranchRefs, type BranchRef } from "../types.ts";
 import {
@@ -29,28 +24,13 @@ import {
 } from "../parse-request.ts";
 import { gerund, landingStepIndex } from "../../format/gerund.ts";
 
+
 import { loadJobs, writeJobs } from "./mirror.ts";
 import { loadModelIds, recordModelId } from "./model-ids.ts";
-import {
-  loadPendingModels,
-  loadPendingSteps,
-  pendingProvidersPath,
-  savePendingTable,
-} from "./pending-tables.ts";
-import {
-  editTailModel,
-  renamePendingModel,
-  setPendingModel,
-  writePendingModel,
-  type PickContext,
-} from "./picks.ts";
+import { loadPendingModels, loadPendingSteps, pendingProvidersPath, savePendingTable } from "./pending-tables.ts";
+import { editTailModel, renamePendingModel, setPendingModel, writePendingModel, type PickContext } from "./picks.ts";
 import { tailEditStep, withTailStep } from "./tail-edits.ts";
-import type {
-  PendingModelResult,
-  PendingStepsResult,
-  QueueOptions,
-  TransitionResult,
-} from "./types.ts";
+import type { PendingModelResult, PendingStepsResult, QueueOptions, TransitionResult } from "./types.ts";
 
 export class QueueStore {
   private readonly jobs = new Map<string, Job>(); // insertion order = age order
@@ -110,8 +90,7 @@ export class QueueStore {
    *  posted from the API and from the page seconds apart. */
   private clashing(job: Job): { job: Job; step: WorkflowStep } | null {
     for (const other of this.jobs.values()) {
-      if (other.project !== job.project || other.specFolder !== job.specFolder)
-        continue;
+      if (other.project !== job.project || other.specFolder !== job.specFolder) continue;
       if (!UNFINISHED.has(other.state)) continue;
       const step = job.steps.find((s) => other.steps.includes(s));
       if (step) return { job: other, step };
@@ -120,10 +99,7 @@ export class QueueStore {
   }
 
   enqueue(raw: unknown): ParseResult {
-    const parsed = parseJobRequest(raw, {
-      resolve: this.resolve,
-      defaults: this.defaults,
-    });
+    const parsed = parseJobRequest(raw, { resolve: this.resolve, defaults: this.defaults });
     if (!parsed.ok) return parsed;
     return this.insert(parsed);
   }
@@ -149,26 +125,13 @@ export class QueueStore {
     // whole operation once, and calling the public setter here would
     // announce it a second time for one request.
     if (result.ok) {
-      this.recordPendingSteps(
-        result.job.project,
-        result.job.specFolder,
-        result.job.steps.filter((s) => s !== "create"),
-      );
+      this.recordPendingSteps(result.job.project, result.job.specFolder, result.job.steps.filter((s) => s !== "create"));
       // The sibling seed, for a model picked on the New page
       // for a phase this job does not run — `writePendingModel`, not
       // `setPendingModel`, for the same one-announcement-per-request
       // reason as `recordPendingSteps` above.
-      for (const [step, model] of Object.entries(
-        parsed.pendingStepModels ?? {},
-      )) {
-        writePendingModel(
-          this.picks(),
-          result.job.project,
-          result.job.specFolder,
-          step,
-          model,
-          parsed.pendingStepProviders?.[step],
-        );
+      for (const [step, model] of Object.entries(parsed.pendingStepModels ?? {})) {
+        writePendingModel(this.picks(), result.job.project, result.job.specFolder, step, model, parsed.pendingStepProviders?.[step]);
       }
     }
     return result;
@@ -184,8 +147,7 @@ export class QueueStore {
    *  tree. */
   private landingJob(job: Job): Job | null {
     for (const other of this.jobs.values()) {
-      if (other.project !== job.project || other.specFolder !== job.specFolder)
-        continue;
+      if (other.project !== job.project || other.specFolder !== job.specFolder) continue;
       if (other.landing) return other;
     }
     return null;
@@ -214,9 +176,7 @@ export class QueueStore {
       // still merging (`gerund.ts`'s `landingStepIndex`, the same rule
       // `landingStep` (`render/ui/job-state/resting.ts`) applies for a
       // `QueueRowView`).
-      const lastStep =
-        landing.steps[landingStepIndex(landing.state, landing.stepIndex)] ??
-        landing.steps[landing.stepIndex]!;
+      const lastStep = landing.steps[landingStepIndex(landing.state, landing.stepIndex)] ?? landing.steps[landing.stepIndex]!;
       return {
         ok: false,
         error:
@@ -265,8 +225,7 @@ export class QueueStore {
     // Oldest first, so a later job's URL for the same root overwrites an
     // earlier one — `startedAt ?? createdAt` is the same recency signal
     // the render side already sorts specs by.
-    const recency = (job: Job) =>
-      Date.parse(job.startedAt ?? job.createdAt) || 0;
+    const recency = (job: Job) => Date.parse(job.startedAt ?? job.createdAt) || 0;
     const mine = [...this.jobs.values()]
       .filter((j) => j.project === project && j.specFolder === specFolder)
       .sort((a, b) => recency(a) - recency(b));
@@ -291,8 +250,7 @@ export class QueueStore {
    *  and the archive grows past that, so an old spec simply has no link,
    *  which is a blank rather than a claim. */
   pullRequestFor(project: string, specFolder: string): { prUrl?: string } {
-    const recency = (job: Job) =>
-      Date.parse(job.startedAt ?? job.createdAt) || 0;
+    const recency = (job: Job) => Date.parse(job.startedAt ?? job.createdAt) || 0;
     const mine = [...this.jobs.values()]
       .filter((j) => j.project === project && j.specFolder === specFolder)
       .sort((a, b) => recency(b) - recency(a));
@@ -304,12 +262,8 @@ export class QueueStore {
    *  `pullRequestFor`: newest job first, across every job the queue still
    *  holds for `project/specFolder` — a spec whose job the LRU cap has
    *  evicted simply has none, which is a blank, not a claim. */
-  branchDeleteErrorFor(
-    project: string,
-    specFolder: string,
-  ): Sentence | Sentence[] | undefined {
-    const recency = (job: Job) =>
-      Date.parse(job.startedAt ?? job.createdAt) || 0;
+  branchDeleteErrorFor(project: string, specFolder: string): Sentence | Sentence[] | undefined {
+    const recency = (job: Job) => Date.parse(job.startedAt ?? job.createdAt) || 0;
     return [...this.jobs.values()]
       .filter((j) => j.project === project && j.specFolder === specFolder)
       .sort((a, b) => recency(b) - recency(a))
@@ -357,11 +311,7 @@ export class QueueStore {
     if (add === job.steps.includes(wanted)) {
       return {
         ok: false,
-        error: invalidRequest(
-          add
-            ? `${wanted} is already part of this job`
-            : `${wanted} is not part of this job`,
-        ),
+        error: invalidRequest(add ? `${wanted} is already part of this job` : `${wanted} is not part of this job`),
       };
     }
     const next = { ...job, steps: withTailStep(job, wanted, add) };
@@ -373,41 +323,19 @@ export class QueueStore {
 
   /** Change the model — and the provider — a RUNNING job will use for a
    *  step it has not reached yet; see `picks.ts`. */
-  editTailModel(
-    id: string,
-    step: string,
-    model: string,
-    provider?: string,
-  ): ParseResult {
+  editTailModel(id: string, step: string, model: string, provider?: string): ParseResult {
     return editTailModel(this.picks(), id, step, model, provider);
   }
 
   /** Record a model, and the provider, picked for a phase that has no job
    *  yet; see `picks.ts`. */
-  setPendingModel(
-    project: string,
-    specFolder: string,
-    step: string,
-    model: string,
-    provider?: string,
-  ): PendingModelResult {
-    return setPendingModel(
-      this.picks(),
-      project,
-      specFolder,
-      step,
-      model,
-      provider,
-    );
+  setPendingModel(project: string, specFolder: string, step: string, model: string, provider?: string): PendingModelResult {
+    return setPendingModel(this.picks(), project, specFolder, step, model, provider);
   }
 
   /** Carries a create job's pending picks from its provisional key to the
    *  real folder landing assigns it. */
-  renamePendingModel(
-    project: string,
-    fromFolder: string,
-    toFolder: string,
-  ): void {
+  renamePendingModel(project: string, fromFolder: string, toFolder: string): void {
     renamePendingModel(this.picks(), project, fromFolder, toFolder);
   }
 
@@ -442,14 +370,8 @@ export class QueueStore {
     this.changed();
   }
 
-  private recordPendingSteps(
-    project: string,
-    specFolder: string,
-    steps: readonly string[],
-  ): void {
-    this.pendingSteps[`${project}/${specFolder}`] = steps.filter((s) =>
-      (PHASE_STEPS as readonly string[]).includes(s),
-    );
+  private recordPendingSteps(project: string, specFolder: string, steps: readonly string[]): void {
+    this.pendingSteps[`${project}/${specFolder}`] = steps.filter((s) => (PHASE_STEPS as readonly string[]).includes(s));
     this.persistPendingStepsTable();
   }
 
@@ -464,11 +386,7 @@ export class QueueStore {
    *  already fails in — and the whole list REPLACES what was recorded
    *  before, including down to empty: "nothing ticked" is itself the
    *  choice the form needs to tell apart from "no choice on record at all". */
-  setPendingSteps(
-    project: string,
-    specFolder: string,
-    steps: readonly string[],
-  ): PendingStepsResult {
+  setPendingSteps(project: string, specFolder: string, steps: readonly string[]): PendingStepsResult {
     this.recordPendingSteps(project, specFolder, steps);
     this.changed();
     return { ok: true };
@@ -490,11 +408,7 @@ export class QueueStore {
    *  miss leaves the job untouched and reports what was refused
    *  `patch` must not itself set `state` — the event is the
    *  only thing allowed to move it. */
-  transition(
-    id: string,
-    event: TransitionEvent,
-    patch: Partial<Job> = {},
-  ): TransitionResult {
+  transition(id: string, event: TransitionEvent, patch: Partial<Job> = {}): TransitionResult {
     const job = this.jobs.get(id);
     if (!job) return { ok: false, state: "queued", event }; // unreachable in practice: every caller already holds the job
     const to = TRANSITIONS[job.state]?.[event];
@@ -526,9 +440,4 @@ export class QueueStore {
 }
 
 // What used to live here too, in parts beside this file.
-export type {
-  PendingModelResult,
-  PendingStepsResult,
-  TransitionResult,
-  QueueOptions,
-} from "./types.ts";
+export type { PendingModelResult, PendingStepsResult, TransitionResult, QueueOptions } from "./types.ts";

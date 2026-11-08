@@ -38,42 +38,18 @@ beforeAll(async () => {
     join(scratch, "queue.json"),
     JSON.stringify(
       seeds.map((s) => ({
-        id: s.id,
-        project: "aide",
-        specFolder: KEY,
-        steps: ["schedule"],
-        stepIndex: 0,
-        state: "done",
-        timeoutSec: {},
-        permissionMode: {},
-        model: {},
-        createdAt: s.at,
-        startedAt: s.at,
-        finishedAt: s.at,
+        id: s.id, project: "aide", specFolder: KEY, steps: ["schedule"], stepIndex: 0, state: "done",
+        timeoutSec: {}, permissionMode: {}, model: {}, createdAt: s.at, startedAt: s.at, finishedAt: s.at,
       })),
     ),
   );
   const queueConfigFile = join(scratch, "queue-config.json");
   writeFileSync(
     queueConfigFile,
-    JSON.stringify({
-      schedules: {
-        aide: [
-          {
-            name: "nightly-report",
-            cron: "0 3 * * *",
-            prompt: "docs/nightly.md",
-          },
-        ],
-      },
-    }),
+    JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" }] } }),
   );
   const started = harness.start({
-    extra: {
-      scheduleOutputRoot: outputRoot,
-      queueMirrorPath: join(scratch, "queue.json"),
-      queueConfigFile,
-    },
+    extra: { scheduleOutputRoot: outputRoot, queueMirrorPath: join(scratch, "queue.json"), queueConfigFile },
   });
   base = started.base;
   browser = await chromium.launch();
@@ -91,10 +67,7 @@ test("a click on a run's row shows its report and marks the row", async () => {
   await page.locator("#runs tbody tr").first().waitFor();
 
   // The State cell, not the row's link: the whole row opens the run.
-  await page
-    .locator('#runs tbody tr[data-row-href*="run=older"] td')
-    .nth(1)
-    .click();
+  await page.locator('#runs tbody tr[data-row-href*="run=older"] td').nth(1).click();
   await page.waitForURL((u) => u.searchParams.get("run") === "older");
   await frame.locator("h1", { hasText: "OLDER-REPORT" }).waitFor();
   const marked = page.locator('#runs tbody tr[aria-current="true"]');

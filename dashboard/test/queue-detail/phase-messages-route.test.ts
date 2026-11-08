@@ -11,21 +11,13 @@ afterEach(() => harness.cleanup());
 
 const FOLDER = "81-queue-and-runner";
 const KEY = `aide/${FOLDER}:analyze`;
-const said = (text: string) =>
-  JSON.stringify({
-    type: "assistant",
-    message: { content: [{ type: "text", text }] },
-  }) + "\n";
+const said = (text: string) => JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text }] } }) + "\n";
 
 async function enqueue(base: string): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({
-      project: "aide",
-      specFolder: FOLDER,
-      steps: ["analyze"],
-    }),
+    body: JSON.stringify({ project: "aide", specFolder: FOLDER, steps: ["analyze"] }),
   });
   return ((await res.json()) as { job: { id: string } }).job.id;
 }
@@ -37,38 +29,20 @@ describe("GET /?rows=1&phases=…", () => {
     const stream = join(dir, "analyze.stream.jsonl");
     writeFileSync(stream, said("first message"));
     const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<
-      string,
-      unknown
-    >[];
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
     const job = jobs.find((j) => j.id === id)!;
     job.state = "done";
-    job.results = [
-      {
-        step: "analyze",
-        ok: true,
-        tool: "claude",
-        costUsd: 0,
-        costMeasured: true,
-        terminalReason: "completed",
-        streamFile: stream,
-        at: "2026-09-19T10:00:00Z",
-      },
-    ];
+    job.results = [{ step: "analyze", ok: true, tool: "claude", costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: stream, at: "2026-09-19T10:00:00Z" }];
     writeFileSync(mirror, JSON.stringify(jobs));
 
-    const { base: base2 } = harness.start({
-      extra: { queueMirrorPath: mirror },
-    });
+    const { base: base2 } = harness.start({ extra: { queueMirrorPath: mirror } });
     const url = `${base2}/?rows=1&open=${encodeURIComponent(`aide/${FOLDER}`)}&phases=${encodeURIComponent(KEY)}`;
     const first = await (await fetch(url)).text();
     expect(first).toContain("first message");
 
     appendFileSync(stream, said("second message"));
     const second = await (await fetch(url)).text();
-    expect(second.indexOf("second message")).toBeGreaterThan(
-      second.indexOf("first message"),
-    );
+    expect(second.indexOf("second message")).toBeGreaterThan(second.indexOf("first message"));
     expect(second).toMatch(/<a class="fold[^"]*"[^>]*aria-expanded="true"/);
   });
 });

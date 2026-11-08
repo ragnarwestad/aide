@@ -22,10 +22,7 @@ function probe(assignment: string): string {
     writeFileSync(mk, `${assignment}\nprobe:\n\t@echo "[$$AIDE_DASH_HOST]"\n`);
     const env = { ...process.env };
     delete env.AIDE_DASH_HOST;
-    const res = Bun.spawnSync(["make", "-f", "Makefile", "-f", mk, "probe"], {
-      cwd: ROOT,
-      env,
-    });
+    const res = Bun.spawnSync(["make", "-f", "Makefile", "-f", mk, "probe"], { cwd: ROOT, env });
     return new TextDecoder().decode(res.stdout).trim();
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -52,17 +49,11 @@ describe("the deploy table says what the Makefile says", () => {
 
   /** Every `VAR ?= value` the Makefile declares. */
   const declared = new Map<string, string>(
-    [...makefile.matchAll(/^([A-Z_]+) \?= (.*)$/gm)].map((m) => [
-      m[1]!,
-      m[2]!.trim(),
-    ]),
+    [...makefile.matchAll(/^([A-Z_]+) \?= (.*)$/gm)].map((m) => [m[1]!, m[2]!.trim()]),
   );
   /** Every row of the variables table, as variable and default. */
   const documented = new Map<string, string>(
-    [...doc.matchAll(/^\| `([A-Z_]+)` *\| `([^`]+)` *\|/gm)].map((m) => [
-      m[1]!,
-      m[2]!.trim(),
-    ]),
+    [...doc.matchAll(/^\| `([A-Z_]+)` *\| `([^`]+)` *\|/gm)].map((m) => [m[1]!, m[2]!.trim()]),
   );
 
   test("the table covers the variables an operator overrides", () => {

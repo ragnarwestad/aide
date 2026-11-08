@@ -73,17 +73,14 @@ const BLOCKING_STATES = new Set(["queued", "running", "done"]);
 
 /** The list a run left, or why it cannot be read. Each entry is judged later,
  *  one at a time, so one bad entry does not cost the others. */
-export function parseProposalsFile(
-  text: string,
-): { entries: unknown[] } | { error: string } {
+export function parseProposalsFile(text: string): { entries: unknown[] } | { error: string } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
-  if (!Array.isArray(parsed))
-    return { error: "the file is JSON, but not a list" };
+  if (!Array.isArray(parsed)) return { error: "the file is JSON, but not a list" };
   return { entries: parsed };
 }
 
@@ -100,8 +97,7 @@ export function descriptionRoom(block: string): number {
   return DESCRIPTION_MAX - block.length - 2;
 }
 
-const oneOf = (v: unknown): string =>
-  typeof v === "string" ? v.replace(/\r\n?/g, "\n").trim() : "";
+const oneOf = (v: unknown): string => (typeof v === "string" ? v.replace(/\r\n?/g, "\n").trim() : "");
 
 /** Judge one entry of the list. `room` is what `descriptionRoom` gave. The
  *  first rule that applies decides: a malformed entry, then a spec of the
@@ -111,43 +107,22 @@ export function checkProposal(
   room: number,
   known: readonly KnownSpec[],
   jobs: readonly PendingCreate[],
-):
-  | { ok: true; proposal: Proposal }
-  | { ok: false; title: string; why: SkipWhy } {
-  const obj =
-    entry !== null && typeof entry === "object" && !Array.isArray(entry)
-      ? (entry as Record<string, unknown>)
-      : null;
+): { ok: true; proposal: Proposal } | { ok: false; title: string; why: SkipWhy } {
+  const obj = entry !== null && typeof entry === "object" && !Array.isArray(entry) ? (entry as Record<string, unknown>) : null;
   const title = oneOf(obj?.title);
   const skip = (why: SkipWhy) => ({ ok: false as const, title, why });
   if (!obj) return skip({ code: "invalid", what: "not-an-object" });
   if (!title) return skip({ code: "invalid", what: "title-missing" });
-  if (title.includes("\n"))
-    return skip({ code: "invalid", what: "title-lines" });
-  if (title.length > TITLE_MAX)
-    return skip({ code: "invalid", what: "title-long", max: TITLE_MAX });
+  if (title.includes("\n")) return skip({ code: "invalid", what: "title-lines" });
+  if (title.length > TITLE_MAX) return skip({ code: "invalid", what: "title-long", max: TITLE_MAX });
   const description = oneOf(obj.description);
-  if (!description)
-    return skip({ code: "invalid", what: "description-missing" });
-  if (description.length > room)
-    return skip({ code: "invalid", what: "description-long", max: room });
+  if (!description) return skip({ code: "invalid", what: "description-missing" });
+  if (description.length > room) return skip({ code: "invalid", what: "description-long", max: room });
 
   const key = titleKey(title);
-  const existing = known.find(
-    (s) => s.title !== null && titleKey(s.title) === key,
-  );
-  if (existing)
-    return skip({
-      code: "exists",
-      folder: existing.folder,
-      kind: existing.kind,
-    });
-  const pending = jobs.find(
-    (j) =>
-      BLOCKING_STATES.has(j.state) &&
-      j.createTitle !== undefined &&
-      titleKey(j.createTitle) === key,
-  );
+  const existing = known.find((s) => s.title !== null && titleKey(s.title) === key);
+  if (existing) return skip({ code: "exists", folder: existing.folder, kind: existing.kind });
+  const pending = jobs.find((j) => BLOCKING_STATES.has(j.state) && j.createTitle !== undefined && titleKey(j.createTitle) === key);
   if (pending) return skip({ code: "queued", jobId: pending.id });
   return { ok: true, proposal: { title, description } };
 }
@@ -169,20 +144,11 @@ export function sourceBlock(o: {
   );
 }
 
-const runDir = (
-  root: string,
-  project: string,
-  key: string,
-  runId: string,
-): string => scheduleRunOutputDir(root, project, key, runId);
+const runDir = (root: string, project: string, key: string, runId: string): string =>
+  scheduleRunOutputDir(root, project, key, runId);
 
 /** The text of the list a run left, or `null` when it left none. */
-export function proposalsFileText(
-  root: string,
-  project: string,
-  key: string,
-  runId: string,
-): string | null {
+export function proposalsFileText(root: string, project: string, key: string, runId: string): string | null {
   const file = join(runDir(root, project, key, runId), PROPOSALS_FILE);
   try {
     return existsSync(file) ? readFileSync(file, "utf-8") : null;
@@ -193,40 +159,18 @@ export function proposalsFileText(
 
 /** The record of what the board did with a run's list, or `null` when it did
  *  nothing (no list, a run that was not green) or the file is not a record. */
-export function readProposalsRecord(
-  root: string,
-  project: string,
-  key: string,
-  runId: string,
-): ProposalsRecord | null {
+export function readProposalsRecord(root: string, project: string, key: string, runId: string): ProposalsRecord | null {
   const file = join(runDir(root, project, key, runId), PROPOSALS_RESULT_FILE);
   try {
     if (!existsSync(file)) return null;
-    const raw = JSON.parse(
-      readFileSync(file, "utf-8"),
-    ) as Partial<ProposalsRecord> | null;
-    if (
-      raw === null ||
-      typeof raw !== "object" ||
-      typeof raw.at !== "string" ||
-      !Array.isArray(raw.proposals)
-    )
-      return null;
+    const raw = JSON.parse(readFileSync(file, "utf-8")) as Partial<ProposalsRecord> | null;
+    if (raw === null || typeof raw !== "object" || typeof raw.at !== "string" || !Array.isArray(raw.proposals)) return null;
     return raw as ProposalsRecord;
   } catch {
     return null;
   }
 }
 
-export function writeProposalsRecord(
-  root: string,
-  project: string,
-  key: string,
-  runId: string,
-  record: ProposalsRecord,
-): void {
-  writeFileSync(
-    join(runDir(root, project, key, runId), PROPOSALS_RESULT_FILE),
-    JSON.stringify(record, null, 2) + "\n",
-  );
+export function writeProposalsRecord(root: string, project: string, key: string, runId: string, record: ProposalsRecord): void {
+  writeFileSync(join(runDir(root, project, key, runId), PROPOSALS_RESULT_FILE), JSON.stringify(record, null, 2) + "\n");
 }

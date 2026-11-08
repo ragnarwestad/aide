@@ -15,11 +15,7 @@ export const STEP_LABEL: Record<string, TranslationKey> = {
 
 /** The board's own Deploy asks first, and its OK queues the deploy job; the
  *  page then goes to the Running tab, where the job is followed. */
-export function deployAskDialog(
-  lang: Language,
-  project: string,
-  id: string,
-): string {
+export function deployAskDialog(lang: Language, project: string, id: string): string {
   return progressDialog(lang, {
     id,
     title: t(lang, "deploy.title"),
@@ -27,9 +23,7 @@ export function deployAskDialog(
       title: t(lang, "deploy.askTitle", { project }),
       sentence: t(lang, "deploy.askSentence"),
       ok: { variant: "primary", pending: t(lang, "deploy.title") },
-      post: {
-        action: `/api/queue/projects/${encodeURIComponent(project)}/deploy`,
-      },
+      post: { action: `/api/queue/projects/${encodeURIComponent(project)}/deploy` },
       queuesJob: true,
     },
   });

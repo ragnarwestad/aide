@@ -4,14 +4,7 @@
 
 import { join } from "node:path";
 import { specBranch, type GitRunner } from "../../src/git/branch-status.ts";
-import {
-  SPEC,
-  TICK,
-  DESCRIPTION,
-  FILE_SHA,
-  savable,
-  post,
-} from "./spec-save-fixtures.ts";
+import { SPEC, TICK, DESCRIPTION, FILE_SHA, savable, post } from "./spec-save-fixtures.ts";
 export { answer, type ActionAnswer } from "./spec-save-fixtures.ts";
 import type { QueueHarness } from "../helpers/queue-server.ts";
 
@@ -22,15 +15,7 @@ import type { QueueHarness } from "../helpers/queue-server.ts";
 // through the script at all is that its derivation is exercised for
 // real, the same posture `branch-file.test.ts`'s "real git, no fakes"
 // suite already takes.
-process.env.AIDE_WRITE_SPEC_BIN = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  "core",
-  "scripts",
-  "aide-write-spec",
-);
+process.env.AIDE_WRITE_SPEC_BIN = join(import.meta.dir, "..", "..", "..", "core", "scripts", "aide-write-spec");
 
 /** The one section a person ticks, and so the only one the Checks tab
  *  draws as boxes: the Phase tables below are the implement RUN's own
@@ -39,22 +24,16 @@ process.env.AIDE_WRITE_SPEC_BIN = join(
 export const PHASE = "Acceptance criteria";
 export const EARLIER_PHASE = "Phase 3: GREEN - Implement";
 export const LATER_PHASE = "Phase 5: SHIP - After the merge";
-export const OPEN_ROW =
-  "| Manual check at 375px in a real browser | ⬜ | still outstanding |";
+export const OPEN_ROW = "| Manual check at 375px in a real browser | ⬜ | still outstanding |";
 export const SECOND_OPEN_ROW = "| Read the whole diff once | ⬜ | |";
 export const DONE_ROW = "| Run the full test suite | ✅ | 1742 pass |";
 export const EARLIER_DONE_ROW = "| Write the code | ✅ | |";
 export const LATER_ROW = "| Watch the first real run | ⬜ | |";
 export const ticked = (row: string) => row.replace("| ⬜ |", "| ✅ |");
 /** A check that waits for something after the deploy. */
-export const NV_ROW =
-  "| AC-4: works after the deploy | Not verified | Not tested: needs production |";
-export const marked = (row: string) =>
-  row.replace(/\| (⬜|✅) \|/, "| Not verified |");
-export const HEADER = [
-  "| Task | Status | Notes |",
-  "|------|--------|-------|",
-];
+export const NV_ROW = "| AC-4: works after the deploy | Not verified | Not tested: needs production |";
+export const marked = (row: string) => row.replace(/\| (⬜|✅) \|/, "| Not verified |");
+export const HEADER = ["| Task | Status | Notes |", "|------|--------|-------|"];
 export const phaseSection = (heading: string, rows: string[]) =>
   [`## ${heading}`, "", "### Tasks", "", ...HEADER, ...rows, ""].join("\n");
 
@@ -118,8 +97,7 @@ export const WORDED = STATUS.replace(/\| ⬜ \|/g, "| Waiting |");
  *  and accept the same real tick. */
 export const CHECKLIST_PHASE = "Checklist";
 export const CHECKLIST_OPEN_ROW = "| Run the manual browser check | ⬜ | |";
-export const checklistSection = (rows: string[]) =>
-  ["## Checklist", "", ...HEADER, ...rows, ""].join("\n");
+export const checklistSection = (rows: string[]) => ["## Checklist", "", ...HEADER, ...rows, ""].join("\n");
 export const CHECKLIST_STATUS = [
   "# Queue - Status",
   "",
@@ -134,8 +112,7 @@ export const CHECKLIST_STATUS = [
 
 /** A spec a headless archive run declined: the hold-back section it
  *  wrote, and exactly one open row left anywhere in the file. */
-export const HELD_BACK_REASON =
-  "- the manual browser check (Phase 4, still unchecked) — tick it on the spec's page";
+export const HELD_BACK_REASON = "- the manual browser check (Phase 4, still unchecked) — tick it on the spec's page";
 export const heldBack = (rows: string[]) =>
   [
     "# Queue - Status",
@@ -156,14 +133,9 @@ export const heldBack = (rows: string[]) =>
     phaseSection(PHASE, rows),
   ].join("\n");
 
-export const statusPath = (dir: string, folder = SPEC) =>
-  join(dir, "root", "aide", "specs", folder, "4-status.md");
+export const statusPath = (dir: string, folder = SPEC) => join(dir, "root", "aide", "specs", folder, "4-status.md");
 
-export function startWithChecks(
-  harness: QueueHarness,
-  gitRun: GitRunner,
-  status = STATUS,
-) {
+export function startWithChecks(harness: QueueHarness, gitRun: GitRunner, status = STATUS) {
   return harness.start({ description: DESCRIPTION, status, extra: { gitRun } });
 }
 
@@ -180,30 +152,14 @@ export function startWithChecks(
  *  and left CLEAR — that is what takes a check off. */
 export const tick = (
   base: string,
-  over: {
-    ticks?: string[];
-    unverified?: string[];
-    rows?: string[];
-    phase?: string;
-    statusBaseSha?: string;
-    path?: string;
-  } = {},
+  over: { ticks?: string[]; unverified?: string[]; rows?: string[]; phase?: string; statusBaseSha?: string; path?: string } = {},
 ) => {
   const body = new URLSearchParams([
-    ...(over.phase === null
-      ? []
-      : ([["checksPhase", over.phase ?? PHASE]] as [string, string][])),
+    ...(over.phase === null ? [] : ([["checksPhase", over.phase ?? PHASE]] as [string, string][])),
     ["statusBaseSha", over.statusBaseSha ?? FILE_SHA],
-    ...(
-      over.rows ?? [
-        ...new Set([...(over.ticks ?? []), ...(over.unverified ?? [])]),
-      ]
-    ).map((line): [string, string] => ["row", line]),
+    ...(over.rows ?? [...new Set([...(over.ticks ?? []), ...(over.unverified ?? [])])]).map((line): [string, string] => ["row", line]),
     ...(over.ticks ?? []).map((line): [string, string] => ["tick", line]),
-    ...(over.unverified ?? []).map((line): [string, string] => [
-      "unverified",
-      line,
-    ]),
+    ...(over.unverified ?? []).map((line): [string, string] => ["unverified", line]),
   ]);
   return fetch(`${base}${over.path ?? TICK}`, {
     method: "POST",
@@ -214,20 +170,12 @@ export const tick = (
 };
 
 /** The description form's own body: the textarea and its sha. */
-export const save = (
-  base: string,
-  over: { text?: string; baseSha?: string } = {},
-) =>
-  post(base, {
-    text: over.text ?? DESCRIPTION,
-    baseSha: over.baseSha ?? FILE_SHA,
-  });
+export const save = (base: string, over: { text?: string; baseSha?: string } = {}) =>
+  post(base, { text: over.text ?? DESCRIPTION, baseSha: over.baseSha ?? FILE_SHA });
 
 /** Every git command the run was given, so the ONE commit and its
  *  message can both be read back. */
-export const recording = (
-  extra: Record<string, { code: number; stdout?: string }> = {},
-) => {
+export const recording = (extra: Record<string, { code: number; stdout?: string }> = {}) => {
   const calls: string[][] = [];
   const inner = savable("/host", extra);
   const run: GitRunner = async (dir, args) => {
@@ -250,8 +198,7 @@ export const messageOf = (calls: string[][]): string => {
  *  `path.relative`. Kept in one place because both the fixture below
  *  and any test asserting on the exact plumbing calls need the same
  *  string. */
-export const relFilePath = (file: string, folder = SPEC) =>
-  `aide/specs/${folder}/${file}`;
+export const relFilePath = (file: string, folder = SPEC) => `aide/specs/${folder}/${file}`;
 
 /** `4-status.md`'s own path — the one file this fixture wrote for
  *  before Save covered all four. Kept as its own name
@@ -305,10 +252,7 @@ export function branchAwareGitRunner(
     pushFails?: boolean;
     extra?: Record<string, { code: number; stdout?: string }>;
   } = {},
-): {
-  run: GitRunner;
-  calls: { args: string[]; env?: Record<string, string> }[];
-} {
+): { run: GitRunner; calls: { args: string[]; env?: Record<string, string> }[] } {
   const folder = opts.folder ?? SPEC;
   const branch = specBranch(folder);
   const relPath = relFilePath(opts.file ?? "4-status.md", folder);
@@ -322,37 +266,24 @@ export function branchAwareGitRunner(
     calls.push({ args, env });
     const line = args.join(" ");
     if (line === "rev-parse --show-toplevel" && d.endsWith(specFolderSuffix)) {
-      return {
-        code: 0,
-        stdout: `${d.slice(0, d.length - specFolderSuffix.length - 1)}\n`,
-      };
+      return { code: 0, stdout: `${d.slice(0, d.length - specFolderSuffix.length - 1)}\n` };
     }
     if (line.startsWith("ls-remote --heads origin refs/heads/aide/*")) {
-      return {
-        code: 0,
-        stdout: opts.open === false ? "" : `${tipSha}\trefs/heads/${branch}\n`,
-      };
+      return { code: 0, stdout: opts.open === false ? "" : `${tipSha}\trefs/heads/${branch}\n` };
     }
     if (line === `rev-parse ${ref}`) return { code: 0, stdout: `${tipSha}\n` };
-    if (line === `rev-parse ${tipSha}^{tree}`)
-      return { code: 0, stdout: `${PAD("tiptree")}\n` };
-    if (line === `log -1 --format=%H ${ref} -- ${relPath}`)
-      return { code: 0, stdout: `${fileSha}\n` };
-    if (line === `show ${ref}:${relPath}`)
-      return { code: 0, stdout: opts.branchText ?? "" };
-    if (line.startsWith("hash-object -w"))
-      return { code: 0, stdout: `${PAD("newblob")}\n` };
+    if (line === `rev-parse ${tipSha}^{tree}`) return { code: 0, stdout: `${PAD("tiptree")}\n` };
+    if (line === `log -1 --format=%H ${ref} -- ${relPath}`) return { code: 0, stdout: `${fileSha}\n` };
+    if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
+    if (line.startsWith("hash-object -w")) return { code: 0, stdout: `${PAD("newblob")}\n` };
     if (line === `read-tree ${PAD("tiptree")}`) return { code: 0, stdout: "" };
     // `--add` is needed: the state file is a NEW path on the branch
     // the first time, and git refuses --cacheinfo for a new path without it.
     if (line.startsWith("update-index")) return { code: 0, stdout: "" };
-    if (line === "write-tree")
-      return { code: 0, stdout: `${PAD("newtree")}\n` };
-    if (line.startsWith("commit-tree"))
-      return { code: 0, stdout: `${PAD("newcommit")}\n` };
+    if (line === "write-tree") return { code: 0, stdout: `${PAD("newtree")}\n` };
+    if (line.startsWith("commit-tree")) return { code: 0, stdout: `${PAD("newcommit")}\n` };
     if (line.startsWith("push")) {
-      if (line.includes(`refs/heads/${branch}`))
-        return { code: opts.pushFails ? 1 : 0, stdout: "" };
+      if (line.includes(`refs/heads/${branch}`)) return { code: opts.pushFails ? 1 : 0, stdout: "" };
       return base(d, args, timeoutMs, env);
     }
     return base(d, args, timeoutMs, env);

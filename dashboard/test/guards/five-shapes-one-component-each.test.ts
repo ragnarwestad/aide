@@ -14,14 +14,8 @@ const CHECKBOX = "src/render/ui/components/checkbox.ts";
 // The phase chip is a component of its own, with its own lock and tick.
 const PHASE_CHIP = "src/render/ui/components/phase-chip.ts";
 
-const matching = (
-  files: { file: string; text: string }[],
-  hit: (text: string) => boolean,
-  except: string[],
-): string[] =>
-  files
-    .filter((f) => !except.includes(f.file) && hit(f.text))
-    .map((f) => f.file);
+const matching = (files: { file: string; text: string }[], hit: (text: string) => boolean, except: string[]): string[] =>
+  files.filter((f) => !except.includes(f.file) && hit(f.text)).map((f) => f.file);
 
 /** `name(…)` with its parentheses balanced, from `start` (the name's first character). */
 function callEnd(text: string, start: number): number {
@@ -37,8 +31,7 @@ function callEnd(text: string, start: number): number {
 function replaceCalls(text: string, name: string, token: string): string {
   const re = new RegExp(`\\b${name}\\(`);
   let out = text;
-  for (let m = re.exec(out); m; m = re.exec(out))
-    out = out.slice(0, m.index) + token + out.slice(callEnd(out, m.index));
+  for (let m = re.exec(out); m; m = re.exec(out)) out = out.slice(0, m.index) + token + out.slice(callEnd(out, m.index));
   return out;
 }
 
@@ -48,20 +41,12 @@ function replaceCalls(text: string, name: string, token: string): string {
  *  message line or a dialog, and the concatenation between them are taken
  *  away, one button is all that is left. */
 function writesOneButtonForm(text: string): boolean {
-  for (
-    let at = text.indexOf("<form");
-    at !== -1;
-    at = text.indexOf("<form", at + 1)
-  ) {
+  for (let at = text.indexOf("<form"); at !== -1; at = text.indexOf("<form", at + 1)) {
     const close = text.indexOf("</form>", at);
     if (close === -1) break;
     const inner = text.slice(text.indexOf(">", at) + 1, close);
-    let rest = replaceCalls(inner, "btn", "§BTN§").replace(
-      /<button\b[\s\S]*?<\/button>/g,
-      "§BTN§",
-    );
-    for (const helper of ["filterFields", "messageSlot"])
-      rest = replaceCalls(rest, helper, "");
+    let rest = replaceCalls(inner, "btn", "§BTN§").replace(/<button\b[\s\S]*?<\/button>/g, "§BTN§");
+    for (const helper of ["filterFields", "messageSlot"]) rest = replaceCalls(rest, helper, "");
     rest = rest
       .replace(/<input type=\\?"hidden\\?"[^>]*>/g, "")
       .replace(/<div class=\\?"configactions\\?">|<\/div>/g, "")
@@ -91,21 +76,15 @@ describe("one fold arrow, one tab strip, one table of facts, one one-button form
   });
 
   test("no file but the fold-arrow component writes an element with the fold class", () => {
-    expect(
-      matching(all, (text) => /class=\\?"fold\b/.test(text), [FOLD]),
-    ).toEqual([]);
+    expect(matching(all, (text) => /class=\\?"fold\b/.test(text), [FOLD])).toEqual([]);
   });
 
   test("no file but the tab strip writes an element with the tab class", () => {
-    expect(
-      matching(all, (text) => /class=\\?"tab\b/.test(text), [TABS]),
-    ).toEqual([]);
+    expect(matching(all, (text) => /class=\\?"tab\b/.test(text), [TABS])).toEqual([]);
   });
 
   test("no file but the facts component writes a table of facts", () => {
-    expect(
-      matching(all, (text) => /class=\\?"facts\b/.test(text), [FACTS]),
-    ).toEqual([]);
+    expect(matching(all, (text) => /class=\\?"facts\b/.test(text), [FACTS])).toEqual([]);
   });
 
   test("no file but the button component writes a form holding one button", () => {
@@ -114,21 +93,15 @@ describe("one fold arrow, one tab strip, one table of facts, one one-button form
 
   test("the one-button rule flags a hand-written one and passes a form with other controls", () => {
     expect(
-      writesOneButtonForm(
-        '`<form class="actionform" method="post" action="${esc(a)}">` + btn({ label: "Go" }) + `</form>`',
-      ),
+      writesOneButtonForm('`<form class="actionform" method="post" action="${esc(a)}">` + btn({ label: "Go" }) + `</form>`'),
     ).toBe(true);
     // A button written out rather than drawn by btn(), as the About box's close was.
     expect(
-      writesOneButtonForm(
-        '`<form method="dialog"><button class="aboutclose" aria-label="Close">` + `${ICON}</button></form>`',
-      ),
+      writesOneButtonForm('`<form method="dialog"><button class="aboutclose" aria-label="Close">` + `${ICON}</button></form>`'),
     ).toBe(true);
     // Controls that come in through a variable, as the criteria list's boxes do.
     expect(
-      writesOneButtonForm(
-        '`<form class="rowchecks" method="post" action="/x">` + list + btn({ label: "Save" }) + `</form>`',
-      ),
+      writesOneButtonForm('`<form class="rowchecks" method="post" action="/x">` + list + btn({ label: "Save" }) + `</form>`'),
     ).toBe(false);
     expect(
       writesOneButtonForm(
@@ -139,21 +112,13 @@ describe("one fold arrow, one tab strip, one table of facts, one one-button form
   });
 
   test("no file but the checkbox component writes a checkbox with its words beside it", () => {
-    expect(
-      matching(all, writesLabelledCheckbox, [CHECKBOX, PHASE_CHIP]),
-    ).toEqual([]);
+    expect(matching(all, writesLabelledCheckbox, [CHECKBOX, PHASE_CHIP])).toEqual([]);
   });
 
   test("the labelled-checkbox rule flags a hand-written line and passes the model picker's box", () => {
-    expect(
-      writesLabelledCheckbox(
-        '`<label class="row"><input type="checkbox" name="x" value="1">` +\n  `<span>Words</span></label>`',
-      ),
-    ).toBe(true);
-    expect(
-      writesLabelledCheckbox(
-        '`<input type="checkbox" class="aimodelopen" id="${esc(id)}">` + `<label for="x">`',
-      ),
-    ).toBe(false);
+    expect(writesLabelledCheckbox('`<label class="row"><input type="checkbox" name="x" value="1">` +\n  `<span>Words</span></label>`')).toBe(
+      true,
+    );
+    expect(writesLabelledCheckbox('`<input type="checkbox" class="aimodelopen" id="${esc(id)}">` + `<label for="x">`')).toBe(false);
   });
 });

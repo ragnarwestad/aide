@@ -24,15 +24,9 @@ function tmp(prefix: string): string {
 }
 
 function git(cwd: string, args: string[]): void {
-  const proc = Bun.spawnSync({
-    cmd: ["git", "-C", cwd, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+  const proc = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
   if (proc.exitCode !== 0) {
-    throw new Error(
-      `git ${args.join(" ")} in ${cwd} failed: ${proc.stderr.toString()}`,
-    );
+    throw new Error(`git ${args.join(" ")} in ${cwd} failed: ${proc.stderr.toString()}`);
   }
 }
 
@@ -41,22 +35,12 @@ afterEach(() => {
 });
 
 function decoyPort() {
-  const server = Bun.serve({
-    port: 0,
-    hostname: "127.0.0.1",
-    fetch: () => Response.json({ jobs: [] }),
-  });
+  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => Response.json({ jobs: [] }) });
   return { port: server.port, stop: () => server.stop(true) };
 }
 
-async function runToExit(
-  args: string[],
-): Promise<{ code: number; stdout: string; stderr: string }> {
-  const proc = Bun.spawn({
-    cmd: ["/bin/bash", RUN, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+async function runToExit(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+  const proc = Bun.spawn({ cmd: ["/bin/bash", RUN, ...args], stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, code] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
@@ -75,15 +59,7 @@ describe("a branch that exists only on origin", () => {
     mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "baseline",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
     git(seed, ["remote", "add", "origin", originBare]);
     git(seed, ["push", "-q", "origin", "main"]);
 
@@ -94,47 +70,20 @@ describe("a branch that exists only on origin", () => {
 
     // Now push the branch, from the seed checkout, after AIDE was cloned.
     git(seed, ["checkout", "-q", "-b", "feature-x"]);
-    writeFileSync(
-      join(seed, "dashboard", "src", "serve", "serve.ts"),
-      "// feature-x\n",
-    );
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// feature-x\n");
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "feature-x work",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "feature-x work"]);
     git(seed, ["push", "-q", "origin", "feature-x"]);
 
     // AIDE's clone has no idea feature-x exists yet.
     const beforeFetch = Bun.spawnSync({
-      cmd: [
-        "git",
-        "-C",
-        aide,
-        "show-ref",
-        "--verify",
-        "--quiet",
-        "refs/remotes/origin/feature-x",
-      ],
+      cmd: ["git", "-C", aide, "show-ref", "--verify", "--quiet", "refs/remotes/origin/feature-x"],
     });
     expect(beforeFetch.exitCode).not.toBe(0);
 
     const decoy = decoyPort();
     try {
-      const { stderr } = await runToExit([
-        aide,
-        "--branch",
-        "feature-x",
-        "--port",
-        String(decoy.port),
-        "--timeout",
-        "5",
-      ]);
+      const { stderr } = await runToExit([aide, "--branch", "feature-x", "--port", String(decoy.port), "--timeout", "5"]);
       expect(stderr).not.toContain("no such branch");
       // The branch check fetched and tracked it locally — proceeding to
       // whatever refusal the held port produces next is
@@ -154,27 +103,13 @@ describe("a branch that exists only on origin", () => {
     mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "baseline",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
     git(seed, ["remote", "add", "origin", originBare]);
     git(seed, ["push", "-q", "origin", "main"]);
     const aide = tmp("aide-round-aide-");
     git(tmpdir(), ["clone", "-q", originBare, aide]);
 
-    const { code, stderr } = await runToExit([
-      aide,
-      "--branch",
-      "never-existed",
-      "--timeout",
-      "5",
-    ]);
+    const { code, stderr } = await runToExit([aide, "--branch", "never-existed", "--timeout", "5"]);
     expect(code).toBe(2);
     expect(stderr).toContain("no such branch: never-existed");
   });
@@ -196,86 +131,36 @@ describe("a branch the checkout already has, moved on since", () => {
     mkdirSync(join(seed, "dashboard", "src", "serve"), { recursive: true });
     writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "");
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "baseline",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "baseline"]);
     git(seed, ["remote", "add", "origin", originBare]);
     git(seed, ["push", "-q", "origin", "main"]);
     git(seed, ["checkout", "-q", "-b", "feature-x"]);
-    writeFileSync(
-      join(seed, "dashboard", "src", "serve", "serve.ts"),
-      "// first\n",
-    );
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// first\n");
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "first",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "first"]);
     git(seed, ["push", "-q", "origin", "feature-x"]);
 
     // The checkout the round runs from knows the branch at its FIRST tip.
     const aide = tmp("aide-round-aide-");
     git(tmpdir(), ["clone", "-q", originBare, aide]);
     git(aide, ["branch", "-q", "feature-x", "origin/feature-x"]);
-    const older = Bun.spawnSync({
-      cmd: ["git", "-C", aide, "rev-parse", "feature-x"],
-    })
-      .stdout.toString()
-      .trim();
+    const older = Bun.spawnSync({ cmd: ["git", "-C", aide, "rev-parse", "feature-x"] }).stdout.toString().trim();
 
     // And then the branch moves on origin.
-    writeFileSync(
-      join(seed, "dashboard", "src", "serve", "serve.ts"),
-      "// second\n",
-    );
+    writeFileSync(join(seed, "dashboard", "src", "serve", "serve.ts"), "// second\n");
     git(seed, ["add", "-A"]);
-    git(seed, [
-      "-c",
-      "user.name=t",
-      "-c",
-      "user.email=t@localhost",
-      "commit",
-      "-qm",
-      "second",
-    ]);
+    git(seed, ["-c", "user.name=t", "-c", "user.email=t@localhost", "commit", "-qm", "second"]);
     git(seed, ["push", "-q", "origin", "feature-x"]);
-    const newer = Bun.spawnSync({
-      cmd: ["git", "-C", seed, "rev-parse", "feature-x"],
-    })
-      .stdout.toString()
-      .trim();
+    const newer = Bun.spawnSync({ cmd: ["git", "-C", seed, "rev-parse", "feature-x"] }).stdout.toString().trim();
     expect(newer).not.toBe(older);
 
     const decoy = decoyPort();
     try {
-      await runToExit([
-        aide,
-        "--branch",
-        "feature-x",
-        "--port",
-        String(decoy.port),
-        "--timeout",
-        "5",
-      ]);
+      await runToExit([aide, "--branch", "feature-x", "--port", String(decoy.port), "--timeout", "5"]);
     } finally {
       await decoy.stop();
     }
-    const served = Bun.spawnSync({
-      cmd: ["git", "-C", aide, "rev-parse", "feature-x"],
-    })
-      .stdout.toString()
-      .trim();
+    const served = Bun.spawnSync({ cmd: ["git", "-C", aide, "rev-parse", "feature-x"] }).stdout.toString().trim();
     expect(served).toBe(newer);
   });
 });

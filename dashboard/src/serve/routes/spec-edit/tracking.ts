@@ -4,24 +4,11 @@
 // longer ride on the Description tab's own `/save` (see spec-page.ts's
 // now-narrowed route).
 import { saveSpecFiles } from "../../../git/specs-pull.ts";
-import {
-  readStatusFromBranch,
-  resolveOpenBranchTarget,
-  writeStatusToBranch,
-} from "../../../git/branch-file.ts";
+import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../../git/branch-file.ts";
 import { lastCommitOf } from "../../../git/description-freshness.ts";
 import {
-  chooseApproachIn,
-  createChoicesIn,
-  dependsOnIn,
-  discoverProjects,
-  manifestInside,
-  parseCriteriaChecks,
-  specFileText,
-  withAcceptanceLine,
-  withChooseApproachLine,
-  withCriteriaChecksLine,
-  withDependsOnLine,
+  chooseApproachIn, createChoicesIn, dependsOnIn, discoverProjects, manifestInside, parseCriteriaChecks, specFileText, withAcceptanceLine,
+  withChooseApproachLine, withCriteriaChecksLine, withDependsOnLine,
 } from "../../../project/discover";
 import { parseStatus } from "../../../project/parse-status";
 import { cardStep } from "../../../project/spec-card.ts";
@@ -29,14 +16,7 @@ import { inFlight } from "../../../render/ui/job-state";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE } from "../../../render";
 import { workRoundJobs } from "../../spec-views/work-round.ts";
 import {
-  ARCHIVED_REFUSAL,
-  MAX_SAVE_BODY,
-  bodyToObject,
-  editMessage,
-  json,
-  logRefusal,
-  readBounded,
-  refusal,
+  ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, readBounded, refusal,
   resolveDependencyFolder,
 } from "../../serve-helpers";
 
@@ -50,12 +30,9 @@ export async function trackingRoutes(
   req: Request,
   path: string,
 ): Promise<Response | null> {
-  const m = path.match(
-    /^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/tracking$/,
-  );
+  const m = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/tracking$/);
   if (!m) return null;
-  if (req.method !== "POST")
-    return new Response("method not allowed", { status: 405 });
+  if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   const [, project, specFolder] = m;
   const found = ctx.specDir(project!, specFolder!);
   if (!found) return new Response("not found", { status: 404 });
@@ -63,8 +40,7 @@ export async function trackingRoutes(
   // The spec named in a refusal, as `/approach` and `/model` name it, so
   // the Running tab writes it under the row it was pressed on.
   const spec = `${project}/${specFolder}`;
-  const refuse = (error: string, solution?: string): Response =>
-    refusal({ error, solution }, { spec });
+  const refuse = (error: string, solution?: string): Response => refusal({ error, solution }, { spec });
 
   // Before the body is even read: this one WRITES, commits and pushes,
   // and an archived spec's folder is in `archive/` — the same refusal
@@ -78,45 +54,17 @@ export async function trackingRoutes(
   // branch first" question `/save` asks, since `create` or
   // `analyze` may have already pushed this spec's own branch. `4-status.md`
   // is read the same way: whether analyze has run is a fact of the card.
-  const target = await resolveOpenBranchTarget(
-    ctx,
-    dir,
-    specFolder!,
-    EDITABLE_SPEC_FILE,
-    true,
-  );
+  const target = await resolveOpenBranchTarget(ctx, dir, specFolder!, EDITABLE_SPEC_FILE, true);
   const branchRead = target
-    ? await readStatusFromBranch(
-        ctx.gitRun,
-        target.root,
-        target.branch,
-        target.relPath,
-      )
+    ? await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath)
     : null;
-  const currentSha = branchRead
-    ? branchRead.sha
-    : ((await lastCommitOf(ctx.gitRun, dir, EDITABLE_SPEC_FILE))?.sha ?? null);
-  const currentText = branchRead
-    ? branchRead.text
-    : specFileText(dir, EDITABLE_SPEC_FILE);
-  const statusTarget = await resolveOpenBranchTarget(
-    ctx,
-    dir,
-    specFolder!,
-    STATUS_SPEC_FILE,
-    false,
-  );
+  const currentSha = branchRead ? branchRead.sha : (await lastCommitOf(ctx.gitRun, dir, EDITABLE_SPEC_FILE))?.sha ?? null;
+  const currentText = branchRead ? branchRead.text : specFileText(dir, EDITABLE_SPEC_FILE);
+  const statusTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, STATUS_SPEC_FILE, false);
   const statusRead = statusTarget
-    ? await readStatusFromBranch(
-        ctx.gitRun,
-        statusTarget.root,
-        statusTarget.branch,
-        statusTarget.relPath,
-      )
+    ? await readStatusFromBranch(ctx.gitRun, statusTarget.root, statusTarget.branch, statusTarget.relPath)
     : null;
-  const statusText = statusRead
-    ? statusRead.text
-    : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
+  const statusText = statusRead ? statusRead.text : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
 
   // What can be changed is the card's to say (`project/spec-card.ts`), the
   // same answer the Running row is drawn from. The job-state gate `/save`
@@ -124,14 +72,7 @@ export async function trackingRoutes(
   // started, but a hand edit racing the run's own commits to the SAME branch
   // is exactly what this gate exists to prevent. A landing counts as a job
   // in flight, as it does on the row.
-  const jobInFlight = ctx.queue
-    .list()
-    .some(
-      (job) =>
-        job.project === project &&
-        job.specFolder === specFolder &&
-        inFlight(job),
-    );
+  const jobInFlight = ctx.queue.list().some((job) => job.project === project && job.specFolder === specFolder && inFlight(job));
   const { view } = cardStep(undefined, {
     type: "opened",
     facts: {
@@ -139,14 +80,10 @@ export async function trackingRoutes(
       jobInFlight,
       analyzeRun: parseStatus(statusText).workflowSteps.includes("analyze"),
     },
-    saved: {
-      dependsOn: dependsOnIn(currentText ?? ""),
-      ...createChoicesIn(currentText ?? ""),
-    },
+    saved: { dependsOn: dependsOnIn(currentText ?? ""), ...createChoicesIn(currentText ?? "") },
   });
   if (view.locks.dependsOn === "job-in-flight") {
-    const reason =
-      "another job for this spec is still running — nothing was saved";
+    const reason = "another job for this spec is still running — nothing was saved";
     logRefusal("tracking", `${project}/${specFolder}`, reason);
     return json({ error: reason, spec }, 409);
   }
@@ -155,11 +92,7 @@ export async function trackingRoutes(
   if ("refusal" in sent) return sent.refusal;
   let body: Record<string, unknown> = {};
   try {
-    if (sent.text)
-      body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<
-        string,
-        unknown
-      >;
+    if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
   } catch {
     return json({ error: "malformed body" }, 400);
   }
@@ -174,13 +107,9 @@ export async function trackingRoutes(
   // Absent means "no check", which is what the comparison below already
   // says; passing the null straight on to the write made every save
   // refuse, because a real sha never equals null.
-  const sentSha =
-    typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
+  const sentSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
   if (sentSha !== null && sentSha !== currentSha) {
-    return refuse(
-      "the description changed since you opened this page",
-      "reload and try again",
-    );
+    return refuse("the description changed since you opened this page", "reload and try again");
   }
   // What the write compares against: what this route just read, when the
   // form sent nothing to compare. A branch that moves between that read
@@ -197,42 +126,30 @@ export async function trackingRoutes(
   const depFolders: string[] = [];
   let text: string | null = currentText;
   if (body.dependsOn !== undefined) {
-    const ids = (
-      Array.isArray(body.dependsOn) ? body.dependsOn : [body.dependsOn]
-    )
+    const ids = (Array.isArray(body.dependsOn) ? body.dependsOn : [body.dependsOn])
       .filter((v): v is string => typeof v === "string")
       .flatMap((v) => v.split(","))
       .map((id) => id.trim())
       .filter(Boolean);
     if (ids.length > 0) {
       const discovered = ctx.opts.projectRoot
-        ? discoverProjects(
-            ctx.opts.projectRoot,
-            undefined,
-            manifestInside(ctx.machineryProjectDir),
-          ).find((p) => p.name === project)
+        ? discoverProjects(ctx.opts.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).find((p) => p.name === project)
         : undefined;
       if (!discovered) return refuse("unknown project — nothing was saved");
       for (const id of ids) {
         const dep = resolveDependencyFolder(discovered, id);
         if (!dep) {
-          return refuse(
-            `no such spec in this project: ${id} — nothing was saved`,
-          );
+          return refuse(`no such spec in this project: ${id} — nothing was saved`);
         }
         if (dep.folder === specFolder) {
-          return refuse(
-            `a spec cannot depend on itself: ${id} — nothing was saved`,
-          );
+          return refuse(`a spec cannot depend on itself: ${id} — nothing was saved`);
         }
         depFolders.push(dep.folder);
       }
     }
     text = withDependsOnLine(currentText, ids);
     if (text === null) {
-      return refuse(
-        `nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved`,
-      );
+      return refuse(`nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved`);
     }
   }
 
@@ -246,22 +163,17 @@ export async function trackingRoutes(
   // alone".
   if (body.settingsEditable === "1") {
     if (view.locks.acceptanceRequired === "analyze-run") {
-      return refuse(
-        "analyze has already run on these settings — they cannot change now",
-      );
+      return refuse("analyze has already run on these settings — they cannot change now");
     }
     // The box says what it means: ticked is required. Absent is a
     // cleared box, which is "not required" — and `settingsEditable`
     // above is what tells that apart from a LOCKED box, which submits
     // nothing either.
-    const acceptanceRequired =
-      body.acceptanceRequired === "1" || body.acceptanceRequired === true;
+    const acceptanceRequired = body.acceptanceRequired === "1" || body.acceptanceRequired === true;
     const acceptanceNotRequired = !acceptanceRequired;
     const withAccept = withAcceptanceLine(text, acceptanceNotRequired);
     if (withAccept === null) {
-      return refuse(
-        `nowhere to put "Acceptance" — Tracking info has no Created line — nothing was saved`,
-      );
+      return refuse(`nowhere to put "Acceptance" — Tracking info has no Created line — nothing was saved`);
     }
     text = withAccept;
     // The other two settings analyze reads, under the same rule: the
@@ -273,9 +185,7 @@ export async function trackingRoutes(
     if (checks.level && checks.level !== createChoicesIn(text).criteriaChecks) {
       const withChecks = withCriteriaChecksLine(text, checks.level);
       if (withChecks === null) {
-        return refuse(
-          `nowhere to put "Acceptance criteria checks" — Tracking info has no Created line — nothing was saved`,
-        );
+        return refuse(`nowhere to put "Acceptance criteria checks" — Tracking info has no Created line — nothing was saved`);
       }
       text = withChecks;
     }
@@ -283,9 +193,7 @@ export async function trackingRoutes(
     if (choose !== chooseApproachIn(text)) {
       const withChoose = withChooseApproachLine(text, choose);
       if (withChoose === null) {
-        return refuse(
-          `nowhere to put "Let me choose the approach" — Tracking info has no Created line — nothing was saved`,
-        );
+        return refuse(`nowhere to put "Let me choose the approach" — Tracking info has no Created line — nothing was saved`);
       }
       text = withChoose;
     }
@@ -294,9 +202,7 @@ export async function trackingRoutes(
   const result = target
     ? await ctx.mergeLock.run(target.root, () =>
         writeStatusToBranch(
-          ctx.gitRun,
-          target.root,
-          target.branch,
+          ctx.gitRun, target.root, target.branch,
           [{ relPath: target.relPath, text: text! }],
           baseSha,
           editMessage(specFolder!, EDITABLE_SPEC_FILE),
@@ -304,14 +210,9 @@ export async function trackingRoutes(
       )
     : await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
         saveSpecFiles(
-          ctx.gitRun,
-          dir,
-          (root) => ctx.branchStatus.defaultBranch(root),
+          ctx.gitRun, dir, (root) => ctx.branchStatus.defaultBranch(root),
           [{ file: EDITABLE_SPEC_FILE, text: text!, baseSha }],
-          {
-            specLabel: specFolder!,
-            message: editMessage(specFolder!, EDITABLE_SPEC_FILE),
-          },
+          { specLabel: specFolder!, message: editMessage(specFolder!, EDITABLE_SPEC_FILE) },
         ),
       );
   if (!result.ok) {
@@ -327,31 +228,16 @@ export async function trackingRoutes(
   // it waiting until that spec archives.
   const lead = workRoundJobs(ctx.queue, project!, specFolder!)[0];
   const named = new Set(
-    (lead?.state === "stopped" && lead.stopReason === "shared-files"
-      ? (lead.results.at(-1)?.sharedFiles ?? [])
-      : []
-    ).map((s) => s.spec),
+    (lead?.state === "stopped" && lead.stopReason === "shared-files" ? (lead.results.at(-1)?.sharedFiles ?? []) : [])
+      .map((s) => s.spec),
   );
   if (lead && depFolders.some((folder) => named.has(folder))) {
-    const queued = ctx.queue.enqueue(
-      followOnJob(
-        project!,
-        specFolder!,
-        lead.steps.slice(lead.stepIndex),
-        lead,
-      ),
-    );
+    const queued = ctx.queue.enqueue(followOnJob(project!, specFolder!, lead.steps.slice(lead.stepIndex), lead));
     if (!queued.ok) {
       logRefusal("tracking", `${project}/${specFolder}`, queued.error);
-      return refuse(
-        `Depends on was saved, but analyze could not be queued: ${queued.error}`,
-      );
+      return refuse(`Depends on was saved, but analyze could not be queued: ${queued.error}`);
     }
     await ctx.tickRunner();
   }
-  return json({
-    ok: true,
-    note: result.note,
-    changed: (result as { committed?: boolean }).committed !== false,
-  });
+  return json({ ok: true, note: result.note, changed: (result as { committed?: boolean }).committed !== false });
 }

@@ -10,20 +10,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
-import {
-  createGitRunner,
-  type GitRunner,
-} from "../../../src/git/branch-status.ts";
+import { createGitRunner, type GitRunner } from "../../../src/git/branch-status.ts";
 import { withFreshness } from "../../../src/serve/land-branch";
 import type { LandContext } from "../../../src/serve/land-branch";
 import type { SpecTarget } from "../../../src/render";
-import {
-  specControls,
-  phaseDone,
-  listUntil,
-  dated,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { specControls, phaseDone, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -66,12 +57,9 @@ describe("the file is read from the branch a still-open spec is on", () => {
    *  `relative(root, ...)` then builds a `../../..` path instead of a
    *  clean relative one. Slicing the known suffix off `d` keeps `root`
    *  in the same string family `dir` already is. */
-  const branchReadingGitRun = (opts: {
-    open: boolean;
-    branchText?: string;
-    archivedText?: string;
-    stateText?: string;
-  }): GitRunner => {
+  const branchReadingGitRun = (
+    opts: { open: boolean; branchText?: string; archivedText?: string; stateText?: string },
+  ): GitRunner => {
     const real = createGitRunner();
     const branch = `aide/${FOLDER}`;
     const relPath = `aide/specs/${FOLDER}/4-status.md`;
@@ -86,56 +74,29 @@ describe("the file is read from the branch a still-open spec is on", () => {
     const specFolderSuffix = join("aide", "specs", FOLDER);
     return async (dir, args, timeoutMs, env) => {
       const line = args.join(" ");
-      if (
-        line === "rev-parse --show-toplevel" &&
-        dir.endsWith(specFolderSuffix)
-      ) {
-        return {
-          code: 0,
-          stdout: `${dir.slice(0, dir.length - specFolderSuffix.length - 1)}\n`,
-        };
+      if (line === "rev-parse --show-toplevel" && dir.endsWith(specFolderSuffix)) {
+        return { code: 0, stdout: `${dir.slice(0, dir.length - specFolderSuffix.length - 1)}\n` };
       }
       if (line === "ls-remote --heads origin refs/heads/aide/*") {
         return {
           code: 0,
-          stdout: opts.open
-            ? `deadbeef0000000000000000000000000000000\trefs/heads/${branch}\n`
-            : "",
+          stdout: opts.open ? `deadbeef0000000000000000000000000000000\trefs/heads/${branch}\n` : "",
         };
       }
-      if (line === `fetch --quiet origin ${branch}`)
-        return { code: 0, stdout: "" };
+      if (line === `fetch --quiet origin ${branch}`) return { code: 0, stdout: "" };
       if (line === `log -1 --format=%H ${ref} -- ${relPath}`) {
-        return {
-          code: 0,
-          stdout:
-            opts.archivedText === undefined
-              ? "cafebabe000000000000000000000000000000\n"
-              : "",
-        };
+        return { code: 0, stdout: opts.archivedText === undefined ? "cafebabe000000000000000000000000000000\n" : "" };
       }
-      if (line === `show ${ref}:${relPath}`)
-        return { code: 0, stdout: opts.branchText ?? "" };
+      if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
       if (line === `log -1 --format=%H ${ref} -- ${archivedRelPath}`) {
-        return {
-          code: 0,
-          stdout:
-            opts.archivedText === undefined
-              ? ""
-              : "cafebabe000000000000000000000000000000\n",
-        };
+        return { code: 0, stdout: opts.archivedText === undefined ? "" : "cafebabe000000000000000000000000000000\n" };
       }
-      if (line === `show ${ref}:${archivedRelPath}`)
-        return { code: 0, stdout: opts.archivedText ?? "" };
+      if (line === `show ${ref}:${archivedRelPath}`) return { code: 0, stdout: opts.archivedText ?? "" };
       if (opts.stateText !== undefined) {
         if (line === `log -1 --format=%H ${ref} -- ${jsonRelPath}`) {
-          return {
-            code: 0,
-            stdout: "cafef00d000000000000000000000000000000\n",
-          };
+          return { code: 0, stdout: "cafef00d000000000000000000000000000000\n" };
         }
-        if (line === `show ${ref}:${jsonRelPath}`)
-          return { code: 0, stdout: opts.stateText };
+        if (line === `show ${ref}:${jsonRelPath}`) return { code: 0, stdout: opts.stateText };
       }
       return real(dir, args, timeoutMs, env);
     };
@@ -146,28 +107,17 @@ describe("the file is read from the branch a still-open spec is on", () => {
    *  the fixture's own writes. */
   const listPage = async (base: string): Promise<string> => {
     await new Promise((r) => setTimeout(r, 400));
-    return listUntil(
-      base,
-      dated,
-      undefined,
-      "a dated Created cell for the spec",
-    );
+    return listUntil(base, dated, undefined, "a dated Created cell for the spec");
   };
 
   test("a branch copy that matches the history clears the qualifier the stale disk copy would raise", async () => {
     const { base, dir } = start({
-      gitRun: branchReadingGitRun({
-        open: true,
-        branchText: statusSaying(["create", "analyze", "implement"]),
-      }),
+      gitRun: branchReadingGitRun({ open: true, branchText: statusSaying(["create", "analyze", "implement"]) }),
     });
     // The disk copy — the default-branch checkout's own — has not caught
     // up: implement's own commit and its own rewrite of this line sit
     // only on the branch until archive lands them.
-    writeFileSync(
-      join(specDir(dir), "4-status.md"),
-      statusSaying(["create", "analyze"]),
-    );
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze", "implement"]);
     const line = specControls(await listPage(base), FOLDER);
     expect(phaseDone(line, "implement")).toBe(true);
@@ -176,15 +126,9 @@ describe("the file is read from the branch a still-open spec is on", () => {
 
   test("a branch copy that genuinely disagrees with the history still says so", async () => {
     const { base, dir } = start({
-      gitRun: branchReadingGitRun({
-        open: true,
-        branchText: statusSaying(["create", "analyze"]),
-      }),
+      gitRun: branchReadingGitRun({ open: true, branchText: statusSaying(["create", "analyze"]) }),
     });
-    writeFileSync(
-      join(specDir(dir), "4-status.md"),
-      statusSaying(["create", "analyze"]),
-    );
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze", "implement"]);
     const line = specControls(await listPage(base), FOLDER);
     expect(line).toContain("disagree about whether");
@@ -205,18 +149,10 @@ describe("the file is read from the branch a still-open spec is on", () => {
     const { base, dir } = start({
       gitRun: branchReadingGitRun({
         open: true,
-        archivedText: statusSaying([
-          "create",
-          "analyze",
-          "implement",
-          "archive",
-        ]),
+        archivedText: statusSaying(["create", "analyze", "implement", "archive"]),
       }),
     });
-    writeFileSync(
-      join(specDir(dir), "4-status.md"),
-      statusSaying(["create", "analyze"]),
-    );
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     // The branch read fetches the branch, so its own commits — implement's
     // and archive's alike — are in `git log --all` by the time the history
     // half answers.
@@ -229,10 +165,7 @@ describe("the file is read from the branch a still-open spec is on", () => {
     const { base, dir } = start({
       gitRun: branchReadingGitRun({ open: false }),
     });
-    writeFileSync(
-      join(specDir(dir), "4-status.md"),
-      statusSaying(["create", "analyze", "implement"]),
-    );
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     ran(dir, ["create"]);
     // `listPage`'s own `dated` predicate is satisfied by `targets()`'s
     // FIRST scan — cached for a flat 5s (`spec-lookup.ts`) regardless of
@@ -269,10 +202,7 @@ describe("the file is read from the branch a still-open spec is on", () => {
         }),
       }),
     });
-    writeFileSync(
-      join(specDir(dir), "4-status.md"),
-      statusSaying(["create", "analyze"]),
-    );
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create"]);
     const line = specControls(await listPage(base), FOLDER);
     expect(phaseDone(line, "analyze")).toBe(true);
@@ -284,25 +214,13 @@ describe("the file is read from the branch a still-open spec is on", () => {
   // it `async` at the type level; this proves it at the value level too.
   test("withFreshness returns synchronously, with no await anywhere in the call", () => {
     const list: SpecTarget[] = [
-      {
-        project: "aide",
-        specFolder: FOLDER,
-        dir: "/some/dir",
-        fileSteps: { proseSteps: ["create"], stateSteps: undefined },
-      },
+      { project: "aide", specFolder: FOLDER, dir: "/some/dir", fileSteps: { proseSteps: ["create"], stateSteps: undefined } },
     ];
     const ctx = {
-      workflowHistory: {
-        peekHistory: () => ({
-          history: { done: ["create"], stopped: {} },
-          checkedAt: 1,
-        }),
-      },
+      workflowHistory: { peekHistory: () => ({ history: { done: ["create"], stopped: {} }, checkedAt: 1 }) },
       specCreatedAt: { peekCreatedAt: () => ({ createdAt: null }) },
       freshness: { peekStale: () => ({ stale: false }) },
-      branchFileSteps: {
-        peekFileSteps: () => ({ steps: null, checkedAt: null }),
-      },
+      branchFileSteps: { peekFileSteps: () => ({ steps: null, checkedAt: null }) },
     } as unknown as LandContext;
     const result = withFreshness(ctx, list);
     expect(Array.isArray(result)).toBe(true);

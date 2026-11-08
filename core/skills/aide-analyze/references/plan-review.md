@@ -76,7 +76,6 @@ questions, with file:line references into the spec:
    what it needs. The description is the user's to put right, so the
    plan declines it with that reason, says what it does for that id
    meanwhile, and does not count it as acted on.
-
 2. **Scope guardian** — does the plan do MORE than `1-description.md`
    asks? Flag every planned change that is not traceable to the
    description. Flag missing pieces too: what does the description ask
@@ -88,7 +87,6 @@ questions, with file:line references into the spec:
    changes, a behaviour it adds, a task — is a must-fix that names the
    item and the part. The plan is revised to leave that part out or do
    it another way. Without the section there is no such finding.
-
 3. **Coherence** — do the analysis, the acceptance criteria and the
    plan agree? Is every criterion testable as written? Does the
    behavior delta match what the steps actually do? Does every AC-n
@@ -123,7 +121,6 @@ questions, with file:line references into the spec:
      description is the user's to rewrite, so the plan declines it with
      that reason, reads the criterion as it stands, and does not count
      it as acted on.
-
    - **No scenario where the condition does not hold:** a criterion
      with a WHEN, WHILE or WHERE condition, wherever it is written, and
      no Given/when/then scenario in `3-solution.md` for the case where
@@ -194,7 +191,7 @@ line.
 
    The line reads `**Criteria check:** off` at `off`, and
    `**Criteria check:** warn — none found` (or `stop — none found`)
-   when nothing stands. Otherwise the text after `—` is one or more
+   when nothing stands. Otherwise the text after ` — ` is one or more
    of these, joined by `; `, with the ids joined by `, `:
 
    - `no acceptance criteria`
@@ -206,7 +203,6 @@ line.
 
    At `stop`, the runner ends Analyze stopped when this line names any
    fault, and the reason it gives names each one.
-
 2. **REVISE the plan for every must-fix** — the sections of
    `3-solution.md` are updated, not just commented on, the same way.
    Should-fix items are revised or explicitly declined with a reason.
@@ -214,7 +210,7 @@ line.
    the two steps above just finished is already-done work, not something
    left for a user to confirm later. Write it the same way, with
    `aide-write-spec --file 4-status.md`. The row goes in its OWN `##
-Plan review` section — a `| Task | Status | Notes |` table, one row,
+   Plan review` section — a `| Task | Status | Notes |` table, one row,
    right after `## Tracking info` and before `## Phase 1`, added to the
    Table of contents in the same position. Never fold this row into
    Phase 1's own table: Phase 1's rows are what `implement` ticks, and
@@ -232,7 +228,6 @@ placeholder text unfilled — there is nothing to review; go back and
 finish Step 7 (Create the implementation plan) first.
 
 IMPORTANT:
-
 - Findings about the SOLUTION belong in `3-solution.md` only — never
   touch `1-description.md`, and only touch `2-analysis.md` if the review
   exposed a factual error in it (say so explicitly)

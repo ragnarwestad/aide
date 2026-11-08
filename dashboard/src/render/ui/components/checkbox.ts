@@ -54,8 +54,6 @@ export function labelledRadio(o: {
     (o.disabled ? " disabled" : "") +
     (o.checked ? " checked" : "") +
     `>`;
-  const words = o.href
-    ? `<a href="${esc(o.href)}">${esc(o.label)}</a>`
-    : `<span>${esc(o.label)}</span>`;
+  const words = o.href ? `<a href="${esc(o.href)}">${esc(o.label)}</a>` : `<span>${esc(o.label)}</span>`;
   return `<label class="row">${radio}${words}</label>`;
 }

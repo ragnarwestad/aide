@@ -15,8 +15,7 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // --- A stopped step keeps its work --------------------------------
@@ -38,10 +37,7 @@ afterEach(() => {
 // is. That way there is no second list of "which steps are safe" to keep in
 // step with the first.
 describe("landing a stopped step's specs-only work", () => {
-  const AUTH = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
   const SPECS_REPO = "/repos/aide-specs";
   const CODE_REPO = "/repos/aide";
   const SPEC = "81-queue-and-runner";
@@ -53,17 +49,12 @@ describe("landing a stopped step's specs-only work", () => {
     const run = async (dir: string, args: string[]) => {
       calls.push({ dir, args });
       const a = args.join(" ");
-      if (a.startsWith("symbolic-ref"))
-        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
-        return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge -q --ff-only origin/"))
-        return { code: 0, stdout: "" };
-      if (a.startsWith("merge -q --ff-only"))
-        return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
-      if (a.startsWith("merge -q --no-edit"))
-        return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
+      if (a.startsWith("merge -q --ff-only")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+      if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
       if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
       return { code: 0, stdout: "" };
     };
@@ -101,10 +92,7 @@ describe("landing a stopped step's specs-only work", () => {
         queueProjectRoot: "/repos",
         // Landing, not the step, names a create's folder now — this
         // stands in for `aide-create-spec --assign-number`.
-        finalizeCreateSpec: async () => ({
-          ok: true,
-          specFolder: "94-a-new-spec",
-        }),
+        finalizeCreateSpec: async () => ({ ok: true, specFolder: "94-a-new-spec" }),
         ...extra,
       },
       [],
@@ -114,19 +102,12 @@ describe("landing a stopped step's specs-only work", () => {
     return { base, dir, results };
   }
 
-  async function runStep(
-    base: string,
-    step: string,
-  ): Promise<{ id: string; specFolder: string }> {
+  async function runStep(base: string, step: string): Promise<{ id: string; specFolder: string }> {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({
-          project: "aide",
-          specFolder: SPEC,
-          steps: [step],
-        }),
+        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: [step] }),
       })
     ).json()) as { job: { id: string; specFolder: string } };
     return made.job;
@@ -146,15 +127,8 @@ describe("landing a stopped step's specs-only work", () => {
     throw new Error("the job never settled");
   }
 
-  const mergesOf = (
-    calls: { dir: string; args: string[] }[],
-    branch = BRANCH,
-  ) =>
-    calls.filter(
-      (c) =>
-        c.args[0] === "merge" &&
-        c.args.includes(`refs/remotes/origin/${branch}`),
-    );
+  const mergesOf = (calls: { dir: string; args: string[] }[], branch = BRANCH) =>
+    calls.filter((c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${branch}`));
 
   // The work is on the branch already; the only thing that
   // kept it off the page was the `ok` gate in front of the landing.
@@ -162,26 +136,13 @@ describe("landing a stopped step's specs-only work", () => {
     const git = gitFor();
     const { base, results } = serverWithRunner(git);
     const job = await runStep(base, "analyze");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify(STOPPED_RESULT),
-    );
-    const landed = await settle(
-      base,
-      job.id,
-      (j) => j.state === "stopped" && !j.landing,
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(STOPPED_RESULT));
+    const landed = await settle(base, job.id, (j) => j.state === "stopped" && !j.landing);
 
     expect(landed.error).toBeFalsy();
     expect(mergesOf(git.calls).length).toBeGreaterThan(0);
-    expect(mergesOf(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(
-      true,
-    );
-    expect(
-      git.calls.some(
-        (c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push",
-      ),
-    ).toBe(true);
+    expect(mergesOf(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
     // Landed, so the row stops advertising a branch to compare.
     expect(landed.branchUrls).toEqual([]);
     // It still stopped: landing the work does not make the step a success.
@@ -201,30 +162,18 @@ describe("landing a stopped step's specs-only work", () => {
       await fetch(`${base}/api/queue/create`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({
-          project: "aide",
-          title: "A half-written spec",
-          description: "Do the thing",
-        }),
+        body: JSON.stringify({ project: "aide", title: "A half-written spec", description: "Do the thing" }),
       })
     ).json()) as { job: { id: string; specFolder: string } };
     writeFileSync(
       join(results, `${made.job.id}.json`),
       JSON.stringify({ ...STOPPED_RESULT, branch: CREATE_BRANCH }),
     );
-    const landed = await settle(
-      base,
-      made.job.id,
-      (j) => j.state === "stopped" && !j.landing,
-    );
+    const landed = await settle(base, made.job.id, (j) => j.state === "stopped" && !j.landing);
 
     expect(landed.error).toBeFalsy();
     expect(mergesOf(git.calls, CREATE_BRANCH).length).toBeGreaterThan(0);
-    expect(
-      git.calls.some(
-        (c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push",
-      ),
-    ).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
   });
 
   // The description's third requirement, and the reason the
@@ -238,10 +187,7 @@ describe("landing a stopped step's specs-only work", () => {
       { root: SPECS_REPO, url: "https://example.test/aide-specs" },
       { root: CODE_REPO, url: "https://example.test/aide" },
     ];
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({ ...STOPPED_RESULT, branchUrls: pushed }),
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify({ ...STOPPED_RESULT, branchUrls: pushed }));
     const stopped = await settle(base, job.id, (j) => j.state === "stopped");
 
     expect(stopped.landing).toBeFalsy();
@@ -257,10 +203,7 @@ describe("landing a stopped step's specs-only work", () => {
     const { base, results } = serverWithRunner(git);
     const job = await runStep(base, "implement");
     const pushed = [{ root: CODE_REPO, url: "https://example.test/aide" }];
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify({ ...STOPPED_RESULT, branchUrls: pushed }),
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify({ ...STOPPED_RESULT, branchUrls: pushed }));
     const stopped = await settle(base, job.id, (j) => j.state === "stopped");
 
     expect(stopped.landing).toBeFalsy();
@@ -299,11 +242,7 @@ describe("landing a stopped step's specs-only work", () => {
         join(results, `${job.id}.json`),
         JSON.stringify({ ...STOPPED_RESULT, terminalReason: reason }),
       );
-      const ended = await settle(
-        base,
-        job.id,
-        (j) => j.state === "stopped" || j.state === "failed",
-      );
+      const ended = await settle(base, job.id, (j) => j.state === "stopped" || j.state === "failed");
 
       expect(`${reason}: ${mergesOf(git.calls).length}`).toBe(`${reason}: 0`);
       expect(`${reason}: ${!!ended.landing}`).toBe(`${reason}: false`);
@@ -337,18 +276,12 @@ describe("landing a stopped step's specs-only work", () => {
       join(results, `${job.id}.json`),
       JSON.stringify({ ...STOPPED_RESULT, terminalReason: "shared-files" }),
     );
-    const ended = await settle(
-      base,
-      job.id,
-      (j) => j.state === "stopped" || j.state === "failed",
-    );
+    const ended = await settle(base, job.id, (j) => j.state === "stopped" || j.state === "failed");
     await settle(base, job.id, (j) => !j.landing);
     expect(ended.state).toBe("stopped");
     expect(ended.stopReason as string).toBe("shared-files");
     expect(mergesOf(git.calls).length).toBeGreaterThan(0);
-    expect(mergesOf(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(
-      true,
-    );
+    expect(mergesOf(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(true);
   });
 
   test("a provider-limit stop leaves project changes on the branch", async () => {

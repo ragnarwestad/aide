@@ -3,15 +3,7 @@
 // sessions and settings in common while each stays logged in as itself.
 // Everything but `auth.json` is linked in, when the shadow home lacks it.
 
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readdirSync,
-  readlinkSync,
-  symlinkSync,
-  unlinkSync,
-} from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readlinkSync, symlinkSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 /** Entries a shadow home must share. One it already holds as its own (a
@@ -20,15 +12,11 @@ const SHARED_BY_LINK = ["sessions", "config.toml"] as const;
 
 /** Links the entries of `codexHome` into `shadowHome`, `auth.json` excepted.
  *  Returns the sentence saying why it cannot, or null when it is prepared. */
-export function prepareShadowHome(
-  codexHome: string,
-  shadowHome: string,
-): string | null {
+export function prepareShadowHome(codexHome: string, shadowHome: string): string | null {
   if (resolve(codexHome) === resolve(shadowHome)) {
     return `The shadow home ${shadowHome} must differ from the CODEX_HOME`;
   }
-  if (!existsSync(codexHome))
-    return `${codexHome} is not there on the serving host`;
+  if (!existsSync(codexHome)) return `${codexHome} is not there on the serving host`;
   try {
     mkdirSync(shadowHome, { recursive: true });
     // Made when missing, so the first session either provider starts lands
@@ -47,11 +35,7 @@ export function prepareShadowHome(
       const target = join(shadowHome, name);
       const wanted = join(codexHome, name);
       try {
-        if (
-          !lstatSync(target).isSymbolicLink() ||
-          readlinkSync(target) === wanted
-        )
-          continue;
+        if (!lstatSync(target).isSymbolicLink() || readlinkSync(target) === wanted) continue;
         // A link left from another CODEX_HOME is pointed at this one.
         unlinkSync(target);
       } catch {

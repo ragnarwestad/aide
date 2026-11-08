@@ -8,17 +8,9 @@ import { dirname, join, normalize } from "node:path";
 
 const ROOT = join(import.meta.dir, "..", "..");
 
-const GUARDED_DIRS = [
-  "src/render",
-  "src/queue",
-  "src/git",
-  "src/project",
-  "src/i18n",
-];
+const GUARDED_DIRS = ["src/render", "src/queue", "src/git", "src/project", "src/i18n"];
 
-const SOURCES = GUARDED_DIRS.flatMap((dir) => [
-  ...new Bun.Glob(`${dir}/**/*.ts`).scanSync(ROOT),
-]);
+const SOURCES = GUARDED_DIRS.flatMap((dir) => [...new Bun.Glob(`${dir}/**/*.ts`).scanSync(ROOT)]);
 
 const IMPORT_RE = /from\s+["']([^"']+)["']/g;
 
@@ -29,11 +21,7 @@ function serveImportsIn(file: string): string[] {
     const spec = match[1];
     if (!spec.startsWith(".")) continue;
     const resolved = normalize(join(dirname(file), spec));
-    if (
-      resolved === "src/serve" ||
-      resolved.startsWith("src/serve/") ||
-      resolved.startsWith("src/serve.ts")
-    ) {
+    if (resolved === "src/serve" || resolved.startsWith("src/serve/") || resolved.startsWith("src/serve.ts")) {
       hits.push(spec);
     }
   }

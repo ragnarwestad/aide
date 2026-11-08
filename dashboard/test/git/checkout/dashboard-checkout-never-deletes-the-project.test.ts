@@ -20,22 +20,10 @@
 // checkout, a remote and a refusal.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  dashboardCheckoutRoot,
-  ensureDashboardCheckout,
-} from "../../../src/git/dashboard-checkout.ts";
+import { dashboardCheckoutRoot, ensureDashboardCheckout } from "../../../src/git/dashboard-checkout.ts";
 import { createGitRunner } from "../../../src/git/branch-status.ts";
 
 const run = createGitRunner();
@@ -51,21 +39,13 @@ afterEach(() => {
 });
 
 function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({
-    cmd: ["git", "-C", cwd, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  if (out.exitCode !== 0)
-    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
+  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
   return out.stdout.toString();
 }
 
 /** A bare origin with one commit, and a clone of it. */
-function repoWithClone(
-  where: string,
-  name: string,
-): { origin: string; clone: string } {
+function repoWithClone(where: string, name: string): { origin: string; clone: string } {
   const seed = join(where, `${name}-seed`);
   mkdirSync(seed, { recursive: true });
   writeFileSync(join(seed, "README.md"), `# ${name}\n`);
@@ -83,10 +63,7 @@ function repoWithClone(
 
 /** The layout this bug lived in: the clone IS the dashboard's checkout,
  *  and the projects root holds a link to it. `personDir` is that link. */
-function linkedLayout(
-  where: string,
-  project: string,
-): { base: string; personDir: string; code: string } {
+function linkedLayout(where: string, project: string): { base: string; personDir: string; code: string } {
   const base = join(where, "owned");
   const code = dashboardCheckoutRoot(base, project);
   const { clone } = repoWithClone(where, project);
@@ -112,19 +89,12 @@ describe("ensureDashboardCheckout clones only into a directory that is not there
     const { base, personDir, code } = linkedLayout(where, "woodstack");
     unanswerable(code);
 
-    const result = await ensureDashboardCheckout(run, {
-      base,
-      project: "woodstack",
-      personDir,
-      mayClone: true,
-    });
+    const result = await ensureDashboardCheckout(run, { base, project: "woodstack", personDir, mayClone: true });
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain(code);
     // The whole point of the spec: the files are still there.
-    expect(readFileSync(join(code, "README.md"), "utf-8")).toBe(
-      "# woodstack\n",
-    );
+    expect(readFileSync(join(code, "README.md"), "utf-8")).toBe("# woodstack\n");
     // And the message does not send a reader off to delete the project.
     expect(result.error).not.toContain("remove it by hand");
   });
@@ -137,12 +107,7 @@ describe("ensureDashboardCheckout clones only into a directory that is not there
     mkdirSync(join(code, ".git", "objects"), { recursive: true });
     writeFileSync(join(code, "left-behind.txt"), "from the killed clone\n");
 
-    const result = await ensureDashboardCheckout(run, {
-      base,
-      project: "aide",
-      personDir: clone,
-      mayClone: true,
-    });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain(code);
@@ -156,12 +121,7 @@ describe("ensureDashboardCheckout clones only into a directory that is not there
     const base = join(where, "owned");
     git(clone, "remote", "remove", "origin");
 
-    const result = await ensureDashboardCheckout(run, {
-      base,
-      project: "aide",
-      personDir: clone,
-      mayClone: true,
-    });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain("no origin remote");
@@ -179,11 +139,7 @@ describe("ensureDashboardCheckout clones only into a directory that is not there
     const { clone } = repoWithClone(where, "aide");
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, {
-      base,
-      project: "aide",
-      personDir: clone,
-    });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
 
     expect(result.ok).toBe(false);
     expect(result.cloned).toBe(false);
@@ -196,18 +152,11 @@ describe("ensureDashboardCheckout clones only into a directory that is not there
     const { clone } = repoWithClone(where, "aide");
     const base = join(where, "owned");
 
-    const result = await ensureDashboardCheckout(run, {
-      base,
-      project: "aide",
-      personDir: clone,
-      mayClone: true,
-    });
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone, mayClone: true });
 
     expect(result.ok).toBe(true);
     expect(result.cloned).toBe(true);
-    expect(
-      readFileSync(join(result.checkout!.code, "README.md"), "utf-8"),
-    ).toBe("# aide\n");
+    expect(readFileSync(join(result.checkout!.code, "README.md"), "utf-8")).toBe("# aide\n");
     expect(readdirSync(join(base, "aide"))).toEqual(["code"]);
   });
 });

@@ -20,17 +20,8 @@ const FOLDS = ["open", "checks"] as const;
 export function navigate(event: MouseEvent): void {
   // A shut › on the Specs list opens its row where it is.
   if (openSpecInPlace(event)) return;
-  if (
-    event.defaultPrevented ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey ||
-    event.button !== 0
-  )
-    return;
-  const link = (event.target as Element | null)?.closest?.(
-    "a[data-nav]",
-  ) as HTMLAnchorElement | null;
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+  const link = (event.target as Element | null)?.closest?.("a[data-nav]") as HTMLAnchorElement | null;
   // The links inside the open spec (its tabs, the Logs tab's step folds) load
   // pages of their own, as they do on the spec's own address.
   if (!link || link.closest("tr[data-spec-detail]")) return;
@@ -42,11 +33,7 @@ export function navigate(event: MouseEvent): void {
     return;
   }
   const phasesBefore = new URLSearchParams(location.search).get("phases");
-  history.replaceState(
-    null,
-    "",
-    withFolds(link.getAttribute("href") ?? location.href),
-  );
+  history.replaceState(null, "", withFolds(link.getAttribute("href") ?? location.href));
   // The server tells a tab about a growing transcript only when the
   // stream's own query named that phase, so a change of
   // `phases` reopens the stream; a sort or a spec row's fold leaves it alone.
@@ -69,28 +56,19 @@ export function navigate(event: MouseEvent): void {
  *  the folds as they were before it. The chevron turns into a spinner
  *  until the row is back, which a phone shows as well as a desktop; the
  *  busy mouse pointer the whole list wore said nothing on a phone. */
-async function foldOne(
-  link: HTMLAnchorElement,
-  fold: string,
-  key: string,
-): Promise<void> {
+async function foldOne(link: HTMLAnchorElement, fold: string, key: string): Promise<void> {
   const params = new URLSearchParams(location.search);
   const keys = (params.get(fold) ?? "").split(",").filter(Boolean);
   // A row the address opens by `created` (the spec a Create just queued) is
   // open without its key in `open`, so the chevron's own state says which
   // way this press goes, and shutting it lets go of `created` as well.
-  const isOpen =
-    keys.includes(key) || link.getAttribute("aria-expanded") === "true";
+  const isOpen = keys.includes(key) || link.getAttribute("aria-expanded") === "true";
   const next = isOpen ? keys.filter((k) => k !== key) : [...keys, key];
   if (isOpen && fold === "open") params.delete("created");
   if (next.length) params.set(fold, next.join(","));
   else params.delete(fold);
   const query = params.toString();
-  history.replaceState(
-    null,
-    "",
-    `${location.pathname}${query ? `?${query}` : ""}`,
-  );
+  history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}`);
   const onJobRow = fold === "open" && link.closest("tr[data-job]") !== null;
   const chevron = link.innerHTML;
   link.innerHTML = SPINNER;

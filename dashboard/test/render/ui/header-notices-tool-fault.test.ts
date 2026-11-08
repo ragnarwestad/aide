@@ -8,12 +8,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import { headerNotices } from "../../../src/render/ui/header-notices.ts";
 import {
-  forgetChecks,
-  recordCheck,
-  recordModels,
-  setConfiguredTools,
-  setModelChoices,
-  toolsMissingModels,
+  forgetChecks, recordCheck, recordModels, setConfiguredTools, setModelChoices, toolsMissingModels,
 } from "../../../src/render/ui/tool-checks.ts";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 import type { ToolModels } from "../../../src/render";
@@ -35,26 +30,15 @@ function faultLines(html: string): Element[] {
   const win = new Window();
   windows.push(win);
   win.document.write(`<body>${html}</body>`);
-  return Array.from(
-    win.document.querySelectorAll(".tool-fault"),
-  ) as unknown as Element[];
+  return Array.from(win.document.querySelectorAll(".tool-fault")) as unknown as Element[];
 }
 
 describe("the tool-fault line", () => {
   test("a Claude Code that is not logged in links to the Providers tab", () => {
     setConfiguredTools(() => ["claude"]);
     recordCheck({
-      tool: "claude",
-      at: "2026-10-03T13:30:00.000Z",
-      found: true,
-      extra: [
-        {
-          question: "Is it logged in?",
-          ok: false,
-          detail: "",
-          problem: "not logged in",
-        },
-      ],
+      tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true,
+      extra: [{ question: "Is it logged in?", ok: false, detail: "", problem: "not logged in" }],
     });
     const [line, ...rest] = faultLines(headerNotices("en"));
     expect(rest).toEqual([]);
@@ -66,28 +50,15 @@ describe("the tool-fault line", () => {
 
   test("no tool with a fault draws no line", () => {
     setConfiguredTools(() => ["claude"]);
-    recordCheck({
-      tool: "claude",
-      at: "2026-10-03T13:30:00.000Z",
-      found: true,
-      extra: [],
-    });
+    recordCheck({ tool: "claude", at: "2026-10-03T13:30:00.000Z", found: true, extra: [] });
     expect(faultLines(headerNotices("en"))).toEqual([]);
   });
 });
 
 describe("the models no longer offered", () => {
   const AT = "2026-10-03T13:30:00.000Z";
-  const reading = (
-    tool: ToolModels["tool"],
-    offered: string[],
-    more: Partial<ToolModels> = {},
-  ): ToolModels => ({
-    tool,
-    at: AT,
-    offered: offered.map((model) => ({ model })),
-    ...more,
-  });
+  const reading = (tool: ToolModels["tool"], offered: string[], more: Partial<ToolModels> = {}): ToolModels =>
+    ({ tool, at: AT, offered: offered.map((model) => ({ model })), ...more });
   const choices = (c: Record<string, ModelChoice>) => setModelChoices(() => c);
 
   test("a configured model the last reading does not offer is named for its AI alone (AC-4)", () => {
@@ -97,27 +68,17 @@ describe("the models no longer offered", () => {
       Opus: { model: "opus" },
     });
     recordModels(reading("opencode", ["opencode/here"]));
-    expect(toolsMissingModels()).toEqual([
-      { tool: "opencode", models: ["gone (opencode/gone)"] },
-    ]);
+    expect(toolsMissingModels()).toEqual([{ tool: "opencode", models: ["gone (opencode/gone)"] }]);
   });
 
   test("a Claude name Claude Code answered for is not missing, a model it neither offers nor names is (AC-4)", () => {
     choices({ "opus[1m]": {}, "claude-opus-4-8": {}, Opus: { model: "opus" } });
-    recordModels(
-      reading("claude", ["opus"], {
-        named: [{ model: "opus[1m]", name: "Opus 5.5 (1M context)" }],
-      }),
-    );
-    expect(toolsMissingModels()).toEqual([
-      { tool: "claude", models: ["claude-opus-4-8"] },
-    ]);
+    recordModels(reading("claude", ["opus"], { named: [{ model: "opus[1m]", name: "Opus 5.5 (1M context)" }] }));
+    expect(toolsMissingModels()).toEqual([{ tool: "claude", models: ["claude-opus-4-8"] }]);
   });
 
   test("the notice follows the choices as they are now (AC-4)", () => {
-    let live: Record<string, ModelChoice> = {
-      gone: { tool: "opencode", model: "opencode/gone" },
-    };
+    let live: Record<string, ModelChoice> = { gone: { tool: "opencode", model: "opencode/gone" } };
     setModelChoices(() => live);
     recordModels(reading("opencode", []));
     expect(toolsMissingModels()).toHaveLength(1);
@@ -142,21 +103,11 @@ describe("the models no longer offered", () => {
     choices({ gone: { tool: "opencode", model: "opencode/gone" } });
     recordModels(reading("opencode", []));
     recordCheck({
-      tool: "opencode",
-      at: AT,
-      found: true,
-      extra: [
-        {
-          question: "Is it logged in?",
-          ok: false,
-          detail: "",
-          problem: "not logged in",
-        },
-      ],
+      tool: "opencode", at: AT, found: true,
+      extra: [{ question: "Is it logged in?", ok: false, detail: "", problem: "not logged in" }],
     });
     const hrefs = faultLines(headerNotices("en")).map((line) =>
-      Array.from(line.querySelectorAll("a")).map((a) => a.getAttribute("href")),
-    );
+      Array.from(line.querySelectorAll("a")).map((a) => a.getAttribute("href")));
     expect(hrefs).toEqual([
       ["/settings?tab=providers"],
       ["/settings?tab=providers"],

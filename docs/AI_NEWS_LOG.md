@@ -45,6 +45,7 @@ It is further distilled into two documents:
 - [AI_SUPPORT_MATRIX.md](./AI_SUPPORT_MATRIX.md) — distilled current state (versions, mechanisms, follow-up items)
 - [`.claude/skills/ai-tools-reference/SKILL.md`](../.claude/skills/ai-tools-reference/SKILL.md) — verified config reference, loaded on demand
 
+
 ## Maintenance
 
 Run the `/check-news` skill to update the log. It fetches changelogs from
@@ -68,7 +69,7 @@ Index compares coding agents by score, cost and time per task; its tables are dr
 sees only placeholders, and what is worth noting there is whether its comparison of the tools themselves has come.
 
 | Tool               | Changelog                                                                                          | News                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+|--------------------|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
 | Claude Code        | <https://github.com/anthropics/claude-code/releases>                                               | <https://claude.com/blog/><br><https://claude.com/resources/articles><br><https://www.anthropic.com/news> |
 | GitHub Copilot CLI | <https://github.com/github/copilot-cli/releases><br><https://github.blog/changelog/label/copilot/> | <https://github.blog/ai-and-ml/github-copilot/>                                                           |
 | OpenAI Codex CLI   | <https://github.com/openai/codex/releases><br><https://learn.chatgpt.com/docs/changelog>           | <https://developers.openai.com/blog>                                                                      |
@@ -85,7 +86,7 @@ reads the table, and keeps the copies in `~/.aide/news-check/watched-pages/` and
 `~/.aide/news-check/watched-diffs/`, on the machine that runs the news check, outside the repository.
 
 | Tool               | Page                                                                                                       | Also its links to                                                                             |
-| ------------------ | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+|--------------------|------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
 | Claude Code        | <https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices>                         |                                                                                               |
 | Claude Code        | <https://code.claude.com/docs/en/best-practices>                                                           |                                                                                               |
 | Claude Code        | <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices> | <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-*> |
@@ -113,7 +114,7 @@ reads the table, and keeps the copies in `~/.aide/news-check/watched-pages/` and
 Relevance markers in each review's `Relevance for aide` section:
 
 | Symbol | Meaning                                            |
-| ------ | -------------------------------------------------- |
+|--------|----------------------------------------------------|
 | ⭐     | Direct impact on Aide (requires action)            |
 | ✅     | Useful, but no immediate action                    |
 | ℹ      | Informative, low relevance                         |
@@ -133,25 +134,25 @@ in the previous review.
 **Claude Code (v2.1.319):**
 
 | Date | Version | News                                                                                                                                            | Source                                 |
-| ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+|------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
 | —    | —       | No release since Nov 7 (latest v2.1.319). Anthropic news dates Opus 5.5, Sonnet 5.5 and Haiku 5.5 as Nov 8 (the Nov 7 review had them as Nov 7) | [News](https://www.anthropic.com/news) |
 
 **GitHub Copilot CLI (v1.0.107 stable; v1.0.108-1 the newest pre-release):**
 
 | Date | Version | News                                                                                              | Source                                                     |
-| ---- | ------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|------|---------|---------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | —    | —       | Nothing newer than v1.0.108-1 (Nov 7, pre-release); the Copilot changelog's newest entry is Nov 6 | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (v0.167.0 stable; v0.169.0-alpha.3 pre-release):**
 
 | Date  | Version          | News                                             | Source                                               |
-| ----- | ---------------- | ------------------------------------------------ | ---------------------------------------------------- |
+|-------|------------------|--------------------------------------------------|------------------------------------------------------|
 | Nov 7 | v0.169.0-alpha.3 | Pre-release with no notes; stable stays v0.167.0 | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.6):**
 
 | Date | Version | News                                   | Source                                                     |
-| ---- | ------- | -------------------------------------- | ---------------------------------------------------------- |
+|------|---------|----------------------------------------|------------------------------------------------------------|
 | —    | —       | No release since Nov 7 (latest v2.2.6) | [Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for aide:**
@@ -186,27 +187,27 @@ Nov 6 – Nov 7. Not read: the Copilot releases page past the notes of v1.0.108-
 **Claude Code (v2.1.319):**
 
 | Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Source                                                         |
-| ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+|-------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Nov 6 | v2.1.319 | `permissions.denyInsteadOfPrompting` denies a call that would wait on a permission prompt and the turn continues; `claude -p` now exits 1 in auto mode when actions were refused for lack of a safety check; auto mode without server access asks or denies (`CLAUDE_CODE_AUTO_MODE_SERVER=0` keeps the built-in classifier); MCP tasks move to the background (`CLAUDE_CODE_DISABLE_MCP_TASK_BACKGROUND`); `CLAUDE_CODE_DISABLE_FEATURE_FLAGS`; `/tasks` lists finished subagents; Bash deny/ask rules no longer miss quoted commands | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Nov 7 | —        | Anthropic news dates Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 as Nov 7 (Opus 5.5: leads in agentic coding, 40% cheaper than Opus 5 on typical workloads)                                                                                                                                                                                                                                                                                                                                                                              | [News](https://www.anthropic.com/news)                         |
 
 **GitHub Copilot CLI (v1.0.107 stable; v1.0.108-1 the newest pre-release):**
 
 | Date  | Version        | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Source                                                     |
-| ----- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|-------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Nov 6 | v1.0.107       | Stable (Nov 6 notes in the releases file)                                                                                                                                                                                                                                                                                                                                                                                                                                                          | [Releases](https://github.com/github/copilot-cli/releases) |
 | Nov 7 | v1.0.108-0, -1 | Pre-releases: Autopilot with Assisted Permissions no longer stops for permission prompts; managed plugin assignments with `defaultEnabled` activate plugins; `copilot help config` names the `.claude/rules` and `.claude/settings.json` files it reads; `disabledSkills` matches skill names in any letter case; a warning when a custom agent's skills are missing; MCP deny rules match the server's advertised tool name; a path such as `/docs/setup.md` no longer loads a skill named `docs` | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (v0.167.0 stable; v0.169.0-alpha.2 pre-release):**
 
 | Date  | Version          | News                                             | Source                                               |
-| ----- | ---------------- | ------------------------------------------------ | ---------------------------------------------------- |
+|-------|------------------|--------------------------------------------------|------------------------------------------------------|
 | Nov 6 | v0.169.0-alpha.2 | Pre-release with no notes; stable stays v0.167.0 | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.6):**
 
 | Date  | Version | News                                                                                                                                                                                                                                        | Source                                                     |
-| ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|-------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Nov 6 | v2.2.6  | Opt-in MCP connection sharing (`pool: true`); `opencode run -w` starts the session in a new git worktree; `opencode run --archived`; `opencode run` waits for background jobs and SIGTERM exits 143; webfetch rejects URLs with credentials | [Releases](https://github.com/anomalyco/opencode/releases) |
 | —     | —       | Docs: the skills and agents pages are rewritten for OpenCode 2 (see relevance)                                                                                                                                                              | [Skills](https://opencode.ai/docs/skills)                  |
 
@@ -252,7 +253,7 @@ the prompting best-practices page and three Anthropic engineering articles chang
 **Claude Code (v2.1.318, no newer release):**
 
 | Date  | Version | News                                                                                                                                             | Source                                                         |
-| ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+|-------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | —     | —       | No Claude Code release after v2.1.318 of Nov 4                                                                                                   | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Nov 6 | —       | Anthropic news lists Claude Opus 5.5, Sonnet 5.5 and Haiku 5.5 (Opus 5.5: leads in agentic coding, 40% cheaper than Opus 5 on typical workloads) | [News](https://www.anthropic.com/news)                         |
 | Nov 2 | —       | Claude blog: message threads in the Messages API, so a long-running agent sends the conversation once and only what is new after that            | [Blog](https://claude.com/blog/)                               |
@@ -260,21 +261,21 @@ the prompting best-practices page and three Anthropic engineering articles chang
 **GitHub Copilot CLI (v1.0.106 stable):**
 
 | Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Source                                                     |
-| ----- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|-------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Nov 6 | v1.0.106 | Stable. Adds `/code` (open the session in VS Code), a Fusion tier setting, GPT-6.1 Terra as a selectable model, a Sandbox extensions setting and `COPILOT_SESSION_CWD`; a hook file under `.github/hooks` that cannot be read or has an invalid entry is now reported with file and reason instead of skipped silently; plugin rules with `alwaysApply: false` stay out of the prompt until enabled in `/instructions`; `copilot login --device-code` refuses a cleartext `http://` host | [Releases](https://github.com/github/copilot-cli/releases) |
 | Nov 5 | —        | Changelog: usage metrics API adds code review details and telemetry/version gaps                                                                                                                                                                                                                                                                                                                                                                                                         | [Changelog](https://github.blog/changelog/label/copilot/)  |
 
 **OpenAI Codex CLI (v0.167.0 stable):**
 
 | Date  | Version                      | News                                                                                                                                                                                                                                                                                                                                                   | Source                                               |
-| ----- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+|-------|------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
 | Nov 6 | v0.167.0                     | Stable. `codex agents --no-daemon` opens the agent command center; terminal session picker switches between connected backends; `gcp_setup_wizard` for Vertex AI; app-server README covers `[permissions.network]` and `prompt-user` command rules that need fresh human approval; automatic compaction accounts for output kept from failed responses | [Releases](https://github.com/openai/codex/releases) |
 | Nov 5 | v0.168.0-alpha.3 to -alpha.7 | Pre-releases with no notes                                                                                                                                                                                                                                                                                                                             | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.5, no newer opencode release):**
 
 | Date  | Version               | News                                                                                                                                                       | Source                                                     |
-| ----- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|-------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Nov 5 | process-daemon-v0.5.0 | `@opencode/pty` 0.5.0 (protocol 8) published; no new `opencode` release after v2.2.5 of Oct 30                                                             | [Releases](https://github.com/anomalyco/opencode/releases) |
 | —     | —                     | Changelog: percentage `compaction.buffer` (e.g. `"20%"`), a call to a tool named `bash` runs as shell, MCP stdio messages over 10 MiB no longer disconnect | [Changelog](https://opencode.ai/changelog)                 |
 
@@ -315,27 +316,27 @@ the earlier review already holds. Of the watched pages, `agents.md` changed in s
 **Claude Code (v2.1.318, no newer release):**
 
 | Date  | Version | News                                                                                                                                                                            | Source                                                                                      |
-| ----- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+|-------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
 | —     | —       | No release after v2.1.318 of Nov 4                                                                                                                                              | [Releases](https://github.com/anthropics/claude-code/releases)                              |
 | Nov 4 | —       | Claude blog: new partner agents and products on Claude Marketplace (security, developer infrastructure, creative, productivity); enterprise customers can apply committed spend | [Article](https://claude.com/resources/articles/new-agents-and-products-claude-marketplace) |
 
 **GitHub Copilot CLI (v1.0.105 stable; v1.0.106-9 the newest pre-release):**
 
 | Date  | Version    | News                                                                                                                                                                                                                                                                                                                                                                                            | Source                                                                                                           |
-| ----- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+|-------|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
 | Nov 4 | v1.0.106-9 | A top-level `SKILL.md` in a skills directory gives a warning in `/skills` (subdirectories are resources, not separate skills); a skill call says when model invocation is disabled instead of "not found"; `copilot config` warns when a wrongly typed value makes `settings.json` ignored; ACP `session/cancel` stops only the active turn; long conversations recover from oversized requests | [Releases](https://github.com/github/copilot-cli/releases)                                                       |
 | Nov 4 | —          | Changelog: Copilot is available in Xcode's coding assistant (public preview, Xcode 27.3 beta)                                                                                                                                                                                                                                                                                                   | [Changelog](https://github.blog/changelog/2026-11-04-github-copilot-is-now-available-in-xcodes-coding-assistant) |
 
 **OpenAI Codex CLI (v0.166.0 stable; v0.168.0-alpha.3 pre-release):**
 
 | Date  | Version                    | News                                                                                       | Source                                               |
-| ----- | -------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+|-------|----------------------------|--------------------------------------------------------------------------------------------|------------------------------------------------------|
 | Nov 5 | v0.168.0-alpha.2, -alpha.3 | Pre-releases with no notes ("Release 0.168.0-alpha.3"); stable is still v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.5, no newer release):**
 
 | Date | Version | News                              | Source                                                     |
-| ---- | ------- | --------------------------------- | ---------------------------------------------------------- |
+|------|---------|-----------------------------------|------------------------------------------------------------|
 | —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for aide:**
@@ -390,14 +391,14 @@ Sonnet 5 and Sonnet 5.5 changed in wording only.
 **Claude Code (v2.1.318):**
 
 | Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Source                                                         |
-| ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+|-------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Nov 4 | v2.1.318 | Unattended runs (`claude -p`, SDK) stop rewriting `~/.claude.json` when nothing changed; a non-interactive launch with a `~/.claude.json` that is not valid JSON now fails and says how to restore it, instead of replacing it with defaults; background subagents move a shell command to the background after 3 minutes on all providers; `claude -p` prints a stderr warning from 10 days before a stored claude.ai sign-in ends (`credential_expires_at` in the JSON result); failing custom slash commands no longer give empty `claude -p` output; `deniedMcpServers` URL entries also block matching Anthropic-provided servers; `Setup` hook variables written to `CLAUDE_ENV_FILE` reach the Bash tool in cloud sessions; mods get an `effort` option on `$.model.fork` | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Nov 3 | —        | Anthropic news and the Claude blog show nothing newer than Nov 2 (message threads) and Oct 28                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | [News](https://www.anthropic.com/news)                         |
 
 **GitHub Copilot CLI (v1.0.105 stable; v1.0.106-8 the newest pre-release):**
 
 | Date  | Version        | News                                                                                                                                                                                                                                                                                                                             | Source                                                     |
-| ----- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|-------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Nov 4 | v1.0.106-8     | Agent-file frontmatter warnings no longer go to stderr; fixes for `/fork`, UTF-8 BOM hook configs, LSP config warnings, `copilot plugin uninstall`                                                                                                                                                                               | [Releases](https://github.com/github/copilot-cli/releases) |
 | Nov 3 | v1.0.106-6, -7 | `/settings` opens a unified settings dashboard; MCP content meant only for the user is no longer sent to the model; inline images in Kitty terminals; `/code` opens the session in VS Code; a Fusion tier setting in `copilot config`; about 45 fixes, among them `--agent` in ACP mode and `--yolo`/`--allow-all` when resuming | [Releases](https://github.com/github/copilot-cli/releases) |
 | Nov 3 | —              | Changelog: Copilot is available in JetBrains Air; BYOK and enterprise custom models in the Copilot usage API                                                                                                                                                                                                                     | [Changelog](https://github.blog/changelog/label/copilot/)  |
@@ -405,13 +406,13 @@ Sonnet 5 and Sonnet 5.5 changed in wording only.
 **OpenAI Codex CLI (v0.166.0 stable; v0.168.0-alpha.1 pre-release):**
 
 | Date  | Version          | News                                                          | Source                                               |
-| ----- | ---------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
+|-------|------------------|---------------------------------------------------------------|------------------------------------------------------|
 | Nov 4 | v0.168.0-alpha.1 | Pre-release with no notes; stable is still v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.5, no newer release):**
 
 | Date | Version | News                              | Source                                                     |
-| ---- | ------- | --------------------------------- | ---------------------------------------------------------- |
+|------|---------|-----------------------------------|------------------------------------------------------------|
 | —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for aide:**
@@ -466,27 +467,27 @@ wording only.
 **Claude Code (v2.1.317):**
 
 | Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Source                                                           |
-| ----- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+|-------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 | Nov 3 | v2.1.317 | `/schedule` warns when a new cloud task gets connectors you did not ask for; a check asks before a web or shell tool call sends your account email to the network; `onFailure: "block"` for Agent SDK hook callbacks; `SendMessage` to a running background agent moves its command to the background instead of stopping it; subagents and teammates on another model use that model's effort level; the Read tool no longer returns a "file unchanged" stub; `claude -p` exits 1 when a full disk or quota loses transcript writes; `CLAUDE_CODE_DISABLE_NESTED_SESSION_ID=1` restores session-ID reuse for `claude -p` inside a session | [Releases](https://github.com/anthropics/claude-code/releases)   |
 | Nov 2 | —        | Blog post "Make long-running agents faster with message threads": the Messages API keeps the conversation, so only new content is sent each turn                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | [Article](https://claude.com/resources/articles/message-threads) |
 
 **GitHub Copilot CLI (v1.0.105 stable; v1.0.106-5 the newest pre-release):**
 
 | Date  | Version        | News                                                                                                                                                                                                        | Source                                                     |
-| ----- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|-------|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Nov 3 | v1.0.106-5     | Honors the setting that turns off Co-authored-by trailers in ACP mode; `copilot mcp enable` reports a failure for servers the repository disables; a BYOK provider key stays out of error messages and logs | [Releases](https://github.com/github/copilot-cli/releases) |
 | Nov 2 | v1.0.106-3, -4 | Opt-in session management tools and `@` mentions for local sessions; `@file` mentions inside brackets, quotes or backticks attach correctly; built-in agent names no longer duplicated by custom agents     | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (v0.166.0 stable; v0.167.0-alpha.4 pre-release):**
 
 | Date  | Version          | News                                                          | Source                                               |
-| ----- | ---------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
+|-------|------------------|---------------------------------------------------------------|------------------------------------------------------|
 | Nov 3 | v0.167.0-alpha.4 | Pre-release with no notes; stable is still v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.5, no newer release):**
 
 | Date | Version | News                              | Source                                                     |
-| ---- | ------- | --------------------------------- | ---------------------------------------------------------- |
+|------|---------|-----------------------------------|------------------------------------------------------------|
 | —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for aide:**
@@ -540,25 +541,25 @@ Oct 28). Of the watched pages, none changed in what it advises: `agents.md` chan
 **Claude Code (v2.1.316, no newer release):**
 
 | Date | Version | News                                | Source                                                         |
-| ---- | ------- | ----------------------------------- | -------------------------------------------------------------- |
+|------|---------|-------------------------------------|----------------------------------------------------------------|
 | —    | —       | No release after v2.1.316 of Oct 31 | [Releases](https://github.com/anthropics/claude-code/releases) |
 
 **GitHub Copilot CLI (v1.0.105 stable; v1.0.106-2 the newest pre-release):**
 
 | Date | Version | News                                                         | Source                                                     |
-| ---- | ------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
+|------|---------|--------------------------------------------------------------|------------------------------------------------------------|
 | —    | —       | No release after v1.0.106-2 of Nov 1; no stable v1.0.106 yet | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (v0.166.0 stable; v0.167.0-alpha.3 pre-release):**
 
 | Date  | Version                 | News                                                                                       | Source                                               |
-| ----- | ----------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+|-------|-------------------------|--------------------------------------------------------------------------------------------|------------------------------------------------------|
 | Nov 1 | v0.167.0-alpha.2 and -3 | Pre-releases with no notes ("Release 0.167.0-alpha.N"); stable is still v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.5, no newer release):**
 
 | Date | Version | News                              | Source                                                     |
-| ---- | ------- | --------------------------------- | ---------------------------------------------------------- |
+|------|---------|-----------------------------------|------------------------------------------------------------|
 | —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for aide:**
@@ -599,26 +600,26 @@ OpenCode agents page renamed "OpenCode Zen" to "OpenCode Models" in one example;
 **Claude Code (v2.1.316, no newer release):**
 
 | Date | Version | News                                | Source                                                         |
-| ---- | ------- | ----------------------------------- | -------------------------------------------------------------- |
+|------|---------|-------------------------------------|----------------------------------------------------------------|
 | —    | —       | No release after v2.1.316 of Oct 31 | [Releases](https://github.com/anthropics/claude-code/releases) |
 
 **GitHub Copilot CLI (v1.0.105 stable; v1.0.106-1 and v1.0.106-2 pre-releases):**
 
 | Date   | Version                  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Source                                                     |
-| ------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|--------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 31 | v1.0.106-1 (pre-release) | apply_patch keeps the original line endings in files that mix LF and CRLF; `COPILOT_PROVIDER_GHES_HOST` accepts a full https URL; `web_fetch` decodes pages by their declared character encoding; blocked MCP server warnings name the registry failure reason; when an organization disables a Claude fallback model the original refusal is returned; rewind keeps turns where agents edited large files; citation sources are kept with the tool result after a resume | [Releases](https://github.com/github/copilot-cli/releases) |
 | Nov 1  | v1.0.106-2 (pre-release) | `/skills` add, remove and reload stay in sync with the session's skills, and refresh failures are reported at once; saving MCP server changes keeps a symlinked `mcp-config.json`; an HTTP MCP server that never answers holds startup for its timeout once, not three times; `/resume` brings an already-running background session to the front                                                                                                                         | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (v0.166.0, no newer release):**
 
 | Date | Version | News                                                   | Source                                               |
-| ---- | ------- | ------------------------------------------------------ | ---------------------------------------------------- |
+|------|---------|--------------------------------------------------------|------------------------------------------------------|
 | —    | —       | No release or changelog entry after v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.5, no newer release):**
 
 | Date | Version | News                              | Source                                                     |
-| ---- | ------- | --------------------------------- | ---------------------------------------------------------- |
+|------|---------|-----------------------------------|------------------------------------------------------------|
 | —    | —       | No release after v2.2.5 of Oct 30 | [Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for aide:**
@@ -656,25 +657,25 @@ show `/usage` by skill, subagent, plugin and MCP server; the Claude prompting pa
 **Claude Code (v2.1.316):**
 
 | Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Source                                                         |
-| ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+|--------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Oct 31 | v2.1.316 | New `CLAUDE_CODE_SUBAGENT_EFFORT` sets the effort subagents run at when nothing else names one, instead of inheriting the session's; new `CLAUDE_CODE_DISABLE_ULTRATHINK` turns the `ultrathink` keyword off; fast mode for Opus 4.8 is deprecated as of Oct 30 and removed Nov 30, after which a fast-mode request on Opus 4.8 returns an error and does not fall back (migrate to Opus 5.5); server-managed settings for Team and Enterprise logins now apply without an approval prompt; an `autoMode.allow` list without `"$defaults"` no longer removes the built-in rule on scheduled-task prompts; fixed sub-agents that inherited a parent sub-agent's model moving to the main model when a background job woke them; fixed `--restricted` sessions uploading files from outside the working directories; fixed shell commands left running when Claude Code exits by itself; fixed bash scripts stopping after their first command when `SHELLOPTS` is exported; Claude apps gateway pooled group budgets and `managed.policy_mode: layered` | [Releases](https://github.com/anthropics/claude-code/releases) |
 
 **GitHub Copilot CLI (v1.0.105, no newer release):**
 
 | Date | Version | News                                       | Source                                                     |
-| ---- | ------- | ------------------------------------------ | ---------------------------------------------------------- |
+|------|---------|--------------------------------------------|------------------------------------------------------------|
 | —    | —       | No release or changelog entry after Oct 28 | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (v0.166.0, no newer release):**
 
 | Date | Version | News                                                   | Source                                               |
-| ---- | ------- | ------------------------------------------------------ | ---------------------------------------------------- |
+|------|---------|--------------------------------------------------------|------------------------------------------------------|
 | —    | —       | No release or changelog entry after v0.166.0 of Oct 29 | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.5):**
 
 | Date   | Version | News                                                                                                                                                                                                                                                                                                                           | Source                                                     |
-| ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+|--------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 30 | v2.2.3  | Built-in Claude Agent provider that uses your Claude Code login, picked in `/connect` (`OPENCODE_CLAUDE_PATH` overrides the executable); breaking: TUI plugins need OpenTUI 0.8 or later; breaking: in managed policy `integration.use` now covers integrations only, with new `mcp.use`, `skill.use` and `plugin.use` actions | [Releases](https://github.com/anomalyco/opencode/releases) |
 | Oct 30 | v2.2.4  | Opt-in artifacts (`"experimental": { "artifacts": true }`) let agents publish and serve HTML or static files; guided Claude Agent setup in the provider picker; schedules run under `opencode serve` and fire once across processes; config can override Console-supplied provider settings                                    | [Releases](https://github.com/anomalyco/opencode/releases) |
 | Oct 30 | v2.2.5  | `compaction.buffer` accepts a percentage such as `"20%"`; calls to a tool named `bash` now run as `shell`; large MCP stdio messages no longer disconnect servers; compaction capped to the context window; worktree and base-branch shortcuts                                                                                  | [Releases](https://github.com/anomalyco/opencode/releases) |
@@ -725,25 +726,25 @@ Haiku 5.5 and Sonnet 5.5 pages gained a migration pointer and the Haiku page a s
 **Claude Code (v2.1.314):**
 
 | Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Source                                                                      |
-| ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
 | Oct 30 | v2.1.314 | New `permissions.blockWritesOutsideWorkingDirectories`: Write, Edit and NotebookEdit refuse paths outside the working directories in every permission mode; `claude -p` that fails at startup now prints the error and exits 1 (was exit 0 with no output); sandbox protections now apply to a worktree entered by `claude -p --resume` or `--continue`; hooks matching Bash now run on commands started by the Monitor tool (they can block or ask, not approve or rewrite); a PreCompact hook's output is cut at 10,000 characters; "Continue automatically at usage limit" no longer continues more than three times without a prompt when a task restarts itself (a `/goal` check-in, a background or scheduled task); `--setting-sources` now excludes a file fully; `~/.claude/skills/.trash` and `plugins/.trash` are capped at about 1024 entries; the Bash edit diff no longer lists a whole CRLF file as changed; many fixes for the gateway, Bedrock, Foundry, Remote Control, cloud sessions and vim mode | [Releases](https://github.com/anthropics/claude-code/releases/tag/v2.1.314) |
 
 **GitHub Copilot CLI (v1.0.105, no newer release):**
 
 | Date | Version | News                                       | Source                                                     |
-| ---- | ------- | ------------------------------------------ | ---------------------------------------------------------- |
+|------|---------|--------------------------------------------|------------------------------------------------------------|
 | —    | —       | No release or changelog entry after Oct 28 | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (v0.166.0):**
 
 | Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                         | Source                                               |
-| ------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+|--------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
 | Oct 29 | v0.166.0 | Keyboard-driven transcript selection with search; GPT-6.1 Terra in the bundled, Vertex AI and Bedrock model catalogs; `codex queue --resume` resumes unloaded threads; clearer safety-block explanations in the TUI; `codex doctor --network-only`; approval and permission settings preserved when resuming or forking threads; reasoning-token accounting preserved across resume and fork | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.2):**
 
 | Date   | Version | News                                                                                                                                                                                                                                                                                                                  | Source                                                     |
-| ------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|--------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 29 | v2.2.2  | Image generation (`experimental_image_generate`) on by default when a connected provider supports image models; worktree picker from the current branch on the new-session screen; one comment editor for timeline quotes, terminal quotes and browser annotations; SDK `if` and `until` inputs for scheduled prompts | [Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for aide:**
@@ -791,26 +792,26 @@ read. Of the watched pages, `agents.md` changed (a star count only) and the Copi
 **Claude Code (v2.1.312, no newer release):**
 
 | Date   | Version | News                                                                                                             | Source                           |
-| ------ | ------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+|--------|---------|------------------------------------------------------------------------------------------------------------------|----------------------------------|
 | Oct 28 | —       | "Smart reports, surveys, and pooled group budgets for Claude Enterprise"; "Introducing artifacts for legal work" | [News](https://claude.com/blog/) |
 
 **GitHub Copilot CLI (v1.0.105):**
 
 | Date   | Version | News                                                                                                                                                                                                                                             | Source                                                                                                    |
-| ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+|--------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
 | Oct 28 | —       | GitHub-verified MCP servers ("connectors", public preview, 26 at launch): in the CLI, `/mcp` then the Connectors tab; Business and Enterprise need an admin to enable the `Editor preview features` policy and to allow them in an MCP allowlist | [Changelog](https://github.blog/changelog/2026-10-28-connect-your-tools-to-copilot-without-all-the-setup) |
 | Oct 28 | —       | Copilot app: Projects (public preview) coordinates agents across repositories; computer use (public preview); Copilot Fusion routes models; Agentic Workflows generally available; Automations; the SDK becomes Microsoft Copilot SDK            | [Changelog](https://github.blog/changelog/label/copilot/)                                                 |
 
 **OpenAI Codex CLI (v0.165.0, no newer release):**
 
 | Date   | Version        | News                        | Source                                               |
-| ------ | -------------- | --------------------------- | ---------------------------------------------------- |
+|--------|----------------|-----------------------------|------------------------------------------------------|
 | Oct 29 | v0.166.0-alpha | Alpha builds only, no notes | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.1):**
 
 | Date   | Version | News                                                                                                                                                                                                                                                                                                             | Source                                                     |
-| ------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|--------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 29 | v2.2.1  | `/goal <objective>` keeps a session going until a reviewer confirms it is met; scheduled prompts (`/schedule`, experimental); opt-in `image_generate` tool; Responses API for OpenRouter, DigitalOcean and Venice. Breaking, `@opencode/ai` only: four image providers removed, five legacy entry points removed | [Releases](https://github.com/anomalyco/opencode/releases) |
 | Oct 28 | v1.19.5 | Failed TUI worker requests return an error instead of leaving the caller waiting                                                                                                                                                                                                                                 | [Releases](https://github.com/anomalyco/opencode/releases) |
 
@@ -855,26 +856,26 @@ best-practices page (the part of its diff that was seen is typographic quotes on
 **Claude Code (v2.1.312):**
 
 | Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Source                                                                      |
-| ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
 | Oct 27 | v2.1.312 | Prompt and agent hooks run at most 24 at a time per session, subagents included (a `timeout` under 1 second counts as 1); per-directory and `paths:` skills found after a Bash `cd` into a git repository; a command with an invalid name no longer stops all commands loading (could leave `claude -p` with no output); a subagent's `autoCompactWindow` now lowers `CLAUDE_CODE_AUTO_COMPACT_WINDOW`; Write no longer overwrites a very large CLAUDE.md or rules file it only read the start of | [Releases](https://github.com/anthropics/claude-code/releases/tag/v2.1.312) |
 | Oct 27 | —        | "Manage costs and demonstrate ROI for Claude Code on Google Cloud"                                                                                                                                                                                                                                                                                                                                                                                                                                | [News](https://claude.com/blog/)                                            |
 
 **GitHub Copilot CLI (v1.0.105):**
 
 | Date   | Version  | News                                                                            | Source                                                     |
-| ------ | -------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|--------|----------|---------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 28 | v1.0.105 | Fixed picking Copilot Fusion High or Max in `/model` from long-context sessions | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (v0.165.0):**
 
 | Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                    | Source                                               |
-| ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
 | Oct 27 | v0.165.0 | Built-in Google Cloud Vertex AI provider (`model_provider = "gcp"`); GPT-6.1 Terra in the model catalogs; reasoning effort can change mid-conversation by default; memory v2 on by default for fresh profiles, with import of other agents' memories; queued agent messages no longer restart work after an interrupt or a switch to Plan mode; a marketplace URL validation gap closed | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (v2.2.0):**
 
 | Date   | Version | News                                                                                                                                                                                                                                                                                                                                 | Source                                                                |
-| ------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+|--------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | Oct 27 | v2.2.0  | Breaking: `@opencode/ai` root exports the Promise API (Effect API moved to `@opencode/ai/effect`), the OpenCode GitHub Action is no longer published, TUI plugins need OpenTUI 0.7. Plugins can manage keyed session instructions without touching the system prompt; configurable prompt-cache TTLs; desktop plugins (experimental) | [Releases](https://github.com/anomalyco/opencode/releases/tag/v2.2.0) |
 
 **Relevance for aide:**
@@ -919,28 +920,28 @@ and a second run compares the page with itself), so they are not assessed.
 **Claude Code (v2.1.311):**
 
 | Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                     | Source                                                                      |
-| ------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+|--------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
 | Oct 26 | v2.1.311 | `--hold-idle-file` and `--max-hold-min` for `self-hosted-runner`; sessions that hit "Usage credits required for 1M context" past 200K tokens now compact and continue; `SubagentStop` hooks fired about twice a minute instead of once, fixed; subagents can use MCP tools from servers that connect after they start; `ultrathink` runs at xhigh effort; `DISABLE_COMPACT` can only turn compaction off | [Releases](https://github.com/anthropics/claude-code/releases/tag/v2.1.311) |
 | Oct 22 | —        | "Donating Agent Skills to the Agentic AI Foundation"                                                                                                                                                                                                                                                                                                                                                     | [News](https://www.anthropic.com/news)                                      |
 
 **GitHub Copilot CLI (v1.0.104):**
 
 | Date   | Version  | News                                                                                                                                                                                                            | Source                                                     |
-| ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 27 | v1.0.104 | Managed "fusion" model starts sessions on Auto; Autopilot sessions wait for attached background tasks past the timeout (`-p --autopilot` still honours it); Assisted Permissions work without experimental mode | [Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 26 | —        | "GitHub Copilot assisted permissions generally available"; "GPT-6.1 Terra in GitHub Copilot"                                                                                                                    | [Changelog](https://github.blog/changelog/label/copilot/)  |
 
 **OpenAI Codex CLI (no stable release after v0.164.0):**
 
 | Date   | Version          | News                                                                                             | Source                                                |
-| ------ | ---------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+|--------|------------------|--------------------------------------------------------------------------------------------------|-------------------------------------------------------|
 | Oct 27 | v0.166.0-alpha.1 | Alphas only, no notes                                                                            | [Releases](https://github.com/openai/codex/releases)  |
 | Oct 26 | —                | "GPT-6.1 Terra in Work and Codex": a fast model with strong image understanding and computer use | [Changelog](https://learn.chatgpt.com/docs/changelog) |
 
 **OpenCode (no release after v2.1.4):**
 
 | Date | Version | News                    | Source                                     |
-| ---- | ------- | ----------------------- | ------------------------------------------ |
+|------|---------|-------------------------|--------------------------------------------|
 | —    | —       | No new release or entry | [Changelog](https://opencode.ai/changelog) |
 
 **Relevance for aide:**
@@ -976,7 +977,7 @@ still "coming soon"). One X list digest (Oct 26) was read. The Claude blog posts
 **Claude Code (no release after v2.1.310):**
 
 | Date   | Version | News                                                                                                 | Source                                                                          |
-| ------ | ------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+|--------|---------|------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
 | —      | —       | No new release                                                                                       | [Releases](https://github.com/anthropics/claude-code/releases)                  |
 | Oct 22 | —       | "Building agents: When to fold subagents into your main agent loop"                                  | [Blog](https://claude.com/resources/articles)                                   |
 | Oct 16 | —       | "How the Claude Code team does code review"                                                          | [Blog](https://claude.dev/blog/solving-code-review-at-anthropic/)               |
@@ -985,19 +986,19 @@ still "coming soon"). One X list digest (Oct 26) was read. The Claude blog posts
 **GitHub Copilot CLI (no release after v1.0.104-3 pre):**
 
 | Date | Version | News                                           | Source                                                     |
-| ---- | ------- | ---------------------------------------------- | ---------------------------------------------------------- |
+|------|---------|------------------------------------------------|------------------------------------------------------------|
 | —    | —       | No new release; no new changelog entry or post | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (no release after v0.164.0):**
 
 | Date | Version | News                                                               | Source                                               |
-| ---- | ------- | ------------------------------------------------------------------ | ---------------------------------------------------- |
+|------|---------|--------------------------------------------------------------------|------------------------------------------------------|
 | —    | —       | No new stable release; no entry on the changelog page after Oct 23 | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (no release after v2.1.4):**
 
 | Date | Version | News                    | Source                                     |
-| ---- | ------- | ----------------------- | ------------------------------------------ |
+|------|---------|-------------------------|--------------------------------------------|
 | —    | —       | No new release or entry | [Changelog](https://opencode.ai/changelog) |
 
 **Relevance for Aide:**
@@ -1037,27 +1038,27 @@ still "coming soon"). One X list digest (Oct 25) was read.
 
 **Claude Code (no release after v2.1.310):**
 
-| Date | Version | News                                                     | Source                                                         |
-| ---- | ------- | -------------------------------------------------------- | -------------------------------------------------------------- |
-| —    | —       | No new release; no new post on the blog or the news page | [Releases](https://github.com/anthropics/claude-code/releases) |
+| Date | Version | News                                                       | Source                                                         |
+|------|---------|------------------------------------------------------------|----------------------------------------------------------------|
+| —    | —       | No new release; no new post on the blog or the news page   | [Releases](https://github.com/anthropics/claude-code/releases) |
 
 **GitHub Copilot CLI (Oct 24, v1.0.104-3 pre):**
 
 | Date   | Version    | News                             | Source                                                     |
-| ------ | ---------- | -------------------------------- | ---------------------------------------------------------- |
+|--------|------------|----------------------------------|------------------------------------------------------------|
 | Oct 24 | v1.0.104-3 | Pre-release, "Fixes and changes" | [Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (no release after v0.164.0):**
 
-| Date | Version | News                                                            | Source                                               |
-| ---- | ------- | --------------------------------------------------------------- | ---------------------------------------------------- |
-| —    | —       | No new stable release; only v0.165.0-alpha.1 (Oct 23, no notes) | [Releases](https://github.com/openai/codex/releases) |
+| Date | Version | News                                                              | Source                                               |
+|------|---------|-------------------------------------------------------------------|------------------------------------------------------|
+| —    | —       | No new stable release; only v0.165.0-alpha.1 (Oct 23, no notes)   | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (no release after v2.1.4):**
 
-| Date | Version | News                    | Source                                     |
-| ---- | ------- | ----------------------- | ------------------------------------------ |
-| —    | —       | No new release or entry | [Changelog](https://opencode.ai/changelog) |
+| Date | Version | News                      | Source                                     |
+|------|---------|---------------------------|--------------------------------------------|
+| —    | —       | No new release or entry   | [Changelog](https://opencode.ai/changelog) |
 
 **Relevance for Aide:**
 
@@ -1081,14 +1082,14 @@ Artificial Analysis (the harness comparison there is still "coming soon"). One X
 **Claude Code (Oct 23, v2.1.310):**
 
 | Date   | Version  | News                                                                                                                                                                  | Source                                                         |
-| ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Oct 23 | v2.1.310 | Monitor tool on Bedrock/Vertex/Foundry; MCP tool timing out on an unanswered elicitation in `-p` now tells Claude not to repeat the call; Windows PreToolUse hook fix | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Oct 23 | —        | Claude Cowork and chat come together for Enterprise; Claude Duet safety, privacy and security                                                                         | [Blog](https://claude.com/blog/)                               |
 
 **GitHub Copilot CLI (Oct 23 – Oct 24, v1.0.104-0 → v1.0.104-2 pre):**
 
 | Date   | Version    | News                                                                                       | Source                                                     |
-| ------ | ---------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+|--------|------------|--------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 23 | v1.0.104-0 | Assisted Permissions without experimental mode; saved Auto preference fallback             | [Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 24 | v1.0.104-2 | Autopilot waits for background tasks (not in `-p --autopilot`); managed model "fusion" fix | [Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 23 | —          | Usage metrics API adds usage from tools like OpenCode; Copilot in Teams                    | [Changelog](https://github.blog/changelog/label/copilot/)  |
@@ -1096,13 +1097,13 @@ Artificial Analysis (the harness comparison there is still "coming soon"). One X
 **OpenAI Codex CLI (Oct 23, v0.164.0):**
 
 | Date   | Version  | News                                                    | Source                                               |
-| ------ | -------- | ------------------------------------------------------- | ---------------------------------------------------- |
+|--------|----------|---------------------------------------------------------|------------------------------------------------------|
 | Oct 23 | v0.164.0 | Already in the 2026-10-23 review (stable release notes) | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (Oct 23, v2.1.4):**
 
 | Date   | Version | News                                                                                                                                     | Source                                     |
-| ------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+|--------|---------|------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
 | Oct 23 | v2.1.4  | MCP input forms shown instead of the call timing out; `experimental.background_compaction`; experimental TUI tools; `connectClientMcp()` | [Changelog](https://opencode.ai/changelog) |
 
 **Relevance for Aide:**
@@ -1136,7 +1137,7 @@ read; digests of Oct 20–23 were read.
 **Claude Code (Oct 19 – Oct 22, v2.1.304 → v2.1.309):**
 
 | Date   | Version      | News                                                                                                                                                                              | Source                                                         |
-| ------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+|--------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Oct 19 | v2.1.304     | `/auto-mode-setup`; skill hooks capped at 1,024 per source; `updatedInput` from hooks validated; tool search on behind custom gateways                                            | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Oct 20 | v2.1.305     | `allowedMcpServers` no longer filters `managed-mcp.json` stdio servers with `${VAR}` in `env`; `sandbox.allowNestedUserNamespaces`                                                | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Oct 21 | v2.1.306     | `claude -p` "Not logged in" fix in cloud sessions                                                                                                                                 | [Releases](https://github.com/anthropics/claude-code/releases) |
@@ -1146,7 +1147,7 @@ read; digests of Oct 20–23 were read.
 **GitHub Copilot CLI (Oct 19 – Oct 22, v1.0.100 → v1.0.103):**
 
 | Date   | Version  | News                                                                                                                     | Source                                                     |
-| ------ | -------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+|--------|----------|--------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 19 | v1.0.100 | Skills/plugins from GitHub install links; path-specific `.github/instructions` applied; `--trust-folder` for prompt mode | [Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 20 | v1.0.101 | Structured output for subagents; `assistedApprovalInstructions` setting                                                  | [Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 21 | v1.0.102 | Subagents honor custom and MCP tool approvals; plugin marketplaces accept git-subdir sources                             | [Releases](https://github.com/github/copilot-cli/releases) |
@@ -1155,14 +1156,14 @@ read; digests of Oct 20–23 were read.
 **OpenAI Codex CLI (Oct 20 – Oct 23, v0.164.0):**
 
 | Date      | Version             | News                                                                                                               | Source                                               |
-| --------- | ------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+|-----------|---------------------|--------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
 | Oct 23    | v0.164.0            | `/presets` slots; inline `/model` and `/permissions` arguments; enterprise MCP auth; macOS sandbox checks hardened | [Releases](https://github.com/openai/codex/releases) |
 | Oct 20–22 | v0.164.0-alpha.7…12 | Alpha builds, no notes                                                                                             | [Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (Oct 20 – Oct 22, v1.19.4; OpenCode 2 v2.1.0 → v2.1.3):**
 
 | Date   | Version         | News                                                                                                   | Source                                                     |
-| ------ | --------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+|--------|-----------------|--------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 20 | v2.1.0          | Public fields renamed to `native`; `Credential.Key.configuration` removed; `session.compacted` removed | [Changelog](https://opencode.ai/changelog)                 |
 | Oct 21 | v2.1.2          | `OPENCODE_DISABLE_FREE_MODELS`                                                                         | [Changelog](https://opencode.ai/changelog)                 |
 | Oct 22 | v1.19.4, v2.1.3 | Bundled Bun 1.4.4 with security fixes; skill/instruction updates sent as changes only                  | [Releases](https://github.com/anomalyco/opencode/releases) |
@@ -1205,7 +1206,7 @@ Copilot CLI v1.0.97, the second half of the Codex changelog, the X list digest o
 **Claude Code (Oct 14 – Oct 18, v2.1.299 → v2.1.303):**
 
 | Date   | Version  | News                                                                                        | Source                                                         |
-| ------ | -------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+|--------|----------|---------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Oct 14 | v2.1.299 | `CLAUDE_CODE_DISABLE_FILE_MENTIONS`; idle compaction (`idleCompaction`); MCP deny/ask fixes | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Oct 14 | v2.1.300 | `prompt.change` mod hook; `agent.spawn` can rewrite prompt and model                        | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Oct 15 | v2.1.301 | Skill argument names limited to 64; skills no longer vanish after `/rewind`                 | [Releases](https://github.com/anthropics/claude-code/releases) |
@@ -1216,7 +1217,7 @@ Copilot CLI v1.0.97, the second half of the Codex changelog, the X list digest o
 **GitHub Copilot CLI (Oct 13 – Oct 16, v1.0.98 → v1.0.100-1 pre):**
 
 | Date   | Version                    | News                                                                                       | Source                                                     |
-| ------ | -------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+|--------|----------------------------|--------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 14 | v1.0.98                    | Gemini 4 Argon; command hooks complete reliably under Node                                 | [Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 15 | v1.0.99-0…-1 (pre)         | `.github/instructions` files apply automatically; skills/plugins from GitHub install links | [Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 16 | v1.0.99-2…v1.0.100-1 (pre) | `--disable-client-telemetry`; no stall on a hung MCP server                                | [Releases](https://github.com/github/copilot-cli/releases) |
@@ -1224,7 +1225,7 @@ Copilot CLI v1.0.97, the second half of the Codex changelog, the X list digest o
 **OpenAI Codex CLI (Oct 14 – Oct 17, v0.163.0):**
 
 | Date      | Version            | News                                                                         | Source                                                |
-| --------- | ------------------ | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
+|-----------|--------------------|------------------------------------------------------------------------------|-------------------------------------------------------|
 | Oct 15    | v0.163.0           | Searchable `/config`; mid-turn steering; `/daemon`; parallel read-only tools | [Changelog](https://learn.chatgpt.com/docs/changelog) |
 | Oct 16–17 | v0.164.0-alpha.1…3 | Alpha builds, no release notes                                               | [Releases](https://github.com/openai/codex/releases)  |
 | Oct 14    | —                  | GPT-5.5 retired in Codex for ChatGPT sign-in; use GPT-6.1 Sol                | [Changelog](https://learn.chatgpt.com/docs/changelog) |
@@ -1232,7 +1233,7 @@ Copilot CLI v1.0.97, the second half of the Codex changelog, the X list digest o
 **OpenCode (Oct 12 – Oct 16, v1.19.1 → v1.19.3; OpenCode 2 v2.0.27 → v2.0.32):**
 
 | Date      | Version         | News                                                            | Source                                                     |
-| --------- | --------------- | --------------------------------------------------------------- | ---------------------------------------------------------- |
+|-----------|-----------------|-----------------------------------------------------------------|------------------------------------------------------------|
 | Oct 15    | v1.19.1         | Session sharing discontinued                                    | [Releases](https://github.com/anomalyco/opencode/releases) |
 | Oct 16    | v1.19.2–3       | 1.x installs never offered 2.x; configurable reasoning variants | [Releases](https://github.com/anomalyco/opencode/releases) |
 | Oct 12–16 | v2.0.27–v2.0.32 | `instructions` loads globs and URLs; worktree tools             | [Changelog](https://opencode.ai/changelog)                 |
@@ -1253,7 +1254,7 @@ Not read in full: Copilot CLI v1.0.92–1.0.93 (Oct 4–7), the last third of th
 **Claude Code (Oct 5 – Oct 9, v2.1.290 → v2.1.296):**
 
 | Date  | Version      | News                                                                                                                        | Source                                                         |
-| ----- | ------------ | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+|-------|--------------|-----------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
 | Oct 5 | v2.1.290     | `agentId` on `tool.check`; `claude attach`/`claude logs`; symlinked CLAUDE.md/rules fix                                     | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Oct 6 | v2.1.291–292 | Regression fixes; `claude plugin install --marketplace`; `effort` on Agent tool; MCP tool names over 128 characters dropped | [Releases](https://github.com/anthropics/claude-code/releases) |
 | Oct 7 | v2.1.293     | Haiku 5.5 default Haiku; path-scoped rules load via Bash `cat`/`sed -n`/`grep`                                              | [Releases](https://github.com/anthropics/claude-code/releases) |
@@ -1264,7 +1265,7 @@ Not read in full: Copilot CLI v1.0.92–1.0.93 (Oct 4–7), the last third of th
 **GitHub Copilot CLI (Oct 7 – Oct 10, v1.0.94 → v1.0.96 pre):**
 
 | Date     | Version            | News                                                                                   | Source                                                     |
-| -------- | ------------------ | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|----------|--------------------|----------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 8    | v1.0.94            | Claude Haiku 5.5 in model selection; MCP enable/disable before discovery               | [Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 9    | v1.0.95            | Entra broker auth on macOS; sandbox `injectHosts`; managed plugin setup retries hourly | [Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 9–10 | v1.0.96-0…-2 (pre) | `/add-dir` grants sandbox access; sandbox secret masking hosts                         | [Releases](https://github.com/github/copilot-cli/releases) |
@@ -1273,7 +1274,7 @@ Not read in full: Copilot CLI v1.0.92–1.0.93 (Oct 4–7), the last third of th
 **OpenAI Codex CLI (Oct 8 – Oct 9, v0.162.0 → v0.162.1):**
 
 | Date  | Version  | News                                                                                                                   | Source                                                |
-| ----- | -------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+|-------|----------|------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
 | Oct 8 | v0.162.0 | Managed Git worktree tools; custom-provider web access and remote compaction settings; ranked tool search in Code Mode | [Releases](https://github.com/openai/codex/releases)  |
 | Oct 9 | v0.162.1 | TUI crash and startup failure fixes                                                                                    | [Releases](https://github.com/openai/codex/releases)  |
 | Oct 8 | —        | GPT-6.1 Sol Ultrafast in Codex                                                                                         | [Changelog](https://learn.chatgpt.com/docs/changelog) |
@@ -1281,7 +1282,7 @@ Not read in full: Copilot CLI v1.0.92–1.0.93 (Oct 4–7), the last third of th
 **OpenCode (Oct 6 – Oct 11, v1.18.35 → v1.19.0):**
 
 | Date   | Version  | News                                                                                                     | Source                                                     |
-| ------ | -------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|--------|----------|----------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | Oct 6  | v1.18.35 | Agent-readable stats formats; xAI image tool results                                                     | [Releases](https://github.com/anomalyco/opencode/releases) |
 | Oct 11 | v1.19.0  | `opencode upgrade --major` to OpenCode 2; OpenAI ultrafast tier; updates no longer automatic (`/update`) | [Releases](https://github.com/anomalyco/opencode/releases) |
 
@@ -1301,26 +1302,26 @@ review.
 **Claude Code (Oct 4 – Oct 5):**
 
 | Date | Version | News                                                                                                            | Source                                                                |
-| ---- | ------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+|------|---------|-----------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | —    | —       | No release since v2.1.289 (Oct 3, already logged); Oct 2 Anthropic news: $100 million to train 10,000 engineers | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 
 **GitHub Copilot CLI (Oct 4, v1.0.92-3 → v1.0.92-4):**
 
 | Date  | Version         | News                                                                                                                                                                                                                                        | Source                                                            |
-| ----- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+|-------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Oct 4 | v1.0.92-4 (pre) | New `copilot config` subcommands; faster startup; MCP server connections respond faster; canvas actions return images to the model; fixes for legacy HTTP+SSE MCP connections, voice runtime install errors and shell tool output streaming | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (Oct 1 – Oct 5):**
 
 | Date          | Version                | News                                                                                                                                                                                                                                                                      | Source                                                      |
-| ------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+|---------------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
 | Oct 1         | v0.160.0               | "Show more" for older tasks in the agent command center; middle-click paste in fullscreen on Linux X11; sessions outside a project with workspace defaults, saved permissions restored on resume; Guardian review retrieves earlier user instructions and handoff context | [Changelog](https://learn.chatgpt.com/docs/changelog)       |
 | Oct 4 – Oct 5 | v0.162.0-alpha.12 … 14 | Alpha builds with no release notes                                                                                                                                                                                                                                        | [GitHub Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (Oct 4 – Oct 5):**
 
 | Date | Version | News                                               | Source                                                            |
-| ---- | ------- | -------------------------------------------------- | ----------------------------------------------------------------- |
+|------|---------|----------------------------------------------------|-------------------------------------------------------------------|
 | —    | —       | No release since v1.18.34 (Sep 30, already logged) | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for Aide:**
@@ -1337,7 +1338,7 @@ alpha builds after v0.159.3.
 **Claude Code (Sep 30 – Oct 4, v2.1.286 → v2.1.289):**
 
 | Date  | Version  | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Source                                                                |
-| ----- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+|-------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | Oct 1 | v2.1.287 | **Claude Mods**: plugins can change deeper behaviour through function hooks that reload in the session (panes, bands, status lines, toasts, hooks); a built-in "You should know" mod; `n:<text>` filter in the agents view; `prompt_text` on the OpenTelemetry `user_prompt` event; `asyncRewake` hooks no longer wake repeatedly when their script is missing                                                                                                            | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 | Oct 2 | v2.1.288 | Path-scoped `.claude/rules` and nested `CLAUDE.md` now load when a file is created or changed in the session; `-p` sessions stream the turns of a `context: fork` skill; a non-interactive session continues from a partial response after an API timeout; long conversations auto-compact instead of failing "Prompt is too long"; an agent spawned by name runs with its own prompt, tools and effort; `$.ui.selection()` for mods; `--max-findings` for `/code-review` | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 | Oct 3 | v2.1.289 | `agent.spawn` for teammates and one agent id across plugin hook events; installed mods load in the first session after an upgrade; Read deny rules apply to @-mentioned files reached through symlinks; deny/ask rules on nested compound shell commands hold over mod approvals                                                                                                                                                                                          | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
@@ -1346,7 +1347,7 @@ alpha builds after v0.159.3.
 **GitHub Copilot CLI (Sep 30 – Oct 4, v1.0.89 → v1.0.91, and v1.0.92 pre-releases):**
 
 | Date          | Version              | News                                                                                                                                                                                                    | Source                                                            |
-| ------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+|---------------|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Oct 1         | v1.0.91              | `copilot sandbox ca` commands; review of read-only shell pipelines; telemetry flushed on shutdown; model picker updates                                                                                 | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 1 – Oct 2 | v1.0.92-0 … -3 (pre) | Environment picker (Ctrl+E) for local or cloud runs; remote MCP servers reconnect after their HTTP session expires; background agents can be steered by message; retired models removed from the picker | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Oct 1         | —                    | Dynamic workflows in Copilot CLI and the Copilot app; Copilot can drive desktop apps with computer use; Oct 2: selected models deprecated                                                               | [GitHub Changelog](https://github.blog/changelog/label/copilot/)  |
@@ -1354,7 +1355,7 @@ alpha builds after v0.159.3.
 **OpenAI Codex CLI (Sep 30 – Oct 4, v0.159.2 → v0.159.3):**
 
 | Date           | Version               | News                                                                                                                                                                                                                                                                                                                                                    | Source                                                                                                    |
-| -------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+|----------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
 | Sep 30         | v0.159.3              | Optional account-security setup reminders for local sessions signed in with ChatGPT                                                                                                                                                                                                                                                                     | [Changelog](https://learn.chatgpt.com/docs/changelog)                                                     |
 | Sep 30 – Oct 4 | v0.162.0-alpha.3 … 12 | Alpha builds with no release notes                                                                                                                                                                                                                                                                                                                      | [GitHub Releases](https://github.com/openai/codex/releases)                                               |
 | —              | —                     | Developer blog: "Rethinking skills and prompts for GPT-6 Astra" — trim instructions written for weaker models, keep skill descriptions short and specific, say when each document in `AGENTS.md` applies, avoid contradicting instructions, and state when a task is done, since GPT-6 models can be tentative about finishing (the post shows no date) | [OpenAI developer blog](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra) |
@@ -1362,7 +1363,7 @@ alpha builds after v0.159.3.
 **OpenCode (Sep 30 – Oct 4, v1.18.33 → v1.18.34):**
 
 | Date   | Version  | News                                                                                                | Source                                                            |
-| ------ | -------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+|--------|----------|-----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Sep 30 | v1.18.34 | Namespaced session identity headers on model requests; macOS binaries signed for macOS 27 and later | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for Aide:**
@@ -1392,7 +1393,7 @@ follows. Copilot CLI v1.0.89 made the `.claude/rules` support stable.
 **Claude Code (Sep 28 – Sep 30, v2.1.283 → v2.1.286):**
 
 | Date   | Version  | News                                                                                                                                                                                                                                                                                                                                                                       | Source                                                                |
-| ------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+|--------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | Sep 28 | v2.1.284 | Claude Sonnet 5.5 (`claude-sonnet-5-5`) added and made the default Sonnet on the Anthropic API — 1M context, $2/$10 per Mtok, $0.20/Mtok cache reads; fixes for damaged response streams and errors after a thinking block now retried; a rule symlinked into `.claude/rules` from outside the project now asks for the external-imports approval instead of being skipped | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 | Sep 29 | v2.1.285 | `CLAUDE_CODE_DISABLE_WEB_FETCH`; `claude --desktop`; `claude plugin configure`; `allowedProviders` managed setting; in `claude -p`, a forked subagent's Agent call runs in the foreground and a background subagent's permission request reaches `--permission-prompt-tool`                                                                                                | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 | Sep 30 | v2.1.286 | When the API refuses the model an alias resolves to, Claude Code retries once on the previous model of the same tier; `--resume`/`--continue` no longer lose turns after a batch of parallel tool calls in a crashed session; several secret-redaction fixes in logs and transcripts                                                                                       | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
@@ -1400,7 +1401,7 @@ follows. Copilot CLI v1.0.89 made the `.claude/rules` support stable.
 **GitHub Copilot CLI (Sep 28 – Sep 30, v1.0.89-5 → v1.0.89, and v1.0.90 pre-releases):**
 
 | Date            | Version        | News                                                                                                                                                                                                                                                | Source                                                            |
-| --------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+|-----------------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Sep 28          | v1.0.89        | Stable release of the v1.0.89 line: `.claude/rules` support as custom instructions, GPT-6 Sol and Luna in the model picker, Claude Opus 5.5 support, PR creation follows repository pull request templates, Esc Esc takes back an unanswered prompt | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Sep 28 – Sep 30 | v1.0.90-0 … -7 | Pre-releases with no notes beyond "Fixes and changes"                                                                                                                                                                                               | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Sep 28 / 29     | —              | Claude Sonnet 5.5 and GPT-6.1 Sol available in GitHub Copilot                                                                                                                                                                                       | [GitHub Changelog](https://github.blog/changelog/label/copilot/)  |
@@ -1408,7 +1409,7 @@ follows. Copilot CLI v1.0.89 made the `.claude/rules` support stable.
 **OpenAI Codex CLI (Sep 28 – Sep 30, v0.157.1 → v0.159.2):**
 
 | Date   | Version  | News                                                                                                                                                                                                         | Source                                                                                                              |
-| ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+|--------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
 | Sep 28 | v0.158.0 | Copy-on-select in the fullscreen TUI; MCP servers with pre-registered OAuth client secrets; bearer tokens for exec-server WebSocket connections; terminal input approval on by default for elevated commands | [GitHub Releases](https://github.com/openai/codex/releases)                                                         |
 | Sep 29 | v0.159.0 | Opt-in `instant_interrupt`; compact welcome screen; `.aws` protected under writable roots; the `tui.prompt_suggestions` setting and the bundled `plugin-creator` skill removed                               | [GitHub Releases](https://github.com/openai/codex/releases)                                                         |
 | Sep 29 | v0.159.1 | **GPT-6.1 Sol is the default model** in the bundled catalog and the Amazon Bedrock catalogs — "near-Astra performance for complex work at a lower cost than Astra"                                           | [GitHub Releases](https://github.com/openai/codex/releases) · [Changelog](https://learn.chatgpt.com/docs/changelog) |
@@ -1417,7 +1418,7 @@ follows. Copilot CLI v1.0.89 made the `.claude/rules` support stable.
 **OpenCode (Sep 28 – Sep 30):**
 
 | Date | Version | News                                                   | Source                                                            |
-| ---- | ------- | ------------------------------------------------------ | ----------------------------------------------------------------- |
+|------|---------|--------------------------------------------------------|-------------------------------------------------------------------|
 | —    | —       | No new release since v1.18.33 (Sep 28, already logged) | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for Aide:**
@@ -1441,25 +1442,25 @@ v1.0.89-5 adds `.claude/rules` support**, confirming the row `docs/AI_SUPPORT_MA
 **Claude Code (Sep 26 – Sep 28):**
 
 | Date | Version | News                                                   | Source                                                                |
-| ---- | ------- | ------------------------------------------------------ | --------------------------------------------------------------------- |
+|------|---------|--------------------------------------------------------|-----------------------------------------------------------------------|
 | —    | —       | No new release since v2.1.283 (Sep 25, already logged) | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 
 **GitHub Copilot CLI (Sep 27, v1.0.89-4 → v1.0.89-5):**
 
 | Date   | Version   | News                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Source                                                            |
-| ------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+|--------|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Sep 27 | v1.0.89-5 | Add support for Claude Code rule files in `.claude/rules` as custom instructions; ask_user/elicitation form inputs focus on left-click; sessions sidebar shows a blue dot for an unopened finished turn; extensions no longer fail to load while managed MCP policy is still applying; fixed Git failures in apps launched from CLI shells with empty environment variables dropped (Git 2.36+); sessions sidebar saves opened/closed tabs as they change; sandboxed agent shell commands can access session files and logs | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 
 **OpenAI Codex CLI (Sep 26 – Sep 28):**
 
 | Date | Version | News                                                                                                                   | Source                                                      |
-| ---- | ------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+|------|---------|------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
 | —    | —       | No new stable release since v0.157.1 (Sep 26, already logged); only 0.158.0/0.159.0 alpha builds with no release notes | [GitHub Releases](https://github.com/openai/codex/releases) |
 
 **OpenCode (Sep 28, v1.18.32 → v1.18.33):**
 
 | Date   | Version  | News                                                                                                                                                                                                                                                                                                                                | Source                                                            |
-| ------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+|--------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Sep 28 | v1.18.33 | Cloudflare AI Gateway models now honor provider response and stream timeouts; MCP browser launch failures reported when the launcher exits immediately; debug configuration output redacts credentials and sensitive headers; Gemini thinking defaults and effort options now match the supported controls across model generations | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
 
 **Relevance for Aide:**
@@ -1477,7 +1478,7 @@ include it yet). New models across the tools; nothing that changes how Aide inst
 **Claude Code (Sep 22 – Sep 25, v2.1.280 → v2.1.283):**
 
 | Date   | Version  | News                                                                                                                                                                                                          | Source                                                                |
-| ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | Sep 22 | —        | Claude Opus 5.5: comparable to Fable 5.1 at 40% lower cost                                                                                                                                                    | [Anthropic news](https://www.anthropic.com/news)                      |
 | Sep 25 | v2.1.283 | Opt-in gateway hint header `x-claude-code-prompt-id` (`CLAUDE_CODE_GATEWAY_HINT_HEADERS=1`); managed settings `availableModelsMatch` and `deniedModels`; MCP tool output saved to files; faster first request | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 
@@ -1486,7 +1487,7 @@ Versions v2.1.280–282 were not itemised on the releases page.
 **GitHub Copilot CLI (Sep 21 – Sep 25, v1.0.87 → v1.0.89-4):**
 
 | Date   | Version         | News                                                                                                    | Source                                                            |
-| ------ | --------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+|--------|-----------------|---------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Sep 21 | v1.0.87         | Auto routing tier startup defaults with policy; `worktreePathTemplate` setting; Windows sandbox proxy   | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Sep 22 | v1.0.88         | OSC 777 notifications; managed settings apply to ACP and AHP modes; MCP indexed search with glob filter | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Sep 22 | v1.0.89-0 (pre) | Claude Opus 5.5 support                                                                                 | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
@@ -1497,14 +1498,14 @@ Versions v2.1.280–282 were not itemised on the releases page.
 **OpenAI Codex CLI (Sep 22 – Sep 26, v0.156.0 → v0.157.1):**
 
 | Date   | Version  | News                                                                                                                  | Source                                                      |
-| ------ | -------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+|--------|----------|-----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
 | Sep 22 | v0.156.0 | Optional fullscreen UI, voice conversations by default, `/usage` dashboard; GPT-6 Sol and Luna rolled out to Codex    | [Codex changelog](https://learn.chatgpt.com/docs/changelog) |
 | Sep 25 | v0.157.0 | GPT-6 Sol/Luna on Amazon Bedrock; fullscreen transcripts by default; background server starts in interactive sessions | [GitHub](https://github.com/openai/codex/releases)          |
 
 **OpenCode (Sep 14 – Sep 21, v1.18.31 → v1.18.32):**
 
 | Date   | Version  | News                                                                                                        | Source                                                            |
-| ------ | -------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+|--------|----------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Sep 14 | v1.18.31 | ACP sessions keep their model, effort and mode on resume and fork; remote config auth errors fail startup   | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
 | Sep 21 | v1.18.32 | Bedrock image attachments fixed; Together AI usage reporting fixed; Grok 4.7 and DeepSeek V4.1 Flash in Zen | [GitHub Releases](https://github.com/anomalyco/opencode/releases) |
 
@@ -1539,7 +1540,7 @@ Short period (Sep 14 – Sep 21). The one finding that matters for Aide: **Claud
 **Claude Code (Sep 17 – Sep 19, v2.1.271 → v2.1.278):**
 
 | Date   | Version  | News                                                                                                                                                                                       | Source                                                                |
-| ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+|--------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | Sep 17 | v2.1.275 | `ctrl+enter` interrupts the turn and sends queued messages; skills and plugins enabled on claude.ai sync to terminal sessions (`syncClaudeAiSkills`/`syncClaudeAiPlugins: false` opts out) | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 | Sep 18 | v2.1.276 | Fixed every request failing with `400 … advisor_20260301` behind a proxy or gateway (2.1.275 regression)                                                                                   | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 | Sep 18 | v2.1.277 | **Reads `AGENTS.md` in projects without `CLAUDE.md`** (not yet on Bedrock/Vertex/Foundry); `CLAUDE_GATEWAY_PROXY_IS_EGRESS_BOUNDARY=1`; `headers:` map on gateway upstreams                | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
@@ -1550,7 +1551,7 @@ Versions v2.1.271–274 were not itemised on the releases page.
 **GitHub Copilot CLI (Sep 16 – Sep 18, v1.0.85 → v1.0.87-0):**
 
 | Date   | Version         | News                                                                                                                                                                           | Source                                                            |
-| ------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+|--------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Sep 16 | v1.0.85         | Vim mode for everyone; `transcriptView: "concise"`; `enable`/`disable` on `plugin`, `mcp` and `skill` commands; `copilot instruction list` and `copilot lsp list`; GPT-6 Astra | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Sep 17 | v1.0.86         | Custom agents can opt into repo instruction files with `include-custom-instructions: true`; session resume keeps marketplace plugins and skills                                | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Sep 18 | v1.0.87-0 (pre) | Auto routing tier with org policy; `worktreePathTemplate` setting; configurable MCP slow-connection warning                                                                    | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
@@ -1558,7 +1559,7 @@ Versions v2.1.271–274 were not itemised on the releases page.
 **GitHub Copilot Platform (Sep 14–18):**
 
 | Date   | News                                                               | Source                                                      |
-| ------ | ------------------------------------------------------------------ | ----------------------------------------------------------- |
+|--------|--------------------------------------------------------------------|-------------------------------------------------------------|
 | Sep 14 | Cost and quality configurable in Copilot auto model selection      | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
 | Sep 17 | Agentic CLI customizations available through the usage metrics API | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
 | Sep 18 | Selected Copilot models are phased out in mid-October              | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
@@ -1566,7 +1567,7 @@ Versions v2.1.271–274 were not itemised on the releases page.
 **OpenAI Codex CLI (Sep 17 – Sep 18, v0.155.0 → v0.155.1):**
 
 | Date   | Version  | News                                                                                                                                                       | Source                                                      |
-| ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+|--------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
 | Sep 14 | —        | GPT-5.3-Codex-Spark deprecated; GPT-5.5 retires Oct 14 (switch to GPT-5.6-Sol)                                                                             | [Codex changelog](https://learn.chatgpt.com/docs/changelog) |
 | Sep 17 | v0.155.0 | Experimental voice conversations; Touch ID verification for MCP requests on macOS; configurable daemon updates; AWS credential handling for Amazon Bedrock | [Codex changelog](https://learn.chatgpt.com/docs/changelog) |
 | Sep 18 | v0.155.1 | New local TUI sessions leave reasoning summaries off by default (fixes rejections by providers that do not support them)                                   | [GitHub](https://github.com/openai/codex/releases)          |
@@ -1591,7 +1592,7 @@ Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). 
 **Claude Code (May 23 – Sep 12, v2.1.150 → v2.1.270):**
 
 | Date   | Version  | News                                                                                                                                                                                              | Source                                                                |
-| ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+|--------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | Jun 15 | v2.1.178 | **Skills in nested `.claude/skills` directories load when working on files there** (`<dir>:<name>` on a clash); `Tool(param:value)` permission rules                                              | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 | Jun 26 | v2.1.195 | ⚠️ **Hook matchers now exact-match** — hyphenated identifiers (`code-reviewer`, `mcp__brave-search`) no longer substring-match; use `mcp__x__.*` for all                                          | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 | Jun 30 | v2.1.197 | **Claude Sonnet 5 is the default model**, native 1M context, $2/$10 per Mtok promo through Aug 31                                                                                                 | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
@@ -1612,7 +1613,7 @@ Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). 
 **GitHub Copilot CLI (May 28 – Sep 11, v1.0.55 → v1.0.84-5):**
 
 | Date   | Version         | News                                                                                                                                                                                              | Source                                                            |
-| ------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+|--------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Jun 9  | v1.0.61         | Auto-loads MCP servers from `.github/mcp.json`; Claude Fable 5 support                                                                                                                            | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Jun 24 | v1.0.65         | **`copilot skill` subcommand** (list/add/remove skills from a file, URL or directory); `userPromptSubmitted` hook `additionalContext` reaches the prompt                                          | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
 | Jul 10 | v1.0.70         | **`preToolUse` hooks exiting 2 deny the call**; `--sandbox`/`--no-sandbox` per session (useful with `-p`); a trusted repo can pin model/effort and deny lists via `.github/copilot/settings.json` | [GitHub Releases](https://github.com/github/copilot-cli/releases) |
@@ -1627,7 +1628,7 @@ Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). 
 **GitHub Copilot Platform (Sep 1–11):**
 
 | Date  | News                                                                                         | Source                                                      |
-| ----- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+|-------|----------------------------------------------------------------------------------------------|-------------------------------------------------------------|
 | Sep 1 | Copilot code review can approve pull requests                                                | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
 | Sep 2 | Content exclusions GA in the Copilot app and CLI; enterprise-managed settings take any model | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
 | Sep 9 | Enterprise-managed permissions for Copilot agent operations                                  | [GitHub Blog](https://github.blog/changelog/label/copilot/) |
@@ -1635,7 +1636,7 @@ Long period (May 23 – Sep 14, ~16 weeks; the log had not been run since May). 
 **OpenAI Codex CLI (May 26 – Sep 9, v0.134 → v0.154):**
 
 | Date   | Version  | News                                                                                                                                                                         | Source                                             |
-| ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+|--------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------|
 | May 26 | v0.134.0 | Search across local conversation history; `--profile` is the primary profile selector                                                                                        | [GitHub](https://github.com/openai/codex/releases) |
 | Jun 18 | v0.141.0 | **Hook trust bypass persists through `codex exec` thread start and resume**; blocking `PostToolUse` hooks reject code-mode calls                                             | [GitHub](https://github.com/openai/codex/releases) |
 | Jun 22 | v0.142.0 | **Configurable rollout token budgets** across agent threads, with reminders and abort when exhausted                                                                         | [GitHub](https://github.com/openai/codex/releases) |
@@ -1655,7 +1656,7 @@ Verified on the installed 0.154.0: `codex exec resume [SESSION_ID] [PROMPT]` tak
 **New models:**
 
 | Date   | Model                | Details                                                                        | Source                                                                |
-| ------ | -------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+|--------|----------------------|--------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | Jun 30 | **Claude Sonnet 5**  | Claude Code default (v2.1.197), 1M context; Copilot CLI v1.0.67                | [GitHub Releases](https://github.com/anthropics/claude-code/releases) |
 | Jul 10 | **GPT-5.6**          | Copilot CLI v1.0.70                                                            | [GitHub Releases](https://github.com/github/copilot-cli/releases)     |
 | Jul 24 | **Claude Opus 5**    | Claude Code default Opus (v2.1.219), 1M context, fast mode $10/$50 per Mtok    | [Anthropic](https://www.anthropic.com/news)                           |

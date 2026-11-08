@@ -39,8 +39,7 @@ const PHONE = { width: 600, height: 900 };
 // No element name in it: the row holding the four menus has been a
 // `span` and is a `div`, and which one it is says nothing about the
 // behaviour these cases check.
-const MORE_MENU =
-  "header .row > details.menu:not(.theme):not(.lang):not(.unit)";
+const MORE_MENU = "header .row > details.menu:not(.theme):not(.lang):not(.unit)";
 
 // The nested-<details> hazard itself: a click on a flat mobile row must
 // apply the choice AND leave the "…" menu open — Approach A's whole
@@ -51,25 +50,16 @@ test("tapping a choice row applies it and leaves the … menu open", async () =>
   const trigger = page.locator(`${MORE_MENU} > summary`);
   await trigger.click();
   const menu = page.locator(MORE_MENU);
-  expect(await menu.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(
-    true,
-  );
+  expect(await menu.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
 
-  const darkButton = page.locator(
-    'header .menu .morerows [data-theme-choice="dark"]',
-  );
+  const darkButton = page.locator('header .menu .morerows [data-theme-choice="dark"]');
   await darkButton.click();
 
   expect(await page.locator("html").getAttribute("data-theme")).toBe("dark");
-  expect(await menu.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(
-    true,
-  );
+  expect(await menu.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
 });
 
-async function openMore(
-  size: { width: number; height: number },
-  path = "/?live=0",
-): Promise<void> {
+async function openMore(size: { width: number; height: number }, path = "/?live=0"): Promise<void> {
   await page.setViewportSize(size);
   await withBrowser(page.goto(`${base}${path}`), `page.goto(${path})`);
   await page.locator(`${MORE_MENU} > summary`).click();
@@ -77,27 +67,10 @@ async function openMore(
 
 test("choosing Deutsch reloads in German with the menu open, once", async () => {
   await openMore(PHONE);
-  await Promise.all([
-    page.waitForURL(/[?&]lang=de(&|$)/),
-    page
-      .locator(`${MORE_MENU} select[data-lang-select]`)
-      .selectOption({ label: "🇩🇪 Deutsch" }),
-  ]);
+  await Promise.all([page.waitForURL(/[?&]lang=de(&|$)/), page.locator(`${MORE_MENU} select[data-lang-select]`).selectOption({ label: "🇩🇪 Deutsch" })]);
   expect(await page.locator("html").getAttribute("lang")).toBe("de");
-  expect(
-    await page
-      .locator(MORE_MENU)
-      .evaluate((el) => (el as HTMLDetailsElement).open),
-  ).toBe(true);
-  expect(
-    await page
-      .locator(`${MORE_MENU} select[data-lang-select] option:checked`)
-      .textContent(),
-  ).toContain("Deutsch");
+  expect(await page.locator(MORE_MENU).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+  expect(await page.locator(`${MORE_MENU} select[data-lang-select] option:checked`).textContent()).toContain("Deutsch");
   await page.reload();
-  expect(
-    await page
-      .locator(MORE_MENU)
-      .evaluate((el) => (el as HTMLDetailsElement).open),
-  ).toBe(false);
+  expect(await page.locator(MORE_MENU).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
 });

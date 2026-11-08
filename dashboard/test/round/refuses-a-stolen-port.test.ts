@@ -32,8 +32,7 @@ function decoyBoard() {
     fetch(req) {
       const url = new URL(req.url);
       requests.push({ method: req.method, path: url.pathname });
-      if (req.method === "GET" && url.pathname === "/api/queue")
-        return Response.json({ jobs });
+      if (req.method === "GET" && url.pathname === "/api/queue") return Response.json({ jobs });
       if (req.method === "POST" && url.pathname === "/api/queue/create") {
         counter += 1;
         const id = `decoy-${counter}`;
@@ -46,14 +45,8 @@ function decoyBoard() {
   return { port: server.port, requests, stop: () => server.stop(true) };
 }
 
-async function runToExit(
-  args: string[],
-): Promise<{ code: number; stdout: string; stderr: string }> {
-  const proc = Bun.spawn({
-    cmd: ["/bin/bash", RUN, AIDE_CHECKOUT, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+async function runToExit(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+  const proc = Bun.spawn({ cmd: ["/bin/bash", RUN, AIDE_CHECKOUT, ...args], stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, code] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
@@ -66,12 +59,7 @@ describe("the round, against a port another board already holds", () => {
   test("refuses before seeding anything on the decoy", async () => {
     const decoy = decoyBoard();
     try {
-      const { code, stderr } = await runToExit([
-        "--port",
-        String(decoy.port),
-        "--timeout",
-        "5",
-      ]);
+      const { code, stderr } = await runToExit(["--port", String(decoy.port), "--timeout", "5"]);
       expect(code).not.toBe(0);
       expect(stderr).toContain(String(decoy.port));
       expect(stderr).toMatch(/already.*board/);
@@ -84,13 +72,7 @@ describe("the round, against a port another board already holds", () => {
   test("a refusal with --keep never claims the dead pid is left running", async () => {
     const decoy = decoyBoard();
     try {
-      const { stdout } = await runToExit([
-        "--port",
-        String(decoy.port),
-        "--timeout",
-        "5",
-        "--keep",
-      ]);
+      const { stdout } = await runToExit(["--port", String(decoy.port), "--timeout", "5", "--keep"]);
       expect(stdout).not.toContain("left running");
       // The same guarantee for the line the round prints the moment its
       // own server answers: there is no server of ours here to announce.
@@ -111,15 +93,7 @@ describe("the round, on a port nothing else holds", () => {
     await probe.stop(true);
 
     const proc = Bun.spawn({
-      cmd: [
-        "/bin/bash",
-        RUN,
-        AIDE_CHECKOUT,
-        "--port",
-        String(port),
-        "--timeout",
-        "5",
-      ],
+      cmd: ["/bin/bash", RUN, AIDE_CHECKOUT, "--port", String(port), "--timeout", "5"],
       stdout: "pipe",
       stderr: "pipe",
     });

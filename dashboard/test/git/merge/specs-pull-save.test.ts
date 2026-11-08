@@ -15,18 +15,12 @@
 // behind in the ONE shared specs checkout breaks the next fast-forward
 // for every project in it — so a push that fails is reset away.
 
-import { afterEach, describe, expect, test } from "bun:test";
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { saveSpecFile, saveSpecFiles } from "../../../src/git/specs-pull.ts";
-import { fakeGit } from "../../helpers/fake-git.ts";
+import { fakeGit, type Answer } from "../../helpers/fake-git.ts";
 
 const base = async () => "main";
 
@@ -55,10 +49,7 @@ function checkout(): { root: string; dir: string } {
 /** The pull's answers, plus the ones only a save asks for: which commit
  *  last touched the file, where HEAD is, and whether the write staged
  *  anything. Everything succeeds unless a test says otherwise. */
-const savable = (
-  root: string,
-  extra: Record<string, { code: number; stdout?: string }> = {},
-) =>
+const savable = (root: string, extra: Record<string, Answer | Answer[]> = {}) =>
   fakeGit({
     "rev-parse --show-toplevel": { code: 0, stdout: `${root}\n` },
     "diff --cached --quiet HEAD": { code: 1 },
@@ -69,10 +60,7 @@ const savable = (
     "merge-base --is-ancestor": { code: 0 },
     "merge -q --ff-only origin/": { code: 0 },
     "merge -q --ff-only": { code: 0 },
-    "log -1 --format=": {
-      code: 0,
-      stdout: `${FILE_SHA}\t2026-08-21T09:14:00+02:00\n`,
-    },
+    "log -1 --format=": { code: 0, stdout: `${FILE_SHA}\t2026-08-21T09:14:00+02:00\n` },
     add: { code: 0 },
     commit: { code: 0 },
     push: { code: 0 },
@@ -120,9 +108,7 @@ describe("saveSpecFile", () => {
     const git = savable(root);
     await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
     const add = git.calls.find((c) => c.args[0] === "add")!;
-    const staged = git.calls.find((c) =>
-      c.args.join(" ").startsWith("diff --cached"),
-    )!;
+    const staged = git.calls.find((c) => c.args.join(" ").startsWith("diff --cached"))!;
     expect(staged.dir).toBe(add.dir);
     expect(staged.dir).toBe(dir);
   });
@@ -131,9 +117,7 @@ describe("saveSpecFile", () => {
     const { root, dir } = checkout();
     const git = savable(root);
     await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
-    const message = git.calls
-      .find((c) => c.args[0] === "commit")!
-      .args.join(" ");
+    const message = git.calls.find((c) => c.args[0] === "commit")!.args.join(" ");
     expect(message).toContain(FILE);
     expect(message).toContain("162-edit-a-spec-on-its-own-page");
     expect(message).toContain("dashboard");
@@ -146,12 +130,7 @@ describe("saveSpecFile", () => {
   test("a base sha that has moved since the page was rendered is refused, and nothing is written", async () => {
     const { root, dir } = checkout();
     const git = savable(root);
-    const result = await saveSpecFile(
-      git.run,
-      dir,
-      base,
-      edit(NEW_TEXT, "0000000bbbbbbb"),
-    );
+    const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT, "0000000bbbbbbb"));
     expect(result.ok).toBe(false);
     expect(result.note).toContain("changed since");
     expect(readFileSync(join(dir, FILE), "utf-8")).toBe(ORIGINAL);
@@ -161,42 +140,18 @@ describe("saveSpecFile", () => {
 
   test("a checkout the pull would refuse is refused here too, before any write", async () => {
     for (const [what, extra, expected] of [
-      [
-        "uncommitted changes",
-        { "diff --quiet HEAD": { code: 1 } },
-        "uncommitted",
-      ],
-      [
-        "a spec branch",
-        {
-          "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/162-edit\n" },
-        },
-        "aide/162-edit",
-      ],
-      [
-        "a divergence",
-        { "merge-base --is-ancestor": { code: 1 } },
-        "fast-forward",
-      ],
+      ["uncommitted changes", { "diff --quiet HEAD": { code: 1 } }, "uncommitted"],
+      ["a spec branch", { "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/162-edit\n" } }, "aide/162-edit"],
+      ["a divergence", { "merge-base --is-ancestor": { code: 1 } }, "fast-forward"],
       ["an unreachable origin", { fetch: { code: 128 } }, "origin"],
-    ] as [
-      string,
-      Record<string, { code: number; stdout?: string }>,
-      string,
-    ][]) {
+    ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
       const { root, dir } = checkout();
       const git = savable(root, extra);
       const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
       expect([what, result.ok]).toEqual([what, false]);
       expect([what, result.note.includes(expected)]).toEqual([what, true]);
-      expect([what, readFileSync(join(dir, FILE), "utf-8")]).toEqual([
-        what,
-        ORIGINAL,
-      ]);
-      expect([what, git.calls.map((c) => c.args[0]).includes("push")]).toEqual([
-        what,
-        false,
-      ]);
+      expect([what, readFileSync(join(dir, FILE), "utf-8")]).toEqual([what, ORIGINAL]);
+      expect([what, git.calls.map((c) => c.args[0]).includes("push")]).toEqual([what, false]);
     }
   });
 
@@ -217,27 +172,72 @@ describe("saveSpecFile", () => {
   test("a browser's CRLF line endings are not a change", async () => {
     const { root, dir } = checkout();
     const git = savable(root, { "diff --cached --quiet HEAD": { code: 0 } });
-    const result = await saveSpecFile(
-      git.run,
-      dir,
-      base,
-      edit(ORIGINAL.replace(/\n/g, "\r\n")),
-    );
+    const result = await saveSpecFile(git.run, dir, base, edit(ORIGINAL.replace(/\n/g, "\r\n")));
     expect(result.ok).toBe(true);
     expect(readFileSync(join(dir, FILE), "utf-8")).toBe(ORIGINAL);
     expect(git.calls.map((c) => c.args[0])).not.toContain("commit");
   });
 
-  test("a push that fails is rolled back to the commit before the write, and says so", async () => {
+  test("a refused push rebases onto origin and succeeds on its only retry (AC-1, AC-2, AC-6)", async () => {
     const { root, dir } = checkout();
-    const git = savable(root, { push: { code: 1 } });
+    const git = savable(root, {
+      push: [{ code: 1, stderr: "! [rejected] HEAD -> main (non-fast-forward)\n" }, { code: 0 }],
+      rebase: { code: 0 },
+    });
+    const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
+    expect(result).toEqual({ ok: true, note: `saved ${FILE}`, committed: true });
+    const commands = git.calls.map((c) => c.args.join(" "));
+    expect(commands).toContain("fetch --quiet origin main");
+    expect(commands).toContain("rebase refs/remotes/origin/main");
+    expect(commands.filter((line) => line.startsWith("push "))).toHaveLength(2);
+    expect(commands.some((line) => line.startsWith("reset "))).toBe(false);
+    expect(readFileSync(join(dir, FILE), "utf-8")).toBe(NEW_TEXT);
+  });
+
+  test("a second refusal is logged and rolls the save back without a third push (AC-3, AC-5, AC-6)", async () => {
+    const { root, dir } = checkout();
+    const log = spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const git = savable(root, {
+        push: [
+          { code: 1, stderr: "\n! [rejected] HEAD -> main (fetch first)\nhint: update first\n" },
+          { code: 1, stderr: "remote: protected branch hook declined\nerror: failed to push some refs\n" },
+        ],
+        rebase: { code: 0 },
+      });
+      const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
+      expect(result.ok).toBe(false);
+      expect(result.note).toContain("nothing was kept");
+      expect(git.calls.filter((c) => c.args[0] === "push")).toHaveLength(2);
+      const reset = git.calls.find((c) => c.args[0] === "reset")!;
+      expect(reset.args).toContain(HEAD_SHA);
+      expect(reset.args).toContain("--hard");
+      expect(log).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining("162-edit-a-spec-on-its-own-page"),
+      );
+      expect(log.mock.calls[0]?.[0]).toContain(FILE);
+      expect(log.mock.calls[0]?.[0]).toContain("! [rejected] HEAD -> main (fetch first)");
+      expect(log.mock.calls[1]?.[0]).toContain("remote: protected branch hook declined");
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  test("a rebase conflict names the file, aborts and restores the checkout without retrying push (AC-4, AC-6)", async () => {
+    const { root, dir } = checkout();
+    const git = savable(root, {
+      push: { code: 1, stderr: "! [rejected] HEAD -> main (non-fast-forward)\n" },
+      rebase: { code: 1 },
+      "diff --name-only --diff-filter=U": { code: 0, stdout: `${FILE}\n` },
+    });
     const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
     expect(result.ok).toBe(false);
-    expect(result.note).toContain("push");
-    const reset = git.calls.find((c) => c.args[0] === "reset");
-    expect(reset).toBeDefined();
-    expect(reset!.args).toContain(HEAD_SHA);
-    expect(reset!.args).toContain("--hard");
+    expect(result.note).toContain(FILE);
+    const commands = git.calls.map((c) => c.args.join(" "));
+    expect(commands).toContain("rebase --abort");
+    expect(commands).toContain(`reset --hard ${HEAD_SHA}`);
+    expect(commands.filter((line) => line.startsWith("push "))).toHaveLength(1);
   });
 
   // Nothing half-done in the ONE shared checkout: a write that was
@@ -249,9 +249,7 @@ describe("saveSpecFile", () => {
     const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
     expect(result.ok).toBe(false);
     expect(result.note).toContain("nothing was saved");
-    expect(git.calls.find((c) => c.args[0] === "reset")!.args).toContain(
-      "--hard",
-    );
+    expect(git.calls.find((c) => c.args[0] === "reset")!.args).toContain("--hard");
     expect(git.calls.map((c) => c.args[0])).not.toContain("push");
   });
 
@@ -259,9 +257,7 @@ describe("saveSpecFile", () => {
   // carry, and saving it is the ordinary case — not a mismatch.
   test("a file git has never committed saves against no base at all", async () => {
     const { root, dir } = checkout();
-    const git = savable(root, {
-      "log -1 --format=": { code: 0, stdout: "\n" },
-    });
+    const git = savable(root, { "log -1 --format=": { code: 0, stdout: "\n" } });
     const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT, null));
     expect(result.ok).toBe(true);
     expect(readFileSync(join(dir, FILE), "utf-8")).toBe(NEW_TEXT);
@@ -309,10 +305,7 @@ describe("saveSpecFiles", () => {
     "| Manual check at 375px | ⬜ | |",
     "",
   ].join("\n");
-  const STATUS_TICKED = STATUS_ORIGINAL.replace(
-    "| Manual check at 375px | ⬜ | |",
-    "| Manual check at 375px | ✅ | |",
-  );
+  const STATUS_TICKED = STATUS_ORIGINAL.replace("| Manual check at 375px | ⬜ | |", "| Manual check at 375px | ✅ | |");
 
   /** Both files on disk, so "nothing was written" is a claim about the
    *  bytes of both. */
@@ -326,29 +319,15 @@ describe("saveSpecFiles", () => {
    *  last moved at the same commit, which is the ordinary case — a
    *  step's own run writes them together — so a stale test says so by
    *  posting the wrong sha, not by moving one file. */
-  const twoFileGit = (
-    root: string,
-    extra: Record<string, { code: number; stdout?: string }> = {},
-  ) => savable(root, extra);
+  const twoFileGit = (root: string, extra: Record<string, Answer | Answer[]> = {}) =>
+    savable(root, extra);
 
-  const edits = (
-    over: {
-      text?: string;
-      baseSha?: string | null;
-      statusText?: string;
-      statusBaseSha?: string | null;
-    } = {},
-  ) => [
-    {
-      file: FILE,
-      text: over.text ?? NEW_TEXT,
-      baseSha: over.baseSha === undefined ? FILE_SHA : over.baseSha,
-    },
+  const edits = (over: { text?: string; baseSha?: string | null; statusText?: string; statusBaseSha?: string | null } = {}) => [
+    { file: FILE, text: over.text ?? NEW_TEXT, baseSha: over.baseSha === undefined ? FILE_SHA : over.baseSha },
     {
       file: STATUS_FILE,
       text: over.statusText ?? STATUS_TICKED,
-      baseSha:
-        over.statusBaseSha === undefined ? STATUS_SHA : over.statusBaseSha,
+      baseSha: over.statusBaseSha === undefined ? STATUS_SHA : over.statusBaseSha,
     },
   ];
 
@@ -374,13 +353,7 @@ describe("saveSpecFiles", () => {
   test("only one of the two actually changed: still one commit, the other file left as it was", async () => {
     const { root, dir } = twoFileCheckout();
     const git = twoFileGit(root);
-    const result = await saveSpecFiles(
-      git.run,
-      dir,
-      base,
-      edits({ text: ORIGINAL }),
-      OPTS,
-    );
+    const result = await saveSpecFiles(git.run, dir, base, edits({ text: ORIGINAL }), OPTS);
     expect(result.ok).toBe(true);
     expect(result.committed).toBe(true);
     expect(readFileSync(join(dir, FILE), "utf-8")).toBe(ORIGINAL);
@@ -391,13 +364,7 @@ describe("saveSpecFiles", () => {
   test("neither file changed is a success that commits nothing", async () => {
     const { root, dir } = twoFileCheckout();
     const git = twoFileGit(root, { "diff --cached --quiet HEAD": { code: 0 } });
-    const result = await saveSpecFiles(
-      git.run,
-      dir,
-      base,
-      edits({ text: ORIGINAL, statusText: STATUS_ORIGINAL }),
-      OPTS,
-    );
+    const result = await saveSpecFiles(git.run, dir, base, edits({ text: ORIGINAL, statusText: STATUS_ORIGINAL }), OPTS);
     expect(result.ok).toBe(true);
     expect(result.committed).toBe(false);
     expect(result.note).toContain("unchanged");
@@ -409,13 +376,7 @@ describe("saveSpecFiles", () => {
   test("one stale baseSha refuses the lot — NEITHER file is written", async () => {
     const { root, dir } = twoFileCheckout();
     const git = twoFileGit(root);
-    const result = await saveSpecFiles(
-      git.run,
-      dir,
-      base,
-      edits({ statusBaseSha: "0000000ffffff" }),
-      OPTS,
-    );
+    const result = await saveSpecFiles(git.run, dir, base, edits({ statusBaseSha: "0000000ffffff" }), OPTS);
     expect(result.ok).toBe(false);
     expect(result.note).toContain("changed since");
     expect(result.note).toContain(STATUS_FILE);
@@ -430,22 +391,16 @@ describe("saveSpecFiles", () => {
   test("the first edit's stale sha refuses before the second is written either", async () => {
     const { root, dir } = twoFileCheckout();
     const git = twoFileGit(root);
-    const result = await saveSpecFiles(
-      git.run,
-      dir,
-      base,
-      edits({ baseSha: "0000000ffffff" }),
-      OPTS,
-    );
+    const result = await saveSpecFiles(git.run, dir, base, edits({ baseSha: "0000000ffffff" }), OPTS);
     expect(result.ok).toBe(false);
     expect(result.note).toContain(FILE);
     expect(readFileSync(join(dir, FILE), "utf-8")).toBe(ORIGINAL);
     expect(readFileSync(join(dir, STATUS_FILE), "utf-8")).toBe(STATUS_ORIGINAL);
   });
 
-  test("a push that fails resets both writes away", async () => {
+  test("a retry that still fails resets both writes away (AC-3)", async () => {
     const { root, dir } = twoFileCheckout();
-    const git = twoFileGit(root, { push: { code: 1 } });
+    const git = twoFileGit(root, { push: { code: 1 }, rebase: { code: 0 } });
     const result = await saveSpecFiles(git.run, dir, base, edits(), OPTS);
     expect(result.ok).toBe(false);
     expect(result.note).toContain("push");
@@ -466,9 +421,7 @@ describe("saveSpecFiles", () => {
     expect(added.flatMap((c) => c.args)).toContain(FILE);
     expect(added.flatMap((c) => c.args)).toContain(STATUS_FILE);
     for (const call of added) expect(call.dir).toBe(dir);
-    const staged = git.calls.find((c) =>
-      c.args.join(" ").startsWith("diff --cached"),
-    )!;
+    const staged = git.calls.find((c) => c.args.join(" ").startsWith("diff --cached"))!;
     expect(staged.dir).toBe(dir);
     expect(staged.args).toContain(FILE);
     expect(staged.args).toContain(STATUS_FILE);
@@ -477,13 +430,7 @@ describe("saveSpecFiles", () => {
   test("one edit is exactly what saveSpecFile already did", async () => {
     const { root, dir } = twoFileCheckout();
     const git = twoFileGit(root);
-    const result = await saveSpecFiles(
-      git.run,
-      dir,
-      base,
-      [{ file: FILE, text: NEW_TEXT, baseSha: FILE_SHA }],
-      OPTS,
-    );
+    const result = await saveSpecFiles(git.run, dir, base, [{ file: FILE, text: NEW_TEXT, baseSha: FILE_SHA }], OPTS);
     expect(result.ok).toBe(true);
     expect(result.committed).toBe(true);
     expect(readFileSync(join(dir, FILE), "utf-8")).toBe(NEW_TEXT);

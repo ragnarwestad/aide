@@ -7,13 +7,10 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-const read = (path: string) =>
-  readFileSync(new URL(path, import.meta.url), "utf8");
+const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 // The runner as it runs: aide-run-spec, then the library it sources last,
 // where the step's reported word is decided.
-const RUN_SPEC =
-  read("../../../core/scripts/aide-run-spec") +
-  read("../../../core/scripts/lib/run-spec/publish/result.sh");
+const RUN_SPEC = read("../../../core/scripts/aide-run-spec") + read("../../../core/scripts/lib/run-spec/publish/result.sh");
 const RUNNER_SETUP = read("../../src/serve/runner-setup.ts");
 
 describe("close: the word bash reports is the word the dashboard lands on", () => {
@@ -25,9 +22,7 @@ describe("close: the word bash reports is the word the dashboard lands on", () =
   });
 
   test("the dashboard lands a close on that same word", () => {
-    const branch =
-      /if \(step === "close"\) \{([\s\S]*?)\n\s*\}/.exec(RUNNER_SETUP)?.[1] ??
-      "";
+    const branch = /if \(step === "close"\) \{([\s\S]*?)\n\s*\}/.exec(RUNNER_SETUP)?.[1] ?? "";
     expect(branch).toContain("landClosedSpec");
     expect(branch).toContain('terminalReason === "closed"');
   });
@@ -35,9 +30,7 @@ describe("close: the word bash reports is the word the dashboard lands on", () =
   // The other half of the pair, unchanged and pinned here beside it:
   // archive lands on `completed`, which is a session's own word.
   test("archive still lands on completed, and the two are not confused", () => {
-    const branch =
-      /if \(step === "archive"\) \{([\s\S]*?)\n\s*\}/.exec(RUNNER_SETUP)?.[1] ??
-      "";
+    const branch = /if \(step === "archive"\) \{([\s\S]*?)\n\s*\}/.exec(RUNNER_SETUP)?.[1] ?? "";
     expect(branch).toContain('terminalReason === "completed"');
     expect(branch).toContain("landArchivedSpec");
   });
@@ -48,23 +41,17 @@ describe("close: the word bash reports is the word the dashboard lands on", () =
   // ticked for it go with it: the wiring drops the spec's recorded choice
   // before the step's own landing, and only on a finished one.
   test("a finished reopen with reset forgets the spec's phase choice, and nothing else does", () => {
-    const okBranch =
-      /if \(outcome\.ok\) \{([\s\S]*?)\n\s{6}\}/.exec(RUNNER_SETUP)?.[1] ?? "";
+    const okBranch = /if \(outcome\.ok\) \{([\s\S]*?)\n\s{6}\}/.exec(RUNNER_SETUP)?.[1] ?? "";
     expect(okBranch).toContain(
       'if (step === "reopen" && job.resetFiles) ctx.store.forgetPendingSteps(job.project, job.specFolder);',
     );
-    expect(okBranch.indexOf("forgetPendingSteps")).toBeLessThan(
-      okBranch.indexOf("landStepBranch"),
-    );
+    expect(okBranch.indexOf("forgetPendingSteps")).toBeLessThan(okBranch.indexOf("landStepBranch"));
     expect(RUNNER_SETUP.split("forgetPendingSteps").length - 1).toBe(1);
   });
 
   test("the word is decided after the push is confirmed, never before", () => {
     const closedAt = RUN_SPEC.indexOf('terminal_reason="closed"');
-    const unpushedAt = Math.max(
-      RUN_SPEC.lastIndexOf('terminal_reason="unpushed"'),
-      RUN_SPEC.lastIndexOf("stop_step unpushed"),
-    );
+    const unpushedAt = Math.max(RUN_SPEC.lastIndexOf('terminal_reason="unpushed"'), RUN_SPEC.lastIndexOf("stop_step unpushed"));
     expect(unpushedAt).toBeGreaterThan(-1);
     expect(closedAt).toBeGreaterThan(unpushedAt);
   });

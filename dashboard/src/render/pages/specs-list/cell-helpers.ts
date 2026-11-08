@@ -16,12 +16,7 @@ import {
   type QueueRowView,
   type RestingState,
 } from "../../ui/job-state";
-import {
-  isArchivedRow,
-  phaseDuration,
-  type Phase,
-  type SpecGroup,
-} from "./data-model";
+import { isArchivedRow, phaseDuration, type Phase, type SpecGroup } from "./data-model";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -30,11 +25,8 @@ import {
 // sentence a runner wrote — "the specs tree is dirty: /Users/…" — and
 // this cell is sized for a badge, so it went off the right edge of the
 // table. The row's panel says it instead (`specNoticeRow`).
-export const stateCell = (
-  r: QueueRowView,
-  lang: Language,
-  resting: RestingState = {},
-): string => specStateChip(r, lang, resting);
+export const stateCell = (r: QueueRowView, lang: Language, resting: RestingState = {}): string =>
+  specStateChip(r, lang, resting);
 
 // The same two-part shape, for a PHASE — whose state is the file's
 // answer (`wordPhase`), not the last job's. No badge at all means the
@@ -63,7 +55,7 @@ export const phaseWordCell = (
   // for the whole spec and named for the phase it is about, and the
   // phase's own log says it too (`phaseExplanations`), so a phase line
   // is one line in every state a phase can be in.
-  w.badge
+  (w.badge
     ? badge(
         w.badge.variant,
         attempts > 1 ? `${w.badge.label} (${attempts})` : w.badge.label,
@@ -71,24 +63,22 @@ export const phaseWordCell = (
         // is a fixed width and can ellipsis-clip the visible label
         // (narrow.css, tr.subrow[data-step] td[data-col="state"] .badge),
         // so the full text has to stay reachable through the title.
-        attempts > 1
-          ? `${w.badge.label} (${attempts}) — ${attempts} attempts`
-          : w.badge.label,
+        attempts > 1 ? `${w.badge.label} (${attempts}) — ${attempts} attempts` : w.badge.label,
       )
-    : // A dash, the same one Created and Cost draw for "nothing here"
-      // (2026-09-08): the sentence "not run yet" said in words what an
-      // empty state cell says by being empty, in the column where every
-      // other row carries one word.
-      // A phase CAN have attempts behind it and still read as nothing:
-      // the FILES decide the word, and two failed runs leave them saying
-      // nothing happened. The count rides on the dash then, the same way
-      // it rides in the badge above.
-      // `data-none` is what the stylesheet indents it by: a badge carries
-      // its own padding, so a bare dash left at the cell's edge sat four
-      // characters left of every word under it and read as stuck to the
-      // column's left edge.
-      `<span class="muted small" data-none${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
-      `–${attempts > 1 ? ` (${attempts})` : ""}</span>`;
+    // A dash, the same one Created and Cost draw for "nothing here"
+    // (2026-09-08): the sentence "not run yet" said in words what an
+    // empty state cell says by being empty, in the column where every
+    // other row carries one word.
+    // A phase CAN have attempts behind it and still read as nothing:
+    // the FILES decide the word, and two failed runs leave them saying
+    // nothing happened. The count rides on the dash then, the same way
+    // it rides in the badge above.
+    // `data-none` is what the stylesheet indents it by: a badge carries
+    // its own padding, so a bare dash left at the cell's edge sat four
+    // characters left of every word under it and read as stuck to the
+    // column's left edge.
+    : `<span class="muted small" data-none${attempts > 1 ? ` title="${attempts} attempts"` : ""}>` +
+      `–${attempts > 1 ? ` (${attempts})` : ""}</span>`);
 
 /** The spec header row's own time cell: what its phases have come to so
  *  far, summed.
@@ -116,9 +106,7 @@ export function activeDurationCell(g: SpecGroup): string {
  *  line's phone copy: a locked row's figure is the archived
  *  one, every other row's counts while a phase runs. */
 export function specTotalCell(g: SpecGroup): string {
-  return isArchivedRow(g)
-    ? archiveDateCell(g.totalDurationMs ?? 0)
-    : activeDurationCell(g);
+  return isArchivedRow(g) ? archiveDateCell(g.totalDurationMs ?? 0) : activeDurationCell(g);
 }
 
 /** One phase line's time cell: how long that phase took, or how long it
@@ -130,11 +118,7 @@ export function specTotalCell(g: SpecGroup): string {
  *  something with script switched off; and the mark is a `<span>` of
  *  fixed content in a cell that is already there, so a phase starting
  *  or stopping moves nothing on the page around it. */
-export function phaseDurationCell(
-  latest: QueueRowView | undefined,
-  step: string,
-  now: number,
-): string {
+export function phaseDurationCell(latest: QueueRowView | undefined, step: string, now: number): string {
   const d = latest ? phaseDuration(latest, step, now) : null;
   // Empty when the QUEUE has nothing to say, so the caller can fall back
   // to the phase file's own `Time spent:` stamp — `create`'s
@@ -173,11 +157,7 @@ export const costCell = (
   // there is no token figure either: a settled Codex step still owes
   // the same guarantee, tokens over an invented $0.00.
   return usdOrTokens(
-    spentUsd > 0
-      ? spentUsd
-      : settled && !((spentTokens ?? 0) > 0)
-        ? 0
-        : undefined,
+    spentUsd > 0 ? spentUsd : settled && !((spentTokens ?? 0) > 0) ? 0 : undefined,
     spentTokens,
   );
 };
@@ -222,16 +202,13 @@ export function phasePips(phases: Phase[], done: string[]): string {
 
 /** A job the runner is holding back: still queued, not started, and not
  *  merging an earlier step either. */
-const waitsOnHold = (r: QueueRowView): boolean =>
-  r.state === "queued" && !r.landing && r.errorReason === "held-back";
+const waitsOnHold = (r: QueueRowView): boolean => r.state === "queued" && !r.landing && r.errorReason === "held-back";
 
 /** The attempt a phase's pip speaks for: one that is running or merging
  *  first, even when a held-back job sits ahead of it, else whatever is in
  *  flight, else the latest. */
 const pipAttempt = (p: Phase): QueueRowView | undefined =>
-  p.attempts.find((a) => inFlight(a) && !waitsOnHold(a)) ??
-  p.attempts.find(inFlight) ??
-  p.attempts[0];
+  p.attempts.find((a) => inFlight(a) && !waitsOnHold(a)) ?? p.attempts.find(inFlight) ?? p.attempts[0];
 
 /** What one phase's pip is. A held-back job has not started, so the pip
  *  reads as if it were not queued at all: what the files and the history
@@ -246,10 +223,7 @@ export function phasePipKind(p: Phase, done: string[]): PipKind {
   // finished phase grey again.
   const attempt = pipAttempt(p);
   const live = attempt && waitsOnHold(attempt) ? undefined : attempt;
-  return wordPhase(done.includes(p.step), p.heldBack, live, {
-    ...p.history,
-    step: p.step,
-  }).pip;
+  return wordPhase(done.includes(p.step), p.heldBack, live, { ...p.history, step: p.step }).pip;
 }
 
 /** The Time column for a locked row: how long the work took, and never
@@ -270,10 +244,7 @@ export function archiveDateCell(durationMs: number): string {
  *  `relTimeLabel`, not `relTime` — this goes in a `title` attribute,
  *  where markup would show as literal tags. `checkedAt` is epoch ms
  *  (the checker's cache stamp) and the label takes an ISO string. */
-export function notLandedTitle(
-  checkedAt: number | undefined,
-  now: number,
-): string {
+export function notLandedTitle(checkedAt: number | undefined, now: number): string {
   const why = "its branch is still on origin — re-run archive";
   if (checkedAt === undefined) return why;
   return `${why}, checked ${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;

@@ -16,10 +16,7 @@ const assistantText = (text: string) =>
   line({ type: "assistant", message: { content: [{ type: "text", text }] } });
 
 const toolUse = (name: string, input: Record<string, unknown>) =>
-  line({
-    type: "assistant",
-    message: { content: [{ type: "tool_use", name, input }] },
-  });
+  line({ type: "assistant", message: { content: [{ type: "tool_use", name, input }] } });
 
 describe("summarizeStream", () => {
   test("keeps assistant text and tool calls, drops system and user noise", () => {
@@ -27,10 +24,7 @@ describe("summarizeStream", () => {
       line({ type: "system", subtype: "init", cwd: "/x" }),
       assistantText("Reading queue.ts"),
       toolUse("Read", { file_path: "src/queue.ts" }),
-      line({
-        type: "user",
-        message: { content: [{ type: "tool_result", content: "…" }] },
-      }),
+      line({ type: "user", message: { content: [{ type: "tool_result", content: "…" }] } }),
       line({ type: "result", subtype: "success" }),
     ].join("\n");
 
@@ -60,9 +54,7 @@ describe("summarizeStream", () => {
   });
 
   test("is bounded: only the last `max` events survive, because the tail is the answer", () => {
-    const stream = Array.from({ length: 200 }, (_, i) =>
-      assistantText(`step ${i}`),
-    ).join("\n");
+    const stream = Array.from({ length: 200 }, (_, i) => assistantText(`step ${i}`)).join("\n");
 
     const activity = summarizeStream(stream, { max: 12 });
 
@@ -72,10 +64,7 @@ describe("summarizeStream", () => {
   });
 
   test("a single entry is bounded too — a Write's input is a whole file", () => {
-    const activity = summarizeStream(
-      toolUse("Write", { content: "x".repeat(5000) }),
-      { max: 5 },
-    );
+    const activity = summarizeStream(toolUse("Write", { content: "x".repeat(5000) }), { max: 5 });
 
     expect(activity[0]!.length).toBeLessThan(400);
   });
@@ -103,12 +92,7 @@ describe("summarizeStream", () => {
   test("thinking blocks stay out — they are not what the run is doing", () => {
     const stream = line({
       type: "assistant",
-      message: {
-        content: [
-          { type: "thinking", thinking: "hmm" },
-          { type: "text", text: "said" },
-        ],
-      },
+      message: { content: [{ type: "thinking", thinking: "hmm" }, { type: "text", text: "said" }] },
     });
 
     const activity = summarizeStream(stream, { max: 10 });
@@ -128,21 +112,12 @@ describe("summarizeStream", () => {
 const codexLine = (o: unknown) => JSON.stringify(o);
 
 const codexAgentMessage = (text: string) =>
-  codexLine({
-    type: "item.completed",
-    item: { id: "i0", item_type: "agent_message", text },
-  });
+  codexLine({ type: "item.completed", item: { id: "i0", item_type: "agent_message", text } });
 
 const codexCommand = (command: string) =>
   codexLine({
     type: "item.completed",
-    item: {
-      id: "i1",
-      item_type: "command_execution",
-      command,
-      exit_code: 0,
-      status: "completed",
-    },
+    item: { id: "i1", item_type: "command_execution", command, exit_code: 0, status: "completed" },
   });
 
 describe("summarizeStream on a Codex transcript", () => {
@@ -158,10 +133,7 @@ describe("summarizeStream on a Codex transcript", () => {
       codexLine({ type: "turn.started" }),
       codexAgentMessage("Reading queue.ts"),
       codexCommand("cat src/queue.ts"),
-      codexLine({
-        type: "turn.completed",
-        usage: { input_tokens: 1, output_tokens: 2 },
-      }),
+      codexLine({ type: "turn.completed", usage: { input_tokens: 1, output_tokens: 2 } }),
     ].join("\n");
 
     const fromClaude = summarizeStream(claude, { max: 10, tool: "claude" });
@@ -180,10 +152,7 @@ describe("summarizeStream on a Codex transcript", () => {
     const stream = [
       codexLine({ type: "thread.started", thread_id: "0199f4c2" }),
       codexLine({ type: "turn.started" }),
-      codexLine({
-        type: "item.completed",
-        item: { id: "i0", item_type: "reasoning", text: "hmm" },
-      }),
+      codexLine({ type: "item.completed", item: { id: "i0", item_type: "reasoning", text: "hmm" } }),
       codexAgentMessage("said"),
       codexLine({ type: "turn.completed", usage: {} }),
     ].join("\n");
@@ -196,10 +165,7 @@ describe("summarizeStream on a Codex transcript", () => {
 
   test("an item.started is not counted twice with its item.completed", () => {
     const stream = [
-      codexLine({
-        type: "item.started",
-        item: { id: "i0", item_type: "agent_message", text: "once" },
-      }),
+      codexLine({ type: "item.started", item: { id: "i0", item_type: "agent_message", text: "once" } }),
       codexAgentMessage("once"),
     ].join("\n");
 
@@ -216,9 +182,7 @@ describe("summarizeStream on a Codex transcript", () => {
   });
 
   test("bounded the same way: only the last `max` items survive", () => {
-    const stream = Array.from({ length: 200 }, (_, i) =>
-      codexAgentMessage(`step ${i}`),
-    ).join("\n");
+    const stream = Array.from({ length: 200 }, (_, i) => codexAgentMessage(`step ${i}`)).join("\n");
 
     const activity = summarizeStream(stream, { max: 12, tool: "codex" });
 
@@ -229,11 +193,7 @@ describe("summarizeStream on a Codex transcript", () => {
   test("a file change names the files, not the word `file_change`", () => {
     const stream = codexLine({
       type: "item.completed",
-      item: {
-        id: "i2",
-        item_type: "file_change",
-        changes: [{ path: "src/queue.ts", kind: "update" }],
-      },
+      item: { id: "i2", item_type: "file_change", changes: [{ path: "src/queue.ts", kind: "update" }] },
     });
 
     const activity = summarizeStream(stream, { max: 10, tool: "codex" });
@@ -242,12 +202,7 @@ describe("summarizeStream on a Codex transcript", () => {
   });
 
   test("a truncated or non-JSON line is skipped, not fatal", () => {
-    const stream = [
-      codexAgentMessage("before"),
-      "not json",
-      '{"type":"item.compl',
-      codexAgentMessage("after"),
-    ].join("\n");
+    const stream = [codexAgentMessage("before"), "not json", '{"type":"item.compl', codexAgentMessage("after")].join("\n");
 
     expect(summarizeStream(stream, { max: 10, tool: "codex" })).toHaveLength(2);
   });
@@ -261,27 +216,15 @@ describe("summarizeStream on a Codex transcript", () => {
     // version does not send, so every Activity line came out empty.
     // Both are read, because the field name is the CLI's to change and
     // an old transcript still has to render.
-    const asType = codexLine({
-      type: "item.completed",
-      item: { id: "item_0", type: "agent_message", text: "ok" },
-    });
+    const asType = codexLine({ type: "item.completed", item: { id: "item_0", type: "agent_message", text: "ok" } });
     const asCommand = codexLine({
       type: "item.completed",
       item: { id: "item_1", type: "command_execution", command: "bun test" },
     });
 
-    expect(summarizeStream(asType, { max: 10, tool: "codex" })[0]).toContain(
-      "ok",
-    );
-    expect(summarizeStream(asCommand, { max: 10, tool: "codex" })[0]).toContain(
-      "bun test",
-    );
-    expect(
-      summarizeStream(codexAgentMessage("older"), {
-        max: 10,
-        tool: "codex",
-      })[0],
-    ).toContain("older");
+    expect(summarizeStream(asType, { max: 10, tool: "codex" })[0]).toContain("ok");
+    expect(summarizeStream(asCommand, { max: 10, tool: "codex" })[0]).toContain("bun test");
+    expect(summarizeStream(codexAgentMessage("older"), { max: 10, tool: "codex" })[0]).toContain("older");
   });
 
   test("with no tool named, the schema is recognised from the stream itself", () => {
@@ -294,9 +237,7 @@ describe("summarizeStream on a Codex transcript", () => {
     ].join("\n");
 
     expect(summarizeStream(codex, { max: 10 })[0]).toContain("sniffed");
-    expect(
-      summarizeStream(assistantText("still claude"), { max: 10 })[0],
-    ).toContain("still claude");
+    expect(summarizeStream(assistantText("still claude"), { max: 10 })[0]).toContain("still claude");
   });
 });
 
@@ -310,22 +251,14 @@ describe("finalMessage", () => {
   });
 
   test("a Codex stream's last agent_message wins over an earlier one", () => {
-    const stream = [codexAgentMessage("first"), codexAgentMessage("last")].join(
-      "\n",
-    );
+    const stream = [codexAgentMessage("first"), codexAgentMessage("last")].join("\n");
 
     expect(finalMessage(stream, { tool: "codex" })).toBe("last");
   });
 
   test("a stream with neither a result event nor an agent_message returns undefined", () => {
-    expect(
-      finalMessage(assistantText("just text"), { tool: "claude" }),
-    ).toBeUndefined();
-    expect(
-      finalMessage(codexLine({ type: "turn.completed", usage: {} }), {
-        tool: "codex",
-      }),
-    ).toBeUndefined();
+    expect(finalMessage(assistantText("just text"), { tool: "claude" })).toBeUndefined();
+    expect(finalMessage(codexLine({ type: "turn.completed", usage: {} }), { tool: "codex" })).toBeUndefined();
   });
 });
 
@@ -334,22 +267,10 @@ describe("finalMessage", () => {
 // lines. The three CLIs name a command, a write and a failure
 // differently; this is where they become one word.
 describe("summarizeEntries", () => {
-  const toolUseId = (
-    name: string,
-    input: Record<string, unknown>,
-    id: string,
-  ) =>
-    line({
-      type: "assistant",
-      message: { content: [{ type: "tool_use", name, input, id }] },
-    });
+  const toolUseId = (name: string, input: Record<string, unknown>, id: string) =>
+    line({ type: "assistant", message: { content: [{ type: "tool_use", name, input, id }] } });
   const toolResult = (id: string, isError: boolean) =>
-    line({
-      type: "user",
-      message: {
-        content: [{ type: "tool_result", tool_use_id: id, is_error: isError }],
-      },
-    });
+    line({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, is_error: isError }] } });
 
   const CLAUDE = [
     assistantText("Looking at the queue"),
@@ -361,9 +282,7 @@ describe("summarizeEntries", () => {
   ].join("\n");
 
   test("a Claude transcript's lines carry what they are", () => {
-    expect(
-      summarizeEntries(CLAUDE).map((e) => [e.kind, e.failed ?? false]),
-    ).toEqual([
+    expect(summarizeEntries(CLAUDE).map((e) => [e.kind, e.failed ?? false])).toEqual([
       ["text", false],
       ["tool", false],
       ["command", true],
@@ -373,46 +292,25 @@ describe("summarizeEntries", () => {
   });
 
   test("only=errors keeps what the tool itself reported as a failure", () => {
-    expect(
-      summarizeEntries(CLAUDE, { only: "errors" }).map((e) => e.text),
-    ).toEqual(["Bash bun test"]);
+    expect(summarizeEntries(CLAUDE, { only: "errors" }).map((e) => e.text)).toEqual(["Bash bun test"]);
   });
 
   test("the bound counts the kept kind, not every line before it", () => {
-    const noise = Array.from({ length: 60 }, (_, i) =>
-      assistantText(`thinking ${i}`),
-    );
-    const stream = [
-      toolUseId("Bash", { command: "bun test" }, "t1"),
-      toolResult("t1", true),
-      ...noise,
-    ].join("\n");
+    const noise = Array.from({ length: 60 }, (_, i) => assistantText(`thinking ${i}`));
+    const stream = [toolUseId("Bash", { command: "bun test" }, "t1"), toolResult("t1", true), ...noise].join("\n");
 
     expect(summarizeStream(stream)).not.toContain("Bash bun test");
-    expect(
-      summarizeEntries(stream, { only: "errors" }).map((e) => e.text),
-    ).toEqual(["Bash bun test"]);
+    expect(summarizeEntries(stream, { only: "errors" }).map((e) => e.text)).toEqual(["Bash bun test"]);
   });
 
   test("a Codex transcript answers with the same words, and its own exit code", () => {
     const stream = [
-      line({
-        type: "item.completed",
-        item: { type: "command_execution", command: "bun test", exit_code: 1 },
-      }),
-      line({
-        type: "item.completed",
-        item: { type: "file_change", changes: [{ path: "src/x.ts" }] },
-      }),
-      line({
-        type: "item.completed",
-        item: { type: "agent_message", text: "done" },
-      }),
+      line({ type: "item.completed", item: { type: "command_execution", command: "bun test", exit_code: 1 } }),
+      line({ type: "item.completed", item: { type: "file_change", changes: [{ path: "src/x.ts" }] } }),
+      line({ type: "item.completed", item: { type: "agent_message", text: "done" } }),
     ].join("\n");
 
-    expect(
-      summarizeEntries(stream).map((e) => [e.kind, e.failed ?? false]),
-    ).toEqual([
+    expect(summarizeEntries(stream).map((e) => [e.kind, e.failed ?? false])).toEqual([
       ["command", true],
       ["file", false],
       ["text", false],
@@ -421,28 +319,12 @@ describe("summarizeEntries", () => {
 
   test("an opencode transcript does too", () => {
     const stream = [
-      line({
-        type: "tool_use",
-        part: {
-          type: "tool",
-          tool: "bash",
-          state: { input: { command: "ls" }, metadata: { exit: 2 } },
-        },
-      }),
-      line({
-        type: "tool_use",
-        part: {
-          type: "tool",
-          tool: "write",
-          state: { input: { filePath: "src/x.ts" } },
-        },
-      }),
+      line({ type: "tool_use", part: { type: "tool", tool: "bash", state: { input: { command: "ls" }, metadata: { exit: 2 } } } }),
+      line({ type: "tool_use", part: { type: "tool", tool: "write", state: { input: { filePath: "src/x.ts" } } } }),
       line({ type: "text", part: { type: "text", text: "done" } }),
     ].join("\n");
 
-    expect(
-      summarizeEntries(stream).map((e) => [e.kind, e.failed ?? false]),
-    ).toEqual([
+    expect(summarizeEntries(stream).map((e) => [e.kind, e.failed ?? false])).toEqual([
       ["command", true],
       ["file", false],
       ["text", false],
@@ -452,11 +334,7 @@ describe("summarizeEntries", () => {
 
 describe("a command over several lines", () => {
   test("shows where its lines broke, and a backslash-continued line joins with a space", () => {
-    const stream = toolUse("Bash", {
-      command: "cd /repo/dashboard\nsed -n '95,115p' a.css \\\n  b.css\n",
-    });
-    expect(summarizeStream(stream, { tool: "claude" })).toEqual([
-      "Bash cd /repo/dashboard ⏎ sed -n '95,115p' a.css b.css",
-    ]);
+    const stream = toolUse("Bash", { command: "cd /repo/dashboard\nsed -n '95,115p' a.css \\\n  b.css\n" });
+    expect(summarizeStream(stream, { tool: "claude" })).toEqual(["Bash cd /repo/dashboard ⏎ sed -n '95,115p' a.css b.css"]);
   });
 });

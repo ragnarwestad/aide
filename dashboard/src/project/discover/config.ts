@@ -27,8 +27,7 @@ export function configValue(projectDir: string, key: string): string | null {
   return null;
 }
 
-export const configSpecsPath = (projectDir: string): string | null =>
-  configValue(projectDir, "AIDE_SPECS_PATH");
+export const configSpecsPath = (projectDir: string): string | null => configValue(projectDir, "AIDE_SPECS_PATH");
 
 /** Which file a project's worktree links came out of. `null` when the
  *  manifest names none. */
@@ -53,9 +52,7 @@ export function resolveWorktreeLinks(
 ): { links: string; source: WorktreeLinksSource | null } {
   if (existsSync(manifestFile)) {
     const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
-    const fromManifest = parsed.ok
-      ? (parsed.data.worktreeLinks ?? "").trim()
-      : "";
+    const fromManifest = parsed.ok ? (parsed.data.worktreeLinks ?? "").trim() : "";
     if (fromManifest) return { links: fromManifest, source: "project.yaml" };
   }
   return { links: "", source: null };
@@ -89,9 +86,7 @@ export function resolveCodeLanding(projectDir: string): CodeLanding {
  *  from the COMMITTED manifest's `deployment.previewFrom` and nothing
  *  else. `undefined` for no manifest, no key or a word it does not know,
  *  which reads as `none`. */
-export function resolvePreviewFrom(
-  projectDir: string,
-): PreviewFrom | undefined {
+export function resolvePreviewFrom(projectDir: string): PreviewFrom | undefined {
   const manifestFile = join(projectDir, ".aide", "project.yaml");
   if (!existsSync(manifestFile)) return undefined;
   const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
@@ -111,73 +106,50 @@ export type ConfigOverrideSource = ".aide/config" | "project.yaml";
  *  `aide_resolve_override` resolves the same file, and
  *  `core/tests/fixtures/config-cmd-precedence.json` is the table both sides
  *  are checked against. */
-export function resolveInstallCmd(projectDir: string): {
-  value: string | null;
-  source: ".aide/config" | null;
-} {
+export function resolveInstallCmd(projectDir: string): { value: string | null; source: ".aide/config" | null } {
   const value = configValue(projectDir, "AIDE_INSTALL_CMD");
-  return value
-    ? { value, source: ".aide/config" }
-    : { value: null, source: null };
+  return value ? { value, source: ".aide/config" } : { value: null, source: null };
 }
 
 /** This project's own test command: the manifest's `AIDE_TEST_CMD:` and
  *  nothing else, as `aide-resolve-test-cmd` reads it. */
-export function resolveTestCmd(projectDir: string): {
-  value: string | null;
-  source: ConfigOverrideSource | null;
-} {
+export function resolveTestCmd(
+  projectDir: string,
+): { value: string | null; source: ConfigOverrideSource | null } {
   const manifestFile = join(projectDir, ".aide", "project.yaml");
   if (!existsSync(manifestFile)) return { value: null, source: null };
   const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
   const value = parsed.ok ? (parsed.data.AIDE_TEST_CMD ?? "").trim() : "";
-  return value
-    ? { value, source: "project.yaml" }
-    : { value: null, source: null };
+  return value ? { value, source: "project.yaml" } : { value: null, source: null };
 }
 
 /** How this project is started for a look at one branch, and where that
  *  came from — the manifest's `previewCmd:` alone, the same
  *  shape as `resolveTestCmd`. */
-export function resolvePreviewCmd(projectDir: string): {
-  value: string | null;
-  source: "project.yaml" | null;
-} {
+export function resolvePreviewCmd(projectDir: string): { value: string | null; source: "project.yaml" | null } {
   const manifestFile = join(projectDir, ".aide", "project.yaml");
   if (!existsSync(manifestFile)) return { value: null, source: null };
   const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
   const value = parsed.ok ? (parsed.data.previewCmd ?? "").trim() : "";
-  return value
-    ? { value, source: "project.yaml" }
-    : { value: null, source: null };
+  return value ? { value, source: "project.yaml" } : { value: null, source: null };
 }
 
 /** What a test's name puts before a criterion's id — the manifest's
  *  `acPrefix:` alone, in the same shape as `resolvePreviewCmd`. */
-export function resolveAcPrefix(projectDir: string): {
-  value: string | null;
-  source: "project.yaml" | null;
-} {
+export function resolveAcPrefix(projectDir: string): { value: string | null; source: "project.yaml" | null } {
   const manifestFile = join(projectDir, ".aide", "project.yaml");
   if (!existsSync(manifestFile)) return { value: null, source: null };
   const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
   const value = parsed.ok ? (parsed.data.acPrefix ?? "").trim() : "";
-  return value
-    ? { value, source: "project.yaml" }
-    : { value: null, source: null };
+  return value ? { value, source: "project.yaml" } : { value: null, source: null };
 }
 
 /** What the project says it is, in one line: the manifest's `description:`
  *  alone, in the same shape as `resolvePreviewCmd`. */
-export function resolveDescription(projectDir: string): {
-  value: string | null;
-  source: "project.yaml" | null;
-} {
+export function resolveDescription(projectDir: string): { value: string | null; source: "project.yaml" | null } {
   const manifestFile = join(projectDir, ".aide", "project.yaml");
   if (!existsSync(manifestFile)) return { value: null, source: null };
   const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
   const value = parsed.ok ? (parsed.data.description ?? "").trim() : "";
-  return value
-    ? { value, source: "project.yaml" }
-    : { value: null, source: null };
+  return value ? { value, source: "project.yaml" } : { value: null, source: null };
 }

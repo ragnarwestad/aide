@@ -7,19 +7,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  tickRunner,
-  type ScheduleContext,
-} from "../../../../src/serve/schedules";
-import {
-  cleanupHarness,
-  enqueue,
-  makeRunner,
-  resetHarness,
-  setNow,
-  spawns,
-  store,
-} from "../../../queue/runner/runner-fixtures.ts";
+import { tickRunner, type ScheduleContext } from "../../../../src/serve/schedules";
+import { cleanupHarness, enqueue, makeRunner, resetHarness, setNow, spawns, store } from "../../../queue/runner/runner-fixtures.ts";
 import { IMPLEMENTED } from "../../../helpers/queue-server.ts";
 import { WAITING_RUNNER } from "../../../helpers/waiting-runner.ts";
 import { setupQueueRoutesHarness } from "../../fixtures.ts";
@@ -45,22 +34,13 @@ describe("tickRunner with a used-up usage limit", () => {
       stopReason: "provider-limit",
       createdAt: "2026-08-16T08:00:00.000Z",
       finishedAt: "2026-08-16T10:00:00.000Z",
-      results: [
-        {
-          step: "implement",
-          ok: false,
-          terminalReason: "provider-limit",
-        } as never,
-      ],
+      results: [{ step: "implement", ok: false, terminalReason: "provider-limit" } as never],
       usageLimitWait: { until: "2026-08-16T14:00:00.000Z", resetKnown: true },
     });
     return stopped;
   }
 
-  const ctxAt = (
-    hhmm: string,
-    runner: ReturnType<typeof makeRunner>,
-  ): ScheduleContext => {
+  const ctxAt = (hhmm: string, runner: ReturnType<typeof makeRunner>): ScheduleContext => {
     setNow(at(hhmm));
     return {
       queue: store,
@@ -73,25 +53,17 @@ describe("tickRunner with a used-up usage limit", () => {
 
   test("before the reset time a queued step of the AI is held and not spawned (AC-1)", async () => {
     limitStop();
-    const queued = enqueue({
-      specFolder: "91-parallel-spec-runs",
-      steps: ["analyze"],
-    });
+    const queued = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const runner = makeRunner({ maxConcurrent: 3 });
     await tickRunner(ctxAt("13:00", runner));
     expect(store.get(queued.id)?.state).toBe("queued");
-    expect((store.get(queued.id)?.error as { key: string }).key).toBe(
-      "runner.usageLimitHeld",
-    );
+    expect((store.get(queued.id)?.error as { key: string }).key).toBe("runner.usageLimitHeld");
     expect(spawns).toHaveLength(0);
   });
 
   test("at the reset time the stopped step starts without a press, and the held step with it (AC-2, AC-3)", async () => {
     const stopped = limitStop();
-    const queued = enqueue({
-      specFolder: "91-parallel-spec-runs",
-      steps: ["analyze"],
-    });
+    const queued = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const runner = makeRunner({ maxConcurrent: 3 });
     await tickRunner(ctxAt("13:00", runner));
     await tickRunner(ctxAt("14:00", runner));
@@ -103,19 +75,14 @@ describe("tickRunner with a used-up usage limit", () => {
 
   test("a scheduled run due during the hold is held, and is let go when the hold ends (AC-12)", async () => {
     limitStop();
-    const run = enqueue({
-      specFolder: "schedule-nightly",
-      steps: ["schedule"],
-    });
+    const run = enqueue({ specFolder: "schedule-nightly", steps: ["schedule"] });
     const runner = makeRunner({ maxConcurrent: 3 });
     await tickRunner(ctxAt("13:00", runner));
     expect(store.get(run.id)?.state).toBe("queued");
     await tickRunner(ctxAt("14:00", runner));
     // Still queued behind the restarted implement, which is the schedule's
     // own rule for a project with other work in flight — not the limit's.
-    expect(
-      (store.get(run.id)?.error as { key: string } | undefined)?.key,
-    ).not.toBe("runner.usageLimitHeld");
+    expect((store.get(run.id)?.error as { key: string } | undefined)?.key).not.toBe("runner.usageLimitHeld");
   });
 });
 
@@ -132,14 +99,7 @@ describe("a person's press during the hold", () => {
       timeoutSec: {},
       permissionMode: {},
       model: {},
-      results: [
-        {
-          step: "implement",
-          ok: false,
-          terminalReason: "provider-limit",
-          costUsd: 0,
-        },
-      ],
+      results: [{ step: "implement", ok: false, terminalReason: "provider-limit", costUsd: 0 }],
       spentUsd: 0,
       createdAt: "2026-08-16T08:00:00.000Z",
       finishedAt: "2026-08-16T10:00:00.000Z",
@@ -148,31 +108,17 @@ describe("a person's press during the hold", () => {
     const scratch = mkdtempSync(join(tmpdir(), "aide-usage-limit-"));
     own.push(scratch);
     const preloaded = harness.start({
-      extra: {
-        queueRunnerBin: WAITING_RUNNER,
-        queueResultDir: scratch,
-        queueConcurrency: 3,
-      },
+      extra: { queueRunnerBin: WAITING_RUNNER, queueResultDir: scratch, queueConcurrency: 3 },
       queueMirror: JSON.stringify([stoppedJob]),
     });
     const res = await fetch(`${preloaded.base}/api/queue`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        project: "aide",
-        specFolder: "81-queue-and-runner",
-        steps: ["analyze"],
-      }),
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] }),
     });
     expect(res.status).toBe(200);
-    const mirror = JSON.parse(
-      readFileSync(join(preloaded.dir, "queue.json"), "utf-8"),
-    ) as {
-      id: string;
-      steps: string[];
-      pressed?: boolean;
-      state: string;
-      errorReason?: string;
+    const mirror = JSON.parse(readFileSync(join(preloaded.dir, "queue.json"), "utf-8")) as {
+      id: string; steps: string[]; pressed?: boolean; state: string; errorReason?: string;
     }[];
     const pressed = mirror.find((j) => j.steps[0] === "analyze")!;
     expect(pressed.pressed).toBe(true);

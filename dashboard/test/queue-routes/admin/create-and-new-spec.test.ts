@@ -15,8 +15,7 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // --- Create with no AI session at all -------------------------------
@@ -25,31 +24,19 @@ describe("--no-ai-formulate reaches the runner only when the job says so", () =>
   test("present when the job's box was cleared, absent otherwise", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const job = {
-      project: "aide",
-      specFolder: "new-abc123de",
-      steps: ["create"],
-      timeoutSec: 2700,
-      permissionMode: {},
-      model: {},
-      createTitle: "A new spec",
-      createDescription: "Do the thing",
+      project: "aide", specFolder: "new-abc123de", steps: ["create"],
+       timeoutSec: 2700, permissionMode: {}, model: {},
+      createTitle: "A new spec", createDescription: "Do the thing",
       createNoAiFormulate: true,
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "create", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
     expect(argv).toContain("--no-ai-formulate");
 
-    const ticked = {
-      ...job,
-      createNoAiFormulate: undefined,
-    } as unknown as Parameters<typeof runnerArgv>[0];
+    const ticked = { ...job, createNoAiFormulate: undefined } as unknown as Parameters<typeof runnerArgv>[0];
     const argvTicked = runnerArgv(ticked, "create", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
     expect(argvTicked).not.toContain("--no-ai-formulate");
   });
@@ -57,18 +44,12 @@ describe("--no-ai-formulate reaches the runner only when the job says so", () =>
   test("never appended for a step other than create", async () => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     const job = {
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps: ["implement"],
-      timeoutSec: 2700,
-      permissionMode: {},
-      model: {},
+      project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
+       timeoutSec: 2700, permissionMode: {}, model: {},
       createNoAiFormulate: true,
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
     expect(argv).not.toContain("--no-ai-formulate");
   });
@@ -79,25 +60,16 @@ describe("--no-ai-formulate reaches the runner only when the job says so", () =>
 describe("--criteria-checks reaches the runner only for a create that chose a level", () => {
   const job = (step: string, level?: string) =>
     ({
-      project: "aide",
-      specFolder: "new-abc123de",
-      steps: [step],
-      timeoutSec: 2700,
-      permissionMode: {},
-      model: {},
-      createTitle: "A new spec",
-      createDescription: "Do the thing",
+      project: "aide", specFolder: "new-abc123de", steps: [step],
+      timeoutSec: 2700, permissionMode: {}, model: {},
+      createTitle: "A new spec", createDescription: "Do the thing",
       ...(level ? { createCriteriaChecks: level } : {}),
-    }) as unknown as Parameters<
-      typeof import("../../../src/serve/serve.ts").runnerArgv
-    >[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
 
   const argvFor = async (step: string, level?: string) => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     return runnerArgv(job(step, level), step, "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
   };
 
@@ -120,40 +92,23 @@ describe("--criteria-checks reaches the runner only for a create that chose a le
 describe("--choose-approach reaches the runner for a create from the form", () => {
   const job = (step: string, chooseApproach?: boolean) =>
     ({
-      project: "aide",
-      specFolder: "new-abc123de",
-      steps: [step],
-      timeoutSec: 2700,
-      permissionMode: {},
-      model: {},
-      createTitle: "A new spec",
-      createDescription: "Do the thing",
-      ...(chooseApproach === undefined
-        ? {}
-        : { createChooseApproach: chooseApproach }),
-    }) as unknown as Parameters<
-      typeof import("../../../src/serve/serve.ts").runnerArgv
-    >[0];
+      project: "aide", specFolder: "new-abc123de", steps: [step],
+      timeoutSec: 2700, permissionMode: {}, model: {},
+      createTitle: "A new spec", createDescription: "Do the thing",
+      ...(chooseApproach === undefined ? {} : { createChooseApproach: chooseApproach }),
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
 
   const argvFor = async (step: string, chooseApproach?: boolean) => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     return runnerArgv(job(step, chooseApproach), step, "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
   };
 
-  test.each([
-    [true, "yes"],
-    [false, "no"],
-  ])(
-    "a create with the box %p passes --choose-approach %s",
-    async (ticked, value) => {
-      const argv = await argvFor("create", ticked);
-      expect(argv[argv.indexOf("--choose-approach") + 1]).toBe(value);
-    },
-  );
+  test.each([[true, "yes"], [false, "no"]])("a create with the box %p passes --choose-approach %s", async (ticked, value) => {
+    const argv = await argvFor("create", ticked);
+    expect(argv[argv.indexOf("--choose-approach") + 1]).toBe(value);
+  });
 
   test("a create job from before the box existed passes no flag", async () => {
     expect(await argvFor("create")).not.toContain("--choose-approach");
@@ -169,34 +124,23 @@ describe("--choose-approach reaches the runner for a create from the form", () =
 describe("a chosen dependency reaches the runner and the page", () => {
   const createJob = (dependsOn?: string[]) =>
     ({
-      project: "aide",
-      specFolder: "new-abcd1234",
-      steps: ["create"],
-      timeoutSec: 2700,
-      permissionMode: {},
-      model: {},
-      createTitle: "A new spec",
-      createDescription: "Do the thing",
+      project: "aide", specFolder: "new-abcd1234", steps: ["create"],
+       timeoutSec: 2700, permissionMode: {}, model: {},
+      createTitle: "A new spec", createDescription: "Do the thing",
       ...(dependsOn ? { createDependsOn: dependsOn } : {}),
-    }) as unknown as Parameters<
-      typeof import("../../../src/serve/serve.ts").runnerArgv
-    >[0];
+    }) as unknown as Parameters<typeof import("../../../src/serve/serve.ts").runnerArgv>[0];
 
   const argvFor = async (dependsOn?: string[]) => {
     const { runnerArgv } = await import("../../../src/serve/serve.ts");
     return runnerArgv(createJob(dependsOn), "create", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectDir: "/home/dev/aide",
-      push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
   };
 
   test("every chosen folder goes over as one --depends-on value", async () => {
     const argv = await argvFor(["92-a-spec-can-depend", "97-freshness"]);
     expect(argv).toContain("--depends-on");
-    expect(argv[argv.indexOf("--depends-on") + 1]).toBe(
-      "92-a-spec-can-depend,97-freshness",
-    );
+    expect(argv[argv.indexOf("--depends-on") + 1]).toBe("92-a-spec-can-depend,97-freshness");
     // The two fields it sits beside are untouched.
     expect(argv[argv.indexOf("--title") + 1]).toBe("A new spec");
   });
@@ -229,8 +173,7 @@ describe("a chosen dependency reaches the runner and the page", () => {
 
 describe("a create post fits the description the page lets the user type", () => {
   test("a full-length title and description, every character encoding to the most bytes, is taken", async () => {
-    const { DESCRIPTION_MAX, TITLE_MAX } =
-      await import("../../../src/queue/parse-request.ts");
+    const { DESCRIPTION_MAX, TITLE_MAX } = await import("../../../src/queue/parse-request.ts");
     const { base } = start({ queueProjects: ["aide"] });
     // "—" is three UTF-8 bytes, nine once form-encoded: the most a single
     // character the fields count can cost.
@@ -238,15 +181,8 @@ describe("a create post fits the description the page lets the user type", () =>
     const description = "—".repeat(DESCRIPTION_MAX);
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: new URLSearchParams({
-        project: "aide",
-        title,
-        description,
-      }).toString(),
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+      body: new URLSearchParams({ project: "aide", title, description }).toString(),
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { job: { createDescription: string } };
@@ -285,14 +221,10 @@ describe("a request built from the reordered form's own field names", () => {
     body.set("dependsOn", "81-queue-and-runner");
     body.set("acceptanceRequired", "1");
     body.set("aiFormulateAcceptance", "1");
-    for (const step of ["analyze", "implement", "archive"])
-      body.append("steps", step);
+    for (const step of ["analyze", "implement", "archive"]) body.append("steps", step);
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
       body: body.toString(),
     });
     expect(res.status).toBe(200);
@@ -313,12 +245,7 @@ describe("a request built from the reordered form's own field names", () => {
     expect(parsed.job.createTitle).toBe("A new spec");
     expect(parsed.job.createDescription).toBe("Do the thing");
     expect(parsed.job.createDependsOn).toEqual(["81-queue-and-runner"]);
-    expect(parsed.job.steps).toEqual([
-      "create",
-      "analyze",
-      "implement",
-      "archive",
-    ]);
+    expect(parsed.job.steps).toEqual(["create", "analyze", "implement", "archive"]);
     expect(parsed.job.acceptanceNotRequired).toBeUndefined();
     expect(parsed.job.createNoAiFormulate).toBeUndefined();
   });
@@ -328,16 +255,11 @@ describe("the New-spec form offers what the spec may build on", () => {
   // On its own page — the chips, their order and their
   // scoping.
   const page = (targets: NewSpecPageOptions["targets"]) =>
-    renderNewSpecPage(
-      [{ label: "Overview", path: "projects.html" }],
-      "2026-08-16T00:00:00Z",
-      {
-        targets,
-        createProjects: ["aide", "aide-dashboard"],
-      },
-    );
-  const form = (html: string): string =>
-    html.slice(html.indexOf('action="/api/queue/create"'));
+    renderNewSpecPage([{ label: "Overview", path: "projects.html" }], "2026-08-16T00:00:00Z", {
+      targets,
+      createProjects: ["aide", "aide-dashboard"],
+    });
+  const form = (html: string): string => html.slice(html.indexOf('action="/api/queue/create"'));
 
   const TARGETS = [
     { project: "aide", specFolder: "09-ninth" },
@@ -347,45 +269,31 @@ describe("the New-spec form offers what the spec may build on", () => {
 
   test("newest first — the number is the order a reader thinks in", () => {
     const html = form(page(TARGETS));
-    expect(html.indexOf('value="92-a-spec-can-depend"')).toBeLessThan(
-      html.indexOf('value="09-ninth"'),
-    );
+    expect(html.indexOf('value="92-a-spec-can-depend"')).toBeLessThan(html.indexOf('value="09-ninth"'));
   });
+
 });
 
 describe("a spec's row says what it depends on", () => {
   const row = (dependsOn: string[]) =>
     specHead(
-      renderSpecsPage(
-        [],
-        "2026-08-16T00:00:00Z",
-        [{ label: "Overview", path: "projects.html" }],
-        {
-          runnerAvailable: true,
-          targets: [
-            {
-              project: "aide",
-              specFolder: "109-expanded-row",
-              title: "Expanded row",
-              dependsOn,
-            },
-          ],
-        },
-      ),
+      renderSpecsPage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "109-expanded-row", title: "Expanded row", dependsOn }],
+      }),
       "109-expanded-row",
     );
 
   // Use the project and number, keeping nonnumeric dependency names whole.
   test("named by project and number, however the dependency itself was written", () => {
     expect(row(["105-busy-row"])).toContain("Depends on: aide:105");
-    expect(row(["105-busy-row", "92-a-spec-can-depend"])).toContain(
-      "Depends on: aide:105, aide:92",
-    );
+    expect(row(["105-busy-row", "92-a-spec-can-depend"])).toContain("Depends on: aide:105, aide:92");
     expect(row(["105"])).toContain("Depends on: aide:105");
     // Anything that does not open with a number is shown whole rather
     // than silently truncated.
     expect(row(["a-named-thing"])).toContain("Depends on: aide:a-named-thing");
   });
+
 });
 // --- Making a spec from the page ------------------------------------
 
@@ -397,15 +305,8 @@ describe("a spec's row says what it depends on", () => {
 // branch lands on the default branch — a landing step that merges through
 // the very same function the Merge button already uses.
 describe("POST /api/queue/create", () => {
-  const AUTH = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
-  const CREATE = {
-    project: "aide",
-    title: "A new spec",
-    description: "Do the thing",
-  };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
 
   test("a create request is accepted and queued as a create job", async () => {
     const { base } = start();
@@ -415,10 +316,7 @@ describe("POST /api/queue/create", () => {
       body: JSON.stringify(CREATE),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      ok: boolean;
-      job: { steps: string[]; specFolder: string };
-    };
+    const body = (await res.json()) as { ok: boolean; job: { steps: string[]; specFolder: string } };
     expect(body.ok).toBe(true);
     expect(body.job.steps).toEqual(["create"]);
     expect(body.job.specFolder).toMatch(/^new-[0-9a-f]{8}$/);
@@ -439,11 +337,7 @@ describe("POST /api/queue/create", () => {
     const refused = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({
-        project: "brandnew",
-        specFolder: "01-first",
-        steps: ["analyze"],
-      }),
+      body: JSON.stringify({ project: "brandnew", specFolder: "01-first", steps: ["analyze"] }),
     });
     expect(refused.status).toBe(400);
   });
@@ -468,28 +362,20 @@ describe("POST /api/queue/create", () => {
   // refusal leaves it missing or empty.
   const queued = (dir: string): unknown[] => {
     const file = join(dir, "queue.json");
-    return existsSync(file)
-      ? (JSON.parse(readFileSync(file, "utf8")) as unknown[])
-      : [];
+    return existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as unknown[]) : [];
   };
 
   test("a request naming no project is refused with 400 and queues nothing", async () => {
     const { base, dir } = start();
     const { project: _named, ...noKey } = CREATE;
-    for (const body of [
-      noKey,
-      { ...CREATE, project: null },
-      { ...CREATE, project: "" },
-    ]) {
+    for (const body of [noKey, { ...CREATE, project: null }, { ...CREATE, project: "" }]) {
       const res = await fetch(`${base}/api/queue/create`, {
         method: "POST",
         headers: AUTH,
         body: JSON.stringify(body),
       });
       expect(res.status).toBe(400);
-      expect(((await res.json()) as { error: string }).error).toContain(
-        "project is required",
-      );
+      expect(((await res.json()) as { error: string }).error).toContain("project is required");
     }
     expect(queued(dir)).toEqual([]);
   });
@@ -500,24 +386,16 @@ describe("POST /api/queue/create", () => {
       method: "POST",
       redirect: "manual",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        project: "",
-        title: "A new spec",
-        description: "Do the thing",
-      }),
+      body: new URLSearchParams({ project: "", title: "A new spec", description: "Do the thing" }),
     });
     expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain(
-      "project is required",
-    );
+    expect(((await res.json()) as { error: string }).error).toContain("project is required");
     expect(queued(dir)).toEqual([]);
   });
 
   test("it answers POST only", async () => {
     const { base } = start();
-    expect(
-      (await fetch(`${base}/api/queue/create`, { headers: AUTH })).status,
-    ).toBe(405);
+    expect((await fetch(`${base}/api/queue/create`, { headers: AUTH })).status).toBe(405);
   });
 
   // The model the create step runs on, chosen on the form
@@ -529,7 +407,7 @@ describe("POST /api/queue/create", () => {
         timeoutSec: { default: 1200 },
         permissionMode: { default: "acceptEdits" },
         model: { default: "sonnet" },
-        modelChoices: { sonnet: {}, fable: {} },
+        modelChoices: { sonnet: { }, fable: {  } },
       },
     });
     const res = await fetch(`${base}/api/queue/create`, {
@@ -538,16 +416,10 @@ describe("POST /api/queue/create", () => {
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
-      body: new URLSearchParams({
-        ...CREATE,
-        "model.create": "fable",
-      }).toString(),
+      body: new URLSearchParams({ ...CREATE, "model.create": "fable" }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      ok: boolean;
-      job: { model: Record<string, string> };
-    };
+    const body = (await res.json()) as { ok: boolean; job: { model: Record<string, string> } };
     expect(body.job.model).toEqual({ create: "fable" });
 
     // ...and a name this server does not offer is refused, rather than
@@ -558,10 +430,7 @@ describe("POST /api/queue/create", () => {
         "content-type": "application/x-www-form-urlencoded",
         accept: "application/json",
       },
-      body: new URLSearchParams({
-        ...CREATE,
-        "model.create": "opus",
-      }).toString(),
+      body: new URLSearchParams({ ...CREATE, "model.create": "opus" }).toString(),
     });
     expect(bad.status).toBe(400);
   });
@@ -575,38 +444,22 @@ describe("POST /api/queue/create", () => {
         permissionMode: { default: "acceptEdits" },
         model: { default: "sonnet" },
         modelChoices: { sonnet: {} },
-        providers: {
-          Claude: { name: "Claude", tool: "claude" },
-          Capra: {
-            name: "Claude-Capra",
-            tool: "claude",
-            configDir: "~/.claude-capra",
-          },
-        },
+        providers: { Claude: { name: "Claude", tool: "claude" }, Capra: { name: "Claude-Capra", tool: "claude", configDir: "~/.claude-capra" } },
       },
     });
     const res = await fetch(`${base}/api/queue/create`, {
       method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: new URLSearchParams({
-        ...CREATE,
-        "model.create": "sonnet",
-        "provider.create": "Capra",
-      }).toString(),
+      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+      body: new URLSearchParams({ ...CREATE, "model.create": "sonnet", "provider.create": "Capra" }).toString(),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      job: { provider: Record<string, string> };
-    };
+    const body = (await res.json()) as { job: { provider: Record<string, string> } };
     expect(body.job.provider).toEqual({ create: "Capra" });
   });
 
   test("the form offers every allowlisted project, spec or no spec", async () => {
     const { base } = start({ queueProjects: ["aide", "brandnew"] });
-    const html = await (await fetch(`${base}/new`)).text();
+    const html = await (await fetch(`${base}/new`, )).text();
     const form = html.slice(html.indexOf('action="/api/queue/create"'));
     expect(form).toContain('value="brandnew"');
   });
@@ -645,4 +498,5 @@ describe("GET /new", () => {
     const plain = await (await fetch(`${base}/new`)).text();
     expect(plain).toContain('<div data-tab-panel="spec">');
   });
+
 });

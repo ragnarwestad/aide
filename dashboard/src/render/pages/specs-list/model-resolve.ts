@@ -4,11 +4,7 @@
 
 import type { SpecsPageOptions } from "./";
 import { asRunnableTool } from "../../../queue/steps.ts";
-import {
-  SHORT_TOOL_NAMES,
-  TOOL_NAMES,
-  type ProviderTool,
-} from "../../../queue/providers/tools.ts";
+import { SHORT_TOOL_NAMES, TOOL_NAMES, type ProviderTool } from "../../../queue/providers/tools.ts";
 import { groupKey, isArchivedRow, type SpecGroup } from "./data-model";
 
 // The select is PRE-FILLED, never a "default" entry (asked for
@@ -43,19 +39,14 @@ export function resolveChosenModel(
   pending?: string,
   recorded?: string,
 ): string {
-  const has = (name?: string) =>
-    name !== undefined && models.some((m) => m.name === name);
+  const has = (name?: string) => name !== undefined && models.some((m) => m.name === name);
   // A phase that has run shows what it ran on, whatever the choices are
   // called today: the job's own choice name first, the model the file
   // recorded when that name has been renamed away, and the bare name
   // when neither is offered any more — never the default in its place.
   if (has(used)) return used!;
   if (used !== undefined) return has(recorded) ? recorded! : used;
-  return has(pending)
-    ? pending!
-    : has(configured)
-      ? configured!
-      : models[0]!.name;
+  return has(pending) ? pending! : has(configured) ? configured! : models[0]!.name;
 }
 
 /** What an archived phase's own record wins with. A locked
@@ -70,16 +61,11 @@ export function resolveRecordedModel(
   configured: string | undefined,
   recorded: string | undefined,
 ): string {
-  if (recorded === undefined)
-    return resolveChosenModel(models, configured, undefined);
+  if (recorded === undefined) return resolveChosenModel(models, configured, undefined);
   // A phase file records the model as its run named it (`opus`, or a full
   // id); the choice that runs it may be spelt `Opus`, or be named by that id.
   const word = recorded.toLowerCase();
-  return (
-    models.find(
-      (m) => m.name.toLowerCase() === word || m.named?.id === recorded,
-    )?.name ?? recorded
-  );
+  return models.find((m) => m.name.toLowerCase() === word || m.named?.id === recorded)?.name ?? recorded;
 }
 
 /** The model an AI choice fills in for one step.
@@ -98,10 +84,7 @@ export function defaultModelForTool(
   tool: string,
   configured: string | undefined,
 ): string | undefined {
-  if (
-    configured &&
-    models.some((m) => m.name === configured && providerToolOf(m.tool) === tool)
-  ) {
+  if (configured && models.some((m) => m.name === configured && providerToolOf(m.tool) === tool)) {
     return configured;
   }
   return models.find((m) => providerToolOf(m.tool) === tool)?.name;
@@ -109,8 +92,7 @@ export function defaultModelForTool(
 
 /** The tool a provider needs to run a model choice: its own, with a
  *  choice that names none or the scripted stand-in run by Claude Code. */
-export const providerToolOf = (tool: string | undefined): string =>
-  tool === undefined || tool === "fake-claude" ? "claude" : tool;
+export const providerToolOf = (tool: string | undefined): string => (tool === undefined || tool === "fake-claude" ? "claude" : tool);
 
 /** A provider as a picker offers it: its key (the value posted), its name
  *  and the tool whose models it runs. */
@@ -125,10 +107,7 @@ export interface ProviderOption {
 /** The providers a picker shows: every one that is switched on, and a
  *  switched-off one only when it is `chosen`, so a choice already on it is
  *  shown as it is and posted back unchanged. */
-export function offeredProviders(
-  providers: readonly ProviderOption[],
-  chosen?: string,
-): ProviderOption[] {
+export function offeredProviders(providers: readonly ProviderOption[], chosen?: string): ProviderOption[] {
   return providers.filter((p) => !p.off || p.key === chosen);
 }
 
@@ -138,20 +117,14 @@ export function offeredProviders(
  *  first listed provider that is switched on and does — the runner's own
  *  order (`resolveStepProvider`). */
 export function resolveProvider(
-  opts: Pick<
-    SpecsPageOptions,
-    "modelChoices" | "providerChoices" | "defaultProviders"
-  >,
+  opts: Pick<SpecsPageOptions, "modelChoices" | "providerChoices" | "defaultProviders">,
   step: string,
   model: string | undefined,
   picks: readonly (string | undefined)[],
 ): ProviderOption | undefined {
   const providers = opts.providerChoices ?? [];
-  const tool = providerToolOf(
-    opts.modelChoices?.find((m) => m.name === model)?.tool,
-  );
-  const runs = (p: ProviderOption | undefined): p is ProviderOption =>
-    p !== undefined && p.tool === tool;
+  const tool = providerToolOf(opts.modelChoices?.find((m) => m.name === model)?.tool);
+  const runs = (p: ProviderOption | undefined): p is ProviderOption => p !== undefined && p.tool === tool;
   for (const key of picks) {
     const found = providers.find((p) => p.key === key);
     if (runs(found)) return found;
@@ -169,12 +142,7 @@ export function resolveProvider(
  *  satisfies this structurally, so none of them change. */
 export type PickerOptions = Pick<
   SpecsPageOptions,
-  | "modelChoices"
-  | "defaultModels"
-  | "pendingModels"
-  | "providerChoices"
-  | "defaultProviders"
-  | "pendingProviders"
+  "modelChoices" | "defaultModels" | "pendingModels" | "providerChoices" | "defaultProviders" | "pendingProviders"
 >;
 
 /** Why a phase that has already run will not take a pick. The same
@@ -205,34 +173,19 @@ export function phaseAiModel(
   if (!models.length) return undefined;
   const archived = isArchivedRow(g);
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.default;
-  const pending = archived
-    ? undefined
-    : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
+  const pending = archived ? undefined : opts.pendingModels?.[groupKey(g.project, g.specFolder)]?.[step];
   const model = archived
     ? resolveRecordedModel(models, configured, recordedModel)
     : resolveChosenModel(models, configured, used, pending, recordedModel);
-  const tool =
-    models.find((m) => m.name === model)?.tool ?? usedTool ?? "claude";
-  const gone =
-    usedProvider !== undefined &&
-    !(opts.providerChoices ?? []).some((p) => p.key === usedProvider);
+  const tool = models.find((m) => m.name === model)?.tool ?? usedTool ?? "claude";
+  const gone = usedProvider !== undefined && !(opts.providerChoices ?? []).some((p) => p.key === usedProvider);
   const provider = gone
     ? undefined
-    : resolveProvider(opts, step, model, [
-        usedProvider,
-        archived
-          ? undefined
-          : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step],
-      ]);
-  return {
-    model,
-    tool,
-    ...(gone
-      ? { provider: usedProvider }
-      : provider
-        ? { provider: provider.name }
-        : {}),
-  };
+    : resolveProvider(
+        opts, step, model,
+        [usedProvider, archived ? undefined : opts.pendingProviders?.[groupKey(g.project, g.specFolder)]?.[step]],
+      );
+  return { model, tool, ...(gone ? { provider: usedProvider } : provider ? { provider: provider.name } : {}) };
 }
 
 /** A tool's one-word name, or the word as it was written when the dashboard names no such tool. */
@@ -260,9 +213,7 @@ export function compactModelLabel(
 ): string {
   if (!on) return "";
   const collides = models.filter((m) => m.name === on.model).length > 1;
-  return collides
-    ? `${on.provider ?? shortToolName(on.tool)} · ${on.model}`
-    : on.model;
+  return collides ? `${on.provider ?? shortToolName(on.tool)} · ${on.model}` : on.model;
 }
 
 /** The FULL text the growing button shows once there is room for it

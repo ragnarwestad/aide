@@ -15,8 +15,7 @@ export const CLAUDE_USAGE_ARGS = ["-p", "/usage", "--no-session-persistence"];
 /** `<label>: <n>% used`, from the start of the line, then optionally
  *  `· resets <when>`. Lines further down ("67% of your usage came from
  *  …", "Top skills: …") do not start that way and are not windows. */
-const WINDOW_LINE =
-  /^([^:\s][^:]*):\s*(\d+(?:\.\d+)?)%\s+used(?:\s*·\s*resets\s+(.+?))?\s*$/;
+const WINDOW_LINE = /^([^:\s][^:]*):\s*(\d+(?:\.\d+)?)%\s+used(?:\s*·\s*resets\s+(.+?))?\s*$/;
 
 export function parseClaudeUsage(text: string): UsageWindow[] {
   const windows: UsageWindow[] = [];
@@ -43,13 +42,10 @@ export async function readClaudeUsage(
   const command = [bin, ...CLAUDE_USAGE_ARGS];
   const result = await run(command, process.cwd(), CHECK_TIMEOUT_MS);
   const shown = `claude ${CLAUDE_USAGE_ARGS.join(" ")}`;
-  if (result.timedOut)
-    return { ...base, windows: [], error: `${shown} did not finish in time.` };
+  if (result.timedOut) return { ...base, windows: [], error: `${shown} did not finish in time.` };
   const windows = parseClaudeUsage(result.stdout);
   if (windows.length > 0) return { ...base, windows };
-  const text = stripAnsi(
-    [result.stdout, result.stderr].filter((t) => t.trim()).join("\n"),
-  ).replace(/^\n+|\s+$/g, "");
+  const text = stripAnsi([result.stdout, result.stderr].filter((t) => t.trim()).join("\n")).replace(/^\n+|\s+$/g, "");
   if (text) return { ...base, windows: [], text };
   return { ...base, windows: [], error: `${shown} printed nothing.` };
 }

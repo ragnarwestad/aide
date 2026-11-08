@@ -16,10 +16,7 @@ import { describe, expect, test } from "bun:test";
 import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import {
-  DEFAULT_DASHBOARD_CHECKOUT_ROOT,
-  dashboardCheckoutRoot,
-} from "../../../src/git/dashboard-checkout.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardCheckoutRoot } from "../../../src/git/dashboard-checkout.ts";
 import { parseArgs } from "../../../src/serve/serve.ts";
 
 const ROOT = join(import.meta.dir, "..", "..", "..");
@@ -50,9 +47,7 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
   });
 
   test("bun install runs in the dashboard subdirectory of that checkout", () => {
-    expect(recipe).toContain(
-      "cd .aide/dashboard/checkouts/aide/code/dashboard &&",
-    );
+    expect(recipe).toContain("cd .aide/dashboard/checkouts/aide/code/dashboard &&");
   });
 
   test("the rendered plist points at the nested source", () => {
@@ -78,15 +73,10 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
   // spells the same path in TypeScript. Nothing but this test makes them
   // agree.
   test("the Makefile's checkout path is the one dashboard-checkout.ts resolves", () => {
-    const fromCode = relative(
-      homedir(),
-      dashboardCheckoutRoot(DEFAULT_DASHBOARD_CHECKOUT_ROOT, "aide"),
-    );
+    const fromCode = relative(homedir(), dashboardCheckoutRoot(DEFAULT_DASHBOARD_CHECKOUT_ROOT, "aide"));
     expect(fromCode).toBe(".aide/dashboard/checkouts/aide/code");
     expect(recipe).toContain(`git -C ${fromCode} pull`);
-    expect(recipe).toContain(
-      `--working-directory "$home/${fromCode}/dashboard"`,
-    );
+    expect(recipe).toContain(`--working-directory "$home/${fromCode}/dashboard"`);
   });
 });
 
@@ -106,9 +96,9 @@ describe("the plist names the installed scripts by absolute path", () => {
   });
 
   test("--pdf-bin is the argument that sets the generator the PDF route spawns", () => {
-    expect(
-      parseArgs(["--pdf-bin", "/opt/bin/aide-generate-pdf"]).pdfGeneratorBin,
-    ).toBe("/opt/bin/aide-generate-pdf");
+    expect(parseArgs(["--pdf-bin", "/opt/bin/aide-generate-pdf"]).pdfGeneratorBin).toBe(
+      "/opt/bin/aide-generate-pdf",
+    );
   });
 });
 

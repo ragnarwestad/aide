@@ -11,31 +11,17 @@ export const specPagePath = (project: string, specFolder: string): string =>
 /** One TAB of that page. Beside `specPagePath` and for the same reason:
  *  the server sends a refused save back to the tab its form was on, and
  *  the query-string shape of a tab is this layer's to know. */
-export const specTabPath = (
-  project: string,
-  specFolder: string,
-  tab: string,
-): string =>
+export const specTabPath = (project: string, specFolder: string, tab: string): string =>
   `${specPagePath(project, specFolder)}?tab=${encodeURIComponent(tab)}`;
 
 /** The parts of the Specs list's address that a spec's address inside the
  *  list carries along, so a link out of the open row keeps the list around
  *  it as it was cut and ordered. */
-export const LIST_VIEW_PARAMS = [
-  "state",
-  "project",
-  "sort",
-  "dir",
-  "q",
-] as const;
-export type ListView = Partial<
-  Record<(typeof LIST_VIEW_PARAMS)[number], string>
->;
+export const LIST_VIEW_PARAMS = ["state", "project", "sort", "dir", "q"] as const;
+export type ListView = Partial<Record<(typeof LIST_VIEW_PARAMS)[number], string>>;
 
 /** The list's view out of the values an address's query holds for it. */
-export function listViewIn(
-  values: Record<(typeof LIST_VIEW_PARAMS)[number], string | null>,
-): ListView {
+export function listViewIn(values: Record<(typeof LIST_VIEW_PARAMS)[number], string | null>): ListView {
   const view: ListView = {};
   for (const key of LIST_VIEW_PARAMS) if (values[key]) view[key] = values[key]!;
   return view;
@@ -44,18 +30,8 @@ export function listViewIn(
 /** The spec's address as the open row links to it: its path, the list's view
  *  and, when given, the tab. Ends in the query, so a step's `&step=` can be
  *  added to it. */
-export function specDetailPath(
-  project: string,
-  specFolder: string,
-  view: ListView,
-  tab?: string,
-): string {
-  const query = [
-    ...LIST_VIEW_PARAMS.filter((k) => view[k]).map(
-      (k) => `${k}=${encodeURIComponent(view[k]!)}`,
-    ),
-    ...(tab ? [`tab=${encodeURIComponent(tab)}`] : []),
-  ];
+export function specDetailPath(project: string, specFolder: string, view: ListView, tab?: string): string {
+  const query = [...LIST_VIEW_PARAMS.filter((k) => view[k]).map((k) => `${k}=${encodeURIComponent(view[k]!)}`), ...(tab ? [`tab=${encodeURIComponent(tab)}`] : [])];
   return `${specPagePath(project, specFolder)}${query.length ? `?${query.join("&")}` : ""}`;
 }
 
@@ -106,10 +82,7 @@ export const SPEC_NOTICE_LINE = "spec-notice";
 
 /** What a form on the spec page names those two lines by (`data-line`,
  *  `data-note`, read by `specs-client/reload-form/`). */
-export const SPEC_LINES: Record<string, string> = {
-  line: SPEC_REFUSED_LINE,
-  note: SPEC_NOTICE_LINE,
-};
+export const SPEC_LINES: Record<string, string> = { line: SPEC_REFUSED_LINE, note: SPEC_NOTICE_LINE };
 
 /** The one file of the four a person owns. `2-analysis.md`
  *  and `3-solution.md` are the analyze step's output —
@@ -167,14 +140,10 @@ export type DocumentTabScript = "editor" | "viewer";
  *  so the two can never disagree the way they once did
  *  over the default tab: a locked tab with real text needs the
  *  reader, never the editor, and never nothing. */
-export function documentTabScript(
-  view: SpecPageView,
-  tab: SpecTab,
-): DocumentTabScript | undefined {
+export function documentTabScript(view: SpecPageView, tab: SpecTab): DocumentTabScript | undefined {
   const file = TAB_FILES[tab];
   if (!file) return undefined;
-  const hasText =
-    (view.files.find((f) => f.label === file)?.text ?? null) !== null;
+  const hasText = (view.files.find((f) => f.label === file)?.text ?? null) !== null;
   if (view.archived || activeJob(view)) return hasText ? "viewer" : undefined;
   // Status is never an editor: its panel is the tick form and the file
   // rendered read-only.
@@ -191,31 +160,26 @@ export function documentTabScript(
  *  preceding sibling. `stepResults()` is shared with the job page, which
  *  passes no mark and keeps its own output unchanged. */
 export const TAB_HELP: Record<SpecTab, string> = {
-  description:
-    "The problem as it was reported, kept in <code>1-description.md</code>. " +
+  description: "The problem as it was reported, kept in <code>1-description.md</code>. " +
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
-  analysis:
-    "What <code>/aide-analyze</code> found when it read the code for this problem, " +
+  analysis: "What <code>/aide-analyze</code> found when it read the code for this problem, " +
     "kept in <code>2-analysis.md</code> and written by that step. " +
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
-  solution:
-    "The plan <code>/aide-analyze</code> wrote, kept in <code>3-solution.md</code>. " +
+  solution: "The plan <code>/aide-analyze</code> wrote, kept in <code>3-solution.md</code>. " +
     "Where it lists more than one Approach, only the one marked recommended gets built — " +
     "the rest are the record of what was weighed, not options still open — unless the spec " +
     "was created with Let me choose the approach, where the Specs list offers each real " +
     "alternative until one is chosen. The Acceptance " +
     "criteria, Risk analysis and Implementation plan below all describe that one approach. " +
     "While the spec is active and no job is running, Save here rewrites, commits and pushes it; an archived spec, or one with a job in flight, shows the same file read-only.",
-  status:
-    "Progress through the plan, kept in <code>4-status.md</code> and updated by " +
+  status: "Progress through the plan, kept in <code>4-status.md</code> and updated by " +
     "<code>/aide-implement</code> as it runs, shown read-only here. While the spec is active " +
     "and no job is running, the <code>## Acceptance criteria</code> rows at the top can be " +
     "ticked, and Save commits and pushes the ticks; only those rows hold the next archive " +
     "run back. The Phase tables below them (RED/GREEN/VERIFY, or a Checklist) are " +
     "<code>/aide-implement</code>'s own record of that run and are not part of that gate. " +
     "An archived spec, or one with a job in flight, shows the rows without boxes.",
-  steps:
-    "Every workflow step this spec's jobs have run — create, analyze, implement, " +
+  steps: "Every workflow step this spec's jobs have run — create, analyze, implement, " +
     "archive — each with its own cost and how it ended. Nothing here is editable; open a " +
     "row to see that step's own log.",
 };

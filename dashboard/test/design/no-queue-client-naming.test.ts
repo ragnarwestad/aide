@@ -21,7 +21,9 @@ const PROTECTED_BOUNDARY = [
 ];
 
 function isProtected(file: string): boolean {
-  return PROTECTED_BOUNDARY.some((p) => file === p || file.startsWith(p + "/"));
+  return PROTECTED_BOUNDARY.some(
+    (p) => file === p || file.startsWith(p + "/"),
+  );
 }
 
 function filesUnder(dir: string, extensions: string[]): string[] {

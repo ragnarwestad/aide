@@ -1,24 +1,12 @@
 // Split out of discover.test.ts by theme.
 
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
-import {
-  mkdtempSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  rmSync,
-} from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  SPEC_FILES,
-  configValue,
-  gitignoreCandidates,
-  markdownSection,
-  resolveInstallCmd,
-  resolvePreviewCmd,
-  resolveTestCmd,
-  specFileText,
+  SPEC_FILES, configValue, gitignoreCandidates, markdownSection,
+  resolveInstallCmd, resolvePreviewCmd, resolveTestCmd, specFileText,
 } from "../../../src/project/discover";
 
 // `AIDE_SPECS_PATH` stopped being the only key this file reads
@@ -49,17 +37,13 @@ describe("one key out of a project's own .aide/config", () => {
   });
 
   test("a comment, an indented line and an empty value are all no answer", () => {
-    dir = write(
-      "# AIDE_INSTALL_CMD=commented\n  AIDE_INSTALL_CMD=indented\nAIDE_LINT_CMD=   \n",
-    );
+    dir = write("# AIDE_INSTALL_CMD=commented\n  AIDE_INSTALL_CMD=indented\nAIDE_LINT_CMD=   \n");
     expect(configValue(dir, "AIDE_INSTALL_CMD")).toBeNull();
     expect(configValue(dir, "AIDE_LINT_CMD")).toBeNull();
   });
 
   test("no config file at all is no answer, never a throw", () => {
-    expect(
-      configValue(mkdtempSync(join(tmpdir(), "aide-cfg-")), "AIDE_INSTALL_CMD"),
-    ).toBeNull();
+    expect(configValue(mkdtempSync(join(tmpdir(), "aide-cfg-")), "AIDE_INSTALL_CMD")).toBeNull();
   });
 });
 
@@ -68,51 +52,20 @@ describe("one key out of a project's own .aide/config", () => {
 // `.aide/config` entry. The test command is the manifest's alone.
 describe("resolveInstallCmd / resolveTestCmd", () => {
   const CASES = JSON.parse(
-    readFileSync(
-      join(
-        import.meta.dir,
-        "..",
-        "..",
-        "..",
-        "..",
-        "core",
-        "tests",
-        "fixtures",
-        "config-cmd-precedence.json",
-      ),
-      "utf-8",
-    ),
+    readFileSync(join(import.meta.dir, "..", "..", "..", "..", "core", "tests", "fixtures", "config-cmd-precedence.json"), "utf-8"),
   );
 
-  const project = (
-    configLine: string | null,
-    manifestLine: string | null,
-    manifestKey: string,
-    configKey: string,
-  ): string => {
+  const project = (configLine: string | null, manifestLine: string | null, manifestKey: string, configKey: string): string => {
     const dir = mkdtempSync(join(tmpdir(), "aide-cmd-precedence-"));
     mkdirSync(join(dir, ".aide"), { recursive: true });
-    if (configLine !== null)
-      writeFileSync(
-        join(dir, ".aide", "config"),
-        `${configKey}=${configLine}\n`,
-      );
-    if (manifestLine !== null)
-      writeFileSync(
-        join(dir, ".aide", "project.yaml"),
-        `name: x\n${manifestKey}: ${manifestLine}\n`,
-      );
+    if (configLine !== null) writeFileSync(join(dir, ".aide", "config"), `${configKey}=${configLine}\n`);
+    if (manifestLine !== null) writeFileSync(join(dir, ".aide", "project.yaml"), `name: x\n${manifestKey}: ${manifestLine}\n`);
     return dir;
   };
 
   for (const c of CASES.cases) {
     test(`installCmd ${c.name}`, () => {
-      const dir = project(
-        c.config,
-        c.manifest,
-        "installCmd",
-        "AIDE_INSTALL_CMD",
-      );
+      const dir = project(c.config, c.manifest, "installCmd", "AIDE_INSTALL_CMD");
       const result = resolveInstallCmd(dir);
       expect(result.value).toBe(c.value);
       expect(result.source).toBe(c.source);
@@ -120,16 +73,8 @@ describe("resolveInstallCmd / resolveTestCmd", () => {
   }
 
   test("the test command is the manifest's AIDE_TEST_CMD alone: .aide/config is not read", () => {
-    expect(
-      resolveTestCmd(
-        project("make test", null, "AIDE_TEST_CMD", "AIDE_TEST_CMD"),
-      ),
-    ).toEqual({ value: null, source: null });
-    expect(
-      resolveTestCmd(
-        project(null, "make test", "AIDE_TEST_CMD", "AIDE_TEST_CMD"),
-      ),
-    ).toEqual({
+    expect(resolveTestCmd(project("make test", null, "AIDE_TEST_CMD", "AIDE_TEST_CMD"))).toEqual({ value: null, source: null });
+    expect(resolveTestCmd(project(null, "make test", "AIDE_TEST_CMD", "AIDE_TEST_CMD"))).toEqual({
       value: "make test",
       source: "project.yaml",
     });
@@ -138,9 +83,7 @@ describe("resolveInstallCmd / resolveTestCmd", () => {
   // The reverse of resolveInstallCmd — the preview command is the
   // manifest's alone.
   test("the preview command is the manifest's previewCmd", () => {
-    expect(
-      resolvePreviewCmd(project(null, "bun run dev", "previewCmd", "")),
-    ).toEqual({
+    expect(resolvePreviewCmd(project(null, "bun run dev", "previewCmd", ""))).toEqual({
       value: "bun run dev",
       source: "project.yaml",
     });
@@ -203,10 +146,7 @@ describe("the four spec files, raw", () => {
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "aide-specfiles-"));
     mkdirSync(join(dir, "150-one-page"), { recursive: true });
-    writeFileSync(
-      join(dir, "150-one-page", "1-description.md"),
-      "# One page - Description\n\nprose\n",
-    );
+    writeFileSync(join(dir, "150-one-page", "1-description.md"), "# One page - Description\n\nprose\n");
     writeFileSync(
       join(dir, "150-one-page", "3-solution.md"),
       "# One page - Solution\n\n## Recommended solution\n\nApproach 1.\n\n## Plan review\n\n" +
@@ -259,18 +199,13 @@ describe("markdownSection", () => {
     "Reviewed by three reviewers.\n\n## Risk analysis\n\nMedium.\n";
 
   test("a section runs to the next heading", () => {
-    expect(markdownSection(SOLUTION, "Plan review")).toBe(
-      "Reviewed by three reviewers.",
-    );
+    expect(markdownSection(SOLUTION, "Plan review")).toBe("Reviewed by three reviewers.");
   });
 
   test("a section runs to a horizontal rule too", () => {
-    expect(
-      markdownSection(
-        "## Plan review\n\nnothing yet.\n\n---\n\n## Risk\n",
-        "Plan review",
-      ),
-    ).toBe("nothing yet.");
+    expect(markdownSection("## Plan review\n\nnothing yet.\n\n---\n\n## Risk\n", "Plan review")).toBe(
+      "nothing yet.",
+    );
   });
 
   test("the last section runs to the end of the file", () => {
@@ -282,8 +217,6 @@ describe("markdownSection", () => {
   });
 
   test("a section with nothing under it is null, not an empty string", () => {
-    expect(
-      markdownSection("## Plan review\n\n## Risk\n\nMedium.\n", "Plan review"),
-    ).toBeNull();
+    expect(markdownSection("## Plan review\n\n## Risk\n\nMedium.\n", "Plan review")).toBeNull();
   });
 });

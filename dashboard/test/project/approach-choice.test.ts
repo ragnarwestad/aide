@@ -4,11 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  parseApproaches,
-  pendingChoice,
-  withChosenApproach,
-} from "../../src/project/approach-choice.ts";
+import { parseApproaches, pendingChoice, withChosenApproach } from "../../src/project/approach-choice.ts";
 import { chooseApproachIn } from "../../src/project/discover";
 
 const REPO = join(import.meta.dir, "..", "..", "..");
@@ -55,39 +51,20 @@ describe("parseApproaches", () => {
   test("reads each lead's letter, title and mark, a lead wrapped over two lines too", () => {
     expect(parseApproaches(solution(THREE))).toEqual({
       approaches: [
-        {
-          letter: "A",
-          title: "Hold the chained implement",
-          mark: "recommended",
-        },
-        {
-          letter: "B",
-          title: "End the job after analyze, the way an archive ends",
-          mark: "real alternative",
-        },
-        {
-          letter: "C",
-          title: "Hold every implement",
-          mark: "considered and rejected",
-        },
+        { letter: "A", title: "Hold the chained implement", mark: "recommended" },
+        { letter: "B", title: "End the job after analyze, the way an archive ends", mark: "real alternative" },
+        { letter: "C", title: "Hold every implement", mark: "considered and rejected" },
       ],
     });
   });
 
   test("a lead with no mark, as an unticked spec writes it, is not an approach to offer", () => {
-    const parsed = parseApproaches(
-      solution(
-        "**Approach A: One (recommended).** x\n\n**Approach B: Two.** y",
-      ),
-    );
+    const parsed = parseApproaches(solution("**Approach A: One (recommended).** x\n\n**Approach B: Two.** y"));
     expect(parsed.approaches.map((a) => a.letter)).toEqual(["A"]);
   });
 
   test("reads the chosen line", () => {
-    expect(
-      parseApproaches(solution(`**Chosen approach:** Approach B\n\n${THREE}`))
-        .chosen,
-    ).toBe("B");
+    expect(parseApproaches(solution(`**Chosen approach:** Approach B\n\n${THREE}`)).chosen).toBe("B");
   });
 
   test("reads only the newest round", () => {
@@ -104,28 +81,12 @@ describe("parseApproaches", () => {
   });
 
   test("ignores a lead inside a code block", () => {
-    expect(
-      parseApproaches(
-        solution("```markdown\n**Approach A: Example (recommended).** x\n```"),
-      ).approaches,
-    ).toEqual([]);
+    expect(parseApproaches(solution("```markdown\n**Approach A: Example (recommended).** x\n```")).approaches).toEqual([]);
   });
 
   test("the marked leads the spec-files reference shows parse as it says", () => {
-    const rule = readFileSync(
-      join(
-        REPO,
-        "core",
-        "skills",
-        "aide-analyze",
-        "references",
-        "spec-files.md",
-      ),
-      "utf-8",
-    );
-    const block = rule
-      .split(/^[ \t]*```/m)
-      .find((part) => part.includes("(real alternative)"));
+    const rule = readFileSync(join(REPO, "core", "skills", "aide-analyze", "references", "spec-files.md"), "utf-8");
+    const block = rule.split(/^[ \t]*```/m).find((part) => part.includes("(real alternative)"));
     expect(block).toBeDefined();
     const example = block!.replace(/^markdown\n/, "").replace(/^[ \t]+/gm, "");
     const parsed = parseApproaches(`## Approaches\n\n${example}`);
@@ -142,40 +103,21 @@ describe("pendingChoice", () => {
   test("two or more real alternatives and no choice: each by letter and title, the recommended one marked, no rejected one", () => {
     expect(pendingChoice(true, parseApproaches(solution(THREE)))).toEqual([
       { letter: "A", title: "Hold the chained implement", mark: "recommended" },
-      {
-        letter: "B",
-        title: "End the job after analyze, the way an archive ends",
-        mark: "real alternative",
-      },
+      { letter: "B", title: "End the job after analyze, the way an archive ends", mark: "real alternative" },
     ]);
   });
 
   test("one real alternative is no choice", () => {
-    const one =
-      "**Approach A: One (recommended).** x\n\n**Approach B: Two (considered and rejected).** y";
+    const one = "**Approach A: One (recommended).** x\n\n**Approach B: Two (considered and rejected).** y";
     expect(pendingChoice(true, parseApproaches(solution(one)))).toBeNull();
   });
 
   test("none marked is no choice", () => {
-    expect(
-      pendingChoice(
-        true,
-        parseApproaches(
-          solution("**Approach A: One.** x\n\n**Approach B: Two.** y"),
-        ),
-      ),
-    ).toBeNull();
+    expect(pendingChoice(true, parseApproaches(solution("**Approach A: One.** x\n\n**Approach B: Two.** y")))).toBeNull();
   });
 
   test("a chosen approach recorded in the newest round ends the choice", () => {
-    expect(
-      pendingChoice(
-        true,
-        parseApproaches(
-          solution(`**Chosen approach:** Approach A\n\n${THREE}`),
-        ),
-      ),
-    ).toBeNull();
+    expect(pendingChoice(true, parseApproaches(solution(`**Chosen approach:** Approach A\n\n${THREE}`)))).toBeNull();
   });
 
   test("a choice recorded only in an earlier round does not answer the new round", () => {
@@ -183,9 +125,7 @@ describe("pendingChoice", () => {
       solution(`**Chosen approach:** Approach B\n\n${THREE}`) +
       "\n## Round 2\n\n### Approaches\n\n" +
       "**Approach A: Again (recommended).** x\n\n**Approach B: Other (real alternative).** y\n";
-    expect(
-      pendingChoice(true, parseApproaches(text))?.map((a) => a.letter),
-    ).toEqual(["A", "B"]);
+    expect(pendingChoice(true, parseApproaches(text))?.map((a) => a.letter)).toEqual(["A", "B"]);
   });
 
   test("a spec that did not ask to choose has no choice, marks or not", () => {
@@ -196,44 +136,28 @@ describe("pendingChoice", () => {
 describe("withChosenApproach", () => {
   test("writes the chosen line as its own paragraph directly under Approaches, which reads back", () => {
     const written = withChosenApproach(solution(THREE), "B");
-    expect(written).toContain(
-      "## Approaches\n\n**Chosen approach:** Approach B\n\n**Approach A:",
-    );
+    expect(written).toContain("## Approaches\n\n**Chosen approach:** Approach B\n\n**Approach A:");
     expect(parseApproaches(written).chosen).toBe("B");
     expect(parseApproaches(written).approaches).toHaveLength(3);
   });
 
   test("replaces a chosen line already there, never adds a second", () => {
-    const written = withChosenApproach(
-      withChosenApproach(solution(THREE), "B"),
-      "A",
-    );
+    const written = withChosenApproach(withChosenApproach(solution(THREE), "B"), "A");
     expect(written.match(/\*\*Chosen approach:\*\*/g)).toHaveLength(1);
     expect(parseApproaches(written).chosen).toBe("A");
   });
 
   test("writes into the newest round's Approaches", () => {
-    const text =
-      solution(THREE) +
-      "\n## Round 2\n\n### Approaches\n\n**Approach A: Again (recommended).** x\n";
+    const text = solution(THREE) + "\n## Round 2\n\n### Approaches\n\n**Approach A: Again (recommended).** x\n";
     const written = withChosenApproach(text, "A");
-    expect(written).toContain(
-      "### Approaches\n\n**Chosen approach:** Approach A\n\n**Approach A: Again",
-    );
-    expect(written.indexOf("**Chosen approach:**")).toBeGreaterThan(
-      written.indexOf("## Round 2"),
-    );
+    expect(written).toContain("### Approaches\n\n**Chosen approach:** Approach A\n\n**Approach A: Again");
+    expect(written.indexOf("**Chosen approach:**")).toBeGreaterThan(written.indexOf("## Round 2"));
   });
 });
 
 // --- the description's line, read the way aide-run-spec reads it ------------
 
-const CASES = JSON.parse(
-  readFileSync(
-    join(REPO, "core", "tests", "fixtures", "choose-approach-line.json"),
-    "utf-8",
-  ),
-).cases as {
+const CASES = JSON.parse(readFileSync(join(REPO, "core", "tests", "fixtures", "choose-approach-line.json"), "utf-8")).cases as {
   name: string;
   description: string | null;
   chosen: "yes" | "no";
@@ -243,9 +167,7 @@ describe("chooseApproachIn", () => {
   test.each(CASES.map((c) => [c.name, c] as const))("%s", (_name, c) => {
     const text =
       "# A spec - Description\n\n## Tracking info\n\n- **Created:** `2026-10-03 07:00 UTC`\n" +
-      (c.description === null
-        ? ""
-        : `- **Let me choose the approach:** ${c.description}\n`) +
+      (c.description === null ? "" : `- **Let me choose the approach:** ${c.description}\n`) +
       "\n---\n\n## Description\n\nText.\n";
     expect(chooseApproachIn(text)).toBe(c.chosen === "yes");
   });
@@ -253,10 +175,7 @@ describe("chooseApproachIn", () => {
 
 describe("the solution template", () => {
   test("its approaches parse as the board reads them", () => {
-    const template = readFileSync(
-      join(REPO, "core", "templates", "todo", "3-solution.md.template"),
-      "utf-8",
-    );
+    const template = readFileSync(join(REPO, "core", "templates", "todo", "3-solution.md.template"), "utf-8");
     const parsed = parseApproaches(template);
     expect(parsed.approaches.map((a) => [a.letter, a.mark])).toEqual([
       ["A", "recommended"],

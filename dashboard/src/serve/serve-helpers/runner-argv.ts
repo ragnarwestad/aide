@@ -5,20 +5,10 @@
 import { renderSentence, type Sentence } from "../../i18n/message.ts";
 import type { Job, ModelChoice } from "../../queue/queue.ts";
 import { resolveStepModel } from "../../queue/model-name.ts";
-import {
-  expandDir,
-  providerLoginEnv,
-  resolveStepProvider,
-  runsModel,
-  sharesSessions,
-  type Provider,
-} from "../../queue/providers/index.ts";
+import { expandDir, providerLoginEnv, resolveStepProvider, runsModel, sharesSessions, type Provider } from "../../queue/providers/index.ts";
 import { homedir } from "node:os";
 import type { CheckableTool } from "../../render";
-import {
-  resolveSidePick,
-  SIDE_PARTS,
-} from "../../queue/providers/side-tools.ts";
+import { resolveSidePick, SIDE_PARTS } from "../../queue/providers/side-tools.ts";
 
 /** This step's wall clock. The field is a per-step table,
  *  but a job created before that is still in the store across the
@@ -33,11 +23,7 @@ import {
  *  its own and a step added afterwards has no entry in it at all. The
  *  `t.default` branch below is kept for a job hand-written with one, not
  *  because any job the queue produces has it. */
-export function resolveTimeoutSec(
-  t: Job["timeoutSec"],
-  step: string,
-  live: Record<string, number>,
-): number {
+export function resolveTimeoutSec(t: Job["timeoutSec"], step: string, live: Record<string, number>): number {
   if (typeof t === "number") return t;
   return t[step] ?? t.default ?? live[step] ?? live.default!;
 }
@@ -46,17 +32,11 @@ export function resolveTimeoutSec(
  *  and exported rather than inlined at each site, so the argv the runner
  *  is started with and the values the row and the job page SHOW cannot
  *  answer the question differently. */
-export function resolveStepPermissionMode(
-  job: Job,
-  step: string,
-  live: Record<string, string>,
-): string {
+export function resolveStepPermissionMode(job: Job, step: string, live: Record<string, string>): string {
   // The `acceptEdits` literal stays last, so the function is total
   // without asserting on config shape — unreachable in practice, since
   // every path that builds a `QueueDefaults` carries a `default`.
-  return (
-    job.permissionMode[step] ?? live[step] ?? live.default ?? "acceptEdits"
-  );
+  return job.permissionMode[step] ?? live[step] ?? live.default ?? "acceptEdits";
 }
 
 /** A whole-job model pick wins over the config's per-step default: at
@@ -68,14 +48,10 @@ export function resolveStepPermissionMode(
 export function stepTool(
   job: Job,
   step: string,
-  o: {
-    model?: Record<string, string>;
-    modelChoices?: Record<string, ModelChoice>;
-  },
+  o: { model?: Record<string, string>; modelChoices?: Record<string, ModelChoice> },
 ): CheckableTool {
   const choiceName = resolveStepModel(job, step, o.model ?? {});
-  return ((choiceName ? o.modelChoices?.[choiceName]?.tool : undefined) ??
-    "claude") as CheckableTool;
+  return ((choiceName ? o.modelChoices?.[choiceName]?.tool : undefined) ?? "claude") as CheckableTool;
 }
 
 /** The independently chosen model for an implement's review and defect
@@ -85,23 +61,13 @@ export function reviewModelArgs(
   step: string,
   _tool: string,
   o: {
-    model?: Record<string, string>;
-    modelChoices?: Record<string, ModelChoice>;
-    sidePicks?: Record<string, string>;
-    sideProviders?: Record<string, string>;
-    providers?: Record<string, Provider>;
-    provider?: Record<string, string>;
-    home?: string;
+    model?: Record<string, string>; modelChoices?: Record<string, ModelChoice>; sidePicks?: Record<string, string>;
+    sideProviders?: Record<string, string>; providers?: Record<string, Provider>; provider?: Record<string, string>; home?: string;
   },
 ): string[] {
   if (step !== "implement") return [];
   return SIDE_PARTS.flatMap((part) => {
-    const name = resolveSidePick(
-      part,
-      o.sidePicks,
-      o.model ?? {},
-      Object.keys(o.modelChoices ?? {}),
-    );
+    const name = resolveSidePick(part, o.sidePicks, o.model ?? {}, Object.keys(o.modelChoices ?? {}));
     if (!name) return [];
     const choice = o.modelChoices?.[name];
     const sideTool = choice?.tool ?? "claude";
@@ -110,39 +76,20 @@ export function reviewModelArgs(
     // A switched-off provider is passed over, as it is for a step's own
     // fallback: the review is best-effort and holds no step back.
     const usable = (key: string | undefined): key is string =>
-      key !== undefined &&
-      o.providers?.[key] !== undefined &&
-      o.providers[key]!.enabled !== false;
-    const providerKey = usable(ownProvider)
-      ? ownProvider
-      : usable(configuredProvider) &&
-          runsModel(o.providers![configuredProvider]!, choice)
+      key !== undefined && o.providers?.[key] !== undefined && o.providers[key]!.enabled !== false;
+    const providerKey = usable(ownProvider) ? ownProvider : (
+      usable(configuredProvider) && runsModel(o.providers![configuredProvider]!, choice)
         ? configuredProvider
-        : Object.entries(o.providers ?? {}).find(
-            ([, provider]) =>
-              provider.enabled !== false && runsModel(provider, choice),
-          )?.[0];
+        : Object.entries(o.providers ?? {}).find(([, provider]) => provider.enabled !== false && runsModel(provider, choice))?.[0]
+    );
     const provider = providerKey ? o.providers?.[providerKey] : undefined;
     const home = o.home ?? homedir();
     const env = provider ? providerLoginEnv(provider, home) : undefined;
-    const account =
-      sideTool === "claude" && env?.CLAUDE_CONFIG_DIR
-        ? [`--${part}-claude-config-dir`, env.CLAUDE_CONFIG_DIR]
-        : sideTool === "codex" && env?.CODEX_HOME
-          ? [`--${part}-codex-home`, env.CODEX_HOME]
-          : [];
-    const bin =
-      provider?.binary && sideTool !== "fake-claude"
-        ? [`--${part}-bin`, expandDir(provider.binary, home)]
-        : [];
-    return [
-      `--${part}-model`,
-      choice?.model ?? name,
-      `--${part}-tool`,
-      sideTool,
-      ...account,
-      ...bin,
-    ];
+    const account = sideTool === "claude" && env?.CLAUDE_CONFIG_DIR
+      ? [`--${part}-claude-config-dir`, env.CLAUDE_CONFIG_DIR]
+      : sideTool === "codex" && env?.CODEX_HOME ? [`--${part}-codex-home`, env.CODEX_HOME] : [];
+    const bin = provider?.binary && sideTool !== "fake-claude" ? [`--${part}-bin`, expandDir(provider.binary, home)] : [];
+    return [`--${part}-model`, choice?.model ?? name, `--${part}-tool`, sideTool, ...account, ...bin];
   });
 }
 
@@ -161,19 +108,9 @@ export function analysisSessionToResume(
   jobs: readonly Job[],
   tool: string,
   now: number,
-  provider?: {
-    key: string | undefined;
-    providers: Record<string, Provider> | undefined;
-  },
+  provider?: { key: string | undefined; providers: Record<string, Provider> | undefined },
 ): string | undefined {
-  let latest:
-    | {
-        sessionId?: string;
-        tool?: string;
-        at?: string;
-        provider?: { key: string };
-      }
-    | undefined;
+  let latest: { sessionId?: string; tool?: string; at?: string; provider?: { key: string } } | undefined;
   for (const j of jobs) {
     if (j.project !== job.project || j.specFolder !== job.specFolder) continue;
     for (const r of j.results) {
@@ -181,18 +118,11 @@ export function analysisSessionToResume(
       if (!latest || r.at > (latest.at ?? "")) latest = r;
     }
   }
-  if (!latest?.sessionId || (latest.tool ?? "claude") !== tool)
-    return undefined;
-  if (
-    provider?.key &&
-    latest.provider &&
-    !sharesSessions(latest.provider.key, provider.key, provider.providers)
-  ) {
+  if (!latest?.sessionId || (latest.tool ?? "claude") !== tool) return undefined;
+  if (provider?.key && latest.provider && !sharesSessions(latest.provider.key, provider.key, provider.providers)) {
     return undefined;
   }
-  return now - Date.parse(latest.at!) <= RESUME_ANALYSIS_WITHIN_MS
-    ? latest.sessionId
-    : undefined;
+  return now - Date.parse(latest.at!) <= RESUME_ANALYSIS_WITHIN_MS ? latest.sessionId : undefined;
 }
 
 export { resolveStepModel };
@@ -281,21 +211,14 @@ export function runnerArgv(
   const effort = resolveStepEffort(job, step);
   return [
     o.runnerBin,
-    "--project-dir",
-    o.projectDir,
+    "--project-dir", o.projectDir,
     ...(o.specsRoot ? ["--specs-root", o.specsRoot] : []),
-    "--command",
-    step,
-    "--spec",
-    job.specFolder,
-    "--timeout-sec",
-    String(resolveTimeoutSec(job.timeoutSec, step, o.timeoutSec ?? {})),
-    "--permission-mode",
-    resolveStepPermissionMode(job, step, o.permissionMode ?? {}),
-    "--result-file",
-    resultFile,
-    "--push",
-    o.push,
+    "--command", step,
+    "--spec", job.specFolder,
+    "--timeout-sec", String(resolveTimeoutSec(job.timeoutSec, step, o.timeoutSec ?? {})),
+    "--permission-mode", resolveStepPermissionMode(job, step, o.permissionMode ?? {}),
+    "--result-file", resultFile,
+    "--push", o.push,
     "--pull",
     // Only a `create` job has these, and it cannot run without them:
     // its `--spec` is a provisional key, not a folder on disk, so the
@@ -307,42 +230,30 @@ export function runnerArgv(
     // What the new spec builds on: ONE flag, comma-joined,
     // because that is the shape the `Depends on:` line itself has on
     // disk — nothing downstream has to rejoin a list.
-    ...(job.createDependsOn?.length
-      ? ["--depends-on", job.createDependsOn.join(",")]
-      : []),
+    ...(job.createDependsOn?.length ? ["--depends-on", job.createDependsOn.join(",")] : []),
     // The JOB field is for `create`'s own invocation alone — a second
     // job queued later for the same spec has no checkbox to carry it,
     // and `analyze` instead reads a fresh file read the caller resolves
     // into `acceptanceNotRequiredForAnalyze` below.
-    ...(step === "create" && job.acceptanceNotRequired
-      ? ["--acceptance-not-required"]
-      : []),
+    ...(step === "create" && job.acceptanceNotRequired ? ["--acceptance-not-required"] : []),
     // Only a `create` job has this, and only when the New-spec
     // form's own "let AI formulate acceptance criteria" box was cleared
     // — absent produces byte-for-byte the argv every caller before this
     // flag existed already produces.
-    ...(step === "create" && job.createNoAiFormulate
-      ? ["--no-ai-formulate"]
-      : []),
+    ...(step === "create" && job.createNoAiFormulate ? ["--no-ai-formulate"] : []),
     // Only a `create` whose form chose a level: the runner records it in
     // the new spec's Tracking info, where analyze reads it.
-    ...(step === "create" && job.createCriteriaChecks
-      ? ["--criteria-checks", job.createCriteriaChecks]
-      : []),
+    ...(step === "create" && job.createCriteriaChecks ? ["--criteria-checks", job.createCriteriaChecks] : []),
     // Every `create` from the form, ticked or not: the runner records
     // whether the new spec asks to choose between its approaches.
     ...(step === "create" && job.createChooseApproach !== undefined
       ? ["--choose-approach", job.createChooseApproach ? "yes" : "no"]
       : []),
-    ...(step === "analyze" && o.acceptanceNotRequiredForAnalyze
-      ? ["--acceptance-not-required"]
-      : []),
+    ...(step === "analyze" && o.acceptanceNotRequiredForAnalyze ? ["--acceptance-not-required"] : []),
     // Only a `reopen` job that asked for it — absent, the
     // runner keeps the analysis, the plan and the status.
     ...(step === "reopen" && job.resetFiles ? ["--reset-files"] : []),
-    ...(step === "implement" && o.resumeSession
-      ? ["--resume-session", o.resumeSession]
-      : []),
+    ...(step === "implement" && o.resumeSession ? ["--resume-session", o.resumeSession] : []),
     // Only a `schedule` step has this, and cannot run without it: its
     // `--spec` is a tracking key, never a folder on disk, so the file
     // is the whole of what the step is for.
@@ -384,17 +295,9 @@ function providerFolderArgs(
   job: Job,
   step: string,
   tool: string,
-  o: Pick<
-    Parameters<typeof runnerArgv>[3],
-    "model" | "modelChoices" | "providers" | "provider" | "home"
-  >,
+  o: Pick<Parameters<typeof runnerArgv>[3], "model" | "modelChoices" | "providers" | "provider" | "home">,
 ): string[] {
-  const key = resolveStepProvider(job, step, {
-    model: o.model ?? {},
-    modelChoices: o.modelChoices,
-    providers: o.providers,
-    provider: o.provider,
-  });
+  const key = resolveStepProvider(job, step, { model: o.model ?? {}, modelChoices: o.modelChoices, providers: o.providers, provider: o.provider });
   const provider = key ? o.providers?.[key] : undefined;
   if (!provider) return [];
   const home = o.home ?? homedir();
@@ -402,59 +305,29 @@ function providerFolderArgs(
   // The stand-in model keeps its own program: a binary path is the real tool's.
   const runtime = [
     ...(provider.binary && tool !== "fake-claude" && provider.tool === tool
-      ? ["--bin", expandDir(provider.binary, home)]
-      : []),
-    ...(tool === "claude" && provider.tool === "claude" && provider.autoCompact
-      ? ["--autocompact", String(provider.autoCompact)]
-      : []),
+      ? ["--bin", expandDir(provider.binary, home)] : []),
+    ...(tool === "claude" && provider.tool === "claude" && provider.autoCompact ? ["--autocompact", String(provider.autoCompact)] : []),
   ];
-  if (
-    tool === "claude" &&
-    provider.tool === "claude" &&
-    env.CLAUDE_CONFIG_DIR
-  ) {
+  if (tool === "claude" && provider.tool === "claude" && env.CLAUDE_CONFIG_DIR) {
     return ["--claude-config-dir", env.CLAUDE_CONFIG_DIR, ...runtime];
   }
-  return [
-    ...(tool === "codex" && provider.tool === "codex" && env.CODEX_HOME
-      ? ["--codex-home", env.CODEX_HOME]
-      : []),
-    ...runtime,
-  ];
+  return [...(tool === "codex" && provider.tool === "codex" && env.CODEX_HOME ? ["--codex-home", env.CODEX_HOME] : []), ...runtime];
 }
 
 function hasTestFailure(sentence: Sentence | Sentence[] | undefined): boolean {
   if (Array.isArray(sentence)) return sentence.some(hasTestFailure);
   if (!sentence || typeof sentence === "string") return false;
-  return (
-    sentence.key.startsWith("landing.testsRed") ||
-    hasTestFailure(sentence.inner)
-  );
+  return sentence.key.startsWith("landing.testsRed") || hasTestFailure(sentence.inner);
 }
 
-export function archiveFailureContext(
-  job: Job,
-  jobs: readonly Job[],
-): string | undefined {
-  const attempts = jobs
-    .flatMap((source) => {
-      if (
-        source.project !== job.project ||
-        source.specFolder !== job.specFolder
-      )
-        return [];
-      return source.results
-        .filter((result) => result.step === "archive")
-        .map((result) => ({ source, result }));
-    })
-    .sort((a, b) => (b.result.at ?? "").localeCompare(a.result.at ?? ""));
+export function archiveFailureContext(job: Job, jobs: readonly Job[]): string | undefined {
+  const attempts = jobs.flatMap((source) => {
+    if (source.project !== job.project || source.specFolder !== job.specFolder) return [];
+    return source.results.filter((result) => result.step === "archive")
+      .map((result) => ({ source, result }));
+  }).sort((a, b) => (b.result.at ?? "").localeCompare(a.result.at ?? ""));
   const latest = attempts[0];
-  if (
-    !latest ||
-    (latest.source.errorReason !== "tests-red" &&
-      !hasTestFailure(latest.source.landingError))
-  )
-    return undefined;
+  if (!latest || (latest.source.errorReason !== "tests-red" && !hasTestFailure(latest.source.landingError))) return undefined;
   const { source, result } = latest;
   const currentFailure = source.errorReason === "tests-red" && source.error;
   return JSON.stringify({

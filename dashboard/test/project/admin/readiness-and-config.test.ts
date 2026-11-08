@@ -1,28 +1,15 @@
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readlinkSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
-import {
-  addProject,
-  type AddProjectRequest,
-  type ProjectAdminResult,
-} from "../../../src/project/project-admin";
+import { addProject, type AddProjectRequest, type ProjectAdminResult } from "../../../src/project/project-admin";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
 
 /** Where the dashboard keeps its settings files in these tests,
  *  under the projects root so the same cleanup removes it. */
-const checkoutsUnder = (projectsRoot: string): string =>
-  join(projectsRoot, ".dashboard-checkouts");
+const checkoutsUnder = (projectsRoot: string): string => join(projectsRoot, ".dashboard-checkouts");
 
 const dirs: string[] = [];
 const root = (): string => {
@@ -34,6 +21,7 @@ const root = (): string => {
 afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
 });
+
 
 // --- Whether a run can actually start there -------------------------
 //
@@ -56,16 +44,10 @@ describe("whether a run could start there", () => {
    *  on its default branch would. Keyed by argv prefix like `fakeGit`,
    *  and overridable one answer at a time — every test below is "this
    *  one thing is wrong, and everything else is fine". */
-  const READY: Record<
-    string,
-    { code: number; stdout?: string; stderr?: string }
-  > = {
+  const READY: Record<string, { code: number; stdout?: string; stderr?: string }> = {
     "rev-parse --show-toplevel": { code: 0, stdout: "" }, // filled in per test
     "status --porcelain": { code: 0, stdout: "" },
-    "symbolic-ref --short refs/remotes/origin/HEAD": {
-      code: 0,
-      stdout: "origin/main\n",
-    },
+    "symbolic-ref --short refs/remotes/origin/HEAD": { code: 0, stdout: "origin/main\n" },
     "show-ref --verify --quiet refs/heads/main": { code: 0, stdout: "" },
     "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
     "worktree list --porcelain": { code: 0, stdout: "" },
@@ -78,10 +60,7 @@ describe("whether a run could start there", () => {
   async function assess(
     dir: string,
     projectsRoot: string,
-    answers: Record<
-      string,
-      { code: number; stdout?: string; stderr?: string }
-    > = {},
+    answers: Record<string, { code: number; stdout?: string; stderr?: string }> = {},
     req: Partial<AddProjectRequest> = {},
     /** What the clone brings: a `specs/` unless a test names its own
      *  specs root, plus any file the test's subject needs the checkout
@@ -98,8 +77,7 @@ describe("whether a run could start there", () => {
         const dest = join(at, args[args.length - 1]!);
         mkdirSync(join(dest, ".git"), { recursive: true });
         writeFileSync(join(dest, ".git", "HEAD"), "ref: refs/heads/main\n");
-        if (brings.specs !== false)
-          mkdirSync(join(dest, "specs"), { recursive: true });
+        if (brings.specs !== false) mkdirSync(join(dest, "specs"), { recursive: true });
         for (const [path, text] of Object.entries(brings.files ?? {})) {
           // A trailing slash is a directory the checkout holds — what a
           // worktree link has to name something real for.
@@ -113,38 +91,22 @@ describe("whether a run could start there", () => {
         return { code: 0, stdout: "" };
       }
       for (const [prefix, answer] of Object.entries(answers)) {
-        if (joined.startsWith(prefix))
-          return {
-            code: answer.code,
-            stdout: answer.stdout ?? "",
-            stderr: answer.stderr,
-          };
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "", stderr: answer.stderr };
       }
       // Every root answers `--show-toplevel` with ITSELF unless a test
       // says otherwise: that is what a checkout of its own is.
-      if (joined.startsWith("rev-parse --show-toplevel"))
-        return { code: 0, stdout: `${at}\n` };
+      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };
       for (const [prefix, answer] of Object.entries(table)) {
-        if (joined.startsWith(prefix))
-          return {
-            code: answer.code,
-            stdout: answer.stdout ?? "",
-            stderr: answer.stderr,
-          };
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "", stderr: answer.stderr };
       }
       return { code: 1, stdout: "" };
     };
-    return await addProject(
-      run,
-      projectsRoot,
-      {
-        name: dir.split("/").pop()!,
-        gitUrl: "git@example.com:me/project.git",
-        codeLanding: "merge",
-        ...req,
-      },
-      checkoutsUnder(projectsRoot),
-    );
+    return await addProject(run, projectsRoot, {
+      name: dir.split("/").pop()!,
+      gitUrl: "git@example.com:me/project.git",
+      codeLanding: "merge",
+      ...req,
+    }, checkoutsUnder(projectsRoot));
   }
 
   /** Where a project's checkout WILL be, and what the clone puts in it.
@@ -153,25 +115,15 @@ describe("whether a run could start there", () => {
    *  the checkout comes into being during the add — `assess` answers the
    *  clone by making the directory, with a `specs/` inside it unless a
    *  test says otherwise, so the fallback specs root is there. */
-  function checkout(
-    name: string,
-    opts: { specs?: boolean } = {},
-  ): { projectsRoot: string; dir: string; specs: boolean } {
+  function checkout(name: string, opts: { specs?: boolean } = {}): { projectsRoot: string; dir: string; specs: boolean } {
     const projectsRoot = root();
-    return {
-      projectsRoot,
-      dir: join(projectsRoot, name),
-      specs: opts.specs !== false,
-    };
+    return { projectsRoot, dir: join(projectsRoot, name), specs: opts.specs !== false };
   }
 
   const check = (r: ProjectAdminResult, name: string) =>
     r.readiness!.checks.filter((c) => c.check === name);
   const blockers = (r: ProjectAdminResult) =>
-    r
-      .readiness!.checks.filter((c) => c.blocking)
-      .map((c) => c.detail)
-      .join(" | ");
+    r.readiness!.checks.filter((c) => c.blocking).map((c) => c.detail).join(" | ");
 
   test("a clean checkout on its default branch, with a specs root, can run", async () => {
     const { projectsRoot, dir } = checkout("ready");
@@ -210,11 +162,7 @@ describe("whether a run could start there", () => {
     );
     expect(result.readiness!.canRun).toBe(true);
     // Both roots were asked, and the answer says which is which.
-    expect(
-      check(result, "defaultBranch")
-        .map((c) => c.subject)
-        .sort(),
-    ).toEqual([dir, specs].sort());
+    expect(check(result, "defaultBranch").map((c) => c.subject).sort()).toEqual([dir, specs].sort());
   });
 
   // The runner stopped caring whether a checkout is dirty —
@@ -238,9 +186,7 @@ describe("whether a run could start there", () => {
     // Cast: `"clean"` is not in the union any more, which is half of
     // what this asserts — the other half is that no check answers to
     // that name at runtime either.
-    expect(own.readiness!.checks.map((c) => c.check as string)).not.toContain(
-      "clean",
-    );
+    expect(own.readiness!.checks.map((c) => c.check as string)).not.toContain("clean");
     expect(own.readiness!.canRun).toBe(true);
     expect(own.readiness!.note).not.toContain("dirty");
 
@@ -248,14 +194,9 @@ describe("whether a run could start there", () => {
     // work-in-progress, and a stray backup file in an unrelated folder.
     const else_ = checkout("someoneelsesdirt");
     const other = await assess(else_.dir, else_.projectsRoot, {
-      "status --porcelain": {
-        code: 0,
-        stdout: " M README.md\n?? 141-old/4-status.md.bak\n",
-      },
+      "status --porcelain": { code: 0, stdout: " M README.md\n?? 141-old/4-status.md.bak\n" },
     });
-    expect(other.readiness!.checks.map((c) => c.check as string)).not.toContain(
-      "clean",
-    );
+    expect(other.readiness!.checks.map((c) => c.check as string)).not.toContain("clean");
     expect(other.readiness!.canRun).toBe(true);
     expect(other.readiness!.note).not.toContain("dirty");
   });
@@ -266,10 +207,7 @@ describe("whether a run could start there", () => {
   test("a feature branch is reported and does not block, because the run switches it", async () => {
     const { projectsRoot, dir } = checkout("onfeature");
     const result = await assess(dir, projectsRoot, {
-      "rev-parse --abbrev-ref HEAD": {
-        code: 0,
-        stdout: "feature/248-meta-tagger\n",
-      },
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "feature/248-meta-tagger\n" },
     });
     expect(result.readiness!.canRun).toBe(true);
     const branch = check(result, "defaultBranch")[0]!;
@@ -281,10 +219,7 @@ describe("whether a run could start there", () => {
   test("a default branch that is nowhere — no local ref and no remote one — blocks", async () => {
     const { projectsRoot, dir } = checkout("nobase");
     const result = await assess(dir, projectsRoot, {
-      "rev-parse --abbrev-ref HEAD": {
-        code: 0,
-        stdout: "feature/248-meta-tagger\n",
-      },
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "feature/248-meta-tagger\n" },
       "show-ref --verify --quiet refs/heads/main": { code: 1 },
       "show-ref --verify --quiet refs/remotes/origin/main": { code: 1 },
     });
@@ -336,24 +271,13 @@ describe("whether a run could start there", () => {
         return { code: 0, stdout: "" };
       }
       // Git answers with the REAL path, never the link's.
-      if (joined.startsWith("rev-parse --show-toplevel"))
-        return { code: 0, stdout: `${realpathSync(code)}\n` };
+      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${realpathSync(code)}\n` };
       for (const [prefix, answer] of Object.entries(READY)) {
-        if (joined.startsWith(prefix))
-          return { code: answer.code, stdout: answer.stdout ?? "" };
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
       }
       return { code: 1, stdout: "" };
     };
-    const result = await addProject(
-      run,
-      projectsRoot,
-      {
-        name: "aide",
-        gitUrl: "git@example.com:me/aide.git",
-        codeLanding: "merge",
-      },
-      base,
-    );
+    const result = await addProject(run, projectsRoot, { name: "aide", gitUrl: "git@example.com:me/aide.git", codeLanding: "merge" }, base);
 
     // The entry really is a link to the checkout, and readiness reads it
     // as the project's own git root rather than one inside another.
@@ -386,27 +310,19 @@ describe("whether a run could start there", () => {
       // The specs root answers the way a directory outside any
       // repository does: git refuses the question.
       if (joined.startsWith("rev-parse --show-toplevel")) {
-        return at === specs
-          ? { code: 128, stdout: "" }
-          : { code: 0, stdout: `${at}\n` };
+        return at === specs ? { code: 128, stdout: "" } : { code: 0, stdout: `${at}\n` };
       }
       for (const [prefix, answer] of Object.entries(READY)) {
-        if (joined.startsWith(prefix))
-          return { code: answer.code, stdout: answer.stdout ?? "" };
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
       }
       return { code: 1, stdout: "" };
     };
-    const result = await addProject(
-      run,
-      projectsRoot,
-      {
-        name: "looserspecs",
-        gitUrl: "git@example.com:me/looserspecs.git",
-        codeLanding: "merge",
-        specsPath: specs,
-      },
-      checkoutsUnder(projectsRoot),
-    );
+    const result = await addProject(run, projectsRoot, {
+      name: "looserspecs",
+      gitUrl: "git@example.com:me/looserspecs.git",
+      codeLanding: "merge",
+      specsPath: specs,
+    }, checkoutsUnder(projectsRoot));
     expect(result.readiness!.canRun).toBe(false);
     expect(check(result, "specsRepo")[0]!.blocking).toBe(true);
     expect(check(result, "specsRepo")[0]!.detail).toContain("Specs path");
@@ -425,15 +341,9 @@ describe("whether a run could start there", () => {
       // This is the file as `aide-run-spec` would find it — worktreeLinks
       // is read from the manifest alone now, so a value hand-
       // written into `.aide/config` would never be read at all.
-      const result = await assess(
-        dir,
-        projectsRoot,
-        {},
-        {},
-        {
-          files: { ".aide/project.yaml": `name: x\nworktreeLinks: ${entry}\n` },
-        },
-      );
+      const result = await assess(dir, projectsRoot, {}, {}, {
+        files: { ".aide/project.yaml": `name: x\nworktreeLinks: ${entry}\n` },
+      });
       expect(result.readiness!.canRun).toBe(false);
       expect(blockers(result)).toContain(entry);
     },
@@ -463,18 +373,9 @@ describe("whether a run could start there", () => {
     "a worktree link naming a build output (%p) blocks, and says why",
     async (entry) => {
       const { projectsRoot, dir } = checkout("buildlink");
-      const result = await assess(
-        dir,
-        projectsRoot,
-        {},
-        {},
-        {
-          files: {
-            [`${entry}/`]: "",
-            ".aide/project.yaml": `name: x\nworktreeLinks: ${entry}\n`,
-          },
-        },
-      );
+      const result = await assess(dir, projectsRoot, {}, {}, {
+        files: { [`${entry}/`]: "", ".aide/project.yaml": `name: x\nworktreeLinks: ${entry}\n` },
+      });
       expect(result.readiness!.canRun).toBe(false);
       expect(blockers(result)).toContain(entry);
       expect(blockers(result)).toContain("build output");
@@ -484,27 +385,16 @@ describe("whether a run could start there", () => {
   // This repo's own setting, unaffected by the new check.
   test("the dependency caches a build only reads are not refused", async () => {
     const { projectsRoot, dir } = checkout("readonlylinks");
-    const result = await assess(
-      dir,
-      projectsRoot,
-      {},
-      { worktreeLinks: ".venv dashboard/node_modules" },
-      {
-        files: { ".venv/": "", "dashboard/node_modules/": "" },
-      },
-    );
+    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: ".venv dashboard/node_modules" }, {
+      files: { ".venv/": "", "dashboard/node_modules/": "" },
+    });
     expect(result.readiness!.canRun).toBe(true);
     expect(check(result, "worktreeLinks")[0]!.ok).toBe(true);
   });
 
   test("a worktree link whose source is not there blocks, and is named", async () => {
     const { projectsRoot, dir } = checkout("missinglink");
-    const result = await assess(
-      dir,
-      projectsRoot,
-      {},
-      { worktreeLinks: "node_modules .venv" },
-    );
+    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: "node_modules .venv" });
     expect(result.readiness!.canRun).toBe(false);
     expect(blockers(result)).toContain("node_modules");
     expect(blockers(result)).toContain(".venv");
@@ -512,15 +402,9 @@ describe("whether a run could start there", () => {
 
   test("worktree links that are all there do not block", async () => {
     const { projectsRoot, dir } = checkout("goodlinks");
-    const result = await assess(
-      dir,
-      projectsRoot,
-      {},
-      { worktreeLinks: "node_modules" },
-      {
-        files: { "node_modules/": "" },
-      },
-    );
+    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: "node_modules" }, {
+      files: { "node_modules/": "" },
+    });
     expect(result.readiness!.canRun).toBe(true);
     expect(check(result, "worktreeLinks")[0]!.ok).toBe(true);
   });
@@ -550,51 +434,32 @@ describe("whether a run could start there", () => {
     prerequisites: { check: string; failsWhen: string; blocking: boolean }[];
   } = JSON.parse(
     readFileSync(
-      join(
-        import.meta.dir,
-        "..",
-        "..",
-        "..",
-        "..",
-        "core",
-        "tests",
-        "fixtures",
-        "project-readiness-prerequisites.json",
-      ),
+      join(import.meta.dir, "..", "..", "..", "..", "core", "tests", "fixtures", "project-readiness-prerequisites.json"),
       "utf-8",
     ),
   );
 
-  const READINESS_ANSWERS: Record<
-    string,
-    Record<string, { code: number; stdout?: string }>
-  > = {
+  const READINESS_ANSWERS: Record<string, Record<string, { code: number; stdout?: string }>> = {
     "gitRoot: the project directory is not a git repository": {
       "rev-parse --show-toplevel": { code: 128, stdout: "" },
     },
     "specsRoot: the specs root does not exist as a directory": {}, // built via checkout(name, { specs: false })
-    "defaultBranch: the default branch cannot be resolved in a root the run touches":
-      {
-        // Every strategy defaultBranchOf() tries comes back empty, so base
-        // itself is "" — the one scenario the bash side cannot reach.
-        "symbolic-ref --short refs/remotes/origin/HEAD": {
-          code: 1,
-          stdout: "",
-        },
-        "show-ref --verify --quiet refs/heads/main": { code: 1, stdout: "" },
-        "show-ref --verify --quiet refs/heads/master": { code: 1, stdout: "" },
-        "rev-parse --abbrev-ref HEAD": { code: 1, stdout: "" },
+    "defaultBranch: the default branch cannot be resolved in a root the run touches": {
+      // Every strategy defaultBranchOf() tries comes back empty, so base
+      // itself is "" — the one scenario the bash side cannot reach.
+      "symbolic-ref --short refs/remotes/origin/HEAD": { code: 1, stdout: "" },
+      "show-ref --verify --quiet refs/heads/main": { code: 1, stdout: "" },
+      "show-ref --verify --quiet refs/heads/master": { code: 1, stdout: "" },
+      "rev-parse --abbrev-ref HEAD": { code: 1, stdout: "" },
+    },
+    "defaultBranch: another worktree already has the default branch checked out": {
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/other\n" },
+      "worktree list --porcelain": {
+        code: 0,
+        stdout: "worktree /elsewhere\nbranch refs/heads/main\n",
       },
-    "defaultBranch: another worktree already has the default branch checked out":
-      {
-        "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/other\n" },
-        "worktree list --porcelain": {
-          code: 0,
-          stdout: "worktree /elsewhere\nbranch refs/heads/main\n",
-        },
-      },
-    "worktreeLinks: a configured worktree-link entry names a path that is not on disk":
-      {}, // built via req.worktreeLinks
+    },
+    "worktreeLinks: a configured worktree-link entry names a path that is not on disk": {}, // built via req.worktreeLinks
   };
 
   describe("the readiness fixture's prerequisites", () => {
@@ -604,15 +469,9 @@ describe("whether a run could start there", () => {
         const answers = READINESS_ANSWERS[id];
         expect(answers).toBeDefined(); // no scenario wired up for this fixture entry
         const noSpecs = id.startsWith("specsRoot");
-        const { projectsRoot, dir } = checkout(id.replace(/[^a-z]/gi, ""), {
-          specs: !noSpecs,
-        });
-        const req = id.startsWith("worktreeLinks")
-          ? { worktreeLinks: "nowhere" }
-          : {};
-        const result = await assess(dir, projectsRoot, answers!, req, {
-          specs: !noSpecs,
-        });
+        const { projectsRoot, dir } = checkout(id.replace(/[^a-z]/gi, ""), { specs: !noSpecs });
+        const req = id.startsWith("worktreeLinks") ? { worktreeLinks: "nowhere" } : {};
+        const result = await assess(dir, projectsRoot, answers!, req, { specs: !noSpecs });
         const found = check(result, c.check).find((ch) => !ch.ok);
         expect(found?.blocking).toBe(c.blocking);
       });
@@ -621,31 +480,18 @@ describe("whether a run could start there", () => {
 
   describe("readiness identifiers agree with the fixture", () => {
     const KNOWN_EXCLUSIONS: Record<string, string> = {
-      specsRepo:
-        "TypeScript treats a specs root outside git as blocking; aide-run-spec does not refuse on it today (2-analysis.md)",
-      dashboardCheckout:
-        "has no aide-run-spec counterpart at all — mirrors the dashboard's own clone machinery, always non-blocking",
+      specsRepo: "TypeScript treats a specs root outside git as blocking; aide-run-spec does not refuse on it today (2-analysis.md)",
+      dashboardCheckout: "has no aide-run-spec counterpart at all — mirrors the dashboard's own clone machinery, always non-blocking",
     };
 
     test("every ReadinessCheckName is either in the fixture or a named exclusion", () => {
       const ts = readFileSync(
-        join(
-          import.meta.dir,
-          "..",
-          "..",
-          "..",
-          "src",
-          "project",
-          "project-admin",
-          "types.ts",
-        ),
+        join(import.meta.dir, "..", "..", "..", "src", "project", "project-admin", "types.ts"),
         "utf-8",
       );
       const m = ts.match(/export type ReadinessCheckName =\s*([\s\S]*?);/);
       expect(m).toBeTruthy();
-      const declared = new Set(
-        [...m![1]!.matchAll(/"([a-zA-Z]+)"/g)].map((x) => x[1]),
-      );
+      const declared = new Set([...m![1]!.matchAll(/"([a-zA-Z]+)"/g)].map((x) => x[1]));
       const covered = new Set([
         ...READINESS_FIXTURE.prerequisites.map((c) => c.check),
         ...Object.keys(KNOWN_EXCLUSIONS),
@@ -661,10 +507,7 @@ describe("whether a run could start there", () => {
     // The project's repository holds none — the dashboard's
     // own settings file does.
     const manifestOf = (dir: string) =>
-      readFileSync(
-        dashboardSettingsFile(checkoutsUnder(dirname(dir)), basename(dir)),
-        "utf-8",
-      );
+      readFileSync(dashboardSettingsFile(checkoutsUnder(dirname(dir)), basename(dir)), "utf-8");
 
     test("pr is written into the dashboard's settings file", async () => {
       const { projectsRoot, dir } = checkout("alpha");
@@ -690,9 +533,7 @@ describe("whether a run could start there", () => {
       const { projectsRoot, dir } = checkout("alpha");
       const r = await assess(dir, projectsRoot, {}, { codeLanding: "squash" });
       expect(r.ok).toBe(false);
-      expect(r.steps.find((s) => s.step === "codeLanding")?.error).toContain(
-        "merge or pr",
-      );
+      expect(r.steps.find((s) => s.step === "codeLanding")?.error).toContain("merge or pr");
       expect(manifestOf(dir)).not.toContain("codeLanding");
     });
   });

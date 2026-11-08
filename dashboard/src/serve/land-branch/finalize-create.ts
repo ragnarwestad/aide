@@ -38,19 +38,9 @@ export async function assignSpecNumberAfterMerge(
   const specsRootInWork = rel && !rel.startsWith("..") ? join(work, rel) : work;
   // The runner's own directory first (`--runner-bin`), never PATH alone:
   // see `scriptFor`.
-  const script = scriptFor("aide-create-spec", {
-    beside: opts.scriptDir,
-    override: process.env.AIDE_CREATE_SPEC_BIN,
-  });
+  const script = scriptFor("aide-create-spec", { beside: opts.scriptDir, override: process.env.AIDE_CREATE_SPEC_BIN });
   const result = await runScript(
-    [
-      script,
-      "--specs-root",
-      specsRootInWork,
-      "--assign-number",
-      "--folder",
-      provisionalFolder,
-    ],
+    [script, "--specs-root", specsRootInWork, "--assign-number", "--folder", provisionalFolder],
     work,
     30_000,
     undefined,

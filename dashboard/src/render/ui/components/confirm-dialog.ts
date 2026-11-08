@@ -67,14 +67,7 @@ export function askParts(
     answers: dialogAnswers(
       lang,
       post
-        ? buttonForm({
-            id: formId,
-            action: post.action,
-            hook: post.hook,
-            hidden: post.hidden,
-            data: { ...post.data, ...data },
-            button: ok,
-          })
+        ? buttonForm({ id: formId, action: post.action, hook: post.hook, hidden: post.hidden, data: { ...post.data, ...data }, button: ok })
         : buttonForm({ id: formId, method: "dialog", data, button: ok }),
     ),
   };
@@ -92,10 +85,7 @@ export function confirmDialog(lang: Language, parts: ConfirmParts): string {
 function dialogAnswers(lang: Language, affirmative: string): string {
   return (
     `<div class="dialogactions">${affirmative}` +
-    buttonForm({
-      method: "dialog",
-      button: { label: t(lang, "dialog.cancel") },
-    }) +
+    buttonForm({ method: "dialog", button: { label: t(lang, "dialog.cancel") } }) +
     `</div>`
   );
 }

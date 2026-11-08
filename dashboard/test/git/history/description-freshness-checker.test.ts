@@ -13,7 +13,9 @@
 // — including the reopen boundary and the synchronous peekStale read.
 
 import { describe, expect, test } from "bun:test";
-import { DescriptionFreshnessChecker } from "../../../src/git/description-freshness.ts";
+import {
+  DescriptionFreshnessChecker,
+} from "../../../src/git/description-freshness.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 const DIR = "/specs/aide/96-merge-button-says-what-it-merges";
@@ -23,16 +25,9 @@ const SUBJECT = `Run /aide-analyze for ${FOLDER} (headless)`;
 /** What the two lookups are keyed on: the description's own history,
  *  and the analyze commits. Kept apart so a test can move one without
  *  the other. */
-const gitFor = (
-  description: string | null,
-  analyzeLog: string | null,
-  differs = true,
-) =>
+const gitFor = (description: string | null, analyzeLog: string | null, differs = true) =>
   fakeGit({
-    "log -1 --format=%H":
-      description === null
-        ? { code: 1 }
-        : { code: 0, stdout: `deadbee\t${description}\n` },
+    "log -1 --format=%H": description === null ? { code: 1 } : { code: 0, stdout: `deadbee\t${description}\n` },
     "log --format=%H%x09%aI%x09%s":
       analyzeLog === null ? { code: 1 } : { code: 0, stdout: analyzeLog },
     // `git diff --quiet`: 0 identical, 1 different.
@@ -41,15 +36,11 @@ const gitFor = (
 
 /** An analyze log line in the shape the lookup now reads. The sha is
  *  arbitrary; only the diff stub above cares that there is one. */
-const analyzeLine = (at: string, subject = SUBJECT) =>
-  `deadbee\t${at}\t${subject}`;
+const analyzeLine = (at: string, subject = SUBJECT) => `deadbee\t${at}\t${subject}`;
 
 describe("DescriptionFreshnessChecker", () => {
   const stale = () =>
-    gitFor(
-      "2026-08-18T09:10:36+02:00",
-      analyzeLine("2026-08-18T08:57:16+02:00") + "\n",
-    );
+    gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
 
   test("a description newer than the last analyze is stale", async () => {
     const git = stale();
@@ -75,20 +66,14 @@ describe("DescriptionFreshnessChecker", () => {
   // The dates are the cheap gate: an older description cannot be stale
   // whatever it says, so the content is never asked for.
   test("an older description is settled without a diff", async () => {
-    const git = gitFor(
-      "2026-08-18T08:00:00+02:00",
-      analyzeLine("2026-08-18T08:57:16+02:00") + "\n",
-    );
+    const git = gitFor("2026-08-18T08:00:00+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
     const checker = new DescriptionFreshnessChecker({ run: git.run });
     expect(await checker.isStale(DIR, FOLDER)).toBe(false);
     expect(git.calls.some((c) => c.args[0] === "diff")).toBe(false);
   });
 
   test("a description older than the last analyze is not", async () => {
-    const git = gitFor(
-      "2026-08-18T08:00:00+02:00",
-      analyzeLine("2026-08-18T08:57:16+02:00") + "\n",
-    );
+    const git = gitFor("2026-08-18T08:00:00+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
     const checker = new DescriptionFreshnessChecker({ run: git.run });
     expect(await checker.isStale(DIR, FOLDER)).toBe(false);
   });
@@ -96,11 +81,7 @@ describe("DescriptionFreshnessChecker", () => {
   test("one answer stands for the whole TTL", async () => {
     const git = stale();
     let clock = 1000;
-    const checker = new DescriptionFreshnessChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => clock,
-    });
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
     expect(await checker.isStale(DIR, FOLDER)).toBe(true);
     const spawned = git.calls.length;
     expect(spawned).toBeGreaterThan(0);
@@ -121,9 +102,7 @@ describe("DescriptionFreshnessChecker", () => {
       },
     });
     expect(await thrower.isStale(DIR, FOLDER)).toBe(false);
-    const failing = new DescriptionFreshnessChecker({
-      run: gitFor(null, null).run,
-    });
+    const failing = new DescriptionFreshnessChecker({ run: gitFor(null, null).run });
     expect(await failing.isStale(DIR, FOLDER)).toBe(false);
   });
 
@@ -150,31 +129,18 @@ describe("DescriptionFreshnessChecker with a reopen boundary", () => {
   const BOUNDARY = "1d0fe79cafe";
 
   test("passes the boundary on to the analyze lookup", async () => {
-    const git = gitFor(
-      "2026-08-18T09:10:36+02:00",
-      analyzeLine("2026-08-18T08:57:16+02:00") + "\n",
-    );
+    const git = gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
     const checker = new DescriptionFreshnessChecker({ run: git.run });
     await checker.isStale(DIR, FOLDER, BOUNDARY);
-    expect(
-      git.calls.some(
-        (c) => c.args.includes("--not") && c.args.includes(BOUNDARY),
-      ),
-    ).toBe(true);
+    expect(git.calls.some((c) => c.args.includes("--not") && c.args.includes(BOUNDARY))).toBe(true);
   });
 
   // Same reason the history checker's key folds it in: a spec reopened
   // while the dashboard is running would otherwise answer from the
   // pre-reopen entry for the whole TTL.
   test("a spec asked with and without a boundary is two questions", async () => {
-    const git = gitFor(
-      "2026-08-18T09:10:36+02:00",
-      analyzeLine("2026-08-18T08:57:16+02:00") + "\n",
-    );
-    const checker = new DescriptionFreshnessChecker({
-      run: git.run,
-      now: () => 0,
-    });
+    const git = gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
+    const checker = new DescriptionFreshnessChecker({ run: git.run, now: () => 0 });
     await checker.isStale(DIR, FOLDER);
     const first = git.calls.length;
     await checker.isStale(DIR, FOLDER, BOUNDARY);
@@ -188,55 +154,31 @@ describe("DescriptionFreshnessChecker with a reopen boundary", () => {
 // instead.
 describe("DescriptionFreshnessChecker.peekStale", () => {
   const stale = () =>
-    gitFor(
-      "2026-08-18T09:10:36+02:00",
-      analyzeLine("2026-08-18T08:57:16+02:00") + "\n",
-    );
+    gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
 
   test("a spec nothing has ever asked about answers null, and spawns no git", () => {
     const git = stale();
-    const checker = new DescriptionFreshnessChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
-    expect(checker.peekStale(DIR, FOLDER)).toEqual({
-      stale: false,
-      checkedAt: null,
-    });
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(checker.peekStale(DIR, FOLDER)).toEqual({ stale: false, checkedAt: null });
     expect(git.calls.length).toBe(0);
   });
 
   test("after a check, it hands back that answer and when it was taken", async () => {
     const git = stale();
-    const checker = new DescriptionFreshnessChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
     await checker.isStale(DIR, FOLDER);
     const before = git.calls.length;
-    expect(checker.peekStale(DIR, FOLDER)).toEqual({
-      stale: true,
-      checkedAt: 1000,
-    });
+    expect(checker.peekStale(DIR, FOLDER)).toEqual({ stale: true, checkedAt: 1000 });
     expect(git.calls.length).toBe(before);
   });
 
   test("past the TTL the same answer stands, with its original timestamp", async () => {
     const git = stale();
     let clock = 1000;
-    const checker = new DescriptionFreshnessChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => clock,
-    });
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
     await checker.isStale(DIR, FOLDER);
     clock += 60_000;
-    expect(checker.peekStale(DIR, FOLDER)).toEqual({
-      stale: true,
-      checkedAt: 1000,
-    });
+    expect(checker.peekStale(DIR, FOLDER)).toEqual({ stale: true, checkedAt: 1000 });
   });
 
   // The boundary is part of the QUESTION, so it is part of
@@ -244,16 +186,9 @@ describe("DescriptionFreshnessChecker.peekStale", () => {
   // entry.
   test("a different reopen boundary is a different question", async () => {
     const git = stale();
-    const checker = new DescriptionFreshnessChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
     await checker.isStale(DIR, FOLDER);
-    expect(checker.peekStale(DIR, FOLDER, "abc1234")).toEqual({
-      stale: false,
-      checkedAt: null,
-    });
+    expect(checker.peekStale(DIR, FOLDER, "abc1234")).toEqual({ stale: false, checkedAt: null });
   });
 });
 
@@ -262,20 +197,13 @@ describe("DescriptionFreshnessChecker.peekStale", () => {
 // next ask has replaced it.
 describe("DescriptionFreshnessChecker.forget", () => {
   const stale = () =>
-    gitFor(
-      "2026-08-18T09:10:36+02:00",
-      analyzeLine("2026-08-18T08:57:16+02:00") + "\n",
-    );
+    gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
   const OTHER_DIR = "/specs/aide/97-another-spec";
   const OTHER_FOLDER = "97-another-spec";
 
   test("a forgotten answer inside its window is asked of git again, and peeked as it was until then (AC-2)", async () => {
     const git = stale();
-    const checker = new DescriptionFreshnessChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
     await checker.isStale(DIR, FOLDER);
     const asked = git.calls.length;
 
@@ -283,10 +211,7 @@ describe("DescriptionFreshnessChecker.forget", () => {
     expect(git.calls.length).toBe(asked);
 
     checker.forget(DIR, FOLDER);
-    expect(checker.peekStale(DIR, FOLDER)).toEqual({
-      stale: true,
-      checkedAt: 1000,
-    });
+    expect(checker.peekStale(DIR, FOLDER)).toEqual({ stale: true, checkedAt: 1000 });
     expect(git.calls.length).toBe(asked);
 
     await checker.isStale(DIR, FOLDER);
@@ -295,11 +220,7 @@ describe("DescriptionFreshnessChecker.forget", () => {
 
   test("forgetting one spec leaves another spec's answer standing (AC-2)", async () => {
     const git = stale();
-    const checker = new DescriptionFreshnessChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
     await checker.isStale(DIR, FOLDER);
     await checker.isStale(OTHER_DIR, OTHER_FOLDER);
     const asked = git.calls.length;
@@ -312,11 +233,7 @@ describe("DescriptionFreshnessChecker.forget", () => {
 
   test("every reopen boundary the spec was asked under is forgotten (AC-2)", async () => {
     const git = stale();
-    const checker = new DescriptionFreshnessChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
     await checker.isStale(DIR, FOLDER);
     await checker.isStale(DIR, FOLDER, "abc1234");
     const asked = git.calls.length;

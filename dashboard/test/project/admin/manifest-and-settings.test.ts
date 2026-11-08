@@ -1,13 +1,6 @@
 import { dashboardSettingsFile } from "../../../src/git/dashboard-checkout.ts";
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  mkdtempSync,
-  rmSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, rmSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -17,15 +10,9 @@ import {
   updateProjectSettings,
   upsertManifestScalar,
 } from "../../../src/project/project-admin";
-import {
-  manifestWithScalar,
-  oneLine,
-} from "../../../src/project/project-admin/manifest-io.ts";
+import { manifestWithScalar, oneLine } from "../../../src/project/project-admin/manifest-io.ts";
 import { parseManifest } from "../../../src/project/parse-manifest.ts";
-import {
-  configValue,
-  resolveWorktreeLinks,
-} from "../../../src/project/discover";
+import { configValue, resolveWorktreeLinks } from "../../../src/project/discover";
 import { cloningGit, fakeGit } from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];
@@ -73,14 +60,10 @@ describe("upserting one scalar into a manifest", () => {
   });
 
   test("a key that IS there has its value replaced, once", () => {
-    const file = manifest(
-      "name: alpha\nworktreeLinks: old\ndocs:\n  - README.md\n",
-    );
+    const file = manifest("name: alpha\nworktreeLinks: old\ndocs:\n  - README.md\n");
     upsertManifestScalar(file, "worktreeLinks", "new one");
     const text = readFileSync(file, "utf-8");
-    expect(text).toBe(
-      "name: alpha\nworktreeLinks: new one\ndocs:\n  - README.md\n",
-    );
+    expect(text).toBe("name: alpha\nworktreeLinks: new one\ndocs:\n  - README.md\n");
     expect(text.match(/^worktreeLinks:/gm)!.length).toBe(1);
   });
 
@@ -113,12 +96,9 @@ describe("upserting one scalar into a manifest", () => {
     const file = manifest(before);
     upsertManifestScalar(file, "worktreeLinks", ".venv node_modules");
     const after = readFileSync(file, "utf-8");
-    expect(
-      after
-        .split("\n")
-        .filter((l) => !l.startsWith("worktreeLinks:"))
-        .join("\n"),
-    ).toBe(before.split("\n").join("\n"));
+    expect(after.split("\n").filter((l) => !l.startsWith("worktreeLinks:")).join("\n")).toBe(
+      before.split("\n").join("\n"),
+    );
     expect(after).toContain("worktreeLinks: .venv node_modules");
   });
 
@@ -134,9 +114,7 @@ describe("upserting one scalar into a manifest", () => {
   test("a key that is already list-shaped is refused, and the file is left alone", () => {
     const before = "name: alpha\nworktreeLinks:\n  - node_modules\n  - .venv\n";
     const file = manifest(before);
-    expect(() => upsertManifestScalar(file, "worktreeLinks", "deps")).toThrow(
-      /worktreeLinks/,
-    );
+    expect(() => upsertManifestScalar(file, "worktreeLinks", "deps")).toThrow(/worktreeLinks/);
     expect(readFileSync(file, "utf-8")).toBe(before);
   });
 
@@ -156,25 +134,19 @@ describe("upserting one scalar into a manifest", () => {
     const value = ".venv dashboard/node_modules";
     const written = manifest();
     upsertManifestScalar(written, "worktreeLinks", value);
-    expect(
-      readFileSync(written, "utf-8").match(SHELL_READS)![1]!.trimEnd(),
-    ).toBe(value);
-    expect(minimalManifest("alpha", "a description")).not.toContain(
-      "worktreeLinks",
-    );
+    expect(readFileSync(written, "utf-8").match(SHELL_READS)![1]!.trimEnd()).toBe(value);
+    expect(minimalManifest("alpha", "a description")).not.toContain("worktreeLinks");
   });
 });
 
 describe("writing one key inside a block of the manifest", () => {
   const KEY = "deployment.previewFrom";
-  const write = (text: string, value = "cloudflare-pages"): string =>
-    manifestWithScalar(text, KEY, value, "project.yaml");
+  const write = (text: string, value = "cloudflare-pages"): string => manifestWithScalar(text, KEY, value, "project.yaml");
   const read = (text: string) => {
     const parsed = parseManifest(text);
     return parsed.ok ? parsed.data.deployment?.previewFrom : undefined;
   };
-  const LONG =
-    "  command: " + "bun run build && ".repeat(12) + "bun run preview";
+  const LONG = "  command: " + "bun run build && ".repeat(12) + "bun run preview";
 
   test("an existing line is replaced and every other byte stays", () => {
     const before = [
@@ -189,15 +161,12 @@ describe("writing one key inside a block of the manifest", () => {
       "",
     ].join("\n");
     const after = write(before);
-    expect(after).toBe(
-      before.replace("previewFrom: command", "previewFrom: cloudflare-pages"),
-    );
+    expect(after).toBe(before.replace("previewFrom: command", "previewFrom: cloudflare-pages"));
     expect(read(after)).toBe("cloudflare-pages");
   });
 
   test("a block without the key gets the line at the block's own indentation", () => {
-    const before =
-      "name: demo\ndeployment:\n    host: Cloudflare Pages\n    # a note\n\nlogging:\n  where: x\n";
+    const before = "name: demo\ndeployment:\n    host: Cloudflare Pages\n    # a note\n\nlogging:\n  where: x\n";
     const after = write(before, "command");
     expect(after).toBe(
       "name: demo\ndeployment:\n    host: Cloudflare Pages\n    # a note\n    previewFrom: command\n\nlogging:\n  where: x\n",
@@ -206,49 +175,32 @@ describe("writing one key inside a block of the manifest", () => {
   });
 
   test("a bare header gets the line right after it", () => {
-    const after = write(
-      "name: demo\ndeployment:\nlogging:\n  where: x\n",
-      "command",
-    );
-    expect(after).toBe(
-      "name: demo\ndeployment:\n  previewFrom: command\nlogging:\n  where: x\n",
-    );
+    const after = write("name: demo\ndeployment:\nlogging:\n  where: x\n", "command");
+    expect(after).toBe("name: demo\ndeployment:\n  previewFrom: command\nlogging:\n  where: x\n");
     expect(read(after)).toBe("command");
   });
 
   test("a comment at column 0 inside the block does not end it, and no second key appears", () => {
-    const before =
-      "deployment:\n  host: x\n# written by hand\n  previewFrom: command\n";
+    const before = "deployment:\n  host: x\n# written by hand\n  previewFrom: command\n";
     const after = write(before);
-    expect(after).toBe(
-      "deployment:\n  host: x\n# written by hand\n  previewFrom: cloudflare-pages\n",
-    );
+    expect(after).toBe("deployment:\n  host: x\n# written by hand\n  previewFrom: cloudflare-pages\n");
     expect(after.match(/previewFrom/g)).toHaveLength(1);
     expect(read(after)).toBe("cloudflare-pages");
   });
 
   test("a column-0 comment after the block's last key stays where it was", () => {
-    const after = write(
-      "deployment:\n  host: x\n# next part\nlogging:\n  where: y\n",
-      "command",
-    );
-    expect(after).toBe(
-      "deployment:\n  host: x\n  previewFrom: command\n# next part\nlogging:\n  where: y\n",
-    );
+    const after = write("deployment:\n  host: x\n# next part\nlogging:\n  where: y\n", "command");
+    expect(after).toBe("deployment:\n  host: x\n  previewFrom: command\n# next part\nlogging:\n  where: y\n");
   });
 
   test("no block at all appends one at the end", () => {
     const after = write("name: demo\ndescription: the demo app\n", "command");
-    expect(after).toBe(
-      "name: demo\ndescription: the demo app\ndeployment:\n  previewFrom: command\n",
-    );
+    expect(after).toBe("name: demo\ndescription: the demo app\ndeployment:\n  previewFrom: command\n");
     expect(read(after)).toBe("command");
   });
 
   test("an empty value removes the line, and has nothing to do without a block", () => {
-    expect(write("deployment:\n  host: x\n  previewFrom: command\n", "")).toBe(
-      "deployment:\n  host: x\n",
-    );
+    expect(write("deployment:\n  host: x\n  previewFrom: command\n", "")).toBe("deployment:\n  host: x\n");
     expect(write("name: demo\n", "")).toBe("name: demo\n");
   });
 
@@ -259,9 +211,7 @@ describe("writing one key inside a block of the manifest", () => {
       "name: demo\ndeployment:\n  - Cloudflare Pages\n",
       "name: demo\ndeployment:\n- Cloudflare Pages\n",
     ]) {
-      expect(() => write(before)).toThrow(
-        /deployment in project\.yaml is not a block of keys/,
-      );
+      expect(() => write(before)).toThrow(/deployment in project\.yaml is not a block of keys/);
     }
   });
 
@@ -280,15 +230,7 @@ describe("where the worktree links are read from", () => {
   const CASES: {
     cases: { name: string; manifest: string | null; links: string }[];
   } = JSON.parse(
-    readFileSync(
-      join(
-        import.meta.dir,
-        "..",
-        "..",
-        "../../core/tests/fixtures/worktree-links-precedence.json",
-      ),
-      "utf-8",
-    ),
+    readFileSync(join(import.meta.dir, "..", "..", "../../core/tests/fixtures/worktree-links-precedence.json"), "utf-8"),
   );
 
   /** The same combinations `aide-run-spec`'s own test iterates over,
@@ -300,9 +242,7 @@ describe("where the worktree links are read from", () => {
    *  alone: only the run has a source to report. */
   for (const c of CASES.cases) {
     test(`${c.name}: the links resolve to "${c.links}"`, async () => {
-      const { projectsRoot, dir } = checkoutFor(
-        c.name.toLowerCase().replace(/[^a-z]/g, ""),
-      );
+      const { projectsRoot, dir } = checkoutFor(c.name.toLowerCase().replace(/[^a-z]/g, ""));
       for (const entry of (c.manifest ?? "").split(/\s+/).filter(Boolean)) {
         mkdirSync(join(dir, entry), { recursive: true });
       }
@@ -315,9 +255,7 @@ describe("where the worktree links are read from", () => {
       // And the readiness check reads it the same way: a value it cannot
       // see is a project it reports as unconfigured while a run links it.
       const readiness = await assessProjectReadiness(fakeGit({}).run, dir);
-      const links = readiness.checks.find(
-        (ch) => ch.check === "worktreeLinks",
-      )!;
+      const links = readiness.checks.find((ch) => ch.check === "worktreeLinks")!;
       if (c.links) {
         expect(links.ok).toBe(true);
         expect(links.detail).toContain(c.links);
@@ -336,10 +274,7 @@ describe("a refused link names the file it came out of", () => {
   test("a manifest value is refused in the manifest's own words", async () => {
     const { projectsRoot, dir } = checkoutFor("frommanifest");
     mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(
-      join(dir, ".aide", "project.yaml"),
-      "name: x\nworktreeLinks: ../escape\n",
-    );
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: x\nworktreeLinks: ../escape\n");
     const readiness = await assessProjectReadiness(fakeGit({}).run, dir);
     const check = readiness.checks.find((c) => c.check === "worktreeLinks")!;
     expect(check.blocking).toBe(true);
@@ -349,29 +284,21 @@ describe("a refused link names the file it came out of", () => {
 });
 
 describe("adding a project keeps its links in the dashboard's settings file", () => {
-  const settingsOf = (base: string, name: string) =>
-    readFileSync(dashboardSettingsFile(base, name), "utf-8");
+  const settingsOf = (base: string, name: string) => readFileSync(dashboardSettingsFile(base, name), "utf-8");
 
   test("worktree links go into the settings file, not .aide/config and not the checkout", async () => {
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "travels");
-    const result = await addProject(
-      cloningGit().run,
-      projectsRoot,
-      {
-        name: "travels",
-        gitUrl: "git@example.com:me/travels.git",
-        codeLanding: "merge",
-        worktreeLinks: ".venv dashboard/node_modules",
-      },
-      base,
-    );
+    const result = await addProject(cloningGit().run, projectsRoot, {
+      name: "travels",
+      gitUrl: "git@example.com:me/travels.git",
+      codeLanding: "merge",
+      worktreeLinks: ".venv dashboard/node_modules",
+    }, base);
     expect(result.ok).toBe(true);
     const parsed = parseManifest(settingsOf(base, "travels"));
-    expect(parsed.ok && parsed.data.worktreeLinks).toBe(
-      ".venv dashboard/node_modules",
-    );
+    expect(parsed.ok && parsed.data.worktreeLinks).toBe(".venv dashboard/node_modules");
     expect(existsSync(join(dir, ".aide", "project.yaml"))).toBe(false);
   });
 
@@ -382,44 +309,31 @@ describe("adding a project keeps its links in the dashboard's settings file", ()
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "hasmanifest");
-    const drafted =
-      "name: hasmanifest\ndescription: written by hand\nstack:\n  backend: none\n";
-    const result = await addProject(
-      cloningGit({}, { ".aide/project.yaml": drafted }).run,
-      projectsRoot,
-      {
-        name: "hasmanifest",
-        gitUrl: "git@example.com:me/hasmanifest.git",
-        codeLanding: "merge",
-        worktreeLinks: "node_modules",
-      },
-      base,
-    );
+    const drafted = "name: hasmanifest\ndescription: written by hand\nstack:\n  backend: none\n";
+    const result = await addProject(cloningGit({}, { ".aide/project.yaml": drafted }).run, projectsRoot, {
+      name: "hasmanifest",
+      gitUrl: "git@example.com:me/hasmanifest.git",
+      codeLanding: "merge",
+      worktreeLinks: "node_modules",
+    }, base);
     expect(result.ok).toBe(true);
     const text = settingsOf(base, "hasmanifest");
     expect(text).toContain("description: written by hand");
     expect(text).toContain("  backend: none");
     expect(text).toContain("worktreeLinks: node_modules");
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(
-      drafted,
-    );
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(drafted);
   });
 
   test("the specs path still goes to .aide/config, and the settings file has no links", async () => {
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "specsonly");
-    const result = await addProject(
-      cloningGit().run,
-      projectsRoot,
-      {
-        name: "specsonly",
-        gitUrl: "git@example.com:me/specsonly.git",
-        codeLanding: "merge",
-        specsPath: join(root(), "aide-specs", "specsonly"),
-      },
-      base,
-    );
+    const result = await addProject(cloningGit().run, projectsRoot, {
+      name: "specsonly",
+      gitUrl: "git@example.com:me/specsonly.git",
+      codeLanding: "merge",
+      specsPath: join(root(), "aide-specs", "specsonly"),
+    }, base);
     expect(result.ok).toBe(true);
     expect(configValue(dir, "AIDE_SPECS_PATH")).toBeTruthy();
     expect(settingsOf(base, "specsonly")).not.toContain("worktreeLinks");
@@ -429,17 +343,12 @@ describe("adding a project keeps its links in the dashboard's settings file", ()
     const projectsRoot = root();
     const base = root();
     const dir = join(projectsRoot, "stillrefused");
-    const result = await addProject(
-      cloningGit().run,
-      projectsRoot,
-      {
-        name: "stillrefused",
-        gitUrl: "git@example.com:me/stillrefused.git",
-        codeLanding: "merge",
-        worktreeLinks: "/etc",
-      },
-      base,
-    );
+    const result = await addProject(cloningGit().run, projectsRoot, {
+      name: "stillrefused",
+      gitUrl: "git@example.com:me/stillrefused.git",
+      codeLanding: "merge",
+      worktreeLinks: "/etc",
+    }, base);
     expect(result.ok).toBe(false);
     // The settings file IS written — registering the project is what
     // makes it — but nothing about the links reached it, and the config
@@ -452,10 +361,7 @@ describe("adding a project keeps its links in the dashboard's settings file", ()
 describe("changing a project's settings after it was added", () => {
   /** A project already on the dashboard: a checkout, a manifest, and
    *  whichever of the two settings it was added with. */
-  function added(
-    name: string,
-    opts: { specsPath?: string; worktreeLinks?: string } = {},
-  ) {
+  function added(name: string, opts: { specsPath?: string; worktreeLinks?: string } = {}) {
     const { projectsRoot, dir } = checkoutFor(name);
     mkdirSync(join(dir, ".aide"), { recursive: true });
     writeFileSync(
@@ -463,11 +369,7 @@ describe("changing a project's settings after it was added", () => {
       `name: ${name}\ndescription: added earlier\n` +
         (opts.worktreeLinks ? `worktreeLinks: ${opts.worktreeLinks}\n` : ""),
     );
-    if (opts.specsPath)
-      writeFileSync(
-        join(dir, ".aide", "config"),
-        `AIDE_SPECS_PATH=${opts.specsPath}\n`,
-      );
+    if (opts.specsPath) writeFileSync(join(dir, ".aide", "config"), `AIDE_SPECS_PATH=${opts.specsPath}\n`);
     return { projectsRoot, dir };
   }
 
@@ -482,16 +384,11 @@ describe("changing a project's settings after it was added", () => {
       specsPath: "",
     });
     expect(result.ok).toBe(true);
-    expect(resolveWorktreeLinks(dir)).toEqual({
-      links: "node_modules",
-      source: "project.yaml",
-    });
+    expect(resolveWorktreeLinks(dir)).toEqual({ links: "node_modules", source: "project.yaml" });
     expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(
       `${before}worktreeLinks: node_modules\n`,
     );
-    const links = result.readiness!.checks.find(
-      (c) => c.check === "worktreeLinks",
-    )!;
+    const links = result.readiness!.checks.find((c) => c.check === "worktreeLinks")!;
     expect(links.ok).toBe(true);
     expect(links.blocking).toBe(false);
   });
@@ -501,16 +398,10 @@ describe("changing a project's settings after it was added", () => {
   test("a test command saved alone lands in the manifest as AIDE_TEST_CMD and touches nothing else", async () => {
     const { dir } = added("testcmd", { specsPath: "/kept/specs" });
     mkdirSync(join(dir, "node_modules"), { recursive: true });
-    await updateProjectSettings(fakeGit({}).run, dir, {
-      worktreeLinks: "node_modules",
-    });
-    const result = await updateProjectSettings(fakeGit({}).run, dir, {
-      testCmd: "pnpm test",
-    });
+    await updateProjectSettings(fakeGit({}).run, dir, { worktreeLinks: "node_modules" });
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { testCmd: "pnpm test" });
     expect(result.ok).toBe(true);
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toContain(
-      "AIDE_TEST_CMD: pnpm test\n",
-    );
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toContain("AIDE_TEST_CMD: pnpm test\n");
     expect(configValue(dir, "AIDE_TEST_CMD")).toBeNull();
     expect(configValue(dir, "AIDE_SPECS_PATH")).toBe("/kept/specs");
     expect(resolveWorktreeLinks(dir).links).toBe("node_modules");
@@ -520,10 +411,7 @@ describe("changing a project's settings after it was added", () => {
   // other file — the specs path names a directory on THIS machine.
   test("the specs path can be changed afterwards, and the manifest is untouched", async () => {
     const { dir } = added("respec", { specsPath: "/old/specs" });
-    const manifestBefore = readFileSync(
-      join(dir, ".aide", "project.yaml"),
-      "utf-8",
-    );
+    const manifestBefore = readFileSync(join(dir, ".aide", "project.yaml"), "utf-8");
     const specs = join(root(), "aide-specs", "respec");
     const result = await updateProjectSettings(fakeGit({}).run, dir, {
       specsPath: specs,
@@ -531,30 +419,20 @@ describe("changing a project's settings after it was added", () => {
     });
     expect(result.ok).toBe(true);
     expect(configValue(dir, "AIDE_SPECS_PATH")).toBe(specs);
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(
-      manifestBefore,
-    );
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(manifestBefore);
     // Made, with the archive/ a run walks — the same thing Add does, for
     // the same reason: a path configured and not there is a refusal over
     // something known at the moment it was written.
     expect(existsSync(join(specs, "archive"))).toBe(true);
-    const specsRoot = result.readiness!.checks.find(
-      (c) => c.check === "specsRoot",
-    )!;
+    const specsRoot = result.readiness!.checks.find((c) => c.check === "specsRoot")!;
     expect(specsRoot.subject).toBe(specs);
     expect(specsRoot.ok).toBe(true);
   });
 
   test("a field submitted unchanged rewrites nothing", async () => {
-    const { dir } = added("same", {
-      specsPath: "/old/specs",
-      worktreeLinks: "node_modules",
-    });
+    const { dir } = added("same", { specsPath: "/old/specs", worktreeLinks: "node_modules" });
     mkdirSync(join(dir, "node_modules"), { recursive: true });
-    const manifestBefore = readFileSync(
-      join(dir, ".aide", "project.yaml"),
-      "utf-8",
-    );
+    const manifestBefore = readFileSync(join(dir, ".aide", "project.yaml"), "utf-8");
     const configBefore = readFileSync(join(dir, ".aide", "config"), "utf-8");
     const result = await updateProjectSettings(fakeGit({}).run, dir, {
       specsPath: "/old/specs",
@@ -563,24 +441,15 @@ describe("changing a project's settings after it was added", () => {
     expect(result.ok).toBe(true);
     expect(result.steps.map((s) => s.step)).not.toContain("specsConfig");
     expect(result.steps.map((s) => s.step)).not.toContain("worktreeLinks");
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(
-      manifestBefore,
-    );
-    expect(readFileSync(join(dir, ".aide", "config"), "utf-8")).toBe(
-      configBefore,
-    );
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(manifestBefore);
+    expect(readFileSync(join(dir, ".aide", "config"), "utf-8")).toBe(configBefore);
   });
 
   test("clearing the worktree links takes the key out rather than writing an empty one", async () => {
     const { dir } = added("cleared", { worktreeLinks: "node_modules" });
-    const result = await updateProjectSettings(fakeGit({}).run, dir, {
-      worktreeLinks: "",
-      specsPath: "",
-    });
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { worktreeLinks: "", specsPath: "" });
     expect(result.ok).toBe(true);
-    expect(
-      readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"),
-    ).not.toContain("worktreeLinks");
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).not.toContain("worktreeLinks");
     expect(resolveWorktreeLinks(dir).source).toBeNull();
   });
 
@@ -594,12 +463,8 @@ describe("changing a project's settings after it was added", () => {
       specsPath: "/wanted",
     });
     expect(result.ok).toBe(false);
-    expect(
-      result.steps.find((s) => s.step === "worktreeLinks")!.error,
-    ).toContain("../escape");
-    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(
-      before,
-    );
+    expect(result.steps.find((s) => s.step === "worktreeLinks")!.error).toContain("../escape");
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toBe(before);
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
   });
 
@@ -608,9 +473,7 @@ describe("changing a project's settings after it was added", () => {
     const file = join(dir, ".aide", "project.yaml");
     writeFileSync(file, `${readFileSync(file, "utf-8")}installCmd: ./old.sh\n`);
     const before = readFileSync(file, "utf-8");
-    const result = await updateProjectSettings(fakeGit({}).run, dir, {
-      installCmd: "./new.sh",
-    });
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { installCmd: "./new.sh" });
     expect(result.ok).toBe(true);
     expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("./new.sh");
     expect(readFileSync(file, "utf-8")).toBe(before);
@@ -644,10 +507,7 @@ describe("saving AIDE_INSTALL_CMD", () => {
 
   test("an unchanged installCmd rewrites nothing", async () => {
     const dir = withManifest("installsame");
-    writeFileSync(
-      join(dir, ".aide", "config"),
-      "AIDE_INSTALL_CMD=make install\n",
-    );
+    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=make install\n");
     const before = readFileSync(join(dir, ".aide", "config"), "utf-8");
     const result = await updateProjectSettings(fakeGit({}).run, dir, {
       specsPath: "",
@@ -663,15 +523,9 @@ describe("saving AIDE_INSTALL_CMD", () => {
   // never mentions `installCmd` at all must not be read as clearing it.
   test("the field is not touched when the request never mentions it", async () => {
     const dir = withManifest("neithermentioned");
-    writeFileSync(
-      join(dir, ".aide", "config"),
-      "AIDE_INSTALL_CMD=make install\n",
-    );
+    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=make install\n");
     const before = readFileSync(join(dir, ".aide", "config"), "utf-8");
-    const result = await updateProjectSettings(fakeGit({}).run, dir, {
-      specsPath: "",
-      worktreeLinks: "",
-    });
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { specsPath: "", worktreeLinks: "" });
     expect(result.ok).toBe(true);
     expect(readFileSync(join(dir, ".aide", "config"), "utf-8")).toBe(before);
   });
@@ -681,31 +535,15 @@ describe("saving AIDE_INSTALL_CMD", () => {
 // line, quoted where a plain line would not read back, and in place of every
 // line a folded or block form took.
 describe("saving a description over every form it can be stored in", () => {
-  const typed =
-    "Aide: the board for specs # not a comment, and long enough to pass the eighty character mark";
+  const typed = "Aide: the board for specs # not a comment, and long enough to pass the eighty character mark";
   const forms: { form: string; description: string[]; tail: string[] }[] = [
-    {
-      form: "folded over two lines",
-      description: ["description: a board for", "  specs and jobs"],
-      tail: ["", "# note", "AIDE_TEST_CMD: make test"],
-    },
-    {
-      form: "folded so its second line starts with a dash",
-      description: ["description: a board", "  - for specs"],
-      tail: ["", "# note", "AIDE_TEST_CMD: make test"],
-    },
-    {
-      form: "a block",
-      description: ["description: |-", "  a board", "  for specs"],
-      tail: ["", "# note", "AIDE_TEST_CMD: make test"],
-    },
+    { form: "folded over two lines", description: ["description: a board for", "  specs and jobs"], tail: ["", "# note", "AIDE_TEST_CMD: make test"] },
+    { form: "folded so its second line starts with a dash", description: ["description: a board", "  - for specs"], tail: ["", "# note", "AIDE_TEST_CMD: make test"] },
+    { form: "a block", description: ["description: |-", "  a board", "  for specs"], tail: ["", "# note", "AIDE_TEST_CMD: make test"] },
     { form: "absent", description: [], tail: ["AIDE_TEST_CMD: make test"] },
   ];
   const run = async () => ({ code: 1, stdout: "" });
-  const setup = (
-    description: string[],
-    tail: string[],
-  ): { dir: string; file: string; text: string } => {
+  const setup = (description: string[], tail: string[]): { dir: string; file: string; text: string } => {
     const dir = root();
     mkdirSync(join(dir, ".aide"), { recursive: true });
     const file = join(dir, ".aide", "project.yaml");
@@ -715,21 +553,15 @@ describe("saving a description over every form it can be stored in", () => {
   };
   const parsed = (file: string) => {
     const result = parseManifest(readFileSync(file, "utf-8"));
-    if (!result.ok)
-      throw new Error(`the manifest no longer parses: ${result.error}`);
+    if (!result.ok) throw new Error(`the manifest no longer parses: ${result.error}`);
     return result.data;
   };
 
   for (const { form, description, tail } of forms) {
     test(`a description of over 80 characters reads back as typed over a description ${form}`, async () => {
       const { dir, file } = setup(description, tail);
-      const result = await updateProjectSettings(run, dir, {
-        description: typed,
-      });
-      expect(result.steps.find((s) => s.step === "description")).toEqual({
-        step: "description",
-        ok: true,
-      });
+      const result = await updateProjectSettings(run, dir, { description: typed });
+      expect(result.steps.find((s) => s.step === "description")).toEqual({ step: "description", ok: true });
       const data = parsed(file);
       expect(data.description).toBe(typed);
       expect(data.name).toBe("p");
@@ -738,9 +570,7 @@ describe("saving a description over every form it can be stored in", () => {
       for (const line of tail) expect(text.split("\n")).toContain(line);
 
       const saved = text;
-      const again = await updateProjectSettings(run, dir, {
-        description: typed,
-      });
+      const again = await updateProjectSettings(run, dir, { description: typed });
       expect(again.steps.map((s) => s.step)).not.toContain("description");
       expect(readFileSync(file, "utf-8")).toBe(saved);
     });
@@ -748,9 +578,7 @@ describe("saving a description over every form it can be stored in", () => {
     test(`a stored description ${form} posted back on one line writes nothing`, async () => {
       const { dir, file, text } = setup(description, tail);
       const stored = parsed(file).description ?? "";
-      const result = await updateProjectSettings(run, dir, {
-        description: oneLine(stored),
-      });
+      const result = await updateProjectSettings(run, dir, { description: oneLine(stored) });
       expect(result.steps.map((s) => s.step)).not.toContain("description");
       expect(readFileSync(file, "utf-8")).toBe(text);
     });
@@ -758,9 +586,7 @@ describe("saving a description over every form it can be stored in", () => {
     test(`an empty description removes the key and its continuation lines ${form}, and nothing else`, async () => {
       const { dir, file } = setup(description, tail);
       await updateProjectSettings(run, dir, { description: "" });
-      expect(readFileSync(file, "utf-8")).toBe(
-        `${["name: p", ...tail].join("\n")}\n`,
-      );
+      expect(readFileSync(file, "utf-8")).toBe(`${["name: p", ...tail].join("\n")}\n`);
     });
   }
 });
@@ -768,8 +594,7 @@ describe("saving a description over every form it can be stored in", () => {
 // A criterion prefix is read by two readers, the page's YAML parser and the
 // implement command's `sed`, so the line is written as both read it back.
 describe("writing a criterion prefix", () => {
-  const write = (value: string) =>
-    manifestWithScalar("name: demo\n", "acPrefix", value, "project.yaml");
+  const write = (value: string) => manifestWithScalar("name: demo\n", "acPrefix", value, "project.yaml");
   const read = (text: string) => {
     const parsed = parseManifest(text);
     return parsed.ok ? parsed.data.acPrefix : undefined;

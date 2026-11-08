@@ -8,14 +8,8 @@
 // the commit and writes the result (`after-restart.ts`).
 
 import { existsSync } from "node:fs";
-import {
-  fastForwardToOrigin,
-  type RepoMergeResult,
-} from "../../git/branch-merge/index.ts";
-import type {
-  BranchStatusChecker,
-  GitRunner,
-} from "../../git/branch-status.ts";
+import { fastForwardToOrigin, type RepoMergeResult } from "../../git/branch-merge/index.ts";
+import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
 import type { Sentence } from "../../i18n/message.ts";
 import type { QueueStore } from "../../queue/queue.ts";
 import { stepLogLine } from "../land-branch/test-gate.ts";
@@ -35,21 +29,12 @@ export interface DeployRunDeps {
   /** Whether `root` is the checkout the board runs from. */
   isBoard: (root: string) => boolean;
   gitRun: GitRunner;
-  branchStatus: Pick<
-    BranchStatusChecker,
-    "defaultBranch" | "commitsBehindOrigin"
-  >;
+  branchStatus: Pick<BranchStatusChecker, "defaultBranch" | "commitsBehindOrigin">;
   /** A landing holds its checkout's root here for as long as it merges. */
-  mergeLock: {
-    run<T>(root: string, fn: () => Promise<T>): Promise<T>;
-    roots(): string[];
-  };
+  mergeLock: { run<T>(root: string, fn: () => Promise<T>): Promise<T>; roots(): string[] };
   installCheckout: (result: RepoMergeResult) => Promise<boolean>;
   restartRegistered: () => Promise<boolean>;
-  restartWhenSettled: (o: {
-    onWait: (landings: string[]) => void;
-    beforeFire: () => void;
-  }) => Promise<boolean>;
+  restartWhenSettled: (o: { onWait: (landings: string[]) => void; beforeFire: () => void }) => Promise<boolean>;
   readServing: RoutesContext["readServing"];
   setFailure: (project: string, failure: DeployFailure | null) => void;
   setFault: (fault: Sentence | null) => void;
@@ -64,11 +49,7 @@ export interface DeployRunDeps {
 const HOLD = { key: "runner.landingPause" } as const;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-export async function runDeploy(
-  deps: DeployRunDeps,
-  jobId: string,
-  resultFile: string,
-): Promise<void> {
+export async function runDeploy(deps: DeployRunDeps, jobId: string, resultFile: string): Promise<void> {
   // The runner writes `start` (with the step's stamp and log) once `spawn` has returned.
   await Promise.resolve();
   const first = deps.queue.get(jobId);
@@ -79,8 +60,7 @@ export async function runDeploy(
 
   const mark = (which: DeployStep, ending: DeployMark): void => {
     const job = deps.queue.get(jobId);
-    if (job)
-      stepLogLine(job, deployMark(which, ending), ending.startsWith("stopped"));
+    if (job) stepLogLine(job, deployMark(which, ending), ending.startsWith("stopped"));
   };
   const at = (which: DeployStep, ending: DeployMark): void => {
     step = which;
@@ -92,12 +72,7 @@ export async function runDeploy(
   const hold = (on: boolean): void => {
     if (on === held) return;
     held = on;
-    deps.queue.update(
-      jobId,
-      on
-        ? { error: HOLD, errorReason: "held-back" }
-        : { error: undefined, errorReason: undefined },
-    );
+    deps.queue.update(jobId, on ? { error: HOLD, errorReason: "held-back" } : { error: undefined, errorReason: undefined });
   };
 
   const fail = (sentence: Sentence, detail?: string): void => {
@@ -113,9 +88,7 @@ export async function runDeploy(
 
   try {
     if (!deps.isBoard(root)) {
-      return fail(
-        `only the board itself is deployed as a job — ${project} deploys from its own Deploy tab`,
-      );
+      return fail(`only the board itself is deployed as a job — ${project} deploys from its own Deploy tab`);
     }
 
     // --- fetch: after any landing that holds the checkout.
@@ -123,26 +96,16 @@ export async function runDeploy(
     deps.setFailure(project, null);
     if (deps.mergeLock.roots().includes(root)) {
       hold(true);
-      while (deps.mergeLock.roots().includes(root))
-        await sleep(deps.lockPollMs ?? 250);
+      while (deps.mergeLock.roots().includes(root)) await sleep(deps.lockPollMs ?? 250);
       hold(false);
     }
     const base = await deps.branchStatus.defaultBranch(root);
-    if (!base)
-      return fail({ key: "landing.deployNoDefaultBranch", values: { root } });
-    const pulled = await deps.mergeLock.run(root, () =>
-      fastForwardToOrigin(deps.gitRun, root, base),
-    );
-    if (!pulled.ok)
-      return fail(
-        pulled.error ?? `cannot bring ${root} up to date`,
-        pulled.detail,
-      );
+    if (!base) return fail({ key: "landing.deployNoDefaultBranch", values: { root } });
+    const pulled = await deps.mergeLock.run(root, () => fastForwardToOrigin(deps.gitRun, root, base));
+    if (!pulled.ok) return fail(pulled.error ?? `cannot bring ${root} up to date`, pulled.detail);
     const head = await deps.gitRun(root, ["rev-parse", "HEAD"]);
     const commit = head.code === 0 ? head.stdout.trim() : undefined;
-    deps.queue.update(jobId, {
-      deploy: { root, ...(commit ? { commit } : {}) },
-    });
+    deps.queue.update(jobId, { deploy: { root, ...(commit ? { commit } : {}) } });
     mark("fetch", "done");
 
     // --- install.
@@ -153,8 +116,7 @@ export async function runDeploy(
     await deps.branchStatus.commitsBehindOrigin(root, true);
     if (installed.installError) {
       const older = await servedOlder(deps, root);
-      if (typeof older === "object")
-        deps.setFault({ key: "landing.deployServiceOlder", values: older });
+      if (typeof older === "object") deps.setFault({ key: "landing.deployServiceOlder", values: older });
       return fail(installed.installError, installed.installDetail);
     }
     mark("install", "done");
@@ -169,21 +131,13 @@ export async function runDeploy(
           hold(false);
           const current = deps.queue.get(jobId);
           deps.queue.update(jobId, {
-            deploy: {
-              ...(current?.deploy ?? { root }),
-              restartedAt: new Date().toISOString(),
-              leaving: deps.startedAt,
-            },
+            deploy: { ...(current?.deploy ?? { root }), restartedAt: new Date().toISOString(), leaving: deps.startedAt },
           });
           mark("restart", "done");
           at("wait", "started");
           // A process still alive when this ends was never replaced.
           timer = setTimeout(() => {
-            if (
-              deps.queue.get(jobId)?.state !== "running" ||
-              existsSync(resultFile)
-            )
-              return;
+            if (deps.queue.get(jobId)?.state !== "running" || existsSync(resultFile)) return;
             fail({ key: "landing.deployNoAnswer" });
           }, deps.restartWaitMs ?? DEPLOY_RESTART_WAIT_MS);
           timer.unref?.();
@@ -207,9 +161,6 @@ export async function runDeploy(
     mark("check", "done");
     succeed();
   } catch (err) {
-    fail(
-      { key: "landing.deployBroke" },
-      err instanceof Error ? (err.stack ?? err.message) : String(err),
-    );
+    fail({ key: "landing.deployBroke" }, err instanceof Error ? (err.stack ?? err.message) : String(err));
   }
 }

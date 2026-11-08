@@ -14,15 +14,9 @@ export function modelFlag(
   offered: readonly string[] | undefined,
   href?: string,
 ): string {
-  if (!model || !offered || "name" in listedModelName(offered, model))
-    return "";
+  if (!model || !offered || "name" in listedModelName(offered, model)) return "";
   const text = offered.length
-    ? t(lang, "schedule.modelNotOffered", {
-        model,
-        choices: offered.join(", "),
-      })
+    ? t(lang, "schedule.modelNotOffered", { model, choices: offered.join(", ") })
     : t(lang, "schedule.modelNoneOffered", { model });
-  return href
-    ? rowMessageParts("failed", [{ text, href }])
-    : rowMessage("failed", text);
+  return href ? rowMessageParts("failed", [{ text, href }]) : rowMessage("failed", text);
 }

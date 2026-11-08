@@ -27,26 +27,19 @@ export const unitLabel = (usd: string, tok: string): string =>
  *  folder exits just as successfully as one that moved it. So the one
  *  archive row reads the spec's own reason instead — the same words the
  *  list's row shows, from the same field. */
-function outcome(
-  r: JobStepResultView,
-  archiveHeldBack?: string,
-  landingRefused?: LandingRefusal,
-  lang: Language = "en",
-): string {
+function outcome(r: JobStepResultView, archiveHeldBack?: string, landingRefused?: LandingRefusal, lang: Language = "en"): string {
   if (r.step === "archive" && r.ok && archiveHeldBack) {
     return `held back — ${esc(heldBackReasonText(lang, archiveHeldBack))}`;
   }
   // A create step that skipped the AI session reads distinctly
   // from an AI-run one, so a reader can tell which of the two paths
   // create took.
-  if (r.step === "create" && r.ok && r.tool === "none")
-    return "created (no AI)";
+  if (r.step === "create" && r.ok && r.tool === "none") return "created (no AI)";
   // The step's own process exited fine — that is all `ok` records — and
   // the merge that followed it was refused. A cell reading "ok" there
   // tells the reader the opposite of what the row on the specs list
   // says, so this one says the same thing that one does.
-  if (landingRefused && r.step === landingRefused.step && r.ok)
-    return esc(landingRefused.word);
+  if (landingRefused && r.step === landingRefused.step && r.ok) return esc(landingRefused.word);
   return r.ok ? "ok" : esc(r.terminalReason || "failed");
 }
 
@@ -65,12 +58,7 @@ export interface LandingRefusal {
 }
 
 export function landingRefusal(
-  job: {
-    landingError?: unknown;
-    errorReason?: string;
-    errorDetail?: string;
-    landingErrorDetail?: string;
-  },
+  job: { landingError?: unknown; errorReason?: string; errorDetail?: string; landingErrorDetail?: string },
   lang: Language,
 ): LandingRefusal | undefined {
   const e = job.landingError;
@@ -84,10 +72,7 @@ export function landingRefusal(
     // tests refused: the step ran and the merge was built, and what is
     // missing is a green suite. Everything else is a failure.
     word: job.errorReason === "tests-red" ? "merge stopped" : "merge failed",
-    detail:
-      [sentence, job.landingErrorDetail ?? job.errorDetail]
-        .filter(Boolean)
-        .join("\n") || undefined,
+    detail: [sentence, job.landingErrorDetail ?? job.errorDetail].filter(Boolean).join("\n") || undefined,
   };
 }
 
@@ -101,13 +86,9 @@ export function landingRefusal(
  *  `<details>` for the identical reason). The running row's own index opens
  *  it while it runs and opens its finished row after, so the row a reader
  *  has open stays open when the step ends; `live` still opens it. */
-export function resolveOpenStep(
-  query: string | undefined,
-  runningIndex: number | undefined,
-): string | undefined {
+export function resolveOpenStep(query: string | undefined, runningIndex: number | undefined): string | undefined {
   if (query === "none") return undefined;
-  if (runningIndex !== undefined && (query === undefined || query === "live"))
-    return String(runningIndex);
+  if (runningIndex !== undefined && (query === undefined || query === "live")) return String(runningIndex);
   return query;
 }
 
@@ -135,17 +116,11 @@ function stepFacts(r: JobStepResultView, lang: Language = "en"): string {
       value:
         esc(r.terminalReason) +
         // The usage limit that stopped the step, from the tool's own record.
-        (r.providerLimit
-          ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en", Date.now(), undefined, r.provider?.name))}</span>`
-          : ""),
+        (r.providerLimit ? `<br><span class="muted small">${esc(providerLimitSentence(r.providerLimit, undefined, "en", Date.now(), undefined, r.provider?.name))}</span>` : ""),
     },
-    ...(r.provider
-      ? [{ label: t(lang, "job.provider"), value: esc(r.provider.name) }]
-      : []),
+    ...(r.provider ? [{ label: t(lang, "job.provider"), value: esc(r.provider.name) }] : []),
   ]);
-  return hasLog
-    ? table
-    : `${table}<p class="muted">${t(lang, "job.logMissing")}</p>`;
+  return hasLog ? table : `${table}<p class="muted">${t(lang, "job.logMissing")}</p>`;
 }
 
 /** Exported because the SPEC page's Steps tab is the lead job's
@@ -187,22 +162,15 @@ export function stepResults(
   // results once it finishes, so the address that opens it keeps naming its
   // row after it has finished.
   const runningKey = opts.runningStep ? String(results.length) : undefined;
-  const open = resolveOpenStep(
-    opts.openStep,
-    opts.runningStep ? results.length : undefined,
-  );
+  const open = resolveOpenStep(opts.openStep, opts.runningStep ? results.length : undefined);
   // The chevron toggles; the name beside it is plain text — the same
   // split the specs list's own `.fold` uses, rather than making the
   // whole name the click target: a name with no visible affordance
   // read as plain text with a hover underline, not as something to press.
   const stepCell = (label: string, key: string, isOpen: boolean): string =>
     opts.tabHref
-      ? foldArrow({
-          href: `${opts.tabHref}&step=${isOpen ? "none" : key}`,
-          open: isOpen,
-          lang,
-          title: "job.stepFoldTitle",
-        }) + ` ${esc(label)}`
+      ? foldArrow({ href: `${opts.tabHref}&step=${isOpen ? "none" : key}`, open: isOpen, lang, title: "job.stepFoldTitle" }) +
+        ` ${esc(label)}`
       : esc(label);
   const rows = results
     .map((r, i) => {
@@ -221,21 +189,11 @@ export function stepResults(
         `<td>${esc(r.terminalReason)}</td>` +
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${r.at ? esc(r.at) : "–"}</td></tr>`;
-      const refusal =
-        opts.landingRefused && r.step === opts.landingRefused.step
-          ? opts.landingRefused.detail
-          : undefined;
+      const refusal = opts.landingRefused && r.step === opts.landingRefused.step ? opts.landingRefused.detail : undefined;
       const log = isOpen
-        ? `<tr class="steplog"><td colspan="6">${stepFacts(r, lang)}${stepPanel(
-            r,
-            {
-              tabHref: opts.tabHref,
-              key,
-              steptab: opts.steptab,
-              refusal,
-              lang,
-            },
-          )}</td></tr>`
+        ? `<tr class="steplog"><td colspan="6">${stepFacts(r, lang)}${stepPanel(r, {
+            tabHref: opts.tabHref, key, steptab: opts.steptab, refusal, lang,
+          })}</td></tr>`
         : "";
       return main + log;
     })

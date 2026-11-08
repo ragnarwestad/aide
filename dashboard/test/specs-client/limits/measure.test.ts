@@ -1,11 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  countText,
-  discarded,
-  ended,
-  limitState,
-  overText,
-} from "../../../src/specs-client/limits/measure.ts";
+import { countText, discarded, ended, limitState, overText } from "../../../src/specs-client/limits/measure.ts";
 
 describe("the count", () => {
   test("reads how many of how many, and nothing more while there is room", () => {

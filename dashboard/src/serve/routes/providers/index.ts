@@ -11,8 +11,5 @@ export async function handleProviderRoutes(
   url: URL,
   path: string,
 ): Promise<Response | null> {
-  return (
-    (await handleProviderSettingsRoutes(ctx, req, path)) ??
-    (await handleProviderPages(ctx, req, url, path))
-  );
+  return (await handleProviderSettingsRoutes(ctx, req, path)) ?? (await handleProviderPages(ctx, req, url, path));
 }

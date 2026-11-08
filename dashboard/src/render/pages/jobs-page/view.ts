@@ -25,22 +25,11 @@ import { byTabPlace, jobTitle, type TabPlace } from "./rows.ts";
 /** The state entries the Jobs tab offers, in the list's order: All, Running,
  *  Waiting, Stopped, Failed, Not verified. Active, Archived and Closed say
  *  nothing about a tab that shows only Active specs. */
-const JOBS_STATE_KEYS = [
-  "all",
-  "active:all",
-  "waiting",
-  "stopped",
-  "failed",
-  NOT_VERIFIED_KEY,
-];
-export const JOBS_STATE_FILTERS = STATE_FILTERS.filter((s) =>
-  JOBS_STATE_KEYS.includes(s.key),
-);
+const JOBS_STATE_KEYS = ["all", "active:all", "waiting", "stopped", "failed", NOT_VERIFIED_KEY];
+export const JOBS_STATE_FILTERS = STATE_FILTERS.filter((s) => JOBS_STATE_KEYS.includes(s.key));
 
 /** The entry a key names on this tab: one it does not offer is All. */
-export function jobsStateFilter(
-  key: string | undefined,
-): (typeof JOBS_STATE_FILTERS)[number] {
+export function jobsStateFilter(key: string | undefined): (typeof JOBS_STATE_FILTERS)[number] {
   const entry = stateFilter(key);
   return JOBS_STATE_FILTERS.includes(entry) ? entry : DEFAULT_STATE_FILTER;
 }
@@ -48,24 +37,14 @@ export function jobsStateFilter(
 /** What the filter and the sort read off a row. */
 export type RowFacts = Pick<
   SpecGroup,
-  | "project"
-  | "specFolder"
-  | "title"
-  | "description"
-  | "state"
-  | "notVerified"
-  | "failed"
-  | "spentUsd"
-  | "createdAt"
-  | "totalDurationMs"
-  | "lead"
+  | "project" | "specFolder" | "title" | "description" | "state" | "notVerified" | "failed"
+  | "spentUsd" | "createdAt" | "totalDurationMs" | "lead"
 >;
 
 /** When a job that is not going ended, in milliseconds; NaN when the queue
  *  recorded no end. */
-export const jobEndMs = (
-  row: Pick<QueueRowView, "finishedAt" | "results">,
-): number => Date.parse(row.finishedAt ?? row.results?.at(-1)?.at ?? "");
+export const jobEndMs = (row: Pick<QueueRowView, "finishedAt" | "results">): number =>
+  Date.parse(row.finishedAt ?? row.results?.at(-1)?.at ?? "");
 
 /** The figure a job row's Time cell shows: from its start while it goes, its
  *  span once ended, 0 before it starts or with no end. The column sorts by it. */
@@ -96,35 +75,22 @@ export function jobFacts(row: QueueRowView, now: number): RowFacts {
 /** The view with its state entry resolved for this tab: an entry the tab does
  *  not offer (an old `archived` or `closed` link) is All, before anything is
  *  filtered or counted. The tab's view holds no project: the search finds one. */
-const onTab = (f: SpecsFilter): SpecsFilter => ({
-  ...f,
-  state: jobsStateFilter(f.state).key,
-  project: undefined,
-});
+const onTab = (f: SpecsFilter): SpecsFilter => ({ ...f, state: jobsStateFilter(f.state).key, project: undefined });
 
 /** The rows the view shows, in its order: the state entry and the search cut
  *  them as `applyFilter` does; a column the view names orders them
  *  as `sortGroups` does; with none, the tab's own order (`byTabPlace`). */
-export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(
-  entries: E[],
-  f: SpecsFilter,
-): E[] {
+export function jobsViewRows<E extends { facts: RowFacts; place: TabPlace }>(entries: E[], f: SpecsFilter): E[] {
   const inOrder = [...entries].sort((a, b) => byTabPlace(a.place, b.place));
   const byFacts = new Map(inOrder.map((e) => [e.facts, e]));
-  const kept = applyFilter(
-    inOrder.map((e) => e.facts),
-    onTab(f),
-  );
+  const kept = applyFilter(inOrder.map((e) => e.facts), onTab(f));
   const shown = SORTS.includes(f.sort ?? "") ? sortGroups(kept, f) : kept;
   return shown.map((facts) => byFacts.get(facts)!);
 }
 
 /** What the state dropdown offers: the six entries, the chosen one marked,
  *  each counted over the rows the search lets through. */
-export function jobsStateOptions(
-  facts: RowFacts[],
-  f: SpecsFilter,
-): { key: string; count: number; on: boolean }[] {
+export function jobsStateOptions(facts: RowFacts[], f: SpecsFilter): { key: string; count: number; on: boolean }[] {
   const chosen = jobsStateFilter(f.state).key;
   const counted = facts.filter((g) => matchesSearch(g, f));
   return JOBS_STATE_FILTERS.map((s) => ({
@@ -137,10 +103,7 @@ export function jobsStateOptions(
 /** Where a heading's link goes: a column not sorted by goes to its first
  *  direction; the sorted one in its first direction turns round; turned round,
  *  back to the tab's own order. */
-export function jobsSortPatch(
-  f: SpecsFilter,
-  key: string,
-): { sort: string; dir: string } {
+export function jobsSortPatch(f: SpecsFilter, key: string): { sort: string; dir: string } {
   const first = SORT_DEFAULT_DIR[key]!;
   if (f.sort !== key) return { sort: key, dir: "" };
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : first;

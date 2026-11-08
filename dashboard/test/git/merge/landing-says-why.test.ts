@@ -15,10 +15,7 @@ const sentence = (lang: "en" | "nb", s: unknown): string =>
 
 const REACHES_THE_PUSH = {
   ...CLEAN_MASTER,
-  "ls-remote --exit-code": {
-    code: 0,
-    stdout: "deadbeef\trefs/heads/aide/49-crop-the-cover-image\n",
-  },
+  "ls-remote --exit-code": { code: 0, stdout: "deadbeef\trefs/heads/aide/49-crop-the-cover-image\n" },
   "merge -q --ff-only": { code: 0 },
   fetch: { code: 0 },
 };
@@ -34,21 +31,10 @@ describe("a merge whose push failed", () => {
       "ls-remote origin": { code: 128, stderr: PUBLICKEY },
       push: { code: 128, stderr: PUBLICKEY },
     });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "main",
-      noWait,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "main", noWait);
     expect(result.ok).toBe(false);
-    expect(result.error).toMatchObject({
-      key: "landing.pushFailedTo",
-      inner: { key: "git.pushAuth" },
-    });
-    expect(sentence("nb", result.error)).toContain(
-      "GitHub godtar ikke SSH-nøkkelen til maskinen som kjører Aide",
-    );
+    expect(result.error).toMatchObject({ key: "landing.pushFailedTo", inner: { key: "git.pushAuth" } });
+    expect(sentence("nb", result.error)).toContain("GitHub godtar ikke SSH-nøkkelen til maskinen som kjører Aide");
     expect(result.detail).toBe(
       "git@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.\n" +
         "Please make sure you have the correct access rights\nand the repository exists.",
@@ -56,34 +42,16 @@ describe("a merge whose push failed", () => {
   });
 
   test("a push that said nothing says that no error text was given", async () => {
-    const git = fakeGit({
-      ...REACHES_THE_PUSH,
-      "ls-remote origin": { code: 128 },
-      push: { code: 128 },
-    });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "main",
-      noWait,
-    );
-    expect(result.error).toMatchObject({
-      key: "landing.pushFailedTo",
-      inner: { key: "git.pushNoText" },
-    });
+    const git = fakeGit({ ...REACHES_THE_PUSH, "ls-remote origin": { code: 128 }, push: { code: 128 } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "main", noWait);
+    expect(result.error).toMatchObject({ key: "landing.pushFailedTo", inner: { key: "git.pushNoText" } });
   });
 
   test("the push and the question to origin get longer than the four-second default", async () => {
     const asked: (number | undefined)[] = [];
-    const git = fakeGit({
-      ...REACHES_THE_PUSH,
-      "ls-remote origin": { code: 0 },
-      push: { code: 0 },
-    });
+    const git = fakeGit({ ...REACHES_THE_PUSH, "ls-remote origin": { code: 0 }, push: { code: 0 } });
     const run: typeof git.run = (dir, args, timeoutMs) => {
-      if (args[0] === "push" && !args.includes("--delete"))
-        asked.push(timeoutMs);
+      if (args[0] === "push" && !args.includes("--delete")) asked.push(timeoutMs);
       return git.run(dir, args, timeoutMs);
     };
     await mergeBranchIntoDefault(run, ROOT, BRANCH, "main", noWait);
@@ -97,48 +65,24 @@ describe("a merge that conflicts", () => {
     fakeGit({
       ...REACHES_THE_PUSH,
       "merge -q --ff-only": { code: 1 },
-      "merge -q --no-edit": {
-        code: 1,
-        stdout: "CONFLICT (content): Merge conflict in a.ts\n",
-      },
+      "merge -q --no-edit": { code: 1, stdout: "CONFLICT (content): Merge conflict in a.ts\n" },
       "diff --name-only --diff-filter=U": { code: 0, stdout: files },
       "merge --abort": { code: 0 },
     });
 
   test("names the files in conflict, read before the merge is undone, and stays a conflict", async () => {
     const git = conflicting("a.ts\nb.ts\n");
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "main",
-      noWait,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "main", noWait);
     expect(result.reason).toBe("conflict");
-    expect(result.error).toMatchObject({
-      key: "landing.mergeConflictIn",
-      values: { files: "a.ts, b.ts" },
-    });
-    expect(result.detail).toContain(
-      "CONFLICT (content): Merge conflict in a.ts",
-    );
+    expect(result.error).toMatchObject({ key: "landing.mergeConflictIn", values: { files: "a.ts, b.ts" } });
+    expect(result.detail).toContain("CONFLICT (content): Merge conflict in a.ts");
     const asked = git.calls.map((c) => c.args.join(" "));
-    expect(asked.indexOf("diff --name-only --diff-filter=U")).toBeLessThan(
-      asked.indexOf("merge --abort"),
-    );
+    expect(asked.indexOf("diff --name-only --diff-filter=U")).toBeLessThan(asked.indexOf("merge --abort"));
   });
 
   test("five files at most, and how many more", async () => {
     const git = conflicting("1\n2\n3\n4\n5\n6\n7\n");
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "main",
-      noWait,
-    );
-    expect(result.error).toMatchObject({
-      values: { files: "1, 2, 3, 4, 5 (+2)" },
-    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "main", noWait);
+    expect(result.error).toMatchObject({ values: { files: "1, 2, 3, 4, 5 (+2)" } });
   });
 });

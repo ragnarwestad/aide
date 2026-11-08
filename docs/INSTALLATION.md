@@ -19,7 +19,6 @@
 ---
 
 > **📝 Note:** For AI-specific installation, primarily see:
->
 > - **Claude Code:** [core/implementations/claude-code/INSTALL.md](../core/implementations/claude-code/INSTALL.md)
 > - **Copilot:** [core/implementations/copilot/INSTALL.md](../core/implementations/copilot/INSTALL.md)
 >
@@ -28,6 +27,7 @@
 Complete step-by-step guide for setting up the AI workspace with your preferred AI tool.
 
 ---
+
 
 ## Choose your AI tool
 
@@ -163,7 +163,6 @@ writing through one link overwrite each other.
 **✅ General setup complete!**
 
 You now have:
-
 - ✅ Cloned the Aide workspace
 - ✅ (Optional) Configured the per-project keys
 
@@ -234,30 +233,27 @@ pressing Deploy.
 **Installation and setup:**
 
 1. **Install the Claude Code CLI:**
-
    ```bash
    # See: https://docs.anthropic.com/claude-code/installation
    # Requires a Claude Pro/Team subscription
    ```
 
 2. **Verify the installation:**
-
    ```bash
    claude --version
    # → Claude Code CLI version X.X.X
    ```
 
 3. **Run the setup script:**
-
    ```bash
    cd aide/implementations/claude-code
    ./install.sh
    ```
 
    **The script installs globally:**
-   - ✅ Skills, agents and rules → `~/.claude/`
-   - ✅ Scripts (incl. `upgrade-ai-tools`) → `~/.local/bin/`
-   - ✅ LSP plugins (typescript, kotlin, jdtls)
+    - ✅ Skills, agents and rules → `~/.claude/`
+    - ✅ Scripts (incl. `upgrade-ai-tools`) → `~/.local/bin/`
+    - ✅ LSP plugins (typescript, kotlin, jdtls)
 
    **💡 Tip:** If you set environment variables in Step 3, run `source ~/.zshrc` before setup.
 
@@ -284,29 +280,24 @@ pressing Deploy.
 **Installation and setup:**
 
 1. **Install the Copilot CLI:**
-
    ```bash
    mise use -g npm:@github/copilot@latest
    ```
 
 2. **Verify the installation:**
-
    ```bash
    copilot --version
    ```
 
 3. **Run the install script:**
-
    ```bash
    # From the workspace root
    core/implementations/copilot/install.sh
    ```
-
    It installs `AGENTS.md` as the global Copilot instructions
    (`~/.copilot/copilot-instructions.md`) and the shared scripts to `~/.local/bin/`.
 
 4. **Log in:**
-
    ```bash
    copilot login
    ```
@@ -334,30 +325,27 @@ pressing Deploy.
 **Installation and setup:**
 
 1. **Install Codex:**
-
    ```bash
    mise use -g npm:@openai/codex@latest
    ```
 
 2. **Verify the installation:**
-
    ```bash
    codex --version
    ```
 
 3. **Run the setup script:**
-
    ```bash
    cd aide/implementations/codex
    ./install.sh
    ```
 
    **The script installs globally:**
-   - ✅ Instructions (`core/AGENTS.md`) → `~/.codex/AGENTS.md`
-   - ✅ Hooks → `~/.codex/hooks.json` + `~/.codex/hooks/aide-*.sh` (the hooks need `jq`)
-   - ✅ Skills (`core/skills/`) → `~/.agents/skills/` (shared with Copilot)
-   - ✅ Scripts → `~/.local/bin/`
-   - ✅ On request: the MCP snippets in `mcp/*.toml` → appended to `~/.codex/config.toml`
+    - ✅ Instructions (`core/AGENTS.md`) → `~/.codex/AGENTS.md`
+    - ✅ Hooks → `~/.codex/hooks.json` + `~/.codex/hooks/aide-*.sh` (the hooks need `jq`)
+    - ✅ Skills (`core/skills/`) → `~/.agents/skills/` (shared with Copilot)
+    - ✅ Scripts → `~/.local/bin/`
+    - ✅ On request: the MCP snippets in `mcp/*.toml` → appended to `~/.codex/config.toml`
 
 **Full documentation:**
 
@@ -374,31 +362,27 @@ model call refused until you do.
 **Installation and setup:**
 
 1. **Install OpenCode:**
-
    ```bash
    mise use -g opencode@latest
    ```
 
 2. **Verify the installation:**
-
    ```bash
    opencode --version
    ```
 
 3. **Run the setup script:**
-
    ```bash
    cd aide/implementations/opencode
    ./install.sh
    ```
 
    **The script installs globally:**
-   - ✅ Instructions (`core/AGENTS.md`) → `~/.config/opencode/AGENTS.md`
-   - ✅ Scripts (incl. `upgrade-ai-tools`) → `~/.local/bin/`
-   - ✅ Nothing for the skills: OpenCode scans `~/.agents/skills` and `~/.claude/skills` itself
+    - ✅ Instructions (`core/AGENTS.md`) → `~/.config/opencode/AGENTS.md`
+    - ✅ Scripts (incl. `upgrade-ai-tools`) → `~/.local/bin/`
+    - ✅ Nothing for the skills: OpenCode scans `~/.agents/skills` and `~/.claude/skills` itself
 
 4. **Log in to a provider:**
-
    ```bash
    opencode auth login
    opencode models          # what the logged-in providers offer
@@ -428,14 +412,14 @@ model call refused until you do.
 **Other AI tools:**
 
 1. **Add new AI tools:**
-   - Follow the same pattern as Codex/Copilot
-   - Create `core/implementations/<tool>/`
-   - Reuse the `core/rules/` rules
+    - Follow the same pattern as Codex/Copilot
+    - Create `core/implementations/<tool>/`
+    - Reuse the `core/rules/` rules
 
 2. **Use the generic workflows:**
-   - Read `core/skills/workflows/SKILL.md` for the spec workflow
-   - Follow `core/rules/testing.md` for TDD
-   - Follow `core/rules/git.md` for git operations
+    - Read `core/skills/workflows/SKILL.md` for the spec workflow
+    - Follow `core/rules/testing.md` for TDD
+    - Follow `core/rules/git.md` for git operations
 
 3. **Create a spec:**
    ```bash
@@ -554,20 +538,20 @@ core/implementations/copilot/install.sh
 Once the setup is complete:
 
 1. **Read the implementation documentation for your AI tool:**
-   - [core/implementations/claude-code/README.md](../core/implementations/claude-code/README.md)
-   - [core/implementations/copilot/README.md](../core/implementations/copilot/README.md)
+    - [core/implementations/claude-code/README.md](../core/implementations/claude-code/README.md)
+    - [core/implementations/copilot/README.md](../core/implementations/copilot/README.md)
 
 2. **Read the generic workflows:**
-   - [core/skills/workflows/SKILL.md](../core/skills/workflows/SKILL.md)
-   - [core/skills/documentation/SKILL.md](../core/skills/documentation/SKILL.md)
+    - [core/skills/workflows/SKILL.md](../core/skills/workflows/SKILL.md)
+    - [core/skills/documentation/SKILL.md](../core/skills/documentation/SKILL.md)
 
 3. **Test with a real spec:**
-   - Create the documentation
-   - Analyze the codebase
-   - Implement with TDD (optional)
+    - Create the documentation
+    - Analyze the codebase
+    - Implement with TDD (optional)
 
 4. **Explore further:**
-   - Read README.md for the full overview
+    - Read README.md for the full overview
 
 ---
 

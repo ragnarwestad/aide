@@ -51,17 +51,10 @@ const deploy = (o: Record<string, unknown> = {}) => ({
 });
 
 const board = (jobs: Record<string, unknown>[]) =>
-  harness.start({
-    extra: { queueProjects: ["aide"] },
-    queueMirror: JSON.stringify(jobs),
-  });
+  harness.start({ extra: { queueProjects: ["aide"] }, queueMirror: JSON.stringify(jobs) });
 
 const rows = async (base: string, open = ""): Promise<string> =>
-  await (
-    await fetch(
-      `${base}/?rows=1${open ? `&open=${encodeURIComponent(open)}` : ""}`,
-    )
-  ).text();
+  await (await fetch(`${base}/?rows=1${open ? `&open=${encodeURIComponent(open)}` : ""}`)).text();
 
 /** The sentence as a row writes it: its first letter is a capital. */
 const sentence = (s: Parameters<typeof renderSentence>[1]): string => {
@@ -80,19 +73,10 @@ describe("a deploy job on the Running tab", () => {
   });
 
   test("a queued and a held-back deploy are there too", async () => {
-    const queued = await rows(
-      board([deploy({ state: "queued", startedAt: undefined })]).base,
-    );
+    const queued = await rows(board([deploy({ state: "queued", startedAt: undefined })]).base);
     expect(queued).toContain(`id="spec-${KEY}"`);
     const held = await rows(
-      board([
-        deploy({
-          state: "queued",
-          startedAt: undefined,
-          errorReason: "held-back",
-          error: { key: "runner.landingPause" },
-        }),
-      ]).base,
+      board([deploy({ state: "queued", startedAt: undefined, errorReason: "held-back", error: { key: "runner.landingPause" } })]).base,
     );
     expect(held).toContain(`id="spec-${KEY}"`);
   });
@@ -111,16 +95,8 @@ describe("its row, open and shut", () => {
   test("open, it lists the five steps in order", async () => {
     const { base } = board([deploy({ streamFile: marked() })]);
     const html = await rows(base, KEY);
-    expect(
-      [...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g)].map(
-        (m) => m[1],
-      ),
-    ).toEqual([
-      "Step 1 of 5",
-      "Step 2 of 5",
-      "Step 3 of 5",
-      "Step 4 of 5",
-      "Step 5 of 5",
+    expect([...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g)].map((m) => m[1])).toEqual([
+      "Step 1 of 5", "Step 2 of 5", "Step 3 of 5", "Step 4 of 5", "Step 5 of 5",
     ]);
   });
 
@@ -134,9 +110,7 @@ describe("what its row says", () => {
   test("a hold shows its sentence on the row, shut, and the state reads Held back, also when running", async () => {
     const error = { key: "runner.landingPause" } as const;
     for (const state of ["queued", "running"]) {
-      const { base } = board([
-        deploy({ state, errorReason: "held-back", error }),
-      ]);
+      const { base } = board([deploy({ state, errorReason: "held-back", error })]);
       const html = await rows(base);
       expect(html).toContain(sentence(error));
       expect(html).toContain(">Held back<");
@@ -144,13 +118,8 @@ describe("what its row says", () => {
   });
 
   test("a failed deploy keeps its row, with the failure's sentence on it", async () => {
-    const error = {
-      key: "landing.deployServiceOlder",
-      values: { served: "9999999", head: "abc1234" },
-    } as const;
-    const { base } = board([
-      deploy({ state: "failed", finishedAt: "2026-10-13T10:05:00Z", error }),
-    ]);
+    const error = { key: "landing.deployServiceOlder", values: { served: "9999999", head: "abc1234" } } as const;
+    const { base } = board([deploy({ state: "failed", finishedAt: "2026-10-13T10:05:00Z", error })]);
     const html = await rows(base);
     expect(html).toContain(`id="spec-${KEY}"`);
     expect(html).toContain(sentence(error));

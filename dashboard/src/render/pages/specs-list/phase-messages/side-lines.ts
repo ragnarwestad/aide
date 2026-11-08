@@ -19,9 +19,7 @@ import { parsePhaseKeys, phaseKey } from "./keys.ts";
 /** What the newest implement attempt reports of one of its side sessions, or
  *  nothing when it ran without that session or has no result yet. */
 export function sideRunOf(p: Phase, part: SidePart): SideRunView | undefined {
-  return (p.attempts[0]?.results ?? []).find((r) => r.step === "implement")?.[
-    part
-  ];
+  return (p.attempts[0]?.results ?? []).find((r) => r.step === "implement")?.[part];
 }
 
 /** A side session that completed is done; any other ending failed. */
@@ -46,16 +44,7 @@ export function sideLines(
   const open = !!run && unfolded.includes(key);
   const arrow = run
     ? foldArrow({
-        href: queuePath(
-          opts.filter ?? {},
-          {
-            phases: (open
-              ? unfolded.filter((k) => k !== key)
-              : [...unfolded, key]
-            ).join(","),
-          },
-          opts.listPath,
-        ),
+        href: queuePath(opts.filter ?? {}, { phases: (open ? unfolded.filter((k) => k !== key) : [...unfolded, key]).join(",") }, opts.listPath),
         open,
         lang,
         title: "list.phaseFoldTitle",
@@ -72,18 +61,7 @@ export function sideLines(
       `<td class="num" data-col="cost">${run ? costCell(run.costUsd ?? 0, run.tokens, "–", run.costUsd !== undefined) : ""}</td>`,
   };
   if (!open) return [line];
-  const found = opts.sideMessages?.(
-    p.attempts.map((a) => a.id),
-    part,
-  );
-  const body = found
-    ? logBox(found.logs, found.aiModel, lang)
-    : `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`;
-  return [
-    line,
-    {
-      tag: `<tr class="phasemsgs" data-msgs="implement.${part}">`,
-      cells: `<td colspan="${LIST_COLUMNS}">${body}</td>`,
-    },
-  ];
+  const found = opts.sideMessages?.(p.attempts.map((a) => a.id), part);
+  const body = found ? logBox(found.logs, found.aiModel, lang) : `<p class="phasemsgempty muted">${esc(t(lang, "list.phaseNoneKept"))}</p>`;
+  return [line, { tag: `<tr class="phasemsgs" data-msgs="implement.${part}">`, cells: `<td colspan="${LIST_COLUMNS}">${body}</td>` }];
 }

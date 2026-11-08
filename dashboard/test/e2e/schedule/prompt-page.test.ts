@@ -23,23 +23,10 @@ beforeAll(async () => {
   const since = new Date(Date.now() + 3_600_000).toISOString();
   writeFileSync(
     queueConfigFile,
-    JSON.stringify({
-      schedules: {
-        aide: [
-          {
-            name: "nightly-report",
-            cron: "0 3 * * *",
-            prompt: "docs/nightly.md",
-            since,
-          },
-        ],
-      },
-    }),
+    JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", since }] } }),
   );
   const started = harness.start({ extra: { queueConfigFile } });
-  projectWithOrigin(started.dir, "aide", {
-    "docs/nightly.md": "# Nightly\n\nWhat the job does.\n",
-  });
+  projectWithOrigin(started.dir, "aide", { "docs/nightly.md": "# Nightly\n\nWhat the job does.\n" });
   base = started.base;
   browser = await chromium.launch();
 });
@@ -54,9 +41,7 @@ test("the viewer mounts and draws the file's first line as a heading", async () 
   await page.goto(`${base}/schedule/aide/nightly-report/prompt`);
   await page.locator("#spec-editor-host[data-mounted]").waitFor();
   // Inside the viewer only: the page's own <h1> names the file, not "Nightly".
-  const heading = page
-    .locator("#spec-editor-host")
-    .getByRole("heading", { name: "Nightly", exact: true });
+  const heading = page.locator("#spec-editor-host").getByRole("heading", { name: "Nightly", exact: true });
   await heading.waitFor();
   expect(await heading.count()).toBe(1);
   await page.close();

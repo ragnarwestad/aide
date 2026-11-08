@@ -21,61 +21,36 @@ const queue = (base: string, steps: string[]) =>
   fetch(`${base}/api/queue`, {
     method: "POST",
     headers: AUTH,
-    body: JSON.stringify({
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps,
-    }),
+    body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
   });
 
 const queued = async (base: string): Promise<number> =>
-  (
-    (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
-      jobs: unknown[];
-    }
-  ).jobs.length;
+  ((await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as { jobs: unknown[] }).jobs.length;
 
 describe("a phase that has run may be run again", () => {
   test("analyze on an implemented spec is accepted", async () => {
-    const { base } = harness.start({
-      extra: {},
-      status: statusSaying(["create", "analyze", "implement"]),
-    });
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
     expect((await queue(base, ["analyze"])).status).toBe(200);
     expect(await queued(base)).toBe(1);
   });
 
   test("analyze again on an analyzed spec is accepted", async () => {
-    const { base } = harness.start({
-      extra: {},
-      status: statusSaying(["create", "analyze"]),
-    });
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze"]) });
     expect((await queue(base, ["analyze"])).status).toBe(200);
   });
 
   test("implement again on an implemented spec is accepted", async () => {
-    const { base } = harness.start({
-      extra: {},
-      status: statusSaying(["create", "analyze", "implement"]),
-    });
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
     expect((await queue(base, ["implement"])).status).toBe(200);
   });
 
   test("analyze, implement and archive together on an implemented spec are accepted", async () => {
-    const { base } = harness.start({
-      extra: {},
-      status: statusSaying(["create", "analyze", "implement"]),
-    });
-    expect(
-      (await queue(base, ["analyze", "implement", "archive"])).status,
-    ).toBe(200);
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create", "analyze", "implement"]) });
+    expect((await queue(base, ["analyze", "implement", "archive"])).status).toBe(200);
   });
 
   test("analyze and implement together on a created spec are accepted", async () => {
-    const { base } = harness.start({
-      extra: {},
-      status: statusSaying(["create"]),
-    });
+    const { base } = harness.start({ extra: {}, status: statusSaying(["create"]) });
     expect((await queue(base, ["analyze", "implement"])).status).toBe(200);
   });
 });
@@ -89,27 +64,16 @@ describe("a start out of order is refused at the press, with the reason", () => 
     expect(await queued(base)).toBe(0);
   };
 
-  test("implement before analyze", () =>
-    refused(["create"], ["implement"], "has not been analyzed yet"));
+  test("implement before analyze", () => refused(["create"], ["implement"], "has not been analyzed yet"));
 
-  test("archive before implement", () =>
-    refused(
-      ["create", "analyze"],
-      ["archive"],
-      "has not reached implement yet",
-    ));
+  test("archive before implement", () => refused(["create", "analyze"], ["archive"], "has not reached implement yet"));
 
-  test("create on a spec that exists", () =>
-    refused(["create", "analyze"], ["create"], "create cannot run again"));
+  test("create on a spec that exists", () => refused(["create", "analyze"], ["create"], "create cannot run again"));
 
   // A new analysis takes the spec back to analyzed, so an archive queued
   // behind it in the same press starts out of order.
   test("archive in the same press as a new analysis", () =>
-    refused(
-      ["create", "analyze", "implement"],
-      ["analyze", "archive"],
-      "has not reached implement yet",
-    ));
+    refused(["create", "analyze", "implement"], ["analyze", "archive"], "has not reached implement yet"));
 });
 
 // Implement lands nothing: its record is on the spec's branch until
@@ -118,10 +82,7 @@ describe("a start out of order is refused at the press, with the reason", () => 
 // archive is refused as "not reached implement yet".
 describe("a phase proved on the spec's branch counts, though main has not got it", () => {
   test("archive after an implement main does not show yet is accepted", async () => {
-    const { base, dir } = harness.start({
-      extra: {},
-      status: statusSaying(["create", "analyze"]),
-    });
+    const { base, dir } = harness.start({ extra: {}, status: statusSaying(["create", "analyze"]) });
     ran(dir, ["create", "analyze", "implement"]);
     await listUntil(base, rowSaysDone("implement"));
     expect((await queue(base, ["archive"])).status).toBe(200);
@@ -133,10 +94,7 @@ describe("a phase proved on the spec's branch counts, though main has not got it
 // a run that had happened. The refusal names what did not happen.
 describe("implement on an analysis that never merged into main", () => {
   test("is refused at the press, saying the merge is what is missing", async () => {
-    const { base, dir } = harness.start({
-      extra: {},
-      status: statusSaying(["create"]),
-    });
+    const { base, dir } = harness.start({ extra: {}, status: statusSaying(["create"]) });
     ran(dir, ["create", "analyze"]);
     await listUntil(base, rowSaysDone("analyze"));
     const res = await queue(base, ["implement"]);
@@ -148,10 +106,7 @@ describe("implement on an analysis that never merged into main", () => {
   });
 
   test("with analyze in the same press, the job's own analysis merges first and it is accepted", async () => {
-    const { base, dir } = harness.start({
-      extra: {},
-      status: statusSaying(["create"]),
-    });
+    const { base, dir } = harness.start({ extra: {}, status: statusSaying(["create"]) });
     ran(dir, ["create", "analyze"]);
     await listUntil(base, rowSaysDone("analyze"));
     expect((await queue(base, ["analyze", "implement"])).status).toBe(200);

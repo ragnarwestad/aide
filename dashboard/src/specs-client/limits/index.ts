@@ -9,14 +9,7 @@
 // from submitting. The count and the line are drawn here, not by the server,
 // so a page with script off is exactly what it was.
 
-import {
-  countText,
-  discarded,
-  discardedText,
-  ended,
-  limitState,
-  overText,
-} from "./measure.ts";
+import { countText, discarded, discardedText, ended, limitState, overText } from "./measure.ts";
 
 type Field = HTMLInputElement | HTMLTextAreaElement;
 interface Drawn {
@@ -34,14 +27,9 @@ const drawn = new WeakMap<Field, Drawn>();
 const isUncut = (field: Field): boolean => field.hasAttribute("data-bound");
 
 function draw(doc: Document, field: Field): void {
-  const bound = Number(
-    field.getAttribute("maxlength") ??
-      field.dataset.maxlength ??
-      field.dataset.bound,
-  );
+  const bound = Number(field.getAttribute("maxlength") ?? field.dataset.maxlength ?? field.dataset.bound);
   if (!Number.isFinite(bound) || bound <= 0) return;
-  if (!field.hasAttribute("maxlength") && !isUncut(field))
-    field.maxLength = bound;
+  if (!field.hasAttribute("maxlength") && !isUncut(field)) field.maxLength = bound;
   const count = doc.createElement("span");
   const note = doc.createElement("span");
   note.setAttribute("data-limit-note", "");
@@ -102,8 +90,7 @@ function watch(field: Field, inserted: number, replaced: number): void {
     refreshLimit(field);
     const after = field.value.length;
     const lost = discarded(inserted, before, replaced, after);
-    d.note.textContent =
-      lost > 0 && ended(after, d.bound) ? discardedText(lost, d.bound) : "";
+    d.note.textContent = lost > 0 && ended(after, d.bound) ? discardedText(lost, d.bound) : "";
   }, 0);
 }
 
@@ -126,11 +113,7 @@ export function bindLimits(doc: Document): void {
     const field = fieldOf(e);
     if (!field || isUncut(field)) return;
     const text = (e as ClipboardEvent).clipboardData?.getData("text") ?? "";
-    watch(
-      field,
-      fold(field, text),
-      Math.abs((field.selectionEnd ?? 0) - (field.selectionStart ?? 0)),
-    );
+    watch(field, fold(field, text), Math.abs((field.selectionEnd ?? 0) - (field.selectionStart ?? 0)));
   });
   // A move inside one field discards nothing, and a cancelled drag must not
   // hide a later drop from outside.

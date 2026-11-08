@@ -45,12 +45,7 @@ export function archiveHeldBackReason(content: string): string | null {
   const body = content.slice(m.index + m[0].length);
   const end = body.search(SECTION_END_RE);
   const section = (end === -1 ? body : body.slice(0, end)).trim();
-  return (
-    section
-      .split("\n")[0]
-      ?.replace(/^[-*]\s*/, "")
-      .trim() || null
-  );
+  return section.split("\n")[0]?.replace(/^[-*]\s*/, "").trim() || null;
 }
 
 /** The reason archive keeps refusing while a person has not yet judged
@@ -67,18 +62,14 @@ export function archiveHeldBackReason(content: string): string | null {
  *  not `null`, to match `archiveHeldBackReason`'s own call sites, which
  *  already treat that field as "a reason, or nothing to say". */
 export function acceptanceCriteriaUnticked(content: string): boolean {
-  return parseStatusChecks(content).some(
-    (c) => /^acceptance\b/i.test(c.phase) && !c.done,
-  );
+  return parseStatusChecks(content).some((c) => /^acceptance\b/i.test(c.phase) && !c.done);
 }
 
 /** The `## Acceptance criteria` rows and nothing else: the rows a person
  *  ticks, drawn by the Specs list's unfold. Each keeps its verbatim line,
  *  which is how the tick route finds it again. */
 export function acceptanceRowsOf(content: string): StatusCheck[] {
-  return parseStatusChecks(content).filter((c) =>
-    /^acceptance\b/i.test(c.phase),
-  );
+  return parseStatusChecks(content).filter((c) => /^acceptance\b/i.test(c.phase));
 }
 
 /** The one string this reason is always reported as. Shared so
@@ -170,8 +161,7 @@ export function archiveHeldBackApplies(
  *  been held back this way. The LAST mark wins, same rule
  *  `archiveHeldBackReason`/`parseReopenedAfter` already keep for a mark
  *  written more than once. */
-const ROUND_BOUNDARY_RE =
-  /round boundary:\*\*[^\n]*?history before\s*`([0-9a-fA-F]{7,40})`/gi;
+const ROUND_BOUNDARY_RE = /round boundary:\*\*[^\n]*?history before\s*`([0-9a-fA-F]{7,40})`/gi;
 
 export function latestRoundBoundary(content: string): string | null {
   const matches = [...content.matchAll(ROUND_BOUNDARY_RE)];
@@ -189,11 +179,8 @@ export function reopenedRound(content: string): boolean {
   const lines = content.split("\n");
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
-    if (/^\s*[-*]?\s*\*\*(archived|closed):\*\*/i.test(line)) {
-      lastStamp = i;
-      lastMark = i;
-    } else if (/^\s*[-*]?\s*\*\*(reopened|reset):\*\*/i.test(line))
-      lastMark = i;
+    if (/^\s*[-*]?\s*\*\*(archived|closed):\*\*/i.test(line)) { lastStamp = i; lastMark = i; }
+    else if (/^\s*[-*]?\s*\*\*(reopened|reset):\*\*/i.test(line)) lastMark = i;
     else if (/^\s*[-*]?\s*\*\*round boundary:\*\*/i.test(line)) boundary = i;
   }
   return lastStamp >= 0 && lastMark === lastStamp && boundary > lastStamp;

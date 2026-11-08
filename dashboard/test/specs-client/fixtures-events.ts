@@ -76,16 +76,7 @@ export function buildNavigation(
     return fire("click", link);
   };
 
-  return {
-    submit,
-    submitCreate,
-    click,
-    clickFold,
-    clickHref,
-    fire,
-    foldLink,
-    foldAttrs,
-  };
+  return { submit, submitCreate, click, clickFold, clickHref, fire, foldLink, foldAttrs };
 }
 
 /** `document.querySelectorAll`, as `harness()`'s fake document answers
@@ -104,43 +95,23 @@ export function resolveDocumentQuerySelectorAll(
     elapsed: unknown[];
     addForm: unknown;
     removeForm: unknown;
-    aiSelects: {
-      getAttribute: (n: string) => string | null;
-      dataset: { ai?: string };
-    }[];
-    modelSelects: {
-      getAttribute: (n: string) => string | null;
-      name: string;
-    }[];
-    otherRowSelect: {
-      getAttribute: (n: string) => string | null;
-      name: string;
-    };
+    aiSelects: { getAttribute: (n: string) => string | null; dataset: { ai?: string } }[];
+    modelSelects: { getAttribute: (n: string) => string | null; name: string }[];
+    otherRowSelect: { getAttribute: (n: string) => string | null; name: string };
     runButton: { getAttribute: (n: string) => string | null };
     stepBoxes: { getAttribute: (n: string) => string | null }[];
     tailBoxEl: { getAttribute: (n: string) => string | null };
   },
 ): unknown[] {
-  const {
-    elapsed,
-    addForm,
-    removeForm,
-    aiSelects,
-    modelSelects,
-    otherRowSelect,
-    runButton,
-    stepBoxes,
-    tailBoxEl,
-  } = ctx;
+  const { elapsed, addForm, removeForm, aiSelects, modelSelects, otherRowSelect, runButton, stepBoxes, tailBoxEl } =
+    ctx;
   // Asked FIRST: it names no form and no class, so every branch below
   // would answer it with the empty list.
   if (sel.includes("data-elapsed")) return elapsed;
   if (sel.includes("removeform")) return [addForm, removeForm];
   if (sel.includes("data-ai=")) {
     return aiSelects.filter(
-      (a) =>
-        sel.includes(`form="${a.getAttribute("form")}"`) &&
-        sel.includes(`data-ai="${a.dataset.ai}"`),
+      (a) => sel.includes(`form="${a.getAttribute("form")}"`) && sel.includes(`data-ai="${a.dataset.ai}"`),
     );
   }
   if (sel.includes("model.")) {
@@ -160,14 +131,9 @@ export function resolveDocumentQuerySelectorAll(
   // another form and is not answered here, which is what "the press
   // reaches its own row and no other" is proved against.
   if (sel.startsWith("[form=")) {
-    return [
-      runButton,
-      ...stepBoxes,
-      tailBoxEl,
-      ...modelSelects,
-      ...aiSelects,
-      otherRowSelect,
-    ].filter((el) => sel.includes(`"${el.getAttribute("form")}"`));
+    return [runButton, ...stepBoxes, tailBoxEl, ...modelSelects, ...aiSelects, otherRowSelect].filter((el) =>
+      sel.includes(`"${el.getAttribute("form")}"`),
+    );
   }
   return [];
 }

@@ -7,16 +7,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore } from "../../../src/queue/queue.ts";
 import { resumeCutLandings } from "../../../src/queue/runner/cut-landing.ts";
-import {
-  DEFAULTS,
-  cleanupHarness,
-  dir,
-  enqueue,
-  makeRunner,
-  okResult,
-  resetHarness,
-  spawns,
-} from "./runner-fixtures.ts";
+import { DEFAULTS, cleanupHarness, dir, enqueue, makeRunner, okResult, resetHarness, spawns } from "./runner-fixtures.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -27,20 +18,10 @@ const resolve = () => ({ specFolders: ["81-queue-and-runner"] });
  *  board read back from its mirror as it would be after a restart. */
 function cutShort() {
   const job = enqueue({ steps: ["analyze", "implement"] });
-  const before = makeRunner({
-    readResult: () => okResult(1),
-    onStepDone: () => new Promise(() => {}),
-  });
+  const before = makeRunner({ readResult: () => okResult(1), onStepDone: () => new Promise(() => {}) });
   before.tick();
   before.poll();
-  return {
-    job,
-    restored: new QueueStore({
-      mirrorPath: join(dir, "queue.json"),
-      defaults: DEFAULTS,
-      resolve,
-    }),
-  };
+  return { job, restored: new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve }) };
 }
 
 describe("a landing the last process never finished", () => {
@@ -73,11 +54,7 @@ describe("a landing the last process never finished", () => {
   test("with no result to land from, nothing is called and the queue is not held", () => {
     const { job, restored } = cutShort();
     let called = false;
-    resumeCutLandings({
-      store: restored,
-      readResult: () => null,
-      onStepDone: () => void (called = true),
-    });
+    resumeCutLandings({ store: restored, readResult: () => null, onStepDone: () => void (called = true) });
     expect(called).toBe(false);
     expect(restored.get(job.id)!.landing).toBeUndefined();
   });
@@ -85,11 +62,7 @@ describe("a landing the last process never finished", () => {
   test("is run once, not again at the next boot after it settled", () => {
     const { restored } = cutShort();
     let calls = 0;
-    const again = {
-      store: restored,
-      readResult: () => okResult(1),
-      onStepDone: () => void calls++,
-    };
+    const again = { store: restored, readResult: () => okResult(1), onStepDone: () => void calls++ };
     resumeCutLandings(again);
     resumeCutLandings(again);
     expect(calls).toBe(1);

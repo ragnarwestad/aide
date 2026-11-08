@@ -4,25 +4,12 @@
 // (write-then-rename) and reloaded on boot so restarts keep the runs.
 // The payload schema is written down here and nowhere else.
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 export const AIDE_COMMANDS = [
-  "explore",
-  "create",
-  "analyze",
-  "implement",
-  "archive",
-  "make-tests",
-  "to-pdf",
-  "to-html",
-  "react-class-to-func",
+  "explore", "create", "analyze", "implement", "archive",
+  "make-tests", "to-pdf", "to-html", "react-class-to-func",
 ] as const;
 export type AideCommand = (typeof AIDE_COMMANDS)[number];
 
@@ -53,12 +40,12 @@ export interface StoredRun extends AideRun {
 }
 
 export type ParseResult =
-  { ok: true; run: AideRun } | { ok: false; error: string };
+  | { ok: true; run: AideRun }
+  | { ok: false; error: string };
 
 function optShort(v: unknown, name: string): string | undefined | Error {
   if (v === undefined || v === null) return undefined;
-  if (typeof v !== "string" || !SHORT_RE.test(v))
-    return new Error(`invalid ${name}`);
+  if (typeof v !== "string" || !SHORT_RE.test(v)) return new Error(`invalid ${name}`);
   return v;
 }
 
@@ -69,15 +56,11 @@ export function parseAideRun(raw: unknown): ParseResult {
     return { ok: false, error: "body is not an object" };
   }
   const r = raw as Record<string, unknown>;
-  if (typeof r.host !== "string" || !HOST_RE.test(r.host))
-    return { ok: false, error: "invalid host" };
+  if (typeof r.host !== "string" || !HOST_RE.test(r.host)) return { ok: false, error: "invalid host" };
   if (typeof r.sessionId !== "string" || !SESSION_RE.test(r.sessionId)) {
     return { ok: false, error: "invalid sessionId" };
   }
-  if (
-    typeof r.command !== "string" ||
-    !(AIDE_COMMANDS as readonly string[]).includes(r.command)
-  ) {
+  if (typeof r.command !== "string" || !(AIDE_COMMANDS as readonly string[]).includes(r.command)) {
     return { ok: false, error: "invalid command" };
   }
   const spec = optShort(r.spec, "spec");
@@ -86,8 +69,7 @@ export function parseAideRun(raw: unknown): ParseResult {
   if (project instanceof Error) return { ok: false, error: project.message };
   let phase: TddPhase | undefined;
   if (r.phase !== undefined && r.phase !== null) {
-    if (typeof r.phase !== "string")
-      return { ok: false, error: "invalid phase" };
+    if (typeof r.phase !== "string") return { ok: false, error: "invalid phase" };
     // An installation whose own aide-emit-run has not been upgraded still
     // reports the old name — treated as this phase's new one.
     const reported = r.phase === "refactor" ? "verify" : r.phase;
@@ -99,15 +81,10 @@ export function parseAideRun(raw: unknown): ParseResult {
   let capturedAt: string | undefined;
   if (r.capturedAt !== undefined && r.capturedAt !== null) {
     const d = new Date(r.capturedAt as string | number);
-    if (Number.isNaN(d.getTime()))
-      return { ok: false, error: "invalid capturedAt" };
+    if (Number.isNaN(d.getTime())) return { ok: false, error: "invalid capturedAt" };
     capturedAt = d.toISOString();
   }
-  const run: AideRun = {
-    host: r.host,
-    sessionId: r.sessionId,
-    command: r.command as AideCommand,
-  };
+  const run: AideRun = { host: r.host, sessionId: r.sessionId, command: r.command as AideCommand };
   if (spec) run.spec = spec;
   if (project) run.project = project;
   if (phase) run.phase = phase;

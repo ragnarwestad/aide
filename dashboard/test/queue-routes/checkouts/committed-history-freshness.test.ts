@@ -6,14 +6,7 @@ import { join } from "node:path";
 import { t } from "../../../src/i18n";
 import { ran, statusSaying } from "../../helpers/queue-server.ts";
 import { fakeGit as gitFake } from "../../helpers/fake-git.ts";
-import {
-  specControls,
-  phaseDone,
-  OPEN_81,
-  listUntil,
-  dated,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { specControls, phaseDone, OPEN_81, listUntil, dated, setupQueueRoutesHarness } from "../fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
 
@@ -32,8 +25,7 @@ afterEach(() => harness.cleanup());
 // The commits are the record now. The file's line is a claim, and a
 // claim the history does not support is said out loud on the row.
 describe("what has run is what has been committed", () => {
-  const specDir = (dir: string) =>
-    join(dir, "root", "aide", "specs", "81-queue-and-runner");
+  const specDir = (dir: string) => join(dir, "root", "aide", "specs", "81-queue-and-runner");
   /** Every fixture here writes its `4-status.md` and makes
    *  its commits AFTER the server started, and a render reads memory
    *  now. Both of a row's sources have to catch up first — the git side
@@ -53,32 +45,18 @@ describe("what has run is what has been committed", () => {
    *  watches: `–` until git can date the folder, a real date once it
    *  can. Bounded, and it falls through with the last answer so a
    *  regression reads as the assertion it broke. */
-  const listPage = async (
-    base: string,
-    server: { settle: () => Promise<void> },
-  ): Promise<string> => {
+  const listPage = async (base: string, server: { settle: () => Promise<void> }): Promise<string> => {
     await server.settle();
-    return listUntil(
-      base,
-      dated,
-      undefined,
-      "a dated Created cell for the spec",
-    );
+    return listUntil(base, dated, undefined, "a dated Created cell for the spec");
   };
 
   // The 153 incident.
   test("a copied 4-status.md cannot make a fresh spec look analysed", async () => {
     const { base, dir, server } = start();
-    writeFileSync(
-      join(specDir(dir), "4-status.md"),
-      statusSaying(["create", "analyze", "implement"]),
-    );
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     // The folder exists, and nothing has ever run in it.
     ran(dir, []);
-    const line = specControls(
-      await listPage(base, server),
-      "81-queue-and-runner",
-    );
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     // `create` is settled by the folder existing, so it is
     // done here and says nothing about the copy. What this guards
     // is the two below it.
@@ -95,18 +73,13 @@ describe("what has run is what has been committed", () => {
   // The same fixture: the row does not swallow it.
   test("a file claiming a step the history does not have says so on the row", async () => {
     const { base, dir, server } = start();
-    writeFileSync(
-      join(specDir(dir), "4-status.md"),
-      statusSaying(["create", "analyze", "implement"]),
-    );
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     ran(dir, ["create"]);
-    const line = specControls(
-      await listPage(base, server),
-      "81-queue-and-runner",
-    );
+    const line = specControls(await listPage(base, server), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
     expect(line).toContain("disagree about whether");
   });
+
 });
 
 // A description edited after the analyze ran leaves the plan
@@ -120,11 +93,7 @@ describe("a description newer than the analysis is shown on the row", () => {
   /** The specs repo answering for one spec: which steps it has had
    *  when its description was last committed, and what its
    *  analyze history looks like. */
-  const gitSaying = (
-    descriptionAt: string,
-    analyzeLog: string,
-    differs = true,
-  ) =>
+  const gitSaying = (descriptionAt: string, analyzeLog: string, differs = true) =>
     gitFake({
       // The workflow history, first because its argv is the more
       // specific one — the table's first matching prefix wins.
@@ -158,48 +127,32 @@ describe("a description newer than the analysis is shown on the row", () => {
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string): string =>
-    html.match(
-      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
   /** A phase's log, under its line once the address unfolds it. */
   const phaseLog = (html: string, phase: string): string =>
-    html.match(
-      new RegExp(`<tr class="phasemsgs" data-msgs="${phase}">[\\s\\S]*?</tr>`),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<tr class="phasemsgs" data-msgs="${phase}">[\\s\\S]*?</tr>`))?.[0] ?? "";
 
   /** The marks sit on the step boxes, which a collapsed row does not
    *  draw — so every fetch here asks for the spec open. */
-  const listPage = (base: string) =>
-    fetch(`${base}/?${OPEN_81}`).then((r) => r.text());
+  const listPage = (base: string) => fetch(`${base}/?${OPEN_81}`).then((r) => r.text());
 
   test("the analysis log says the description changed since, and the analyze line does not", async () => {
     const { base, dir } = start({
-      gitRun: gitSaying(
-        DESCRIPTION_EDITED,
-        `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`,
-      ).run,
+      gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
     const explanation = t("en", "list.descriptionChangedSince");
-    const opened = (step: string) =>
-      fetch(
-        `${base}/?${OPEN_81}&phases=${encodeURIComponent(`aide/81-queue-and-runner:${step}`)}`,
-      ).then((r) => r.text());
+    const opened = (step: string) => fetch(`${base}/?${OPEN_81}&phases=${encodeURIComponent(`aide/81-queue-and-runner:${step}`)}`).then((r) => r.text());
     const analyze = await opened("analyze");
     expect(phaseLog(analyze, "analyze")).toContain(explanation);
     expect(subRow(analyze, "analyze")).not.toContain(explanation);
-    expect(phaseLog(await opened("implement"), "implement")).not.toContain(
-      explanation,
-    );
+    expect(phaseLog(await opened("implement"), "implement")).not.toContain(explanation);
   });
 
   test("analyze stops counting as done", async () => {
     const { base, dir } = start({
-      gitRun: gitSaying(
-        DESCRIPTION_EDITED,
-        `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`,
-      ).run,
+      gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
     const line = specControls(await listPage(base), "81-queue-and-runner");
@@ -219,26 +172,15 @@ describe("a description newer than the analysis is shown on the row", () => {
   // marks with nothing having had to remember them.
   test("the stale row leaves the recorded list on disk untouched", async () => {
     const { base, dir } = start({
-      gitRun: gitSaying(
-        DESCRIPTION_EDITED,
-        `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`,
-      ).run,
+      gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
-    const statusPath = join(
-      dir,
-      "root",
-      "aide",
-      "specs",
-      "81-queue-and-runner",
-      "4-status.md",
-    );
+    const statusPath = join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md");
     const before = readFileSync(statusPath, "utf-8");
     const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(false);
     expect(readFileSync(statusPath, "utf-8")).toBe(before);
-    expect(before).toContain(
-      "- **Workflow steps completed:** create, analyze, implement",
-    );
+    expect(before).toContain("- **Workflow steps completed:** create, analyze, implement");
   });
+
 });

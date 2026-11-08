@@ -7,15 +7,7 @@ import { join } from "node:path";
 import { createPush } from "../../src/push";
 import { renderMessage } from "../../src/i18n/message.ts";
 import {
-  deviceKeys,
-  fakeFetch,
-  makeStore,
-  openCall,
-  result,
-  runningJob,
-  tempDir,
-  SPEC,
-  type Answer,
+  deviceKeys, fakeFetch, makeStore, openCall, result, runningJob, tempDir, SPEC, type Answer,
 } from "./fixtures.ts";
 
 const cleanups: (() => void)[] = [];
@@ -43,18 +35,13 @@ async function board(answer?: (url: string) => Answer, waiting?: () => number) {
   const device = async (n: number, lang = "en") => {
     const keys = await deviceKeys();
     const endpoint = `https://fcm.googleapis.com/fcm/send/device-${n}`;
-    const made = await push.subscribe(
-      { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth }, lang },
-      "https://board.test",
-    );
+    const made = await push.subscribe({ endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth }, lang }, "https://board.test");
     expect(made.ok).toBe(true);
     return { ...keys, endpoint };
   };
   const fail = () => {
     const job = runningJob(store);
-    store.transition(job.id, "step-failed", {
-      results: [result("implement", "error", false)],
-    });
+    store.transition(job.id, "step-failed", { results: [result("implement", "error", false)] });
   };
   return { push, store, sent, logs, device, fail, subscriptionsPath };
 }
@@ -67,9 +54,7 @@ describe("what a notification says", () => {
     await b.push.idle();
     const sent = await openCall(b.sent.calls[0]!, d);
     expect(sent.title).toBe(`aide · ${SPEC}`);
-    expect(sent.body).toBe(
-      "Problem: Implement failed\nSolution: Look at why, then press Implement again",
-    );
+    expect(sent.body).toBe("Problem: Implement failed\nSolution: Look at why, then press Implement again");
   });
 
   test("the payload carries how many specs wait, read once per delivery, when the board gives a count", async () => {
@@ -82,18 +67,10 @@ describe("what a notification says", () => {
     expect(b.sent.calls).toHaveLength(2);
     expect(asked).toBe(1);
     const opened = await Promise.all(
-      [first, second].map((d) =>
-        openCall(
-          b.sent.calls.find((c) => c.url === d.endpoint)!,
-          d,
-        ),
-      ),
+      [first, second].map((d) => openCall(b.sent.calls.find((c) => c.url === d.endpoint)!, d)),
     );
     expect(opened.map((p) => p.waiting)).toEqual([2, 2]);
-    expect(opened[0]).toMatchObject({
-      title: `aide · ${SPEC}`,
-      url: expect.any(String),
-    });
+    expect(opened[0]).toMatchObject({ title: `aide · ${SPEC}`, url: expect.any(String) });
   });
 
   test("without a count the payload has no waiting field", async () => {
@@ -110,15 +87,10 @@ describe("what a notification says", () => {
     const job = runningJob(b.store);
     b.store.transition(job.id, "run-stopped", {
       stopReason: "shared-files",
-      results: [
-        {
-          ...result("implement", "shared-files", false),
-          sharedFiles: [
-            { spec: "624-a-spec", files: ["x.ts"] },
-            { spec: "619-b-spec", files: ["y.ts"] },
-          ],
-        },
-      ],
+      results: [{ ...result("implement", "shared-files", false), sharedFiles: [
+        { spec: "624-a-spec", files: ["x.ts"] },
+        { spec: "619-b-spec", files: ["y.ts"] },
+      ] }],
     });
     await b.push.idle();
     const sent = await openCall(b.sent.calls[0]!, d);
@@ -128,24 +100,12 @@ describe("what a notification says", () => {
   });
 
   const SPEC_ENDINGS = {
-    failed: (s: ReturnType<typeof makeStore>, id: string) =>
-      s.transition(id, "step-failed", {
-        results: [result("implement", "error", false)],
-      }),
-    stopped: (s: ReturnType<typeof makeStore>, id: string) =>
-      s.transition(id, "run-stopped", {
-        stopReason: "timeout",
-        results: [result("implement", "timeout", false)],
-      }),
-    interrupted: (s: ReturnType<typeof makeStore>, id: string) =>
-      s.transition(id, "process-gone", {
-        finishedAt: new Date().toISOString(),
-      }),
+    failed: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-failed", { results: [result("implement", "error", false)] }),
+    stopped: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "run-stopped", { stopReason: "timeout", results: [result("implement", "timeout", false)] }),
+    interrupted: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "process-gone", { finishedAt: new Date().toISOString() }),
   };
 
-  for (const ending of Object.keys(
-    SPEC_ENDINGS,
-  ) as (keyof typeof SPEC_ENDINGS)[]) {
+  for (const ending of Object.keys(SPEC_ENDINGS) as (keyof typeof SPEC_ENDINGS)[]) {
     test(`a step that ends ${ending} opens the Running tab with the spec's row unfolded and scrolled to`, async () => {
       const b = await board();
       const d = await b.device(1);
@@ -153,9 +113,7 @@ describe("what a notification says", () => {
       SPEC_ENDINGS[ending](b.store, job.id);
       await b.push.idle();
       const sent = await openCall(b.sent.calls[0]!, d);
-      expect(sent.url).toBe(
-        `/?open=${encodeURIComponent(`aide/${SPEC}`)}#spec-aide/${SPEC}`,
-      );
+      expect(sent.url).toBe(`/?open=${encodeURIComponent(`aide/${SPEC}`)}#spec-aide/${SPEC}`);
     });
   }
 
@@ -163,14 +121,10 @@ describe("what a notification says", () => {
     const b = await board();
     const d = await b.device(1);
     const job = runningJob(b.store, ["archive"]);
-    b.store.transition(job.id, "step-succeeded-last", {
-      results: [result("archive", "acceptance-criteria-unticked")],
-    });
+    b.store.transition(job.id, "step-succeeded-last", { results: [result("archive", "acceptance-criteria-unticked")] });
     await b.push.idle();
     const sent = await openCall(b.sent.calls[0]!, d);
-    expect(sent.url).toBe(
-      `/?checks=${encodeURIComponent(`aide/${SPEC}`)}#spec-aide/${SPEC}`,
-    );
+    expect(sent.url).toBe(`/?checks=${encodeURIComponent(`aide/${SPEC}`)}#spec-aide/${SPEC}`);
   });
 
   test("the body is in the language stored with the subscription", async () => {
@@ -182,10 +136,7 @@ describe("what a notification says", () => {
     const byEndpoint = (e: string) => b.sent.calls.find((c) => c.url === e)!;
     const forNb = await openCall(byEndpoint(nb.endpoint), nb);
     const forEn = await openCall(byEndpoint(en.endpoint), en);
-    const want = renderMessage("nb", {
-      key: "push.failed",
-      values: { step: "Implementer", button: "Implement" },
-    });
+    const want = renderMessage("nb", { key: "push.failed", values: { step: "Implementer", button: "Implement" } });
     expect(forNb.body).toBe(want);
     expect(forNb.body).not.toBe(forEn.body);
   });
@@ -197,9 +148,7 @@ describe("what a notification says", () => {
     await b.push.idle();
     const call = b.sent.calls[0]!;
     expect(call.headers["content-encoding"]).toBe("aes128gcm");
-    expect(call.headers.authorization).toMatch(
-      /^vapid t=[\w-]+\.[\w-]+\.[\w-]+, k=[\w-]+$/,
-    );
+    expect(call.headers.authorization).toMatch(/^vapid t=[\w-]+\.[\w-]+\.[\w-]+, k=[\w-]+$/);
     expect(call.headers.ttl).toBeDefined();
   });
 });
@@ -217,47 +166,35 @@ describe("a device that turned notifications off gets nothing", () => {
 });
 
 describe("a push service that answers badly", () => {
-  test.each([404, 410])(
-    "%d removes the subscription, and the next push does not go to it",
-    async (status) => {
-      const gone = "https://fcm.googleapis.com/fcm/send/device-1";
-      const b = await board((url) => (url === gone ? status : 201));
-      await b.device(1);
-      const other = await b.device(2);
-      b.fail();
-      await b.push.idle();
-      expect(b.sent.calls).toHaveLength(2);
-      expect(readFileSync(b.subscriptionsPath, "utf-8")).not.toContain(gone);
+  test.each([404, 410])("%d removes the subscription, and the next push does not go to it", async (status) => {
+    const gone = "https://fcm.googleapis.com/fcm/send/device-1";
+    const b = await board((url) => (url === gone ? status : 201));
+    await b.device(1);
+    const other = await b.device(2);
+    b.fail();
+    await b.push.idle();
+    expect(b.sent.calls).toHaveLength(2);
+    expect(readFileSync(b.subscriptionsPath, "utf-8")).not.toContain(gone);
 
-      b.fail();
-      await b.push.idle();
-      expect(b.sent.calls.slice(2).map((c) => c.url)).toEqual([other.endpoint]);
-    },
-  );
+    b.fail();
+    await b.push.idle();
+    expect(b.sent.calls.slice(2).map((c) => c.url)).toEqual([other.endpoint]);
+  });
 
   test.each<[string, Answer]>([
-    ["401", 401],
-    ["403", 403],
-    ["500", 500],
-    ["a timeout", "hang"],
-    ["a thrown error", new Error("socket closed")],
-  ])(
-    "%s keeps the subscription, still reaches the others, and leaves the job alone",
-    async (_name, answer) => {
-      const flaky = "https://fcm.googleapis.com/fcm/send/device-1";
-      const b = await board((url) => (url === flaky ? answer : 201));
-      await b.device(1);
-      await b.device(2);
-      b.fail();
-      await b.push.idle();
-      expect(b.sent.calls).toHaveLength(2);
-      expect(readFileSync(b.subscriptionsPath, "utf-8")).toContain(flaky);
-      expect(b.store.list()[0]!.state).toBe("failed");
-      expect(
-        b.logs.some((l) => l.includes(flaky) || l.includes("device-1")),
-      ).toBe(true);
-    },
-  );
+    ["401", 401], ["403", 403], ["500", 500], ["a timeout", "hang"], ["a thrown error", new Error("socket closed")],
+  ])("%s keeps the subscription, still reaches the others, and leaves the job alone", async (_name, answer) => {
+    const flaky = "https://fcm.googleapis.com/fcm/send/device-1";
+    const b = await board((url) => (url === flaky ? answer : 201));
+    await b.device(1);
+    await b.device(2);
+    b.fail();
+    await b.push.idle();
+    expect(b.sent.calls).toHaveLength(2);
+    expect(readFileSync(b.subscriptionsPath, "utf-8")).toContain(flaky);
+    expect(b.store.list()[0]!.state).toBe("failed");
+    expect(b.logs.some((l) => l.includes(flaky) || l.includes("device-1"))).toBe(true);
+  });
 
   test("a failed send never puts the payload in the log", async () => {
     const b = await board(() => 500);
@@ -283,57 +220,21 @@ describe("what a scheduled run's notification says", () => {
     const sent = fakeFetch();
     let push!: ReturnType<typeof createPush>;
     const store = makeStore(() => push.observe());
-    push = createPush({
-      jobs: () => store.list(),
-      fetch: sent.fetch,
-      scheduleNotify: () => "always",
-    });
+    push = createPush({ jobs: () => store.list(), fetch: sent.fetch, scheduleNotify: () => "always" });
     const keys = await deviceKeys();
     const nb = await deviceKeys();
-    await push.subscribe(
-      {
-        endpoint: "https://fcm.googleapis.com/fcm/send/en",
-        keys: { p256dh: keys.p256dh, auth: keys.auth },
-        lang: "en",
-      },
-      "https://board.test",
-    );
-    await push.subscribe(
-      {
-        endpoint: "https://fcm.googleapis.com/fcm/send/nb",
-        keys: { p256dh: nb.p256dh, auth: nb.auth },
-        lang: "nb",
-      },
-      "https://board.test",
-    );
+    await push.subscribe({ endpoint: "https://fcm.googleapis.com/fcm/send/en", keys: { p256dh: keys.p256dh, auth: keys.auth }, lang: "en" }, "https://board.test");
+    await push.subscribe({ endpoint: "https://fcm.googleapis.com/fcm/send/nb", keys: { p256dh: nb.p256dh, auth: nb.auth }, lang: "nb" }, "https://board.test");
     return { store, push, sent, en: keys, nb };
   }
 
   const ENDINGS = {
-    done: (s: ReturnType<typeof makeStore>, id: string) =>
-      s.transition(id, "step-succeeded-last", {
-        results: [result("schedule")],
-      }),
-    failed: (s: ReturnType<typeof makeStore>, id: string) =>
-      s.transition(id, "step-failed", {
-        results: [result("schedule", "error", false)],
-      }),
-    stopped: (s: ReturnType<typeof makeStore>, id: string) =>
-      s.transition(id, "run-stopped", {
-        stopReason: "timeout",
-        results: [result("schedule", "timeout", false)],
-      }),
-    interrupted: (s: ReturnType<typeof makeStore>, id: string) =>
-      s.transition(id, "process-gone", {
-        finishedAt: new Date().toISOString(),
-      }),
+    done: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-succeeded-last", { results: [result("schedule")] }),
+    failed: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "step-failed", { results: [result("schedule", "error", false)] }),
+    stopped: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "run-stopped", { stopReason: "timeout", results: [result("schedule", "timeout", false)] }),
+    interrupted: (s: ReturnType<typeof makeStore>, id: string) => s.transition(id, "process-gone", { finishedAt: new Date().toISOString() }),
   };
-  const KEYS = {
-    done: "push.scheduleDone",
-    failed: "push.scheduleFailed",
-    stopped: "push.scheduleStopped",
-    interrupted: "push.scheduleInterrupted",
-  } as const;
+  const KEYS = { done: "push.scheduleDone", failed: "push.scheduleFailed", stopped: "push.scheduleStopped", interrupted: "push.scheduleInterrupted" } as const;
 
   for (const ending of Object.keys(ENDINGS) as (keyof typeof ENDINGS)[]) {
     test(`a run that ends ${ending}: the title names project and job, the body is its own sentence, the url is that run's report`, async () => {
@@ -342,18 +243,10 @@ describe("what a scheduled run's notification says", () => {
       ENDINGS[ending](b.store, job.id);
       await b.push.idle();
       expect(b.sent.calls).toHaveLength(2);
-      const forEn = await openCall(
-        b.sent.calls.find((c) => c.url.endsWith("/en"))!,
-        b.en,
-      );
-      const forNb = await openCall(
-        b.sent.calls.find((c) => c.url.endsWith("/nb"))!,
-        b.nb,
-      );
+      const forEn = await openCall(b.sent.calls.find((c) => c.url.endsWith("/en"))!, b.en);
+      const forNb = await openCall(b.sent.calls.find((c) => c.url.endsWith("/nb"))!, b.nb);
       expect(forEn.title).toBe("aide · nightly-report");
-      expect(forEn.url).toBe(
-        `/schedule/aide/nightly-report?run=${job.id}#report`,
-      );
+      expect(forEn.url).toBe(`/schedule/aide/nightly-report?run=${job.id}#report`);
       expect(forEn.body).toBe(renderMessage("en", { key: KEYS[ending] }));
       expect(forNb.body).toBe(renderMessage("nb", { key: KEYS[ending] }));
       expect(forNb.body).not.toBe(forEn.body);
@@ -362,9 +255,7 @@ describe("what a scheduled run's notification says", () => {
   }
 
   test("the four outcomes each have a sentence of their own", () => {
-    const bodies = Object.values(KEYS).map((key) =>
-      renderMessage("en", { key }),
-    );
+    const bodies = Object.values(KEYS).map((key) => renderMessage("en", { key }));
     expect(new Set(bodies).size).toBe(4);
   });
 });

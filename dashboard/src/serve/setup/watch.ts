@@ -22,10 +22,7 @@ export interface WatchSetup {
   /** The growth check for the runner's two-second tick, over the jobs. */
   streamGrowth: (jobs: () => Job[]) => { tick: () => void };
   specWatchers: Map<string, ReturnType<typeof watch>>;
-  writeTo: (
-    c: ReadableStreamDefaultController<Uint8Array>,
-    text: string,
-  ) => void;
+  writeTo: (c: ReadableStreamDefaultController<Uint8Array>, text: string) => void;
   notifyQueueChanged: () => void;
   scheduleNotify: () => void;
   closeSpecWatchers: () => void;
@@ -46,10 +43,7 @@ export function setupWatch(
   // many specs wait for a person, for the app's icon.
   const encoder = new TextEncoder();
   const watchers = new Set<ReadableStreamDefaultController<Uint8Array>>();
-  const phaseWatchers = new Map<
-    ReadableStreamDefaultController<Uint8Array>,
-    Set<string>
-  >();
+  const phaseWatchers = new Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>();
   // --- A spec is a folder, and a folder changes no job -----------
   //
   // A spec created any other way — a `git pull`, a hand-run
@@ -73,10 +67,7 @@ export function setupWatch(
       state.scan = null;
     },
   };
-  function writeTo(
-    c: ReadableStreamDefaultController<Uint8Array>,
-    text: string,
-  ) {
+  function writeTo(c: ReadableStreamDefaultController<Uint8Array>, text: string) {
     return writeToImpl(sseWatchersCtx, c, text);
   }
   function notifyQueueChanged() {
@@ -102,16 +93,9 @@ export function setupWatch(
       try {
         const openedAt = Date.now();
         const root = p.specsRoot;
-        specWatchers.set(
-          p.name,
-          (opts.specsWatch ?? watch)(
-            root,
-            { recursive: true },
-            (_event, filename) => {
-              if (!isEcho(root, filename, openedAt)) scheduleNotify();
-            },
-          ),
-        );
+        specWatchers.set(p.name, (opts.specsWatch ?? watch)(root, { recursive: true }, (_event, filename) => {
+          if (!isEcho(root, filename, openedAt)) scheduleNotify();
+        }));
       } catch {
         // A specs root that is missing or cannot be watched: the same
         // fail-open the git checks in this file already keep. The
@@ -121,17 +105,7 @@ export function setupWatch(
     }
   }
 
-  const streamGrowth = (jobs: () => Job[]) =>
-    createStreamGrowth(sseWatchersCtx, jobs);
+  const streamGrowth = (jobs: () => Job[]) => createStreamGrowth(sseWatchersCtx, jobs);
 
-  return {
-    watchers,
-    phaseWatchers,
-    streamGrowth,
-    specWatchers,
-    writeTo,
-    notifyQueueChanged,
-    scheduleNotify,
-    closeSpecWatchers,
-  };
+  return { watchers, phaseWatchers, streamGrowth, specWatchers, writeTo, notifyQueueChanged, scheduleNotify, closeSpecWatchers };
 }

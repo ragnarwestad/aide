@@ -88,46 +88,27 @@ describe("checkProposal", () => {
 
   test("a Create job that is queued, running or done blocks the same title, naming the job", () => {
     for (const state of ["queued", "running", "done"]) {
-      const got = check({ title: "Wanted", description: "d" }, [
-        { id: "j1", state, createTitle: "wanted" },
-      ]);
-      expect(got).toMatchObject({
-        ok: false,
-        why: { code: "queued", jobId: "j1" },
-      });
+      const got = check({ title: "Wanted", description: "d" }, [{ id: "j1", state, createTitle: "wanted" }]);
+      expect(got).toMatchObject({ ok: false, why: { code: "queued", jobId: "j1" } });
     }
   });
 
   test("a Create job that failed, was cancelled, stopped or was interrupted blocks nothing", () => {
     for (const state of ["failed", "cancelled", "stopped", "interrupted"]) {
-      const got = check({ title: "Wanted", description: "d" }, [
-        { id: "j1", state, createTitle: "Wanted" },
-      ]);
+      const got = check({ title: "Wanted", description: "d" }, [{ id: "j1", state, createTitle: "Wanted" }]);
       expect(got.ok).toBe(true);
     }
   });
 
   test("an entry that is not an object, or has no title or description, is invalid", () => {
-    expect(check("nope")).toMatchObject({
-      ok: false,
-      why: { code: "invalid", what: "not-an-object" },
-    });
-    expect(check(null)).toMatchObject({
-      ok: false,
-      why: { code: "invalid", what: "not-an-object" },
-    });
-    expect(check({ description: "d" })).toMatchObject({
-      ok: false,
-      why: { code: "invalid", what: "title-missing" },
-    });
+    expect(check("nope")).toMatchObject({ ok: false, why: { code: "invalid", what: "not-an-object" } });
+    expect(check(null)).toMatchObject({ ok: false, why: { code: "invalid", what: "not-an-object" } });
+    expect(check({ description: "d" })).toMatchObject({ ok: false, why: { code: "invalid", what: "title-missing" } });
     expect(check({ title: "  ", description: "d" })).toMatchObject({
       ok: false,
       why: { code: "invalid", what: "title-missing" },
     });
-    expect(check({ title: "T" })).toMatchObject({
-      ok: false,
-      why: { code: "invalid", what: "description-missing" },
-    });
+    expect(check({ title: "T" })).toMatchObject({ ok: false, why: { code: "invalid", what: "description-missing" } });
   });
 
   test("a two-line title and a title over the limit are invalid, with the limit", () => {
@@ -135,35 +116,23 @@ describe("checkProposal", () => {
       ok: false,
       why: { code: "invalid", what: "title-lines" },
     });
-    expect(
-      check({ title: "x".repeat(TITLE_MAX + 1), description: "d" }),
-    ).toMatchObject({
+    expect(check({ title: "x".repeat(TITLE_MAX + 1), description: "d" })).toMatchObject({
       ok: false,
       why: { code: "invalid", what: "title-long", max: TITLE_MAX },
     });
-    expect(check({ title: "x".repeat(TITLE_MAX), description: "d" }).ok).toBe(
-      true,
-    );
+    expect(check({ title: "x".repeat(TITLE_MAX), description: "d" }).ok).toBe(true);
   });
 
   test("a description over the room it is given is invalid, with that room", () => {
-    expect(
-      checkProposal({ title: "T", description: "y".repeat(101) }, 100, [], []),
-    ).toMatchObject({
+    expect(checkProposal({ title: "T", description: "y".repeat(101) }, 100, [], [])).toMatchObject({
       ok: false,
       why: { code: "invalid", what: "description-long", max: 100 },
     });
-    expect(
-      checkProposal({ title: "T", description: "y".repeat(100) }, 100, [], [])
-        .ok,
-    ).toBe(true);
+    expect(checkProposal({ title: "T", description: "y".repeat(100) }, 100, [], []).ok).toBe(true);
   });
 
   test("an invalid entry still reports its title for the record", () => {
-    expect(check({ title: "Named", description: "" })).toMatchObject({
-      ok: false,
-      title: "Named",
-    });
+    expect(check({ title: "Named", description: "" })).toMatchObject({ ok: false, title: "Named" });
     expect(check(42)).toMatchObject({ ok: false, title: "" });
   });
 });
@@ -183,9 +152,7 @@ describe("sourceBlock and descriptionRoom", () => {
     expect(block).toContain("`aide`");
     expect(block).toContain("`run-1`");
     expect(block).toContain("2026-09-26T18:00:04Z");
-    expect(block).toContain(
-      "[/schedule/aide/nyhetssjekk?run=run-1#report](/schedule/aide/nyhetssjekk?run=run-1#report)",
-    );
+    expect(block).toContain("[/schedule/aide/nyhetssjekk?run=run-1#report](/schedule/aide/nyhetssjekk?run=run-1#report)");
   });
 
   test("the room left for a description is what the block and its blank line do not take", () => {
@@ -202,29 +169,17 @@ describe("the record", () => {
   test("is read back as it was written, and is absent before it is written", () => {
     const root = mkdtempSync(join(tmpdir(), "aide-proposals-"));
     dirs.push(root);
-    mkdirSync(scheduleRunOutputDir(root, "aide", "schedule-n", "j1"), {
-      recursive: true,
-    });
+    mkdirSync(scheduleRunOutputDir(root, "aide", "schedule-n", "j1"), { recursive: true });
     expect(readProposalsRecord(root, "aide", "schedule-n", "j1")).toBeNull();
     const record = {
       at: "2026-09-26T18:00:09Z",
       proposals: [
         { title: "A", result: "created" as const, jobId: "b1" },
-        {
-          title: "B",
-          result: "skipped" as const,
-          why: {
-            code: "exists" as const,
-            folder: "01-x",
-            kind: "closed" as const,
-          },
-        },
+        { title: "B", result: "skipped" as const, why: { code: "exists" as const, folder: "01-x", kind: "closed" as const } },
       ],
     };
     writeProposalsRecord(root, "aide", "schedule-n", "j1", record);
-    expect(readProposalsRecord(root, "aide", "schedule-n", "j1")).toEqual(
-      record,
-    );
+    expect(readProposalsRecord(root, "aide", "schedule-n", "j1")).toEqual(record);
     expect(readProposalsRecord(root, "aide", "schedule-n", "j2")).toBeNull();
   });
 

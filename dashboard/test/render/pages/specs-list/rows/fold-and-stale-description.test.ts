@@ -1,11 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type ArchivedSpecView,
-  type QueueRowView,
-  type SpecsPageOptions,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type ArchivedSpecView, type QueueRowView, type SpecsPageOptions, type SpecTarget } from "../../../../../src/render";
 import { t } from "../../../../../src/i18n";
 import { row, openKeys } from "../../fixtures.ts";
 
@@ -16,24 +10,10 @@ import { row, openKeys } from "../../fixtures.ts";
 // cosmetic can still start `implement`. The explanation itself is the
 // analyze phase's log's to say (`phase-messages/explanations.test.ts`).
 describe("a description changed since the analysis", () => {
-  const job = (
-    id: string,
-    step: string,
-    extra: Partial<QueueRowView> = {},
-  ): QueueRowView =>
-    row({
-      id,
-      specFolder: "97-stale",
-      steps: [step],
-      stepIndex: 0,
-      state: "done",
-      ...extra,
-    });
+  const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    row({ id, specFolder: "97-stale", steps: [step], stepIndex: 0, state: "done", ...extra });
 
-  const target = (
-    specFolder: string,
-    extra: Partial<SpecTarget> = {},
-  ): SpecTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -44,11 +24,7 @@ describe("a description changed since the analysis", () => {
   const rows = (list: QueueRowView[], targets: SpecTarget[]) =>
     renderSpecsRows(
       list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-      },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-08-18T12:00:00Z"),
     );
 
@@ -77,9 +53,7 @@ describe("a description changed since the analysis", () => {
     expect(line).not.toMatch(/value="implement" checked/);
     // `analyze` and `archive` are what is left to run, so both are
     // pre-ticked; `create`'s box carries no field name.
-    expect([
-      ...line.matchAll(/name="steps" value="[^"]*" checked/g),
-    ]).toHaveLength(2);
+    expect([...line.matchAll(/name="steps" value="[^"]*" checked/g)]).toHaveLength(2);
   });
 });
 
@@ -101,16 +75,10 @@ describe("the open row and the chevrons", () => {
     Date.parse("2026-08-18T12:00:00Z"),
   );
   const chevron = (folder: string): string =>
-    html.match(
-      new RegExp(
-        `<tr class="spechead"[^>]*data-folder="${folder}">[\\s\\S]*?(<a class="fold[^"]*"[^>]*>)`,
-      ),
-    )?.[1] ?? "";
+    html.match(new RegExp(`<tr class="spechead"[^>]*data-folder="${folder}">[\\s\\S]*?(<a class="fold[^"]*"[^>]*>)`))?.[1] ?? "";
 
   test("exactly one row is open, and it ends in the spec", () => {
-    expect(
-      html.match(/<a class="fold"[^>]*aria-expanded="true"/g),
-    ).toHaveLength(1);
+    expect(html.match(/<a class="fold"[^>]*aria-expanded="true"/g)).toHaveLength(1);
     expect(html.match(/data-spec-detail="/g)).toHaveLength(1);
     expect(html).toContain('data-spec-detail="aide/81-queue-x"');
     expect(html).toContain("<p>THE-SPEC</p>");
@@ -118,9 +86,7 @@ describe("the open row and the chevrons", () => {
 
   test("a shut row's chevron loads the spec's address with the list's view, and is not a row swap", () => {
     const link = chevron("82-queue-y");
-    expect(link).toContain(
-      'href="/specs/aide/82-queue-y?q=queue#spec-aide/82-queue-y"',
-    );
+    expect(link).toContain('href="/specs/aide/82-queue-y?q=queue#spec-aide/82-queue-y"');
     expect(link).toContain("data-goto");
     expect(link).not.toContain("data-nav");
   });
@@ -131,17 +97,11 @@ describe("the open row and the chevrons", () => {
   });
 
   test("the open row's chevron leads back to the list, with the row's view", () => {
-    expect(chevron("81-queue-x")).toContain(
-      'href="/specs?q=queue#spec-aide/81-queue-x"',
-    );
+    expect(chevron("81-queue-x")).toContain('href="/specs?q=queue#spec-aide/81-queue-x"');
   });
 
   test("no spec is open when openSpec names no key", () => {
-    const shut = renderSpecsRows(
-      [],
-      { runnerAvailable: true, targets, openSpec: {} },
-      Date.parse("2026-08-18T12:00:00Z"),
-    );
+    const shut = renderSpecsRows([], { runnerAvailable: true, targets, openSpec: {} }, Date.parse("2026-08-18T12:00:00Z"));
     expect(shut.match(/aria-expanded="true"/g)).toBeNull();
     expect(shut).not.toContain("data-spec-detail");
   });
@@ -153,26 +113,15 @@ describe("a shut row's chevron title", () => {
   const folder = "82-queue-y";
   const action = t("en", "list.foldShow");
   const chevron = (opts: Partial<SpecsPageOptions>): string =>
-    renderSpecsRows(
-      [],
-      { runnerAvailable: true, targets, ...opts },
-      Date.parse("2026-08-18T12:00:00Z"),
-    ).match(
-      new RegExp(
-        `<tr class="spechead"[^>]*data-folder="${folder}">[\\s\\S]*?(<a class="fold[^"]*"[^>]*>)`,
-      ),
-    )?.[1] ?? "";
+    renderSpecsRows([], { runnerAvailable: true, targets, ...opts }, Date.parse("2026-08-18T12:00:00Z"))
+      .match(new RegExp(`<tr class="spechead"[^>]*data-folder="${folder}">[\\s\\S]*?(<a class="fold[^"]*"[^>]*>)`))?.[1] ?? "";
 
   test("on the Specs list it names the spec", () => {
-    expect(chevron({ openSpec: {} })).toContain(
-      `title="${t("en", "list.specFoldTitle", { action, folder })}"`,
-    );
+    expect(chevron({ openSpec: {} })).toContain(`title="${t("en", "list.specFoldTitle", { action, folder })}"`);
   });
 
   test("drawn the Running tab's way it keeps the phases title", () => {
-    expect(chevron({ filter: {} })).toContain(
-      `title="${t("en", "list.foldTitle", { action, folder })}"`,
-    );
+    expect(chevron({ filter: {} })).toContain(`title="${t("en", "list.foldTitle", { action, folder })}"`);
   });
 });
 
@@ -191,91 +140,45 @@ describe("an open row on the Specs list is the spec alone", () => {
     { project: "aide", specFolder: "81-queue-x" },
     { project: "aide", specFolder: "82-queue-y" },
   ];
-  const list = [
-    row({ id: "run82", specFolder: "82-queue-y", state: "running" }),
-  ];
+  const list = [row({ id: "run82", specFolder: "82-queue-y", state: "running" })];
   const base: SpecsPageOptions = {
     runnerAvailable: true,
     targets,
     archivedSpecs: [archived],
     modelChoices: [{ name: "sonnet" }, { name: "codex-fast", tool: "codex" }],
-    phaseMessages: () => ({
-      logs: [{ by: "ai" as const, lines: [] }],
-      steps: [],
-      running: false,
-    }),
+    phaseMessages: () => ({ logs: [{ by: "ai" as const, lines: [] }], steps: [], running: false }),
   };
   const specs = ["aide/81-queue-x", "aide/82-queue-y", "aide/50-archived"];
 
   /** One spec's rows, from its title line to its gap row. */
   const group = (html: string, key: string): string =>
-    html.match(
-      new RegExp(
-        `<tr class="spechead\\b[^>]*?\\bid="spec-${key}"[\\s\\S]*?<tr class="specgap"[^>]*>.*?</tr>`,
-      ),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<tr class="spechead\\b[^>]*?\\bid="spec-${key}"[\\s\\S]*?<tr class="specgap"[^>]*>.*?</tr>`))?.[0] ?? "";
   const onList = (key: string): string =>
     group(
-      renderSpecsRows(
-        list,
-        {
-          ...base,
-          filter: { phases: "aide/81-queue-x:create" },
-          openSpec: { key, detail: () => "<p>THE-SPEC</p>" },
-        },
-        NOW,
-      ),
+      renderSpecsRows(list, { ...base, filter: { phases: "aide/81-queue-x:create" }, openSpec: { key, detail: () => "<p>THE-SPEC</p>" } }, NOW),
       key,
     );
   const onJobsTab = (key: string): string =>
-    group(
-      renderSpecsRows(
-        list,
-        { ...base, filter: { open: key, phases: "aide/81-queue-x:create" } },
-        NOW,
-      ),
-      key,
-    );
+    group(renderSpecsRows(list, { ...base, filter: { open: key, phases: "aide/81-queue-x:create" } }, NOW), key);
 
   test("no caption line, phase line, message, select, Select box, Run, Cancel or row Reopen", () => {
     for (const key of specs) {
       const html = onList(key);
       expect(html).toContain("THE-SPEC");
       for (const absent of [
-        "data-caption",
-        'tr class="subrow',
-        "data-step",
-        "phasemsgs",
-        "<select",
-        "data-phase",
-        'name="steps"',
-        'class="rowrun"',
-        'data-ask="cancelask-run82"',
-        'data-ask="reopenask-aide/50-archived"',
+        "data-caption", "tr class=\"subrow", "data-step", "phasemsgs", "<select", "data-phase", 'name="steps"',
+        'class="rowrun"', 'data-ask="cancelask-run82"', 'data-ask="reopenask-aide/50-archived"',
       ]) {
-        expect([key, absent, html.includes(absent)]).toEqual([
-          key,
-          absent,
-          false,
-        ]);
+        expect([key, absent, html.includes(absent)]).toEqual([key, absent, false]);
       }
     }
   });
 
   test("the rows are the title line, the state line, the messages if any, the spec, then the gap", () => {
     for (const key of specs) {
-      const classes = [...onList(key).matchAll(/<tr class="([a-z]+)\b/g)].map(
-        (m) => m[1],
-      );
-      expect(classes.filter((c) => c !== "specnotice")).toEqual([
-        "spechead",
-        "specstate",
-        "specdetail",
-        "specgap",
-      ]);
-      expect(classes.indexOf("specdetail")).toBeGreaterThan(
-        classes.lastIndexOf("specnotice"),
-      );
+      const classes = [...onList(key).matchAll(/<tr class="([a-z]+)\b/g)].map((m) => m[1]);
+      expect(classes.filter((c) => c !== "specnotice")).toEqual(["spechead", "specstate", "specdetail", "specgap"]);
+      expect(classes.indexOf("specdetail")).toBeGreaterThan(classes.lastIndexOf("specnotice"));
     }
   });
 
@@ -285,26 +188,14 @@ describe("an open row on the Specs list is the spec alone", () => {
       { letter: "B", title: "End", mark: "real alternative" as const },
     ];
     const choosing: SpecTarget[] = [
-      {
-        project: "aide",
-        specFolder: "81-queue-x",
-        done: ["create", "analyze"],
-        historyDone: ["create", "analyze"],
-        approachChoice: pending,
-      },
+      { project: "aide", specFolder: "81-queue-x", done: ["create", "analyze"], historyDone: ["create", "analyze"], approachChoice: pending },
     ];
     const draw = (extra: Partial<SpecsPageOptions>): string =>
-      renderSpecsRows(
-        [],
-        { runnerAvailable: true, targets: choosing, ...extra },
-        NOW,
-      );
+      renderSpecsRows([], { runnerAvailable: true, targets: choosing, ...extra }, NOW);
     const key = "aide/81-queue-x";
     expect(draw({})).toContain("/approach");
     expect(draw({ filter: { open: key } })).toContain("/approach");
-    expect(
-      draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } }),
-    ).not.toContain("/approach");
+    expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).not.toContain("/approach");
   });
 
   test("the Depends on picker is on the Running tab's open row, not on a shut row or the Specs list's open row", () => {
@@ -313,27 +204,18 @@ describe("an open row on the Specs list is the spec alone", () => {
       { project: "aide", specFolder: "82-queue-y" },
     ];
     const draw = (extra: Partial<SpecsPageOptions>): string =>
-      renderSpecsRows(
-        [],
-        { runnerAvailable: true, targets: withSiblings, ...extra },
-        NOW,
-      );
+      renderSpecsRows([], { runnerAvailable: true, targets: withSiblings, ...extra }, NOW);
     const key = "aide/81-queue-x";
     expect(draw({})).not.toContain("dependsform");
     expect(draw({ filter: { open: key } })).toContain("dependsform");
-    expect(
-      draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } }),
-    ).not.toContain("dependsform");
+    expect(draw({ openSpec: { key, detail: () => "<p>THE-SPEC</p>" } })).not.toContain("dependsform");
   });
 
   test("drawn the Running tab's way, an open row has its caption line and its phase lines", () => {
     for (const key of specs) {
       const html = onJobsTab(key);
       expect([key, html.includes("data-caption")]).toEqual([key, true]);
-      expect([
-        key,
-        html.match(/<tr class="subrow[^>]*data-step="/g)?.length,
-      ]).toEqual([key, 4]);
+      expect([key, html.match(/<tr class="subrow[^>]*data-step="/g)?.length]).toEqual([key, 4]);
     }
     expect(onJobsTab("aide/81-queue-x")).toContain("phasemsgs");
   });

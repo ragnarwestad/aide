@@ -5,10 +5,7 @@
 // is what tells them apart — never a job record.
 
 import { describe, expect, test } from "bun:test";
-import {
-  archivedSpecRows,
-  type SpecViewsContext,
-} from "../../../src/serve/spec-views";
+import { archivedSpecRows, type SpecViewsContext } from "../../../src/serve/spec-views";
 import type { SpecRef } from "../../../src/project/discover";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
@@ -16,22 +13,12 @@ const FOLDER = "300-left-behind";
 const KEY = `aide/${FOLDER}`;
 const PR_URL = "https://github.com/example/aide/pull/37";
 
-function ctxFor(o: {
-  merged: boolean;
-  closed?: boolean;
-  open?: boolean;
-  reviewing?: boolean;
-}): {
+function ctxFor(o: { merged: boolean; closed?: boolean; open?: boolean; reviewing?: boolean }): {
   ctx: SpecViewsContext;
   deleteErrorAsked: string[];
 } {
   const deleteErrorAsked: string[] = [];
-  const ref = {
-    folder: FOLDER,
-    dir: "/nowhere/archive/300-left-behind",
-    archived: true,
-    closed: o.closed,
-  } as unknown as SpecRef;
+  const ref = { folder: FOLDER, dir: "/nowhere/archive/300-left-behind", archived: true, closed: o.closed } as unknown as SpecRef;
   const ctx = {
     projectRoot: "/repos",
     targets: () => [],
@@ -47,11 +34,8 @@ function ctxFor(o: {
       },
       pullRequestFor: () => ({ prUrl: PR_URL }),
     } as never,
-    peekMergedOnOrigin: (project: string, folder: string) =>
-      project === "aide" && folder === FOLDER && o.merged,
-    specCreatedAt: {
-      peekCreatedAtForArchived: () => ({ createdAt: null }),
-    } as never,
+    peekMergedOnOrigin: (project: string, folder: string) => project === "aide" && folder === FOLDER && o.merged,
+    specCreatedAt: { peekCreatedAtForArchived: () => ({ createdAt: null }) } as never,
     gitRun: fakeGit({}).run,
   } as unknown as SpecViewsContext;
   return { ctx, deleteErrorAsked };

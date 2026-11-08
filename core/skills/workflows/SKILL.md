@@ -40,7 +40,6 @@ below says what its grade means for the analysis and for the documents.
 ### LOW complexity (Quick Fix)
 
 **Analysis scope:**
-
 - Read ONLY the mentioned file
 
 **Documentation:** Short and concise (< 200 lines total)
@@ -51,7 +50,6 @@ below says what its grade means for the analysis and for the documents.
 ### MEDIUM complexity
 
 **Analysis scope:**
-
 - Find files related to the component/module
 - Find related tests and usage sites, and stop there
 
@@ -63,7 +61,6 @@ below says what its grade means for the analysis and for the documents.
 ### HIGH complexity
 
 **Analysis scope:**
-
 - Search the codebase broadly for patterns
 - Categorize files by complexity
 - Analyze API impact (frontend - backend)
@@ -83,7 +80,7 @@ the code itself is the source, so search it instead of hunting for
 documents.
 
 | Problem type          | Workflow                                          |
-| --------------------- | ------------------------------------------------- |
+|-----------------------|---------------------------------------------------|
 | **Frontend UI bug**   | Reproduce - Identify component - Check API - TDD  |
 | **Backend API error** | Identify endpoint - Check ripple effects - TDD    |
 | **Cross-project**     | Backend first - Test - Frontend - Full stack test |
@@ -147,7 +144,7 @@ with no plan and no review (the aide-analyze skill's `spec-files.md`, section "A
 The rest of the detail lives beside this file:
 
 | Reference                                                                    | What it covers                                                                                |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+|------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
 | [references/spec-workflows.md](./references/spec-workflows.md)               | Every phase of the spec workflow: what each one does, what it produces, when to re-run it     |
 | [references/api-impact.md](./references/api-impact.md)                       | Assessing API impact, and the order to implement a change that spans several projects         |
 | [references/workflow-optimization.md](./references/workflow-optimization.md) | Context management, course correction, Explore - Plan - Code, checklists for large migrations |

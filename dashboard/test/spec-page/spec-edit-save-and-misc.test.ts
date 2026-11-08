@@ -5,16 +5,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import {
-  FILE_SHA,
-  DESCRIPTION,
-  NEW_TEXT,
-  createSpecSaveHarness,
-  descriptionPath,
-  post,
-  answer,
-  savable,
-} from "./spec-save-fixtures.ts";
+import { FILE_SHA, DESCRIPTION, NEW_TEXT, createSpecSaveHarness, descriptionPath, post, answer, savable } from "./spec-save-fixtures.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
 
 const { harness, start } = createSpecSaveHarness();
@@ -25,10 +16,7 @@ afterEach(() => harness.cleanup());
 describe("the Description tab", () => {
   test("a spec nobody has is a 404, not a blank editor", async () => {
     const { base } = start(savable("/host"));
-    expect(
-      (await fetch(`${base}/specs/aide/99-no-such-spec?tab=description`))
-        .status,
-    ).toBe(404);
+    expect((await fetch(`${base}/specs/aide/99-no-such-spec?tab=description`)).status).toBe(404);
   });
 });
 
@@ -54,9 +42,7 @@ describe("a held-back spec's description stays editable", () => {
       status: heldBackStatus,
       extra: { gitRun: savable("/host") },
     });
-    const { status, body } = await answer(
-      await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
@@ -72,33 +58,21 @@ describe("a Description Save and the recorded acceptance criteria checks level",
   const STOP = "- **Acceptance criteria checks:** stop";
 
   const save = async (recorded: string, posted: string) => {
-    const { base, dir } = harness.start({
-      description: recorded,
-      extra: { gitRun: savable("/host") },
-    });
-    const res = await answer(
-      await post(base, { text: posted, baseSha: FILE_SHA }),
-    );
+    const { base, dir } = harness.start({ description: recorded, extra: { gitRun: savable("/host") } });
+    const res = await answer(await post(base, { text: posted, baseSha: FILE_SHA }));
     return { ...res, onDisk: readFileSync(descriptionPath(dir), "utf-8") };
   };
 
   test.each([
-    [
-      "changed to off",
-      described(STOP),
-      described("- **Acceptance criteria checks:** off"),
-    ],
+    ["changed to off", described(STOP), described("- **Acceptance criteria checks:** off")],
     ["removed", described(STOP), described("")],
     ["added where none was recorded", described(""), described(STOP)],
-  ])(
-    "a save with the line %s is refused, and the file is left as it was",
-    async (_name, recorded, posted) => {
-      const { status, body, onDisk } = await save(recorded, posted);
-      expect(status).toBe(400);
-      expect(body.error).toContain("Acceptance criteria checks");
-      expect(onDisk).toBe(recorded);
-    },
-  );
+  ])("a save with the line %s is refused, and the file is left as it was", async (_name, recorded, posted) => {
+    const { status, body, onDisk } = await save(recorded, posted);
+    expect(status).toBe(400);
+    expect(body.error).toContain("Acceptance criteria checks");
+    expect(onDisk).toBe(recorded);
+  });
 
   test("a save that keeps the line as recorded goes through", async () => {
     const posted = described(STOP, "As it is now.");

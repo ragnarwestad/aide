@@ -36,24 +36,15 @@ describe("no message rides the address", () => {
   test("no page reads a message from its address", () => {
     const named = new RegExp(`\\.get\\(\\s*["'\`](?:${MESSAGES})["'\`]\\s*\\)`);
     expect(hits(["src/serve", "src/render"], named)).toEqual([]);
-    expect(
-      hits(["src/render"], new RegExp(`[?&"'\`](?:${MESSAGES})=`)),
-    ).toEqual([]);
-    expect(
-      hits(
-        ["src/serve", "src/render"],
-        /searchParams(?!\.get\(\s*["'`][\w.-]+["'`]\s*\))/,
-      ),
-    ).toEqual([]);
+    expect(hits(["src/render"], new RegExp(`[?&"'\`](?:${MESSAGES})=`))).toEqual([]);
+    expect(hits(["src/serve", "src/render"], /searchParams(?!\.get\(\s*["'`][\w.-]+["'`]\s*\))/)).toEqual([]);
     // The form-body parser is the one other reader of an encoded query.
-    expect(hits(["src/serve", "src/render"], /URLSearchParams\(/)).toEqual([
-      "src/serve/serve-helpers/http.ts",
-    ]);
+    expect(hits(["src/serve", "src/render"], /URLSearchParams\(/)).toEqual(["src/serve/serve-helpers/http.ts"]);
   });
 });
 
 describe("no page reloads itself by a meta refresh", () => {
-  test('no source writes http-equiv="refresh"', () => {
+  test("no source writes http-equiv=\"refresh\"", () => {
     expect(hits(["src"], /http-equiv=\\?["']?refresh/i)).toEqual([]);
   });
 });
@@ -61,14 +52,12 @@ describe("no page reloads itself by a meta refresh", () => {
 describe("a form's submit is the page script's alone", () => {
   test("no head script the shell inlines listens for submit, but the unsaved-changes guard", () => {
     const shell = join(ROOT, "src", "render", "ui", "shell.ts");
-    const inlined = [
-      ...readFileSync(shell, "utf8").matchAll(/transpile\("([^"]+)"\)/g),
-    ].map((m) => join(dirname(shell), m[1]!));
+    const inlined = [...readFileSync(shell, "utf8").matchAll(/transpile\("([^"]+)"\)/g)].map((m) =>
+      join(dirname(shell), m[1]!),
+    );
     expect(inlined.length).toBeGreaterThan(0);
     const listening = inlined
-      .filter((f) =>
-        /addEventListener\(\s*["']submit["']/.test(readFileSync(f, "utf8")),
-      )
+      .filter((f) => /addEventListener\(\s*["']submit["']/.test(readFileSync(f, "utf8")))
       .map((f) => relative(ROOT, f));
     expect(listening).toEqual(["src/render/ui/forms/unsaved-changes.ts"]);
   });

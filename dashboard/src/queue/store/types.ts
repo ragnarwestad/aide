@@ -7,12 +7,7 @@
 // outside is worse than a long file.
 
 import type { JobState, TransitionEvent } from "../steps.ts";
-import type {
-  CreateProjectAllower,
-  Job,
-  ProjectResolver,
-  QueueDefaults,
-} from "../types.ts";
+import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "../types.ts";
 
 /** What `setPendingModel()` answers with — never a `job`, since none
  *  may exist yet for the phase a pick was just made on. `ParseResult`
@@ -32,9 +27,7 @@ export type PendingStepsResult = { ok: true } | { ok: false; error: string };
  *  updated job on a hit, or the state and event the table refused —
  *  never a bare `undefined`, so a refusal cannot be mistaken for
  *  "nothing happened" the way `update()`'s return already can be. */
-export type TransitionResult =
-  | { ok: true; job: Job }
-  | { ok: false; state: JobState; event: TransitionEvent };
+export type TransitionResult = { ok: true; job: Job } | { ok: false; state: JobState; event: TransitionEvent };
 
 export interface QueueOptions {
   defaults: QueueDefaults;

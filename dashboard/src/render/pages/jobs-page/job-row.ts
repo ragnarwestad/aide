@@ -17,23 +17,10 @@
 // waiting line there, with no link.
 
 import { t, type Language } from "../../../i18n";
-import {
-  askButton,
-  buttonForm,
-  confirmDialog,
-  foldArrow,
-  rowMessage,
-  stepLabel,
-} from "../../ui/components";
+import { askButton, buttonForm, confirmDialog, foldArrow, rowMessage, stepLabel } from "../../ui/components";
 import { projectLink } from "../../ui/components/spec-name.ts";
 import { esc } from "../../ui/html.ts";
-import {
-  currentStep,
-  durationLabel,
-  inFlight,
-  specStateChip,
-  type QueueRowView,
-} from "../../ui/job-state";
+import { currentStep, durationLabel, inFlight, specStateChip, type QueueRowView } from "../../ui/job-state";
 import { landingStep } from "../../ui/job-state/resting.ts";
 import { costCell } from "../specs-list/cell-helpers.ts";
 import type { SpecsFilter } from "../specs-list";
@@ -41,14 +28,7 @@ import { queuePath } from "../specs-list/filter-bar.ts";
 import { LIST_COLUMNS } from "../specs-list/row-shared.ts";
 import { stepRows, type JobStep } from "../specs-list/phase-messages";
 import { closeOrReopenStep, deployStep } from "../../../queue/queue.ts";
-import {
-  isScheduleJob,
-  jobControl,
-  jobDismissible,
-  jobKey,
-  jobMessage,
-  jobTitle,
-} from "./rows.ts";
+import { isScheduleJob, jobControl, jobDismissible, jobKey, jobMessage, jobTitle } from "./rows.ts";
 import { jobDurationMs, jobEndMs } from "./view.ts";
 
 export type { JobStep };
@@ -64,19 +44,11 @@ export interface JobRowOptions {
   steps?: (jobId: string, step: string) => JobStep[];
 }
 
-const openKeys = (o: JobRowOptions): string[] =>
-  (o.filter.open ?? "").split(",").filter(Boolean);
+const openKeys = (o: JobRowOptions): string[] => (o.filter.open ?? "").split(",").filter(Boolean);
 
 /** The row's ›, as a spec's: a link that names the row in `open`, or takes it out. */
-function fold(
-  key: string,
-  open: boolean,
-  name: string,
-  o: JobRowOptions,
-): string {
-  const next = open
-    ? openKeys(o).filter((k) => k !== key)
-    : [...openKeys(o), key];
+function fold(key: string, open: boolean, name: string, o: JobRowOptions): string {
+  const next = open ? openKeys(o).filter((k) => k !== key) : [...openKeys(o), key];
   return foldArrow({
     href: queuePath(o.filter, { open: next.join(",") }, o.listPath),
     open,
@@ -89,35 +61,17 @@ function fold(
 
 /** Stop or Cancel with the question it asks first. The dialog's OK posts the
  *  cancel route as the list's Cancel does, and the rows are redrawn in place. */
-function control(
-  row: QueueRowView,
-  kind: "stop" | "cancel",
-  lang: Language,
-): string {
+function control(row: QueueRowView, kind: "stop" | "cancel", lang: Language): string {
   const id = `jobask-${row.id}`;
-  const step = stepLabel(
-    row.landing ? landingStep(row) : currentStep(row),
-    lang,
-  );
+  const step = stepLabel(row.landing ? landingStep(row) : currentStep(row), lang);
   const stop = kind === "stop";
   return (
-    askButton({
-      label: t(lang, stop ? "jobs.stop" : "list.cancel"),
-      dialogId: id,
-      variant: "primary",
-    }) +
+    askButton({ label: t(lang, stop ? "jobs.stop" : "list.cancel"), dialogId: id, variant: "primary" }) +
     confirmDialog(lang, {
       id,
-      title: t(
-        lang,
-        stop ? "jobs.stopConfirmTitle" : "list.cancelConfirmTitle",
-        { step },
-      ),
+      title: t(lang, stop ? "jobs.stopConfirmTitle" : "list.cancelConfirmTitle", { step }),
       sentence: t(lang, "jobs.confirmBody"),
-      ok: {
-        variant: "primary",
-        pending: t(lang, stop ? "jobs.stopping" : "list.cancelling"),
-      },
+      ok: { variant: "primary", pending: t(lang, stop ? "jobs.stopping" : "list.cancelling") },
       post: { action: `/api/queue/${row.id}/cancel`, hook: "actionform" },
     })
   );
@@ -130,9 +84,7 @@ function timeCell(row: QueueRowView, now: number): string {
   if (inFlight(row)) {
     return `<span class="muted small" data-elapsed="${esc(row.startedAt)}">${durationLabel(jobDurationMs(row, now))}</span>`;
   }
-  return Number.isNaN(jobEndMs(row))
-    ? "–"
-    : `<span class="muted small">${durationLabel(jobDurationMs(row, now))}</span>`;
+  return Number.isNaN(jobEndMs(row)) ? "–" : `<span class="muted small">${durationLabel(jobDurationMs(row, now))}</span>`;
 }
 
 /** The line under the state, open or shut, from `jobMessage`; its Log link
@@ -140,9 +92,7 @@ function timeCell(row: QueueRowView, now: number): string {
 function messageLine(row: QueueRowView, lang: Language): string {
   const m = jobMessage(row, lang);
   if (!m) return "";
-  const log = m.log
-    ? `<a data-goto href="${esc(m.log)}">${esc(t(lang, "job.tabLog"))}</a>`
-    : "";
+  const log = m.log ? `<a data-goto href="${esc(m.log)}">${esc(t(lang, "job.tabLog"))}</a>` : "";
   const dismiss = jobDismissible(row)
     ? buttonForm({
         action: `/api/queue/${row.id}/dismiss`,
@@ -156,17 +106,8 @@ function messageLine(row: QueueRowView, lang: Language): string {
 /** A Close's, Reopen's, deploy's or scheduled job's steps, a line each in the row's columns, while the row is open
  *  (`stepRows`, which a spec's unfolded phase draws its steps with too). */
 function stepLines(row: QueueRowView, o: JobRowOptions): string {
-  const step =
-    closeOrReopenStep(row) ??
-    deployStep(row) ??
-    (isScheduleJob(row) ? "schedule" : undefined);
-  return stepRows(step ? (o.steps?.(row.id, step) ?? []) : [], {
-    prefix: jobKey(row),
-    filter: o.filter,
-    listPath: o.listPath,
-    lang: o.lang,
-    now: o.now,
-  })
+  const step = closeOrReopenStep(row) ?? deployStep(row) ?? (isScheduleJob(row) ? "schedule" : undefined);
+  return stepRows(step ? (o.steps?.(row.id, step) ?? []) : [], { prefix: jobKey(row), filter: o.filter, listPath: o.listPath, lang: o.lang, now: o.now })
     .map((r) => `${r.tag}${r.cells}</tr>`)
     .join("");
 }

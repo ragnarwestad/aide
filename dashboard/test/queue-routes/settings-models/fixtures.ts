@@ -5,20 +5,11 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type {
-  CheckableTool,
-  ProviderStatus,
-  ToolCheck,
-  ToolModels,
-  ToolUsage,
-} from "../../../src/render";
+import type { CheckableTool, ProviderStatus, ToolCheck, ToolModels, ToolUsage } from "../../../src/render";
 import type { QueueDefaults } from "../../../src/queue/types.ts";
 
 export const AT = "2026-10-03T13:30:00.000Z";
-export const JSON_HEADERS = {
-  "content-type": "application/json",
-  accept: "application/json",
-};
+export const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
 
 /** Claude's four families as Claude Code named them on 2026-10-03. */
 export const CLAUDE_READING: ToolModels = {
@@ -34,30 +25,12 @@ export const CLAUDE_READING: ToolModels = {
 
 /** Stands in for every CLI a provider's Models or Installation tab starts — the
  *  check and the models — counting which models were read. */
-export function modelsProbe(
-  readings: Partial<Record<CheckableTool, ToolModels>> = {},
-) {
+export function modelsProbe(readings: Partial<Record<CheckableTool, ToolModels>> = {}) {
   const probe = {
-    modelReads: [] as {
-      tool: CheckableTool;
-      configured: string[];
-      env?: Record<string, string>;
-    }[],
-    check: async (tool: CheckableTool): Promise<ToolCheck> => ({
-      tool,
-      at: AT,
-      found: true,
-      extra: [],
-    }),
-    models: async (
-      tool: CheckableTool,
-      opts: { configured: string[]; env?: Record<string, string> },
-    ): Promise<ToolModels> => {
-      probe.modelReads.push({
-        tool,
-        configured: opts.configured,
-        env: opts.env,
-      });
+    modelReads: [] as { tool: CheckableTool; configured: string[]; env?: Record<string, string> }[],
+    check: async (tool: CheckableTool): Promise<ToolCheck> => ({ tool, at: AT, found: true, extra: [] }),
+    models: async (tool: CheckableTool, opts: { configured: string[]; env?: Record<string, string> }): Promise<ToolModels> => {
+      probe.modelReads.push({ tool, configured: opts.configured, env: opts.env });
       return readings[tool] ?? { tool, at: AT, offered: [] };
     },
   };
@@ -66,10 +39,7 @@ export function modelsProbe(
 
 /** Fresh every time: the server works on the object it is handed, and a
  *  route that changes the choices changes it. */
-export function defaultsOf(
-  choices: QueueDefaults["modelChoices"],
-  model: Record<string, string>,
-): QueueDefaults {
+export function defaultsOf(choices: QueueDefaults["modelChoices"], model: Record<string, string>): QueueDefaults {
   return {
     timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
@@ -81,10 +51,7 @@ export function defaultsOf(
 
 /** A directory of the test's own holding `queue-config.json` with the
  *  given text, and where `model-ids.json` goes. */
-export function ownFiles(
-  config: string,
-  dirs: string[],
-): { file: string; modelIdsPath: string } {
+export function ownFiles(config: string, dirs: string[]): { file: string; modelIdsPath: string } {
   const dir = mkdtempSync(join(tmpdir(), "aide-settings-models-"));
   dirs.push(dir);
   const file = join(dir, "queue-config.json");
@@ -94,37 +61,20 @@ export function ownFiles(
 
 /** The model choices the Settings page offers, by value and label, as the
  *  Create row's Model select draws them. */
-export async function offeredChoices(
-  base: string,
-): Promise<Record<string, string>> {
+export async function offeredChoices(base: string): Promise<Record<string, string>> {
   const html = await (await fetch(`${base}/settings?tab=phases`)).text();
-  const select =
-    html.match(
-      /<select[^>]*name="model\.create"[^>]*>([\s\S]*?)<\/select>/,
-    )?.[1] ?? "";
+  const select = html.match(/<select[^>]*name="model\.create"[^>]*>([\s\S]*?)<\/select>/)?.[1] ?? "";
   return Object.fromEntries(
-    [...select.matchAll(/<option value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(
-      (m) => [m[1]!, m[2]!],
-    ),
+    [...select.matchAll(/<option value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map((m) => [m[1]!, m[2]!]),
   );
 }
 
-export const post = (
-  base: string,
-  path: string,
-  body: Record<string, string>,
-) =>
-  fetch(`${base}${path}`, {
-    method: "POST",
-    headers: JSON_HEADERS,
-    body: JSON.stringify(body),
-  });
+export const post = (base: string, path: string, body: Record<string, string>) =>
+  fetch(`${base}${path}`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
 
 /** The Models tab of a provider opened, which reads its tool's models. */
 export const openModelsTab = (base: string, key: string) =>
-  fetch(
-    `${base}/settings?tab=providers&provider=${encodeURIComponent(key)}&aitab=models`,
-  );
+  fetch(`${base}/settings?tab=providers&provider=${encodeURIComponent(key)}&aitab=models`);
 
 /** The providers a tab is read for: one per tool, on the tool's own folders. */
 export const PROVIDERS = {
@@ -135,13 +85,6 @@ export const PROVIDERS = {
 
 /** What opening a provider's page reads, so no test starts a real CLI. */
 export const stubReads = {
-  providerProbe: async (key: string): Promise<ProviderStatus> => ({
-    key,
-    at: AT,
-    installed: true,
-  }),
-  usageProbe: async (
-    _key: string,
-    provider: { tool: CheckableTool },
-  ): Promise<ToolUsage> => ({ tool: provider.tool, at: AT, windows: [] }),
+  providerProbe: async (key: string): Promise<ProviderStatus> => ({ key, at: AT, installed: true }),
+  usageProbe: async (_key: string, provider: { tool: CheckableTool }): Promise<ToolUsage> => ({ tool: provider.tool, at: AT, windows: [] }),
 };

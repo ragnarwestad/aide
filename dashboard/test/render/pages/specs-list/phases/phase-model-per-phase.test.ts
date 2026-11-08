@@ -7,7 +7,10 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
-import { row, openKeys } from "../../fixtures.ts";
+import {
+  row,
+  openKeys,
+} from "../../fixtures.ts";
 
 // --- One picker per phase, AI and model together -------------------
 //
@@ -28,20 +31,17 @@ import { row, openKeys } from "../../fixtures.ts";
 // by tool, hiding nothing, with the fallbacks that decide which one is
 // pre-filled.
 describe("one picker per phase", () => {
-  const target = (specFolder = "169-one-picker"): SpecTarget => ({
-    project: "aide",
-    specFolder,
-  });
+  const target = (specFolder = "169-one-picker"): SpecTarget => ({ project: "aide", specFolder });
 
   const BOTH = [
     { name: "sonnet" },
     { name: "fable" },
-    { name: "gpt-fast", tool: "codex" as const },
+    { name: "gpt-fast",  tool: "codex" as const },
   ];
   /** Codex FIRST, so a fallback that took `modelChoices`'s head can be
    *  told from one that took the row's old resting tool. */
   const CODEX_FIRST = [
-    { name: "gpt-fast", tool: "codex" as const },
+    { name: "gpt-fast",  tool: "codex" as const },
     { name: "sonnet" },
   ];
 
@@ -68,9 +68,7 @@ describe("one picker per phase", () => {
 
   const STEPS = ["create", "analyze", "implement", "archive"];
   const phaseSelect = (html: string, step: string) =>
-    html.match(
-      new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))?.[0] ?? "";
 
   test("Review and Verify show Settings choices and per-spec overrides while offering every model (AC-1, AC-3, AC-4)", () => {
     const html = rows([], {
@@ -79,14 +77,9 @@ describe("one picker per phase", () => {
     });
     expect(html).toContain('name="model.review"');
     expect(html).toContain('name="model.verify"');
-    const review =
-      html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0] ??
-      "";
-    const verify =
-      html.match(/<tr class="subrow" data-side="verify">[\s\S]*?<\/tr>/)?.[0] ??
-      "";
-    for (const model of ["sonnet", "fable", "gpt-fast"])
-      expect(review).toContain(`value="${model}"`);
+    const review = html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const verify = html.match(/<tr class="subrow" data-side="verify">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    for (const model of ["sonnet", "fable", "gpt-fast"]) expect(review).toContain(`value="${model}"`);
     expect(review).toMatch(/<option value="gpt-fast"[^>]*selected/);
     expect(verify).toMatch(/<option value="sonnet"[^>]*selected/);
     expect(review).not.toContain('<option value="">');
@@ -95,36 +88,18 @@ describe("one picker per phase", () => {
   });
 
   test("Review and Verify show the first listed model when the configured default is not listed (AC-3)", () => {
-    const html = rows([], {
-      modelChoices: [{ name: "Sonnet" }],
-      defaultModels: { default: "opus" },
-    });
+    const html = rows([], { modelChoices: [{ name: "Sonnet" }], defaultModels: { default: "opus" } });
     for (const part of ["review", "verify"]) {
-      const side =
-        html.match(
-          new RegExp(
-            `<tr class="subrow" data-side="${part}">[\\s\\S]*?<\\/tr>`,
-          ),
-        )?.[0] ?? "";
+      const side = html.match(new RegExp(`<tr class="subrow" data-side="${part}">[\\s\\S]*?<\\/tr>`))?.[0] ?? "";
       expect(side).toMatch(/<option value="Sonnet"[^>]*selected/);
     }
   });
 
   test("side pickers do not follow a running job's edited Implement tool (AC-2)", () => {
     const html = rows([
-      row({
-        id: "j1",
-        specFolder: "169-one-picker",
-        steps: ["analyze", "implement"],
-        stepIndex: 0,
-        state: "running",
-        model: "sonnet",
-        stepModels: { analyze: "sonnet", implement: "gpt-fast" },
-      }),
+      row({ id: "j1", specFolder: "169-one-picker", steps: ["analyze", "implement"], stepIndex: 0, state: "running", model: "sonnet", stepModels: { analyze: "sonnet", implement: "gpt-fast" } }),
     ]);
-    const review =
-      html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0] ??
-      "";
+    const review = html.match(/<tr class="subrow" data-side="review">[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(review).toContain('value="gpt-fast"');
     expect(review).toContain('value="sonnet" data-tool="claude"');
     expect(review).not.toContain("hidden disabled");
@@ -139,25 +114,11 @@ describe("one picker per phase", () => {
   // the browser re-deriving it, is the part worth keeping.
   test("a phase that has run says so on its select, and one that has not does not", () => {
     const html = rows([
-      row({
-        id: "j1",
-        specFolder: "169-one-picker",
-        steps: ["analyze"],
-        stepIndex: 0,
-        state: "done",
-        model: "fable",
-      }),
+      row({ id: "j1", specFolder: "169-one-picker", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
     ]);
-    expect(phaseSelect(html, "analyze").match(/<select[^>]*>/)![0]).toContain(
-      'data-ran="1"',
-    );
+    expect(phaseSelect(html, "analyze").match(/<select[^>]*>/)![0]).toContain('data-ran="1"');
     for (const step of ["implement", "archive"]) {
-      expect([
-        step,
-        phaseSelect(html, step)
-          .match(/<select[^>]*>/)![0]
-          .includes("data-ran"),
-      ]).toEqual([step, false]);
+      expect([step, phaseSelect(html, step).match(/<select[^>]*>/)![0].includes("data-ran")]).toEqual([step, false]);
     }
   });
 
@@ -171,14 +132,8 @@ describe("one picker per phase", () => {
     const html = rows([], { modelChoices: CODEX_FIRST });
     for (const step of STEPS) {
       const select = phaseSelect(html, step);
-      expect([
-        step,
-        /<option value="gpt-fast"[^>]*selected/.test(select),
-      ]).toEqual([step, true]);
-      expect([
-        step,
-        /<option value="sonnet"[^>]*selected/.test(select),
-      ]).toEqual([step, false]);
+      expect([step, /<option value="gpt-fast"[^>]*selected/.test(select)]).toEqual([step, true]);
+      expect([step, /<option value="sonnet"[^>]*selected/.test(select)]).toEqual([step, false]);
     }
   });
 
@@ -188,29 +143,18 @@ describe("one picker per phase", () => {
   test("what one phase ran on does not decide another phase's fallback", () => {
     const html = rows([
       row({
-        id: "j1",
-        specFolder: "169-one-picker",
-        steps: ["implement"],
-        stepIndex: 0,
-        state: "done",
-        model: "gpt-fast",
+        id: "j1", specFolder: "169-one-picker", steps: ["implement"],
+        stepIndex: 0, state: "done", model: "gpt-fast",
       }),
     ]);
-    expect(phaseSelect(html, "implement")).toMatch(
-      /<option value="gpt-fast"[^>]*selected/,
-    );
+    expect(phaseSelect(html, "implement")).toMatch(/<option value="gpt-fast"[^>]*selected/);
     // `sonnet` leads BOTH, and leads it still.
-    expect(phaseSelect(html, "analyze")).toMatch(
-      /<option value="sonnet"[^>]*selected/,
-    );
+    expect(phaseSelect(html, "analyze")).toMatch(/<option value="sonnet"[^>]*selected/);
   });
 
   // A configured default outranks the fallback exactly as it always did.
   test("a configured default still wins over the first entry", () => {
-    const select = phaseSelect(
-      rows([], { defaultModels: { default: "gpt-fast" } }),
-      "analyze",
-    );
+    const select = phaseSelect(rows([], { defaultModels: { default: "gpt-fast" } }), "analyze");
     expect(select).toMatch(/<option value="gpt-fast"[^>]*selected/);
   });
 
@@ -218,13 +162,7 @@ describe("one picker per phase", () => {
 
   test("a busy row locks its AI selects for the same reason as its models", () => {
     const html = rows([
-      row({
-        id: "j1",
-        specFolder: "169-one-picker",
-        steps: ["implement"],
-        stepIndex: 0,
-        state: "running",
-      }),
+      row({ id: "j1", specFolder: "169-one-picker", steps: ["implement"], stepIndex: 0, state: "running" }),
     ]);
     const control = html.match(/<select[^>]*data-ai[^>]*>/)![0];
     expect(control).toContain("disabled");
@@ -238,17 +176,9 @@ describe("one picker per phase", () => {
   // run.
   test("a settled row's AI selects are live again", () => {
     const html = rows([
-      row({
-        id: "j1",
-        specFolder: "169-one-picker",
-        steps: ["implement"],
-        stepIndex: 0,
-        state: "done",
-      }),
+      row({ id: "j1", specFolder: "169-one-picker", steps: ["implement"], stepIndex: 0, state: "done" }),
     ]);
-    expect(
-      html.match(/<select[^>]*data-ai="model\.archive"[^>]*>/)![0],
-    ).not.toContain("disabled");
+    expect(html.match(/<select[^>]*data-ai="model\.archive"[^>]*>/)![0]).not.toContain("disabled");
   });
 
   // --- ResolveChosenModel's new "pending" tier ---------------------
@@ -261,9 +191,7 @@ describe("one picker per phase", () => {
       defaultModels: { default: "sonnet" },
       pendingModels: { "aide/169-one-picker": { analyze: "gpt-fast" } },
     });
-    expect(phaseSelect(html, "analyze")).toMatch(
-      /<option value="gpt-fast"[^>]*selected/,
-    );
+    expect(phaseSelect(html, "analyze")).toMatch(/<option value="gpt-fast"[^>]*selected/);
   });
 
   // An absent pending value for one step falls through to the
@@ -274,9 +202,7 @@ describe("one picker per phase", () => {
       defaultModels: { default: "sonnet" },
       pendingModels: { "aide/169-one-picker": { implement: "gpt-fast" } },
     });
-    expect(phaseSelect(html, "analyze")).toMatch(
-      /<option value="sonnet"[^>]*selected/,
-    );
+    expect(phaseSelect(html, "analyze")).toMatch(/<option value="sonnet"[^>]*selected/);
   });
 });
 
@@ -289,40 +215,20 @@ import { resolveChosenModel } from "../../../../../src/render/pages/specs-list";
 describe("a phase that has run keeps what it ran on across a rename of the choices", () => {
   const models = [
     { name: "Sonnet" },
-    { name: "gpt-5.6-sol", tool: "codex" as const },
+    { name: "gpt-5.6-sol",  tool: "codex" as const },
   ];
   test("a job's choice name that is still offered wins as before", () => {
-    expect(
-      resolveChosenModel(
-        models,
-        "Sonnet",
-        "gpt-5.6-sol",
-        undefined,
-        "gpt-5.6-sol",
-      ),
-    ).toBe("gpt-5.6-sol");
+    expect(resolveChosenModel(models, "Sonnet", "gpt-5.6-sol", undefined, "gpt-5.6-sol")).toBe("gpt-5.6-sol");
   });
   test("a renamed-away choice name falls back to the model the file recorded", () => {
-    expect(
-      resolveChosenModel(
-        models,
-        "Sonnet",
-        "codex-sol",
-        undefined,
-        "gpt-5.6-sol",
-      ),
-    ).toBe("gpt-5.6-sol");
+    expect(resolveChosenModel(models, "Sonnet", "codex-sol", undefined, "gpt-5.6-sol")).toBe("gpt-5.6-sol");
   });
   test("with neither offered any more, the name it ran on stands as it is — never the default", () => {
-    expect(
-      resolveChosenModel(models, "Sonnet", "codex-sol", undefined, "codex-sol"),
-    ).toBe("codex-sol");
+    expect(resolveChosenModel(models, "Sonnet", "codex-sol", undefined, "codex-sol")).toBe("codex-sol");
     expect(resolveChosenModel(models, "Sonnet", "codex-sol")).toBe("codex-sol");
   });
   test("a phase that has not run still resolves pending, then the default", () => {
-    expect(resolveChosenModel(models, "Sonnet", undefined, "gpt-5.6-sol")).toBe(
-      "gpt-5.6-sol",
-    );
+    expect(resolveChosenModel(models, "Sonnet", undefined, "gpt-5.6-sol")).toBe("gpt-5.6-sol");
     expect(resolveChosenModel(models, "Sonnet", undefined)).toBe("Sonnet");
   });
 });

@@ -9,9 +9,7 @@ export interface FakeRow {
   readonly id: string;
   readonly className: string;
   readonly nextElementSibling: FakeRow | null;
-  readonly parentNode: {
-    insertAdjacentHTML(where: string, html: string): void;
-  };
+  readonly parentNode: { insertAdjacentHTML(where: string, html: string): void };
   remove(): void;
   insertAdjacentHTML(where: string, html: string): void;
 }
@@ -107,9 +105,7 @@ export function fakeTbody(onMutate: () => void) {
       list = cut(content);
       // Whatever the split could not account for travels with the
       // suffix, so nothing is lost on the way back out.
-      suffix =
-        content.slice(list.map((r) => r.html).join("").length) +
-        html.slice(close);
+      suffix = content.slice(list.map((r) => r.html).join("").length) + html.slice(close);
     },
     /** The FIRST row wearing this id, the way `getElementById` answers. */
     byId: (id: string): FakeRow | null => list.find((r) => r.id === id) ?? null,

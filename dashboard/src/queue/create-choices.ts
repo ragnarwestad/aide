@@ -9,15 +9,7 @@ import type { Job } from "./types.ts";
 
 /** The create job's fields for these choices, or what was refused. */
 export type CreateChoices =
-  | {
-      fields: Pick<
-        Job,
-        | "acceptanceNotRequired"
-        | "createNoAiFormulate"
-        | "createCriteriaChecks"
-        | "createChooseApproach"
-      >;
-    }
+  | { fields: Pick<Job, "acceptanceNotRequired" | "createNoAiFormulate" | "createCriteriaChecks" | "createChooseApproach"> }
   | { error: string };
 
 /** A box posts `"1"` when it is ticked and nothing when it is clear. */
@@ -42,9 +34,7 @@ export function parseCreateChoices(r: Record<string, unknown>): CreateChoices {
       // no line", all the way down.
       ...(acceptanceRequired ? {} : { acceptanceNotRequired: true }),
       ...(aiFormulateAcceptance ? {} : { createNoAiFormulate: true }),
-      ...(criteriaChecks.level
-        ? { createCriteriaChecks: criteriaChecks.level }
-        : {}),
+      ...(criteriaChecks.level ? { createCriteriaChecks: criteriaChecks.level } : {}),
       // Always carried, ticked or not: the spec records WHETHER the box
       // was ticked, so a clear box is a `no` written down, not nothing.
       createChooseApproach: ticked(r.chooseApproach),

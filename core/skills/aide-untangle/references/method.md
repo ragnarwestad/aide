@@ -132,7 +132,6 @@ source: leave them out and say so.
   That second list counts the files in the commits that touched
   `<file>`, so a file near the top that lives in another folder is a
   hidden link worth reading.
-
 - **Start where the leverage is highest:** the files that change most
   often, and the ones the most other files import.
 

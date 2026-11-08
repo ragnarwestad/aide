@@ -21,8 +21,7 @@ const PAGES = [
   ...[...new Bun.Glob("docs/**/*.md").scanSync(ROOT)],
 ];
 
-const PATH_IN_BACKTICKS =
-  /`(?:dashboard\/)?((?:src|test)\/[A-Za-z0-9_./-]+\.ts)`/g;
+const PATH_IN_BACKTICKS = /`(?:dashboard\/)?((?:src|test)\/[A-Za-z0-9_./-]+\.ts)`/g;
 
 describe("every source file the docs name exists", () => {
   for (const page of PAGES) {

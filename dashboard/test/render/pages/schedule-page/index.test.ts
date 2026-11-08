@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import type { Job } from "../../../../src/queue/types.ts";
-import {
-  renderScheduleDetailPage,
-  renderSchedulePage,
-} from "../../../../src/render";
+import { renderScheduleDetailPage, renderSchedulePage } from "../../../../src/render";
 import { clearCheckoutFaults } from "../../../../src/render/ui/checkout-faults.ts";
 
 // The page's header shows the board's checkout faults, which live in the
@@ -19,22 +16,12 @@ describe("Schedule page", () => {
       rows: [
         {
           project: "aide",
-          entry: {
-            name: "nightly-report",
-            cron: "0 3 * * *",
-            prompt: "docs/nightly.md",
-            enabled: true,
-          },
+          entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
           projectScheduleHref: "/projects/aide?tab=schedule",
         },
         {
           project: "atlasaurus",
-          entry: {
-            name: "weekly-check",
-            cron: "0 4 * * 0",
-            prompt: "docs/weekly.md",
-            enabled: true,
-          },
+          entry: { name: "weekly-check", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true },
           projectScheduleHref: "/projects/atlasaurus?tab=schedule",
         },
       ],
@@ -49,75 +36,48 @@ describe("Schedule page", () => {
       rows: [
         {
           project: "atlasaurus",
-          entry: {
-            name: "weekly-check",
-            cron: "0 4 * * 0",
-            prompt: "docs/weekly.md",
-            enabled: true,
-          },
+          entry: { name: "weekly-check", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true },
           projectScheduleHref: "/projects/atlasaurus?tab=schedule",
         },
         {
           project: "aide",
-          entry: {
-            name: "nightly-report",
-            cron: "0 3 * * *",
-            prompt: "docs/nightly.md",
-            enabled: true,
-          },
+          entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
           projectScheduleHref: "/projects/aide?tab=schedule",
         },
       ],
     });
-    expect(html.indexOf("aide:nightly-report")).toBeLessThan(
-      html.indexOf("atlasaurus:weekly-check"),
-    );
+    expect(html.indexOf("aide:nightly-report")).toBeLessThan(html.indexOf("atlasaurus:weekly-check"));
   });
 });
 
 /** Each heading of a page's table as [its text, its link, its `aria-sort`]. */
-function headings(
-  html: string,
-  table = "table.list",
-): [string, string | null, string | null][] {
+function headings(html: string, table = "table.list"): [string, string | null, string | null][] {
   const window = new Window();
   window.document.body.innerHTML = html;
-  return [...window.document.querySelectorAll(`${table} thead th`)].map(
-    (th) => [
-      th.textContent ?? "",
-      th.querySelector("a")?.getAttribute("href") ?? null,
-      th.getAttribute("aria-sort"),
-    ],
-  );
+  return [...window.document.querySelectorAll(`${table} thead th`)].map((th) => [
+    th.textContent ?? "",
+    th.querySelector("a")?.getAttribute("href") ?? null,
+    th.getAttribute("aria-sort"),
+  ]);
 }
 
 describe("the /schedule list's sortable headings", () => {
   const rows = [
     {
       project: "aide",
-      entry: {
-        name: "nightly-report",
-        cron: "0 3 * * *",
-        prompt: "docs/nightly.md",
-        enabled: true,
-      },
+      entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
       projectScheduleHref: "/projects/aide?tab=schedule",
     },
   ];
 
   test("link to each column, the sorted one turned round, and mark the sorted one", () => {
-    expect(
-      headings(renderSchedulePage(NAV, "2026-08-30T00:00:00Z", { rows })),
-    ).toEqual([
+    expect(headings(renderSchedulePage(NAV, "2026-08-30T00:00:00Z", { rows }))).toEqual([
       ["Name", "/schedule?sort=name&dir=desc", "ascending"],
       ["Next run", "/schedule?sort=next", null],
       ["Last run", "/schedule?sort=last", null],
       ["Enabled", "/schedule?sort=enabled", null],
     ]);
-    const sorted = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
-      rows,
-      filter: { q: "night", sort: "next", dir: "desc" },
-    });
+    const sorted = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", { rows, filter: { q: "night", sort: "next", dir: "desc" } });
     expect(headings(sorted)).toEqual([
       ["Name", "/schedule?q=night&sort=name", null],
       ["Next run", "/schedule?q=night&sort=next", "descending"],
@@ -132,19 +92,10 @@ describe("the /schedule list's sortable headings", () => {
       entry: { name, cron: "0 3 * * *", prompt: "docs/nightly.md", enabled },
       projectScheduleHref: "/projects/aide?tab=schedule",
     });
-    const all = [
-      entry("b-off", false),
-      entry("c-on", true),
-      entry("a-on", true),
-    ];
+    const all = [entry("b-off", false), entry("c-on", true), entry("a-on", true)];
     const order = (dir?: "asc" | "desc") => {
-      const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
-        rows: all,
-        filter: { sort: "enabled", dir },
-      });
-      return ["aide:a-on", "aide:c-on", "aide:b-off"].sort(
-        (x, y) => html.indexOf(x) - html.indexOf(y),
-      );
+      const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", { rows: all, filter: { sort: "enabled", dir } });
+      return ["aide:a-on", "aide:c-on", "aide:b-off"].sort((x, y) => html.indexOf(x) - html.indexOf(y));
     };
     expect(order()).toEqual(["aide:a-on", "aide:c-on", "aide:b-off"]);
     expect(order("asc")).toEqual(["aide:b-off", "aide:a-on", "aide:c-on"]);
@@ -153,28 +104,14 @@ describe("the /schedule list's sortable headings", () => {
 
 describe("the entry's Report tab", () => {
   const run = {
-    id: "r1",
-    project: "aide",
-    specFolder: "schedule-nightly-report",
-    steps: ["schedule"],
-    stepIndex: 0,
-    state: "done",
-    timeoutSec: {},
-    permissionMode: {},
-    model: {},
-    createdAt: "2026-09-01T03:00:00Z",
-    startedAt: "2026-09-01T03:00:00Z",
+    id: "r1", project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"], stepIndex: 0, state: "done",
+    timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-09-01T03:00:00Z", startedAt: "2026-09-01T03:00:00Z",
   } as unknown as Job;
 
   test("draws the runs list after the report panel it was handed", () => {
     const html = renderScheduleDetailPage(NAV, "2026-09-30T00:00:00Z", {
       project: "aide",
-      entry: {
-        name: "nightly-report",
-        cron: "0 3 * * *",
-        prompt: "docs/nightly.md",
-        enabled: true,
-      },
+      entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
       runs: [run],
       shownRun: "r1",
       reportPanel: `<section id="report">REPORT</section><section id="proposals">PROPOSALS</section>`,
@@ -185,10 +122,7 @@ describe("the entry's Report tab", () => {
     const runs = doc.getElementById("runs");
     expect(runs).not.toBeNull();
     for (const before of ["report", "proposals"]) {
-      expect(
-        doc.getElementById(before)!.compareDocumentPosition(runs!) &
-          window.Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
+      expect(doc.getElementById(before)!.compareDocumentPosition(runs!) & window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
   });
 });

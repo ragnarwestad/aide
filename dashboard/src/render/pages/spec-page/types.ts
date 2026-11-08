@@ -2,11 +2,7 @@
 
 import type { AcTest } from "../../../project/ac-coverage.ts";
 import type { CreateChoices } from "../../../project/discover";
-import type {
-  JobDetailView,
-  JobStepResultView,
-  SpecFileView,
-} from "../job-page";
+import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page";
 import type { Phase } from "../specs-list";
 
 /** One row of `4-status.md`'s Tasks tables, as the page shows it.

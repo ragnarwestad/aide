@@ -1,4 +1,5 @@
-import { providerError, type StepOutcome } from "./types.ts";
+import type { Job } from "../queue.ts";
+import { providerError, type RunnerOptions, type StepOutcome } from "./types.ts";
 
 export const CAPACITY_RETRY_DELAY_MS = 3 * 60_000;
 
@@ -38,4 +39,36 @@ export function outcomeRetryDecision(
     attempts,
     now,
   });
+}
+
+/** Persist the automatic second attempt before returning it to the queue. */
+export function queueVanishedRetry(o: RunnerOptions, job: Job): boolean {
+  const step = job.steps[job.stepIndex];
+  if (!step || step === "deploy") return false;
+  const attempts = job.retry?.action === step ? job.retry.attempts : 1;
+  const decision = retryDecision({
+    kind: "vanished",
+    attempts,
+    now: Date.parse(o.now()),
+  });
+  if (!decision) return false;
+  o.store.transition(job.id, "retry", {
+    retry: {
+      action: step,
+      attempts: attempts + 1,
+      ...(decision.retryAt > Date.parse(o.now())
+        ? { dueAt: new Date(decision.retryAt).toISOString() }
+        : {}),
+    },
+    pid: undefined,
+    pgid: undefined,
+    resultFile: undefined,
+    sessionId: undefined,
+    streamFile: undefined,
+    stepStartedAt: undefined,
+    error: undefined,
+    errorReason: undefined,
+    finishedAt: undefined,
+  });
+  return true;
 }

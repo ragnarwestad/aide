@@ -37,7 +37,7 @@ Skills are a cross-cutting standard. All three tools read skills from
 overlapping paths:
 
 | Path                                | Claude Code |            Copilot            | Codex |
-| ----------------------------------- | :---------: | :---------------------------: | :---: |
+|-------------------------------------|:-----------:|:-----------------------------:|:-----:|
 | `~/.claude/skills/<name>/SKILL.md`  |     yes     | no (dropped; verified 1.0.79) |  no   |
 | `~/.copilot/skills/<name>/SKILL.md` |     no      |              yes              |  no   |
 | `~/.agents/skills/<name>/SKILL.md`  |     no      |        yes (v1.0.11+)         |  yes  |
@@ -54,7 +54,7 @@ fields — `name`, `description`, `license`, `compatibility`, `metadata`,
 `allowed-tools`. Tool support:
 
 | Field                                                                |     Spec     |   Claude Code   | Copilot |  Codex  |
-| -------------------------------------------------------------------- | :----------: | :-------------: | :-----: | :-----: |
+|----------------------------------------------------------------------|:------------:|:---------------:|:-------:|:-------:|
 | `name`, `description`                                                |     yes      |       yes       |   yes   |   yes   |
 | `license`                                                            |     yes      | accepted, inert |   yes   | ignored |
 | `compatibility`, `metadata`                                          |     yes      | accepted, inert | ignored | ignored |
@@ -88,7 +88,7 @@ still read by the Copilot CLI (same verification).
 All tools have a project instruction file that is read automatically:
 
 | Tool        | File                               | Global                               |
-| ----------- | ---------------------------------- | ------------------------------------ |
+|-------------|------------------------------------|--------------------------------------|
 | Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | `~/.claude/CLAUDE.md`                |
 | Copilot     | `.github/copilot-instructions.md`  | `~/.copilot/copilot-instructions.md` |
 | Codex       | `AGENTS.md`                        | `~/.codex/AGENTS.md`                 |
@@ -109,7 +109,7 @@ Foundry. A project that has a `CLAUDE.md` is read as before.
 ### Configuration files
 
 | File                | Path                                                         | Purpose                                                                                                                          |
-| ------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+|---------------------|--------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
 | CLAUDE.md           | `./CLAUDE.md`, `./.claude/CLAUDE.md`, `~/.claude/CLAUDE.md`  | Instructions                                                                                                                     |
 | settings.json       | `.claude/settings.json`, `~/.claude/settings.json`           | Permissions, hooks, env                                                                                                          |
 | settings.local.json | `.claude/settings.local.json`                                | Local overrides (gitignored)                                                                                                     |
@@ -192,14 +192,14 @@ Auto mode and v2.1.304 to v2.1.309, against a `-p` run:
 - v2.1.309: no change to the mode. `sed -i` gets the standard Bash
   prompt instead of counting as a file edit, so a step on `acceptEdits`
   is denied both `sed -i '' 's/a/b/' x.txt` and `sed -i.bak 's/a/b/'
-x.txt` on a file inside its working directory ("sed command requires
+  x.txt` on a file inside its working directory ("sed command requires
   approval", under `permission_denials`), while plain `sed 's/a/b/'
-x.txt` runs; the permission-modes page still lists `sed` among the
+  x.txt` runs; the permission-modes page still lists `sed` among the
   commands `acceptEdits` approves. By the release notes, a wrapped or
   prefixed `cd` before `git` is newly denied there too (not probed). A
   step on `bypassPermissions` is not affected. Sandbox and `Edit(path)`
   deny hardening apply to settings Aide does not set. `claude
-ultrareview` needs `--trust-workspace` in a script; `aide-run-spec`
+  ultrareview` needs `--trust-workspace` in a script; `aide-run-spec`
   never calls it.
 
 ### Skill/Agent frontmatter
@@ -207,7 +207,7 @@ ultrareview` needs `--trust-workspace` in a script; `aide-run-spec`
 Skills and agents support these frontmatter fields:
 
 | Field             | Purpose                                              |
-| ----------------- | ---------------------------------------------------- |
+|-------------------|------------------------------------------------------|
 | `name`            | Identifier                                           |
 | `description`     | Trigger matching (max ~250 chars shown in `/skills`) |
 | `effort`          | Reasoning effort for the skill (low/medium/high)     |
@@ -225,7 +225,7 @@ Skills and agents support these frontmatter fields:
 ### Configuration files
 
 | File                | Path                                                                              | Purpose                         |
-| ------------------- | --------------------------------------------------------------------------------- | ------------------------------- |
+|---------------------|-----------------------------------------------------------------------------------|---------------------------------|
 | Custom instructions | `.github/copilot-instructions.md`                                                 | Repo-wide instructions          |
 | Path-specific       | `.github/instructions/*.instructions.md`                                          | Path-specific rules             |
 | Global instructions | `~/.copilot/copilot-instructions.md`                                              | Personal instructions           |
@@ -279,7 +279,7 @@ means projects can have project-specific skills in
 ### Configuration files
 
 | File               | Path                                                | Purpose                             |
-| ------------------ | --------------------------------------------------- | ----------------------------------- |
+|--------------------|-----------------------------------------------------|-------------------------------------|
 | AGENTS.md          | Repo root and down to cwd                           | Instructions (directory walk)       |
 | AGENTS.override.md | Same paths                                          | Override without deleting AGENTS.md |
 | config.toml        | `~/.codex/config.toml`, `<repo>/.codex/config.toml` | Configuration                       |
@@ -345,7 +345,7 @@ structured inter-agent messaging.
 ### Instructions and rules
 
 | Feature              |     Claude Code     |              Copilot               |       Codex        |
-| -------------------- | :-----------------: | :--------------------------------: | :----------------: |
+|----------------------|:-------------------:|:----------------------------------:|:------------------:|
 | Project instructions |      CLAUDE.md      |      copilot-instructions.md       |     AGENTS.md      |
 | Path-specific rules  |  rules/ with paths  |   instructions/*.instructions.md   |         no         |
 | Directory walk       |         yes         |          no (single file)          |   yes (root→cwd)   |
@@ -355,7 +355,7 @@ structured inter-agent messaging.
 ### Skills and commands
 
 | Feature           |        Claude Code        |   Copilot   |    Codex    |
-| ----------------- | :-----------------------: | :---------: | :---------: |
+|-------------------|:-------------------------:|:-----------:|:-----------:|
 | Skills (SKILL.md) |            yes            |     yes     |     yes     |
 | Custom commands   | unified with skills (.md) |     no      |     no      |
 | Slash commands    |        /skill-name        | /skill-name | /skill-name |
@@ -364,7 +364,7 @@ structured inter-agent messaging.
 ### Configuration
 
 | Feature          | Claude Code |        Copilot        |         Codex          |
-| ---------------- | :---------: | :-------------------: | :--------------------: |
+|------------------|:-----------:|:---------------------:|:----------------------:|
 | Config format    |    JSON     |         JSON          |          TOML          |
 | Config path      |  .claude/   | .github/, ~/.copilot/ |        .codex/         |
 | MCP servers      |     yes     |     yes (agents)      |          yes           |

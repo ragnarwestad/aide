@@ -23,7 +23,6 @@ effort: high
 ### 1. description.md
 
 **Content:**
-
 - The spec (title, description, acceptance criteria)
 - The problem as reported
 - Prerequisites and dependencies
@@ -33,7 +32,6 @@ effort: high
 ### 2. analysis.md
 
 **Content:**
-
 - Mapping (how the analysis was performed)
 - Affected files (with **file:line** references)
 - API impact (frontend ↔ backend)
@@ -41,17 +39,14 @@ effort: high
 **Structure:** Follow the `spec structure` § 2-analysis
 
 **Example:**
-
 ```markdown
 ## Affected files
 
 ### Frontend
-
 - `src/components/UserProfile.tsx:45` - Must update form validation
 - `src/api/userApi.ts:12` - Must add new endpoint call
 
 ### Backend
-
 - `com/example/api/UserController.kt:78` - Must update DTO
 - `com/example/domain/User.kt:23` - Must add new field
 ```
@@ -59,7 +54,6 @@ effort: high
 ### 3. solution.md
 
 **Content:**
-
 - Scope (files to change, complexity, estimate)
 - TDD-based implementation plan
 - Where the tests sit (public interface, test file, AC-ids)
@@ -72,29 +66,24 @@ effort: high
 **Structure:** Follow the `spec structure` § 3-solution
 
 **Example:**
-
 ```markdown
 ## Implementation plan
 
 ### Task 0: Write tests (RED phase)
-
 - [ ] `UserProfile.test.tsx` - Test new validation (30 min)
 - [ ] `UserController.test.kt` - Test new endpoint (30 min)
 
 ### Task 1: Implement backend (GREEN phase)
-
 - [ ] Add field to `User.kt` (15 min)
 - [ ] Update `UserController.kt` (30 min)
 - [ ] Run tests - verify that they pass (10 min)
 
 ### Task 2: Implement frontend (GREEN phase)
-
 - [ ] Update `UserProfile.tsx` (45 min)
 - [ ] Update `userApi.ts` (15 min)
 - [ ] Run tests - verify that they pass (10 min)
 
 ### Task 3: Quality check (VERIFY phase)
-
 - [ ] TypeScript check: `npx tsc --noEmit` (5 min)
 - [ ] ESLint: `pnpm run eslint` (5 min)
 - [ ] All tests: `pnpm test -- --run` (10 min)
@@ -103,7 +92,6 @@ effort: high
 ### 4. status.md
 
 **Content:**
-
 - Progress tracking
 - Challenges and solutions
 - Tests (status, coverage)
@@ -118,7 +106,6 @@ effort: high
 ### Frontend vs Backend
 
 Use the API mapping to identify:
-
 - Is this a frontend bug (parsing/rendering)?
 - Is this a backend bug (data/logic)?
 - Does it affect both layers?
@@ -129,7 +116,6 @@ Use the API mapping to identify:
 ## API impact
 
 ### Changed endpoint
-
 - `GET /api/user/{id}` → Response format changed
 - Affected frontend files:
   - `src/api/userApi.ts:12`

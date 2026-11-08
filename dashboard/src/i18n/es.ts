@@ -18,19 +18,13 @@ export const es: Record<TranslationKey, string> = {
   "shell.tabSpecs": "Especificaciones",
   "shell.tabProjects": "Proyectos",
   "shell.tabSchedule": "Programación",
-  "shell.restartWaiting":
-    "El despliegue espera a {jobs}; el servicio se reinicia cuando terminen.",
-  "shell.installWarning":
-    "la última instalación de aide encontró un problema: {problem} — la salida completa está en {path}",
-  "shell.toolFault":
-    "{tool}: {problems} — abre la pestaña Instalación en {where}",
-  "shell.toolFaultWhere":
-    "la página de un proveedor, en la pestaña Proveedores de Settings",
+  "shell.restartWaiting": "El despliegue espera a {jobs}; el servicio se reinicia cuando terminen.",
+  "shell.installWarning": "la última instalación de aide encontró un problema: {problem} — la salida completa está en {path}",
+  "shell.toolFault": "{tool}: {problems} — abre la pestaña Instalación en {where}",
+  "shell.toolFaultWhere": "la página de un proveedor, en la pestaña Proveedores de Settings",
   "shell.modelsGone": "{tool}: {models} ya no se ofrece — quítalo en {where}",
-  "shell.modelsGoneWhere":
-    "la página de un proveedor, en la pestaña Proveedores de Settings",
-  "shell.checkoutFault":
-    "{project}: el panel no puede usar su propia copia — {said}",
+  "shell.modelsGoneWhere": "la página de un proveedor, en la pestaña Proveedores de Settings",
+  "shell.checkoutFault": "{project}: el panel no puede usar su propia copia — {said}",
   "deploy.title": "Desplegando…",
   "deploy.stepFetch": "Traer desde origin",
   "deploy.stepInstall": "Instalar",
@@ -42,12 +36,10 @@ export const es: Record<TranslationKey, string> = {
   "dialog.stepDone": "hecho",
   "dialog.stepFailed": "fallido",
   "deploy.askTitle": "¿Desplegar {project}?",
-  "deploy.askSentence":
-    "Trae desde origin, instala y reinicia el servicio, y comprueba después que corre el último commit. Se ejecuta como un trabajo: síguelo en la pestaña En curso.",
+  "deploy.askSentence": "Trae desde origin, instala y reinicia el servicio, y comprueba después que corre el último commit. Se ejecuta como un trabajo: síguelo en la pestaña En curso.",
   "shell.overlayLoading": "cargando…",
   "shell.loadingPage": "Cargando …",
-  "shell.pageFailed":
-    "Algo salió mal al construir la página. Recarga la página; si sigue fallando, mira el registro del panel en el equipo que lo sirve.",
+  "shell.pageFailed": "Algo salió mal al construir la página. Recarga la página; si sigue fallando, mira el registro del panel en el equipo que lo sirve.",
   "shell.leaveAppTitle": "¿Salir de la página?",
   "shell.leaveAppBody": "Es posible que los cambios que hiciste no se guarden.",
   "dialog.ok": "OK",
@@ -58,8 +50,7 @@ export const es: Record<TranslationKey, string> = {
   "shell.runTestRound": "Ejecutar",
   "shell.delay": "Retardo: {value}",
   "shell.delayOff": "No",
-  "shell.delayTitle":
-    "Cuánto espera el modelo sustituto antes de cada paso; pulsa para la siguiente opción",
+  "shell.delayTitle": "Cuánto espera el modelo sustituto antes de cada paso; pulsa para la siguiente opción",
   "shell.testRound": "la ronda",
 
   "list.statesLabel": "Estados",
@@ -78,8 +69,7 @@ export const es: Record<TranslationKey, string> = {
   "list.searchHelpBody":
     "Busca en proyecto:carpeta, el título, la descripción — la descripción completa, " +
     "incluida la parte que la fila no muestra.",
-  "list.searchPlaceholder":
-    "Buscar en nombre del proyecto, título o descripción",
+  "list.searchPlaceholder": "Buscar en nombre del proyecto, título o descripción",
   "list.searchAriaLabel": "Buscar en las specs",
   "list.searchClearTitle": "Borrar la búsqueda",
   "list.search": "Buscar",
@@ -95,13 +85,11 @@ export const es: Record<TranslationKey, string> = {
   "list.foldHide": "ocultar",
   "list.foldTitle": "{action} las fases y controles de {folder}",
   "list.specFoldTitle": "{action} la spec {folder}",
-  "list.specLoadFailed":
-    "no se pudo cargar la spec — recarga la página para intentarlo de nuevo",
+  "list.specLoadFailed": "no se pudo cargar la spec — recarga la página para intentarlo de nuevo",
   "list.checksFoldTitle": "{action} los criterios de aceptación de {folder}",
   "list.checksSave": "Guardar",
   "list.checksSaving": "guardando…",
-  "list.checksUnreadable":
-    "No se pudieron leer aquí los criterios de aceptación.",
+  "list.checksUnreadable": "No se pudieron leer aquí los criterios de aceptación.",
   "list.approachRecommended": "recomendado",
   "checks.verified": "Verificado",
   "checks.verifiedQuestion": "¿Verificado?",
@@ -120,14 +108,12 @@ export const es: Record<TranslationKey, string> = {
   "list.phaseNoneKept": "No se conservan mensajes de esta fase.",
   "list.phaseNoMessages": "Aún no se ha capturado nada de este paso.",
   "list.phaseModel": "Modelo: {model}",
-  "list.descriptionChangedSince":
-    "La descripción ha cambiado desde el último análisis.",
+  "list.descriptionChangedSince": "La descripción ha cambiado desde el último análisis.",
   "list.phaseOpenLog": "Abrir el registro de este paso",
   "list.cancel": "Cancelar",
   "list.cancelling": "cancelando…",
   "list.cancelConfirmTitle": "¿Cancelar {step}?",
-  "list.cancelConfirmBody":
-    "Esto lo detiene de inmediato — se puede volver a ejecutar desde la misma spec.",
+  "list.cancelConfirmBody": "Esto lo detiene de inmediato — se puede volver a ejecutar desde la misma spec.",
   "jobs.nothingRunning": "No se está ejecutando nada.",
   "jobs.colTitle": "Título",
   "jobs.noRowMatchesFilter": "Nada en esta pestaña coincide con este filtro.",
@@ -137,10 +123,8 @@ export const es: Record<TranslationKey, string> = {
   "jobs.stopConfirmTitle": "¿Detener {step}?",
   "jobs.confirmBody": "Esto lo detiene de inmediato.",
   "jobs.endedFailed": "El trabajo falló — su registro dice por qué.",
-  "jobs.endedStopped":
-    "El trabajo se detuvo antes de terminar — su registro dice dónde.",
-  "jobs.endedInterrupted":
-    "El trabajo se cortó antes de terminar — su registro dice hasta dónde llegó.",
+  "jobs.endedStopped": "El trabajo se detuvo antes de terminar — su registro dice dónde.",
+  "jobs.endedInterrupted": "El trabajo se cortó antes de terminar — su registro dice hasta dónde llegó.",
   "jobs.linkSpec": "Spec",
   "list.reopen": "Reabrir",
   "list.reopening": "reabriendo…",
@@ -149,21 +133,16 @@ export const es: Record<TranslationKey, string> = {
   "list.noPullRequest": "sin pull request",
   "list.landingFailed": "el merge falló",
   "list.testsRed": "tests en rojo",
-  "list.waitingOnReview":
-    "su código espera una pull request — ábrela para revisarla",
+  "list.waitingOnReview": "su código espera una pull request — ábrela para revisarla",
   "list.testServer": "servidor de prueba",
-  "list.testServerStartLink":
-    "Haz clic en el enlace para iniciar un servidor de prueba con esta branch",
+  "list.testServerStartLink": "Haz clic en el enlace para iniciar un servidor de prueba con esta branch",
   "list.branchPreview": "vista previa",
-  "list.branchPreviewLink":
-    "Haz clic en el enlace para abrir esta branch donde su host la ha compilado",
+  "list.branchPreviewLink": "Haz clic en el enlace para abrir esta branch donde su host la ha compilado",
   "list.pushError":
     "El push de un paso no llegó a origin. — Actualiza la branch en el checkout del servidor, " +
     "y vuelve a hacer push desde una terminal.",
-  "list.prError":
-    "No se pudo abrir una pull request para esta branch. — Ábrela a mano, en el checkout del servidor.",
-  "list.landedAfterRetry":
-    "Integrada tras un reintento: los tests fallaron en la primera ejecución y pasaron en la segunda.",
+  "list.prError": "No se pudo abrir una pull request para esta branch. — Ábrela a mano, en el checkout del servidor.",
+  "list.landedAfterRetry": "Integrada tras un reintento: los tests fallaron en la primera ejecución y pasaron en la segunda.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "Ningún test nombra {id}.",
   "list.branchLeftBehind":
@@ -178,8 +157,7 @@ export const es: Record<TranslationKey, string> = {
     "su código está en una branch y no se abrió ninguna pull request para ella. — Ábrela a mano, " +
     "en el checkout del servidor.",
   "list.archiveHeldBack": "{step} retenido: {reason}",
-  "list.readyToArchive":
-    "Todas las comprobaciones marcadas — pulsa {button} para mergearla",
+  "list.readyToArchive": "Todas las comprobaciones marcadas — pulsa {button} para mergearla",
   "list.noSpecMatchesFilter": "Ninguna spec coincide con este filtro.",
   "list.noSpecAtAll": "No hay specs que mostrar.",
   "list.noRunner":
@@ -237,30 +215,24 @@ export const es: Record<TranslationKey, string> = {
   "job.logAiPlain": "IA",
   "job.logSubagent": "Subagente: {name}",
   "job.subagentAsked": "Encargo: {text}",
-  "job.subagentAskedTask":
-    "Encargo: la tarea {name}. Codex guarda el texto de la tarea cifrado.",
+  "job.subagentAskedTask": "Encargo: la tarea {name}. Codex guarda el texto de la tarea cifrado.",
   "job.subagentAnswered": "Respuesta: {text}",
   "job.subagentNoAnswer": "Aún no ha respondido.",
-  "job.subagentUnread":
-    "No se pudo leer el trabajo de este subagente: su archivo de sesión ({thread}) no se encontró o no se pudo leer. Codex guarda un archivo de sesión en sessions/ dentro de CODEX_HOME, o en ~/.codex, en el equipo que sirve el tablero.",
+  "job.subagentUnread": "No se pudo leer el trabajo de este subagente: su archivo de sesión ({thread}) no se encontró o no se pudo leer. Codex guarda un archivo de sesión en sessions/ dentro de CODEX_HOME, o en ~/.codex, en el equipo que sirve el tablero.",
   "job.noErrors": "El registro no tiene líneas de error.",
   "job.screenshots": "Capturas de pantalla",
   "job.noChangedFiles": "Ningún archivo cambió en este paso.",
   "job.filesNotKnown": "No se registraron los archivos cambiados de este paso.",
-  "job.filesRunning":
-    "Los archivos cambiados se conocen cuando el paso termina.",
+  "job.filesRunning": "Los archivos cambiados se conocen cuando el paso termina.",
 
   "schedule.cron": "Cron",
   "schedule.nextRun": "Próxima ejecución",
   "schedule.promptFile": "Archivo de prompt",
   "schedule.promptOfJob": "Archivo de prompt de la tarea programada {job}",
-  "schedule.promptUnreadable":
-    "el archivo de prompt {file} no se puede leer desde la rama por defecto del checkout del tablero de {project} — haz commit en esa rama, o cambia la ruta en la pestaña Ajustes.",
+  "schedule.promptUnreadable": "el archivo de prompt {file} no se puede leer desde la rama por defecto del checkout del tablero de {project} — haz commit en esa rama, o cambia la ruta en la pestaña Ajustes.",
   "schedule.model": "Modelo",
-  "schedule.modelNotOffered":
-    "el modelo {model} no es uno de los que ofrece la cola — ofrece {choices}. Elige uno en la página de la entrada; hasta entonces sus ejecuciones se rechazan.",
-  "schedule.modelNoneOffered":
-    "el modelo {model} no es uno de los que ofrece la cola — no ofrece ningún modelo. Elige otro en la página de la entrada cuando la configuración de la cola liste alguno; hasta entonces sus ejecuciones se rechazan.",
+  "schedule.modelNotOffered": "el modelo {model} no es uno de los que ofrece la cola — ofrece {choices}. Elige uno en la página de la entrada; hasta entonces sus ejecuciones se rechazan.",
+  "schedule.modelNoneOffered": "el modelo {model} no es uno de los que ofrece la cola — no ofrece ningún modelo. Elige otro en la página de la entrada cuando la configuración de la cola liste alguno; hasta entonces sus ejecuciones se rechazan.",
   "schedule.ai": "IA",
   "schedule.notify": "Avisar",
   "schedule.notifyNever": "Nunca",
@@ -272,8 +244,7 @@ export const es: Record<TranslationKey, string> = {
   "schedule.sandbox": "Sandbox",
   "schedule.sandboxOn": "Activado",
   "schedule.sandboxOff": "Desactivado, para que pueda arrancar un navegador",
-  "schedule.reportOnly":
-    "Un trabajo programado puede hacer commits en el proyecto y sus specs — los mismos repositorios que alcanza el paso de una spec. Cuando termina, el tablero mergea el trabajo.",
+  "schedule.reportOnly": "Un trabajo programado puede hacer commits en el proyecto y sus specs — los mismos repositorios que alcanza el paso de una spec. Cuando termina, el tablero mergea el trabajo.",
   "schedule.enabled": "Activado",
   "schedule.yes": "sí",
   "schedule.no": "no",
@@ -288,23 +259,17 @@ export const es: Record<TranslationKey, string> = {
   "proposals.created": "Creada",
   "proposals.skipped": "Omitida",
   "proposals.noTitle": "(sin título)",
-  "proposals.existsActive":
-    "ya existe una spec con este título: {spec} (activa)",
-  "proposals.existsArchived":
-    "ya existe una spec con este título: {spec} (archivada)",
-  "proposals.existsClosed":
-    "ya existe una spec con este título: {spec} (cerrada)",
+  "proposals.existsActive": "ya existe una spec con este título: {spec} (activa)",
+  "proposals.existsArchived": "ya existe una spec con este título: {spec} (archivada)",
+  "proposals.existsClosed": "ya existe una spec con este título: {spec} (cerrada)",
   "proposals.queued": "ya existe un trabajo Create para este título",
-  "proposals.invalidNotObject":
-    "la entrada no es un objeto con título y descripción",
+  "proposals.invalidNotObject": "la entrada no es un objeto con título y descripción",
   "proposals.invalidTitleMissing": "no tiene título",
   "proposals.invalidTitleLines": "su título ocupa más de una línea",
   "proposals.invalidTitleLong": "su título tiene más de {max} caracteres",
   "proposals.invalidDescriptionMissing": "no tiene descripción",
-  "proposals.invalidDescriptionLong":
-    "su descripción supera los {max} caracteres que caben junto a la fuente",
-  "proposals.refused":
-    "la cola la rechazó; el motivo está en el registro del servidor",
+  "proposals.invalidDescriptionLong": "su descripción supera los {max} caracteres que caben junto a la fuente",
+  "proposals.refused": "la cola la rechazó; el motivo está en el registro del servidor",
   "schedule.newJob": "Nuevo trabajo",
   "schedule.new": "Nuevo",
   "schedule.edit": "Editar",
@@ -359,42 +324,32 @@ export const es: Record<TranslationKey, string> = {
   "settings.providers.add": "Añadir",
   "settings.providers.adding": "añadiendo…",
   "settings.providers.chooseTool": "¿Para qué herramienta es el proveedor?",
-  "settings.providers.notInstalled":
-    "{tool} no está instalado donde se ejecuta el tablero",
-  "settings.providers.loginUnread":
-    "No se pudo leer la sesión — abre la página de nuevo para leerla otra vez.",
+  "settings.providers.notInstalled": "{tool} no está instalado donde se ejecuta el tablero",
+  "settings.providers.loginUnread": "No se pudo leer la sesión — abre la página de nuevo para leerla otra vez.",
   "settings.providers.login": "Sesión",
   "settings.providers.state.in": "Con sesión iniciada",
   "settings.providers.state.out": "Sin sesión iniciada",
   "settings.providers.state.unread": "Sin leer",
   "settings.providers.state.notInstalled": "No instalado",
   "settings.providers.removeTitle": "¿Quitar {name}?",
-  "settings.providers.removeSentence":
-    "El proveedor se elimina del tablero. Su carpeta y su sesión se quedan como están.",
-  "settings.models.readAtWith":
-    "Modelos leídos {at}, con las carpetas de {provider}",
+  "settings.providers.removeSentence": "El proveedor se elimina del tablero. Su carpeta y su sesión se quedan como están.",
+  "settings.models.readAtWith": "Modelos leídos {at}, con las carpetas de {provider}",
   "settings.providers.loginEnds": "La sesión termina {at}",
-  "settings.providers.shadowHelp":
-    "Un shadow home tiene su propia sesión y comparte las sesiones y la configuración de CODEX_HOME. Empieza con una carpeta vacía e inicia sesión allí.",
+  "settings.providers.shadowHelp": "Un shadow home tiene su propia sesión y comparte las sesiones y la configuración de CODEX_HOME. Empieza con una carpeta vacía e inicia sesión allí.",
   "settings.providers.heading": "Proveedores",
   "settings.providers.addProvider": "Añadir proveedor",
   "settings.providers.checked": "Comprobado {when}",
   "settings.providers.recheck": "Comprobar de nuevo",
   "settings.providers.status": "Estado",
   "settings.providers.displayName": "Nombre visible",
-  "settings.providers.displayNameHelp":
-    "Lo que el dashboard muestra para este proveedor.",
+  "settings.providers.displayNameHelp": "Lo que el dashboard muestra para este proveedor.",
   "settings.providers.runtime": "Ejecución",
   "settings.providers.binary": "Ruta del binario",
-  "settings.providers.binaryHelp":
-    "Ruta al programa {tool} que ejecuta este proveedor. Déjala vacía para usar el del PATH.",
-  "settings.providers.configDirHelp":
-    "La carpeta de configuración de Claude Code para este inicio de sesión. Déjala vacía para usar ~/.claude.",
-  "settings.providers.codexHomeHelp":
-    "La carpeta de inicio y configuración de Codex. Déjala vacía para usar ~/.codex.",
+  "settings.providers.binaryHelp": "Ruta al programa {tool} que ejecuta este proveedor. Déjala vacía para usar el del PATH.",
+  "settings.providers.configDirHelp": "La carpeta de configuración de Claude Code para este inicio de sesión. Déjala vacía para usar ~/.claude.",
+  "settings.providers.codexHomeHelp": "La carpeta de inicio y configuración de Codex. Déjala vacía para usar ~/.codex.",
   "settings.providers.autoCompact": "Compactar automáticamente tras",
-  "settings.providers.autoCompactHelp":
-    "Compacta tras 100.000 a 1.000.000 tokens. Déjalo vacío para usar el valor por defecto de Claude Code.",
+  "settings.providers.autoCompactHelp": "Compacta tras 100.000 a 1.000.000 tokens. Déjalo vacío para usar el valor por defecto de Claude Code.",
   "settings.providers.switchLabel": "Usar {name}",
   "settings.providers.on": "Activado",
   "settings.providers.off": "Desactivado",
@@ -402,30 +357,24 @@ export const es: Record<TranslationKey, string> = {
   "settings.providers.stepIdentity": "Identidad",
   "settings.providers.stepConfig": "Configuración",
   "settings.providers.id": "ID",
-  "settings.providers.idHelp":
-    'Con lo que el tablero guarda el proveedor. Letras, dígitos, "-" o "_". No se puede cambiar después.',
+  "settings.providers.idHelp": "Con lo que el tablero guarda el proveedor. Letras, dígitos, \"-\" o \"_\". No se puede cambiar después.",
   "settings.providers.loginCommand": "Iniciar sesión",
-  "settings.providers.loginCommandHelp":
-    "Ejecuta esto en la máquina donde corre el tablero para iniciar la sesión del proveedor. Estado muestra cuándo ha iniciado sesión.",
+  "settings.providers.loginCommandHelp": "Ejecuta esto en la máquina donde corre el tablero para iniciar la sesión del proveedor. Estado muestra cuándo ha iniciado sesión.",
   "settings.providers.next": "Siguiente",
   "settings.providers.card.claude": "El agente de código de Anthropic.",
   "settings.providers.card.codex": "El agente de código de OpenAI.",
-  "settings.providers.card.opencode":
-    "Un agente de código abierto que ejecuta modelos de otros proveedores.",
+  "settings.providers.card.opencode": "Un agente de código abierto que ejecuta modelos de otros proveedores.",
   "job.provider": "Proveedor",
   "notice.providerRuns": "{step} se ejecuta en {who}",
   "notice.providerRan": "{step} se ejecutó en {who}",
   "settings.models.supported": "Compatibles con Aide ahora",
   "settings.models.available": "Disponibles",
   "settings.models.gone": "Ya no disponibles",
-  "settings.models.noneSupported":
-    "Ninguna opción de modelo se ejecuta en {tool}.",
+  "settings.models.noneSupported": "Ninguna opción de modelo se ejecuta en {tool}.",
   "settings.models.allSupported": "Cada modelo que ofrece ya se puede elegir.",
-  "settings.models.noneGone":
-    "Cada modelo que se puede elegir se sigue ofreciendo.",
+  "settings.models.noneGone": "Cada modelo que se puede elegir se sigue ofreciendo.",
   "settings.process.concurrency": "Pasos que pueden ejecutarse a la vez",
-  "settings.process.cores":
-    "Esta máquina tiene {cores} núcleos. Un número guardado se usa desde el siguiente paso que inicie la cola; un paso que ya se está ejecutando nunca se detiene por ello.",
+  "settings.process.cores": "Esta máquina tiene {cores} núcleos. Un número guardado se usa desde el siguiente paso que inicie la cola; un paso que ya se está ejecutando nunca se detiene por ello.",
   "nav.back": "Atrás",
   "tab.steps": "Registros",
   "tab.phases": "Modelos por fase",
@@ -439,22 +388,16 @@ export const es: Record<TranslationKey, string> = {
   "tab.settings": "Ajustes",
   "settings.help.page.title": "Qué ajusta esta página",
   "settings.help.page.lead": "Qué ajusta esta página.",
-  "settings.help.page.body":
-    "Cada paso que la cola puede ejecutar tiene aquí una fila, y la fila dice con qué se ejecuta ese paso y cuánto puede tardar. Nada de lo de aquí inicia nada; es lo que usa una ejecución cuando nadie eligió otra cosa para esa spec.",
+  "settings.help.page.body": "Cada paso que la cola puede ejecutar tiene aquí una fila, y la fila dice con qué se ejecuta ese paso y cuánto puede tardar. Nada de lo de aquí inicia nada; es lo que usa una ejecución cuando nadie eligió otra cosa para esa spec.",
   "settings.help.onSpec.lead": "En una spec.",
-  "settings.help.onSpec.body":
-    "Crear escribe la carpeta de la spec. Analizar averigua cómo hacerlo. Implementar escribe el código y sus tests. Archivar fusiona la rama y mueve la carpeta al archivo. Cerrar termina una spec cuya idea no se sostuvo, sin fusionar su código. Reabrir devuelve una spec archivada.",
+  "settings.help.onSpec.body": "Crear escribe la carpeta de la spec. Analizar averigua cómo hacerlo. Implementar escribe el código y sus tests. Archivar fusiona la rama y mueve la carpeta al archivo. Cerrar termina una spec cuya idea no se sostuvo, sin fusionar su código. Reabrir devuelve una spec archivada.",
   "settings.help.offSpec.lead": "Fuera de una spec.",
-  "settings.help.offSpec.body":
-    "Programación ejecuta un trabajo a partir de un archivo de prompt y no nombra ninguna spec.",
-  "settings.help.default":
-    "Una fila para la que no se guardó nada muestra con qué se ejecuta su paso: Claude Code con Opus, salvo que el archivo de configuración del servidor indique otro valor por defecto.",
+  "settings.help.offSpec.body": "Programación ejecuta un trabajo a partir de un archivo de prompt y no nombra ninguna spec.",
+  "settings.help.default": "Una fila para la que no se guardó nada muestra con qué se ejecuta su paso: Claude Code con Opus, salvo que el archivo de configuración del servidor indique otro valor por defecto.",
   "settings.help.aiModel.lead": "IA y modelo.",
-  "settings.help.aiModel.body":
-    "La IA es la línea de comandos que ejecuta el paso; el modelo es el modelo que recibe. Al elegir una IA se rellena el modelo propio de esa IA, y las dos siempre van juntas. Solo se pueden elegir IA con un modelo configurado en este servidor.",
+  "settings.help.aiModel.body": "La IA es la línea de comandos que ejecuta el paso; el modelo es el modelo que recibe. Al elegir una IA se rellena el modelo propio de esa IA, y las dos siempre van juntas. Solo se pueden elegir IA con un modelo configurado en este servidor.",
   "settings.help.timeout.lead": "Tiempo límite.",
-  "settings.help.timeout.body":
-    "Cuánto puede ejecutarse el paso antes de detenerlo, en minutos. Es el único límite para un paso descontrolado, así que un paso que legítimamente tarda más necesita aquí un número mayor, no un reintento.",
+  "settings.help.timeout.body": "Cuánto puede ejecutarse el paso antes de detenerlo, en minutos. Es el único límite para un paso descontrolado, así que un paso que legítimamente tarda más necesita aquí un número mayor, no un reintento.",
   "settings.row.timeoutAria": "Tiempo límite en minutos para {step}",
   "settings.side.review": "Revisar",
   "settings.side.verify": "Verificar",
@@ -464,18 +407,14 @@ export const es: Record<TranslationKey, string> = {
   "settings.group.offSpec": "Fuera de una spec",
   "settings.col.phase": "Fase",
   "settings.col.timeout": "Tiempo límite (min)",
-  "settings.noModels":
-    "No hay opciones de modelo configuradas en este servidor.",
-  "settings.notifications.when":
-    "Cuando una spec te necesita — un paso falló o se detuvo, sus tests se pusieron en rojo al fusionarla en main, o su archivo queda retenido por criterios de aceptación sin marcar — este dispositivo recibe una notificación. Al pulsarla se abre la spec.",
-  "settings.notifications.device":
-    "Este ajuste es solo de este dispositivo. En un iPhone o iPad funciona en la app instalada, desde iOS 16.4.",
+  "settings.noModels": "No hay opciones de modelo configuradas en este servidor.",
+  "settings.notifications.when": "Cuando una spec te necesita — un paso falló o se detuvo, sus tests se pusieron en rojo al fusionarla en main, o su archivo queda retenido por criterios de aceptación sin marcar — este dispositivo recibe una notificación. Al pulsarla se abre la spec.",
+  "settings.notifications.device": "Este ajuste es solo de este dispositivo. En un iPhone o iPad funciona en la app instalada, desde iOS 16.4.",
   "settings.notifications.toggle": "Notificaciones para este dispositivo",
   "settings.notifications.on": "Activadas",
   "settings.notifications.off": "Desactivadas",
   "settings.notifications.checking": "Comprobando este dispositivo…",
-  "settings.notifications.job":
-    "Un trabajo programado notifica según su propia elección — nunca, solo cuando la ejecución no tuvo éxito, o en cada ejecución. Se ajusta en el formulario del trabajo, en la pestaña Programación del proyecto.",
+  "settings.notifications.job": "Un trabajo programado notifica según su propia elección — nunca, solo cuando la ejecución no tuvo éxito, o en cada ejecución. Se ajusta en el formulario del trabajo, en la pestaña Programación del proyecto.",
   "settings.usage.readAt": "Uso leído {at}",
   "settings.usage.unread": "Uso aún sin leer.",
   "settings.usage.failed": "No se pudo leer el uso: {reason}",
@@ -491,12 +430,9 @@ export const es: Record<TranslationKey, string> = {
   "settings.install.holds.skills": "Skills",
   "settings.install.holds.scripts": "Scripts",
   "settings.install.holds.hooks": "Hooks",
-  "settings.install.cliMissing":
-    "La línea de comandos de {tool} no se encuentra en este equipo.",
-  "settings.install.missing":
-    "No están en este equipo: {places}. Pulsa Deploy, que ejecuta los instaladores.",
-  "settings.install.behind":
-    "Los archivos instalados van por detrás del repositorio. Pulsa Deploy, que ejecuta los instaladores.",
+  "settings.install.cliMissing": "La línea de comandos de {tool} no se encuentra en este equipo.",
+  "settings.install.missing": "No están en este equipo: {places}. Pulsa Deploy, que ejecuta los instaladores.",
+  "settings.install.behind": "Los archivos instalados van por detrás del repositorio. Pulsa Deploy, que ejecuta los instaladores.",
   "settings.install.fail": "FALLO",
   "form.create": "Crear",
   "form.creating": "creando…",
@@ -506,7 +442,7 @@ export const es: Record<TranslationKey, string> = {
   "schedule.searchAria": "Buscar en la programación",
   "schedule.colLastRun": "Última ejecución",
   "schedule.noEntries": "Aún no existe ninguna entrada de programación.",
-  "schedule.noMatch": 'Ninguna entrada de programación coincide con "{term}".',
+  "schedule.noMatch": "Ninguna entrada de programación coincide con \"{term}\".",
   "schedule.enabledAria": "Activada: {name}",
   "schedule.runNow": "Ejecutar ahora",
   "schedule.running": "ejecutando…",
@@ -514,14 +450,12 @@ export const es: Record<TranslationKey, string> = {
   "schedule.deleting": "eliminando…",
   "schedule.deleteAria": "Eliminar {name}",
   "schedule.deleteTitle": "¿Eliminar {project}:{name}?",
-  "schedule.deleteSentence":
-    "La entrada se elimina y deja de dispararse. Su propio historial de ejecuciones permanece en la cola.",
+  "schedule.deleteSentence": "La entrada se elimina y deja de dispararse. Su propio historial de ejecuciones permanece en la cola.",
   "schedule.project": "Proyecto",
   "schedule.promptPath": "Ruta del archivo de prompt",
   "schedule.nextRunAt": "Próxima ejecución: {at}",
   "newSpec.pageTitle": "Nueva spec",
-  "newSpec.noProject":
-    "Ningún proyecto de esta máquina puede tener aún una spec creada en él. Añade uno primero en la página Proyectos.",
+  "newSpec.noProject": "Ningún proyecto de esta máquina puede tener aún una spec creada en él. Añade uno primero en la página Proyectos.",
   "newSpec.project": "Proyecto",
   "newSpec.chooseProject": "Elige un proyecto…",
   "newSpec.title": "Título",
@@ -530,22 +464,15 @@ export const es: Record<TranslationKey, string> = {
   "newSpec.descriptionPlaceholder": "el problema, y lo que quieres en su lugar",
   "newSpec.dependsOnLine": "Depende de:",
   "newSpec.none": "ninguna",
-  "newSpec.archivedTitle":
-    "archivada — se puede quitar aquí, pero no volver a añadir",
+  "newSpec.archivedTitle": "archivada — se puede quitar aquí, pero no volver a añadir",
   "newSpec.dependsHelpTitle": "qué hace una dependencia",
-  "newSpec.dependsHelp":
-    "Una dependencia se aplica desde el siguiente paso con puerta de esta spec (implementar, resolver, archivar) — nunca a un paso que ya se está ejecutando.",
-  "newSpec.createLockedAria":
-    "Crear — se ejecuta siempre y no es un paso que se pueda omitir",
+  "newSpec.dependsHelp": "Una dependencia se aplica desde el siguiente paso con puerta de esta spec (implementar, resolver, archivar) — nunca a un paso que ya se está ejecutando.",
+  "newSpec.createLockedAria": "Crear — se ejecuta siempre y no es un paso que se pueda omitir",
   "newSpec.optionHelpTitle": "qué hace esto",
-  "newSpec.help.acceptance":
-    "Analizar escribe una tabla de criterios de aceptación, y archivar espera hasta que cada fila esté marcada. Sin marcar, cada criterio de aceptación se marca como No verificado. Archivar puede continuar, y puedes verificar cada fila más tarde.",
-  "newSpec.help.formulate":
-    "Marcado, crear ejecuta una breve sesión de IA que escribe un criterio de aceptación para cada requisito de esta descripción que no tiene ninguno, y conserva palabra por palabra los criterios que escribiste tú; sin marcar, crear escribe la spec directamente a partir de lo escrito aquí — sin sesión de IA, listo en segundos.",
-  "newSpec.help.approach":
-    "Marcado, analizar señala cada enfoque que consideró como alternativa real o como descartado. Cuando encuentra dos o más alternativas reales, Implementar espera, y la fila de la spec las lista con la recomendada elegida: guárdala para continuar, o elige otra para que analizar planifique esa en su lugar. Sin marcar, analizar elige el enfoque e Implementar lo construye.",
-  "newSpec.help.checks":
-    "Con qué rigor analizar revisa los criterios de aceptación de esta spec — que cada uno esté escrito como requisito comprobable, tenga un escenario, no contradiga a otro y pueda construirse. Desactivada: sin comprobaciones. Aviso: la revisión del plan lista lo que encuentra, y analizar termina. Parar: analizar se detiene hasta que se corrijan los criterios. Se elige aquí y no cambia después de crear la spec.",
+  "newSpec.help.acceptance": "Analizar escribe una tabla de criterios de aceptación, y archivar espera hasta que cada fila esté marcada. Sin marcar, cada criterio de aceptación se marca como No verificado. Archivar puede continuar, y puedes verificar cada fila más tarde.",
+  "newSpec.help.formulate": "Marcado, crear ejecuta una breve sesión de IA que escribe un criterio de aceptación para cada requisito de esta descripción que no tiene ninguno, y conserva palabra por palabra los criterios que escribiste tú; sin marcar, crear escribe la spec directamente a partir de lo escrito aquí — sin sesión de IA, listo en segundos.",
+  "newSpec.help.approach": "Marcado, analizar señala cada enfoque que consideró como alternativa real o como descartado. Cuando encuentra dos o más alternativas reales, Implementar espera, y la fila de la spec las lista con la recomendada elegida: guárdala para continuar, o elige otra para que analizar planifique esa en su lugar. Sin marcar, analizar elige el enfoque e Implementar lo construye.",
+  "newSpec.help.checks": "Con qué rigor analizar revisa los criterios de aceptación de esta spec — que cada uno esté escrito como requisito comprobable, tenga un escenario, no contradiga a otro y pueda construirse. Desactivada: sin comprobaciones. Aviso: la revisión del plan lista lo que encuentra, y analizar termina. Parar: analizar se detiene hasta que se corrijan los criterios. Se elige aquí y no cambia después de crear la spec.",
   "time.justNow": "ahora mismo",
   "time.minutesAgo": "hace {n} min",
   "time.hoursAgo": "hace {n} h",
@@ -559,114 +486,77 @@ export const es: Record<TranslationKey, string> = {
   "setting.label.description": "Descripción",
   "setting.label.codeLanding": "Aterrizaje del código",
   "setting.label.previewFrom": "Probar una rama",
-  "setting.purpose.AIDE_SPECS_PATH":
-    "Dónde se guardan las specs de este proyecto — su propio specs/ si no está definido",
-  "setting.purpose.worktreeLinks":
-    "Rutas ignoradas por git que necesita el worktree de una ejecución y que git no lleva",
+  "setting.purpose.AIDE_SPECS_PATH": "Dónde se guardan las specs de este proyecto — su propio specs/ si no está definido",
+  "setting.purpose.worktreeLinks": "Rutas ignoradas por git que necesita el worktree de una ejecución y que git no lleva",
   "setting.purpose.AIDE_TEST_CMD": "El comando de test propio del proyecto",
-  "setting.purpose.acPrefix":
-    "Se antepone al id de un criterio en el nombre de un test; {spec} es el número de la spec, así que F{spec} nombra un test (F02 AC-2)",
-  "setting.purpose.AIDE_INSTALL_CMD":
-    "Qué significa instalar este proyecto en esta máquina, se ejecuta tras fusionar su código",
-  "setting.purpose.previewCmd":
-    "Cómo iniciar este proyecto para poder ver la rama de una spec, sirviendo en $PORT",
-  "setting.purpose.description":
-    "Una línea que dice qué es el proyecto, mostrada en la lista de proyectos",
-  "setting.purpose.codeLanding":
-    "Qué pasa con el código cuando se archiva una spec",
-  "setting.purpose.previewFrom":
-    "Cómo se puede probar la rama de una spec antes de fusionarla",
+  "setting.purpose.acPrefix": "Se antepone al id de un criterio en el nombre de un test; {spec} es el número de la spec, así que F{spec} nombra un test (F02 AC-2)",
+  "setting.purpose.AIDE_INSTALL_CMD": "Qué significa instalar este proyecto en esta máquina, se ejecuta tras fusionar su código",
+  "setting.purpose.previewCmd": "Cómo iniciar este proyecto para poder ver la rama de una spec, sirviendo en $PORT",
+  "setting.purpose.description": "Una línea que dice qué es el proyecto, mostrada en la lista de proyectos",
+  "setting.purpose.codeLanding": "Qué pasa con el código cuando se archiva una spec",
+  "setting.purpose.previewFrom": "Cómo se puede probar la rama de una spec antes de fusionarla",
   "setting.col.value": "Valor",
   "setting.col.comment": "Comentario",
   "setting.dashboardFile": "el settings.yaml del dashboard",
   "setting.noTests": "No se ejecutan tests cuando una spec aterriza",
-  "setting.suggested":
-    "Sugerido desde {source}, el valor habitual de {toolchain}: {command} — Edita para definirlo",
+  "setting.suggested": "Sugerido desde {source}, el valor habitual de {toolchain}: {command} — Edita para definirlo",
   "setting.landing.merge": "Fusionar en {branch}",
   "setting.landing.mainBranch": "la rama principal del proyecto",
   "setting.landing.pr": "Crear un pull request",
   "setting.preview.none": "No antes de fusionarla",
   "setting.preview.command": "Un servidor de pruebas en esta máquina",
   "setting.preview.cloudflare": "Una vista previa de Cloudflare Pages",
-  "setting.ph.worktreeLinks":
-    "rutas ignoradas por git que una ejecución debe enlazar: node_modules .venv",
+  "setting.ph.worktreeLinks": "rutas ignoradas por git que una ejecución debe enlazar: node_modules .venv",
   "setting.suggestedLinks": "Sugerido desde el .gitignore de la copia: {list}",
   "setting.ph.specsPath": "su propio specs/ si está vacío",
   "setting.ph.description": "una línea: qué es el proyecto",
   "setting.ph.acPrefix": "F{spec} nombra un test (F02 AC-2)",
-  "project.add.info":
-    "La ruta de specs y el comando de instalación van al .aide/config del proyecto en esta máquina. Los demás ajustes van al archivo de ajustes propio del dashboard. En un repositorio que ya rastrea .aide/project.yaml, se confirman en ese archivo.",
+  "project.add.info": "La ruta de specs y el comando de instalación van al .aide/config del proyecto en esta máquina. Los demás ajustes van al archivo de ajustes propio del dashboard. En un repositorio que ya rastrea .aide/project.yaml, se confirman en ese archivo.",
   "project.add.title": "Añadir proyecto",
-  "project.add.namePh":
-    "el directorio que crea el clon bajo la raíz de proyectos",
+  "project.add.namePh": "el directorio que crea el clon bajo la raíz de proyectos",
   "project.add.gitUrl": "URL de Git",
   "project.add.gitUrlPh": "se clona bajo la raíz de proyectos",
   "project.add.specsPathPh": "opcional — si no, su propio specs/",
   "project.add.chooseLanding": "Elige cómo aterriza el código…",
-  "project.add.worktreeLinksPh":
-    "opcional — rutas ignoradas por git que una ejecución debe enlazar: node_modules .venv",
+  "project.add.worktreeLinksPh": "opcional — rutas ignoradas por git que una ejecución debe enlazar: node_modules .venv",
   "project.add.testCmdPh": "opcional — el comando de test propio del proyecto",
   "project.add.installCmdPh": "opcional — se ejecuta tras fusionar su código",
   "project.add.previewCmdPh": "opcional — sirviendo en $PORT",
   "project.add.acPrefixPh": "opcional — F{spec} nombra un test (F02 AC-2)",
   "project.removeTitle": "¿Quitar {name}?",
-  "project.removeSentence":
-    "Quitar {name} lo saca de la lista de permitidos y de este dashboard. Su copia y sus specs permanecen en el disco, intactas. Esto no se puede deshacer.",
-  "project.cannotRunTitle":
-    "aún no puede ejecutarse — mira la página del proyecto",
+  "project.removeSentence": "Quitar {name} lo saca de la lista de permitidos y de este dashboard. Su copia y sus specs permanecen en el disco, intactas. Esto no se puede deshacer.",
+  "project.cannotRunTitle": "aún no puede ejecutarse — mira la página del proyecto",
   "project.cannotRunAria": "aún no puede ejecutarse",
   "project.deployButton": "Desplegar",
-  "project.noDeploy":
-    "No hay información suficiente sobre cómo se despliega este proyecto para ofrecer Desplegar.",
-  "project.notChecked":
-    "Aún no se ha comprobado si esta copia está por detrás de origin.",
-  "project.notCheckedWith":
-    "Aún no se ha comprobado si esta copia está por detrás de origin; {phrase}.",
+  "project.noDeploy": "No hay información suficiente sobre cómo se despliega este proyecto para ofrecer Desplegar.",
+  "project.notChecked": "Aún no se ha comprobado si esta copia está por detrás de origin.",
+  "project.notCheckedWith": "Aún no se ha comprobado si esta copia está por detrás de origin; {phrase}.",
   "project.matchesOrigin": "Esta copia coincide con origin.",
   "project.driftOne": "{n} commit por detrás de origin, comprobado {when}",
   "project.driftMany": "{n} commits por detrás de origin, comprobado {when}",
-  "project.servingCurrent":
-    "Sirviendo el commit {sha} — coincide con esta copia.",
-  "project.servingStale":
-    "Sirviendo el commit {sha}, pero esta copia está ahora en el commit {head} — el servicio en marcha no ha recogido la última fusión.",
-  "project.noInstallCmd":
-    "No hay Comando de instalación configurado para este proyecto, así que aquí no se sigue su desfase con origin.",
-  "project.servedNewest":
-    'el servicio ya ejecuta el cambio más reciente, "{subject}"',
-  "project.servedBehindOne":
-    'el servicio está {n} commit por detrás de esta copia — el cambio más reciente es "{subject}"',
-  "project.servedBehindMany":
-    'el servicio está {n} commits por detrás de esta copia — el cambio más reciente es "{subject}"',
+  "project.servingCurrent": "Sirviendo el commit {sha} — coincide con esta copia.",
+  "project.servingStale": "Sirviendo el commit {sha}, pero esta copia está ahora en el commit {head} — el servicio en marcha no ha recogido la última fusión.",
+  "project.noInstallCmd": "No hay Comando de instalación configurado para este proyecto, así que aquí no se sigue su desfase con origin.",
+  "project.servedNewest": "el servicio ya ejecuta el cambio más reciente, \"{subject}\"",
+  "project.servedBehindOne": "el servicio está {n} commit por detrás de esta copia — el cambio más reciente es \"{subject}\"",
+  "project.servedBehindMany": "el servicio está {n} commits por detrás de esta copia — el cambio más reciente es \"{subject}\"",
   "project.behindOne": "{prefix} — Desplegar lo trae e instala.",
-  "project.behindOneRestart":
-    "{prefix} — Desplegar lo trae, instala y reinicia el servicio.",
+  "project.behindOneRestart": "{prefix} — Desplegar lo trae, instala y reinicia el servicio.",
   "project.behindMany": "{prefix} — Desplegar los trae e instala.",
-  "project.behindManyRestart":
-    "{prefix} — Desplegar los trae, instala y reinicia el servicio.",
-  "project.stale":
-    "Esta copia coincide con origin, pero el servicio sigue ejecutando el commit {sha}; Desplegar lo reinicia en el commit {head}.",
-  "project.servingMatches":
-    "Esta copia coincide con origin, y el servicio ejecuta el commit {sha}.",
+  "project.behindManyRestart": "{prefix} — Desplegar los trae, instala y reinicia el servicio.",
+  "project.stale": "Esta copia coincide con origin, pero el servicio sigue ejecutando el commit {sha}; Desplegar lo reinicia en el commit {head}.",
+  "project.servingMatches": "Esta copia coincide con origin, y el servicio ejecuta el commit {sha}.",
   "project.originUnchecked": "Aún no se ha comprobado origin.",
-  "project.pressAgain":
-    "Pulsar de nuevo solo repite la descarga y la instalación — no reinicia el servicio antes.",
-  "project.deployUnderWay":
-    "Ya hay un despliegue {state} — síguelo en la pestaña En curso.",
-  "project.readinessOk":
-    "Nada impide una ejecución: esta copia está lista para ejecutar.",
+  "project.pressAgain": "Pulsar de nuevo solo repite la descarga y la instalación — no reinicia el servicio antes.",
+  "project.deployUnderWay": "Ya hay un despliegue {state} — síguelo en la pestaña En curso.",
+  "project.readinessOk": "Nada impide una ejecución: esta copia está lista para ejecutar.",
   "project.cannotStart": "una ejecución aún no puede empezar aquí: {reasons}",
-  "project.noConfigFile":
-    "No hay .aide/config en esta copia, así que nada de lo de abajo se configuró en esta máquina.",
-  "settings.notifications.msgOn":
-    "Las notificaciones están activadas en este dispositivo.",
-  "settings.notifications.msgOff":
-    "Las notificaciones están desactivadas en este dispositivo.",
-  "settings.notifications.msgBlocked":
-    "Las notificaciones están bloqueadas para este sitio. Permítelas en los ajustes del propio dispositivo y abre esta pestaña de nuevo.",
-  "settings.notifications.msgUnsupported":
-    "Las notificaciones necesitan la app instalada en este dispositivo — añade el dashboard a la pantalla de inicio y ábrelo desde allí.",
-  "settings.notifications.msgFailed":
-    "No se pudieron activar las notificaciones. Inténtalo de nuevo.",
+  "project.noConfigFile": "No hay .aide/config en esta copia, así que nada de lo de abajo se configuró en esta máquina.",
+  "settings.notifications.msgOn": "Las notificaciones están activadas en este dispositivo.",
+  "settings.notifications.msgOff": "Las notificaciones están desactivadas en este dispositivo.",
+  "settings.notifications.msgBlocked": "Las notificaciones están bloqueadas para este sitio. Permítelas en los ajustes del propio dispositivo y abre esta pestaña de nuevo.",
+  "settings.notifications.msgUnsupported": "Las notificaciones necesitan la app instalada en este dispositivo — añade el dashboard a la pantalla de inicio y ábrelo desde allí.",
+  "settings.notifications.msgFailed": "No se pudieron activar las notificaciones. Inténtalo de nuevo.",
   "message.problem": "Problema",
   "message.solution": "Solución",
 };

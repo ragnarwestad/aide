@@ -33,8 +33,7 @@ describe("no render path runs git or a network command", () => {
       calls.push({ dir, args });
       const line = args.join(" ");
       if (args[0] === "ls-remote") return { code: 0, stdout: "" };
-      if (line.startsWith("log --format=%aI"))
-        return { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
+      if (line.startsWith("log --format=%aI")) return { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
       if (line.startsWith("log -1 --format=%H")) {
         return { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" };
       }
@@ -45,12 +44,9 @@ describe("no render path runs git or a network command", () => {
   }
 
   const get = async (base: string, path: string): Promise<Response> =>
-    await fetch(`${base}${path}`);
+    await fetch(`${base}${path}`, );
 
-  async function until(
-    check: () => boolean,
-    budgetMs = 2000,
-  ): Promise<boolean> {
+  async function until(check: () => boolean, budgetMs = 2000): Promise<boolean> {
     const deadline = Date.now() + budgetMs;
     while (Date.now() < deadline) {
       if (check()) return true;
@@ -82,9 +78,7 @@ describe("no render path runs git or a network command", () => {
     const { base } = harness.start({
       extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 100_000 },
     });
-    await until(() =>
-      git.calls.some((c) => c.args.join(" ").startsWith("log --format=%aI")),
-    );
+    await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --format=%aI")));
     await new Promise((r) => setTimeout(r, 100));
     const before = git.calls.length;
     await (await get(base, "/specs")).text();
@@ -142,9 +136,7 @@ describe("no render path runs git or a network command", () => {
     const { base } = harness.start({
       extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 0 },
     });
-    const first = await (
-      await get(base, "/specs/aide/81-queue-and-runner?tab=analysis")
-    ).text();
+    const first = await (await get(base, "/specs/aide/81-queue-and-runner?tab=analysis")).text();
     expect(first).toContain("deadbee");
   });
 
@@ -154,16 +146,10 @@ describe("no render path runs git or a network command", () => {
    *  phase is the first one still ahead. Both come from the same
    *  `done` this test is about. */
   const phaseBadge = (html: string, step: string): string =>
-    (
-      html.match(
-        new RegExp(
-          `<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`,
-        ),
-      )?.[0] ?? ""
-    ).match(/<span class="badge b-([a-z]+)"/)?.[1] ?? "";
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? "")
+      .match(/<span class="badge b-([a-z]+)"/)?.[1] ?? "";
   const buttonLabel = (html: string): string =>
-    html.match(/<button[^>]*class="btn primary"[^>]*>([^<]*)<\/button>/)?.[1] ??
-    "";
+    html.match(/<button[^>]*class="btn primary"[^>]*>([^<]*)<\/button>/)?.[1] ?? "";
 
   // A regression guard for the branch above — a
   // LIVE spec must keep reading `done` from `target?.done` (the

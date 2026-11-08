@@ -8,19 +8,14 @@ import { row } from "../fixtures.ts";
 
 const banner = (error: unknown): string =>
   renderJobFollowParts(
-    {
-      ...row({ steps: ["implement"], state: "failed", error: error as never }),
-      results: [],
-    } as never,
+    { ...row({ steps: ["implement"], state: "failed", error: error as never }), results: [] } as never,
     { now: 0, lang: "en" },
   );
 
 describe("the job page's banner", () => {
   test("shows a message with a fix as a Problem line and a Solution line (AC-7)", () => {
     const html = banner(writtenMessage("the push failed", "push it by hand"));
-    expect(html).toContain(
-      "Problem: The push failed\nSolution: Push it by hand",
-    );
+    expect(html).toContain("Problem: The push failed\nSolution: Push it by hand");
   });
 
   test("shows a message without a fix as the Problem line alone (AC-7)", () => {

@@ -13,11 +13,7 @@
 // invalidate it.
 
 import type { CheckableTool, ToolCheck } from "../pages/settings-page/tools.ts";
-import {
-  modelLists,
-  sameModel,
-  type ToolModels,
-} from "../pages/settings-page/models.ts";
+import { modelLists, sameModel, type ToolModels } from "../pages/settings-page/models.ts";
 import type { ModelChoice } from "../../queue/types.ts";
 
 const LAST: Map<CheckableTool, ToolCheck> = new Map();
@@ -39,9 +35,7 @@ export function setConfiguredTools(source: () => CheckableTool[]): void {
  *  drawn: a Remove on the Models tab changes them with no new reading. */
 let choices: (() => Record<string, ModelChoice> | undefined) | undefined;
 
-export function setModelChoices(
-  source: () => Record<string, ModelChoice> | undefined,
-): void {
+export function setModelChoices(source: () => Record<string, ModelChoice> | undefined): void {
   choices = source;
 }
 
@@ -58,9 +52,7 @@ export function recordModels(models: ToolModels): void {
 }
 
 export function lastModels(): Partial<Record<CheckableTool, ToolModels>> {
-  return Object.fromEntries(MODELS) as Partial<
-    Record<CheckableTool, ToolModels>
-  >;
+  return Object.fromEntries(MODELS) as Partial<Record<CheckableTool, ToolModels>>;
 }
 
 /** Test seam: a suite that records a check must not leak it into the
@@ -76,10 +68,7 @@ export function forgetChecks(): void {
  *  notice needs it: the tool's own name and the questions that came back
  *  "no". A question nobody could ASK is not a fault - the page says so,
  *  and a banner that fired on it would be on permanently. */
-export function toolsWithFaults(): {
-  tool: CheckableTool;
-  problems: string[];
-}[] {
+export function toolsWithFaults(): { tool: CheckableTool; problems: string[] }[] {
   const out: { tool: CheckableTool; problems: string[] }[] = [];
   // A tool no model is configured for is never run, so its login is not
   // what stands between a reader and a working run.
@@ -90,10 +79,7 @@ export function toolsWithFaults(): {
     if (check.error) problems.push(check.error);
     else if (!check.found) problems.push("not installed");
     for (const entry of check.extra) {
-      if (entry.ok === false)
-        problems.push(
-          entry.problem ?? entry.question.replace(/\?$/, "").toLowerCase(),
-        );
+      if (entry.ok === false) problems.push(entry.problem ?? entry.question.replace(/\?$/, "").toLowerCase());
     }
     if (problems.length > 0) out.push({ tool: check.tool, problems });
   }
@@ -104,25 +90,16 @@ export function toolsWithFaults(): {
  *  offers. A reading that failed, an AI the board cannot ask, and an AI
  *  with no reading since the board started name nothing. A Claude name
  *  Claude Code answered for (`opus[1m]`, `opusplan`) is a model it knows. */
-export function toolsMissingModels(): {
-  tool: CheckableTool;
-  models: string[];
-}[] {
+export function toolsMissingModels(): { tool: CheckableTool; models: string[] }[] {
   const live = choices?.();
   const out: { tool: CheckableTool; models: string[] }[] = [];
   for (const reading of MODELS.values()) {
     if (reading.error) continue;
     const named = reading.named ?? [];
-    const gone = modelLists(reading.tool, live, reading).gone.filter(
-      (c) => !named.some((m) => sameModel(reading.tool, m.model, c.model)),
-    );
+    const gone = modelLists(reading.tool, live, reading).gone
+      .filter((c) => !named.some((m) => sameModel(reading.tool, m.model, c.model)));
     if (gone.length > 0) {
-      out.push({
-        tool: reading.tool,
-        models: gone.map((c) =>
-          c.name === c.model ? c.name : `${c.name} (${c.model})`,
-        ),
-      });
+      out.push({ tool: reading.tool, models: gone.map((c) => (c.name === c.model ? c.name : `${c.name} (${c.model})`)) });
     }
   }
   return out;

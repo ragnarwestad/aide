@@ -26,11 +26,7 @@
 
 import { bindAddProjectForm } from "./add-project";
 import { keepBack } from "./back-link";
-import {
-  applyAiPick,
-  offerEachToItsTool,
-  refreshAiModelBox,
-} from "./ai-sync.ts";
+import { applyAiPick, offerEachToItsTool, refreshAiModelBox } from "./ai-sync.ts";
 import { openAsk } from "./ask.ts";
 import {
   bindOneLineFields,
@@ -61,11 +57,7 @@ import { bindPageSwap, swapPage } from "./page-swap";
 import { mountPage } from "./page-mount";
 import { placeNamedRow } from "./spec-detail";
 import {
-  followScheduleRow,
-  postScheduleEnabled,
-  postScheduleRun,
-  scheduleCronPreview,
-  submitScheduleForm,
+  followScheduleRow, postScheduleEnabled, postScheduleRun, scheduleCronPreview, submitScheduleForm,
 } from "./schedule-actions.ts";
 import { submitProgress } from "./progress-dialog";
 import { RELOAD_FORM, submitReloadForm } from "./reload-form";
@@ -78,36 +70,27 @@ import { checkboxKey, chosen, chosenSteps, selectKey } from "./state.ts";
 bindLimits(document);
 
 // The Providers tab's Add dialog, when it is the one open.
-const providerAdd = document.getElementById(
-  "provider-add",
-) as HTMLDialogElement | null;
+const providerAdd = document.getElementById("provider-add") as HTMLDialogElement | null;
 if (providerAdd) bindProviderAdd(providerAdd);
 // The chosen provider's readings (usage, models, installation), read once the tab has drawn.
 
 // The Settings page's Notifications tab, when it is the one open.
-const pushPanel = document.querySelector(
-  "[data-push-panel]",
-) as HTMLElement | null;
+const pushPanel = document.querySelector("[data-push-panel]") as HTMLElement | null;
 if (pushPanel) bindPushPanel(pushPanel);
 
-for (const el of document.querySelectorAll(
-  "form.addprojectform, form.removeform",
-)) {
+for (const el of document.querySelectorAll("form.addprojectform, form.removeform")) {
   const form = el as HTMLFormElement;
-  form.addEventListener("submit", ((event: Event) =>
-    submitProjectChange(form, event)) as EventListener);
+  form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
 }
 
-for (const el of document.querySelectorAll("form.addprojectform"))
-  bindAddProjectForm(el as HTMLFormElement);
+for (const el of document.querySelectorAll("form.addprojectform")) bindAddProjectForm(el as HTMLFormElement);
 
 // The Deploy tab asks origin the moment it is open, and redraws itself from the answer.
 startOriginCheck(document);
 
 for (const el of document.querySelectorAll("form.projectsettingsform")) {
   const form = el as HTMLFormElement;
-  form.addEventListener("submit", ((event: Event) =>
-    submitProjectSettings(form, event)) as EventListener);
+  form.addEventListener("submit", ((event: Event) => submitProjectSettings(form, event)) as EventListener);
   bindOneLineFields(form);
 }
 
@@ -117,12 +100,8 @@ function onAiChange(event: Event): void {
   if (ai) return applyAiPick(ai);
 }
 
-const settingsCandidate = document.querySelector(
-  "form[data-settings-form]",
-) as HTMLFormElement | null;
-const settingsForm = settingsCandidate?.hasAttribute?.("data-settings-form")
-  ? settingsCandidate
-  : null;
+const settingsCandidate = document.querySelector("form[data-settings-form]") as HTMLFormElement | null;
+const settingsForm = settingsCandidate?.hasAttribute?.("data-settings-form") ? settingsCandidate : null;
 settingsForm?.addEventListener("change", onAiChange);
 settingsForm?.addEventListener("submit", (async (event: Event) => {
   if (event.defaultPrevented) return;
@@ -156,34 +135,23 @@ const onRowsChange = ((event: Event) => {
   if (picker) queueMicrotask(() => refreshAiModelBox(picker));
   // An approach picked under a row's waiting line, remembered for the
   // next redraw like a ticked box.
-  const approach = target?.closest?.(
-    'input[name="approach"]',
-  ) as HTMLInputElement | null;
+  const approach = target?.closest?.('input[name="approach"]') as HTMLInputElement | null;
   if (approach?.name === "approach") return pickApproach(approach);
   // A dependency ticked in a row's Depends on picker, remembered the same way,
   // and a setting changed under it.
-  const dependency = target?.closest?.(
-    "form.dependsform input[name=dependsOn]",
-  ) as HTMLInputElement | null;
+  const dependency = target?.closest?.("form.dependsform input[name=dependsOn]") as HTMLInputElement | null;
   if (dependency?.name === "dependsOn") return pickSetting(dependency);
-  const setting = target?.closest?.(
-    "form.dependsform input[type=checkbox][name], form.dependsform select[name]",
-  ) as HTMLInputElement | HTMLSelectElement | null;
-  if (
-    setting &&
-    ["acceptanceRequired", "chooseApproach", "criteriaChecks"].includes(
-      setting.name,
-    )
-  )
-    return pickSetting(setting);
+  const setting = target?.closest?.("form.dependsform input[type=checkbox][name], form.dependsform select[name]") as
+    | HTMLInputElement
+    | HTMLSelectElement
+    | null;
+  if (setting && ["acceptanceRequired", "chooseApproach", "criteriaChecks"].includes(setting.name)) return pickSetting(setting);
   // A tail box's tick is a press, not something to remember for the
   // next redraw: it goes to the server now, and what comes
   // back is what the row is drawn from. The promise is returned rather
   // than dropped — a listener's return value is nobody's to wait on,
   // and it is what lets the test wait for the request the tick makes.
-  const tail = target?.closest?.(
-    "input[data-post-to]",
-  ) as HTMLInputElement | null;
+  const tail = target?.closest?.("input[data-post-to]") as HTMLInputElement | null;
   if (tail) return postTailStep(tail);
   // A phase's AI picker fills that phase's model in and is done.
   // It is intercepted BEFORE the branch below, and not only for
@@ -199,9 +167,7 @@ const onRowsChange = ((event: Event) => {
   // job's own route now. The AI select beside it is set from this one
   // first, so the line does not sit showing a tool the model it posted
   // does not belong to.
-  const liveModel = target?.closest?.(
-    "select[data-post-to]",
-  ) as HTMLSelectElement | null;
+  const liveModel = target?.closest?.("select[data-post-to]") as HTMLSelectElement | null;
   if (liveModel) return postTailModel(liveModel, liveModel.value);
   const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
   if (ai) return applyAiPick(ai);
@@ -215,11 +181,7 @@ const onRowsChange = ((event: Event) => {
       // Recorded on the server the instant it is made, not
       // only in `chosen` — which is a fresh, empty map on every page
       // load and cannot survive leaving the page.
-      void postPendingModel(
-        select,
-        select.name.slice("model.".length),
-        select.value,
-      );
+      void postPendingModel(select, select.name.slice("model.".length), select.value);
     }
   }
   // And the phase boxes, for the same reason and in a map of their own:
@@ -236,19 +198,9 @@ const onRowsChange = ((event: Event) => {
   ) as HTMLInputElement | null;
   if (step) {
     chosenSteps.set(checkboxKey(step), step.checked);
-    if (
-      step.name === "tick" ||
-      step.name === "unverified" ||
-      step.name === "failed"
-    ) {
-      for (const other of ["tick", "unverified", "failed"].filter(
-        (n) => n !== step.name,
-      )) {
-        const sibling = step
-          .closest?.("li")
-          ?.querySelector?.(
-            `input[name="${other}"]`,
-          ) as HTMLInputElement | null;
+    if (step.name === "tick" || step.name === "unverified" || step.name === "failed") {
+      for (const other of ["tick", "unverified", "failed"].filter((n) => n !== step.name)) {
+        const sibling = step.closest?.("li")?.querySelector?.(`input[name="${other}"]`) as HTMLInputElement | null;
         if (!sibling || sibling === step) continue;
         if (step.checked) sibling.checked = false;
         chosenSteps.set(checkboxKey(sibling), sibling.checked);
@@ -269,9 +221,7 @@ function bindLists(doc: Document): void {
   rows?.addEventListener("submit", submitAction as EventListener);
   rows?.addEventListener("change", onRowsChange);
   // The Test servers list's own Stop button.
-  doc
-    .getElementById("test-servers-rows")
-    ?.addEventListener("submit", submitTestServerStop as EventListener);
+  doc.getElementById("test-servers-rows")?.addEventListener("submit", submitTestServerStop as EventListener);
 }
 bindLists(document);
 // The one listener that is NOT delegated: this form is the whole of its
@@ -280,8 +230,7 @@ bindLists(document);
 // return value is ignored by the DOM, and it is what lets the test wait
 // for the request the press makes.
 const newSpec = document.querySelector(NEW_SPEC_FORM) as HTMLFormElement | null;
-newSpec?.addEventListener("submit", ((event: Event) =>
-  submitCreate(newSpec, event)) as EventListener);
+newSpec?.addEventListener("submit", ((event: Event) => submitCreate(newSpec, event)) as EventListener);
 // This page has no `#jobrows`, so the delegated model listener above
 // cannot hear its AI and model controls.
 newSpec?.addEventListener("change", onAiChange);
@@ -300,17 +249,13 @@ bindNewSpecTabs(document);
 document.body?.addEventListener("click", openAsk as EventListener);
 document.body?.addEventListener("submit", ((event: Event) => {
   const target = event.target as Element | null;
-  const progress = target?.closest?.(
-    "form[data-progress]",
-  ) as HTMLFormElement | null;
+  const progress = target?.closest?.("form[data-progress]") as HTMLFormElement | null;
   if (progress) return submitProgress(progress, event);
   const reload = target?.closest?.(RELOAD_FORM) as HTMLFormElement | null;
   if (reload) return submitReloadForm(reload, event);
 }) as EventListener);
 syncDependsOn();
-newSpec
-  ?.querySelector("select[name=project]")
-  ?.addEventListener("change", syncDependsOn);
+newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
 
 // The marks are looked up fresh on every tick rather than bound once,
 // which is what lets it survive `swapRows()` replacing `#jobrows`
@@ -330,9 +275,7 @@ setInterval(() => {
 // The /schedule page's own controls: none of these sit
 // inside `#jobrows`, and nothing on this page is swapped from the
 // server on a timer, so each is bound once here rather than delegated.
-for (const el of document.querySelectorAll(
-  "input.scheduleenabled[data-post-to]",
-)) {
+for (const el of document.querySelectorAll("input.scheduleenabled[data-post-to]")) {
   const box = el as HTMLInputElement;
   box.addEventListener("change", () => postScheduleEnabled(box));
 }
@@ -345,16 +288,10 @@ for (const el of document.querySelectorAll("form.schedulerun")) {
 }
 for (const el of document.querySelectorAll("form.scheduleform")) {
   const form = el as HTMLFormElement;
-  const cronInput = form.querySelector(
-    'input[name="cron"]',
-  ) as HTMLInputElement | null;
+  const cronInput = form.querySelector('input[name="cron"]') as HTMLInputElement | null;
   const target = form.querySelector("[data-cron-next]") as HTMLElement | null;
-  if (cronInput && target)
-    cronInput.addEventListener("input", () =>
-      scheduleCronPreview(cronInput, target),
-    );
-  form.addEventListener("submit", ((event: Event) =>
-    submitScheduleForm(form, event)) as EventListener);
+  if (cronInput && target) cronInput.addEventListener("input", () => scheduleCronPreview(cronInput, target));
+  form.addEventListener("submit", ((event: Event) => submitScheduleForm(form, event)) as EventListener);
   // The AI and model pair, exactly as the New-spec form binds its own:
   // this page has no `#jobrows`, so the delegated listener further up
   // cannot hear these two. Nothing is remembered across a redraw here —
@@ -362,9 +299,7 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
   // lives in the select until the form is posted.
   form.addEventListener("change", ((event: Event) => {
     const target2 = event.target as Element | null;
-    const ai = target2?.closest?.(
-      "select[data-ai]",
-    ) as HTMLSelectElement | null;
+    const ai = target2?.closest?.("select[data-ai]") as HTMLSelectElement | null;
     if (ai) return applyAiPick(ai);
   }) as EventListener);
 }
@@ -383,8 +318,7 @@ document.addEventListener("visibilitychange", onVisibility);
 // the browser's own back/forward cache instead of being drawn again, and
 // that restore is a `pageshow` with no `visibilitychange` behind it. The
 // same answer either way: fetch the rows, then make sure the stream is up.
-if (typeof window !== "undefined")
-  window.addEventListener("pageshow", onVisibility);
+if (typeof window !== "undefined") window.addEventListener("pageshow", onVisibility);
 // The first paint: the server draws every model, and each select is
 // narrowed to the tool its own value belongs to.
 offerEachToItsTool(document);
@@ -395,10 +329,7 @@ offerEachToItsTool(document);
 // used on a page that redraws under them.
 connect();
 
-const stopFrames = Array.from(
-  document.querySelectorAll("iframe[data-report-frame]"),
-  (el) => bindReportFrame(el as HTMLIFrameElement),
-);
+const stopFrames = Array.from(document.querySelectorAll("iframe[data-report-frame]"), (el) => bindReportFrame(el as HTMLIFrameElement));
 
 // A row the address names sits at the top of the list's box, the page at
 // its top — now, and again once the page has loaded, after the browser's

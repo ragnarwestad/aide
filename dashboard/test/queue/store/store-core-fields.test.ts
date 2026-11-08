@@ -2,11 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { rmSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  QueueStore,
-  parseJobRequest,
-  type QueueDefaults,
-} from "../../../src/queue/queue.ts";
+import { QueueStore, parseJobRequest, type QueueDefaults } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
   // Per step: an implement is not an analyze, and one number for both
@@ -25,11 +21,7 @@ const resolve = (project: string) =>
       ? { specFolders: ["01-first"] }
       : null;
 
-const REQ = {
-  project: "aide",
-  specFolder: "81-queue-and-runner",
-  steps: ["analyze"],
-};
+const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
 let dir: string;
 let mirrorPath: string;
@@ -51,47 +43,26 @@ describe("a job mirrored with the retired extraProjects field", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     const r = store.enqueue(REQ);
     if (!r.ok) throw new Error(r.error);
-    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<
-      string,
-      unknown
-    >[];
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
     for (const job of raw) job.extraProjects = ["aide-dashboard"];
     writeFileSync(mirrorPath, JSON.stringify(raw));
-    const reloaded = new QueueStore({
-      mirrorPath,
-      defaults: DEFAULTS,
-      resolve,
-    });
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     expect(reloaded.get(r.job.id)?.specFolder).toBe(r.job.specFolder);
   });
 });
 
 describe("QueueStore.enqueueCreate", () => {
   const allow = (project: string) => project === "brandnew";
-  const CREATE = {
-    project: "brandnew",
-    title: "A new spec",
-    description: "Do the thing",
-  };
+  const CREATE = { project: "brandnew", title: "A new spec", description: "Do the thing" };
 
   test("a create job goes into the same store as every other job", () => {
-    const store = new QueueStore({
-      mirrorPath,
-      defaults: DEFAULTS,
-      resolve,
-      allowCreateProject: allow,
-    });
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, allowCreateProject: allow });
     const r = store.enqueueCreate(CREATE);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(store.get(r.job.id)?.createTitle).toBe("A new spec");
     // ...and it survives a restart, like every other job.
-    const reloaded = new QueueStore({
-      mirrorPath,
-      defaults: DEFAULTS,
-      resolve,
-      allowCreateProject: allow,
-    });
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, allowCreateProject: allow });
     expect(reloaded.get(r.job.id)?.createDescription).toBe("Do the thing");
   });
 
@@ -100,31 +71,13 @@ describe("QueueStore.enqueueCreate", () => {
     // OWN active specs, and a project having none is the whole reason
     // the create route exists at all.
     const allowAide = (project: string) => project === "aide";
-    const store = new QueueStore({
-      mirrorPath,
-      defaults: DEFAULTS,
-      resolve,
-      allowCreateProject: allowAide,
-    });
-    const r = store.enqueueCreate({
-      ...CREATE,
-      project: "aide",
-      dependsOn: ["81-queue-and-runner"],
-    });
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, allowCreateProject: allowAide });
+    const r = store.enqueueCreate({ ...CREATE, project: "aide", dependsOn: ["81-queue-and-runner"] });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(store.get(r.job.id)?.createDependsOn).toEqual([
-      "81-queue-and-runner",
-    ]);
-    const reloaded = new QueueStore({
-      mirrorPath,
-      defaults: DEFAULTS,
-      resolve,
-      allowCreateProject: allowAide,
-    });
-    expect(reloaded.get(r.job.id)?.createDependsOn).toEqual([
-      "81-queue-and-runner",
-    ]);
+    expect(store.get(r.job.id)?.createDependsOn).toEqual(["81-queue-and-runner"]);
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, allowCreateProject: allowAide });
+    expect(reloaded.get(r.job.id)?.createDependsOn).toEqual(["81-queue-and-runner"]);
   });
 
   test("without a create allowlist nothing may be created", () => {
@@ -141,18 +94,12 @@ describe("QueueStore.enqueueCreate", () => {
 
 describe("the retired resolve step", () => {
   test("a job may no longer be queued for it", () => {
-    const r = parseJobRequest(
-      { ...REQ, steps: ["resolve"] },
-      { resolve, defaults: DEFAULTS },
-    );
+    const r = parseJobRequest({ ...REQ, steps: ["resolve"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
   });
 
   test("archive is still queueable, and runs on the config's default model", () => {
-    const r = parseJobRequest(
-      { ...REQ, steps: ["archive"] },
-      { resolve, defaults: DEFAULTS },
-    );
+    const r = parseJobRequest({ ...REQ, steps: ["archive"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.job.steps).toEqual(["archive"]);
@@ -196,11 +143,7 @@ describe("QueueStore.onChange", () => {
 
   test("fires after a successful enqueueCreate", () => {
     const c = counting();
-    const made = c.store.enqueueCreate({
-      project: "aide",
-      title: "A new thing",
-      description: "why",
-    });
+    const made = c.store.enqueueCreate({ project: "aide", title: "A new thing", description: "why" });
     expect(made.ok).toBe(true);
     expect(c.fired()).toBe(1);
   });
@@ -233,10 +176,7 @@ describe("QueueStore.onChange", () => {
 
   test("stays silent when the request never parsed", () => {
     const c = counting();
-    expect(
-      c.store.enqueue({ project: "nope", specFolder: "x", steps: ["analyze"] })
-        .ok,
-    ).toBe(false);
+    expect(c.store.enqueue({ project: "nope", specFolder: "x", steps: ["analyze"] }).ok).toBe(false);
     expect(c.fired()).toBe(0);
   });
 
@@ -255,12 +195,8 @@ describe("QueueStore.onChange", () => {
     // The running step itself, an unknown job, and a step name that is
     // not a step at all: three refusals, no announcement.
     expect(c.store.editTailStep(made.job.id, "analyze", false).ok).toBe(false);
-    expect(c.store.editTailStep("no-such-job", "implement", true).ok).toBe(
-      false,
-    );
-    expect(c.store.editTailStep(made.job.id, "not-a-step", true).ok).toBe(
-      false,
-    );
+    expect(c.store.editTailStep("no-such-job", "implement", true).ok).toBe(false);
+    expect(c.store.editTailStep(made.job.id, "not-a-step", true).ok).toBe(false);
     expect(c.fired()).toBe(before);
   });
 

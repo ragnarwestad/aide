@@ -23,18 +23,7 @@ beforeEach(() => {
   const since = new Date(Date.now() + 3_600_000).toISOString();
   writeFileSync(
     cfg,
-    JSON.stringify({
-      schedules: {
-        aide: [
-          {
-            name: "nightly-report",
-            cron: "0 3 * * *",
-            prompt: "docs/nightly.md",
-            since,
-          },
-        ],
-      },
-    }),
+    JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", since }] } }),
   );
 });
 afterEach(() => rmSync(cfgDir, { recursive: true, force: true }));
@@ -46,14 +35,7 @@ const OTHER = "# Other\n\nA second committed file.\n";
 /** Rewrites the job's prompt in the config the store reads fresh on every call. */
 function setPrompt(prompt: string): void {
   const since = new Date(Date.now() + 3_600_000).toISOString();
-  writeFileSync(
-    cfg,
-    JSON.stringify({
-      schedules: {
-        aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt, since }],
-      },
-    }),
-  );
+  writeFileSync(cfg, JSON.stringify({ schedules: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt, since }] } }));
 }
 
 const start = () => harness.start({ extra: { queueConfigFile: cfg } });
@@ -73,22 +55,13 @@ function writeInTree(dir: string, file: string, text: string): void {
 describe("GET /schedule/<project>/<name>/prompt", () => {
   test("shows the default branch's text, not the working tree's, and asks for the viewer", async () => {
     const { base, dir } = start();
-    projectWithOrigin(dir, "aide", {
-      [PROMPT]: COMMITTED,
-      "docs/other.md": OTHER,
-    });
-    writeInTree(
-      dir,
-      PROMPT,
-      "# Nightly\n\nUncommitted, only in the working tree.\n",
-    );
+    projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED, "docs/other.md": OTHER });
+    writeInTree(dir, PROMPT, "# Nightly\n\nUncommitted, only in the working tree.\n");
     const res = await fetch(`${base}/schedule/aide/nightly-report/prompt`);
     expect(res.status).toBe(200);
     const html = await res.text();
     const doc = parse(html);
-    expect(doc.querySelector("pre.spec-editor-raw")?.textContent).toBe(
-      COMMITTED,
-    );
+    expect(doc.querySelector("pre.spec-editor-raw")?.textContent).toBe(COMMITTED);
     expect(doc.querySelector("#spec-editor-host")).not.toBeNull();
     expect(html).not.toContain("Uncommitted");
     expect(html).toContain("/spec-viewer.js");
@@ -98,12 +71,8 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     const { base, dir } = start();
     projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED });
     setPrompt("docs//nightly.md");
-    const doc = parse(
-      await (await fetch(`${base}/schedule/aide/nightly-report/prompt`)).text(),
-    );
-    expect(doc.querySelector("pre.spec-editor-raw")?.textContent).toBe(
-      COMMITTED,
-    );
+    const doc = parse(await (await fetch(`${base}/schedule/aide/nightly-report/prompt`)).text());
+    expect(doc.querySelector("pre.spec-editor-raw")?.textContent).toBe(COMMITTED);
   });
 
   test("a prompt that names a directory gives the cannot-be-read sentence, never a listing (AC-4)", async () => {
@@ -113,9 +82,7 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     const res = await fetch(`${base}/schedule/aide/nightly-report/prompt`);
     expect(res.status).toBe(200);
     const doc = parse(await res.text());
-    expect(doc.body.textContent).toContain(
-      "The prompt file docs cannot be read",
-    );
+    expect(doc.body.textContent).toContain("The prompt file docs cannot be read");
     expect(doc.querySelector("pre.spec-editor-raw")).toBeNull();
     expect(doc.querySelector("#spec-editor-host")).toBeNull();
   });
@@ -123,15 +90,11 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
   test("names the file and the job, and links back to the job's Settings tab", async () => {
     const { base, dir } = start();
     projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED });
-    const doc = parse(
-      await (await fetch(`${base}/schedule/aide/nightly-report/prompt`)).text(),
-    );
+    const doc = parse(await (await fetch(`${base}/schedule/aide/nightly-report/prompt`)).text());
     const text = doc.body.textContent ?? "";
     expect(text).toContain(PROMPT);
     expect(text).toContain("aide:nightly-report");
-    const back = [...doc.querySelectorAll("a")].map((a) =>
-      a.getAttribute("href"),
-    );
+    const back = [...doc.querySelectorAll("a")].map((a) => a.getAttribute("href"));
     expect(back).toContain("/schedule/aide/nightly-report?tab=settings");
   });
 
@@ -143,9 +106,7 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     const doc = parse(html);
-    expect(doc.body.textContent).toContain(
-      `The prompt file ${PROMPT} cannot be read`,
-    );
+    expect(doc.body.textContent).toContain(`The prompt file ${PROMPT} cannot be read`);
     expect(doc.querySelector("#spec-editor-host")).toBeNull();
     expect(doc.querySelector("pre.spec-editor-raw")).toBeNull();
     expect(html).not.toContain("/spec-viewer.js");
@@ -157,18 +118,13 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
     const res = await fetch(`${base}/schedule/aide/nightly-report/prompt`);
     expect(res.status).toBe(200);
     const doc = parse(await res.text());
-    expect(doc.body.textContent).toContain(
-      `The prompt file ${PROMPT} cannot be read`,
-    );
+    expect(doc.body.textContent).toContain(`The prompt file ${PROMPT} cannot be read`);
     expect(doc.querySelector("#spec-editor-host")).toBeNull();
   });
 
   test("refuses every address that is not an existing job's prompt page, and any method but GET", async () => {
     const { base, dir } = start();
-    projectWithOrigin(dir, "aide", {
-      [PROMPT]: COMMITTED,
-      "docs/other.md": OTHER,
-    });
+    projectWithOrigin(dir, "aide", { [PROMPT]: COMMITTED, "docs/other.md": OTHER });
     for (const path of [
       "/schedule/elsewhere/nightly-report/prompt",
       "/schedule/aide/no-such-job/prompt",
@@ -179,9 +135,7 @@ describe("GET /schedule/<project>/<name>/prompt", () => {
       expect(res.status).toBe(404);
       expect(await res.text()).not.toContain("A second committed file");
     }
-    const post = await fetch(`${base}/schedule/aide/nightly-report/prompt`, {
-      method: "POST",
-    });
+    const post = await fetch(`${base}/schedule/aide/nightly-report/prompt`, { method: "POST" });
     expect(post.status).toBe(405);
   });
 });

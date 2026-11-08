@@ -3,40 +3,29 @@
 // every form on this page repeats.
 
 import { t, type Language } from "../../../i18n";
-import {
-  CLOSED_STATE,
-  NOT_VERIFIED_KEY,
-  isFinishedGroup,
-  type Phase,
-  type SpecGroup,
-  type SpecsFilter,
-} from "./data-model";
+import { CLOSED_STATE, NOT_VERIFIED_KEY, isFinishedGroup, type Phase, type SpecGroup, type SpecsFilter } from "./data-model";
 
 /** The mark a row carries — live or archived — when its code is on a
  *  branch waiting on a pull request: the same word
  *  either way, since it is the same fact from a reader's chair — code is
  *  on a branch, and a request describes it. */
-export const PULL_REQUEST = (lang: Language): string =>
-  t(lang, "list.pullRequest");
+export const PULL_REQUEST = (lang: Language): string => t(lang, "list.pullRequest");
 
 /** The mark a LIVE row carries when its archive step is held back
  *  specifically for unticked acceptance criteria — the same
  *  fact `resting.ts` already reads to draw the "ready" badge for this
  *  exact state, given the same sentence-plus-link shape `PULL_REQUEST`
  *  already has. */
-export const TEST_SERVER = (lang: Language): string =>
-  t(lang, "list.testServer");
+export const TEST_SERVER = (lang: Language): string => t(lang, "list.testServer");
 
 /** The mark a LIVE row carries when a project's host has built the spec's
  *  branch: a link to the address it is served on. */
-export const BRANCH_PREVIEW = (lang: Language): string =>
-  t(lang, "list.branchPreview");
+export const BRANCH_PREVIEW = (lang: Language): string => t(lang, "list.branchPreview");
 
 /** The mark a LIVE row carries when a landing failed and no later step
  *  of the same job has resolved it — independent of
  *  `state`, which a later step's own start already overwrites. */
-export const LANDING_FAILED = (lang: Language): string =>
-  t(lang, "list.landingFailed");
+export const LANDING_FAILED = (lang: Language): string => t(lang, "list.landingFailed");
 
 /** The same mark when the landing's own test run is what refused it: the
  *  merge was built and the project's suite went red on it, so nothing
@@ -51,8 +40,7 @@ export const NOT_PUSHED = (lang: Language): string => t(lang, "list.notPushed");
  *  its branch. The more urgent half of the same answer
  *  `PULL_REQUEST` gives — a branch left open with nothing describing it,
  *  which no amount of waiting resolves. */
-export const NO_PULL_REQUEST = (lang: Language): string =>
-  t(lang, "list.noPullRequest");
+export const NO_PULL_REQUEST = (lang: Language): string => t(lang, "list.noPullRequest");
 
 /** The sentence said when no pull request could be opened for a branch
  *  Fixed prose — one of the four cases
@@ -61,8 +49,7 @@ export const NO_PULL_REQUEST = (lang: Language): string =>
  *  the same location the push-failure sentence names. Said twice, by the
  *  row's panel and by the phase's log, from here so the two cannot
  *  drift. */
-export const prErrorSentence = (lang: Language): string =>
-  t(lang, "list.prError");
+export const prErrorSentence = (lang: Language): string => t(lang, "list.prError");
 
 /** Why `gh` opened no pull request for this phase's branch, off the step
  *  result the run wrote, which is the step that called `gh`. The LATEST
@@ -89,3 +76,4 @@ export const drawsChecksLine = (g: SpecGroup, f: SpecsFilter): boolean =>
  *  "no spec matches" line and a row's message panel — and a count
  *  written twice is a count that drifts the next time a column moves. */
 export const LIST_COLUMNS = 6;
+

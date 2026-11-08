@@ -8,14 +8,7 @@
 // both touch, through `queueHarness`'s own fixture.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  existsSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerOptions } from "../../src/serve/serve.ts";
@@ -28,13 +21,8 @@ const harness = queueHarness("aide-spec-pdf-");
 afterEach(() => harness.cleanup());
 
 function git(cwd: string, ...args: string[]): void {
-  const out = Bun.spawnSync({
-    cmd: ["git", "-C", cwd, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  if (out.exitCode !== 0)
-    throw new Error(`git ${args[0]} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
+  if (out.exitCode !== 0) throw new Error(`git ${args[0]} failed: ${out.stderr.toString()}`);
 }
 
 /** A stub `aide-generate-pdf`: logs its own argv (one line per call) to
@@ -56,11 +44,7 @@ function writeStubGenerator(binPath: string, logPath: string): void {
  *  happened. */
 function invocations(logPath: string): string[][] {
   if (!existsSync(logPath)) return [];
-  return readFileSync(logPath, "utf-8")
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((l) => l.split("\t"));
+  return readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean).map((l) => l.split("\t"));
 }
 
 function start(extra: Partial<ServerOptions> = {}) {
@@ -101,9 +85,7 @@ describe("GET a spec's PDF", () => {
     const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("application/pdf");
-    expect(res.headers.get("content-disposition")).toBe(
-      `inline; filename="${SPEC}.pdf"`,
-    );
+    expect(res.headers.get("content-disposition")).toBe(`inline; filename="${SPEC}.pdf"`);
     expect(await res.text()).toBe(`stub-pdf-for-${SPEC}`);
     const calls = invocations(logPath);
     expect(calls).toHaveLength(1);
@@ -137,10 +119,7 @@ describe("GET a spec's PDF", () => {
     await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(invocations(logPath)).toHaveLength(1);
     const specDir = join(dir, "root", "aide", "specs", SPEC);
-    writeFileSync(
-      join(specDir, "1-description.md"),
-      "# Queue - Description\n\nUpdated.\n",
-    );
+    writeFileSync(join(specDir, "1-description.md"), "# Queue - Description\n\nUpdated.\n");
     git(join(dir, "root"), "add", "-A");
     git(join(dir, "root"), "commit", "-qm", "edit description");
     const res2 = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
@@ -152,16 +131,10 @@ describe("GET a spec's PDF", () => {
     const { base, dir } = start();
     ran(dir, []);
     const root = join(dir, "root");
-    const before = Bun.spawnSync({
-      cmd: ["git", "-C", root, "status", "--porcelain"],
-      stdout: "pipe",
-    }).stdout.toString();
+    const before = Bun.spawnSync({ cmd: ["git", "-C", root, "status", "--porcelain"], stdout: "pipe" }).stdout.toString();
     const res = await fetch(`${base}/specs/aide/${SPEC}/pdf`);
     expect(res.status).toBe(200);
-    const after = Bun.spawnSync({
-      cmd: ["git", "-C", root, "status", "--porcelain"],
-      stdout: "pipe",
-    }).stdout.toString();
+    const after = Bun.spawnSync({ cmd: ["git", "-C", root, "status", "--porcelain"], stdout: "pipe" }).stdout.toString();
     expect(after).toBe(before);
   });
 

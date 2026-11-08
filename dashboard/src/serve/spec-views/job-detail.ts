@@ -11,36 +11,22 @@ import { resolveStepModel, tailFile, tailFileAt } from "../serve-helpers";
 import { stepLog } from "../../queue/parse-stream";
 import { codexSessionReader } from "./codex-sessions.ts";
 import { resolveStepProvider } from "../../queue/providers/index.ts";
-import {
-  RUN_LOG_MAX_BYTES,
-  runLogPath,
-  screenshotsDir,
-} from "../../queue/runner/run-log-path.ts";
+import { RUN_LOG_MAX_BYTES, runLogPath, screenshotsDir } from "../../queue/runner/run-log-path.ts";
 import { diffStatBetween } from "../../git/diff-stat.ts";
 import type { SpecViewsContext } from "./";
 
 /** The AI's name in its separator: the tool and the model choice, each word
  *  capitalised (`Claude Sonnet`); a choice that starts with the tool's name is
  *  not prefixed again (`Codex`). Nothing for a step that ran no AI. */
-export function aiLabel(
-  tool: string | undefined,
-  choice: string | undefined,
-): string | undefined {
+export function aiLabel(tool: string | undefined, choice: string | undefined): string | undefined {
   if (!tool || tool === "none") return undefined;
   const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
-  const words =
-    choice && !choice.toLowerCase().startsWith(tool.toLowerCase())
-      ? [tool, choice]
-      : [choice ?? tool];
+  const words = choice && !choice.toLowerCase().startsWith(tool.toLowerCase()) ? [tool, choice] : [choice ?? tool];
   return words.map(cap).join(" ");
 }
 
 /** The pictures a finished step kept, by file name; none for a step without the folder or a PNG in it. */
-function stepScreenshots(
-  jobId: string,
-  step: string | undefined,
-  streamFile: string | undefined,
-): JobStepResultView["screenshots"] {
+function stepScreenshots(jobId: string, step: string | undefined, streamFile: string | undefined): JobStepResultView["screenshots"] {
   if (!step || !streamFile) return undefined;
   let names: string[];
   try {
@@ -49,12 +35,7 @@ function stepScreenshots(
     return undefined;
   }
   const files = names.filter((n) => n.endsWith(".png")).sort();
-  return files.length === 0
-    ? undefined
-    : files.map((file) => ({
-        file,
-        href: `/jobs/${jobId}/screenshots/${step}/${file}`,
-      }));
+  return files.length === 0 ? undefined : files.map((file) => ({ file, href: `/jobs/${jobId}/screenshots/${step}/${file}` }));
 }
 
 /** The step's run log, when it has one. */
@@ -67,9 +48,7 @@ export async function jobDetailView(
   ctx: SpecViewsContext,
   job: Job,
 ): Promise<JobDetailView> {
-  const target = ctx
-    .targets()
-    .find((t) => t.project === job.project && t.specFolder === job.specFolder);
+  const target = ctx.targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);
   // Which CLI this page is about. A running step's tool is
   // not recorded anywhere yet — the result file that would carry it is
   // written when the step ENDS — so it is resolved the same way the
@@ -78,9 +57,7 @@ export async function jobDetailView(
   const step = job.steps[job.stepIndex];
   const running = job.state === "running";
   const named = running
-    ? ctx.queue.defaults.modelChoices?.[
-        resolveStepModel(job, step ?? "", ctx.queue.defaults.model) ?? ""
-      ]?.tool
+    ? ctx.queue.defaults.modelChoices?.[resolveStepModel(job, step ?? "", ctx.queue.defaults.model) ?? ""]?.tool
     : job.results[job.results.length - 1]?.tool;
   const tool = named ?? "claude";
   // What this job's step WROTE. The step running now, or
@@ -92,20 +69,10 @@ export async function jobDetailView(
   const phase = dir && shownStep ? specPhaseFile(dir, shownStep) : null;
   // The running step is built from the job's live transcript, with no final message.
   // The Logs page reads each transcript whole: its Log is the complete step.
-  const liveRunLog =
-    running && step && job.streamFile ? readRunLog(job.streamFile) : undefined; // before the transcript
+  const liveRunLog = running && step && job.streamFile ? readRunLog(job.streamFile) : undefined; // before the transcript
   const live =
     running && step && job.streamFile
-      ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, {
-          tool: named,
-          final: false,
-          codexSession: codexSessionReader(
-            step
-              ? resolveStepProvider(job, step, ctx.queue.defaults)
-              : undefined,
-            ctx.queue.defaults.providers,
-          ),
-        })
+      ? stepLog(tailFileAt(job.streamFile, Infinity), liveRunLog, { tool: named, final: false, codexSession: codexSessionReader(step ? resolveStepProvider(job, step, ctx.queue.defaults) : undefined, ctx.queue.defaults.providers) })
       : undefined;
   return {
     ...(await ctx.jobRow(job)),
@@ -125,39 +92,16 @@ export async function jobDetailView(
         // The run log first, the transcript second: every offset in the log is then at most
         // the size the transcript has when it is read, whether or not the step is still running.
         const runLog = r.streamFile ? readRunLog(r.streamFile) : undefined;
-        const tail = r.streamFile
-          ? tailFileAt(r.streamFile, Infinity)
-          : undefined;
-        const choice = resolveStepModel(
-          job,
-          r.step,
-          ctx.queue.defaults.model ?? {},
-        );
+        const tail = r.streamFile ? tailFileAt(r.streamFile, Infinity) : undefined;
+        const choice = resolveStepModel(job, r.step, ctx.queue.defaults.model ?? {});
         const changedFiles = r.repos
           ? (
               await Promise.all(
-                r.repos.map((repo) =>
-                  diffStatBetween(
-                    ctx.gitRun,
-                    repo.root,
-                    repo.headBefore,
-                    repo.headAfter,
-                  ),
-                ),
+                r.repos.map((repo) => diffStatBetween(ctx.gitRun, repo.root, repo.headBefore, repo.headAfter)),
               )
             ).flat()
           : undefined;
-        const shown = tail
-          ? stepLog(tail, runLog, {
-              tool,
-              final: true,
-              codexSession: codexSessionReader(
-                r.provider?.key ??
-                  resolveStepProvider(job, r.step, ctx.queue.defaults),
-                ctx.queue.defaults.providers,
-              ),
-            })
-          : undefined;
+        const shown = tail ? stepLog(tail, runLog, { tool, final: true, codexSession: codexSessionReader(r.provider?.key ?? resolveStepProvider(job, r.step, ctx.queue.defaults), ctx.queue.defaults.providers) }) : undefined;
         return {
           ...r,
           tokens: r.tokens?.total,
@@ -166,10 +110,7 @@ export async function jobDetailView(
           aiModel: withModelId(aiLabel(tool, choice), r.modelId),
           changedFiles,
           // Only the newest result of a step, which is the one the route serves.
-          screenshots:
-            job.results.findLast((o) => o.step === r.step) === r
-              ? stepScreenshots(job.id, r.step, r.streamFile)
-              : undefined,
+          screenshots: job.results.findLast((o) => o.step === r.step) === r ? stepScreenshots(job.id, r.step, r.streamFile) : undefined,
         };
       }),
     ),
@@ -184,10 +125,7 @@ export async function jobDetailView(
             sessionId: job.sessionId,
             logs: live?.logs ?? [],
             errors: live?.errors ?? [],
-            aiModel: aiLabel(
-              tool,
-              resolveStepModel(job, step, ctx.queue.defaults.model ?? {}),
-            ),
+            aiModel: aiLabel(tool, resolveStepModel(job, step, ctx.queue.defaults.model ?? {})),
           }
         : undefined,
     archiveHeldBack: target?.archiveHeldBack?.reason,

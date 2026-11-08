@@ -7,10 +7,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  TestServerStore,
-  type TestServer,
-} from "../../../src/serve/test-servers/store.ts";
+import { TestServerStore, type TestServer } from "../../../src/serve/test-servers/store.ts";
 
 const entry = (overrides: Partial<TestServer> = {}): TestServer => ({
   branch: "aide/150-x",
@@ -31,11 +28,7 @@ describe("TestServerStore.listAll", () => {
     store.set("woodstack", "9-y", entry({ branch: "aide/9-y", port: 8802 }));
     const all = store.listAll();
     expect(all).toHaveLength(2);
-    expect(all).toContainEqual({
-      project: "aide",
-      specFolder: "150-x",
-      entry: entry(),
-    });
+    expect(all).toContainEqual({ project: "aide", specFolder: "150-x", entry: entry() });
     expect(all).toContainEqual({
       project: "woodstack",
       specFolder: "9-y",
@@ -62,11 +55,7 @@ describe("TestServerStore.listAll", () => {
     store.set("aide", "main", entry({ branch: "main", port: 8802 }));
     const all = store.listAll();
     expect(all).toHaveLength(2);
-    expect(all).toContainEqual({
-      project: "aide",
-      specFolder: "150-x",
-      entry: entry(),
-    });
+    expect(all).toContainEqual({ project: "aide", specFolder: "150-x", entry: entry() });
     expect(all).toContainEqual({
       project: "aide",
       specFolder: "main",
@@ -80,20 +69,8 @@ describe("a failed board read back after a restart", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-board-store-"));
     try {
       const path = join(dir, "test-servers.json");
-      new TestServerStore({ path }).set(
-        "aide",
-        "150-x",
-        entry({
-          status: "failed",
-          command: "make preview",
-          error: "e",
-          detail: "a\nb",
-        }),
-      );
-      expect(new TestServerStore({ path }).get("aide", "150-x")).toMatchObject({
-        command: "make preview",
-        detail: "a\nb",
-      });
+      new TestServerStore({ path }).set("aide", "150-x", entry({ status: "failed", command: "make preview", error: "e", detail: "a\nb" }));
+      expect(new TestServerStore({ path }).get("aide", "150-x")).toMatchObject({ command: "make preview", detail: "a\nb" });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

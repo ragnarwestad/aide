@@ -22,32 +22,16 @@ describe("dashboardSpecDir", () => {
   // person's checkout, and the write has to happen in the dashboard's
   // own copy of that same folder.
   test("translates a spec folder from the person's specs root into the dashboard's", () => {
-    const checkout = {
-      code: "/owned/aide/code",
-      specs: "/owned/aide/specs/aide",
-      specsRepo: "/owned/aide/specs",
-    };
-    expect(
-      dashboardSpecDir(
-        checkout,
-        "/home/dev/aide-specs/aide",
-        "/home/dev/aide-specs/aide/205-two-checkouts",
-      ),
-    ).toBe("/owned/aide/specs/aide/205-two-checkouts");
+    const checkout = { code: "/owned/aide/code", specs: "/owned/aide/specs/aide", specsRepo: "/owned/aide/specs" };
+    expect(dashboardSpecDir(checkout, "/home/dev/aide-specs/aide", "/home/dev/aide-specs/aide/205-two-checkouts")).toBe(
+      "/owned/aide/specs/aide/205-two-checkouts",
+    );
   });
 
   test("an archived spec keeps the archive/ step of its path", () => {
-    const checkout = {
-      code: "/owned/aide/code",
-      specs: "/owned/aide/specs/aide",
-      specsRepo: "/owned/aide/specs",
-    };
+    const checkout = { code: "/owned/aide/code", specs: "/owned/aide/specs/aide", specsRepo: "/owned/aide/specs" };
     expect(
-      dashboardSpecDir(
-        checkout,
-        "/home/dev/aide-specs/aide",
-        "/home/dev/aide-specs/aide/archive/149-landing",
-      ),
+      dashboardSpecDir(checkout, "/home/dev/aide-specs/aide", "/home/dev/aide-specs/aide/archive/149-landing"),
     ).toBe("/owned/aide/specs/aide/archive/149-landing");
   });
 
@@ -55,18 +39,8 @@ describe("dashboardSpecDir", () => {
   // dashboard owns a copy of, and guessing one would send a commit into
   // a directory nobody asked about.
   test("a folder outside the specs root translates to nothing", () => {
-    const checkout = {
-      code: "/owned/aide/code",
-      specs: "/owned/aide/specs/aide",
-      specsRepo: "/owned/aide/specs",
-    };
-    expect(
-      dashboardSpecDir(
-        checkout,
-        "/home/dev/aide-specs/aide",
-        "/somewhere/else/205-two-checkouts",
-      ),
-    ).toBeNull();
+    const checkout = { code: "/owned/aide/code", specs: "/owned/aide/specs/aide", specsRepo: "/owned/aide/specs" };
+    expect(dashboardSpecDir(checkout, "/home/dev/aide-specs/aide", "/somewhere/else/205-two-checkouts")).toBeNull();
   });
 });
 
@@ -89,16 +63,9 @@ describe("dashboardSpecDir", () => {
 // git: what is under test is the ORDERING of concurrent calls, and real
 // timers would make that a race rather than a test.
 describe("CheckoutEnsurer", () => {
-  const fake = (tag: string): DashboardCheckout => ({
-    code: tag,
-    specs: `${tag}/specs`,
-    specsRepo: tag,
-  });
+  const fake = (tag: string): DashboardCheckout => ({ code: tag, specs: `${tag}/specs`, specsRepo: tag });
 
-  function deferred(): {
-    promise: Promise<DashboardCheckout>;
-    resolve: (v: DashboardCheckout) => void;
-  } {
+  function deferred(): { promise: Promise<DashboardCheckout>; resolve: (v: DashboardCheckout) => void } {
     let resolve: (v: DashboardCheckout) => void = () => {};
     const promise = new Promise<DashboardCheckout>((r) => (resolve = r));
     return { promise, resolve };

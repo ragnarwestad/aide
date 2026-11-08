@@ -19,10 +19,7 @@ export interface ProcessSettings {
   max: number;
 }
 
-export function processPanel(
-  s: ProcessSettings,
-  lang: Language = "en",
-): string {
+export function processPanel(s: ProcessSettings, lang: Language = "en"): string {
   return (
     `<form id="settings-form" class="settingsform" data-settings-form method="post" action="/api/queue/settings/concurrency">` +
     messageSlot("refused", "failed") +
@@ -31,18 +28,8 @@ export function processPanel(
     `<input id="process-concurrency" type="number" name="concurrency" min="${s.min}" max="${s.max}" step="1" value="${s.concurrency}"></p>` +
     `<p class="muted">${esc(t(lang, "settings.process.cores", { cores: s.cores }))}</p>` +
     `<div class="configactions">` +
-    btn({
-      id: "settingsform-save",
-      label: t(lang, "list.checksSave"),
-      variant: "primary",
-      pending: t(lang, "list.checksSaving"),
-    }) +
-    btn({
-      id: "settingsform-cancel",
-      label: t(lang, "dialog.cancel"),
-      type: "button",
-      disabled: true,
-    }) +
+    btn({ id: "settingsform-save", label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") }) +
+    btn({ id: "settingsform-cancel", label: t(lang, "dialog.cancel"), type: "button", disabled: true }) +
     `</div></form>`
   );
 }

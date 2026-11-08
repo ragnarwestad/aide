@@ -34,11 +34,7 @@ const resolve = (project: string) =>
       ? { specFolders: ["01-first"] }
       : null;
 
-const REQ = {
-  project: "aide",
-  specFolder: "81-queue-and-runner",
-  steps: ["analyze"],
-};
+const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
 let dir: string;
 
@@ -47,6 +43,7 @@ beforeEach(() => {
 });
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
 
 // The model is chosen ON THE PHASE LINE, so one Run press can
 // carry a DIFFERENT model for each phase it ticks. The whole-job string
@@ -67,11 +64,7 @@ describe("per-step model choice", () => {
 
   test("a per-step map runs each named step on its own model", () => {
     const r = parseJobRequest(
-      {
-        ...REQ,
-        steps: ["analyze", "implement"],
-        model: { analyze: "sonnet", implement: "fable" },
-      },
+      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "fable" } },
       { resolve, defaults: WITH_CHOICES },
     );
     expect(r.ok).toBe(true);
@@ -87,11 +80,7 @@ describe("per-step model choice", () => {
   // only the ticked ones may apply.
   test("a step outside this job's own steps is skipped, and the job runs", () => {
     const r = parseJobRequest(
-      {
-        ...REQ,
-        steps: ["analyze"],
-        model: { analyze: "sonnet", implement: "fable" },
-      },
+      { ...REQ, steps: ["analyze"], model: { analyze: "sonnet", implement: "fable" } },
       { resolve, defaults: WITH_CHOICES },
     );
     expect(r.ok).toBe(true);
@@ -121,11 +110,7 @@ describe("per-step model choice", () => {
 
   test("a step left on 'default' falls back to the config, without refusing the rest", () => {
     const r = parseJobRequest(
-      {
-        ...REQ,
-        steps: ["analyze", "implement"],
-        model: { analyze: "fable", implement: "" },
-      },
+      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "fable", implement: "" } },
       { resolve, defaults: WITH_CHOICES },
     );
     expect(r.ok).toBe(true);
@@ -204,22 +189,13 @@ describe("editing a running job's model for a step still ahead", () => {
   };
 
   let made_ = 0;
-  const running = (
-    steps: string[],
-    stepIndex = 0,
-    defaults: QueueDefaults = CHOICES,
-  ) => {
+  const running = (steps: string[], stepIndex = 0, defaults: QueueDefaults = CHOICES) => {
     const mirror = join(dir, `queue-model-${(made_ += 1)}.json`);
     const store = new QueueStore({ defaults, resolve, mirrorPath: mirror });
     const made = store.enqueue({ ...REQ, steps });
     if (!made.ok) throw new Error(made.error);
     store.update(made.job.id, { state: "running", stepIndex });
-    return {
-      store,
-      mirror,
-      id: made.job.id,
-      model: () => store.get(made.job.id)!.model,
-    };
+    return { store, mirror, id: made.job.id, model: () => store.get(made.job.id)!.model };
   };
 
   test("a step still ahead takes the new model, and the runner would read it", () => {
@@ -230,9 +206,7 @@ describe("editing a running job's model for a step still ahead", () => {
     // The read side, unchanged by this spec and asked here on purpose:
     // what the runner spawns with is `resolveStepModel` against the job
     // as the store holds it at that instant.
-    expect(
-      resolveStepModel(job.store.get(job.id)!, "implement", DEFAULTS.model),
-    ).toBe("fable");
+    expect(resolveStepModel(job.store.get(job.id)!, "implement", DEFAULTS.model)).toBe("fable");
   });
 
   // The other half of `tailEdits()`: a phase this job does not have at
@@ -297,14 +271,7 @@ describe("editing a running job's model for a step still ahead", () => {
   });
 
   test("a job that is not running is closed altogether", () => {
-    for (const state of [
-      "queued",
-      "done",
-      "failed",
-      "cancelled",
-      "stopped",
-      "interrupted",
-    ] as const) {
+    for (const state of ["queued", "done", "failed", "cancelled", "stopped", "interrupted"] as const) {
       const job = running(["analyze", "implement"]);
       job.store.update(job.id, { state });
       const answer = job.store.editTailModel(job.id, "implement", "fable");
@@ -316,9 +283,7 @@ describe("editing a running job's model for a step still ahead", () => {
   test("an unknown job is not found", () => {
     running(["analyze", "implement"]);
     const job = running(["analyze", "implement"]);
-    expect(
-      job.store.editTailModel("no-such-job", "implement", "fable").ok,
-    ).toBe(false);
+    expect(job.store.editTailModel("no-such-job", "implement", "fable").ok).toBe(false);
   });
 
   // The mirror is what survives a restart, and a model chosen only in
@@ -337,31 +302,18 @@ describe("editing a running job's model for a step still ahead", () => {
 // Which CLI a waiting step will run on is what the check before a job
 // starts asks about, so it follows the same choice the argv does.
 describe("stepTool", () => {
-  const job = (model: Record<string, string> = {}) => ({ model }) as never;
+  const job = (model: Record<string, string> = {}) => ({ model } as never);
   const choices = { Sonnet: {}, "gpt-6": { tool: "codex" as const } };
 
   test("the step's chosen model names its tool", () => {
-    expect(
-      stepTool(job({ implement: "gpt-6" }), "implement", {
-        modelChoices: choices,
-      }),
-    ).toBe("codex");
+    expect(stepTool(job({ implement: "gpt-6" }), "implement", { modelChoices: choices })).toBe("codex");
   });
 
   test("a choice that names no tool is claude", () => {
-    expect(
-      stepTool(job({ implement: "Sonnet" }), "implement", {
-        modelChoices: choices,
-      }),
-    ).toBe("claude");
+    expect(stepTool(job({ implement: "Sonnet" }), "implement", { modelChoices: choices })).toBe("claude");
   });
 
   test("the configured default applies when the job chose nothing", () => {
-    expect(
-      stepTool(job(), "analyze", {
-        model: { default: "gpt-6" },
-        modelChoices: choices,
-      }),
-    ).toBe("codex");
+    expect(stepTool(job(), "analyze", { model: { default: "gpt-6" }, modelChoices: choices })).toBe("codex");
   });
 });

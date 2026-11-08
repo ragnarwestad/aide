@@ -16,9 +16,7 @@ export function holdSpecDetail(body: ParentNode): () => void {
   const live = body.querySelector(DETAIL) as HTMLElement | null;
   if (!live) return () => {};
   const key = live.getAttribute(KEY)!;
-  const focused = live.contains(document.activeElement)
-    ? (document.activeElement as HTMLElement)
-    : null;
+  const focused = live.contains(document.activeElement) ? (document.activeElement as HTMLElement) : null;
   const standIn = document.createElement("tr");
   standIn.setAttribute(KEY, key);
   live.replaceWith(standIn);
@@ -49,8 +47,5 @@ export function placeNamedRow(doc: Document, win: Window): void {
   if (!/auto|scroll/.test(style.overflowY)) return;
   win.scrollTo(0, 0);
   const headings = Number.parseFloat(style.scrollPaddingTop) || 0;
-  wrap.scrollTop +=
-    row.getBoundingClientRect().top -
-    wrap.getBoundingClientRect().top -
-    headings;
+  wrap.scrollTop += row.getBoundingClientRect().top - wrap.getBoundingClientRect().top - headings;
 }

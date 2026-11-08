@@ -7,7 +7,7 @@ description: >-
   documentation.
   Do NOT use for: analysis (use aide-analyze), implementation (use aide-implement),
   code review.
-argument-hint: '"<title>" <description>'
+argument-hint: "\"<title>\" <description>"
 effort: medium
 ---
 
@@ -24,7 +24,6 @@ double quote; what is inside the quotes is the title, and everything
 after the closing quote is the description. The title is never made up
 by this skill — an argument that does not start with a quote is a
 missing title: ask for it before anything is created.
-
 - Example: `/aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.`
 
 **A title may begin with an issue key** (`[A-Z][A-Z0-9]*-[0-9]+`, e.g.
@@ -97,6 +96,7 @@ done.
 
 First write `--- Step 1 of 7: Find the specs root — started`, and when this step ends, `--- Step 1 of 7: Find the specs root — done`.
 
+
 - Before anything else, run `date +%s` and keep the printed number as
   this phase's start time — Step 5 uses it, for an interactive run only,
   to record how long this phase actually took.
@@ -111,6 +111,7 @@ First write `--- Step 1 of 7: Find the specs root — started`, and when this st
 ### Step 2 of 7: Find the next available number
 
 First write `--- Step 2 of 7: Find the next available number — started`, and when this step ends, `--- Step 2 of 7: Find the next available number — done`.
+
 
 **Headless, with a literal folder name stated:** skip this step entirely
 — see "A headless run states its own folder name" below Step 4.
@@ -128,6 +129,7 @@ First write `--- Step 2 of 7: Find the next available number — started`, and w
 
 First write `--- Step 3 of 7: Generate a slug from the title — started`, and when this step ends, `--- Step 3 of 7: Generate a slug from the title — done`.
 
+
 **Headless, with a literal folder name stated:** skip this step
 entirely, for the same reason as Step 2.
 
@@ -139,6 +141,7 @@ entirely, for the same reason as Step 2.
 ### Step 4 of 7: Create the directory and 5 files
 
 First write `--- Step 4 of 7: Create the directory and 5 files — started`, and when this step ends, `--- Step 4 of 7: Create the directory and 5 files — done`.
+
 
 **A headless run states its own folder name.** A prompt that says
 "create the spec folder under exactly this name — `<name>` — do not
@@ -289,6 +292,7 @@ other package download.
 
 First write `--- Step 5 of 7: Stage in git — started`, and when this step ends, `--- Step 5 of 7: Stage in git — done`.
 
+
 Working interactively, before staging, run:
 
 ```bash
@@ -354,6 +358,7 @@ In a headless run nothing of this is on the default branch yet: the
 create is finished only once Step 7, the merge into main, is done. So the
 report's first line ends `— not finished, the merge into main is next
 (Step 7)`, and the report never calls the create done or complete.
+
 
 Show a summary and the next step, built from Step 4's `specFolder` and
 `files` — not assumed. Never preview the composed description text

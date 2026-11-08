@@ -35,14 +35,11 @@ interface Options {
   disabled?: boolean;
 }
 
-const formAttr = (formId: string | undefined): string =>
-  formId ? ` form="${esc(formId)}"` : "";
+const formAttr = (formId: string | undefined): string => (formId ? ` form="${esc(formId)}"` : "");
 
 /** A box's accessible name: the heading's two lines, "Verified: Yes". */
 const boxName = (lang: Language, column: string): string =>
-  esc(
-    t(lang, "checks.boxName", { heading: t(lang, "checks.verified"), column }),
-  );
+  esc(t(lang, "checks.boxName", { heading: t(lang, "checks.verified"), column }));
 
 /** The hidden twin, the tick box and the second box (an archived row: the
  *  Failed box, and its note field after them).
@@ -52,26 +49,15 @@ const boxName = (lang: Language, column: string): string =>
  *  The tick box is checked for a ✅ row alone; a Not verified row is done too,
  *  and only its own box is checked. `aria-label` is the last attribute of a
  *  box, so a box ends `checked aria-label="…">`. */
-export function checkControls(
-  row: CheckControlRow,
-  lang: Language,
-  options: Options = {},
-): string {
+export function checkControls(row: CheckControlRow, lang: Language, options: Options = {}): string {
   const value = esc(row.line);
   const form = formAttr(options.formId);
   const off = options.disabled ? " disabled" : "";
-  const box = (
-    extra: string,
-    name: string,
-    checked: boolean,
-    column: string,
-  ): string =>
+  const box = (extra: string, name: string, checked: boolean, column: string): string =>
     `<label class="checkbox${extra}"><input type="checkbox" name="${name}" value="${value}"${form}` +
     `${checked ? " checked" : ""}${off} aria-label="${boxName(lang, column)}"></label>`;
   const tick =
-    (options.disabled
-      ? ""
-      : `<input type="hidden" name="row" value="${value}"${form}>`) +
+    (options.disabled ? "" : `<input type="hidden" name="row" value="${value}"${form}>`) +
     box("", "tick", row.done && !row.notVerified, t(lang, "checks.yes"));
   if (options.archivedIndex !== undefined && !options.disabled) {
     return (
@@ -83,15 +69,7 @@ export function checkControls(
       `</div>`
     );
   }
-  return (
-    tick +
-    box(
-      " unverified",
-      "unverified",
-      !!row.notVerified,
-      t(lang, "checks.notYet"),
-    )
-  );
+  return tick + box(" unverified", "unverified", !!row.notVerified, t(lang, "checks.notYet"));
 }
 
 /** The heading over a list's two columns of boxes, a row of the list itself so
@@ -111,13 +89,8 @@ export function checkColumns(lang: Language, archived: boolean): string {
 
 /** A row that is not a box: the mark it carries. A Not verified row is
  *  drawn "Not verified", never ✅. */
-export function checkReadOnlyMark(
-  row: CheckControlRow,
-  lang: Language,
-): string {
-  if (row.failed)
-    return `<span class="unverified readonly failed">${esc(t(lang, "checks.failed"))}</span>`;
-  if (row.notVerified)
-    return `<span class="unverified readonly">${esc(t(lang, "checks.notVerified"))}</span>`;
+export function checkReadOnlyMark(row: CheckControlRow, lang: Language): string {
+  if (row.failed) return `<span class="unverified readonly failed">${esc(t(lang, "checks.failed"))}</span>`;
+  if (row.notVerified) return `<span class="unverified readonly">${esc(t(lang, "checks.notVerified"))}</span>`;
   return `<span class="checkbox" aria-hidden="true">${row.done ? "✅" : "☐"}</span>`;
 }

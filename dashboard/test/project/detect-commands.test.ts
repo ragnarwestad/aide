@@ -41,53 +41,15 @@ describe("detectProjectCommands reads the table in the skill doc", () => {
     lint?: string;
     build?: string;
   }[] = [
-    {
-      file: "pnpm-lock.yaml",
-      toolchain: "pnpm",
-      test: "pnpm test -- --run",
-      lint: "pnpm run lint",
-      build: "pnpm run build",
-    },
-    {
-      file: "package-lock.json",
-      toolchain: "npm",
-      test: "npm test",
-      lint: "npm run lint",
-      build: "npm run build",
-    },
-    {
-      file: "yarn.lock",
-      toolchain: "yarn",
-      test: "yarn test",
-      lint: "yarn lint",
-      build: "yarn build",
-    },
-    {
-      file: "gradlew",
-      toolchain: "Gradle",
-      test: "./gradlew test",
-      build: "./gradlew build",
-    },
-    {
-      file: "pom.xml",
-      toolchain: "Maven",
-      test: "mvn test",
-      build: "mvn verify",
-    },
+    { file: "pnpm-lock.yaml", toolchain: "pnpm", test: "pnpm test -- --run", lint: "pnpm run lint", build: "pnpm run build" },
+    { file: "package-lock.json", toolchain: "npm", test: "npm test", lint: "npm run lint", build: "npm run build" },
+    { file: "yarn.lock", toolchain: "yarn", test: "yarn test", lint: "yarn lint", build: "yarn build" },
+    { file: "gradlew", toolchain: "Gradle", test: "./gradlew test", build: "./gradlew build" },
+    { file: "pom.xml", toolchain: "Maven", test: "mvn test", build: "mvn verify" },
     { file: "pytest.ini", toolchain: "pytest", test: "python -m pytest" },
     { file: "pyproject.toml", toolchain: "pytest", test: "python -m pytest" },
-    {
-      file: "go.mod",
-      toolchain: "Go",
-      test: "go test ./...",
-      build: "go build ./...",
-    },
-    {
-      file: "Cargo.toml",
-      toolchain: "Cargo",
-      test: "cargo test",
-      build: "cargo build",
-    },
+    { file: "go.mod", toolchain: "Go", test: "go test ./...", build: "go build ./..." },
+    { file: "Cargo.toml", toolchain: "Cargo", test: "cargo test", build: "cargo build" },
   ];
 
   for (const row of TABLE) {
@@ -119,25 +81,19 @@ describe("detectProjectCommands reads the table in the skill doc", () => {
   });
 
   test("a root that does not exist yields nothing rather than throwing", () => {
-    expect(
-      detectProjectCommands(join(tmpdir(), "aide-detect-no-such-dir")),
-    ).toEqual({});
+    expect(detectProjectCommands(join(tmpdir(), "aide-detect-no-such-dir"))).toEqual({});
   });
 
   // First match wins, in the table's own order — a repo that ships both
   // a pnpm lockfile and a package-lock is a real thing, and the page
   // must name one command, not two.
   test("the table's order decides when a project ships two of them", () => {
-    const found = detectProjectCommands(
-      rootWith("package-lock.json", "pnpm-lock.yaml"),
-    );
+    const found = detectProjectCommands(rootWith("package-lock.json", "pnpm-lock.yaml"));
     expect(found.test?.source).toBe("pnpm-lock.yaml");
   });
 
   test("pytest.ini wins over pyproject.toml, as the table lists it first", () => {
-    const found = detectProjectCommands(
-      rootWith("pyproject.toml", "pytest.ini"),
-    );
+    const found = detectProjectCommands(rootWith("pyproject.toml", "pytest.ini"));
     expect(found.test?.source).toBe("pytest.ini");
   });
 

@@ -6,10 +6,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Window } from "happy-dom";
-import {
-  projectSettings,
-  SETTING_GROUPS,
-} from "../../../../src/project/project-settings.ts";
+import { projectSettings, SETTING_GROUPS } from "../../../../src/project/project-settings.ts";
 import { renderAddProjectPage } from "../../../../src/render";
 import { unifiedSettingsTable } from "../../../../src/render/pages/projects-page/settings-table.ts";
 
@@ -22,9 +19,7 @@ const namesIn = (html: string, scope: string): Set<string> => {
   const window = new Window();
   window.document.body.innerHTML = html;
   const form = window.document.querySelector(scope)!;
-  return new Set(
-    [...form.querySelectorAll("[name]")].map((el) => el.getAttribute("name")!),
-  );
+  return new Set([...form.querySelectorAll("[name]")].map((el) => el.getAttribute("name")!));
 };
 
 describe("Add project and the Config tab post the same settings", () => {
@@ -35,11 +30,7 @@ describe("Add project and the Config tab post the same settings", () => {
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\n");
 
     const add = namesIn(
-      renderAddProjectPage(
-        [{ label: "Projects", path: "/projects" }],
-        "2026-10-09T00:00:00Z",
-        {},
-      ),
+      renderAddProjectPage([{ label: "Projects", path: "/projects" }], "2026-10-09T00:00:00Z", {}),
       "form.addprojectform",
     );
     add.delete("name");
@@ -48,25 +39,13 @@ describe("Add project and the Config tab post the same settings", () => {
     const config = new Set<string>();
     const view = projectSettings(dir, null);
     for (const { file } of SETTING_GROUPS) {
-      const html = unifiedSettingsTable(view, "p", file, {
-        worktreeLinkCandidates: [],
-        editingGroup: file,
-      });
-      for (const name of namesIn(html, "form.projectsettingsform"))
-        config.add(name);
+      const html = unifiedSettingsTable(view, "p", file, { worktreeLinkCandidates: [], editingGroup: file });
+      for (const name of namesIn(html, "form.projectsettingsform")) config.add(name);
     }
 
     expect([...add].sort()).toEqual([...config].sort());
     expect([...add].sort()).toEqual([
-      "acPrefix",
-      "codeLanding",
-      "description",
-      "installCmd",
-      "previewCmd",
-      "previewFrom",
-      "specsPath",
-      "testCmd",
-      "worktreeLinks",
+      "acPrefix", "codeLanding", "description", "installCmd", "previewCmd", "previewFrom", "specsPath", "testCmd", "worktreeLinks",
     ]);
   });
 });
@@ -79,15 +58,10 @@ describe("the Config tab's table being edited", () => {
     writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\n");
     const view = projectSettings(dir, null);
     for (const { file } of SETTING_GROUPS) {
-      const html = unifiedSettingsTable(view, "p", file, {
-        worktreeLinkCandidates: [],
-        editingGroup: file,
-      });
+      const html = unifiedSettingsTable(view, "p", file, { worktreeLinkCandidates: [], editingGroup: file });
       const window = new Window();
       window.document.body.innerHTML = html;
-      const save = window.document.querySelector(
-        "form.projectsettingsform #projectsettingsform-save",
-      );
+      const save = window.document.querySelector("form.projectsettingsform #projectsettingsform-save");
       expect(save?.getAttribute("type")).toBe("submit");
     }
   });

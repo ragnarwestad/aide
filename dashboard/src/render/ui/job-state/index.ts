@@ -11,25 +11,14 @@
 export type { QueueRowView, SideRunView, StepResultView } from "./types.ts";
 export { anyCostUnmeasured, sidesSpent } from "./types.ts";
 
-export {
-  stateWord,
-  durationLabel,
-  BADGE_VARIANT,
-  stateChip,
-  IN_FLIGHT,
-  inFlight,
-  currentStep,
-} from "./format.ts";
+export { stateWord, durationLabel, BADGE_VARIANT, stateChip, IN_FLIGHT, inFlight, currentStep } from "./format.ts";
 
 export type { RestingState } from "./resting.ts";
 export { restingChip, specStateChip } from "./resting.ts";
 
 export type { RowNotice } from "./notice.ts";
-export {
-  heldBackResolvesOnItsOwn,
-  sharedFilesSentence,
-  specNotice,
-} from "./notice.ts";
+export { heldBackResolvesOnItsOwn, sharedFilesSentence, specNotice } from "./notice.ts";
+
 
 export { completedThirds } from "./tdd.ts";
 

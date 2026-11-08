@@ -8,26 +8,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { queueHarness, statusSaying } from "../helpers/queue-server.ts";
 import { repoOf } from "../queue-routes/landing/every-step-lands-fixtures.ts";
-import {
-  ARCHIVE_RESULT,
-  gitFor,
-  runStep,
-  serverWithRunner,
-  settle,
-  start as startLanding,
-} from "../queue-routes/landing/archive-landing-fixtures.ts";
-import {
-  SPEC,
-  TRACKING,
-  FILE_SHA,
-  ARCHIVED,
-  ARCHIVED_TEXT,
-  archivedDescriptionPath,
-  descriptionPath,
-  savable,
-  post,
-  answer,
-} from "./spec-save-fixtures.ts";
+import { ARCHIVE_RESULT, gitFor, runStep, serverWithRunner, settle, start as startLanding } from "../queue-routes/landing/archive-landing-fixtures.ts";
+import { SPEC, TRACKING, FILE_SHA, ARCHIVED, ARCHIVED_TEXT, archivedDescriptionPath, descriptionPath, savable, post, answer } from "./spec-save-fixtures.ts";
 
 const harness = queueHarness("aide-spec-tracking-");
 afterEach(() => harness.cleanup());
@@ -40,8 +22,7 @@ const TRACKED = (line = "") =>
   "\n---\n\n## Description\n\nAs it was.\n";
 const ACCEPT_LINE = "- **Acceptance:** not required";
 
-const track = (base: string, body: Record<string, string>) =>
-  post(base, body, TRACKING);
+const track = (base: string, body: Record<string, string>) => post(base, body, TRACKING);
 
 describe("the acceptance switch on the spec page's tracking route", () => {
   // The box asks the POSITIVE question — "acceptance ticking required" —
@@ -53,14 +34,10 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       status: statusSaying(["create"]),
       extra: { gitRun: savable("/host") },
     });
-    const { status, body } = await answer(
-      await track(base, { settingsEditable: "1", baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await track(base, { settingsEditable: "1", baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(
-      TRACKED(ACCEPT_LINE),
-    );
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(ACCEPT_LINE));
   });
 
   test("the box TICKED removes an existing not-required line", async () => {
@@ -69,13 +46,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       status: statusSaying(["create"]),
       extra: { gitRun: savable("/host") },
     });
-    const { status, body } = await answer(
-      await track(base, {
-        settingsEditable: "1",
-        acceptanceRequired: "1",
-        baseSha: FILE_SHA,
-      }),
-    );
+    const { status, body } = await answer(await track(base, { settingsEditable: "1", acceptanceRequired: "1", baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
@@ -90,14 +61,10 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       description: TRACKED(ACCEPT_LINE),
       extra: { gitRun: savable("/host") },
     });
-    const { status, body } = await answer(
-      await track(base, { acceptanceNotRequired: "0", baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await track(base, { acceptanceNotRequired: "0", baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(
-      TRACKED(ACCEPT_LINE),
-    );
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(ACCEPT_LINE));
   });
 
   // The form posts the acceptance switch alone, so a save leaves the spec's
@@ -109,13 +76,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       status: statusSaying(["create"]),
       extra: { gitRun: savable("/host") },
     });
-    const { status } = await answer(
-      await track(base, {
-        settingsEditable: "1",
-        acceptanceRequired: "1",
-        baseSha: FILE_SHA,
-      }),
-    );
+    const { status } = await answer(await track(base, { settingsEditable: "1", acceptanceRequired: "1", baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toContain(DEPENDS);
   });
@@ -129,9 +90,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       status: statusSaying(["create", "analyze"]),
       extra: { gitRun: savable("/host") },
     });
-    const { status, body } = await answer(
-      await track(base, { settingsEditable: "1", baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await track(base, { settingsEditable: "1", baseSha: FILE_SHA }));
     expect(status).toBe(400);
     expect(body.error).toContain("analyze has already run");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
@@ -147,14 +106,10 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       alsoSpecs: [OTHER],
       extra: { gitRun: savable("/host") },
     });
-    const { status, body } = await answer(
-      await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }),
-    );
+    const { status, body } = await answer(await track(base, { dependsOn: OTHER, baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(
-      TRACKED(`- **Depends on:** \`${OTHER}\``),
-    );
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(`- **Depends on:** \`${OTHER}\``));
   });
 
   // The checks level and choosing the approach are read by analyze too,
@@ -165,43 +120,25 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       status: statusSaying(["create"]),
       extra: { gitRun: savable("/host") },
     });
-    const sent = {
-      settingsEditable: "1",
-      acceptanceRequired: "1",
-      criteriaChecks: "warn",
-      chooseApproach: "1",
-      baseSha: FILE_SHA,
-    };
+    const sent = { settingsEditable: "1", acceptanceRequired: "1", criteriaChecks: "warn", chooseApproach: "1", baseSha: FILE_SHA };
     const { status } = await answer(await track(base, sent));
     expect(status).toBe(200);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(
-      TRACKED(
-        "- **Acceptance criteria checks:** warn\n- **Let me choose the approach:** yes",
-      ),
+      TRACKED("- **Acceptance criteria checks:** warn\n- **Let me choose the approach:** yes"),
     );
   });
 
   test("a cleared approach box writes no, and an unchanged level stays as written", async () => {
-    const LINES =
-      "- **Acceptance criteria checks:** stop\n- **Let me choose the approach:** yes";
+    const LINES = "- **Acceptance criteria checks:** stop\n- **Let me choose the approach:** yes";
     const { base, dir } = harness.start({
       description: TRACKED(LINES),
       status: statusSaying(["create"]),
       extra: { gitRun: savable("/host") },
     });
-    const { status } = await answer(
-      await track(base, {
-        settingsEditable: "1",
-        acceptanceRequired: "1",
-        criteriaChecks: "stop",
-        baseSha: FILE_SHA,
-      }),
-    );
+    const { status } = await answer(await track(base, { settingsEditable: "1", acceptanceRequired: "1", criteriaChecks: "stop", baseSha: FILE_SHA }));
     expect(status).toBe(200);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(
-      TRACKED(
-        "- **Acceptance criteria checks:** stop\n- **Let me choose the approach:** no",
-      ),
+      TRACKED("- **Acceptance criteria checks:** stop\n- **Let me choose the approach:** no"),
     );
   });
 
@@ -211,14 +148,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       status: statusSaying(["create"]),
       extra: { gitRun: savable("/host") },
     });
-    const { status } = await answer(
-      await track(base, {
-        settingsEditable: "1",
-        acceptanceRequired: "1",
-        criteriaChecks: "loud",
-        baseSha: FILE_SHA,
-      }),
-    );
+    const { status } = await answer(await track(base, { settingsEditable: "1", acceptanceRequired: "1", criteriaChecks: "loud", baseSha: FILE_SHA }));
     expect(status).toBe(400);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
   });
@@ -229,18 +159,14 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT } },
       extra: { gitRun: savable("/host") },
     });
-    const { status, body } = await answer(
-      await post(
-        base,
-        { settingsEditable: "1", baseSha: FILE_SHA },
-        `/api/queue/specs/aide/${ARCHIVED}/tracking`,
-      ),
-    );
+    const { status, body } = await answer(await post(
+      base,
+      { settingsEditable: "1", baseSha: FILE_SHA },
+      `/api/queue/specs/aide/${ARCHIVED}/tracking`,
+    ));
     expect(status).toBe(400);
     expect(body.error).toContain("archived");
-    expect(readFileSync(archivedDescriptionPath(dir), "utf-8")).toBe(
-      ARCHIVED_TEXT,
-    );
+    expect(readFileSync(archivedDescriptionPath(dir), "utf-8")).toBe(ARCHIVED_TEXT);
   });
 
   test("a stale baseSha is refused, and nothing is written", async () => {
@@ -248,13 +174,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       description: TRACKED(),
       extra: { gitRun: savable("/host") },
     });
-    const { status, body } = await answer(
-      await track(base, {
-        settingsEditable: "1",
-        acceptanceNotRequired: "1",
-        baseSha: "stale-sha",
-      }),
-    );
+    const { status, body } = await answer(await track(base, { settingsEditable: "1", acceptanceNotRequired: "1", baseSha: "stale-sha" }));
     expect(status).toBe(400);
     expect(body.error).toContain("changed since");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
@@ -274,23 +194,15 @@ describe("the acceptance switch on the spec page's tracking route", () => {
     const git = {
       run: async (dir: string, args: string[]) => {
         if (posting) return saveGit(dir, args);
-        return repoOf(dir) === codeRoot &&
-          args.join(" ").startsWith("diff --quiet")
-          ? { code: 1, stdout: "" }
-          : inner.run(dir, args);
+        return repoOf(dir) === codeRoot && args.join(" ").startsWith("diff --quiet") ? { code: 1, stdout: "" } : inner.run(dir, args);
       },
     };
-    const { base, dir, results } = serverWithRunner(
-      startLanding,
-      "aide-tracking-landing-",
-      git as never,
-      {
-        landingGate: async () => {
-          await held;
-          return { ok: true };
-        },
+    const { base, dir, results } = serverWithRunner(startLanding, "aide-tracking-landing-", git as never, {
+      landingGate: async () => {
+        await held;
+        return { ok: true };
       },
-    );
+    });
     codeRoot = join(dir, "root", "aide");
     needsRealMerge.push(codeRoot);
     writeFileSync(descriptionPath(dir), TRACKED());
@@ -300,10 +212,7 @@ describe("the acceptance switch on the spec page's tracking route", () => {
       JSON.stringify({
         ...ARCHIVE_RESULT,
         branchUrls: [
-          {
-            root: join(dir, "root", "aide", "specs"),
-            url: "https://example.test/aide-specs",
-          },
+          { root: join(dir, "root", "aide", "specs"), url: "https://example.test/aide-specs" },
           { root: codeRoot, url: "https://example.test/aide" },
         ],
       }),

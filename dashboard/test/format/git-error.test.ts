@@ -7,18 +7,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gitError, gitErrorDetail } from "../../src/format/git-error.ts";
 
-const CASES = JSON.parse(
-  readFileSync(
-    join(import.meta.dir, "../../../core/tests/fixtures/git-errors.json"),
-    "utf-8",
-  ),
-).cases as {
-  name: string;
-  said: string;
-  kind: string;
-  message?: string;
-  detail: string;
-}[];
+const CASES = JSON.parse(readFileSync(join(import.meta.dir, "../../../core/tests/fixtures/git-errors.json"), "utf-8"))
+  .cases as { name: string; said: string; kind: string; message?: string; detail: string }[];
 
 describe("gitError", () => {
   test.each(CASES)("$name", ({ said, kind, message }) => {

@@ -21,8 +21,7 @@
 // transpiled source against a fake document and window.
 
 (() => {
-  const TRACKED =
-    ".specform, .settingsform, .providerform, .pageform, .scheduleform";
+  const TRACKED = ".specform, .settingsform, .providerform, .pageform, .scheduleform";
   let dirty = false;
 
   const markDirty = (event: Event): void => {
@@ -73,28 +72,12 @@
     }
     if (!dirty) return;
     const e = event as MouseEvent;
-    if (
-      e.defaultPrevented ||
-      e.metaKey ||
-      e.ctrlKey ||
-      e.shiftKey ||
-      e.button !== 0
-    )
-      return;
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
     const link = target?.closest?.("a[href]") as HTMLAnchorElement | null;
-    if (!link || link.target === "_blank" || link.hasAttribute("download"))
-      return;
+    if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
     const href = link.getAttribute("href") || "";
-    if (
-      !href ||
-      href.startsWith("#") ||
-      href.startsWith("mailto:") ||
-      href.startsWith("tel:")
-    )
-      return;
-    const dialog = document.getElementById(
-      "leaveapp",
-    ) as HTMLDialogElement | null;
+    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
+    const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
     if (!dialog || typeof dialog.showModal !== "function") return;
     if (!dialogWired) {
       dialogWired = true;
@@ -123,29 +106,22 @@
 
   document.addEventListener("aide-page-leave", (event: Event) => {
     if (!dirty) return;
-    const dialog = document.getElementById(
-      "leaveapp",
-    ) as HTMLDialogElement | null;
+    const dialog = document.getElementById("leaveapp") as HTMLDialogElement | null;
     if (!dialog || typeof dialog.showModal !== "function") return;
     event.preventDefault();
-    pendingSwap = (event as CustomEvent<{ proceed(): void; stay(): void }>)
-      .detail;
+    pendingSwap = (event as CustomEvent<{ proceed(): void; stay(): void }>).detail;
     if (!dialogWired) {
       dialogWired = true;
       dialog.addEventListener("close", () => {
         const swap = pendingSwap;
         pendingSwap = null;
-        if (dialog.returnValue === "leave" && swap) {
-          dirty = false;
-          swap.proceed();
-        } else swap?.stay();
+        if (dialog.returnValue === "leave" && swap) { dirty = false; swap.proceed(); }
+        else swap?.stay();
       });
     }
     dialog.showModal();
   });
-  document.addEventListener("aide-page-drawn", () => {
-    dirty = false;
-  });
+  document.addEventListener("aide-page-drawn", () => { dirty = false; });
 
   window.addEventListener("beforeunload", (event: BeforeUnloadEvent) => {
     if (!dirty) return;

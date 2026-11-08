@@ -38,14 +38,7 @@
   // the spec page has the Checks/document form AND the tracking form
   // above the tabs, and they save different things.
   const bindAll = (): void => {
-    for (const prefix of [
-      "specform",
-      "settingsform",
-      "providerform",
-      "projectsettingsform",
-      "scheduleform",
-    ])
-      bind(prefix);
+    for (const prefix of ["specform", "settingsform", "providerform", "projectsettingsform", "scheduleform"]) bind(prefix);
   };
   document.addEventListener("DOMContentLoaded", bindAll);
   // The Specs list draws the open spec's forms into a row after the page has
@@ -55,15 +48,9 @@
   document.addEventListener("aide-page-drawn", bindAll);
 
   function bind(prefix: string): void {
-    const form = document.querySelector(
-      `form.${prefix}`,
-    ) as HTMLFormElement | null;
-    const save = document.getElementById(
-      `${prefix}-save`,
-    ) as HTMLButtonElement | null;
-    const cancel = document.getElementById(
-      `${prefix}-cancel`,
-    ) as HTMLButtonElement | null;
+    const form = document.querySelector(`form.${prefix}`) as HTMLFormElement | null;
+    const save = document.getElementById(`${prefix}-save`) as HTMLButtonElement | null;
+    const cancel = document.getElementById(`${prefix}-cancel`) as HTMLButtonElement | null;
     // A form whose Cancel is a link back to the saved page has only its Save here.
     if (!form || !save) return;
     // On the form itself, so a second event for a form already bound adds nothing.
@@ -72,8 +59,7 @@
 
     const fields = (): (HTMLInputElement | HTMLTextAreaElement)[] =>
       Array.from(form.elements).filter(
-        (el): el is HTMLInputElement | HTMLTextAreaElement =>
-          "name" in el && !!(el as HTMLInputElement).name,
+        (el): el is HTMLInputElement | HTMLTextAreaElement => "name" in el && !!(el as HTMLInputElement).name,
       );
     // Taken once, at load — used only if Cancel is actually pressed
     // (the restore below), never for the dirty check, which is the
@@ -104,27 +90,20 @@
       const named = target?.getAttribute?.("form");
       return !named || named === form.id;
     };
-    form.addEventListener("input", (event) => {
-      if (ours(event)) setDirty(true);
-    });
-    form.addEventListener("change", (event) => {
-      if (ours(event)) setDirty(true);
-    });
+    form.addEventListener("input", (event) => { if (ours(event)) setDirty(true); });
+    form.addEventListener("change", (event) => { if (ours(event)) setDirty(true); });
     setDirty(false);
 
     cancel?.addEventListener("click", () => {
       for (const { el, value, checked } of snapshot) {
-        if (el.type === "checkbox" || el.type === "radio")
-          (el as HTMLInputElement).checked = checked;
+        if (el.type === "checkbox" || el.type === "radio") (el as HTMLInputElement).checked = checked;
         else el.value = value;
       }
       // The WYSIWYG view a reader actually sees is a separate DOM tree
       // spec-editor/index.ts's editor library owns — this is the only
       // way to tell a mounted one "redraw from your textarea" from
       // outside it. A no-op where there is none (the Checks tab).
-      form
-        .querySelector(".spec-editor-raw")
-        ?.dispatchEvent(new Event("spec-cancel"));
+      form.querySelector(".spec-editor-raw")?.dispatchEvent(new Event("spec-cancel"));
       // Last: both controls go back to inactive, even if the redraw
       // above fired its own change event along the way.
       setDirty(false);
@@ -139,12 +118,11 @@
         el.dispatchEvent(new Event("change", { bubbles: true }));
       }
       setDirty(false);
-      if (leaveTo)
-        setTimeout(() => {
-          const link = document.createElement("a");
-          link.href = leaveTo;
-          link.click();
-        }, 0);
+      if (leaveTo) setTimeout(() => {
+        const link = document.createElement("a");
+        link.href = leaveTo;
+        link.click();
+      }, 0);
     });
   }
 })();

@@ -11,8 +11,7 @@ afterEach(() => harness.cleanup());
 
 const SPEC = "81-queue-and-runner";
 const OTHER = "82-other";
-const JOBS_SENTENCE =
-  "Analyze stopped: other open specs change the same files — 99-the-jobs-own: z.ts.";
+const JOBS_SENTENCE = "Analyze stopped: other open specs change the same files — 99-the-jobs-own: z.ts.";
 const ANALYSIS = [
   "# Analysis",
   "",
@@ -26,27 +25,14 @@ const ANALYSIS = [
 ].join("\n");
 
 const stoppedJob = {
-  id: "stopped-1",
-  project: "aide",
-  specFolder: SPEC,
-  steps: ["analyze"],
-  stepIndex: 0,
-  state: "stopped",
-  stopReason: "shared-files",
-  error: JOBS_SENTENCE,
-  model: {},
-  timeoutSec: {},
-  permissionMode: {},
-  effort: {},
-  createdAt: "2026-10-05T08:00:00.000Z",
-  spentUsd: 0,
-  results: [],
+  id: "stopped-1", project: "aide", specFolder: SPEC, steps: ["analyze"], stepIndex: 0,
+  state: "stopped", stopReason: "shared-files", error: JOBS_SENTENCE,
+  model: {}, timeoutSec: {}, permissionMode: {}, effort: {},
+  createdAt: "2026-10-05T08:00:00.000Z", spentUsd: 0, results: [],
 };
 
-const text = (html: string): string =>
-  html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
-const pageOf = async (base: string): Promise<string> =>
-  text(await (await fetch(`${base}/specs/aide/${SPEC}`)).text());
+const text = (html: string): string => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+const pageOf = async (base: string): Promise<string> => text(await (await fetch(`${base}/specs/aide/${SPEC}`)).text());
 
 describe("a stop on shared files names the specs its analysis recorded", () => {
   test("the row and the spec page name the open spec with its file, and not the job's own sentence", async () => {
@@ -56,14 +42,7 @@ describe("a stop on shared files names the specs its analysis recorded", () => {
       queueMirror: JSON.stringify([stoppedJob]),
     });
     ran(dir, ["create", "analyze"], SPEC, { stopped: "shared-files" });
-    const list = text(
-      await listUntil(
-        base,
-        (h) => h.includes("src/shared.ts"),
-        4_000,
-        "the open spec's file",
-      ),
-    );
+    const list = text(await listUntil(base, (h) => h.includes("src/shared.ts"), 4_000, "the open spec's file"));
     expect(list).toContain(`${OTHER}: src/shared.ts`);
     expect(list).not.toContain("99-the-jobs-own");
     expect(list).not.toContain("83-archived-since");
@@ -74,10 +53,7 @@ describe("a stop on shared files names the specs its analysis recorded", () => {
   }, 8_000);
 
   test("the spec page says the same with no job in the queue", async () => {
-    const { base, dir } = harness.start({
-      alsoSpecs: [OTHER],
-      analysis: ANALYSIS,
-    });
+    const { base, dir } = harness.start({ alsoSpecs: [OTHER], analysis: ANALYSIS });
     ran(dir, ["create", "analyze"], SPEC, { stopped: "shared-files" });
     const deadline = Date.now() + 4_000;
     let page = await pageOf(base);

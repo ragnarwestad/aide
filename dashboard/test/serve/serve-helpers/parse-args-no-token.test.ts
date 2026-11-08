@@ -18,18 +18,13 @@ const configFile = (contents: Record<string, unknown>): string => {
 
 describe("--token-file", () => {
   test("is an unknown argument", () => {
-    expect(() => parseArgs(["--token-file", "x"])).toThrow(
-      "unknown argument: --token-file",
-    );
+    expect(() => parseArgs(["--token-file", "x"])).toThrow("unknown argument: --token-file");
   });
 });
 
 describe("allowedHosts in queue-config.json", () => {
   test("a list of names is read, lower-cased", () => {
-    const opts = parseArgs([
-      "--queue-config",
-      configFile({ allowedHosts: ["Board.Example.com", "b.example"] }),
-    ]);
+    const opts = parseArgs(["--queue-config", configFile({ allowedHosts: ["Board.Example.com", "b.example"] })]);
     expect(opts.allowedHosts).toEqual(["board.example.com", "b.example"]);
   });
 
@@ -38,19 +33,9 @@ describe("allowedHosts in queue-config.json", () => {
     const orig = console.error;
     console.error = (...a: unknown[]) => void seen.push(a.join(" "));
     try {
-      for (const allowedHosts of [
-        "board.example.com",
-        [1],
-        [""],
-        { a: 1 },
-        ["a b"],
-        ["a/b"],
-      ]) {
+      for (const allowedHosts of ["board.example.com", [1], [""], { a: 1 }, ["a b"], ["a/b"]]) {
         seen.length = 0;
-        const opts = parseArgs([
-          "--queue-config",
-          configFile({ allowedHosts }),
-        ]);
+        const opts = parseArgs(["--queue-config", configFile({ allowedHosts })]);
         expect(opts.allowedHosts).toBeUndefined();
         expect(seen.length).toBe(1);
       }
@@ -60,28 +45,14 @@ describe("allowedHosts in queue-config.json", () => {
   });
 
   test("no key leaves it unset", () => {
-    expect(
-      parseArgs(["--queue-config", configFile({ concurrency: 2 })])
-        .allowedHosts,
-    ).toBeUndefined();
+    expect(parseArgs(["--queue-config", configFile({ concurrency: 2 })]).allowedHosts).toBeUndefined();
   });
 });
 
 describe("headerAuth is read as before", () => {
   test("a well-formed block is read; a malformed one is ignored", () => {
-    const good = {
-      header: "Tailscale-User-Login",
-      users: ["alice@example.com"],
-    };
-    expect(
-      parseArgs(["--queue-config", configFile({ headerAuth: good })])
-        .headerAuth,
-    ).toEqual(good);
-    expect(
-      parseArgs([
-        "--queue-config",
-        configFile({ headerAuth: { header: "", users: ["a"] } }),
-      ]).headerAuth,
-    ).toBeUndefined();
+    const good = { header: "Tailscale-User-Login", users: ["alice@example.com"] };
+    expect(parseArgs(["--queue-config", configFile({ headerAuth: good })]).headerAuth).toEqual(good);
+    expect(parseArgs(["--queue-config", configFile({ headerAuth: { header: "", users: ["a"] } })]).headerAuth).toBeUndefined();
   });
 });

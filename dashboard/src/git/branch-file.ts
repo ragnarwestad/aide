@@ -56,11 +56,7 @@ export async function readStatusFromBranch(
  *  default branch's stamp, or `null` when git cannot say — an unknown sha,
  *  a directory that is not a repository. Never throws: a page drawn with no
  *  git at all must still draw. */
-export async function commitTimeOf(
-  run: GitRunner,
-  root: string,
-  sha: string,
-): Promise<string | null> {
+export async function commitTimeOf(run: GitRunner, root: string, sha: string): Promise<string | null> {
   try {
     const shown = await run(root, ["show", "-s", "--format=%aI", sha]);
     const at = shown.code === 0 ? shown.stdout.trim() : "";
@@ -72,21 +68,9 @@ export async function commitTimeOf(
 
 /** The path as origin's branch had it at its last fetch into `root`;
  *  fetches nothing. */
-export async function readFetched(
-  run: GitRunner,
-  root: string,
-  branch: string,
-  relPath: string,
-): Promise<BranchFileRead | null> {
+export async function readFetched(run: GitRunner, root: string, branch: string, relPath: string): Promise<BranchFileRead | null> {
   const ref = `refs/remotes/origin/${branch}`;
-  const commit = await run(root, [
-    "log",
-    "-1",
-    "--format=%H",
-    ref,
-    "--",
-    relPath,
-  ]);
+  const commit = await run(root, ["log", "-1", "--format=%H", ref, "--", relPath]);
   const sha = commit.code === 0 ? commit.stdout.trim() : "";
   if (!sha) return null;
   const shown = await run(root, ["show", `${ref}:${relPath}`]);
@@ -97,11 +81,7 @@ export async function readFetched(
  *  reads two paths of one branch, or two pages opened at once, share one. */
 const fetching = new Map<string, Promise<{ code: number }>>();
 
-function fetchOnce(
-  run: GitRunner,
-  root: string,
-  branch: string,
-): Promise<{ code: number }> {
+function fetchOnce(run: GitRunner, root: string, branch: string): Promise<{ code: number }> {
   const key = `${root}\0${branch}`;
   const out = fetching.get(key);
   if (out) return out;
@@ -144,10 +124,7 @@ export async function refreshedRef(
   const known = await run(root, ["rev-parse", "--verify", "--quiet", ref]);
   if (known.code === 0) return { ref, refreshed: fetchOnce(run, root, branch) };
   const fetched = await fetchOnce(run, root, branch);
-  return {
-    ref: fetched.code === 0 ? ref : null,
-    refreshed: Promise.resolve(fetched),
-  };
+  return { ref: fetched.code === 0 ? ref : null, refreshed: Promise.resolve(fetched) };
 }
 
 export interface BranchWriteResult {
@@ -195,48 +172,34 @@ export async function writeStatusToBranch(
   let scratchDir: string | null = null;
   try {
     const fetched = await run(root, ["fetch", "--quiet", "origin", branch]);
-    if (fetched.code !== 0)
-      return refuse(`origin could not be reached — nothing was saved`);
+    if (fetched.code !== 0) return refuse(`origin could not be reached — nothing was saved`);
 
     const ref = `refs/remotes/origin/${branch}`;
     const tipOut = await run(root, ["rev-parse", ref]);
     const tip = tipOut.code === 0 ? tipOut.stdout.trim() : "";
-    if (!tip)
-      return refuse(`${branch} is no longer on origin — nothing was saved`);
+    if (!tip) return refuse(`${branch} is no longer on origin — nothing was saved`);
 
-    const currentOut = await run(root, [
-      "log",
-      "-1",
-      "--format=%H",
-      ref,
-      "--",
-      primary.relPath,
-    ]);
+    const currentOut = await run(root, ["log", "-1", "--format=%H", ref, "--", primary.relPath]);
     const currentSha = currentOut.code === 0 ? currentOut.stdout.trim() : "";
     if ((currentSha || null) !== expectedBaseSha) {
-      return refuse(
-        `${fileName} has changed since you opened it — nothing was saved, open it again`,
-      );
+      return refuse(`${fileName} has changed since you opened it — nothing was saved, open it again`);
     }
 
     const tipTreeOut = await run(root, ["rev-parse", `${tip}^{tree}`]);
-    if (tipTreeOut.code !== 0)
-      return refuse(`${branch}'s tree could not be read — nothing was saved`);
+    if (tipTreeOut.code !== 0) return refuse(`${branch}'s tree could not be read — nothing was saved`);
     const tipTree = tipTreeOut.stdout.trim();
 
     scratchDir = mkdtempSync(join(tmpdir(), "aide-branch-write-"));
     const indexPath = join(scratchDir, "index");
     const env = { GIT_INDEX_FILE: indexPath };
     const readTree = await run(root, ["read-tree", tipTree], undefined, env);
-    if (readTree.code !== 0)
-      return refuse(`${fileName} could not be written — nothing was saved`);
+    if (readTree.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
 
     for (const [i, edit] of edits.entries()) {
       const blobPath = join(scratchDir, `content-${i}`);
       writeFileSync(blobPath, edit.text);
       const blobOut = await run(root, ["hash-object", "-w", "--", blobPath]);
-      if (blobOut.code !== 0)
-        return refuse(`${fileName} could not be written — nothing was saved`);
+      if (blobOut.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
       const blobSha = blobOut.stdout.trim();
       // `--add`: every existing single-file caller updated a path
       // `read-tree` already staged, so this was never needed before —
@@ -245,45 +208,25 @@ export async function writeStatusToBranch(
       // ADD a new path, only update one already in the index.
       const updateIndex = await run(
         root,
-        [
-          "update-index",
-          "--add",
-          "--cacheinfo",
-          `100644,${blobSha},${edit.relPath}`,
-        ],
+        ["update-index", "--add", "--cacheinfo", `100644,${blobSha},${edit.relPath}`],
         undefined,
         env,
       );
-      if (updateIndex.code !== 0)
-        return refuse(`${fileName} could not be written — nothing was saved`);
+      if (updateIndex.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
     }
 
     const writeTreeOut = await run(root, ["write-tree"], undefined, env);
-    if (writeTreeOut.code !== 0)
-      return refuse(`${fileName} could not be written — nothing was saved`);
+    if (writeTreeOut.code !== 0) return refuse(`${fileName} could not be written — nothing was saved`);
     const newTree = writeTreeOut.stdout.trim();
 
-    const commitTreeOut = await run(root, [
-      "commit-tree",
-      newTree,
-      "-p",
-      tip,
-      "-m",
-      message,
-    ]);
-    if (commitTreeOut.code !== 0)
-      return refuse(`${fileName} could not be committed — nothing was saved`);
+    const commitTreeOut = await run(root, ["commit-tree", newTree, "-p", tip, "-m", message]);
+    if (commitTreeOut.code !== 0) return refuse(`${fileName} could not be committed — nothing was saved`);
     const newCommit = commitTreeOut.stdout.trim();
 
     // Non-force: git refuses this the moment `refs/heads/<branch>` on
     // origin is no longer `tip` — the exact race a headless run's own
     // commit between our fetch and this push would create.
-    const pushed = await run(root, [
-      "push",
-      "-q",
-      "origin",
-      `${newCommit}:refs/heads/${branch}`,
-    ]);
+    const pushed = await run(root, ["push", "-q", "origin", `${newCommit}:refs/heads/${branch}`]);
     if (pushed.code !== 0) {
       return refuse(
         `${branch} changed on origin while this was being saved — nothing was saved, reload and try again`,
@@ -292,9 +235,7 @@ export async function writeStatusToBranch(
 
     return { ok: true, note: `saved ${fileName}` };
   } catch (err) {
-    return refuse(
-      `${fileName} could not be saved: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    return refuse(`${fileName} could not be saved: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
     if (scratchDir) rmSync(scratchDir, { recursive: true, force: true });
   }
@@ -328,10 +269,7 @@ export interface OpenBranchTarget {
  *  the write path's `fresh` one) because the two are otherwise
  *  identical; `fresh` is the only thing that differs between them. */
 export async function resolveOpenBranchTarget(
-  ctx: {
-    specsRoot: (dir: string) => Promise<string>;
-    branchStatus: BranchStatusChecker;
-  },
+  ctx: { specsRoot: (dir: string) => Promise<string>; branchStatus: BranchStatusChecker },
   dir: string,
   specFolder: string,
   file: string,
@@ -357,9 +295,6 @@ export async function resolveOpenBranchTarget(
     root,
     branch,
     relPath: relative(realRoot, join(realDir, file)),
-    archivedRelPath: relative(
-      realRoot,
-      join(dirname(realDir), "archive", basename(realDir), file),
-    ),
+    archivedRelPath: relative(realRoot, join(dirname(realDir), "archive", basename(realDir), file)),
   };
 }

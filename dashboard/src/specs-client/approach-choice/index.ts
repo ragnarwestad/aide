@@ -6,22 +6,15 @@
 import { checkboxKey, chosenSteps, clearChosenSteps } from "../state.ts";
 
 const radiosOf = (form: Element): HTMLInputElement[] =>
-  Array.from(
-    form.querySelectorAll('input[type="radio"][name="approach"]'),
-  ) as HTMLInputElement[];
+  Array.from(form.querySelectorAll('input[type="radio"][name="approach"]')) as HTMLInputElement[];
 
 const cancelOf = (form: Element): HTMLButtonElement | undefined =>
-  (Array.from(form.querySelectorAll("button")) as HTMLButtonElement[]).find(
-    (b) => b.id === `${form.id}-cancel`,
-  );
+  (Array.from(form.querySelectorAll("button")) as HTMLButtonElement[]).find((b) => b.id === `${form.id}-cancel`);
 
 /** Cancel is offered while the pick differs from the one drawn checked. */
 export function syncApproachCancel(form: Element): void {
   const cancel = cancelOf(form);
-  if (cancel)
-    cancel.disabled = !radiosOf(form).some(
-      (r) => r.checked !== r.defaultChecked,
-    );
+  if (cancel) cancel.disabled = !radiosOf(form).some((r) => r.checked !== r.defaultChecked);
 }
 
 /** A radio picked by hand. Every radio of the group is remembered as it
@@ -45,15 +38,11 @@ export function cancelApproach(button: HTMLButtonElement): void {
 
 /** Every approach form's Cancel, after a redraw put a remembered pick back. */
 export function syncApproachCancels(body: Element): void {
-  for (const form of body.querySelectorAll("form.approachform"))
-    syncApproachCancel(form);
+  for (const form of body.querySelectorAll("form.approachform")) syncApproachCancel(form);
 }
 
 /** The Cancel press, delegated from the rows' container. */
 export function onApproachCancel(event: Event): void {
-  const button = (event.target as Element | null)?.closest?.(
-    'form.approachform button[type="button"]',
-  ) as HTMLButtonElement | null;
-  if (typeof button?.id === "string" && button.id.endsWith("-cancel"))
-    cancelApproach(button);
+  const button = (event.target as Element | null)?.closest?.("form.approachform button[type=\"button\"]") as HTMLButtonElement | null;
+  if (typeof button?.id === "string" && button.id.endsWith("-cancel")) cancelApproach(button);
 }

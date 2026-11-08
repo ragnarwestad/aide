@@ -8,12 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
-import {
-  ARCHIVED_VIEW,
-  blockFor,
-  listUntil,
-  rowFor,
-} from "../../archived/archived-specs-fixtures.ts";
+import { ARCHIVED_VIEW, blockFor, listUntil, rowFor } from "../../archived/archived-specs-fixtures.ts";
 import { specHead } from "../fixtures.ts";
 import {
   ARCHIVE_RESULT,
@@ -32,6 +27,7 @@ import {
 } from "./archive-landing-fixtures.ts";
 
 describe("landing an archived spec", () => {
+
   // This archive job is the FIRST the queue has ever run
   // for this spec, so `branchesFor()` — read synchronously inside the
   // same call stack, before the runner has written this step's own
@@ -39,32 +35,15 @@ describe("landing an archived spec", () => {
   // in hand instead, which has no such timing to get wrong.
   test("a successful archive step is merged and pushed with no Merge press", async () => {
     const git = gitFor();
-    const { base, results } = serverWithRunner(
-      start,
-      "aide-archive-results-",
-      git,
-    );
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify(ARCHIVE_RESULT),
-    );
-    const landed = await settle(
-      base,
-      job.id,
-      (j) => j.state === "done" && !j.landing,
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
+    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
     expect(merges(git.calls).length).toBeGreaterThan(0);
-    expect(merges(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(
-      true,
-    );
-    expect(
-      git.calls.some(
-        (c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push",
-      ),
-    ).toBe(true);
+    expect(merges(git.calls).every((c) => repoOf(c.dir) === SPECS_REPO)).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
     // Landed, so the row stops advertising a branch to merge.
     expect(landed.branchUrls).toEqual([]);
   });
@@ -74,34 +53,15 @@ describe("landing an archived spec", () => {
   // A real merge commit is the answer, not a failure to report.
   test("a base that moved is a real merge commit, not a refusal", async () => {
     const git = gitFor({ needsRealMerge: [SPECS_REPO] });
-    const { base, results } = serverWithRunner(
-      start,
-      "aide-archive-results-",
-      git,
-    );
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify(ARCHIVE_RESULT),
-    );
-    const landed = await settle(
-      base,
-      job.id,
-      (j) => j.state === "done" && !j.landing,
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
+    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
-    expect(
-      git.calls.some((c) => c.args.join(" ").startsWith("merge -q --no-edit")),
-    ).toBe(true);
-    expect(
-      git.calls.some(
-        (c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push",
-      ),
-    ).toBe(true);
-    expect(git.calls.some((c) => c.args.join(" ") === "merge --abort")).toBe(
-      false,
-    );
+    expect(git.calls.some((c) => c.args.join(" ").startsWith("merge -q --no-edit"))).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    expect(git.calls.some((c) => c.args.join(" ") === "merge --abort")).toBe(false);
   });
 
   // The fallback is not being removed: a merge that cannot
@@ -109,16 +69,9 @@ describe("landing an archived spec", () => {
   // leaves the spec where it was.
   test("a genuine conflict keeps the branch, names the repo, and reports it", async () => {
     const git = gitFor({ conflicting: [SPECS_REPO] });
-    const { base, results } = serverWithRunner(
-      start,
-      "aide-archive-results-",
-      git,
-    );
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify(ARCHIVE_RESULT),
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
     const failed = await settle(base, job.id, (j) => !!j.error);
 
     expect(sentence(failed.error)).toContain(SPECS_REPO);
@@ -126,17 +79,10 @@ describe("landing an archived spec", () => {
     expect(failed.landing).toBeFalsy();
     // Nothing half-merged is left behind, and the branch is still there
     // to press Merge (or resolve) against.
-    expect(
-      git.calls.some(
-        (c) =>
-          repoOf(c.dir) === SPECS_REPO && c.args.join(" ") === "merge --abort",
-      ),
-    ).toBe(true);
-    expect(failed.branchUrls).toEqual([
-      { root: SPECS_REPO, url: "https://example.test/aide-specs" },
-    ]);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
+    expect(failed.branchUrls).toEqual([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
     // The spec is still in the active list, exactly as it was.
-    const html = await (await fetch(`${base}/specs`)).text();
+    const html = await (await fetch(`${base}/specs`, )).text();
     expect(specHead(html, SPEC)).not.toBe("");
   });
 
@@ -146,11 +92,7 @@ describe("landing an archived spec", () => {
   // that never moved is an ordinary outcome.
   test("an archive step that pushed nothing is a no-op, not an error", async () => {
     const git = gitFor();
-    const { base, results } = serverWithRunner(
-      start,
-      "aide-archive-results-",
-      git,
-    );
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
     writeFileSync(
       join(results, `${job.id}.json`),
@@ -174,12 +116,7 @@ describe("landing an archived spec", () => {
   test("a code branch already merged and deleted is nothing to land, not a failure", async () => {
     const CODE_REPO = "/repos/aide";
     const git = gitFor({ gone: [CODE_REPO] });
-    const { base, results } = serverWithRunner(
-      start,
-      "aide-archive-results-",
-      git,
-      { queueProjectRoot: "/repos" },
-    );
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git, { queueProjectRoot: "/repos" });
     const job = await runStep(base, "archive");
     writeFileSync(
       join(results, `${job.id}.json`),
@@ -191,24 +128,14 @@ describe("landing an archived spec", () => {
         ],
       }),
     );
-    const landed = await settle(
-      base,
-      job.id,
-      (j) => j.state === "done" && !j.landing,
-    );
+    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
     expect(landed.errorReason).toBeFalsy();
     // The specs repo in the same landing still merges and pushes.
-    expect(
-      git.calls.some(
-        (c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push",
-      ),
-    ).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
     // And nothing was merged in the repo whose branch is gone.
-    expect(merges(git.calls).some((c) => repoOf(c.dir) === CODE_REPO)).toBe(
-      false,
-    );
+    expect(merges(git.calls).some((c) => repoOf(c.dir) === CODE_REPO)).toBe(false);
   });
 
   // The guard against over-fixing: "gone" is excluded from the report,
@@ -216,12 +143,7 @@ describe("landing an archived spec", () => {
   test("a gone branch beside a genuine conflict still reports the conflict", async () => {
     const CODE_REPO = "/repos/aide";
     const git = gitFor({ gone: [CODE_REPO], conflicting: [SPECS_REPO] });
-    const { base, results } = serverWithRunner(
-      start,
-      "aide-archive-results-",
-      git,
-      { queueProjectRoot: "/repos" },
-    );
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git, { queueProjectRoot: "/repos" });
     const job = await runStep(base, "archive");
     writeFileSync(
       join(results, `${job.id}.json`),
@@ -282,39 +204,20 @@ describe("landing an archived spec", () => {
     const git = {
       calls: inner.calls,
       run: (dir: string, args: string[]) => {
-        if (
-          args.join(" ").startsWith("merge -q --ff-only") &&
-          dir === SPECS_REPO &&
-          failures > 0
-        ) {
+        if (args.join(" ").startsWith("merge -q --ff-only") && dir === SPECS_REPO && failures > 0) {
           failures -= 1;
           return Promise.resolve({ code: 1, stdout: "", stderr: "index.lock" });
         }
         return inner.run(dir, args);
       },
     };
-    const { base, results } = serverWithRunner(
-      start,
-      "aide-archive-results-",
-      git as never,
-    );
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git as never);
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify(ARCHIVE_RESULT),
-    );
-    const landed = await settle(
-      base,
-      job.id,
-      (j) => j.state === "done" && !j.landing,
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
+    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
-    expect(
-      git.calls.some(
-        (c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push",
-      ),
-    ).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === SPECS_REPO && c.args[0] === "push")).toBe(true);
   });
 
   // Merged is not deployed, and the manual route runs the
@@ -331,37 +234,19 @@ describe("landing an archived spec", () => {
     ownDirs.push(specsRepo);
     const marker = join(specsRepo, "installed");
     mkdirSync(join(specsRepo, ".aide"), { recursive: true });
-    writeFileSync(
-      join(specsRepo, ".aide", "config"),
-      `AIDE_INSTALL_CMD=/usr/bin/touch ${marker}\n`,
-    );
+    writeFileSync(join(specsRepo, ".aide", "config"), `AIDE_INSTALL_CMD=/usr/bin/touch ${marker}\n`);
 
     const git = gitFor();
-    const { base, results } = serverWithRunner(
-      start,
-      "aide-archive-results-",
-      git,
-    );
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
     writeFileSync(
       join(results, `${job.id}.json`),
-      JSON.stringify({
-        ...ARCHIVE_RESULT,
-        branchUrls: [{ root: specsRepo, url: "https://example.test/s" }],
-      }),
+      JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: [{ root: specsRepo, url: "https://example.test/s" }] }),
     );
-    const landed = await settle(
-      base,
-      job.id,
-      (j) => j.state === "done" && !j.landing,
-    );
+    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
 
     expect(landed.error).toBeFalsy();
-    expect(
-      git.calls.some(
-        (c) => repoOf(c.dir) === specsRepo && c.args[0] === "push",
-      ),
-    ).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === specsRepo && c.args[0] === "push")).toBe(true);
     expect(existsSync(marker)).toBe(false);
   });
 
@@ -372,14 +257,10 @@ describe("landing an archived spec", () => {
   // clear it or the very next request still shows the old answer.
   test("a held-back note is landed and shows on the row without a merge press", async () => {
     const git = gitFor();
-    const { base, dir, results } = serverWithRunner(
-      start,
-      "aide-archive-results-",
-      git,
-    );
+    const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git);
     const specDir = join(dir, "root", "aide", "specs", SPEC);
     // The page is read once first, so the scan is cached WITHOUT the note.
-    const before = await (await fetch(`${base}/specs`)).text();
+    const before = await (await fetch(`${base}/specs`, )).text();
     expect(before).not.toContain("archive held back");
 
     // What the merge brings into the main checkout.
@@ -391,21 +272,12 @@ describe("landing an archived spec", () => {
       ),
     );
     const job = await runStep(base, "archive");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify(ARCHIVE_RESULT),
-    );
-    const landed = await settle(
-      base,
-      job.id,
-      (j) => j.state === "done" && !j.landing,
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
+    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
     expect(landed.error).toBeFalsy();
 
-    const html = await (await fetch(`${base}/specs`)).text();
-    expect(html).toContain(
-      "Archive held back: the implementation was reverted",
-    );
+    const html = await (await fetch(`${base}/specs`, )).text();
+    expect(html).toContain("Archive held back: the implementation was reverted");
   });
 
   // `analyze` lands itself too,
@@ -420,18 +292,10 @@ describe("landing an archived spec", () => {
         // An analyzed spec: an `implement` on a spec with
         // no analyze is held back in the queue, and this test needs the
         // step to run so it can watch it NOT land.
-        const analyzed = (o: Partial<ServerOptions>) =>
-          start(o, [], [], statusSaying(["create", "analyze"]));
-        const { base, results } = serverWithRunner(
-          analyzed,
-          "aide-archive-results-",
-          git,
-        );
+        const analyzed = (o: Partial<ServerOptions>) => start(o, [], [], statusSaying(["create", "analyze"]));
+        const { base, results } = serverWithRunner(analyzed, "aide-archive-results-", git);
         const job = await runStep(base, step);
-        writeFileSync(
-          join(results, `${job.id}.json`),
-          JSON.stringify(ARCHIVE_RESULT),
-        );
+        writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
         const done = await settle(base, job.id, (j) => j.state === "done");
         return { step, done, merged: merges(git.calls).length };
       }),
@@ -470,25 +334,17 @@ describe("the row for a branch left behind after a successful merge", () => {
   // render — never of the background schedule alone. So this asks for
   // the list first, each time round, the same way the row-level
   // assertions below already have to poll for the mark to land.
-  const enqueueArchiveWhenResolvable = async (
-    base: string,
-    specFolder: string,
-  ): Promise<{ id: string }> => {
+  const enqueueArchiveWhenResolvable = async (base: string, specFolder: string): Promise<{ id: string }> => {
     const deadline = Date.now() + 15_000;
     for (;;) {
-      await fetch(`${base}/specs${ARCHIVED_VIEW}`);
+      await fetch(`${base}/specs${ARCHIVED_VIEW}`, );
       const res = await fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({
-          project: "aide",
-          specFolder,
-          steps: ["archive"],
-        }),
+        body: JSON.stringify({ project: "aide", specFolder, steps: ["archive"] }),
       });
       if (res.ok) return ((await res.json()) as { job: { id: string } }).job;
-      if (Date.now() > deadline)
-        throw new Error(`${specFolder} never became resolvable for archive`);
+      if (Date.now() > deadline) throw new Error(`${specFolder} never became resolvable for archive`);
       await new Promise((r) => setTimeout(r, 25));
     }
   };
@@ -517,35 +373,20 @@ describe("the row for a branch left behind after a successful merge", () => {
       if (a.startsWith("ls-remote --exit-code")) return { code: 0, stdout: "" };
       if (a.startsWith("ls-remote --heads")) {
         if (isSpecsRoot(dir)) {
-          return {
-            code: 0,
-            stdout: `sha1\trefs/heads/${BRANCH}\nsha2\trefs/heads/${SIBLING_BRANCH}\n`,
-          };
+          return { code: 0, stdout: `sha1\trefs/heads/${BRANCH}\nsha2\trefs/heads/${SIBLING_BRANCH}\n` };
         }
         return { code: 0, stdout: "" };
       }
       if (isSpecsRoot(dir) && a === `push -q origin --delete ${BRANCH}`) {
-        return {
-          code: 1,
-          stdout: "",
-          stderr: "remote rejected: hook declined",
-        };
+        return { code: 1, stdout: "", stderr: "remote rejected: hook declined" };
       }
       // FOLDER's branch is part of origin's default branch; the
       // sibling's never landed, so git says it is not an ancestor.
-      if (
-        a.startsWith(
-          `merge-base --is-ancestor refs/remotes/origin/${SIBLING_BRANCH} `,
-        )
-      )
-        return { code: 1, stdout: "" };
-      if (a.startsWith("symbolic-ref"))
-        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith(`merge-base --is-ancestor refs/remotes/origin/${SIBLING_BRANCH} `)) return { code: 1, stdout: "" };
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
-        return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge -q --ff-only origin/"))
-        return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q --ff-only origin/")) return { code: 0, stdout: "" };
       if (a.startsWith("merge -q --ff-only")) return { code: 0, stdout: "" };
       return { code: 0, stdout: "" };
     };
@@ -571,51 +412,33 @@ describe("the row for a branch left behind after a successful merge", () => {
         costMeasured: true,
         terminalReason: "completed",
         branch: BRANCH,
-        branchUrls: [
-          { root: specsRoot, url: "https://example.test/aide-specs" },
-        ],
+        branchUrls: [{ root: specsRoot, url: "https://example.test/aide-specs" }],
         repos: [],
       }),
     );
-    const landed = await settle(
-      base,
-      job.id,
-      (j) => j.state === "done" && !j.landing,
-    );
+    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
     expect(landed.error).toBeFalsy();
 
     // Merged, so archived: the spec is not on the Active list, and its
     // Archived row says the branch is still on origin and offers Delete
     // branch.
-    const html = await listUntil(
-      base,
-      "its branch is still on origin. — Press Delete branch",
-      ARCHIVED_VIEW,
-    );
+    const html = await listUntil(base, "its branch is still on origin. — Press Delete branch", ARCHIVED_VIEW);
     const row = rowFor(html, FOLDER);
     expect(row).not.toContain("branch left behind");
     const block = blockFor(html, FOLDER);
     // git's own stderr never reaches the row; a fixed sentence takes its place.
     expect(block).not.toContain("remote rejected: hook declined");
-    expect(block).toContain(
-      "This spec merged, but its branch is still on origin. — Press Delete branch to delete it there.",
-    );
-    expect(block).toContain(
-      `action="/api/queue/specs/aide/${FOLDER}/delete-branch"`,
-    );
+    expect(block).toContain("This spec merged, but its branch is still on origin. — Press Delete branch to delete it there.");
+    expect(block).toContain(`action="/api/queue/specs/aide/${FOLDER}/delete-branch"`);
     expect(block).not.toContain("re-run archive");
-    const active = await (
-      await fetch(`${base}/specs?state=not-archived`)
-    ).text();
+    const active = await (await fetch(`${base}/specs?state=not-archived`)).text();
     expect(active).not.toContain(`data-folder="${FOLDER}"`);
     expect(landed.state).toBe("done");
 
     // A sibling whose branch never merged still reads exactly as it
     // always has, on the Active list, with no Delete branch.
     const siblingBlock = blockFor(active, SIBLING);
-    expect(siblingBlock).toContain(
-      "Its branch is still on origin — re-run archive",
-    );
+    expect(siblingBlock).toContain("Its branch is still on origin — re-run archive");
     expect(siblingBlock).not.toContain("delete-branch");
   }, 15000);
 });

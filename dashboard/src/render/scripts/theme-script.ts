@@ -56,8 +56,7 @@
    *  nothing here to undo if this script never runs. */
   function markIcon(icons: NodeListOf<Element>, choice: string): void {
     icons.forEach((icon) => {
-      if (icon.getAttribute("data-theme-icon") === choice)
-        icon.removeAttribute("hidden");
+      if (icon.getAttribute("data-theme-icon") === choice) icon.removeAttribute("hidden");
       else icon.setAttribute("hidden", "");
     });
   }
@@ -71,14 +70,10 @@
     markIcon(icons, stored());
   };
   document.addEventListener("click", (event) => {
-    const button = (event.target as Element | null)?.closest?.(
-      "[data-theme-choice]",
-    );
+    const button = (event.target as Element | null)?.closest?.("[data-theme-choice]");
     if (!button) return;
     const choice = button.getAttribute("data-theme-choice") ?? "auto";
-    try {
-      localStorage.setItem(KEY, choice);
-    } catch {}
+    try { localStorage.setItem(KEY, choice); } catch {}
     apply(choice);
     markPage();
   });

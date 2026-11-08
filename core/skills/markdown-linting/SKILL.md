@@ -32,7 +32,6 @@ effort: medium
 This workspace uses `markdownlint-cli2` via `npx` to catch markdown errors before they are committed.
 
 **Focus areas:**
-
 1. **List numbering (MD029)** - Numbered lists must restart at 1 after headers
 2. **Anchor links (MD051)** - TOC links must match actual heading anchors
 3. **Code block language (MD040)** - All code blocks must specify language (tsx, typescript, bash, etc.)
@@ -66,7 +65,6 @@ See `.markdownlint-cli2.jsonc` for the rules.
 ### MD029: List numbering
 
 **Wrong:**
-
 ```markdown
 ### My Header
 
@@ -75,7 +73,6 @@ See `.markdownlint-cli2.jsonc` for the rules.
 ```
 
 **Solution:**
-
 ```markdown
 ### My Header
 
@@ -86,27 +83,24 @@ See `.markdownlint-cli2.jsonc` for the rules.
 ### MD040: Missing code block language
 
 **Wrong:**
-
-````markdown
+```markdown
 \```
 const foo = 'bar';
 \```
-````
+```
 
 **Solution:**
-
-````markdown
+```markdown
 \```typescript
 const foo = 'bar';
 \```
-````
+```
 
 **Important:** Use `tsx` for React/JSX code, not `typescript`.
 
 ### MD051: Broken anchor link
 
 **Wrong:**
-
 ```markdown
 - [My Section](#my-section)
 
@@ -114,7 +108,6 @@ const foo = 'bar';
 ```
 
 **Solution:**
-
 ```markdown
 - [My Section](#1-my-section)
 
@@ -122,18 +115,13 @@ const foo = 'bar';
 ```
 
 Or update the HTML anchor:
-
 ```markdown
 <a id="my-section"></a>
-
 ## 1. My Section
 ```
-
 to:
-
 ```markdown
 <a id="1-my-section"></a>
-
 ## 1. My Section
 ```
 
@@ -142,10 +130,9 @@ to:
 **Wrong (not caught by the linter, but breaks HTML generation):**
 
 ````markdown
-````bash
+```bash
 echo "Hello"
 ```text
-````
 ````
 
 **Solution:**
@@ -157,13 +144,11 @@ echo "Hello"
 ````
 
 **Why this happens:**
-
 - AI assistants (Claude, Copilot, etc.) sometimes write ` ```text` as a closing fence
 - This is NOT valid markdown - code blocks are ALWAYS closed with just ` ``` `
 - Pandoc and other converters interpret ` ```text` as the START of a new code block
 - The result is broken HTML with wrong code blocks and broken anchor links
 
 **Preventive fix:**
-
 - The `aide-generate-html` script corrects this automatically, but the
   source is fixed too

@@ -2,18 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../../src/git/branch-status.ts";
-import {
-  ARCHIVED_VIEW,
-  SAME_DAY,
-  STAMPED,
-  UNSTAMPED,
-  blockFor,
-  gitDated,
-  harness,
-  listUntil,
-  specsList,
-  start,
-} from "./archived-specs-fixtures.ts";
+import { ARCHIVED_VIEW, SAME_DAY, STAMPED, UNSTAMPED, blockFor, gitDated, harness, listUntil, specsList, start } from "./archived-specs-fixtures.ts";
 
 // The reason a not-landed row carries is in the notice line beneath it,
 // not in the badge: the sentence to poll and assert on is that sentence,
@@ -32,16 +21,13 @@ afterEach(() => harness.cleanup());
 describe("an archived spec whose branch is still on origin", () => {
   /** The dating runner every test here needs, plus origin's answer for
    *  "which spec branches are still open". `open` names the folders. */
-  const gitWithBranches =
-    (open: string[]): GitRunner =>
+  const gitWithBranches = (open: string[]): GitRunner =>
     async (dir, args) => {
       const a = args.join(" ");
       if (a.startsWith("ls-remote")) {
         return {
           code: 0,
-          stdout: open
-            .map((f) => `a3f9c21deadbeef\trefs/heads/aide/${f}\n`)
-            .join(""),
+          stdout: open.map((f) => `a3f9c21deadbeef\trefs/heads/aide/${f}\n`).join(""),
         };
       }
       return gitDated({ [UNSTAMPED]: "2026-07-30T11:02:00+02:00" })(dir, args);
@@ -56,9 +42,7 @@ describe("an archived spec whose branch is still on origin", () => {
   test("and one whose branch is gone carries none", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
     const html = await listUntil(base, STILL_ON_ORIGIN, ARCHIVED_VIEW);
-    expect(blockFor(html, SAME_DAY).toLowerCase()).not.toContain(
-      STILL_ON_ORIGIN,
-    );
+    expect(blockFor(html, SAME_DAY).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
   });
 
   test("a repo origin cannot be asked about marks nothing", async () => {
@@ -76,8 +60,6 @@ describe("an archived spec whose branch is still on origin", () => {
     // it borrowed throws when its condition never holds. It is still a
     // guess at how long a tick takes, and the weakest wait in this file.
     await Bun.sleep(200);
-    expect((await specsList(base, ARCHIVED_VIEW)).toLowerCase()).not.toContain(
-      STILL_ON_ORIGIN,
-    );
+    expect((await specsList(base, ARCHIVED_VIEW)).toLowerCase()).not.toContain(STILL_ON_ORIGIN);
   });
 });

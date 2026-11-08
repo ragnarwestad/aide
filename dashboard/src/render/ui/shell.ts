@@ -14,17 +14,9 @@ import { esc } from "./html.ts";
 import { tabBar } from "./tabs.ts";
 import { buttonForm, confirmDialog, messageSlot } from "./components";
 import { capitalizeFirst } from "../../format/error-sentence.ts";
-import {
-  themeControl,
-  languageControl,
-  menuSettingRows,
-} from "./header-controls.ts";
+import { themeControl, languageControl, menuSettingRows } from "./header-controls.ts";
 import { getBoardInfo, isRoundBoard } from "./board-info.ts";
-import {
-  delayFile,
-  nextDelay,
-  readDelay,
-} from "../../integrations/round-delay.ts";
+import { delayFile, nextDelay, readDelay } from "../../integrations/round-delay.ts";
 import { headerNotices } from "./header-notices.ts";
 import { specNumber } from "../../project/spec-folder.ts";
 import { t, type Language, type TranslationKey } from "../../i18n";
@@ -207,9 +199,7 @@ function boardLine(lang: Language): string {
  *  visible one can be pressed. A prod board has no Stop, and no row. */
 function boardRow(lang: Language): string {
   const stop = stopForm(lang);
-  return stop
-    ? `<div class="boardrow muted small">${stop}${runForm(lang)}${delayForm(lang)}</div>`
-    : "";
+  return stop ? `<div class="boardrow muted small">${stop}${runForm(lang)}${delayForm(lang)}</div>` : "";
 }
 
 function boardTitle(): string {
@@ -261,9 +251,7 @@ function delayForm(lang: Language): string {
     hook: "actionform reloadform",
     hidden: { seconds: String(nextDelay(current)) },
     button: {
-      label: t(lang, "shell.delay", {
-        value: current ? `${current} s` : t(lang, "shell.delayOff"),
-      }),
+      label: t(lang, "shell.delay", { value: current ? `${current} s` : t(lang, "shell.delayOff") }),
       title: t(lang, "shell.delayTitle"),
     },
   });
@@ -272,11 +260,7 @@ function delayForm(lang: Language): string {
 /** A test board's Stop control; nothing on a prod board. */
 function stopForm(lang: Language): string {
   if (!getBoardInfo()) return "";
-  return buttonForm({
-    action: "/api/self-stop",
-    hook: "actionform",
-    button: { label: t(lang, "shell.stopTestServer") },
-  });
+  return buttonForm({ action: "/api/self-stop", hook: "actionform", button: { label: t(lang, "shell.stopTestServer") } });
 }
 
 export function isSpecFolder(folder: string): boolean {
@@ -352,18 +336,10 @@ export function siteTabKeys(
       : projectsPage!.path === currentPath || onAProject
         ? projectsPage!.path
         : sections.find((e) => e.path === currentPath)?.path;
-  return {
-    keys: ["/", "/specs", projectsPage!.path, ...sections.map((e) => e.path)],
-    sections,
-    current,
-  };
+  return { keys: ["/", "/specs", projectsPage!.path, ...sections.map((e) => e.path)], sections, current };
 }
 
-function siteTabs(
-  entries: NavEntry[],
-  currentPath: string,
-  lang: Language,
-): string {
+function siteTabs(entries: NavEntry[], currentPath: string, lang: Language): string {
   // Real tabs, not filter pills: a hairline the row sits on, and the
   // current tab marked by an underline in the accent colour (asked for
   // 2026-08-19, with PaceUp's tab bar as the reference).
@@ -382,15 +358,9 @@ function siteTabs(
     ["/", t(lang, "shell.tabRunning")],
     ["/specs", t(lang, "shell.tabSpecs")],
     [entries[0]!.path, t(lang, "shell.tabProjects")],
-    ...sections.map((e): [string, string] => [
-      e.path,
-      e.labelKey ? t(lang, e.labelKey) : e.label,
-    ]),
+    ...sections.map((e): [string, string] => [e.path, e.labelKey ? t(lang, e.labelKey) : e.label]),
   ]);
-  return tabBar(keys, (path) => path, current, {}, "", {
-    label: (path) => words.get(path)!,
-    site: true,
-  });
+  return tabBar(keys, (path) => path, current, {}, "", { label: (path) => words.get(path)!, site: true });
 }
 
 /** Everything `pageShell` takes beyond the title, the tabs and the body. */
@@ -474,9 +444,7 @@ export function shellRest(
   // mirror-image reason — it has to decide a colour before the body is
   // parsed — and waits for DOMContentLoaded before touching an element.
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
-  const scriptSrc = opts.scriptSrc
-    ? `\n<script src="${esc(opts.scriptSrc)}"></script>`
-    : "";
+  const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
   const tabs = opts.hideTabBar ? "" : siteTabs(entries, currentPath, lang);
   return `
 ${pageHeader(lang, currentUrl, tabs)}
@@ -503,11 +471,5 @@ export function pageShell(
   _generatedAt: string,
   opts: PageShellOpts = {},
 ): string {
-  return (
-    shellHead(title, {
-      lang: opts.lang,
-      docTitle: opts.docTitle,
-      startAt: opts.startAt,
-    }) + shellRest(entries, currentPath, title, body, opts)
-  );
+  return shellHead(title, { lang: opts.lang, docTitle: opts.docTitle, startAt: opts.startAt }) + shellRest(entries, currentPath, title, body, opts);
 }

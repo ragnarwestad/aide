@@ -20,6 +20,7 @@ Internal guide. Combines Anthropic's official recommendations with
 practical experience from large skill collections (30+ skills in
 production use).
 
+
 ## Official sources
 
 Read these first — we do not repeat their content here:
@@ -37,7 +38,7 @@ Read these first — we do not repeat their content here:
 Anthropic describes three levels of loading:
 
 | Level            | What                   | When it is loaded                        |
-| ---------------- | ---------------------- | ---------------------------------------- |
+|------------------|------------------------|------------------------------------------|
 | 1. Frontmatter   | `name` + `description` | Always (in the system prompt)            |
 | 2. SKILL.md body | Core instructions      | When Claude thinks the skill is relevant |
 | 3. `references/` | Heavy documentation    | When Claude needs details                |
@@ -118,11 +119,9 @@ Explicit triggers.
 ## Workflow
 
 ### Step 1: [Name]
-
 What Claude does, with concrete commands.
 
 ### Step 2: [Name]
-
 ...
 
 ## Error handling
@@ -177,7 +176,7 @@ documents what goes wrong, why, and how you figure it out
 is a tool.
 
 | Mediocre                  | Good                                          |
-| ------------------------- | --------------------------------------------- |
+|---------------------------|-----------------------------------------------|
 | Explains the domain model | + what happens when relationships are missing |
 | Lists services            | + common failure situations per service       |
 | Shows correct usage       | + what NOT to do and why                      |
@@ -224,7 +223,7 @@ Dated claims let future readers judge whether they are still relevant.
 ## Load-bearing why vs. narration
 
 Not every "why" belongs in a skill's body. Two things read like
-documentation but cost tokens on _every_ invocation without helping the
+documentation but cost tokens on *every* invocation without helping the
 reader do the job at hand:
 
 1. **Narrating another component** — what a different script, session,
@@ -240,7 +239,7 @@ it occasionally. If yes, it's load-bearing — keep it, as short as
 possible.
 
 This does not conflict with "Anti-patterns matter most" above: a dated,
-evidence-based pitfall about the skill's _own_ subject matter (a race
+evidence-based pitfall about the skill's *own* subject matter (a race
 condition in the domain it covers) is exactly the kind of "why" that
 helps a reader judge edge cases, and should stay. The difference is
 what the sentence is about — the skill's own domain, or somebody else's.
@@ -276,7 +275,7 @@ AND pi.OPPRETTET_TID < SYSDATE - INTERVAL '1' HOUR;
 ## Size and depth
 
 | Lines in SKILL.md          | Assessment                                                  |
-| -------------------------- | ----------------------------------------------------------- |
+|----------------------------|-------------------------------------------------------------|
 | < 80                       | Too thin — use as a router skill or expand                  |
 | 80-350                     | Good for workflow skills and domain skills                  |
 | 350-500                    | Near the limit — move details a step needs to `references/` |
@@ -311,7 +310,7 @@ One deep skill > four shallow skills.
 ### Content quality
 
 - [ ] Documents common errors (symptom → cause → solution)
-- [ ] Has anti-patterns/pitfalls with an explanation of _why_
+- [ ] Has anti-patterns/pitfalls with an explanation of *why*
 - [ ] Has debugging steps or queries
 - [ ] Includes examples (input → output or before → after)
 - [ ] Cross-references to related skills
@@ -325,13 +324,13 @@ One deep skill > four shallow skills.
 ### Workflow skills (aide/core/skills/)
 
 | Skill       | Why it is good                                                  |
-| ----------- | --------------------------------------------------------------- |
+|-------------|-----------------------------------------------------------------|
 | `tdd-coach` | Clear formula (RED-GREEN-REFACTOR), ground rules, test commands |
 
 ### Traits of strong skills (from earlier skill collections)
 
 | Trait                          | Example                                                |
-| ------------------------------ | ------------------------------------------------------ |
+|--------------------------------|--------------------------------------------------------|
 | Anti-patterns with timelines   | Race conditions documented with the sequence of events |
 | Evidence-based troubleshooting | Dated claims with flake rates                          |
 | Decision trees and checklists  | 13-point checklist before completion                   |

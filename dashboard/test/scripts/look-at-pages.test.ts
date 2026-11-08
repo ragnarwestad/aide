@@ -3,13 +3,7 @@
 // nothing in the home folder, and say why when it cannot go on.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { serveScene } from "../../scripts/look-at-pages.ts";
@@ -32,16 +26,8 @@ describe("serveScene", () => {
       description: "# A scene only this test wrote - Description\n",
       queueMirror: [
         {
-          id: "queued1",
-          project: "aide",
-          specFolder: FOLDER,
-          steps: ["analyze"],
-          stepIndex: 0,
-          state: "queued",
-          timeoutSec: {},
-          permissionMode: {},
-          model: {},
-          createdAt: "2026-10-23T10:00:00Z",
+          id: "queued1", project: "aide", specFolder: FOLDER, steps: ["analyze"], stepIndex: 0, state: "queued",
+          timeoutSec: {}, permissionMode: {}, model: {}, createdAt: "2026-10-23T10:00:00Z",
         },
       ],
     });
@@ -50,9 +36,7 @@ describe("serveScene", () => {
     expect(board.base.startsWith("http://127.0.0.1:")).toBe(true);
     const page = await (await fetch(`${board.base}/`)).text();
     expect(page).toContain(FOLDER);
-    const queue = (await (await fetch(`${board.base}/api/queue`)).json()) as {
-      jobs: { id: string; state: string }[];
-    };
+    const queue = (await (await fetch(`${board.base}/api/queue`)).json()) as { jobs: { id: string; state: string }[] };
     expect(queue.jobs.find((j) => j.id === "queued1")?.state).toBe("queued");
     expect(readdirSync(emptyHome)).toEqual([]);
   });
@@ -73,23 +57,12 @@ describe("the command line", () => {
     writeFileSync(scene, "{ not json");
     const out = join(dir, "shots");
     const run = Bun.spawnSync({
-      cmd: [
-        "bun",
-        join(import.meta.dir, "../../scripts/look-at-pages.ts"),
-        "--scene",
-        scene,
-        "--out",
-        out,
-        "/",
-      ],
-      stdout: "pipe",
-      stderr: "pipe",
+      cmd: ["bun", join(import.meta.dir, "../../scripts/look-at-pages.ts"), "--scene", scene, "--out", out, "/"],
+      stdout: "pipe", stderr: "pipe",
     });
     expect(run.exitCode).toBe(1);
     expect(existsSync(join(out, "not-taken.txt"))).toBe(true);
-    expect(readFileSync(join(out, "not-taken.txt"), "utf-8")).toContain(
-      "scene",
-    );
+    expect(readFileSync(join(out, "not-taken.txt"), "utf-8")).toContain("scene");
     expect(readdirSync(out).filter((f) => f.endsWith(".png"))).toEqual([]);
   });
 });

@@ -196,7 +196,7 @@ committed so far and the test results, instead of letting the session grow or co
 A limit is a share of the window, not a number of tokens, since the windows differ by model:
 
 | AI     | Model                                      | Context window | Where the tool says it                                                 |
-| ------ | ------------------------------------------ | -------------- | ---------------------------------------------------------------------- |
+|--------|--------------------------------------------|----------------|------------------------------------------------------------------------|
 | Claude | Opus 5.5, Sonnet 5.5, Haiku 5.5, Fable 5.1 | 1,000,000      | `contextWindow` under `modelUsage` in the result that ends the session |
 | Codex  | gpt-6.1-sol                                | 475,000        | `model_context_window` on every `token_count` in Codex's session file  |
 | Codex  | gpt-6-astra                                | 258,400        | the same                                                               |
@@ -425,7 +425,7 @@ reading the whole description and what the sections before it found and built, s
 is today. One landing at the end, and the criteria for the whole ticked with it.
 
 |                                      | A chain of specs today  | One spec in sections         |
-| ------------------------------------ | ----------------------- | ---------------------------- |
+|--------------------------------------|-------------------------|------------------------------|
 | Description                          | One per spec            | One, with a section per part |
 | Analyze and implement                | Per spec                | Per section, in turn         |
 | Branch                               | One per spec            | One for the spec             |
@@ -536,20 +536,24 @@ Open questions:
 
 From the paper on harness self-evolution ([arXiv 2610.34938](https://arxiv.org/abs/2610.34938)), passed on by
 @mattpocockuk (2026-11-04), and a post by @Voxyz_ai (2026-11-01) saying that many installed skills change nothing,
-because nobody compared them with running without the skill. The paper's point: a change to an agent's rules or
+because nobody compared them with running without the skill. A guide by @iiiichigo_chan (2026-11-05) adds when to
+look: each piece of a harness is a bet on something the model cannot do alone, and a newer model can make the bet
+obsolete. The paper's point: a change to an agent's rules or
 tools needs a way to tell whether it helps on later tasks, and a way to revise or remove it when it does not.
 
 Aide's rules and skills only grow. A rule is added after something goes wrong and stays, whether or not later runs
 are better for it. Replay (`docs/REPLAY.md`) can already run archived specs with another version of the skills and
 compare the results, but it is used to choose models, not to judge a rule. The idea: a change to a skill or rule
 that is meant to change how steps run is replayed on archived specs with and without it, and one that makes no
-difference is revised or taken out.
+difference is revised or taken out. When a step moves to a newer model, the rules already in place get the same
+test: one is taken out on a branch, the archived specs are replayed, and it is deleted if nothing gets worse.
 
 Open questions:
 
 - Which changes are worth a round. A round costs money and hours, and most rule changes are small.
 - What counts as no difference, given that the measures in `docs/REPLAY.md` were set for choosing a model.
-- Whether rules already in place are replayed too, or only new changes.
+- Which rules already in place to take out first when the model changes, since replaying each one alone costs a round
+  per rule.
 
 ### 29. A defect the review finds leaves a check behind
 

@@ -39,12 +39,7 @@ const DIR = `/specs/aide/${FOLDER}`;
 
 const subject = (
   step: string,
-  opts: {
-    headless?: boolean;
-    stopped?: string;
-    folder?: string;
-    model?: string;
-  } = {},
+  opts: { headless?: boolean; stopped?: string; folder?: string; model?: string } = {},
 ) =>
   `Run /aide-${step} for ${opts.folder ?? FOLDER}` +
   (opts.headless === false ? "" : " (headless)") +
@@ -76,41 +71,33 @@ describe("resolveWorkflowState", () => {
    *  path, since a generic prefix cannot tell the `.md` request from the
    *  `.json` one. */
   const branchFileFake = (proseSteps: string[], stateSteps?: string[]) => {
-    const jsonPath = BRANCH_TARGET.relPath.replace(
-      /4-status\.md$/,
-      "4-status.json",
-    );
+    const jsonPath = BRANCH_TARGET.relPath.replace(/4-status\.md$/, "4-status.json");
     const answers: Record<string, { code: number; stdout?: string }> = {
       "fetch --quiet origin": { code: 0 },
-      [`log -1 --format=%H refs/remotes/origin/${BRANCH_TARGET.branch} -- ${BRANCH_TARGET.relPath}`]:
-        {
-          code: 0,
-          stdout: "deadbeef1234\n",
-        },
-      [`show refs/remotes/origin/${BRANCH_TARGET.branch}:${BRANCH_TARGET.relPath}`]:
-        {
-          code: 0,
-          stdout: `# Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${proseSteps.join(", ")}\n`,
-        },
+      [`log -1 --format=%H refs/remotes/origin/${BRANCH_TARGET.branch} -- ${BRANCH_TARGET.relPath}`]: {
+        code: 0,
+        stdout: "deadbeef1234\n",
+      },
+      [`show refs/remotes/origin/${BRANCH_TARGET.branch}:${BRANCH_TARGET.relPath}`]: {
+        code: 0,
+        stdout: `# Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${proseSteps.join(", ")}\n`,
+      },
     };
     if (stateSteps) {
-      answers[
-        `log -1 --format=%H refs/remotes/origin/${BRANCH_TARGET.branch} -- ${jsonPath}`
-      ] = {
+      answers[`log -1 --format=%H refs/remotes/origin/${BRANCH_TARGET.branch} -- ${jsonPath}`] = {
         code: 0,
         stdout: "cafef00d1234\n",
       };
-      answers[`show refs/remotes/origin/${BRANCH_TARGET.branch}:${jsonPath}`] =
-        {
-          code: 0,
-          stdout: JSON.stringify({
-            completedPhases: stateSteps,
-            archived: null,
-            reopened: null,
-            acceptanceCriteria: [],
-            phaseCounts: {},
-          }),
-        };
+      answers[`show refs/remotes/origin/${BRANCH_TARGET.branch}:${jsonPath}`] = {
+        code: 0,
+        stdout: JSON.stringify({
+          completedPhases: stateSteps,
+          archived: null,
+          reopened: null,
+          acceptanceCriteria: [],
+          phaseCounts: {},
+        }),
+      };
     }
     return fakeGit(answers);
   };
@@ -119,101 +106,49 @@ describe("resolveWorkflowState", () => {
   // that ended after that against what the answer says. Two reads make
   // one answer, so it is the OLDER read that says how current it is.
   test("the answer carries when it was read — the older of the two reads", async () => {
-    const history = new WorkflowHistoryChecker({
-      run: gitLogging(subject("analyze")).run,
-      now: () => 5_000,
-    });
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
     await history.read(DIR, FOLDER);
-    const branch = new BranchFileStepsChecker({
-      run: branchFileFake(["analyze"]).run,
-      now: () => 3_000,
-    });
+    const branch = new BranchFileStepsChecker({ run: branchFileFake(["analyze"]).run, now: () => 3_000 });
     await branch.read(DIR, FOLDER, BRANCH_TARGET);
-    expect(
-      resolveWorkflowState(history, branch, DIR, FOLDER, undefined, undefined)
-        ?.checkedAt,
-    ).toBe(3_000);
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, undefined)?.checkedAt).toBe(3_000);
   });
 
   test("with no branch read, the history's own read time is the answer's", async () => {
-    const history = new WorkflowHistoryChecker({
-      run: gitLogging(subject("analyze")).run,
-      now: () => 5_000,
-    });
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
     await history.read(DIR, FOLDER);
     const branch = new BranchFileStepsChecker({ run: fakeGit({}).run });
-    expect(
-      resolveWorkflowState(history, branch, DIR, FOLDER, undefined, undefined)
-        ?.checkedAt,
-    ).toBe(5_000);
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, undefined)?.checkedAt).toBe(5_000);
   });
 
   test("the disk scan's read time counts when the disk copy is the file source", async () => {
-    const history = new WorkflowHistoryChecker({
-      run: gitLogging(subject("analyze")).run,
-      now: () => 5_000,
-    });
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
     await history.read(DIR, FOLDER);
     const branch = new BranchFileStepsChecker({ run: fakeGit({}).run });
-    const disk = {
-      proseSteps: ["create"],
-      stateSteps: undefined,
-      readAt: 2_000,
-    };
-    expect(
-      resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)
-        ?.checkedAt,
-    ).toBe(2_000);
+    const disk = { proseSteps: ["create"], stateSteps: undefined, readAt: 2_000 };
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)?.checkedAt).toBe(2_000);
   });
 
   test("a disk scan read after the history does not make the answer newer", async () => {
-    const history = new WorkflowHistoryChecker({
-      run: gitLogging(subject("analyze")).run,
-      now: () => 5_000,
-    });
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
     await history.read(DIR, FOLDER);
     const branch = new BranchFileStepsChecker({ run: fakeGit({}).run });
-    const disk = {
-      proseSteps: ["create"],
-      stateSteps: undefined,
-      readAt: 9_000,
-    };
-    expect(
-      resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)
-        ?.checkedAt,
-    ).toBe(5_000);
+    const disk = { proseSteps: ["create"], stateSteps: undefined, readAt: 9_000 };
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)?.checkedAt).toBe(5_000);
   });
 
   test("the disk scan is left out when the branch copy is the file source", async () => {
-    const history = new WorkflowHistoryChecker({
-      run: gitLogging(subject("analyze")).run,
-      now: () => 5_000,
-    });
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run, now: () => 5_000 });
     await history.read(DIR, FOLDER);
-    const branch = new BranchFileStepsChecker({
-      run: branchFileFake(["analyze"]).run,
-      now: () => 3_000,
-    });
+    const branch = new BranchFileStepsChecker({ run: branchFileFake(["analyze"]).run, now: () => 3_000 });
     await branch.read(DIR, FOLDER, BRANCH_TARGET);
-    const disk = {
-      proseSteps: ["create"],
-      stateSteps: undefined,
-      readAt: 1_000,
-    };
-    expect(
-      resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)
-        ?.checkedAt,
-    ).toBe(3_000);
+    const disk = { proseSteps: ["create"], stateSteps: undefined, readAt: 1_000 };
+    expect(resolveWorkflowState(history, branch, DIR, FOLDER, undefined, disk)?.checkedAt).toBe(3_000);
   });
 
   /** A `WorkflowHistoryChecker` already warmed with `history`, ready to
    *  `peekHistory` without spawning git again. */
-  const warmedHistory = async (
-    ...subjects: string[]
-  ): Promise<WorkflowHistoryChecker> => {
-    const checker = new WorkflowHistoryChecker({
-      run: gitLogging(...subjects).run,
-    });
+  const warmedHistory = async (...subjects: string[]): Promise<WorkflowHistoryChecker> => {
+    const checker = new WorkflowHistoryChecker({ run: gitLogging(...subjects).run });
     await checker.read(DIR, FOLDER);
     return checker;
   };
@@ -222,13 +157,8 @@ describe("resolveWorkflowState", () => {
    *  `stateSteps` is absent for a branch with no `4-status.json` yet
    *  (the unchanged fallback), and given for the state-file cases
    */
-  const warmedBranchSteps = async (
-    proseSteps: string[],
-    stateSteps?: string[],
-  ): Promise<BranchFileStepsChecker> => {
-    const checker = new BranchFileStepsChecker({
-      run: branchFileFake(proseSteps, stateSteps).run,
-    });
+  const warmedBranchSteps = async (proseSteps: string[], stateSteps?: string[]): Promise<BranchFileStepsChecker> => {
+    const checker = new BranchFileStepsChecker({ run: branchFileFake(proseSteps, stateSteps).run });
     await checker.read(DIR, FOLDER, BRANCH_TARGET);
     return checker;
   };
@@ -244,14 +174,7 @@ describe("resolveWorkflowState", () => {
   test("matching disk history and branch-file steps agree with stepsFileDisagreesOn's own answer", async () => {
     const history = await warmedHistory(subject("analyze"), subject("create"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"]);
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved).not.toBeNull();
     expect(resolved!.done).toEqual(["create", "analyze"]);
     expect(resolved!.fileDisagrees).toEqual([]);
@@ -260,52 +183,27 @@ describe("resolveWorkflowState", () => {
   test("a spec with no create commit still resolves create as done", async () => {
     const history = await warmedHistory(subject("analyze"));
     const branchFileSteps = await warmedNoBranch();
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      {
-        proseSteps: ["analyze"],
-        stateSteps: undefined,
-      },
-    );
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, {
+      proseSteps: ["analyze"],
+      stateSteps: undefined,
+    });
     expect(resolved!.done).toEqual(["create", "analyze"]);
   });
 
   test("a spec peekHistory has not answered for resolves null", () => {
-    const history = new WorkflowHistoryChecker({
-      run: gitLogging(subject("analyze")).run,
-    });
-    const branchFileSteps = new BranchFileStepsChecker({
-      run: fakeGit({}).run,
-    });
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run });
+    const branchFileSteps = new BranchFileStepsChecker({ run: fakeGit({}).run });
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved).toBeNull();
   });
 
   test("an open branch's file steps are preferred over the disk copy", async () => {
     const history = await warmedHistory(subject("create"), subject("analyze"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"]);
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      {
-        proseSteps: ["create"],
-        stateSteps: undefined,
-      },
-    );
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, {
+      proseSteps: ["create"],
+      stateSteps: undefined,
+    });
     expect(resolved!.fileSteps).toEqual(["create", "analyze"]);
   });
 
@@ -316,22 +214,12 @@ describe("resolveWorkflowState", () => {
   // a parameter-order bug produces a visibly wrong `done` or `fileSteps`
   // rather than passing by coincidence.
   test("done and fileSteps are each traceable to their own checker, not swappable by coincidence", async () => {
-    const history = await warmedHistory(
-      subject("create"),
-      subject("implement"),
-    );
+    const history = await warmedHistory(subject("create"), subject("implement"));
     const branchFileSteps = await warmedBranchSteps(["create", "analyze"]);
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      {
-        proseSteps: [],
-        stateSteps: undefined,
-      },
-    );
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, {
+      proseSteps: [],
+      stateSteps: undefined,
+    });
     expect(resolved!.done).toEqual(["create", "implement"]);
     expect(resolved!.fileSteps).toEqual(["create", "analyze"]);
   });
@@ -342,18 +230,8 @@ describe("resolveWorkflowState", () => {
   // both read from the state file, not from git.
   test("done and fileDisagrees come from the branch's own state file, not git, once one exists", async () => {
     const history = await warmedHistory(subject("create"));
-    const branchFileSteps = await warmedBranchSteps(
-      ["create", "analyze"],
-      ["create", "analyze"],
-    );
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create", "analyze"]);
     expect(resolved!.fileDisagrees).toEqual([]);
   });
@@ -364,23 +242,9 @@ describe("resolveWorkflowState", () => {
   // `implement`, newer than the analysis), so the assertion cannot pass
   // by prose-vs-git coincidentally agreeing.
   test("flags a phase the prose claims that the branch's own state file lacks", async () => {
-    const history = await warmedHistory(
-      subject("implement"),
-      subject("analyze"),
-      subject("create"),
-    );
-    const branchFileSteps = await warmedBranchSteps(
-      ["create", "analyze", "implement"],
-      ["create", "analyze"],
-    );
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const history = await warmedHistory(subject("implement"), subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze", "implement"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.fileDisagrees).toEqual(["implement"]);
   });
 
@@ -388,24 +252,9 @@ describe("resolveWorkflowState", () => {
   // longer names it, and neither does git's own answer — which says so in
   // `superseded`, so the row can tell "cancelled" from "never ran".
   test("an implement older than a completed analysis is in neither done nor historyDone", async () => {
-    const history = await warmedHistory(
-      subject("analyze"),
-      subject("implement"),
-      subject("analyze"),
-      subject("create"),
-    );
-    const branchFileSteps = await warmedBranchSteps(
-      ["create", "analyze"],
-      ["create", "analyze"],
-    );
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const history = await warmedHistory(subject("analyze"), subject("implement"), subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create", "analyze"]);
     expect(resolved!.historyDone).toEqual(["create", "analyze"]);
     expect(resolved!.superseded).toEqual(["implement"]);
@@ -421,18 +270,8 @@ describe("resolveWorkflowState", () => {
   // `historyDone` must stay at git's raw one.
   test("historyDone carries the raw git answer, not the merged one", async () => {
     const history = await warmedHistory(subject("create"));
-    const branchFileSteps = await warmedBranchSteps(
-      ["create", "analyze"],
-      ["create", "analyze"],
-    );
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create", "analyze"]);
     expect(resolved!.historyDone).toEqual(["create"]);
   });
@@ -440,106 +279,41 @@ describe("resolveWorkflowState", () => {
   // The state file keeps naming what an earlier run finished; the newest
   // run says how the step stands now.
   test("a step whose newest run failed is not done, though the state file names it", async () => {
-    const history = await warmedHistory(
-      subject("analyze", { stopped: "model-refused" }),
-      subject("analyze"),
-      subject("create"),
-    );
-    const branchFileSteps = await warmedBranchSteps(
-      ["create", "analyze"],
-      ["create", "analyze"],
-    );
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const history = await warmedHistory(subject("analyze", { stopped: "model-refused" }), subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create"]);
     expect(resolved!.stopped).toEqual({ analyze: "model-refused" });
   });
 
   test("a later run that completes puts the step back in done with no stop", async () => {
-    const history = await warmedHistory(
-      subject("analyze"),
-      subject("analyze", { stopped: "model-refused" }),
-      subject("create"),
-    );
-    const branchFileSteps = await warmedBranchSteps(
-      ["create", "analyze"],
-      ["create", "analyze"],
-    );
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const history = await warmedHistory(subject("analyze"), subject("analyze", { stopped: "model-refused" }), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create", "analyze"]);
     expect(resolved!.stopped).toEqual({});
   });
 
   // The two limits the queue keeps as stopped leave the earlier run standing.
   test("a step whose newest run stopped at its time limit stays done", async () => {
-    const history = await warmedHistory(
-      subject("analyze", { stopped: "timeout" }),
-      subject("analyze"),
-      subject("create"),
-    );
-    const branchFileSteps = await warmedBranchSteps(
-      ["create", "analyze"],
-      ["create", "analyze"],
-    );
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const history = await warmedHistory(subject("analyze", { stopped: "timeout" }), subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create", "analyze"]);
   });
 
   test("an analyze whose newest run stopped on its acceptance criteria is not done, though the state file names it", async () => {
-    const history = await warmedHistory(
-      subject("analyze", { stopped: "acceptance-criteria" }),
-      subject("analyze"),
-      subject("create"),
-    );
-    const branchFileSteps = await warmedBranchSteps(
-      ["create", "analyze"],
-      ["create", "analyze"],
-    );
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const history = await warmedHistory(subject("analyze", { stopped: "acceptance-criteria" }), subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"], ["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create"]);
     expect(resolved!.stopped).toEqual({ analyze: "acceptance-criteria" });
   });
 
   test("create is never taken out of done by a failed stop", async () => {
-    const history = await warmedHistory(
-      subject("create", { stopped: "cli-error" }),
-    );
+    const history = await warmedHistory(subject("create", { stopped: "cli-error" }));
     const branchFileSteps = await warmedBranchSteps(["create"], ["create"]);
-    const resolved = resolveWorkflowState(
-      history,
-      branchFileSteps,
-      DIR,
-      FOLDER,
-      undefined,
-      undefined,
-    );
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
     expect(resolved!.done).toEqual(["create"]);
   });
 });
@@ -547,11 +321,7 @@ describe("resolveWorkflowState", () => {
 // --- what only real git can prove -------------------------------------------
 
 const gitIn = (dir: string, ...args: string[]) =>
-  Bun.spawnSync({
-    cmd: ["git", "-C", dir, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+  Bun.spawnSync({ cmd: ["git", "-C", dir, ...args], stdout: "pipe", stderr: "pipe" });
 
 describe("WorkflowHistoryChecker against real git", () => {
   test("finds a stopped implement commit that never left the spec's branch", async () => {
@@ -569,14 +339,7 @@ describe("WorkflowHistoryChecker against real git", () => {
     // landed yet — invisible to a HEAD-only search, which is the whole
     // reason the query names every ref.
     gitIn(repo, "checkout", "-q", "-b", `aide/${FOLDER}`);
-    gitIn(
-      repo,
-      "commit",
-      "-q",
-      "--allow-empty",
-      "-m",
-      subject("implement", { stopped: "timeout" }),
-    );
+    gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("implement", { stopped: "timeout" }));
     gitIn(repo, "checkout", "-q", "main");
 
     const checker = new WorkflowHistoryChecker({ run: createGitRunner() });
@@ -652,27 +415,15 @@ describe("WorkflowHistoryChecker boundary against real git", () => {
     gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("archive"));
     const boundary = gitIn(repo, "rev-parse", "HEAD").stdout.toString().trim();
 
-    const checker = new WorkflowHistoryChecker({
-      run: createGitRunner(),
-      ttlMs: 0,
-    });
+    const checker = new WorkflowHistoryChecker({ run: createGitRunner(), ttlMs: 0 });
     expect((await checker.read(specDir, FOLDER)).done).toEqual([
-      "create",
-      "analyze",
-      "implement",
-      "archive",
+      "create", "analyze", "implement", "archive",
     ]);
     // Reopened: nothing has run in the new round.
-    expect(await checker.read(specDir, FOLDER, boundary)).toEqual({
-      done: [],
-      stopped: {},
-      superseded: [],
-    });
+    expect(await checker.read(specDir, FOLDER, boundary)).toEqual({ done: [], stopped: {}, superseded: [] });
 
     // And the new round's own analyze, made after the mark, still counts.
     gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("analyze"));
-    expect((await checker.read(specDir, FOLDER, boundary)).done).toEqual([
-      "analyze",
-    ]);
+    expect((await checker.read(specDir, FOLDER, boundary)).done).toEqual(["analyze"]);
   });
 });

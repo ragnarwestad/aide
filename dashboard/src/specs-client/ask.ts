@@ -9,12 +9,8 @@
  *  is looked up with `getElementById`, never a CSS `#…` selector: a
  *  schedule entry's (`deleteask-<project>/<name>`) holds a `/`. */
 export function openAsk(event: Event): void {
-  const button = (event.target as Element | null)?.closest?.(
-    "button[data-ask]",
-  ) as HTMLButtonElement | null;
+  const button = (event.target as Element | null)?.closest?.("button[data-ask]") as HTMLButtonElement | null;
   const id = button?.dataset.ask;
-  const box = id
-    ? (button!.ownerDocument.getElementById(id) as HTMLDialogElement | null)
-    : null;
+  const box = id ? (button!.ownerDocument.getElementById(id) as HTMLDialogElement | null) : null;
   if (box && typeof box.showModal === "function") box.showModal();
 }

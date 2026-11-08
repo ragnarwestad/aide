@@ -2,18 +2,8 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  ALL_VIEW,
-  ARCHIVED_VIEW,
-  LIVE,
-  LIVE_OTHER,
-  LONG_TAIL,
-  OTHER,
-  SAME_DAY,
-  UNSTAMPED,
-  harness,
-  order,
-  specsList,
-  start,
+  ALL_VIEW, ARCHIVED_VIEW, LIVE, LIVE_OTHER, LONG_TAIL, OTHER, SAME_DAY, UNSTAMPED,
+  harness, order, specsList, start,
 } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
@@ -30,55 +20,45 @@ describe("the search field", () => {
     // The live spec first: git cannot date either, and an undated
     // ARCHIVED spec sorts as the oldest (2026-09-09), the undated live
     // one as the newest.
-    expect(order(await specsList(start().base, `${ALL_VIEW}&q=skjer`))).toEqual(
-      [LIVE_OTHER, OTHER],
-    );
+    expect(order(await specsList(start().base, `${ALL_VIEW}&q=skjer`))).toEqual([
+      LIVE_OTHER,
+      OTHER,
+    ]);
   });
 
   test("matches the project name with a trailing colon", async () => {
-    expect(
-      order(await specsList(start().base, `${ALL_VIEW}&q=skjer:`)),
-    ).toEqual([LIVE_OTHER, OTHER]);
+    expect(order(await specsList(start().base, `${ALL_VIEW}&q=skjer:`))).toEqual([
+      LIVE_OTHER,
+      OTHER,
+    ]);
   });
 
   test("matches the project name joined to a folder prefix", async () => {
-    expect(
-      order(await specsList(start().base, `${ALL_VIEW}&q=skjer:05-`)),
-    ).toEqual([OTHER]);
+    expect(order(await specsList(start().base, `${ALL_VIEW}&q=skjer:05-`))).toEqual([OTHER]);
   });
 
   test("finds an archived spec under the All chip", async () => {
-    expect(
-      order(await specsList(start().base, `${ALL_VIEW}&q=QUEUE+REMEMBERS`)),
-    ).toEqual([SAME_DAY]);
+    expect(order(await specsList(start().base, `${ALL_VIEW}&q=QUEUE+REMEMBERS`))).toEqual([SAME_DAY]);
   });
 
   test("matches the folder name", async () => {
-    expect(
-      order(await specsList(start().base, `${ALL_VIEW}&q=push-is-branch`)),
-    ).toEqual([UNSTAMPED]);
+    expect(order(await specsList(start().base, `${ALL_VIEW}&q=push-is-branch`))).toEqual([UNSTAMPED]);
   });
 
   // The whole description, not the two lines the cell shows: the term
   // is in the last sentence of the long one.
   test("matches text the clamped cell cannot show", async () => {
-    expect(
-      order(await specsList(start().base, `${ALL_VIEW}&q=${LONG_TAIL}`)),
-    ).toEqual([UNSTAMPED]);
+    expect(order(await specsList(start().base, `${ALL_VIEW}&q=${LONG_TAIL}`))).toEqual([UNSTAMPED]);
   });
 
   test("reaches a live spec too, and cuts the archived ones out", async () => {
-    expect(
-      order(await specsList(start().base, `${ALL_VIEW}&q=queue-and-runner`)),
-    ).toEqual([LIVE]);
+    expect(order(await specsList(start().base, `${ALL_VIEW}&q=queue-and-runner`))).toEqual([LIVE]);
   });
 
   test("carries the chip along, so searching does not throw the filter away", async () => {
     const html = await specsList(start().base, ARCHIVED_VIEW);
     const form = html.slice(html.indexOf('class="specsearch"'));
-    expect(form.slice(0, form.indexOf("</form>"))).toContain(
-      'name="state" value="archived"',
-    );
+    expect(form.slice(0, form.indexOf("</form>"))).toContain('name="state" value="archived"');
   });
 
   test("a term with nothing but spaces is no search at all", async () => {
@@ -105,27 +85,19 @@ describe("the search field's clear control", () => {
   };
 
   test("is a link back to the same view with the term dropped", async () => {
-    const form = searchForm(
-      await specsList(start().base, `${ARCHIVED_VIEW}&q=remembers`),
-    );
+    const form = searchForm(await specsList(start().base, `${ARCHIVED_VIEW}&q=remembers`));
     expect(form).toContain('class="searchclear"');
     // A link, not script: the same "state lives in the URL" shape the
     // fold and the sort already have, so it works with JavaScript off
     // and can be pasted to someone else.
-    expect(form).toMatch(
-      /<a class="searchclear"[^>]*href="\/specs\?state=archived"/,
-    );
+    expect(form).toMatch(/<a class="searchclear"[^>]*href="\/specs\?state=archived"/);
   });
 
   test("keeps every other filter the reader had chosen", async () => {
     const form = searchForm(
-      await specsList(
-        start().base,
-        `${ALL_VIEW}&sort=spec&dir=asc&q=remembers`,
-      ),
+      await specsList(start().base, `${ALL_VIEW}&sort=spec&dir=asc&q=remembers`),
     );
-    const href =
-      /<a class="searchclear"[^>]*href="([^"]*)"/.exec(form)?.[1] ?? "";
+    const href = /<a class="searchclear"[^>]*href="([^"]*)"/.exec(form)?.[1] ?? "";
     expect(href).toContain("state=all");
     expect(href).toContain("sort=spec");
     expect(href).toContain("dir=asc");

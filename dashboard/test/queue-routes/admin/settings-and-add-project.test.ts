@@ -1,13 +1,7 @@
 // Split out of project-settings.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  rmSync,
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { rmSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type ServerOptions } from "../../../src/serve/serve.ts";
@@ -21,8 +15,7 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 /** A queue config of this suite's own, so a route that persists the
@@ -35,10 +28,10 @@ function ownConfig(contents: Record<string, unknown> = {}): string {
   return file;
 }
 
+
 describe("Settings routes", () => {
   const DEFAULTS = {
-    timeoutSec: { default: 1200, implement: 5400 },
-    permissionMode: { default: "acceptEdits" },
+    timeoutSec: { default: 1200, implement: 5400 }, permissionMode: { default: "acceptEdits" },
     model: { default: "sonnet" },
     modelChoices: { sonnet: {}, "codex-fast": { tool: "codex" as const } },
     providers: {
@@ -47,16 +40,9 @@ describe("Settings routes", () => {
       OpenCode: { name: "OpenCode", tool: "opencode" as const },
     },
   };
-  const AUTH = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
-  const validModel = Object.fromEntries(
-    SETTINGS_STEPS.map((step) => [step, "sonnet"]),
-  );
-  const validTimeoutSec = Object.fromEntries(
-    SETTINGS_STEPS.map((step) => [step, 30]),
-  );
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
+  const validModel = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "sonnet"]));
+  const validTimeoutSec = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, 30]));
   const validBody = { model: validModel, timeoutSec: validTimeoutSec };
 
   test("the old Phases link still serves the models form", async () => {
@@ -69,46 +55,25 @@ describe("Settings routes", () => {
     const file = ownConfig({ model: { default: "sonnet", future: "keep" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const accepted = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify(JOB),
+      method: "POST", headers: AUTH, body: JSON.stringify(JOB),
     });
-    const first = (await accepted.json()) as {
-      job: { model: Record<string, string> };
-    };
-    const model = Object.fromEntries(
-      SETTINGS_STEPS.map((step) => [step, "codex-fast"]),
-    );
+    const first = (await accepted.json()) as { job: { model: Record<string, string> } };
+    const model = Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "codex-fast"]));
     const saved = await fetch(`${base}/api/queue/settings`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify({ model, timeoutSec: validTimeoutSec }),
+      method: "POST", headers: AUTH, body: JSON.stringify({ model, timeoutSec: validTimeoutSec }),
     });
     expect(saved.status).toBe(200);
     expect(first.job.model.analyze).toBe("sonnet");
     const later = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify({
-        project: "aide",
-        specFolder: "82-second",
-        steps: ["analyze"],
-      }),
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ project: "aide", specFolder: "82-second", steps: ["analyze"] }),
     });
     // The fixture does not discover 82-second, so use create to observe a later accepted job.
     const created = await fetch(`${base}/api/queue/create`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify({
-        project: "aide",
-        title: "Later",
-        description: "Later job",
-      }),
+      method: "POST", headers: AUTH, body: JSON.stringify({ project: "aide", title: "Later", description: "Later job" }),
     });
     expect(later.status).toBe(400);
-    const createdBody = (await created.json()) as {
-      job: { model: Record<string, string> };
-    };
+    const createdBody = (await created.json()) as { job: { model: Record<string, string> } };
     expect(createdBody.job.model.create).toBe("codex-fast");
     expect(readFileSync(file, "utf-8")).toContain('"future": "keep"');
   });
@@ -120,24 +85,14 @@ describe("Settings routes", () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const refused = await fetch(`${base}/api/queue/settings`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify({
-        ...validBody,
-        model: { ...validModel, default: "codex-fast" },
-      }),
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ ...validBody, model: { ...validModel, default: "codex-fast" } }),
     });
     expect(refused.status).toBe(400);
-    expect(((await refused.json()) as { error: string }).error).toContain(
-      "unknown workflow step: default",
-    );
-    expect(readFileSync(file, "utf-8")).toEqual(
-      JSON.stringify({ model: { default: "sonnet" } }, null, 2),
-    );
+    expect(((await refused.json()) as { error: string }).error).toContain("unknown workflow step: default");
+    expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
     const saved = await fetch(`${base}/api/queue/settings`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify(validBody),
+      method: "POST", headers: AUTH, body: JSON.stringify(validBody),
     });
     expect(saved.status).toBe(200);
   });
@@ -147,17 +102,11 @@ describe("Settings routes", () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify({
-        ...validBody,
-        model: { ...validModel, analyze: "CODEX-FAST" },
-      }),
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ ...validBody, model: { ...validModel, analyze: "CODEX-FAST" } }),
     });
     expect(res.status).toBe(200);
-    const saved = JSON.parse(readFileSync(file, "utf-8")) as {
-      model: Record<string, string>;
-    };
+    const saved = JSON.parse(readFileSync(file, "utf-8")) as { model: Record<string, string> };
     expect(saved.model.analyze).toBe("codex-fast");
   });
 
@@ -170,36 +119,19 @@ describe("Settings routes", () => {
     const file = ownConfig({ model: { default: "sonnet" } });
     const defaults = { ...DEFAULTS, providers };
     const { base } = start({ queueDefaults: defaults, queueConfigFile: file });
-    const body = (analyze: string) =>
-      JSON.stringify({
-        ...validBody,
-        model: { ...validModel, analyze: "codex-fast" },
-        provider: { analyze },
-      });
-    const refused = await fetch(`${base}/api/queue/settings`, {
-      method: "POST",
-      headers: AUTH,
-      body: body("Claude"),
+    const body = (analyze: string) => JSON.stringify({
+      ...validBody,
+      model: { ...validModel, analyze: "codex-fast" },
+      provider: { analyze },
     });
+    const refused = await fetch(`${base}/api/queue/settings`, { method: "POST", headers: AUTH, body: body("Claude") });
     expect(refused.status).toBe(400);
-    expect(((await refused.json()) as { error: string }).error).toContain(
-      "codex-fast is a Codex model and Claude is a Claude Code provider",
-    );
+    expect(((await refused.json()) as { error: string }).error).toContain("codex-fast is a Codex model and Claude is a Claude Code provider");
     expect(JSON.parse(readFileSync(file, "utf-8")).provider).toBeUndefined();
-    const saved = await fetch(`${base}/api/queue/settings`, {
-      method: "POST",
-      headers: AUTH,
-      body: body("Codex"),
-    });
+    const saved = await fetch(`${base}/api/queue/settings`, { method: "POST", headers: AUTH, body: body("Codex") });
     expect(saved.status).toBe(200);
-    expect(JSON.parse(readFileSync(file, "utf-8")).provider).toEqual({
-      analyze: "Codex",
-    });
-    const unknown = await fetch(`${base}/api/queue/settings`, {
-      method: "POST",
-      headers: AUTH,
-      body: body("Gone"),
-    });
+    expect(JSON.parse(readFileSync(file, "utf-8")).provider).toEqual({ analyze: "Codex" });
+    const unknown = await fetch(`${base}/api/queue/settings`, { method: "POST", headers: AUTH, body: body("Gone") });
     expect(unknown.status).toBe(400);
   });
 
@@ -208,20 +140,14 @@ describe("Settings routes", () => {
     const defaults = { ...DEFAULTS, modelChoices: { Sonnet: {}, SONNET: {} } };
     const { base } = start({ queueDefaults: defaults, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify({
-        ...validBody,
-        model: { ...validModel, analyze: "sonnet" },
-      }),
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ ...validBody, model: { ...validModel, analyze: "sonnet" } }),
     });
     expect(res.status).toBe(400);
     const error = ((await res.json()) as { error: string }).error;
     expect(error).toContain("Sonnet");
     expect(error).toContain("SONNET");
-    expect(readFileSync(file, "utf-8")).toEqual(
-      JSON.stringify({ model: { default: "sonnet" } }, null, 2),
-    );
+    expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
   });
 
   test("invalid input and missing config leave live defaults unchanged", async () => {
@@ -229,21 +155,11 @@ describe("Settings routes", () => {
     const { base } = start({ queueDefaults: DEFAULTS, queueConfigFile: file });
     for (const model of [
       { analyze: "sonnet" },
-      {
-        ...Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "sonnet"])),
-        extra: "sonnet",
-      },
-      Object.fromEntries(
-        SETTINGS_STEPS.map((step) => [
-          step,
-          step === "archive" ? "missing" : "sonnet",
-        ]),
-      ),
+      { ...Object.fromEntries(SETTINGS_STEPS.map((step) => [step, "sonnet"])), extra: "sonnet" },
+      Object.fromEntries(SETTINGS_STEPS.map((step) => [step, step === "archive" ? "missing" : "sonnet"])),
     ]) {
       const res = await fetch(`${base}/api/queue/settings`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify({ ...validBody, model }),
+        method: "POST", headers: AUTH, body: JSON.stringify({ ...validBody, model }),
       });
       expect(res.status).toBe(400);
     }
@@ -254,31 +170,22 @@ describe("Settings routes", () => {
       { timeoutSec: {} },
     ]) {
       const res = await fetch(`${base}/api/queue/settings`, {
-        method: "POST",
-        headers: AUTH,
-        body: JSON.stringify({ ...validBody, ...overrides }),
+        method: "POST", headers: AUTH, body: JSON.stringify({ ...validBody, ...overrides }),
       });
       expect(res.status).toBe(400);
     }
-    expect(readFileSync(file, "utf-8")).toEqual(
-      JSON.stringify({ model: { default: "sonnet" } }, null, 2),
-    );
+    expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
 
     const without = start({ queueDefaults: DEFAULTS });
     const res = await fetch(`${without.base}/api/queue/settings`, {
-      method: "POST",
-      headers: AUTH,
-      body: JSON.stringify(validBody),
+      method: "POST", headers: AUTH, body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(400);
   });
 });
 
 describe("Settings' Process tab: how many steps may run at once", () => {
-  const JSON_HEADERS = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json" };
   const FORM = { "content-type": "application/x-www-form-urlencoded" };
 
   /** A server with a runner. No job is queued in these tests, so the
@@ -286,19 +193,13 @@ describe("Settings' Process tab: how many steps may run at once", () => {
   function withRunner(extra: Partial<ServerOptions> = {}) {
     const own = mkdtempSync(join(tmpdir(), "aide-process-tab-"));
     ownDirs.push(own);
-    return start({
-      queueRunnerBin: "/usr/bin/true",
-      queueResultDir: join(own, "jobs"),
-      ...extra,
-    });
+    return start({ queueRunnerBin: "/usr/bin/true", queueResultDir: join(own, "jobs"), ...extra });
   }
 
   /** The value the Process tab's field opens on. */
   async function shownCount(base: string): Promise<string | undefined> {
     const html = await (await fetch(`${base}/settings?tab=process`)).text();
-    return html
-      .match(/<input[^>]*name="concurrency"[^>]*>/)?.[0]
-      .match(/value="(\d+)"/)?.[1];
+    return html.match(/<input[^>]*name="concurrency"[^>]*>/)?.[0].match(/value="(\d+)"/)?.[1];
   }
 
   test("the tab opens on the count the running queue uses", async () => {
@@ -315,17 +216,11 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     const file = ownConfig({ concurrency: 2 });
     const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
     const res = await fetch(`${base}/api/queue/settings/concurrency`, {
-      method: "POST",
-      headers: FORM,
-      body: "concurrency=4",
-      redirect: "manual",
+      method: "POST", headers: FORM, body: "concurrency=4", redirect: "manual",
     });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, concurrency: 4 });
-    expect(
-      (JSON.parse(readFileSync(file, "utf-8")) as { concurrency: number })
-        .concurrency,
-    ).toBe(4);
+    expect((JSON.parse(readFileSync(file, "utf-8")) as { concurrency: number }).concurrency).toBe(4);
     expect(await shownCount(base)).toBe("4");
   });
 
@@ -333,22 +228,12 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     const file = ownConfig({ concurrency: 2 });
     const before = readFileSync(file, "utf-8");
     const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
-    for (const body of [
-      { concurrency: 0 },
-      { concurrency: 9 },
-      { concurrency: 2.5 },
-      { concurrency: "abc" },
-      {},
-    ]) {
+    for (const body of [{ concurrency: 0 }, { concurrency: 9 }, { concurrency: 2.5 }, { concurrency: "abc" }, {}]) {
       const res = await fetch(`${base}/api/queue/settings/concurrency`, {
-        method: "POST",
-        headers: JSON_HEADERS,
-        body: JSON.stringify(body),
+        method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body),
       });
       expect(res.status).toBe(400);
-      expect(
-        ((await res.json()) as { error: string }).error.length,
-      ).toBeGreaterThan(0);
+      expect(((await res.json()) as { error: string }).error.length).toBeGreaterThan(0);
     }
     expect(readFileSync(file, "utf-8")).toBe(before);
     expect(await shownCount(base)).toBe("2");
@@ -360,15 +245,10 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     const { base } = withRunner({ queueConcurrency: 2, queueConfigFile: file });
     for (const body of ["concurrency=abc", "concurrency="]) {
       const res = await fetch(`${base}/api/queue/settings/concurrency`, {
-        method: "POST",
-        headers: FORM,
-        body,
-        redirect: "manual",
+        method: "POST", headers: FORM, body, redirect: "manual",
       });
       expect(res.status).toBe(400);
-      expect(((await res.json()) as { error: string }).error).toContain(
-        "whole number",
-      );
+      expect(((await res.json()) as { error: string }).error).toContain("whole number");
     }
     expect(readFileSync(file, "utf-8")).toBe(before);
   });
@@ -377,26 +257,16 @@ describe("Settings' Process tab: how many steps may run at once", () => {
     const file = ownConfig({ concurrency: 2 });
     const before = readFileSync(file, "utf-8");
     const noRunner = start({ queueConfigFile: file });
-    const refused = await fetch(
-      `${noRunner.base}/api/queue/settings/concurrency`,
-      {
-        method: "POST",
-        headers: JSON_HEADERS,
-        body: JSON.stringify({ concurrency: 3 }),
-      },
-    );
+    const refused = await fetch(`${noRunner.base}/api/queue/settings/concurrency`, {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ concurrency: 3 }),
+    });
     expect(refused.status).toBe(400);
     expect(readFileSync(file, "utf-8")).toBe(before);
 
     const missing = join(ownDirs[ownDirs.length - 1]!, "missing.json");
-    const noFile = withRunner({
-      queueConcurrency: 2,
-      queueConfigFile: missing,
-    });
+    const noFile = withRunner({ queueConcurrency: 2, queueConfigFile: missing });
     const res = await fetch(`${noFile.base}/api/queue/settings/concurrency`, {
-      method: "POST",
-      headers: JSON_HEADERS,
-      body: JSON.stringify({ concurrency: 3 }),
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ concurrency: 3 }),
     });
     expect(res.status).toBe(400);
     expect(existsSync(missing)).toBe(false);

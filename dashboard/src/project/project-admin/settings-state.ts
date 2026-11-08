@@ -7,13 +7,7 @@
 // format, and reaches a run as a copy (`git/checkout-manifest.ts`). A
 // manifest the team tracks is theirs and is never written here.
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { manifestWithScalar } from "./manifest-io.ts";
@@ -28,19 +22,11 @@ export async function manifestTracked(
   run: GitRunner,
   dir: string,
 ): Promise<{ tracked: boolean | null; why?: string }> {
-  const res = await run(dir, [
-    "ls-files",
-    "--error-unmatch",
-    "--",
-    ".aide/project.yaml",
-  ]);
+  const res = await run(dir, ["ls-files", "--error-unmatch", "--", ".aide/project.yaml"]);
   if (res.code === 0) return { tracked: true };
   if (res.code === 1) return { tracked: false };
   const said = (res.stderr ?? "").trim() || (res.stdout ?? "").trim();
-  return {
-    tracked: null,
-    why: `git could not say whether .aide/project.yaml is tracked (exit ${res.code})${said ? `: ${said}` : ""}`,
-  };
+  return { tracked: null, why: `git could not say whether .aide/project.yaml is tracked (exit ${res.code})${said ? `: ${said}` : ""}` };
 }
 
 /** Where a project's settings are kept, for the page to say so:
@@ -50,10 +36,7 @@ export async function manifestTracked(
  *  A git that cannot say counts as not tracked. */
 export type SettingsHome = "project" | "dashboard" | "shadowed" | "none";
 
-export function settingsHome(
-  tracked: boolean | null,
-  settingsFileExists: boolean,
-): SettingsHome {
+export function settingsHome(tracked: boolean | null, settingsFileExists: boolean): SettingsHome {
   if (tracked) return settingsFileExists ? "shadowed" : "project";
   return settingsFileExists ? "dashboard" : "none";
 }
@@ -70,22 +53,14 @@ export function writeAtomically(file: string, text: string): void {
 /** What a settings file starts from: itself, else the first of `seeds`
  *  that exists (an untracked manifest an earlier Add or
  *  a person left behind — its content is never lost), else `fallbackText`. */
-export function settingsText(
-  file: string,
-  seeds: string[],
-  fallbackText = "",
-): string {
+export function settingsText(file: string, seeds: string[], fallbackText = ""): string {
   const source = [file, ...seeds].find((p) => existsSync(p));
   return source ? readFileSync(source, "utf-8") : fallbackText;
 }
 
 /** Make sure the settings file exists, seeded as `settingsText` says.
  *  An existing file is left exactly as it is. */
-export function seedSettingsFile(
-  file: string,
-  seeds: string[],
-  fallbackText = "",
-): void {
+export function seedSettingsFile(file: string, seeds: string[], fallbackText = ""): void {
   if (existsSync(file)) return;
   const text = settingsText(file, seeds, fallbackText);
   if (text) writeAtomically(file, text);
@@ -102,7 +77,6 @@ export function applySettingsEdits(
 ): void {
   const before = settingsText(file, seeds, fallbackText);
   let text = before;
-  for (const edit of edits)
-    text = manifestWithScalar(text, edit.key, edit.value, file);
+  for (const edit of edits) text = manifestWithScalar(text, edit.key, edit.value, file);
   if (text !== before || !existsSync(file)) writeAtomically(file, text);
 }

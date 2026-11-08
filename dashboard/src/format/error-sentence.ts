@@ -28,43 +28,25 @@ export interface ErrorSentence {
  *  dash, and hands the two parts back apart as `problem` and `solution`
  *  for a caller that stores or sends them as two lines. `detail` becomes
  *  the returned `title` — a hover attribute, never inline text. */
-export function errorSentence({
-  what,
-  resolve,
-  exempt,
-  detail,
-}: ErrorSentence): {
+export function errorSentence({ what, resolve, exempt, detail }: ErrorSentence): {
   problem: string;
   solution?: string;
   text: string;
   title?: string;
 } {
-  if (!resolve && !exempt)
-    throw new Error(`errorSentence: "${what}" has neither resolve nor exempt`);
-  return {
-    problem: what,
-    solution: resolve,
-    text: resolve ? `${what} — ${resolve}` : what,
-    title: detail,
-  };
+  if (!resolve && !exempt) throw new Error(`errorSentence: "${what}" has neither resolve nor exempt`);
+  return { problem: what, solution: resolve, text: resolve ? `${what} — ${resolve}` : what, title: detail };
 }
 
 /** A problem and its fix, as the message the board stores and renders as
  *  a Problem line and a Solution line. The blank is always filled: an
  *  empty fix draws the Problem line alone. */
-export function writtenMessage(
-  problem: string,
-  solution?: string,
-): BoardMessage {
-  return {
-    key: "message.written",
-    values: { problem, solution: solution ?? "" },
-  };
+export function writtenMessage(problem: string, solution?: string): BoardMessage {
+  return { key: "message.written", values: { problem, solution: solution ?? "" } };
 }
 
 /** The finished sentence's own first letter, capitalized — never the
  *  message catalog's (`docs/error-sentences.md`): a catalog entry is
  *  reused both on its own and glued behind a phase name, so only the
  *  fully composed row text is safe to touch here. */
-export const capitalizeFirst = (text: string): string =>
-  text.charAt(0).toUpperCase() + text.slice(1);
+export const capitalizeFirst = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);

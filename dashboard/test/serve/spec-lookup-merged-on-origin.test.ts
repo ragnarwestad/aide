@@ -8,17 +8,10 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  BranchStatusChecker,
-  type GitRunner,
-} from "../../src/git/branch-status.ts";
+import { BranchStatusChecker, type GitRunner } from "../../src/git/branch-status.ts";
 import type { CodeLanding } from "../../src/project/discover";
 import type { PullRequestAnswer } from "../../src/integrations/pull-requests.ts";
-import {
-  mergedPullRequest,
-  peekMergedOnOrigin,
-  type SpecLookupContext,
-} from "../../src/serve/spec-lookup.ts";
+import { mergedPullRequest, peekMergedOnOrigin, type SpecLookupContext } from "../../src/serve/spec-lookup.ts";
 
 const FOLDER = "37-the-arithmetic";
 const BRANCH = `aide/${FOLDER}`;
@@ -40,12 +33,9 @@ afterAll(() => rmSync(tmp, { recursive: true, force: true }));
  *  which it is not an ancestor of the default branch. */
 function gitSaying(notMerged: string[]): GitRunner {
   return async (dir, args) => {
-    if (args[0] === "ls-remote")
-      return { code: 0, stdout: `sha\trefs/heads/${BRANCH}\n` };
-    if (args[0] === "symbolic-ref")
-      return { code: 0, stdout: "refs/remotes/origin/main\n" };
-    if (args[0] === "merge-base")
-      return { code: notMerged.includes(dir) ? 1 : 0, stdout: "" };
+    if (args[0] === "ls-remote") return { code: 0, stdout: `sha\trefs/heads/${BRANCH}\n` };
+    if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/main\n" };
+    if (args[0] === "merge-base") return { code: notMerged.includes(dir) ? 1 : 0, stdout: "" };
     return { code: 0, stdout: "" };
   };
 }
@@ -59,19 +49,14 @@ async function lookup(o: {
   answer?: PullRequestAnswer;
   specsOutside?: boolean;
 }): Promise<SpecLookupContext> {
-  const branchStatus = new BranchStatusChecker({
-    run: gitSaying(o.notMerged),
-    ttlMs: 60_000,
-  });
+  const branchStatus = new BranchStatusChecker({ run: gitSaying(o.notMerged), ttlMs: 60_000 });
   const specs = o.specsOutside ? outsideSpecs : join(codeRoot, "specs");
   const ctx = {
     machineryProjectDir: () => codeRoot,
     machinerySpecsRoot: () => specs,
     branchStatus,
     codeLanding: () => o.landing,
-    pullRequests: new Map<string, PullRequestAnswer>(
-      o.answer ? [[KEY, o.answer]] : [],
-    ),
+    pullRequests: new Map<string, PullRequestAnswer>(o.answer ? [[KEY, o.answer]] : []),
   } as unknown as SpecLookupContext;
   for (const root of [codeRoot, specs]) {
     await branchStatus.openSpecBranches(root);
@@ -85,11 +70,7 @@ const everyRoot = (): string[] => [codeRoot, join(codeRoot, "specs")];
 
 describe("a pull request that merged counts for a project that reviews its code", () => {
   test("git says not an ancestor, GitHub says merged: merged", async () => {
-    const ctx = await lookup({
-      landing: "pr",
-      notMerged: everyRoot(),
-      answer: MERGED,
-    });
+    const ctx = await lookup({ landing: "pr", notMerged: everyRoot(), answer: MERGED });
     expect(peekMergedOnOrigin(ctx, "aide", FOLDER)).toBe(true);
   });
 
@@ -100,57 +81,24 @@ describe("a pull request that merged counts for a project that reviews its code"
 
   test("git says not an ancestor and GitHub has no merged request: not merged", async () => {
     const unmerged = everyRoot();
-    expect(
-      peekMergedOnOrigin(
-        await lookup({
-          landing: "pr",
-          notMerged: unmerged,
-          answer: { merged: false },
-        }),
-        "aide",
-        FOLDER,
-      ),
-    ).toBe(false);
-    expect(
-      peekMergedOnOrigin(
-        await lookup({ landing: "pr", notMerged: unmerged }),
-        "aide",
-        FOLDER,
-      ),
-    ).toBe(false);
+    expect(peekMergedOnOrigin(await lookup({ landing: "pr", notMerged: unmerged, answer: { merged: false } }), "aide", FOLDER)).toBe(false);
+    expect(peekMergedOnOrigin(await lookup({ landing: "pr", notMerged: unmerged }), "aide", FOLDER)).toBe(false);
   });
 
   test("a specs root in a repository of its own is answered by git alone", async () => {
-    const ctx = await lookup({
-      landing: "pr",
-      notMerged: [outsideSpecs],
-      answer: MERGED,
-      specsOutside: true,
-    });
+    const ctx = await lookup({ landing: "pr", notMerged: [outsideSpecs], answer: MERGED, specsOutside: true });
     expect(peekMergedOnOrigin(ctx, "aide", FOLDER)).toBe(false);
-    expect(
-      mergedPullRequest(ctx, "aide", FOLDER, outsideSpecs),
-    ).toBeUndefined();
+    expect(mergedPullRequest(ctx, "aide", FOLDER, outsideSpecs)).toBeUndefined();
     expect(mergedPullRequest(ctx, "aide", FOLDER, codeRoot)).toEqual(MERGED);
   });
 });
 
 describe("a project that merges its code at archive reads git's answer alone", () => {
   test("a stored merged request changes nothing", async () => {
-    const notMerged = await lookup({
-      landing: "merge",
-      notMerged: everyRoot(),
-      answer: MERGED,
-    });
-    const merged = await lookup({
-      landing: "merge",
-      notMerged: [],
-      answer: MERGED,
-    });
+    const notMerged = await lookup({ landing: "merge", notMerged: everyRoot(), answer: MERGED });
+    const merged = await lookup({ landing: "merge", notMerged: [], answer: MERGED });
     expect(peekMergedOnOrigin(notMerged, "aide", FOLDER)).toBe(false);
     expect(peekMergedOnOrigin(merged, "aide", FOLDER)).toBe(true);
-    expect(
-      mergedPullRequest(notMerged, "aide", FOLDER, codeRoot),
-    ).toBeUndefined();
+    expect(mergedPullRequest(notMerged, "aide", FOLDER, codeRoot)).toBeUndefined();
   });
 });

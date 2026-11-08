@@ -5,10 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  AideRunStore,
-  parseAideRun,
-} from "../../../src/queue/aide-run-store.ts";
+import { AideRunStore, parseAideRun } from "../../../src/queue/aide-run-store.ts";
 
 const valid = {
   host: "laptop",
@@ -75,10 +72,7 @@ describe("AideRunStore", () => {
   test("keys on sessionId, later command replaces the row", () => {
     const store = new AideRunStore();
     store.put({ ...valid }, "2026-08-16T10:00:00Z");
-    store.put(
-      { ...valid, command: "archive" as const },
-      "2026-08-16T11:00:00Z",
-    );
+    store.put({ ...valid, command: "archive" as const }, "2026-08-16T11:00:00Z");
     expect(store.list()).toHaveLength(1);
     expect(store.list()[0].command).toBe("archive");
   });
@@ -88,12 +82,7 @@ describe("AideRunStore", () => {
     store.put({ ...valid, sessionId: "s1" }, "t1");
     store.put({ ...valid, sessionId: "s2" }, "t2");
     store.put({ ...valid, sessionId: "s3" }, "t3");
-    expect(
-      store
-        .list()
-        .map((r) => r.sessionId)
-        .sort(),
-    ).toEqual(["s2", "s3"]);
+    expect(store.list().map((r) => r.sessionId).sort()).toEqual(["s2", "s3"]);
   });
 
   // The store used to be read only

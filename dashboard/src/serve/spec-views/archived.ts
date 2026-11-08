@@ -4,16 +4,8 @@
 // lines; every function is unchanged and keeps its name.
 import { specCloseReason, specFileText } from "../../project/discover";
 import { acceptanceRowsOf, parseStatus } from "../../project/parse-status";
-import {
-  specPhaseOutcome,
-  type PhaseOutcome,
-} from "../../project/parse-phase-outcome.ts";
-import {
-  filterShowsArchived,
-  NOT_VERIFIED_KEY,
-  PHASE_LINES,
-  type ArchivedSpecView,
-} from "../../render";
+import { specPhaseOutcome, type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
+import { filterShowsArchived, NOT_VERIFIED_KEY, PHASE_LINES, type ArchivedSpecView } from "../../render";
 import type { SpecViewsContext } from "./";
 
 /** Which steps an archived spec's own `4-status.md` CLAIMS it has had
@@ -53,9 +45,7 @@ export function archivedModels(dir: string): Record<string, string> {
  *  `4-status.md` alone. Beside `archivedModels` above, on the same
  *  terms: the file's own claim, an empty entry for a step whose file
  *  names nothing. */
-export function archivedPhaseOutcomes(
-  dir: string,
-): Record<string, PhaseOutcome> {
+export function archivedPhaseOutcomes(dir: string): Record<string, PhaseOutcome> {
   const result: Record<string, PhaseOutcome> = {};
   for (const step of PHASE_LINES) {
     const outcome = specPhaseOutcome(dir, step);
@@ -95,10 +85,7 @@ export function archivedPhaseOutcomes(
  *  Nothing here runs git: `archivedAt` and the not-landed mark are
  *  peeks against caches a background schedule keeps warm,
  *  exactly as `/archive` relied on. */
-export function archivedSpecRows(
-  ctx: SpecViewsContext,
-  state: string | undefined,
-): ArchivedSpecView[] {
+export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefined): ArchivedSpecView[] {
   if (!ctx.projectRoot) return [];
   // Fills `scan`, and — through `peekUnlanded` below — refills
   // `unlanded`, which `resolveProject` reads to decide whether an
@@ -118,8 +105,7 @@ export function archivedSpecRows(
   // lines the first run failed on, off whichever job recorded them.
   const retried = new Map<string, string>();
   for (const job of ctx.queue.list()) {
-    if (job.testsGreenOnRetry)
-      retried.set(`${job.project}/${job.specFolder}`, job.testsGreenOnRetry);
+    if (job.testsGreenOnRetry) retried.set(`${job.project}/${job.specFolder}`, job.testsGreenOnRetry);
   }
   for (const key of scan?.archived ?? []) {
     const cut = key.indexOf("/");
@@ -128,10 +114,7 @@ export function archivedSpecRows(
     // Merged in every root that holds it: the work landed and only a
     // cleanup is left, so the spec is archived. A closed spec's branch
     // was never meant to merge, and its row reads as before.
-    const merged =
-      open.has(key) &&
-      !ref?.closed &&
-      ctx.peekMergedOnOrigin(project, key.slice(cut + 1));
+    const merged = open.has(key) && !ref?.closed && ctx.peekMergedOnOrigin(project, key.slice(cut + 1));
     // The two marks come from one fact and mean opposite things,
     // so one wins outright rather than both being set and the
     // renderer picking: a review that is still open, unless the merged
@@ -150,28 +133,17 @@ export function archivedSpecRows(
     // The Not verified entry builds only the rows it lists — the count is
     // on the ref, so the rest of the archive costs no file read. A row
     // that is built anyway (its branch is still open) is not skipped.
-    if (
-      state === NOT_VERIFIED_KEY &&
-      !notLanded &&
-      !(ref.notVerified ?? 0) &&
-      !(ref.failed ?? 0)
-    )
-      continue;
+    if (state === NOT_VERIFIED_KEY && !notLanded && !(ref.notVerified ?? 0) && !(ref.failed ?? 0)) continue;
     // The newest landing's own reason its delete failed, when
     // there is one — read off the job store rather than re-derived, so
     // this can never disagree with what `mergeBranchIntoDefault` itself
     // found. `undefined` here just means no job recorded one; the row
     // still falls through to the plain `NOT_LANDED` wording.
-    const branchDeleteError = notLanded
-      ? ctx.queue.branchDeleteErrorFor(project, ref.folder)
-      : undefined;
+    const branchDeleteError = notLanded ? ctx.queue.branchDeleteErrorFor(project, ref.folder) : undefined;
     // The spec's own creation date. A peek, never a
     // take (the rule for every question on this route):
     // `refreshSpecCaches` is what warms this, never a request.
-    const created = ctx.specCreatedAt.peekCreatedAtForArchived(
-      ref.dir,
-      ref.folder,
-    );
+    const created = ctx.specCreatedAt.peekCreatedAtForArchived(ref.dir, ref.folder);
     rows.push({
       project,
       folder: ref.folder,
@@ -188,9 +160,7 @@ export function archivedSpecRows(
       // hundred jobs and the archive grows past that, so an old row
       // simply has no link — the mark still says the branch is open,
       // which is the part that matters.
-      prUrl: prWaiting
-        ? ctx.queue.pullRequestFor(project, ref.folder).prUrl
-        : undefined,
+      prUrl: prWaiting ? ctx.queue.pullRequestFor(project, ref.folder).prUrl : undefined,
       // The row opens now, and this is what it opens on.
       done: archivedSteps(ref.dir),
       models: archivedModels(ref.dir),
@@ -206,9 +176,7 @@ export function archivedSpecRows(
         (ref.notVerified ?? 0) + (ref.failed ?? 0) > 0 && !ref.closed
           ? acceptanceRowsOf(specFileText(ref.dir, "4-status.md") ?? "")
           : undefined,
-      closeReason: ref.closed
-        ? (specCloseReason(ref.dir) ?? undefined)
-        : undefined,
+      closeReason: ref.closed ? (specCloseReason(ref.dir) ?? undefined) : undefined,
     });
   }
   return rows;

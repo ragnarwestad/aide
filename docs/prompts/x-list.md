@@ -23,7 +23,6 @@ in the repository: commit nothing and push nothing.
    The browser whose title is the token is the one to use; close that tab and keep it selected.
    Close the tab in every other browser you tried. When no browser shows the token, stop: the list cannot be read,
    because this machine's Chrome is not connected.
-
 2. Open https://x.com/i/lists/1992629307080929379 in a new tab.
 3. Collect the posts with mcp__claude-in-chrome__javascript_tool, running this script exactly
    as written. Do not read posts from a screenshot or the page text: X keeps only the posts near
@@ -33,48 +32,33 @@ in the repository: commit nothing and push nothing.
 
    ```javascript
    const since = Date.now() - 24 * 3600 * 1000;
-   const clean = (s) =>
-     s
-       .replace(/\S*(https?:|www\.|\.com|\.ai|\.io|\.dev)\S*/g, "[link]")
-       .replace(/[?=&;%]/g, " ")
-       .replace(/\n+/g, " | ");
+   const clean = s => s.replace(/\S*(https?:|www\.|\.com|\.ai|\.io|\.dev)\S*/g, '[link]').replace(/[?=&;%]/g, ' ').replace(/\n+/g, ' | ');
    const seen = new Map();
    let done = false;
    window.scrollTo(0, 0);
-   await new Promise((r) => setTimeout(r, 1500));
+   await new Promise(r => setTimeout(r, 1500));
    for (let round = 0; round < 60 && !done; round++) {
      const times = [];
-     document.querySelectorAll("article").forEach((a) => {
-       const t = a.querySelector("time")?.getAttribute("datetime");
-       const href = [...a.querySelectorAll("a")]
-         .map((x) => x.getAttribute("href") || "")
-         .find((h) => /^\/\w+\/status\/\d+$/.test(h));
+     document.querySelectorAll('article').forEach(a => {
+       const t = a.querySelector('time')?.getAttribute('datetime');
+       const href = [...a.querySelectorAll('a')].map(x => x.getAttribute('href') || '').find(h => /^\/\w+\/status\/\d+$/.test(h));
        if (!t || !href) return;
        const at = Date.parse(t);
        times.push(at);
-       if (at >= since && !seen.has(href))
-         seen.set(
-           href,
-           t.slice(11, 16) +
-             " " +
-             href.slice(1) +
-             " :: " +
-             clean(a.innerText).slice(0, 280),
-         );
+       if (at >= since && !seen.has(href)) seen.set(href, t.slice(11, 16) + ' ' + href.slice(1) + ' :: ' + clean(a.innerText).slice(0, 280));
      });
-     done = times.length >= 3 && times.slice(-3).every((at) => at < since);
+     done = times.length >= 3 && times.slice(-3).every(at => at < since);
      window.scrollBy(0, 2500);
-     await new Promise((r) => setTimeout(r, 1500));
+     await new Promise(r => setTimeout(r, 1500));
    }
    window.__list = [...seen.values()];
-   window.__list.length;
+   window.__list.length
    ```
 
    The tool cuts its output at about 1000 characters, so read the posts back three at a time,
    with `window.__list.slice(0, 3).join('\n\n')`, then `slice(3, 6)`, and so on until every post
    has been read. Each line starts with the time (UTC), then `handle/status/ID`. A post whose
    text ends in "Show more" is cut short; open it and read it whole when it may matter to Aide.
-
 4. Keep only what matters to Aide: news or releases for Claude Code, Codex, OpenCode or Copilot;
    security incidents in AI coding tools; how people run agents, evals, specs, hooks, skills,
    reviews or tests; measured results. Leave out promotion, newsletters, politics, games and jokes.

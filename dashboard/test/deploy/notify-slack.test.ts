@@ -34,21 +34,13 @@ function webhook() {
   });
   // Awaited by the callers: the next test starts its own server, and a
   // port still closing is a flake waiting to happen.
-  return {
-    posted,
-    url: `http://127.0.0.1:${server.port}/hook`,
-    stop: () => server.stop(true),
-  };
+  return { posted, url: `http://127.0.0.1:${server.port}/hook`, stop: () => server.stop(true) };
 }
 
-async function run(
-  payload: unknown,
-  opts: { webhookUrl?: string } = {},
-): Promise<number> {
+async function run(payload: unknown, opts: { webhookUrl?: string } = {}): Promise<number> {
   const dir = workspace();
   const file = join(dir, "slack-webhook");
-  if (opts.webhookUrl !== undefined)
-    writeFileSync(file, `${opts.webhookUrl}\n`);
+  if (opts.webhookUrl !== undefined) writeFileSync(file, `${opts.webhookUrl}\n`);
   chmodSync(SCRIPT, 0o755);
   const proc = Bun.spawn({
     cmd: scriptArgv([SCRIPT]),
@@ -67,8 +59,7 @@ const FINISHED = {
   step: "analyze",
   jobId: "job-1",
   costUsd: 2.1,
-  branchUrl:
-    "https://github.com/example/aide/compare/main...aide/81-queue-and-runner",
+  branchUrl: "https://github.com/example/aide/compare/main...aide/81-queue-and-runner",
   at: "2026-08-16T22:00:00Z",
 };
 
@@ -91,10 +82,7 @@ describe("the line a phone shows at 02:00", () => {
   test("a stop names its reason — a time-stop must not read as a crash", async () => {
     const hook = webhook();
     try {
-      await run(
-        { ...FINISHED, event: "stopped", reason: "timeout" },
-        { webhookUrl: hook.url },
-      );
+      await run({ ...FINISHED, event: "stopped", reason: "timeout" }, { webhookUrl: hook.url });
       expect(hook.posted[0]!.text).toContain("stopped: timeout");
       expect(hook.posted[0]!.text).not.toContain("failed");
     } finally {
@@ -109,8 +97,6 @@ describe("failing quietly", () => {
   });
 
   test("an unreachable webhook is still exit 0", async () => {
-    expect(await run(FINISHED, { webhookUrl: "http://127.0.0.1:9/hook" })).toBe(
-      0,
-    );
+    expect(await run(FINISHED, { webhookUrl: "http://127.0.0.1:9/hook" })).toBe(0);
   });
 });

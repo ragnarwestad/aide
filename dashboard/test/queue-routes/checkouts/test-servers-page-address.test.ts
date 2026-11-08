@@ -3,15 +3,10 @@
 // open that.
 import { afterEach, describe, expect, test } from "bun:test";
 import { MAIN_TEST_SERVER_KEY } from "../../../src/serve/test-servers/lifecycle.ts";
-import type {
-  TestServer,
-  TestServerStore,
-} from "../../../src/serve/test-servers/store.ts";
+import type { TestServer, TestServerStore } from "../../../src/serve/test-servers/store.ts";
 import { setupQueueRoutesHarness } from "../fixtures.ts";
 
-const { harness, start } = setupQueueRoutesHarness(
-  "aide-test-servers-address-",
-);
+const { harness, start } = setupQueueRoutesHarness("aide-test-servers-address-");
 afterEach(() => harness.cleanup());
 
 const FOLDER = "82-a-spec";
@@ -30,15 +25,8 @@ const board = (overrides: Partial<TestServer> = {}): TestServer => ({
   ...overrides,
 });
 
-const pageFor = async (
-  headers: Record<string, string>,
-  allowedHosts: string[],
-  seed: (s: TestServerStore) => void,
-) => {
-  const { base, server } = start({
-    testServersIsAlive: () => true,
-    allowedHosts,
-  });
+const pageFor = async (headers: Record<string, string>, allowedHosts: string[], seed: (s: TestServerStore) => void) => {
+  const { base, server } = start({ testServersIsAlive: () => true, allowedHosts });
   seed(server.testServersStore());
   return (await fetch(`${base}/test-servers`, { headers })).text();
 };
@@ -50,16 +38,12 @@ describe("the Address link on /test-servers", () => {
       ["rw-macmini.ts.net"],
       (s) => s.set("aide", FOLDER, board()),
     );
-    expect(html).toContain(
-      'href="https://rw-macmini.ts.net:8801/?token=t0ken"',
-    );
+    expect(html).toContain('href="https://rw-macmini.ts.net:8801/?token=t0ken"');
     expect(html).not.toContain("127.0.0.1");
   });
 
   test("without a forwarding header the scheme is the request's own", async () => {
-    const html = await pageFor({ host: "box.local:8788" }, ["box.local"], (s) =>
-      s.set("aide", FOLDER, board()),
-    );
+    const html = await pageFor({ host: "box.local:8788" }, ["box.local"], (s) => s.set("aide", FOLDER, board()));
     expect(html).toContain('href="http://box.local:8801/?token=t0ken"');
   });
 
@@ -68,20 +52,8 @@ describe("the Address link on /test-servers", () => {
       { host: "box.local:8788" },
       ["box.local"],
       (s) => {
-        s.set(
-          "aide",
-          MAIN_TEST_SERVER_KEY,
-          board({
-            branch: "main",
-            port: 8802,
-            url: "http://127.0.0.1:8802/?token=m4in",
-          }),
-        );
-        s.set(
-          "aide",
-          FOLDER,
-          board({ status: "starting", pid: undefined, url: undefined }),
-        );
+        s.set("aide", MAIN_TEST_SERVER_KEY, board({ branch: "main", port: 8802, url: "http://127.0.0.1:8802/?token=m4in" }));
+        s.set("aide", FOLDER, board({ status: "starting", pid: undefined, url: undefined }));
       },
     );
     expect(html).toContain('href="http://box.local:8802/?token=m4in"');

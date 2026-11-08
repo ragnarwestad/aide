@@ -11,90 +11,41 @@ import { noPullRequest, row } from "../../fixtures.ts";
 // What a phase's log says about the phase's state, beside its transcript:
 // the explanations its State/Action cell no longer carries.
 
-const phase = (step: string, extra: Partial<Phase> = {}): Phase => ({
-  step,
-  attempts: [],
-  history: {},
-  ...extra,
-});
-const group = (extra: { analyzeStale?: boolean; done?: string[] } = {}) => ({
-  done: ["create"],
-  analyzeStale: false,
-  ...extra,
-});
+const phase = (step: string, extra: Partial<Phase> = {}): Phase => ({ step, attempts: [], history: {}, ...extra });
+const group = (extra: { analyzeStale?: boolean; done?: string[] } = {}) => ({ done: ["create"], analyzeStale: false, ...extra });
 const ended = (step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
   row({ steps: [step], stepIndex: 0, state: "done", ...extra });
 
 describe("phaseExplanations", () => {
   test("a description changed since the analysis is said on the analysis phase and no other", () => {
     const g = group({ analyzeStale: true });
-    expect(phaseExplanations(g, phase("analyze"), "en")).toEqual([
-      t("en", "list.descriptionChangedSince"),
-    ]);
-    for (const step of ["create", "implement", "archive"])
-      expect(phaseExplanations(g, phase(step), "en")).toEqual([]);
+    expect(phaseExplanations(g, phase("analyze"), "en")).toEqual([t("en", "list.descriptionChangedSince")]);
+    for (const step of ["create", "implement", "archive"]) expect(phaseExplanations(g, phase(step), "en")).toEqual([]);
   });
 
   test("the explanation is gone once the analysis is up to date, and follows the language", () => {
     expect(phaseExplanations(group(), phase("analyze"), "en")).toEqual([]);
-    expect(
-      phaseExplanations(group({ analyzeStale: true }), phase("analyze"), "nb"),
-    ).toEqual([t("nb", "list.descriptionChangedSince")]);
+    expect(phaseExplanations(group({ analyzeStale: true }), phase("analyze"), "nb")).toEqual([t("nb", "list.descriptionChangedSince")]);
   });
 
   test("a pull request the latest attempt could not open is said, and a newer attempt that opened one clears it", () => {
-    const archived = group({
-      done: ["create", "analyze", "implement", "archive"],
-    });
+    const archived = group({ done: ["create", "analyze", "implement", "archive"] });
     const failed = ended("archive", noPullRequest("archive"));
-    expect(
-      phaseExplanations(
-        archived,
-        phase("archive", { attempts: [failed] }),
-        "en",
-      ),
-    ).toEqual([prErrorSentence("en")]);
-    const opened = ended("archive", {
-      id: "job-new",
-      results: [
-        { step: "archive", ok: true, costUsd: 0, terminalReason: "completed" },
-      ],
-    });
-    expect(
-      phaseExplanations(
-        archived,
-        phase("archive", { attempts: [opened, failed] }),
-        "en",
-      ),
-    ).toEqual([]);
+    expect(phaseExplanations(archived, phase("archive", { attempts: [failed] }), "en")).toEqual([prErrorSentence("en")]);
+    const opened = ended("archive", { id: "job-new", results: [{ step: "archive", ok: true, costUsd: 0, terminalReason: "completed" }] });
+    expect(phaseExplanations(archived, phase("archive", { attempts: [opened, failed] }), "en")).toEqual([]);
   });
 
   test("the phase's own qualifier is said together with the other explanations, each once", () => {
-    const stopped = phase("analyze", {
-      history: { stopped: "provider-limit" },
-    });
-    const said = phaseExplanations(
-      group({ analyzeStale: true }),
-      stopped,
-      "en",
-    );
+    const stopped = phase("analyze", { history: { stopped: "provider-limit" } });
+    const said = phaseExplanations(group({ analyzeStale: true }), stopped, "en");
     expect(said).toHaveLength(2);
     expect(said[0]).toBe(t("en", "list.descriptionChangedSince"));
-    expect(said[1]!.toLowerCase()).toContain(
-      renderSentence("en", stopSentence("provider-limit"))!
-        .replace(/^Problem: /, "")
-        .toLowerCase(),
-    );
+    expect(said[1]!.toLowerCase()).toContain(renderSentence("en", stopSentence("provider-limit"))!.replace(/^Problem: /, "").toLowerCase());
     expect(new Set(said).size).toBe(said.length);
   });
 
   test("a phase with nothing to add has no explanations", () => {
-    expect(
-      phaseExplanations(
-        group({ done: ["create", "analyze"] }),
-        phase("analyze", { attempts: [ended("analyze")] }),
-        "en",
-      ),
-    ).toEqual([]);
+    expect(phaseExplanations(group({ done: ["create", "analyze"] }), phase("analyze", { attempts: [ended("analyze")] }), "en")).toEqual([]);
   });
 });

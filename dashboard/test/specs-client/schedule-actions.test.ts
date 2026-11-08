@@ -5,19 +5,11 @@
 // `#jobrows`, so this page has no row-swap machinery to exercise.
 import { describe, expect, test } from "bun:test";
 import {
-  followScheduleRow,
-  leaveAfterSave,
-  postScheduleEnabled,
-  postScheduleRun,
-  runCronPreview,
-  scheduleCronPreview,
+  followScheduleRow, leaveAfterSave, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview,
   submitScheduleForm,
 } from "../../src/specs-client/schedule-actions.ts";
 
-function fakeCheckbox(o: {
-  checked: boolean;
-  postTo: string;
-}): HTMLInputElement {
+function fakeCheckbox(o: { checked: boolean; postTo: string }): HTMLInputElement {
   const box = {
     checked: o.checked,
     disabled: false,
@@ -26,9 +18,7 @@ function fakeCheckbox(o: {
   return box as unknown as HTMLInputElement;
 }
 
-function fakeFetch(
-  handler: (url: string, init?: RequestInit) => { ok: boolean; body?: unknown },
-): typeof fetch {
+function fakeFetch(handler: (url: string, init?: RequestInit) => { ok: boolean; body?: unknown }): typeof fetch {
   return (async (url: string, init?: RequestInit) => {
     const { ok, body } = handler(url, init);
     return { ok, json: async () => body } as Response;
@@ -37,10 +27,7 @@ function fakeFetch(
 
 describe("postScheduleEnabled", () => {
   test("disables the box, posts the wanted value, and leaves it checked on success", async () => {
-    const box = fakeCheckbox({
-      checked: true,
-      postTo: "/api/queue/schedule/aide/nightly/enabled",
-    });
+    const box = fakeCheckbox({ checked: true, postTo: "/api/queue/schedule/aide/nightly/enabled" });
     const calls: { url: string; body: string }[] = [];
     const fetchImpl = fakeFetch((url, init) => {
       calls.push({ url, body: String(init?.body ?? "") });
@@ -55,14 +42,8 @@ describe("postScheduleEnabled", () => {
   });
 
   test("puts the tick back on a refusal", async () => {
-    const box = fakeCheckbox({
-      checked: false,
-      postTo: "/api/queue/schedule/aide/nightly/enabled",
-    });
-    const fetchImpl = fakeFetch(() => ({
-      ok: false,
-      body: { error: "refused" },
-    }));
+    const box = fakeCheckbox({ checked: false, postTo: "/api/queue/schedule/aide/nightly/enabled" });
+    const fetchImpl = fakeFetch(() => ({ ok: false, body: { error: "refused" } }));
     await postScheduleEnabled(box, fetchImpl);
     expect(box.checked).toBe(true);
     expect(box.disabled).toBe(false);
@@ -85,14 +66,9 @@ function fakeSlot(): HTMLElement {
 }
 
 /** Answers `closest("main")` by selector, and `querySelector` by what is asked for. */
-function fakeRunForm(
-  action: string,
-  slot: HTMLElement = fakeSlot(),
-): HTMLFormElement {
+function fakeRunForm(action: string, slot: HTMLElement = fakeSlot()): HTMLFormElement {
   const button = { disabled: false };
-  const main = {
-    querySelector: (sel: string) => (sel === ".refused" ? slot : null),
-  };
+  const main = { querySelector: (sel: string) => (sel === ".refused" ? slot : null) };
   return {
     action,
     querySelector: () => button,
@@ -104,10 +80,7 @@ describe("postScheduleRun", () => {
   test("a refusal leaves its reason in the page's slot", async () => {
     const slot = fakeSlot();
     const form = fakeRunForm("/api/queue/schedule/aide/nightly/run", slot);
-    const fetchImpl = fakeFetch(() => ({
-      ok: false,
-      body: { error: "refused" },
-    }));
+    const fetchImpl = fakeFetch(() => ({ ok: false, body: { error: "refused" } }));
     await postScheduleRun(form, fetchImpl);
     expect(slot.textContent).toBe("Problem: Refused");
   });
@@ -115,26 +88,15 @@ describe("postScheduleRun", () => {
   test("a later accepted press empties the slot", async () => {
     const slot = fakeSlot();
     const form = fakeRunForm("/api/queue/schedule/aide/nightly/run", slot);
-    await postScheduleRun(
-      form,
-      fakeFetch(() => ({ ok: false, body: { error: "refused" } })),
-    );
-    await postScheduleRun(
-      form,
-      fakeFetch(() => ({
-        ok: true,
-        body: { ok: true, job: { state: "queued" } },
-      })),
-    );
+    await postScheduleRun(form, fakeFetch(() => ({ ok: false, body: { error: "refused" } })));
+    await postScheduleRun(form, fakeFetch(() => ({ ok: true, body: { ok: true, job: { state: "queued" } } })));
     expect(slot.textContent).toBe("");
   });
 
   test("a request that fails outright says so in the slot", async () => {
     const slot = fakeSlot();
     const form = fakeRunForm("/x", slot);
-    await postScheduleRun(form, (async () => {
-      throw new Error("offline");
-    }) as unknown as typeof fetch);
+    await postScheduleRun(form, (async () => { throw new Error("offline"); }) as unknown as typeof fetch);
     expect(slot.textContent).toBe("Problem: The request failed");
   });
 });
@@ -147,11 +109,7 @@ function fakeTarget(): HTMLElement {
   const classes = new Set<string>();
   return {
     textContent: "",
-    classList: {
-      add: (c: string) => classes.add(c),
-      remove: (c: string) => classes.delete(c),
-      contains: (c: string) => classes.has(c),
-    },
+    classList: { add: (c: string) => classes.add(c), remove: (c: string) => classes.delete(c), contains: (c: string) => classes.has(c) },
   } as unknown as HTMLElement;
 }
 
@@ -159,35 +117,19 @@ describe("runCronPreview / scheduleCronPreview", () => {
   test("a valid cron writes the computed Next-run line", async () => {
     const input = fakeCronInput("0 3 * * *");
     const target = fakeTarget();
-    const fetchImpl = fakeFetch(() => ({
-      ok: true,
-      body: { next: "2026-08-30T03:00:00.000Z" },
-    }));
+    const fetchImpl = fakeFetch(() => ({ ok: true, body: { next: "2026-08-30T03:00:00.000Z" } }));
     await runCronPreview(input, target, fetchImpl);
     expect(target.textContent).toBe("Next run: 2026-08-30T03:00:00.000Z");
-    expect(
-      (
-        target.classList as unknown as { contains: (c: string) => boolean }
-      ).contains("err"),
-    ).toBe(false);
+    expect((target.classList as unknown as { contains: (c: string) => boolean }).contains("err")).toBe(false);
   });
 
   test("an invalid cron writes the server's error inline instead of a timestamp", async () => {
     const input = fakeCronInput("not-a-cron");
     const target = fakeTarget();
-    const fetchImpl = fakeFetch(() => ({
-      ok: false,
-      body: { error: '"not-a-cron" is not a valid cron expression' },
-    }));
+    const fetchImpl = fakeFetch(() => ({ ok: false, body: { error: '"not-a-cron" is not a valid cron expression' } }));
     await runCronPreview(input, target, fetchImpl);
-    expect(target.textContent).toBe(
-      '"not-a-cron" is not a valid cron expression',
-    );
-    expect(
-      (
-        target.classList as unknown as { contains: (c: string) => boolean }
-      ).contains("err"),
-    ).toBe(true);
+    expect(target.textContent).toBe('"not-a-cron" is not a valid cron expression');
+    expect((target.classList as unknown as { contains: (c: string) => boolean }).contains("err")).toBe(true);
   });
 
   test("an empty field clears the line without asking the server", async () => {
@@ -227,14 +169,7 @@ describe("runCronPreview / scheduleCronPreview", () => {
 describe("submitScheduleForm", () => {
   async function press(answer: { ok: boolean; body: unknown }) {
     const slot = { textContent: "" };
-    const button = {
-      disabled: false,
-      textContent: "Save",
-      title: "",
-      dataset: {},
-      classList: { contains: () => false, add() {}, remove() {} },
-      isConnected: true,
-    };
+    const button = { disabled: false, textContent: "Save", title: "", dataset: {}, classList: { contains: () => false, add() {}, remove() {} }, isConnected: true };
     const form = {
       id: "schedule-form",
       action: "http://dash.test/api/queue/schedule/aide/nightly",
@@ -243,34 +178,17 @@ describe("submitScheduleForm", () => {
       querySelectorAll: () => [button],
       querySelector: (sel: string) => (sel === ".refused" ? slot : null),
     };
-    const saved = {
-      document: globalThis.document,
-      location: globalThis.location,
-      fetch: globalThis.fetch,
-      FormData: globalThis.FormData,
-    };
+    const saved = { document: globalThis.document, location: globalThis.location, fetch: globalThis.fetch, FormData: globalThis.FormData };
     const went: string[] = [];
-    const loc = {
-      href: "http://dash.test/schedule/aide/nightly?tab=settings&edit=1",
-      pathname: "/schedule/aide/nightly",
-      search: "?tab=settings&edit=1",
-    };
+    const loc = { href: "http://dash.test/schedule/aide/nightly?tab=settings&edit=1", pathname: "/schedule/aide/nightly", search: "?tab=settings&edit=1" };
     Object.assign(globalThis, {
       document: { querySelectorAll: () => [] },
       location: loc,
       fetch: fakeFetch(() => answer),
-      FormData: class {
-        forEach(fn: (v: string, k: string) => void) {
-          fn("nightly", "name");
-        }
-      },
+      FormData: class { forEach(fn: (v: string, k: string) => void) { fn("nightly", "name"); } },
     });
     try {
-      await submitScheduleForm(
-        form as unknown as HTMLFormElement,
-        { defaultPrevented: false, preventDefault() {} } as Event,
-        (h) => went.push(h),
-      );
+      await submitScheduleForm(form as unknown as HTMLFormElement, { defaultPrevented: false, preventDefault() {} } as Event, (h) => went.push(h));
     } finally {
       Object.assign(globalThis, saved);
     }
@@ -278,19 +196,13 @@ describe("submitScheduleForm", () => {
   }
 
   test("a save goes where the server says: the page the form was opened from", async () => {
-    const { went, slot } = await press({
-      ok: true,
-      body: { ok: true, location: "/projects/aide?tab=schedule" },
-    });
+    const { went, slot } = await press({ ok: true, body: { ok: true, location: "/projects/aide?tab=schedule" } });
     expect(went).toEqual(["/projects/aide?tab=schedule"]);
     expect(slot.textContent).toBe("");
   });
 
   test("a refusal is written into the form's error line, and the page stays", async () => {
-    const { went, slot } = await press({
-      ok: false,
-      body: { error: "a job named nightly already exists" },
-    });
+    const { went, slot } = await press({ ok: false, body: { error: "a job named nightly already exists" } });
     expect(slot.textContent).toContain("A job named nightly already exists");
     expect(went).toEqual([]);
   });
@@ -299,34 +211,21 @@ describe("submitScheduleForm", () => {
 // Where a save goes on to: back onto the entry's own page as an ordinary
 // load, so that page keeps its "← Back"; anywhere else without a Referer.
 describe("leaveAfterSave", () => {
-  const here = {
-    href: "http://dash.test/schedule/aide/nightly?tab=settings&edit=1",
-    host: "dash.test",
-    pathname: "/schedule/aide/nightly",
-  };
+  const here = { href: "http://dash.test/schedule/aide/nightly?tab=settings&edit=1", host: "dash.test", pathname: "/schedule/aide/nightly" };
 
   function leave(href: string) {
     const way: string[] = [];
-    leaveAfterSave(href, here, {
-      load: (to) => way.push(`load ${to}`),
-      leave: (to) => way.push(`leave ${to}`),
-    });
+    leaveAfterSave(href, here, { load: (to) => way.push(`load ${to}`), leave: (to) => way.push(`leave ${to}`) });
     return way;
   }
 
   test("an answer on the page the form is on loads it with the page as Referer", () => {
-    expect(leave("/schedule/aide/nightly?tab=settings")).toEqual([
-      "load /schedule/aide/nightly?tab=settings",
-    ]);
+    expect(leave("/schedule/aide/nightly?tab=settings")).toEqual(["load /schedule/aide/nightly?tab=settings"]);
   });
 
   test("an answer on another path leaves without a Referer", () => {
-    expect(leave("/schedule/aide/weekly?tab=settings")).toEqual([
-      "leave /schedule/aide/weekly?tab=settings",
-    ]);
-    expect(leave("/projects/aide?tab=schedule")).toEqual([
-      "leave /projects/aide?tab=schedule",
-    ]);
+    expect(leave("/schedule/aide/weekly?tab=settings")).toEqual(["leave /schedule/aide/weekly?tab=settings"]);
+    expect(leave("/projects/aide?tab=schedule")).toEqual(["leave /projects/aide?tab=schedule"]);
   });
 });
 
@@ -334,23 +233,9 @@ describe("followScheduleRow", () => {
   /** A click landing on an element inside a row whose target is `/x`;
    *  `onControl` says whether that element sits in one of the row's controls. */
   const click = (onControl: boolean, extra: Partial<MouseEvent> = {}) => {
-    const row = {
-      getAttribute: (n: string) => (n === "data-row-href" ? "/x" : null),
-    };
-    const target = {
-      closest: (sel: string) =>
-        sel.startsWith("tr[") ? row : onControl ? {} : null,
-    };
-    return {
-      defaultPrevented: false,
-      button: 0,
-      metaKey: false,
-      ctrlKey: false,
-      shiftKey: false,
-      altKey: false,
-      target,
-      ...extra,
-    } as unknown as MouseEvent;
+    const row = { getAttribute: (n: string) => (n === "data-row-href" ? "/x" : null) };
+    const target = { closest: (sel: string) => (sel.startsWith("tr[") ? row : onControl ? {} : null) };
+    return { defaultPrevented: false, button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, target, ...extra } as unknown as MouseEvent;
   };
 
   test("a click on the row itself opens what the row links to", () => {
@@ -362,9 +247,7 @@ describe("followScheduleRow", () => {
   test("a click on one of the row's controls, or with a modifier key, is left to the browser", () => {
     const went: string[] = [];
     expect(followScheduleRow(click(true), (h) => went.push(h))).toBeNull();
-    expect(
-      followScheduleRow(click(false, { metaKey: true }), (h) => went.push(h)),
-    ).toBeNull();
+    expect(followScheduleRow(click(false, { metaKey: true }), (h) => went.push(h))).toBeNull();
     expect(went).toEqual([]);
   });
 });

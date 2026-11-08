@@ -31,10 +31,7 @@ import type { Job } from "../../queue/queue.ts";
  *  learns its folder before its checkout moves, so the name alone does
  *  not say the landing has finished — and the queue refuses a step for
  *  the spec while it has not. */
-export function settledCreateFolder(job: {
-  specFolder: string;
-  landing?: Job["landing"];
-}): string | undefined {
+export function settledCreateFolder(job: { specFolder: string; landing?: Job["landing"] }): string | undefined {
   if (/^new-[0-9a-f]{8}$/.test(job.specFolder)) return undefined;
   if (job.landing) return undefined;
   return job.specFolder;
@@ -51,17 +48,10 @@ export function createEnd(
   const folder = settledCreateFolder(job);
   const meantToFail = spec.expected === "create-failed";
   if (folder) {
-    if (meantToFail)
-      throw new Error(
-        `${spec.slug} was meant to fail its create, and made ${folder}`,
-      );
+    if (meantToFail) throw new Error(`${spec.slug} was meant to fail its create, and made ${folder}`);
     return { folder };
   }
-  if (
-    job.state === "failed" ||
-    job.state === "cancelled" ||
-    job.state === "stopped"
-  ) {
+  if (job.state === "failed" || job.state === "cancelled" || job.state === "stopped") {
     if (meantToFail && job.state === "failed") return { failed: true };
     throw new Error(`create ${job.state} for ${spec.slug}`);
   }
@@ -139,39 +129,27 @@ export function resetRoundState(): void {
  *  specs` the script reads. `roundFixturesDir` overrides it (a test
  *  seam). */
 function fixturesDir(ctx: RoutesContext): string {
-  return (
-    ctx.opts.roundFixturesDir ??
-    join(import.meta.dir, "..", "..", "..", "test", "round", "specs")
-  );
+  return ctx.opts.roundFixturesDir ?? join(import.meta.dir, "..", "..", "..", "test", "round", "specs");
 }
 
 /** `undefined` for a path that is not this route's own, so it joins the
  *  same `??`-chain `handleRoutes()`'s dispatcher already is. */
-export function selfRunRoute(
-  ctx: RoutesContext,
-  req: Request,
-  path: string,
-): Response | null {
+export function selfRunRoute(ctx: RoutesContext, req: Request, path: string): Response | null {
   if (path !== "/api/self-run") return null;
   // An ordinary (prod) server never draws the Run button, but a request
   // can be sent by hand regardless of what the page draws.
   if (!getBoardInfo()) return new Response("not a test board", { status: 404 });
   if (req.method === "GET") return json(current);
-  if (req.method !== "POST")
-    return new Response("method not allowed", { status: 405 });
+  if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   // A board started from a spec's branch previews that spec: the round
   // script seeds its fixtures through this same route ONCE, when the
   // board comes up, and no press after that runs them again — the page
   // draws no Run button there, and a press sent by hand is refused.
-  if (!isRoundBoard() && current.stage !== "idle")
-    return new Response("not a round board", { status: 404 });
+  if (!isRoundBoard() && current.stage !== "idle") return new Response("not a round board", { status: 404 });
   // A running round can be pressed over — that is what cancels it and
   // starts again; one still being put back or queued cannot.
   if (current.stage === "resetting" || current.stage === "queueing") {
-    return json(
-      { error: "a round is already being queued", stage: current.stage },
-      409,
-    );
+    return json({ error: "a round is already being queued", stage: current.stage }, 409);
   }
   // The round takes minutes to queue (each create has to land before
   // the next fixture can name it as a dependency), so the answer is
@@ -181,18 +159,10 @@ export function selfRunRoute(
 }
 
 async function runRound(ctx: RoutesContext): Promise<void> {
-  current = {
-    stage: "resetting",
-    startedAt: new Date().toISOString(),
-    specs: [],
-  };
+  current = { stage: "resetting", startedAt: new Date().toISOString(), specs: [] };
   const project = [...ctx.allowed][0];
   if (!project) {
-    current = {
-      ...current,
-      stage: "failed",
-      error: "this board serves no project",
-    };
+    current = { ...current, stage: "failed", error: "this board serves no project" };
     return;
   }
   try {
@@ -205,14 +175,12 @@ async function runRound(ctx: RoutesContext): Promise<void> {
     // its own on a round, and reset on its own; inside the code
     // repository (no round does this) the code reset already covers it.
     const specs = configSpecsPath(code) ?? join(code, "specs");
-    const ownRepo =
-      (await ctx.specsRoot(specs)) !== (await ctx.specsRoot(code));
+    const ownRepo = (await ctx.specsRoot(specs)) !== (await ctx.specsRoot(code));
     await cancelLiveJobs(ctx, project);
     ctx.queue.dropProject(project);
     // The last round's failed create is a message on the Specs list until
     // it is dismissed; the round makes a new one each time.
-    for (const r of ctx.push.failedCreates.list())
-      if (r.project === project) ctx.push.failedCreates.dismiss(r.id);
+    for (const r of ctx.push.failedCreates.list()) if (r.project === project) ctx.push.failedCreates.dismiss(r.id);
     await resetRepo(ctx, code, "baseline");
     if (ownRepo) await resetRepo(ctx, specs, null);
     // The dashboard's own clones AFTER both origins are back at their
@@ -220,28 +188,17 @@ async function runRound(ctx: RoutesContext): Promise<void> {
     // its own clock) and one made a moment before a branch was deleted
     // on origin still carries it as `origin/aide/*`.
     const ownedCode = ctx.machineryProjectDir(project);
-    for (const owned of [
-      ownedCode === code ? undefined : ownedCode,
-      ctx.ownedSpecsRoot(project),
-    ]) {
+    for (const owned of [ownedCode === code ? undefined : ownedCode, ctx.ownedSpecsRoot(project)]) {
       if (owned) await resetOwned(ctx, owned);
     }
     ctx.invalidateScan();
-    current = {
-      ...current,
-      stage: "queueing",
-      specs: readFixtures(fixturesDir(ctx)),
-    };
+    current = { ...current, stage: "queueing", specs: readFixtures(fixturesDir(ctx)) };
     await queueFixtures(ctx, project, current.specs, specs);
     current = { ...current, stage: "running" };
     await followUntilDrained(ctx, project, [specs, code]);
     current = { ...current, stage: "done" };
   } catch (e) {
-    current = {
-      ...current,
-      stage: "failed",
-      error: e instanceof Error ? e.message : String(e),
-    };
+    current = { ...current, stage: "failed", error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -249,10 +206,7 @@ async function runRound(ctx: RoutesContext): Promise<void> {
  *  ends one — the transition, then SIGTERM to the process group — and
  *  the round waits for the runner to let go of them before the repos
  *  are touched under a run's feet. */
-async function cancelLiveJobs(
-  ctx: RoutesContext,
-  project: string,
-): Promise<void> {
+async function cancelLiveJobs(ctx: RoutesContext, project: string): Promise<void> {
   for (const job of ctx.queue.list()) {
     if (job.project !== project) continue;
     if (job.state !== "queued" && job.state !== "running") continue;
@@ -265,11 +219,7 @@ async function cancelLiveJobs(
   }
   const until = Date.now() + 30_000;
   while (Date.now() < until) {
-    const busy = ctx.queue
-      .list()
-      .some(
-        (j) => j.project === project && (j.state === "running" || j.landing),
-      );
+    const busy = ctx.queue.list().some((j) => j.project === project && (j.state === "running" || j.landing));
     if (!busy) return;
     await new Promise((r) => setTimeout(r, 250));
   }
@@ -279,20 +229,12 @@ async function cancelLiveJobs(
  *  own checkout sync fetches the owned clone on its own clock
  *  (`ensureCheckout`), and two fetches at once end with "cannot lock
  *  ref" for one of them — a moment later it goes through. */
-async function gitOrThrow(
-  ctx: RoutesContext,
-  at: string,
-  args: string[],
-  timeoutMs = 20_000,
-): Promise<string> {
+async function gitOrThrow(ctx: RoutesContext, at: string, args: string[], timeoutMs = 20_000): Promise<string> {
   for (let attempt = 1; ; attempt++) {
     const r = await ctx.gitRun(at, args, timeoutMs);
     if (r.code === 0) return r.stdout;
     const why = (r.stderr ?? r.stdout).trim();
-    if (
-      attempt < 5 &&
-      /cannot lock ref|index\.lock|\.lock': File exists/.test(why)
-    ) {
+    if (attempt < 5 && /cannot lock ref|index\.lock|\.lock': File exists/.test(why)) {
       await new Promise((res) => setTimeout(res, 300 * attempt));
       continue;
     }
@@ -306,24 +248,15 @@ async function gitOrThrow(
  *  by a branch deleted on origin still reaches every commit the last
  *  round made — which is how a fresh 01 read as already implemented. */
 async function dropRunBranches(ctx: RoutesContext, at: string): Promise<void> {
-  const run = (args: string[], timeoutMs?: number) =>
-    gitOrThrow(ctx, at, args, timeoutMs);
-  const local = (
-    await run(["branch", "--list", "--format=%(refname:short)", "aide/*"])
-  )
+  const run = (args: string[], timeoutMs?: number) => gitOrThrow(ctx, at, args, timeoutMs);
+  const local = (await run(["branch", "--list", "--format=%(refname:short)", "aide/*"]))
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
   await run(["worktree", "prune"]);
   if (local.length) await run(["branch", "-D", "-q", ...local]);
   await run(["fetch", "-q", "--prune", "origin"], 30_000);
-  const tracking = (
-    await run([
-      "for-each-ref",
-      "--format=%(refname)",
-      "refs/remotes/origin/aide/",
-    ])
-  )
+  const tracking = (await run(["for-each-ref", "--format=%(refname)", "refs/remotes/origin/aide/"]))
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
@@ -348,31 +281,18 @@ async function resetOwned(ctx: RoutesContext, owned: string): Promise<void> {
  *  `main`, force-pushed, with every `aide/*` branch the runs left
  *  deleted on origin and here. `reset --hard` leaves ignored files
  *  alone, so the project's `.aide/config` stays. */
-async function resetRepo(
-  ctx: RoutesContext,
-  dir: string,
-  base: string | null,
-): Promise<void> {
-  const run = (args: string[], timeoutMs?: number) =>
-    gitOrThrow(ctx, dir, args, timeoutMs);
+async function resetRepo(ctx: RoutesContext, dir: string, base: string | null): Promise<void> {
+  const run = (args: string[], timeoutMs?: number) => gitOrThrow(ctx, dir, args, timeoutMs);
   await run(["checkout", "-q", "main"]);
-  const target =
-    base ??
-    (await run(["rev-list", "--max-parents=0", "main"]))
-      .trim()
-      .split("\n")
-      .pop()!;
+  const target = base ?? (await run(["rev-list", "--max-parents=0", "main"])).trim().split("\n").pop()!;
   await run(["reset", "-q", "--hard", target]);
   await run(["push", "-q", "--force", "origin", "main"], 30_000);
-  const remote = (
-    await run(["ls-remote", "--heads", "origin", "refs/heads/aide/*"], 20_000)
-  )
+  const remote = (await run(["ls-remote", "--heads", "origin", "refs/heads/aide/*"], 20_000))
     .split("\n")
     .map((l) => l.split("\t")[1] ?? "")
     .filter((r) => r.startsWith("refs/heads/aide/"))
     .map((r) => r.slice("refs/heads/".length));
-  if (remote.length)
-    await run(["push", "-q", "origin", "--delete", ...remote], 30_000);
+  if (remote.length) await run(["push", "-q", "origin", "--delete", ...remote], 30_000);
   await dropRunBranches(ctx, dir);
 }
 
@@ -382,19 +302,15 @@ async function resetRepo(
  *  checkout a person looks at) catches up with what a landing pushed —
  *  a dependency on an archived spec is answered from there. Until no
  *  job of the project is live. */
-async function followUntilDrained(
-  ctx: RoutesContext,
-  project: string,
-  dirs: string[],
-): Promise<void> {
+async function followUntilDrained(ctx: RoutesContext, project: string, dirs: string[]): Promise<void> {
   const live = (): boolean =>
-    ctx.queue
-      .list()
-      .some(
-        (j) =>
-          j.project === project &&
-          (j.state === "running" || j.landing === true || j.state === "queued"),
-      );
+    ctx.queue.list().some(
+      (j) =>
+        j.project === project &&
+        (j.state === "running" ||
+          j.landing === true ||
+          j.state === "queued"),
+    );
   const deadline = Date.now() + 30 * 60_000;
   while (live() && Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 5000));
@@ -407,8 +323,7 @@ async function followUntilDrained(
 /** A fast-forward of the checkouts a person looks at; a checkout that
  *  cannot fast-forward is left as it is — the next pull may. */
 async function pullDisplay(ctx: RoutesContext, dirs: string[]): Promise<void> {
-  for (const dir of dirs)
-    await ctx.gitRun(dir, ["pull", "-q", "--ff-only"], 30_000);
+  for (const dir of dirs) await ctx.gitRun(dir, ["pull", "-q", "--ff-only"], 30_000);
 }
 
 /** The fixtures in file-name order: `<slug>.json` beside `<slug>.md`. A
@@ -438,9 +353,7 @@ export function readFixtures(dir: string): RoundSpec[] {
         steps: meta.steps,
         expected: meta.expected,
         dependsOn: meta.dependsOn ?? [],
-        ...(typeof meta.timeoutSec === "number"
-          ? { timeoutSec: meta.timeoutSec }
-          : {}),
+        ...(typeof meta.timeoutSec === "number" ? { timeoutSec: meta.timeoutSec } : {}),
         ...(meta.expect ? { expect: meta.expect } : {}),
         ...(meta.aiCreate ? { aiCreate: true } : {}),
         ...(meta.after ? { after: meta.after } : {}),
@@ -471,32 +384,13 @@ export function fixtureCreateBody(
 /** Through the board's own HTTP API, the same two calls the script made
  *  — so a fixture reaches the queue exactly as a spec made on the New
  *  spec page does, refusals included. */
-async function queueFixtures(
-  ctx: RoutesContext,
-  project: string,
-  specs: RoundSpec[],
-  specsDir: string,
-): Promise<void> {
+async function queueFixtures(ctx: RoutesContext, project: string, specs: RoundSpec[], specsDir: string): Promise<void> {
   const base = `http://127.0.0.1:${ctx.serverPort()}`;
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
-  const api = async (
-    path: string,
-    body: unknown,
-  ): Promise<Record<string, unknown>> => {
-    const res = await fetch(`${base}${path}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
-    const answer = (await res.json().catch(() => ({}))) as Record<
-      string,
-      unknown
-    >;
-    if (!res.ok)
-      throw new Error(`${path} refused: ${String(answer.error ?? res.status)}`);
+  const headers: Record<string, string> = { "content-type": "application/json", accept: "application/json" };
+  const api = async (path: string, body: unknown): Promise<Record<string, unknown>> => {
+    const res = await fetch(`${base}${path}`, { method: "POST", headers, body: JSON.stringify(body) });
+    const answer = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) throw new Error(`${path} refused: ${String(answer.error ?? res.status)}`);
     return answer;
   };
   const dir = fixturesDir(ctx);
@@ -508,15 +402,11 @@ async function queueFixtures(
   const runFixture = async (spec: RoundSpec): Promise<void> => {
     const dependsOn = spec.dependsOn.map((dep) => {
       const made = specs.find((s) => s.slug.startsWith(`${dep}-`))?.folder;
-      if (!made)
-        throw new Error(`no folder yet for dependency ${dep} of ${spec.slug}`);
+      if (!made) throw new Error(`no folder yet for dependency ${dep} of ${spec.slug}`);
       return made;
     });
     const description = readFileSync(join(dir, `${spec.slug}.md`), "utf8");
-    const created = await api(
-      "/api/queue/create",
-      fixtureCreateBody(project, spec, description, dependsOn),
-    );
+    const created = await api("/api/queue/create", fixtureCreateBody(project, spec, description, dependsOn));
     const jobId = (created.job as { id?: string } | undefined)?.id;
     if (!jobId) throw new Error(`create gave no job for ${spec.slug}`);
     // A create job's OWN specFolder starts as a provisional "new-<8 hex>"
@@ -532,8 +422,7 @@ async function queueFixtures(
         return;
       }
       if (end) spec.folder = end.folder;
-      else if (Date.now() > until)
-        throw new Error(`create never landed for ${spec.slug}`);
+      else if (Date.now() > until) throw new Error(`create never landed for ${spec.slug}`);
       else await new Promise((r) => setTimeout(r, 1000));
     }
     // The folder the landing pushed, into the checkout the board reads
@@ -544,8 +433,7 @@ async function queueFixtures(
       const other = specs.find((s) => s.slug.startsWith(`${spec.after}-`));
       const waitUntil = Date.now() + 600_000;
       while (other?.folder && !jobSettled(ctx.queue.list(), other.folder)) {
-        if (Date.now() > waitUntil)
-          throw new Error(`${spec.slug} waited ten minutes for ${other.slug}`);
+        if (Date.now() > waitUntil) throw new Error(`${spec.slug} waited ten minutes for ${other.slug}`);
         await new Promise((r) => setTimeout(r, 1000));
       }
     }
@@ -574,25 +462,13 @@ export function fixtureOrder(specs: RoundSpec[]): RoundSpec[] {
   specs.forEach((spec, i) => {
     for (const dep of spec.dependsOn) {
       const at = specs.findIndex((s) => s.slug.startsWith(`${dep}-`));
-      if (at < 0)
-        throw new Error(
-          `no fixture found for dependency ${dep} of ${spec.slug}`,
-        );
-      if (at > i)
-        throw new Error(
-          `${spec.slug} depends on ${specs[at]!.slug}, which comes after it`,
-        );
+      if (at < 0) throw new Error(`no fixture found for dependency ${dep} of ${spec.slug}`);
+      if (at > i) throw new Error(`${spec.slug} depends on ${specs[at]!.slug}, which comes after it`);
     }
     if (spec.after) {
       const at = specs.findIndex((s) => s.slug.startsWith(`${spec.after}-`));
-      if (at < 0)
-        throw new Error(
-          `no fixture found for ${spec.after}, which ${spec.slug} waits for`,
-        );
-      if (at > i)
-        throw new Error(
-          `${spec.slug} waits for ${specs[at]!.slug}, which comes after it`,
-        );
+      if (at < 0) throw new Error(`no fixture found for ${spec.after}, which ${spec.slug} waits for`);
+      if (at > i) throw new Error(`${spec.slug} waits for ${specs[at]!.slug}, which comes after it`);
     }
   });
   return specs;
@@ -606,11 +482,5 @@ export function jobSettled(
   folder: string,
 ): boolean {
   const mine = jobs.filter((j) => j.specFolder === folder);
-  return (
-    mine.length > 0 &&
-    mine.every(
-      (j) =>
-        j.state !== "queued" && j.state !== "running" && j.landing !== true,
-    )
-  );
+  return mine.length > 0 && mine.every((j) => j.state !== "queued" && j.state !== "running" && j.landing !== true);
 }

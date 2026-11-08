@@ -25,8 +25,7 @@ const flagsIn = (text: string): string[] =>
 /** The flags install-serve hands to `serve`: the one backslash-continued
  *  command, from `-- serve` to the first line that does not continue. */
 function installServeFlags(): string[] {
-  const target =
-    /^install-serve: require-host$([\s\S]*?)^\S/m.exec(MAKEFILE)?.[1] ?? "";
+  const target = /^install-serve: require-host$([\s\S]*?)^\S/m.exec(MAKEFILE)?.[1] ?? "";
   const lines = target.slice(target.indexOf("-- serve")).split("\n");
   const end = lines.findIndex((l) => !l.trimEnd().endsWith("\\"));
   return flagsIn(lines.slice(0, end + 1).join("\n"));

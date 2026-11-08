@@ -32,12 +32,7 @@
 import type { ProviderOption } from "./model-picker.ts";
 import { esc } from "../../ui/html.ts";
 import { LOADING_HIDE_RULE, loadingBlock } from "../../ui/loading.ts";
-import {
-  pageShell,
-  shellHead,
-  shellRest,
-  type NavEntry,
-} from "../../ui/shell.ts";
+import { pageShell, shellHead, shellRest, type NavEntry } from "../../ui/shell.ts";
 import type { QueueRowView } from "../../ui/job-state";
 import type { ProgressStepState } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
@@ -93,18 +88,8 @@ export {
   type SpecTarget,
   type SpecGroup,
 };
-import {
-  LIST_COLUMNS,
-  phaseSubRows,
-  phasePips,
-  specHeadRow,
-  specNoticeRow,
-} from "./cells.ts";
-import {
-  listRefusalLine,
-  refusalRowTemplate,
-  specLoadingRowTemplate,
-} from "./notice-row.ts";
+import { LIST_COLUMNS, phaseSubRows, phasePips, specHeadRow, specNoticeRow } from "./cells.ts";
+import { listRefusalLine, refusalRowTemplate, specLoadingRowTemplate } from "./notice-row.ts";
 // Re-exported for `spec-page.ts`, which draws a spec's phase pip strip
 // on its own Overview tab.
 export { phasePips };
@@ -158,12 +143,7 @@ export interface SpecsPageOptions {
   /** The models a job may be asked to run on, from the config. Empty or
    *  absent means the per-step configuration is the only answer and the
    *  page offers no choice at all. */
-  modelChoices?: {
-    name: string;
-    tool?: RunnableTool;
-    ranAs?: string;
-    named?: { id: string; name: string };
-  }[];
+  modelChoices?: { name: string; tool?: RunnableTool; ranAs?: string; named?: { id: string; name: string } }[];
   /** The configured model per step (plus a "default" key), from the
    *  config's own `model` table. It is what a phase line's select is
    *  pre-filled with when the phase has not run yet — the reader sees
@@ -191,18 +171,7 @@ export interface SpecsPageOptions {
   pendingSteps?: Record<string, string[]>;
   /** The steps of a Close or Reopen job, each in the state its log has it
    *  in: what the job's own open row on the Running page lists. */
-  closeOrReopenSteps?: (
-    jobId: string,
-    step: string,
-  ) => {
-    key: string;
-    label: string;
-    state?: ProgressStepState;
-    seconds?: number;
-    since?: string;
-    tokens?: number;
-    logs?: LogPart[];
-  }[];
+  closeOrReopenSteps?: (jobId: string, step: string) => { key: string; label: string; state?: ProgressStepState; seconds?: number; since?: string; tokens?: number; logs?: LogPart[] }[];
   /** Every project a spec may be CREATED in — the raw allowlist, not
    *  the discovered set. A project whose first spec this form exists to
    *  make has nothing on disk yet, so it appears in no other list on
@@ -225,23 +194,14 @@ export interface SpecsPageOptions {
    *  the spec's own analysis, so a row says the same with the job and
    *  without it. Called only for such a row. Absent, a row says the
    *  job's own sentence. */
-  overlappingSpecs?: (
-    project: string,
-    specFolder: string,
-  ) => OpenOverlap[] | undefined;
+  overlappingSpecs?: (project: string, specFolder: string) => OpenOverlap[] | undefined;
   /** The messages of one unfolded phase, for the attempts that may have
    *  run it (newest first) — called only for a phase the address names
    *  in `phases`. Undefined: nothing is kept to read. */
-  phaseMessages?: (
-    attemptIds: string[],
-    step: string,
-  ) => PhaseMessages | undefined;
+  phaseMessages?: (attemptIds: string[], step: string) => PhaseMessages | undefined;
   /** One side session's own part of the implement step's transcript, by the
    *  attempts' ids (newest first) and the session (`review` or `verify`). */
-  sideMessages?: (
-    attemptIds: string[],
-    part: SidePart,
-  ) => PhaseMessages | undefined;
+  sideMessages?: (attemptIds: string[], part: SidePart) => PhaseMessages | undefined;
   /** How the list is cut and ordered, straight from the query string.
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */
@@ -272,6 +232,7 @@ export interface SpecsPageOptions {
   pdfAvailable?: boolean;
 }
 
+
 // Which rows the reader has opened — the exceptions, not the rule. The
 // default is collapsed: a row says what the spec IS and how it is
 // doing, and the controls that act on it come with expanding it.
@@ -281,9 +242,7 @@ const openedSet = (f: SpecsFilter): Set<string> =>
 /** The rows drawn open: the one spec the address names where the list opens
  *  one at a time, else the keys the `open` fold lists. */
 const openedKeys = (opts: SpecsPageOptions): Set<string> =>
-  opts.openSpec
-    ? new Set(opts.openSpec.key ? [opts.openSpec.key] : [])
-    : openedSet(opts.filter ?? {});
+  opts.openSpec ? new Set(opts.openSpec.key ? [opts.openSpec.key] : []) : openedSet(opts.filter ?? {});
 
 /** The groups the filter shows, and the open spec's too where the filter
  *  would hide it: the address names it, so the list must show it. */
@@ -291,11 +250,10 @@ function shownGroups(groups: SpecGroup[], opts: SpecsPageOptions): SpecGroup[] {
   const f = opts.filter ?? {};
   const shown = applyFilter(groups, f);
   const key = opts.openSpec?.key;
-  const open = key
-    ? groups.find((g) => groupKey(g.project, g.specFolder) === key)
-    : undefined;
+  const open = key ? groups.find((g) => groupKey(g.project, g.specFolder) === key) : undefined;
   return open && !shown.includes(open) ? [...shown, open] : shown;
 }
+
 
 // A collapsed row OMITS its phase lines and its "more" line rather than
 // hiding them: the state is in the URL, so the server knows before it
@@ -326,13 +284,7 @@ export function activeSpecRows(
   now = Date.now(),
 ): { key: string; group: SpecGroup; html: string }[] {
   const opened = openedKeys(opts);
-  const groups = groupBySpec(
-    rows,
-    opts.targets,
-    opts.archived,
-    opts.archivedSpecs,
-    now,
-  );
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
   return applyFilter(groups, { state: ACTIVE_FILTER_KEY }).map((g) => ({
     key: groupKey(g.project, g.specFolder),
     group: g,
@@ -340,12 +292,7 @@ export function activeSpecRows(
   }));
 }
 
-function groupRow(
-  g: SpecGroup,
-  opts: SpecsPageOptions,
-  now: number,
-  opened: Set<string>,
-): string {
+function groupRow(g: SpecGroup, opts: SpecsPageOptions, now: number, opened: Set<string>): string {
   const testServerAvailable = opts.testServerAvailable ?? (() => true);
   // An archived spec does not branch to a row builder of its own: a
   // second builder kept level with this one by hand would drift, with
@@ -381,12 +328,11 @@ function groupRow(
   // The open spec ends in its detail row, the whole spec in one cell. A
   // rows answer carries it empty, as a place for the page to put the spec
   // it already holds.
-  const detail =
-    opts.openSpec?.key === key
-      ? `<tr class="specdetail" data-spec-detail="${esc(key)}"><td colspan="${columns}">` +
-        (opts.openSpec.detail?.() ?? "") +
-        `</td></tr>`
-      : "";
+  const detail = opts.openSpec?.key === key
+    ? `<tr class="specdetail" data-spec-detail="${esc(key)}"><td colspan="${columns}">` +
+      (opts.openSpec.detail?.() ?? "") +
+      `</td></tr>`
+    : "";
   const runs = opts.openSpec ? "" : phaseSubRows(g, opts, now);
   return opened.has(key)
     ? head + runs + notice + detail + gap
@@ -415,19 +361,9 @@ function groupRow(
 // and if the poll's payload ever turns out to matter the fix is
 // server-side — send only the rows that changed, or cache the fragment
 // — never a cap again.
-export function renderSpecsRows(
-  rows: QueueRowView[],
-  opts: SpecsPageOptions,
-  now = Date.now(),
-): string {
+export function renderSpecsRows(rows: QueueRowView[], opts: SpecsPageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
-  const groups = groupBySpec(
-    rows,
-    opts.targets,
-    opts.archived,
-    opts.archivedSpecs,
-    now,
-  );
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
   const matched = sortGroups(shownGroups(groups, opts), f);
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter has hidden is
@@ -460,22 +396,9 @@ export function renderSpecsRows(
  *  and redrawing all of it to change one row took seconds on a phone.
  *  The table is empty when the filter does not show that spec, and the
  *  page then redraws the whole list instead. */
-export function renderSpecGroupRows(
-  rows: QueueRowView[],
-  opts: SpecsPageOptions,
-  key: string,
-  now = Date.now(),
-): string {
-  const groups = groupBySpec(
-    rows,
-    opts.targets,
-    opts.archived,
-    opts.archivedSpecs,
-    now,
-  );
-  const one = shownGroups(groups, opts).filter(
-    (g) => groupKey(g.project, g.specFolder) === key,
-  );
+export function renderSpecGroupRows(rows: QueueRowView[], opts: SpecsPageOptions, key: string, now = Date.now()): string {
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs, now);
+  const one = shownGroups(groups, opts).filter((g) => groupKey(g.project, g.specFolder) === key);
   return `<table><tbody>${groupRows(one, opts, now, openedKeys(opts))}</tbody></table>`;
 }
 
@@ -485,9 +408,7 @@ function specsPageBody(rows: QueueRowView[], opts: SpecsPageOptions): string {
   // and the rows can never drift apart on a refresh.
   const lang = opts.lang ?? "en";
   const table = `<div id="jobrows">${renderSpecsRows(rows, opts)}</div>`;
-  const notice = opts.runnerAvailable
-    ? ""
-    : `<p class="muted">${t(lang, "list.noRunner")}</p>\n`;
+  const notice = opts.runnerAvailable ? "" : `<p class="muted">${t(lang, "list.noRunner")}</p>\n`;
   return (
     notice +
     // Where the page script writes a refused press: the list's own line,
@@ -513,39 +434,26 @@ export function renderSpecsPage(
   // The front page IS the board: the tab says only that — and the
   // heading said it a second time right under the Specs tab, so it is
   // gone (2026-08-19). The title still names the page for the shell.
-  return pageShell(
-    "Specs",
-    entries,
-    "/specs",
-    specsPageBody(rows, opts),
-    generatedAt,
-    {
-      docTitle: "aide -board",
-      hideHeading: true,
-      script: opts.script,
-      scriptSrc: opts.scriptSrc,
-      lang: opts.lang ?? "en",
-      currentUrl: opts.currentUrl,
-    },
-  );
+  return pageShell("Specs", entries, "/specs", specsPageBody(rows, opts), generatedAt, {
+    docTitle: "aide -board",
+    hideHeading: true,
+    script: opts.script,
+    scriptSrc: opts.scriptSrc,
+    lang: opts.lang ?? "en",
+    currentUrl: opts.currentUrl,
+  });
 }
 
 /** The list's first chunk when it is streamed: the document up to
  *  `<body>` and the loading element, needing nothing the route has yet to
  *  read. `title` names the page in the tab. */
 export function renderSpecsPageHead(title: string, lang: Language): string {
-  return (
-    shellHead(title, { lang, docTitle: "aide -board" }) + loadingBlock(lang)
-  );
+  return shellHead(title, { lang, docTitle: "aide -board" }) + loadingBlock(lang);
 }
 
 /** The second chunk: the page from the header on, with the rule that hides
  *  the loading element right after `</main>`. */
-export function renderSpecsPageRest(
-  rows: QueueRowView[],
-  entries: NavEntry[],
-  opts: SpecsPageOptions,
-): string {
+export function renderSpecsPageRest(rows: QueueRowView[], entries: NavEntry[], opts: SpecsPageOptions): string {
   return shellRest(entries, "/specs", "Specs", specsPageBody(rows, opts), {
     hideHeading: true,
     script: opts.script,

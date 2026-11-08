@@ -11,12 +11,7 @@ import { t, type Language, type TranslationKey } from "../../../i18n";
 import { en } from "../../../i18n/en.ts";
 import { modelFlag } from "./model-flag.ts";
 import { scheduleSettingsPath } from "./tabs.ts";
-import {
-  queryHref,
-  resolveSort,
-  sortHeading,
-  type SortColumns,
-} from "./sort-head.ts";
+import { queryHref, resolveSort, sortHeading, type SortColumns } from "./sort-head.ts";
 import { capitalizeFirst } from "../../../format/error-sentence.ts";
 
 export interface SchedulePageRow {
@@ -51,20 +46,12 @@ export const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
   last: "desc",
   enabled: "desc",
 };
-const SORT_COLUMNS: SortColumns = {
-  keys: SORTS,
-  fallback: DEFAULT_SORT,
-  firstDir: SORT_DEFAULT_DIR,
-};
+const SORT_COLUMNS: SortColumns = { keys: SORTS, fallback: DEFAULT_SORT, firstDir: SORT_DEFAULT_DIR };
 
-const haystack = (r: SchedulePageRow): string =>
-  `${r.project}:${r.entry.name}\n${r.entry.prompt}`.toLowerCase();
+const haystack = (r: SchedulePageRow): string => `${r.project}:${r.entry.name}\n${r.entry.prompt}`.toLowerCase();
 
 /** A term of nothing but spaces is no search at all: it must not empty the list. */
-export const matchesSearch = (
-  r: SchedulePageRow,
-  f: ScheduleFilter,
-): boolean => {
+export const matchesSearch = (r: SchedulePageRow, f: ScheduleFilter): boolean => {
   const term = (f.q ?? "").trim().toLowerCase();
   return !term || haystack(r).includes(term);
 };
@@ -92,21 +79,14 @@ export function sortRows<R extends Sortable>(
     sort === "next"
       ? (nextFireTime(r.entry.cron, now)?.getTime() ?? Number.MAX_SAFE_INTEGER)
       : sort === "last"
-        ? r.lastRunAt
-          ? Date.parse(r.lastRunAt)
-          : 0
+        ? (r.lastRunAt ? Date.parse(r.lastRunAt) : 0)
         : sort === "enabled"
-          ? r.entry.enabled
-            ? 1
-            : 0
+          ? (r.entry.enabled ? 1 : 0)
           : name(r);
   return [...rows].sort((a, b) => {
     const x = key(a);
     const y = key(b);
-    const by =
-      typeof x === "string"
-        ? x.localeCompare(String(y))
-        : (x as number) - (y as number);
+    const by = typeof x === "string" ? x.localeCompare(String(y)) : (x as number) - (y as number);
     return by * sign || name(a).localeCompare(name(b));
   });
 }
@@ -116,10 +96,7 @@ export function sortRows<R extends Sortable>(
 // — reusing the Specs list's `data-nav` links here would prevent the
 // click, rewrite the address bar, and never re-render).
 // Unescaped, like `queryHref`: whoever writes it into markup escapes it.
-function scheduleHref(
-  f: ScheduleFilter,
-  patch: { q?: string; sort?: string; dir?: string },
-): string {
+function scheduleHref(f: ScheduleFilter, patch: { q?: string; sort?: string; dir?: string }): string {
   return queryHref("/schedule", { ...f, ...patch });
 }
 
@@ -131,25 +108,15 @@ export interface ScheduleListOptions {
   lang?: Language;
 }
 
-function row(
-  r: SchedulePageRow,
-  now: Date,
-  o: Pick<ScheduleListOptions, "modelNames" | "lang">,
-): string {
+function row(r: SchedulePageRow, now: Date, o: Pick<ScheduleListOptions, "modelNames" | "lang">): string {
   const next = nextFireTime(r.entry.cron, now);
   const lang = o.lang ?? "en";
   // A job state has a word in the catalogue; one that has none is shown as it is.
   const stateKey = `state.${r.lastState}` as TranslationKey;
   const state = capitalizeFirst(
-    r.lastState === undefined
-      ? t(lang, "schedule.neverRun")
-      : stateKey in en
-        ? t(lang, stateKey)
-        : r.lastState,
+    r.lastState === undefined ? t(lang, "schedule.neverRun") : stateKey in en ? t(lang, stateKey) : r.lastState,
   );
-  const output = r.outputHref
-    ? ` — <a href="${esc(r.outputHref)}">${esc(t(lang, "schedule.output"))}</a>`
-    : "";
+  const output = r.outputHref ? ` — <a href="${esc(r.outputHref)}">${esc(t(lang, "schedule.output"))}</a>` : "";
   return (
     // The whole row goes where the name does (`followScheduleRow`).
     `<tr data-row-href="${esc(r.projectScheduleHref)}">` +
@@ -158,12 +125,7 @@ function row(
     // which one it belongs to. The link goes to the
     // project's own Schedule tab, not the entry's own detail page.
     `<td><a href="${esc(r.projectScheduleHref)}">${esc(r.project)}:${esc(r.entry.name)}</a>` +
-    modelFlag(
-      o.lang ?? "en",
-      r.entry.model,
-      o.modelNames,
-      scheduleSettingsPath(r.project, r.entry.name),
-    ) +
+    modelFlag(o.lang ?? "en", r.entry.model, o.modelNames, scheduleSettingsPath(r.project, r.entry.name)) +
     `</td>` +
     `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
     `<td><span data-schedule-state>${esc(state)}</span>${output}</td>` +
@@ -176,9 +138,7 @@ function row(
 
 function searchForm(f: ScheduleFilter, lang: Language): string {
   const keep = (["sort", "dir"] as const)
-    .map((k) =>
-      f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : "",
-    )
+    .map((k) => (f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : ""))
     .join("");
   const q = (f.q ?? "").trim();
   return (
@@ -204,9 +164,7 @@ function searchForm(f: ScheduleFilter, lang: Language): string {
 function sortableHead(f: ScheduleFilter, lang: Language): string {
   const now = resolveSort(SORT_COLUMNS, f);
   const th = (key: string, label: string) =>
-    sortHeading(SORT_COLUMNS, now, key, label, (sort, dir) =>
-      scheduleHref(f, { sort, dir }),
-    );
+    sortHeading(SORT_COLUMNS, now, key, label, (sort, dir) => scheduleHref(f, { sort, dir }));
   return (
     `<thead><tr>${th("name", t(lang, "schedule.colName"))}${th("next", t(lang, "schedule.colNextRun"))}` +
     `${th("last", t(lang, "schedule.colLastRun"))}${th("enabled", t(lang, "schedule.enabled"))}</tr></thead>`
@@ -225,12 +183,7 @@ export function renderScheduleList(opts: ScheduleListOptions): string {
   const term = (f.q ?? "").trim();
   const table =
     visible.length === 0
-      ? rowMessage(
-          "info",
-          opts.rows.length === 0
-            ? t(lang, "schedule.noEntries")
-            : t(lang, "schedule.noMatch", { term }),
-        )
+      ? rowMessage("info", opts.rows.length === 0 ? t(lang, "schedule.noEntries") : t(lang, "schedule.noMatch", { term }))
       : `<div class="tablewrap"><table class="list">${sortableHead(f, lang)}<tbody>${visible.map((r) => row(r, now, opts)).join("")}</tbody></table></div>`;
   // Always drawn, empty when there is nothing to say: the page script
   // writes a refused Run now into it.

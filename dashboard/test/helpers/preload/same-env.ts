@@ -16,34 +16,25 @@ function isShimsDir(entry: string): boolean {
 
 /** `env` without the caller's own variables, with every mise shims
  *  directory on PATH replaced by `toolDirs`. */
-export function sameEnv(
-  env: Record<string, string | undefined>,
-  toolDirs: string[],
-): Record<string, string | undefined> {
+export function sameEnv(env: Record<string, string | undefined>, toolDirs: string[]): Record<string, string | undefined> {
   const out: Record<string, string | undefined> = {};
   for (const [key, value] of Object.entries(env)) {
     if (!DROPPED_PREFIXES.some((p) => key.startsWith(p))) out[key] = value;
   }
   if (env.PATH !== undefined) {
     out.PATH = env.PATH.split(":")
-      .flatMap((entry) =>
-        isShimsDir(entry) && toolDirs.length > 0 ? toolDirs : [entry],
-      )
+      .flatMap((entry) => (isShimsDir(entry) && toolDirs.length > 0 ? toolDirs : [entry]))
       .join(":");
   }
   return out;
 }
 
 /** The directories mise's shims point to, or none when mise cannot say. */
-export function miseToolDirs(
-  env: Record<string, string | undefined>,
-): string[] {
+export function miseToolDirs(env: Record<string, string | undefined>): string[] {
   if (!(env.PATH ?? "").split(":").some(isShimsDir)) return [];
   try {
     const r = Bun.spawnSync(["mise", "bin-paths"], { env, timeout: 30_000 });
-    return r.exitCode === 0
-      ? r.stdout.toString().split(/\s+/).filter(Boolean)
-      : [];
+    return r.exitCode === 0 ? r.stdout.toString().split(/\s+/).filter(Boolean) : [];
   } catch {
     return [];
   }

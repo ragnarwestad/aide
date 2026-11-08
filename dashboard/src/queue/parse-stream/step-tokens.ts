@@ -23,41 +23,22 @@ interface Call {
   usage?: number;
 }
 
-const num = (v: unknown): number =>
-  typeof v === "number" && Number.isFinite(v) ? v : 0;
-const obj = (v: unknown): Record<string, unknown> | undefined =>
-  v !== null && typeof v === "object" && !Array.isArray(v)
-    ? (v as Record<string, unknown>)
-    : undefined;
+const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+const obj = (v: unknown): Record<string, unknown> | undefined => (v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined);
 
 /** Claude's `message.usage`: input, output, cache read and cache creation. */
-function claudeUsage(
-  message: Record<string, unknown> | undefined,
-): number | undefined {
+function claudeUsage(message: Record<string, unknown> | undefined): number | undefined {
   const u = obj(message?.usage);
   if (!u) return undefined;
-  return (
-    num(u.input_tokens) +
-    num(u.output_tokens) +
-    num(u.cache_read_input_tokens) +
-    num(u.cache_creation_input_tokens)
-  );
+  return num(u.input_tokens) + num(u.output_tokens) + num(u.cache_read_input_tokens) + num(u.cache_creation_input_tokens);
 }
 
 /** opencode's `step_finish` tokens: input, output with reasoning, cache read and cache write. */
-function opencodeUsage(
-  part: Record<string, unknown> | undefined,
-): number | undefined {
+function opencodeUsage(part: Record<string, unknown> | undefined): number | undefined {
   const t = obj(part?.tokens);
   if (!t) return undefined;
   const cache = obj(t.cache);
-  return (
-    num(t.input) +
-    num(t.output) +
-    num(t.reasoning) +
-    num(cache?.read) +
-    num(cache?.write)
-  );
+  return num(t.input) + num(t.output) + num(t.reasoning) + num(cache?.read) + num(cache?.write);
 }
 
 /** Codex's `turn.completed` usage: its thread's so far, every turn of it. The input holds the cached input
@@ -68,18 +49,13 @@ function codexUsage(usage: unknown): number | undefined {
   return num(u.input_tokens) + num(u.output_tokens);
 }
 
-export function stepTokens(
-  text: string,
-  tool?: SummarizeOptions["tool"],
-): Map<string, number> {
+export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<string, number> {
   const kind = tool ?? sniff(text);
-  const family =
-    kind === "codex" ? "codex" : kind === "opencode" ? "opencode" : "claude";
+  const family = kind === "codex" ? "codex" : kind === "opencode" ? "opencode" : "claude";
   const totals = new Map<string, number>();
   let open: string | undefined;
   const add = (n: number | undefined, key = open): void => {
-    if (key !== undefined && n !== undefined)
-      totals.set(key, (totals.get(key) ?? 0) + n);
+    if (key !== undefined && n !== undefined) totals.set(key, (totals.get(key) ?? 0) + n);
   };
 
   /** The marks a line holds, by the Log's own reader. */
@@ -155,13 +131,11 @@ export function stepTokens(
       // count, its usage was counted with the first.
       if (call.usage === undefined && !(id !== undefined && counted.has(id))) {
         call.usage = claudeUsage(message);
-        if (id !== undefined && call.usage !== undefined)
-          counted.set(id, { usage: call.usage });
+        if (id !== undefined && call.usage !== undefined) counted.set(id, { usage: call.usage });
       }
       note(call, line);
     } else if (family === "opencode") {
-      const sid =
-        typeof event.sessionID === "string" ? event.sessionID : undefined;
+      const sid = typeof event.sessionID === "string" ? event.sessionID : undefined;
       if (sid !== undefined && session !== undefined && sid !== session) {
         flush();
         open = undefined;
@@ -179,15 +153,11 @@ export function stepTokens(
         note(lone, line);
         apply(lone);
       }
-    } else if (type === "thread.started")
-      thread = typeof event.thread_id === "string" ? event.thread_id : "";
+    } else if (type === "thread.started") thread = typeof event.thread_id === "string" ? event.thread_id : "";
     else if (type === "turn.started") turnOpen = open;
     else if (type === "turn.completed") {
       const soFar = codexUsage(event.usage);
-      const grew =
-        soFar === undefined
-          ? undefined
-          : Math.max(soFar - (threadSoFar.get(thread) ?? 0), 0);
+      const grew = soFar === undefined ? undefined : Math.max(soFar - (threadSoFar.get(thread) ?? 0), 0);
       if (soFar !== undefined) threadSoFar.set(thread, soFar);
       if (turnOpen !== undefined && open === turnOpen) add(grew, turnOpen);
       turnOpen = undefined;

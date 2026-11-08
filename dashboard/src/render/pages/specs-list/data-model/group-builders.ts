@@ -4,20 +4,8 @@
 
 import { createEndedWithoutSpec } from "../../../../queue/create-failure.ts";
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
-import {
-  anyCostUnmeasured,
-  inFlight,
-  type QueueRowView,
-} from "../../../ui/job-state";
-import {
-  activityMs,
-  attemptsPerStep,
-  attemptsSidesSpent,
-  doneOutsideRound,
-  phasesFor,
-  roundUnderWayIn,
-  totalDurationOf,
-} from "./phases.ts";
+import { anyCostUnmeasured, inFlight, type QueueRowView } from "../../../ui/job-state";
+import { activityMs, attemptsPerStep, attemptsSidesSpent, doneOutsideRound, phasesFor, roundUnderWayIn, totalDurationOf } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,
   ARCHIVED_STATE,
@@ -112,9 +100,7 @@ export function groupBySpec(
     if (list) list.push(r);
     else byKey.set(key, [r]);
   }
-  const byKeyTarget = new Map(
-    targets.map((t) => [groupKey(t.project, t.specFolder), t]),
-  );
+  const byKeyTarget = new Map(targets.map((t) => [groupKey(t.project, t.specFolder), t]));
   const known = new Set(byKeyTarget.keys());
   // Which projects we are entitled to judge. An empty target list is
   // "we do not know", never "everything is archived": a specs root that
@@ -160,8 +146,7 @@ export function groupBySpec(
         // nothing on disk to match. Without this it would be filtered out
         // in exactly the projects that already have specs — so the job the
         // reader just started would render nothing at all.
-        (known.has(key) ||
-          !judgeable.has(all[0]!.project) ||
+        (known.has(key) || !judgeable.has(all[0]!.project) ||
           // …unless every job the row would stand for was CANCELLED and
           // the folder never landed (2026-09-10): there is nothing on
           // disk, nothing to press, and the row outlived the spec it
@@ -181,18 +166,12 @@ export function groupBySpec(
     // being IN `byKey` at all is exactly the "queue still remembers"
     // case `readerGroup` now reads.
     ...(archivedSpecs ?? []).map((s) =>
-      readerGroup(
-        s,
-        currentWorkRoundJobs(byKey.get(groupKey(s.project, s.folder)) ?? []),
-        now,
-      ),
+      readerGroup(s, currentWorkRoundJobs(byKey.get(groupKey(s.project, s.folder)) ?? []), now),
     ),
-    ...targets
-      .filter((t) => {
-        const jobs = byKey.get(groupKey(t.project, t.specFolder));
-        return !jobs || currentWorkRoundJobs(jobs).length === 0;
-      })
-      .map((t) => emptyGroup(t, now)),
+    ...targets.filter((t) => {
+      const jobs = byKey.get(groupKey(t.project, t.specFolder));
+      return !jobs || currentWorkRoundJobs(jobs).length === 0;
+    }).map((t) => emptyGroup(t, now)),
   ];
 }
 
@@ -216,11 +195,7 @@ export function groupBySpec(
  *  job to attribute one to — `wordPhase` renders a truthful "done" from
  *  `happened` alone, so the lines and the pip strip are correct without
  *  one, and the duration and cost cells are simply blank. */
-function readerGroup(
-  s: ArchivedSpecView,
-  jobs: QueueRowView[],
-  now: number,
-): SpecGroup {
+function readerGroup(s: ArchivedSpecView, jobs: QueueRowView[], now: number): SpecGroup {
   // The phase lines this row's total is a sum over — cost,
   // tokens and model still read `s.phaseOutcomes`/`s.models` exactly as
   // before; only `attempts` (and therefore `totalDuration`'s own
@@ -250,15 +225,9 @@ function readerGroup(
       // back to.
       effort: outcome?.effort,
       timeSpentMs: outcome?.timeSpentMs,
-      cost:
-        outcome?.cost === undefined
-          ? undefined
-          : Math.max(0, outcome.cost - sides.usd),
+      cost: outcome?.cost === undefined ? undefined : Math.max(0, outcome.cost - sides.usd),
       costUnmeasured: outcome?.costUnmeasured,
-      tokens:
-        outcome?.tokens === undefined
-          ? undefined
-          : Math.max(0, outcome.tokens - sides.tokens),
+      tokens: outcome?.tokens === undefined ? undefined : Math.max(0, outcome.tokens - sides.tokens),
       modelId: outcome?.modelId,
       attemptCount: outcome?.attempts,
       fileResult: outcome?.result,
@@ -277,29 +246,15 @@ function readerGroup(
     // `ArchivedSpecView.closed`'s own comment for why the two are
     // checked independently rather than assumed exclusive. Otherwise
     // the one place the two archived states are told apart.
-    state: s.closed
-      ? CLOSED_STATE
-      : s.notLanded
-        ? ARCHIVED_OPEN_STATE
-        : ARCHIVED_STATE,
-    spentUsd: Object.values(s.phaseOutcomes).reduce(
-      (sum, o) => sum + (o.cost ?? 0),
-      0,
-    ),
-    costUnmeasured: Object.values(s.phaseOutcomes).some(
-      (o) => o.costUnmeasured,
-    ),
+    state: s.closed ? CLOSED_STATE : s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
+    spentUsd: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.cost ?? 0), 0),
+    costUnmeasured: Object.values(s.phaseOutcomes).some((o) => o.costUnmeasured),
     // The sibling roll-up for a Codex-only archive, which has
     // no `cost` on any phase outcome to sum above — `undefined` (never
     // 0) when nothing recorded a token figure either, same "absent, not
     // zero" rule `cost` already follows.
-    spentTokens: Object.values(s.phaseOutcomes).some(
-      (o) => o.tokens !== undefined,
-    )
-      ? Object.values(s.phaseOutcomes).reduce(
-          (sum, o) => sum + (o.tokens ?? 0),
-          0,
-        )
+    spentTokens: Object.values(s.phaseOutcomes).some((o) => o.tokens !== undefined)
+      ? Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.tokens ?? 0), 0)
       : undefined,
     // Routed through the same queue-preferred `totalDuration`
     // every other row uses — the queue's own measured span for a
@@ -331,11 +286,7 @@ function readerGroup(
   };
 }
 
-function jobGroup(
-  all: QueueRowView[],
-  target: SpecTarget | undefined,
-  now: number,
-): SpecGroup {
+function jobGroup(all: QueueRowView[], target: SpecTarget | undefined, now: number): SpecGroup {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
   const spec = fromTarget(target);
   const lead = recent.find(inFlight) ?? recent[0]!;

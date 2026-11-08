@@ -15,32 +15,20 @@ import { BRANCH, landCtx, landingGit } from "./landing-fixtures.ts";
 const JOB = { id: "job-1", project: "aide", specFolder: "150-spec" };
 const GONE = "/Users/nobody/aide-dashboard/checkouts/aide/code";
 
-async function land(
-  repos: { root: string; url: string }[],
-  defaultBranch: (root: string) => Promise<string>,
-) {
+async function land(repos: { root: string; url: string }[], defaultBranch: (root: string) => Promise<string>) {
   const updates: Record<string, unknown>[] = [];
   const logged: string[] = [];
   const { ctx } = landCtx(landingGit().run, {
     queue: {
       get: () => undefined,
-      update: (_id: string, patch: Record<string, unknown>) =>
-        void updates.push(patch),
-      transition: (
-        _id: string,
-        event: string,
-        patch?: Record<string, unknown>,
-      ) => {
+      update: (_id: string, patch: Record<string, unknown>) => void updates.push(patch),
+      transition: (_id: string, event: string, patch?: Record<string, unknown>) => {
         updates.push({ event, ...(patch ?? {}) });
         return { ok: true };
       },
       branchesFor: () => [],
     },
-    branchStatus: {
-      defaultBranch,
-      invalidate: () => {},
-      forgetOpenSpecBranch: () => {},
-    },
+    branchStatus: { defaultBranch, invalidate: () => {}, forgetOpenSpecBranch: () => {} },
   });
   const real = console.error;
   console.error = (...args: unknown[]) => void logged.push(args.join(" "));
@@ -52,10 +40,7 @@ async function land(
       {
         step: "analyze" as const,
         repos,
-        failedNote: (why: string) => ({
-          key: "landing.analyzeLandingFailed" as const,
-          values: { why },
-        }),
+        failedNote: (why: string) => ({ key: "landing.analyzeLandingFailed" as const, values: { why } }),
       } as unknown as Parameters<typeof landBranch>[3],
     );
   } finally {
@@ -68,41 +53,22 @@ describe("a landing with a root that is no longer on disk", () => {
   test("skips the gone root, says so, and lands the one that is there", async () => {
     const here = mkdtempSync(join(tmpdir(), "aide-landing-root-"));
     const { updates, logged } = await land(
-      [
-        { root: GONE, url: "" },
-        { root: here, url: "" },
-      ],
+      [{ root: GONE, url: "" }, { root: here, url: "" }],
       async (root) => (root === here ? "master" : ""),
     );
-    expect(
-      logged.some(
-        (l) => l.includes(`skips ${GONE}`) && l.includes("no such directory"),
-      ),
-    ).toBe(true);
-    expect(JSON.stringify(updates)).not.toContain(
-      "landing.cannotWorkOutDefaultBranch",
-    );
+    expect(logged.some((l) => l.includes(`skips ${GONE}`) && l.includes("no such directory"))).toBe(true);
+    expect(JSON.stringify(updates)).not.toContain("landing.cannotWorkOutDefaultBranch");
     expect(JSON.stringify(updates)).not.toContain("landing-failed");
   });
 
   test("a root that exists but has no default branch is still the failure it was", async () => {
     const here = mkdtempSync(join(tmpdir(), "aide-landing-root-"));
-    const { updates } = await land(
-      [
-        { root: here, url: "" },
-        { root: GONE, url: "" },
-      ],
-      async () => "",
-    );
-    expect(JSON.stringify(updates)).toContain(
-      "landing.cannotWorkOutDefaultBranch",
-    );
+    const { updates } = await land([{ root: here, url: "" }, { root: GONE, url: "" }], async () => "");
+    expect(JSON.stringify(updates)).toContain("landing.cannotWorkOutDefaultBranch");
   });
 
   test("the only root being gone still fails the landing", async () => {
     const { updates } = await land([{ root: GONE, url: "" }], async () => "");
-    expect(JSON.stringify(updates)).toContain(
-      "landing.cannotWorkOutDefaultBranch",
-    );
+    expect(JSON.stringify(updates)).toContain("landing.cannotWorkOutDefaultBranch");
   });
 });

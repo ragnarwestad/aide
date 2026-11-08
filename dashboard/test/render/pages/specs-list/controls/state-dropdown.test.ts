@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsPage,
-  type SpecsPageOptions,
-  type QueueRowView,
-} from "../../../../../src/render";
+import { renderSpecsPage, type SpecsPageOptions, type QueueRowView } from "../../../../../src/render";
 import { row } from "../../fixtures.ts";
 
 // The per-state filter chips became one dropdown, so this is
@@ -16,20 +12,12 @@ import { row } from "../../fixtures.ts";
 // rather than a sub-menu with one entry per workflow step plus "all" —
 // both are covered below.
 
-const page = (
-  opts: Partial<SpecsPageOptions> = {},
-  rows: QueueRowView[] = [],
-): string =>
-  renderSpecsPage(
-    rows,
-    "2026-08-30T00:00:00Z",
-    [{ label: "Projects", path: "/projects" }],
-    {
-      runnerAvailable: true,
-      targets: [],
-      ...opts,
-    },
-  );
+const page = (opts: Partial<SpecsPageOptions> = {}, rows: QueueRowView[] = []): string =>
+  renderSpecsPage(rows, "2026-08-30T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
+    runnerAvailable: true,
+    targets: [],
+    ...opts,
+  });
 
 /** The dropdown's own markup, as one string. */
 const panelOf = (html: string): string =>
@@ -40,38 +28,16 @@ const panelOf = (html: string): string =>
  *  markup, since every option shares the same `<span class="check">`
  *  prefix. */
 const optionByLabel = (panel: string, label: string): string =>
-  panel.match(
-    new RegExp(
-      `<a data-nav href="[^"]*"[^>]*>(?:(?!<a data-nav).)*?${label} \\(\\d+\\)</a>`,
-    ),
-  )?.[0] ?? "";
+  panel.match(new RegExp(`<a data-nav href="[^"]*"[^>]*>(?:(?!<a data-nav).)*?${label} \\(\\d+\\)</a>`))
+    ?.[0] ?? "";
 
-const triggerOf = (panel: string): string =>
-  panel.match(/<summary[^>]*>.*?<\/summary>/)?.[0] ?? "";
+const triggerOf = (panel: string): string => panel.match(/<summary[^>]*>.*?<\/summary>/)?.[0] ?? "";
 
 describe("the Running entry", () => {
   const jobs: QueueRowView[] = [
-    row({
-      id: "a",
-      specFolder: "1-a",
-      state: "running",
-      steps: ["analyze"],
-      stepIndex: 0,
-    }),
-    row({
-      id: "b",
-      specFolder: "2-b",
-      state: "queued",
-      steps: ["implement"],
-      stepIndex: 0,
-    }),
-    row({
-      id: "c",
-      specFolder: "3-c",
-      state: "running",
-      steps: ["analyze"],
-      stepIndex: 0,
-    }),
+    row({ id: "a", specFolder: "1-a", state: "running", steps: ["analyze"], stepIndex: 0 }),
+    row({ id: "b", specFolder: "2-b", state: "queued", steps: ["implement"], stepIndex: 0 }),
+    row({ id: "c", specFolder: "3-c", state: "running", steps: ["analyze"], stepIndex: 0 }),
   ];
 
   test("Running counts only running or landing jobs, never a plain queued one, with no per-step option beside it", () => {
@@ -96,9 +62,7 @@ describe("the Running entry", () => {
     const withNew = page({ filter: { state: "active:all" } }, jobs);
     const triggerOfHtml = (html: string) => triggerOf(panelOf(html));
     expect(triggerOfHtml(withLegacy)).toEqual(triggerOfHtml(withNew));
-    expect(optionByLabel(panelOf(withLegacy), "Running")).toContain(
-      'aria-checked="true"',
-    );
+    expect(optionByLabel(panelOf(withLegacy), "Running")).toContain('aria-checked="true"');
   });
 
   test("an old per-step key (kept in a bookmark or the aide_state cookie) renders exactly as active:all, not as All", () => {
@@ -109,23 +73,14 @@ describe("the Running entry", () => {
     expect(withOldStep).toContain("3-c");
     const triggerOfHtml = (html: string) => triggerOf(panelOf(html));
     expect(triggerOfHtml(withOldStep)).toEqual(triggerOfHtml(withNew));
-    expect(optionByLabel(panelOf(withOldStep), "Running")).toContain(
-      'aria-checked="true"',
-    );
+    expect(optionByLabel(panelOf(withOldStep), "Running")).toContain('aria-checked="true"');
   });
 });
 
 describe("Kjører/Venter split on a landing job", () => {
   test("a done job whose branch is still landing counts under Running, not Waiting", () => {
     const jobs: QueueRowView[] = [
-      row({
-        id: "a",
-        specFolder: "1-a",
-        state: "done",
-        landing: true,
-        steps: ["implement"],
-        stepIndex: 0,
-      }),
+      row({ id: "a", specFolder: "1-a", state: "done", landing: true, steps: ["implement"], stepIndex: 0 }),
     ];
     const html = page({}, jobs);
     const panel = panelOf(html);
@@ -151,13 +106,10 @@ describe("Kjører/Venter split on a landing job", () => {
 });
 
 describe("old bookmarked state values fall back to All", () => {
-  test.each(["done", "problem"])(
-    "state=%s resolves the trigger to All",
-    (oldKey) => {
-      const html = page({ filter: { state: oldKey } });
-      const panel = panelOf(html);
-      expect(triggerOf(panel)).toMatch(/>All \(\d+\)/);
-      expect(optionByLabel(panel, "All")).toContain('aria-checked="true"');
-    },
-  );
+  test.each(["done", "problem"])("state=%s resolves the trigger to All", (oldKey) => {
+    const html = page({ filter: { state: oldKey } });
+    const panel = panelOf(html);
+    expect(triggerOf(panel)).toMatch(/>All \(\d+\)/);
+    expect(optionByLabel(panel, "All")).toContain('aria-checked="true"');
+  });
 });

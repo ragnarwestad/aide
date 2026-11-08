@@ -1,7 +1,4 @@
-import {
-  specBranch,
-  type BranchStatusChecker,
-} from "../../git/branch-status.ts";
+import { specBranch, type BranchStatusChecker } from "../../git/branch-status.ts";
 
 /** True only when the code checkout's cached origin answer holds the spec's
  *  branch. Not asked yet or not answerable reads as false, like every other
@@ -11,9 +8,5 @@ export function codeBranchOnOrigin(
   aideCheckout: string,
   specFolder: string,
 ): boolean {
-  return (
-    branchStatus
-      .peekOpenSpecBranches(aideCheckout)
-      .open?.has(specBranch(specFolder)) === true
-  );
+  return branchStatus.peekOpenSpecBranches(aideCheckout).open?.has(specBranch(specFolder)) === true;
 }

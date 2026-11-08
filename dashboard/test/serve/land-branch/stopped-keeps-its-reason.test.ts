@@ -19,23 +19,14 @@ async function landWhile(current: Record<string, unknown>) {
   const { ctx } = landCtx(landingGit().run, {
     queue: {
       get: () => ({ ...JOB, ...current }),
-      update: (_id: string, patch: Record<string, unknown>) =>
-        void updates.push(patch),
-      transition: (
-        _id: string,
-        event: string,
-        patch?: Record<string, unknown>,
-      ) => {
+      update: (_id: string, patch: Record<string, unknown>) => void updates.push(patch),
+      transition: (_id: string, event: string, patch?: Record<string, unknown>) => {
         updates.push({ event, ...(patch ?? {}) });
         return { ok: true };
       },
       branchesFor: () => [],
     },
-    branchStatus: {
-      defaultBranch: async () => "master",
-      invalidate: () => {},
-      forgetOpenSpecBranch: () => {},
-    },
+    branchStatus: { defaultBranch: async () => "master", invalidate: () => {}, forgetOpenSpecBranch: () => {} },
   });
   const here = mkdtempSync(join(tmpdir(), "aide-landing-stopped-"));
   await landBranch(
@@ -45,10 +36,7 @@ async function landWhile(current: Record<string, unknown>) {
     {
       step: "analyze" as const,
       repos: [{ root: here, url: "" }],
-      failedNote: (why: string) => ({
-        key: "landing.analyzeLandingFailed" as const,
-        values: { why },
-      }),
+      failedNote: (why: string) => ({ key: "landing.analyzeLandingFailed" as const, values: { why } }),
     } as unknown as Parameters<typeof landBranch>[3],
   );
   // The landing's own success patch: the one that names the branch.
@@ -58,11 +46,7 @@ async function landWhile(current: Record<string, unknown>) {
 describe("a landing of a step that stopped", () => {
   for (const stopReason of ["provider-limit", "timeout"] as const) {
     test(`keeps the reason a ${stopReason} stop gave`, async () => {
-      const patch = await landWhile({
-        state: "stopped",
-        stopReason,
-        error: "five hour provider limit reached",
-      });
+      const patch = await landWhile({ state: "stopped", stopReason, error: "five hour provider limit reached" });
       expect(patch).toBeDefined();
       expect("error" in patch).toBe(false);
       expect("errorReason" in patch).toBe(false);
@@ -70,10 +54,7 @@ describe("a landing of a step that stopped", () => {
   }
 
   test("a step that finished still has an old error cleared", async () => {
-    const patch = await landWhile({
-      state: "done",
-      error: "an earlier landing failed",
-    });
+    const patch = await landWhile({ state: "done", error: "an earlier landing failed" });
     expect(patch).toBeDefined();
     expect("error" in patch).toBe(true);
     expect(patch.error).toBeUndefined();

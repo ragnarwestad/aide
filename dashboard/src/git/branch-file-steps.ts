@@ -6,22 +6,11 @@
 import { branchAcCoverage, type AcTest } from "../project/ac-coverage.ts";
 import type { GitRunner } from "./branch-status.ts";
 import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
-import {
-  acceptanceCriteriaUnticked,
-  acceptanceRowsOf,
-  parseStatus,
-  type StatusCheck,
-} from "../project/parse-status";
+import { acceptanceCriteriaUnticked, acceptanceRowsOf, parseStatus, type StatusCheck } from "../project/parse-status";
 import { parseSpecStateText } from "../project/parse-spec-state.ts";
 import { dependsOnIn } from "../project/discover/depends-on.ts";
-import {
-  createChoicesIn,
-  type CreateChoices,
-} from "../project/discover/create-choices.ts";
-import {
-  parseApproaches,
-  type ApproachChoice,
-} from "../project/approach-choice.ts";
+import { createChoicesIn, type CreateChoices } from "../project/discover/create-choices.ts";
+import { parseApproaches, type ApproachChoice } from "../project/approach-choice.ts";
 
 /** How long one answer stands, for this checker and `WorkflowHistoryChecker` alike. */
 export const DEFAULT_TTL_MS = 30_000;
@@ -90,10 +79,7 @@ export class BranchFileStepsChecker {
   private readonly run: GitRunner;
   private readonly ttlMs: number;
   private readonly now: () => number;
-  private readonly cache = new Map<
-    string,
-    { at: number; steps: FileStepsAnswer | null; stale?: boolean }
-  >();
+  private readonly cache = new Map<string, { at: number; steps: FileStepsAnswer | null; stale?: boolean }>();
 
   constructor(opts: BranchFileStepsOptions) {
     this.run = opts.run;
@@ -104,11 +90,7 @@ export class BranchFileStepsChecker {
   /** `target` is `null` for a spec with no open branch — the caller
    *  (`warmSpec`) has already asked `resolveOpenBranchTarget`, so this
    *  class never resolves a branch itself. */
-  async read(
-    dir: string,
-    specFolder: string,
-    target: OpenBranchTarget | null,
-  ): Promise<FileStepsAnswer | null> {
+  async read(dir: string, specFolder: string, target: OpenBranchTarget | null): Promise<FileStepsAnswer | null> {
     const key = JSON.stringify([dir, specFolder]);
     const hit = this.cache.get(key);
     const at = this.now();
@@ -122,38 +104,18 @@ export class BranchFileStepsChecker {
         // archive has run but not landed answers nothing for the active
         // path while the default branch still holds the folder in it.
         for (const relPath of [target.relPath, target.archivedRelPath]) {
-          const file = await readStatusFromBranch(
-            this.run,
-            target.root,
-            target.branch,
-            relPath,
-          );
+          const file = await readStatusFromBranch(this.run, target.root, target.branch, relPath);
           if (!file) continue;
           // The branch's own sibling `4-status.json`, at the
           // same place `4-status.md` sits — read alongside the prose,
           // never in its place, so `stateSteps` can stay `undefined` for
           // a branch that has none yet.
           const jsonPath = relPath.replace(/4-status\.md$/, "4-status.json");
-          const jsonFile = await readStatusFromBranch(
-            this.run,
-            target.root,
-            target.branch,
-            jsonPath,
-          );
+          const jsonFile = await readStatusFromBranch(this.run, target.root, target.branch, jsonPath);
           const state = jsonFile ? parseSpecStateText(jsonFile.text) : null;
           const acCoverage = await branchAcCoverage(this.run, target, relPath);
-          const solution = await readStatusFromBranch(
-            this.run,
-            target.root,
-            target.branch,
-            relPath.replace(/4-status\.md$/, "3-solution.md"),
-          );
-          const description = await readStatusFromBranch(
-            this.run,
-            target.root,
-            target.branch,
-            relPath.replace(/4-status\.md$/, "1-description.md"),
-          );
+          const solution = await readStatusFromBranch(this.run, target.root, target.branch, relPath.replace(/4-status\.md$/, "3-solution.md"));
+          const description = await readStatusFromBranch(this.run, target.root, target.branch, relPath.replace(/4-status\.md$/, "1-description.md"));
           steps = {
             proseSteps: parseStatus(file.text).workflowSteps,
             stateSteps: state?.completedPhases,
@@ -163,12 +125,7 @@ export class BranchFileStepsChecker {
             acceptance: acceptanceRowsOf(file.text),
             ...(acCoverage ? { acCoverage } : {}),
             ...(solution ? { approaches: parseApproaches(solution.text) } : {}),
-            ...(description
-              ? {
-                  dependsOn: dependsOnIn(description.text),
-                  createChoices: createChoicesIn(description.text),
-                }
-              : {}),
+            ...(description ? { dependsOn: dependsOnIn(description.text), createChoices: createChoicesIn(description.text) } : {}),
           };
           break;
         }
@@ -205,14 +162,8 @@ export class BranchFileStepsChecker {
   peekFileSteps(
     dir: string,
     specFolder: string,
-  ): {
-    steps: FileStepsAnswer | null;
-    checkedAt: number | null;
-    stale?: boolean;
-  } {
+  ): { steps: FileStepsAnswer | null; checkedAt: number | null; stale?: boolean } {
     const hit = this.cache.get(JSON.stringify([dir, specFolder]));
-    return hit
-      ? { steps: hit.steps, checkedAt: hit.at, stale: hit.stale }
-      : { steps: null, checkedAt: null };
+    return hit ? { steps: hit.steps, checkedAt: hit.at, stale: hit.stale } : { steps: null, checkedAt: null };
   }
 }

@@ -22,11 +22,7 @@ import { phaseDuration } from "../../../src/render/pages/specs-list/data-model";
 describe("a phase says how long it took", () => {
   const NOW = "2026-08-16T12:00:00Z";
 
-  const job = (
-    id: string,
-    spec: string,
-    extra: Partial<QueueRowView> = {},
-  ): QueueRowView => ({
+  const job = (id: string, spec: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
     id,
     project: "aide",
     specFolder: spec,
@@ -39,10 +35,7 @@ describe("a phase says how long it took", () => {
     ...extra,
   });
 
-  const target = (
-    specFolder: string,
-    extra: Partial<SpecTarget> = {},
-  ): SpecTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -51,11 +44,7 @@ describe("a phase says how long it took", () => {
   // `renderSpecsRows`, not `renderSpecsPage`: the page reads the clock
   // itself and takes no `now`, and every figure in this block is
   // measured against one.
-  const page = (
-    rows: QueueRowView[],
-    targets: SpecTarget[] = [],
-    spec = "aa-spec",
-  ) =>
+  const page = (rows: QueueRowView[], targets: SpecTarget[] = [], spec = "aa-spec") =>
     renderSpecsRows(
       rows,
       { runnerAvailable: true, targets, filter: { open: `aide/${spec}` } },
@@ -66,9 +55,7 @@ describe("a phase says how long it took", () => {
    *  phase's own duration, not when it began. */
   const phaseCell = (html: string, step: string): string =>
     html
-      .match(
-        new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`),
-      )?.[0]
+      .match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0]
       ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
 
   /** The spec header row's own Started cell. */
@@ -76,11 +63,7 @@ describe("a phase says how long it took", () => {
    *  2026-09-22: the title has the first to itself. */
   const headCell = (html: string, folder: string): string =>
     html
-      .match(
-        new RegExp(
-          `<tr class="specstate"[^>]*data-folder="${folder}">.*?</tr>`,
-        ),
-      )?.[0]
+      .match(new RegExp(`<tr class="specstate"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
       ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
 
   test("a finished single-step phase shows its own span", () => {
@@ -88,9 +71,7 @@ describe("a phase says how long it took", () => {
       job("a1", "aa-spec", {
         steps: ["analyze"],
         startedAt: "2026-08-16T09:00:00Z",
-        results: [
-          { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" },
-        ],
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" }],
       }),
     ]);
     expect(phaseCell(html, "analyze")).toContain("4m 12s");
@@ -107,12 +88,7 @@ describe("a phase says how long it took", () => {
         startedAt: "2026-08-16T09:00:00Z",
         results: [
           { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" },
-          {
-            step: "implement",
-            ok: true,
-            costUsd: 2,
-            at: "2026-08-16T09:40:00Z",
-          },
+          { step: "implement", ok: true, costUsd: 2, at: "2026-08-16T09:40:00Z" },
         ],
       }),
     ]);
@@ -131,9 +107,7 @@ describe("a phase says how long it took", () => {
     const html = page([
       job("a1", "aa-spec", {
         startedAt: "2026-08-16T09:00:00Z",
-        results: [
-          { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" },
-        ],
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" }],
       }),
     ]);
     expect(phaseCell(html, "archive")).toContain("–");
@@ -151,9 +125,7 @@ describe("a phase says how long it took", () => {
         stepIndex: 1,
         state: "running",
         startedAt: "2026-08-16T11:00:00Z",
-        results: [
-          { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T11:30:00Z" },
-        ],
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T11:30:00Z" }],
       }),
     ]);
     const cell = phaseCell(html, "implement");
@@ -163,14 +135,9 @@ describe("a phase says how long it took", () => {
 
   test("a running FIRST step counts from the job's own start", () => {
     const html = page([
-      job("a1", "aa-spec", {
-        state: "running",
-        startedAt: "2026-08-16T11:45:00Z",
-      }),
+      job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T11:45:00Z" }),
     ]);
-    expect(phaseCell(html, "analyze")).toContain(
-      'data-elapsed="2026-08-16T11:45:00Z"',
-    );
+    expect(phaseCell(html, "analyze")).toContain('data-elapsed="2026-08-16T11:45:00Z"');
     expect(phaseCell(html, "analyze")).toContain("15m 00s");
   });
 
@@ -184,41 +151,19 @@ describe("a phase says how long it took", () => {
         job("a1", "aa-spec", {
           steps: ["analyze"],
           startedAt: "2026-08-13T09:00:00Z",
-          results: [
-            {
-              step: "analyze",
-              ok: true,
-              costUsd: 1,
-              at: "2026-08-13T09:05:00Z",
-            },
-          ],
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-13T09:05:00Z" }],
         }),
         job("a2", "aa-spec", {
           steps: ["implement", "archive"],
           stepIndex: 1,
           startedAt: "2026-08-16T09:00:00Z",
           results: [
-            {
-              step: "implement",
-              ok: true,
-              costUsd: 2,
-              at: "2026-08-16T09:10:00Z",
-            },
-            {
-              step: "archive",
-              ok: true,
-              costUsd: 1,
-              at: "2026-08-16T09:15:00Z",
-            },
+            { step: "implement", ok: true, costUsd: 2, at: "2026-08-16T09:10:00Z" },
+            { step: "archive", ok: true, costUsd: 1, at: "2026-08-16T09:15:00Z" },
           ],
         }),
       ],
-      [
-        target("aa-spec", {
-          createdAt: "2026-08-13T08:00:00Z",
-          done: ["analyze", "implement", "archive"],
-        }),
-      ],
+      [target("aa-spec", { createdAt: "2026-08-13T08:00:00Z", done: ["analyze", "implement", "archive"] })],
     );
     // 5 + 10 + 5 minutes of work, on the lines that did it AND on the
     // header now — the same figure rather than two different ones.
@@ -238,22 +183,10 @@ describe("a phase says how long it took", () => {
         job("a1", "aa-spec", {
           steps: ["analyze"],
           startedAt: "2026-08-13T09:00:00Z",
-          results: [
-            {
-              step: "analyze",
-              ok: true,
-              costUsd: 1,
-              at: "2026-08-13T09:12:00Z",
-            },
-          ],
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-13T09:12:00Z" }],
         }),
       ],
-      [
-        target("aa-spec", {
-          createdAt: "2026-08-13T08:00:00Z",
-          done: ["analyze"],
-        }),
-      ],
+      [target("aa-spec", { createdAt: "2026-08-13T08:00:00Z", done: ["analyze"] })],
     );
     expect(headCell(html, "aa-spec")).toContain("12m 00s");
   });
@@ -270,31 +203,17 @@ describe("a phase says how long it took", () => {
           stepIndex: 1,
           state: "running",
           startedAt: "2026-08-16T09:00:00Z",
-          results: [
-            {
-              step: "analyze",
-              ok: true,
-              costUsd: 1,
-              at: "2026-08-16T09:10:00Z",
-            },
-          ],
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" }],
         }),
       ],
-      [
-        target("aa-spec", {
-          createdAt: "2026-08-16T08:00:00Z",
-          done: ["analyze"],
-        }),
-      ],
+      [target("aa-spec", { createdAt: "2026-08-16T08:00:00Z", done: ["analyze"] })],
     );
     // Analyze's 10 minutes settled, plus implement's own elapsed time
     // from 09:10 to NOW (12:00): 2h50m. Total: 3h00m.
     expect(headCell(html, "aa-spec")).toContain("3h 00m");
     // The synthetic since = implement's start (09:10) minus the settled
     // 10 minutes = 09:00 — so `now - since` reproduces the same total.
-    expect(headCell(html, "aa-spec")).toContain(
-      'data-elapsed="2026-08-16T09:00:00.000Z"',
-    );
+    expect(headCell(html, "aa-spec")).toContain('data-elapsed="2026-08-16T09:00:00.000Z"');
   });
 
   // A step whose own work is still landing has no `at` yet
@@ -349,9 +268,7 @@ describe("computeSpecTotalDurationMs", () => {
     row("a1", {
       steps: ["analyze"],
       startedAt: "2026-08-13T09:00:00Z",
-      results: [
-        { step: "analyze", ok: true, costUsd: 1, at: "2026-08-13T09:05:00Z" },
-      ],
+      results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-13T09:05:00Z" }],
     }),
     row("a2", {
       steps: ["implement", "archive"],
@@ -377,15 +294,11 @@ describe("computeSpecTotalDurationMs", () => {
       row("r1", {
         steps: ["reopen"],
         startedAt: "2026-08-12T09:00:00Z",
-        results: [
-          { step: "reopen", ok: true, costUsd: 0, at: "2026-08-12T09:30:00Z" },
-        ],
+        results: [{ step: "reopen", ok: true, costUsd: 0, at: "2026-08-12T09:30:00Z" }],
       }),
       ...rows(),
     ];
-    expect(computeSpecTotalDurationMs(withReopen, NOW)?.ms).toBe(
-      20 * 60 * 1000,
-    );
+    expect(computeSpecTotalDurationMs(withReopen, NOW)?.ms).toBe(20 * 60 * 1000);
   });
 
   // The exact case 1-description.md names as the motivation: a spec
@@ -393,9 +306,7 @@ describe("computeSpecTotalDurationMs", () => {
   // else has run yet — and the old `done`-keyed guard blanked exactly
   // this row.
   test("a spec still missing a phase sums what it has", () => {
-    expect(computeSpecTotalDurationMs([rows()[0]!], NOW)?.ms).toBe(
-      5 * 60 * 1000,
-    );
+    expect(computeSpecTotalDurationMs([rows()[0]!], NOW)?.ms).toBe(5 * 60 * 1000);
   });
 
   // A phase in flight elsewhere now CONTRIBUTES its own elapsed
@@ -406,11 +317,7 @@ describe("computeSpecTotalDurationMs", () => {
   test("a job in flight elsewhere adds its own elapsed time to the settled total, and marks it live", () => {
     const withRunning = [
       ...rows(),
-      row("a3", {
-        steps: ["create"],
-        state: "running",
-        startedAt: "2026-08-20T09:00:00Z",
-      }),
+      row("a3", { steps: ["create"], state: "running", startedAt: "2026-08-20T09:00:00Z" }),
     ];
     const now = Date.parse("2026-08-20T09:05:00Z");
     const total = computeSpecTotalDurationMs(withRunning, now);
@@ -458,9 +365,7 @@ describe("computeSpecTotalDurationMs", () => {
       row("a4", {
         steps: ["analyze"],
         startedAt: "2026-08-19T09:00:00Z",
-        results: [
-          { step: "analyze", ok: true, costUsd: 1, at: "2026-08-19T09:08:00Z" },
-        ],
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-19T09:08:00Z" }],
       }),
     ];
     // 5 (first analyze) + 10 (implement) + 5 (archive) + 8 (second
@@ -517,10 +422,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
   const NOW = Date.parse("2026-08-16T12:00:00Z");
   const KEY = "aide/aa-spec";
 
-  const job = (
-    id: string,
-    extra: Partial<QueueRowView> = {},
-  ): QueueRowView => ({
+  const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
     id,
     project: "aide",
     specFolder: "aa-spec",
@@ -533,9 +435,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
     ...extra,
   });
 
-  const archived = (
-    extra: Partial<ArchivedSpecView> = {},
-  ): ArchivedSpecView => ({
+  const archived = (extra: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
     project: "aide",
     folder: "aa-spec",
     done: ["create", "analyze", "implement"],
@@ -553,9 +453,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
     const rows = [
       job("a1", {
         startedAt: "2026-08-16T09:00:00Z",
-        results: [
-          { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:00:04Z" },
-        ],
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:00:04Z" }],
       }),
     ];
     const html = renderSpecsRows(
@@ -578,9 +476,7 @@ describe("an archived row reads a still-remembered queue job the same way a live
     const rows = [
       job("a1", {
         startedAt: "2026-08-16T09:00:00Z",
-        results: [
-          { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:00:04Z" },
-        ],
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:00:04Z" }],
       }),
     ];
     const liveMs = computeSpecTotalDurationMs(rows, NOW)?.ms;
@@ -633,13 +529,7 @@ describe("phaseDuration prefers a step's own recorded start", () => {
         { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" },
         // implement's own recorded start sits an hour after analyze
         // ended — the gap this fix now excludes.
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 2,
-          at: "2026-08-16T10:40:00Z",
-          startedAt: "2026-08-16T10:30:00Z",
-        },
+        { step: "implement", ok: true, costUsd: 2, at: "2026-08-16T10:40:00Z", startedAt: "2026-08-16T10:30:00Z" },
       ],
     });
     const d = phaseDuration(r, "implement", Date.parse("2026-08-16T12:00:00Z"));
@@ -658,12 +548,7 @@ describe("phaseDuration prefers a step's own recorded start", () => {
       startedAt: "2026-08-16T09:00:00Z",
       results: [
         { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" },
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 2,
-          startedAt: "2026-08-16T10:30:00Z",
-        },
+        { step: "implement", ok: true, costUsd: 2, startedAt: "2026-08-16T10:30:00Z" },
       ],
     });
     const d = phaseDuration(r, "implement", Date.parse("2026-08-16T12:00:00Z"));
@@ -678,9 +563,7 @@ describe("phaseDuration prefers a step's own recorded start", () => {
     const r = row({
       state: "queued",
       startedAt: "2026-08-16T09:00:00Z",
-      results: [
-        { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" },
-      ],
+      results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" }],
     });
     const d = phaseDuration(r, "implement", Date.parse("2026-08-16T20:00:00Z"));
     expect(d).toBeNull();

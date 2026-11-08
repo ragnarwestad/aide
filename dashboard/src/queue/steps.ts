@@ -3,12 +3,7 @@
 // other file in this split reaches for first.
 
 import type { Job } from "./types.ts";
-import {
-  RESULT_TOOLS,
-  RUNNABLE_TOOLS,
-  type ResultTool,
-  type RunnableTool,
-} from "./providers/tools.ts";
+import { RESULT_TOOLS, RUNNABLE_TOOLS, type ResultTool, type RunnableTool } from "./providers/tools.ts";
 import workflowStepsData from "../../../core/scripts/lib/workflow-steps.json" with { type: "json" };
 import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with { type: "json" };
 
@@ -55,15 +50,8 @@ import effortLevelsData from "../../../core/scripts/lib/effort-levels.json" with
 // `workflowSteps` disagree, in every process that loads it (the
 // dashboard and every test alike).
 export type WorkflowStep =
-  | "explore"
-  | "create"
-  | "analyze"
-  | "implement"
-  | "archive"
-  | "reopen"
-  | "schedule"
-  | "close"
-  | "deploy";
+  | "explore" | "create" | "analyze" | "implement" | "archive" | "reopen"
+  | "schedule" | "close" | "deploy";
 
 /** The steps the server runs itself, in its own process: the file the
  *  runner script reads does not name them, so `aide-run-spec --command`
@@ -72,15 +60,8 @@ export type WorkflowStep =
 export const BOARD_STEPS = ["deploy"] as const;
 
 const KNOWN_STEPS: readonly WorkflowStep[] = [
-  "explore",
-  "create",
-  "analyze",
-  "implement",
-  "archive",
-  "reopen",
-  "schedule",
-  "close",
-  ...BOARD_STEPS,
+  "explore", "create", "analyze", "implement", "archive", "reopen",
+  "schedule", "close", ...BOARD_STEPS,
 ];
 
 export const WORKFLOW_STEPS: readonly WorkflowStep[] = [
@@ -106,22 +87,13 @@ if (
 // (see core/scripts/lib/effort-levels.json's own comment).
 export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
 
-const KNOWN_EFFORT_LEVELS: readonly EffortLevel[] = [
-  "low",
-  "medium",
-  "high",
-  "xhigh",
-  "max",
-];
+const KNOWN_EFFORT_LEVELS: readonly EffortLevel[] = ["low", "medium", "high", "xhigh", "max"];
 
-export const EFFORT_LEVELS =
-  effortLevelsData.effortLevels as readonly EffortLevel[];
+export const EFFORT_LEVELS = effortLevelsData.effortLevels as readonly EffortLevel[];
 
 if (
   EFFORT_LEVELS.length !== KNOWN_EFFORT_LEVELS.length ||
-  !KNOWN_EFFORT_LEVELS.every((l) =>
-    (EFFORT_LEVELS as readonly string[]).includes(l),
-  )
+  !KNOWN_EFFORT_LEVELS.every((l) => (EFFORT_LEVELS as readonly string[]).includes(l))
 ) {
   throw new Error(
     `dashboard/src/queue/steps.ts's EffortLevel union and ` +
@@ -133,29 +105,23 @@ if (
 /** Keep only jobs after the newest round-discarding job that completed and
  *  landed: a reopen that reset the files, or — in a history old enough to
  *  hold one — a Reset, the step that did the same before it was removed. */
-export function currentWorkRoundJobs<
-  T extends {
-    steps: readonly string[];
-    state: string;
-    landing?: boolean;
-    resetFiles?: boolean;
-    createdAt: string;
-    startedAt?: string;
-  },
->(jobs: T[]): T[] {
-  const at = (job: T): number =>
-    Date.parse(job.startedAt ?? job.createdAt) || 0;
+export function currentWorkRoundJobs<T extends {
+  steps: readonly string[];
+  state: string;
+  landing?: boolean;
+  resetFiles?: boolean;
+  createdAt: string;
+  startedAt?: string;
+}>(
+  jobs: T[],
+): T[] {
+  const at = (job: T): number => Date.parse(job.startedAt ?? job.createdAt) || 0;
   const discardsTheRound = (job: T): boolean =>
-    job.steps.includes("reset") ||
-    (job.steps.includes("reopen") && job.resetFiles === true);
+    job.steps.includes("reset") || (job.steps.includes("reopen") && job.resetFiles === true);
   const boundary = jobs
-    .filter(
-      (job) => job.state === "done" && !job.landing && discardsTheRound(job),
-    )
+    .filter((job) => job.state === "done" && !job.landing && discardsTheRound(job))
     .reduce((latest, job) => Math.max(latest, at(job)), -Infinity);
-  return boundary === -Infinity
-    ? jobs
-    : jobs.filter((job) => at(job) > boundary);
+  return boundary === -Infinity ? jobs : jobs.filter((job) => at(job) > boundary);
 }
 
 /** The steps a spec's row draws a box for, in the order they run — and
@@ -184,11 +150,10 @@ const QUICK_STEPS: readonly WorkflowStep[] = ["create", "archive", "close"];
  *  ones, oldest first within each group. A STABLE sort — handed an
  *  already oldest-first list, it only ever reorders across the quick/
  *  slow boundary, never within a group. */
-export function queuePriorityOrder<
-  T extends { steps: readonly WorkflowStep[]; stepIndex: number },
->(oldestFirst: readonly T[]): T[] {
-  const rank = (job: T): number =>
-    QUICK_STEPS.includes(job.steps[job.stepIndex]) ? 0 : 1;
+export function queuePriorityOrder<T extends { steps: readonly WorkflowStep[]; stepIndex: number }>(
+  oldestFirst: readonly T[],
+): T[] {
+  const rank = (job: T): number => (QUICK_STEPS.includes(job.steps[job.stepIndex]) ? 0 : 1);
   return [...oldestFirst].sort((a, b) => rank(a) - rank(b));
 }
 
@@ -201,29 +166,20 @@ export function queuePriorityOrder<
  *  for an edit the store would refuse. Nothing but a RUNNING job has an
  *  editable tail — a job between two steps is a job whose next step may
  *  start in the same instant, and the window is under two seconds. */
-export function tailEdits(
-  job: Pick<Job, "steps" | "stepIndex" | "state">,
-): string[] {
+export function tailEdits(job: Pick<Job, "steps" | "stepIndex" | "state">): string[] {
   if (job.state !== "running") return [];
   const current = job.steps[job.stepIndex];
   if (current === undefined) return [];
   const rank = WORKFLOW_STEPS.indexOf(current as WorkflowStep);
   const tail = new Set(job.steps.slice(job.stepIndex + 1));
   return PHASE_STEPS.filter(
-    (s) =>
-      tail.has(s) ||
-      (!job.steps.includes(s) && WORKFLOW_STEPS.indexOf(s) > rank),
+    (s) => tail.has(s) || (!job.steps.includes(s) && WORKFLOW_STEPS.indexOf(s) > rank),
   );
 }
 
 export const JOB_STATES = [
-  "queued",
-  "running",
-  "done",
-  "stopped",
-  "failed",
-  "cancelled",
-  "interrupted",
+  "queued", "running", "done",
+  "stopped", "failed", "cancelled", "interrupted",
 ] as const;
 export type JobState = (typeof JOB_STATES)[number];
 
@@ -243,40 +199,20 @@ export type JobState = (typeof JOB_STATES)[number];
 // `sent-back` is an implement that found its spec, analysed short, not small
 // after all: the board queues a full analysis and implement again.
 export type StopReason =
-  | "timeout"
-  | "provider-limit"
-  | "model-at-capacity"
-  | "tests-red"
-  | "acceptance-criteria"
-  | "shared-files"
-  | "sent-back";
+  | "timeout" | "provider-limit" | "model-at-capacity" | "tests-red" | "acceptance-criteria" | "shared-files" | "sent-back";
 
 /** The reasons a RUN stops on, as a step's result names them. `tests-red`
  *  is not one: a step's own red run fails it, and only a landing stops a
  *  job on red. */
 export const isRunStop = (
   reason: string | undefined,
-): reason is
-  | "timeout"
-  | "provider-limit"
-  | "model-at-capacity"
-  | "acceptance-criteria"
-  | "shared-files"
-  | "sent-back" =>
-  reason === "timeout" ||
-  reason === "provider-limit" ||
-  reason === "model-at-capacity" ||
-  reason === "acceptance-criteria" ||
-  reason === "shared-files" ||
-  reason === "sent-back";
+): reason is "timeout" | "provider-limit" | "model-at-capacity" | "acceptance-criteria" | "shared-files" | "sent-back" =>
+  reason === "timeout" || reason === "provider-limit" || reason === "model-at-capacity" ||
+  reason === "acceptance-criteria" || reason === "shared-files" || reason === "sent-back";
 
 /** The states in which a job waits for a person. `cancelled` is not one:
  *  a person ended it themselves. */
-export const WAITS_FOR_PERSON = new Set<JobState>([
-  "failed",
-  "stopped",
-  "interrupted",
-]);
+export const WAITS_FOR_PERSON = new Set<JobState>(["failed", "stopped", "interrupted"]);
 
 /** How the result of an archive held back on unticked acceptance criteria ends. */
 export const ACCEPTANCE_CRITERIA_UNTICKED = "acceptance-criteria-unticked";
@@ -284,13 +220,11 @@ export const ACCEPTANCE_CRITERIA_UNTICKED = "acceptance-criteria-unticked";
 /** Whether a finished job waits for a person: it failed, stopped or was
  *  interrupted (a conflict is a failure), or it is an archive held back on
  *  unticked acceptance criteria. */
-export const waitsForPerson = (job: {
-  state: string;
-  results?: readonly { terminalReason?: string }[];
-}): boolean =>
+export const waitsForPerson = (
+  job: { state: string; results?: readonly { terminalReason?: string }[] },
+): boolean =>
   WAITS_FOR_PERSON.has(job.state as JobState) ||
-  (job.state === "done" &&
-    job.results?.at(-1)?.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED);
+  (job.state === "done" && job.results?.at(-1)?.terminalReason === ACCEPTANCE_CRITERIA_UNTICKED);
 
 /** States where a job still owns its work. Anything else has released
  *  it, and the same step may be queued again.
@@ -323,9 +257,7 @@ export type TransitionEvent =
  *  entry is `(from, event) -> to`; anything absent is refused. This is
  *  the machine `dashboard/docs/job-states.md`'s diagram draws by hand —
  *  `test/queue/transitions.test.ts` fails if the two ever disagree. */
-export const TRANSITIONS: Readonly<
-  Partial<Record<JobState, Partial<Record<TransitionEvent, JobState>>>>
-> = {
+export const TRANSITIONS: Readonly<Partial<Record<JobState, Partial<Record<TransitionEvent, JobState>>>>> = {
   queued: {
     start: "running",
     "no-step-left": "done",
@@ -376,8 +308,7 @@ export { RUNNABLE_TOOLS, type RunnableTool };
 
 /** A tool name off a file, or undefined when it is not one of ours. */
 export function asRunnableTool(value: unknown): RunnableTool | undefined {
-  return typeof value === "string" &&
-    (RUNNABLE_TOOLS as readonly string[]).includes(value)
+  return typeof value === "string" && (RUNNABLE_TOOLS as readonly string[]).includes(value)
     ? (value as RunnableTool)
     : undefined;
 }
@@ -385,9 +316,7 @@ export function asRunnableTool(value: unknown): RunnableTool | undefined {
 /** The same, widened by the one value a result file carries that is not
  *  a CLI at all: `none` is the deterministic `create` path. */
 export function asResultTool(value: unknown): ResultTool | undefined {
-  return (RESULT_TOOLS as readonly unknown[]).includes(value)
-    ? (value as ResultTool)
-    : undefined;
+  return (RESULT_TOOLS as readonly unknown[]).includes(value) ? (value as ResultTool) : undefined;
 }
 
 /** Whether a landing is under way in `project`. A landing moves that
@@ -401,10 +330,7 @@ export function landingInProject(jobs: Job[], project: string): boolean {
 /** The step a job is on when it is a Close or a Reopen: the Running page
  *  draws such a job as a row of its own, never as its spec's. A reopen
  *  that has gone on to the spec's next step is the spec's again. */
-export function closeOrReopenStep(job: {
-  steps: readonly string[];
-  stepIndex: number;
-}): "close" | "reopen" | undefined {
+export function closeOrReopenStep(job: { steps: readonly string[]; stepIndex: number }): "close" | "reopen" | undefined {
   const step = job.steps[job.stepIndex];
   return step === "close" || step === "reopen" ? step : undefined;
 }
@@ -414,21 +340,13 @@ export const DEPLOY_KEY = "deploy";
 
 /** The step a job is on when it is a deploy: the Running page draws such a
  *  job as a row of its own, never as a spec's. */
-export function deployStep(job: {
-  steps: readonly string[];
-  stepIndex: number;
-}): "deploy" | undefined {
+export function deployStep(job: { steps: readonly string[]; stepIndex: number }): "deploy" | undefined {
   return job.steps[job.stepIndex] === "deploy" ? "deploy" : undefined;
 }
 
 /** Whether a job is the board's own deploy: the one step, under the one key. */
-export const isDeployJob = (job: {
-  steps: readonly string[];
-  specFolder: string;
-}): boolean =>
-  job.steps.length === 1 &&
-  job.steps[0] === "deploy" &&
-  job.specFolder === DEPLOY_KEY;
+export const isDeployJob = (job: { steps: readonly string[]; specFolder: string }): boolean =>
+  job.steps.length === 1 && job.steps[0] === "deploy" && job.specFolder === DEPLOY_KEY;
 
 /** The steps that hold none of the runner's slots. A board step runs in the
  *  server's own process. A create takes about a minute and is what gives a
@@ -439,7 +357,5 @@ const SLOT_FREE_STEPS: readonly string[] = [...BOARD_STEPS, "create"];
 /** Whether the job's CURRENT step holds one of the runner's slots. A step
  *  that takes none neither counts against `maxConcurrent` nor waits for it;
  *  the same job's next step is asked again when it starts. */
-export const takesSlot = (job: {
-  steps: readonly string[];
-  stepIndex: number;
-}): boolean => !SLOT_FREE_STEPS.includes(job.steps[job.stepIndex] ?? "");
+export const takesSlot = (job: { steps: readonly string[]; stepIndex: number }): boolean =>
+  !SLOT_FREE_STEPS.includes(job.steps[job.stepIndex] ?? "");

@@ -19,20 +19,13 @@ export const en = {
   "shell.tabSpecs": "Specs",
   "shell.tabProjects": "Projects",
   "shell.tabSchedule": "Schedule",
-  "shell.restartWaiting":
-    "Deploy is waiting for {jobs}; the service restarts when they are done.",
-  "shell.installWarning":
-    "aide's last install found a problem: {problem} — the full output is in {path}",
-  "shell.toolFault":
-    "{tool}: {problems} — open the Installation tab on {where}",
-  "shell.toolFaultWhere":
-    "a provider's page, under the Providers tab in Settings",
-  "shell.modelsGone":
-    "{tool}: {models} no longer offered — remove them on {where}",
-  "shell.modelsGoneWhere":
-    "a provider's page, under the Providers tab in Settings",
-  "shell.checkoutFault":
-    "{project}: the dashboard cannot use its own checkout — {said}",
+  "shell.restartWaiting": "Deploy is waiting for {jobs}; the service restarts when they are done.",
+  "shell.installWarning": "aide's last install found a problem: {problem} — the full output is in {path}",
+  "shell.toolFault": "{tool}: {problems} — open the Installation tab on {where}",
+  "shell.toolFaultWhere": "a provider's page, under the Providers tab in Settings",
+  "shell.modelsGone": "{tool}: {models} no longer offered — remove them on {where}",
+  "shell.modelsGoneWhere": "a provider's page, under the Providers tab in Settings",
+  "shell.checkoutFault": "{project}: the dashboard cannot use its own checkout — {said}",
   "deploy.title": "Deploying…",
   "deploy.stepFetch": "Fetch from origin",
   "deploy.stepInstall": "Install",
@@ -44,12 +37,10 @@ export const en = {
   "dialog.stepDone": "done",
   "dialog.stepFailed": "failed",
   "deploy.askTitle": "Deploy {project}?",
-  "deploy.askSentence":
-    "Fetches from origin, installs and restarts the service, then checks that the newest commit runs. It runs as a job: follow it on the Running tab.",
+  "deploy.askSentence": "Fetches from origin, installs and restarts the service, then checks that the newest commit runs. It runs as a job: follow it on the Running tab.",
   "shell.overlayLoading": "loading…",
   "shell.loadingPage": "Loading …",
-  "shell.pageFailed":
-    "Something went wrong while the page was being built. Reload the page; if it keeps failing, look in the dashboard's log on the serving host.",
+  "shell.pageFailed": "Something went wrong while the page was being built. Reload the page; if it keeps failing, look in the dashboard's log on the serving host.",
   "shell.leaveAppTitle": "Leave page?",
   "shell.leaveAppBody": "Changes you made may not be saved.",
   "dialog.ok": "OK",
@@ -60,8 +51,7 @@ export const en = {
   "shell.runTestRound": "Run",
   "shell.delay": "Delay: {value}",
   "shell.delayOff": "Off",
-  "shell.delayTitle":
-    "How long the stand-in model waits before each step; press for the next choice",
+  "shell.delayTitle": "How long the stand-in model waits before each step; press for the next choice",
   "shell.testRound": "round",
 
   "list.statesLabel": "States",
@@ -96,8 +86,7 @@ export const en = {
   "list.foldHide": "hide",
   "list.foldTitle": "{action} the phases and controls of {folder}",
   "list.specFoldTitle": "{action} the spec {folder}",
-  "list.specLoadFailed":
-    "the spec could not be loaded — reload the page to try again",
+  "list.specLoadFailed": "the spec could not be loaded — reload the page to try again",
   "list.checksFoldTitle": "{action} the acceptance criteria of {folder}",
   "list.checksSave": "Save",
   "list.checksSaving": "saving…",
@@ -120,14 +109,12 @@ export const en = {
   "list.phaseNoneKept": "No messages are kept for this phase.",
   "list.phaseNoMessages": "Nothing has been captured from this step yet.",
   "list.phaseModel": "Model: {model}",
-  "list.descriptionChangedSince":
-    "The description has changed since the last analysis.",
+  "list.descriptionChangedSince": "The description has changed since the last analysis.",
   "list.phaseOpenLog": "Open this step's log",
   "list.cancel": "Cancel",
   "list.cancelling": "cancelling…",
   "list.cancelConfirmTitle": "Cancel {step}?",
-  "list.cancelConfirmBody":
-    "This stops it right away — it can be run again from the same spec.",
+  "list.cancelConfirmBody": "This stops it right away — it can be run again from the same spec.",
   "jobs.nothingRunning": "Nothing is running.",
   "jobs.colTitle": "Title",
   "jobs.noRowMatchesFilter": "Nothing on this tab matches this filter.",
@@ -137,10 +124,8 @@ export const en = {
   "jobs.stopConfirmTitle": "Stop {step}?",
   "jobs.confirmBody": "This stops it right away.",
   "jobs.endedFailed": "The job failed — its log says why.",
-  "jobs.endedStopped":
-    "The job stopped before it finished — its log says where.",
-  "jobs.endedInterrupted":
-    "The job was cut off before it finished — its log says how far it got.",
+  "jobs.endedStopped": "The job stopped before it finished — its log says where.",
+  "jobs.endedInterrupted": "The job was cut off before it finished — its log says how far it got.",
   "jobs.linkSpec": "Spec",
   "list.reopen": "Reopen",
   "list.reopening": "reopening…",
@@ -149,21 +134,16 @@ export const en = {
   "list.noPullRequest": "no pull request",
   "list.landingFailed": "merge failed",
   "list.testsRed": "tests red",
-  "list.waitingOnReview":
-    "its code is waiting on a pull request — open it to review",
+  "list.waitingOnReview": "its code is waiting on a pull request — open it to review",
   "list.testServer": "test server",
-  "list.testServerStartLink":
-    "Click the link to start a test server running this branch",
+  "list.testServerStartLink": "Click the link to start a test server running this branch",
   "list.branchPreview": "preview",
-  "list.branchPreviewLink":
-    "Click the link to open this branch where its host has built it",
+  "list.branchPreviewLink": "Click the link to open this branch where its host has built it",
   "list.pushError":
     "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, " +
     "then push it again from a terminal.",
-  "list.prError":
-    "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
-  "list.landedAfterRetry":
-    "Merged after a retry: the project's tests were red on the first run and green on the second.",
+  "list.prError": "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
+  "list.landedAfterRetry": "Merged after a retry: the project's tests were red on the first run and green on the second.",
   "checks.coveredBy": "Tests: {names}",
   "checks.noTestNames": "No test names {id}.",
   "list.branchLeftBehind":
@@ -245,12 +225,10 @@ export const en = {
   "job.logAiPlain": "AI",
   "job.logSubagent": "Subagent: {name}",
   "job.subagentAsked": "Asked: {text}",
-  "job.subagentAskedTask":
-    "Asked: the task {name}. Codex keeps the task's own words encrypted.",
+  "job.subagentAskedTask": "Asked: the task {name}. Codex keeps the task's own words encrypted.",
   "job.subagentAnswered": "Answered: {text}",
   "job.subagentNoAnswer": "It has not answered yet.",
-  "job.subagentUnread":
-    "This subagent's work could not be read: its session file ({thread}) was not found or could not be read. Codex keeps a session file under sessions/ in CODEX_HOME, or in ~/.codex, on the computer that serves the board.",
+  "job.subagentUnread": "This subagent's work could not be read: its session file ({thread}) was not found or could not be read. Codex keeps a session file under sessions/ in CODEX_HOME, or in ~/.codex, on the computer that serves the board.",
   "job.noErrors": "The log has no error lines.",
   "job.screenshots": "Screenshots",
   "job.noChangedFiles": "No file changed in this step.",
@@ -261,13 +239,10 @@ export const en = {
   "schedule.nextRun": "Next run",
   "schedule.promptFile": "Prompt file",
   "schedule.promptOfJob": "Prompt file of the scheduled job {job}",
-  "schedule.promptUnreadable":
-    "the prompt file {file} cannot be read from the default branch of the board's checkout of {project} — commit it to that branch, or change the path on the Settings tab.",
+  "schedule.promptUnreadable": "the prompt file {file} cannot be read from the default branch of the board's checkout of {project} — commit it to that branch, or change the path on the Settings tab.",
   "schedule.model": "Model",
-  "schedule.modelNotOffered":
-    "model {model} is not one the queue offers — it offers {choices}. Choose one on the entry's page; until then its runs are refused.",
-  "schedule.modelNoneOffered":
-    "model {model} is not one the queue offers — it offers no models. Choose another on the entry's page once the queue config lists one; until then its runs are refused.",
+  "schedule.modelNotOffered": "model {model} is not one the queue offers — it offers {choices}. Choose one on the entry's page; until then its runs are refused.",
+  "schedule.modelNoneOffered": "model {model} is not one the queue offers — it offers no models. Choose another on the entry's page once the queue config lists one; until then its runs are refused.",
   "schedule.ai": "AI",
   "schedule.notify": "Notify",
   "schedule.notifyNever": "Never",
@@ -279,8 +254,7 @@ export const en = {
   "schedule.sandbox": "Sandbox",
   "schedule.sandboxOn": "On",
   "schedule.sandboxOff": "Off, so a browser can start",
-  "schedule.reportOnly":
-    "A scheduled job may commit to the project and its specs — the same repositories a spec's step reaches. Once it ends, the board merges the work.",
+  "schedule.reportOnly": "A scheduled job may commit to the project and its specs — the same repositories a spec's step reaches. Once it ends, the board merges the work.",
   "schedule.enabled": "Enabled",
   "schedule.yes": "yes",
   "schedule.no": "no",
@@ -296,18 +270,15 @@ export const en = {
   "proposals.skipped": "Skipped",
   "proposals.noTitle": "(no title)",
   "proposals.existsActive": "a spec with this title exists: {spec} (active)",
-  "proposals.existsArchived":
-    "a spec with this title exists: {spec} (archived)",
+  "proposals.existsArchived": "a spec with this title exists: {spec} (archived)",
   "proposals.existsClosed": "a spec with this title exists: {spec} (closed)",
   "proposals.queued": "a Create job for this title already exists",
-  "proposals.invalidNotObject":
-    "the entry is not an object with a title and a description",
+  "proposals.invalidNotObject": "the entry is not an object with a title and a description",
   "proposals.invalidTitleMissing": "it has no title",
   "proposals.invalidTitleLines": "its title runs over more than one line",
   "proposals.invalidTitleLong": "its title is longer than {max} characters",
   "proposals.invalidDescriptionMissing": "it has no description",
-  "proposals.invalidDescriptionLong":
-    "its description is longer than the {max} characters that fit beside the source",
+  "proposals.invalidDescriptionLong": "its description is longer than the {max} characters that fit beside the source",
   "proposals.refused": "the queue refused it; the reason is in the server log",
   "schedule.newJob": "New job",
   "schedule.new": "New",
@@ -364,42 +335,32 @@ export const en = {
   "settings.providers.add": "Add",
   "settings.providers.adding": "adding…",
   "settings.providers.chooseTool": "Which tool is the provider for?",
-  "settings.providers.notInstalled":
-    "{tool} is not installed where the board runs",
-  "settings.providers.loginUnread":
-    "The login could not be read — open the page again to read it once more.",
+  "settings.providers.notInstalled": "{tool} is not installed where the board runs",
+  "settings.providers.loginUnread": "The login could not be read — open the page again to read it once more.",
   "settings.providers.login": "Login",
   "settings.providers.state.in": "Logged in",
   "settings.providers.state.out": "Not logged in",
   "settings.providers.state.unread": "Not read",
   "settings.providers.state.notInstalled": "Not installed",
   "settings.providers.removeTitle": "Remove {name}?",
-  "settings.providers.removeSentence":
-    "The provider is deleted from the board. Its folder and its login are left as they are.",
-  "settings.models.readAtWith":
-    "Models read {at}, with the folders of {provider}",
+  "settings.providers.removeSentence": "The provider is deleted from the board. Its folder and its login are left as they are.",
+  "settings.models.readAtWith": "Models read {at}, with the folders of {provider}",
   "settings.providers.loginEnds": "The login ends {at}",
-  "settings.providers.shadowHelp":
-    "A shadow home keeps its own login and shares the sessions and settings of the CODEX_HOME. Start from an empty folder and log in there.",
+  "settings.providers.shadowHelp": "A shadow home keeps its own login and shares the sessions and settings of the CODEX_HOME. Start from an empty folder and log in there.",
   "settings.providers.heading": "Providers",
   "settings.providers.addProvider": "Add provider",
   "settings.providers.checked": "Checked {when}",
   "settings.providers.recheck": "Check again",
   "settings.providers.status": "Status",
   "settings.providers.displayName": "Display name",
-  "settings.providers.displayNameHelp":
-    "What the board shows for this provider.",
+  "settings.providers.displayNameHelp": "What the board shows for this provider.",
   "settings.providers.runtime": "Runtime",
   "settings.providers.binary": "Binary path",
-  "settings.providers.binaryHelp":
-    "Path to the {tool} program this provider runs. Leave empty to use the one on PATH.",
-  "settings.providers.configDirHelp":
-    "Claude Code's config folder for this login. Leave empty to use ~/.claude.",
-  "settings.providers.codexHomeHelp":
-    "Codex's home and config folder. Leave empty to use ~/.codex.",
+  "settings.providers.binaryHelp": "Path to the {tool} program this provider runs. Leave empty to use the one on PATH.",
+  "settings.providers.configDirHelp": "Claude Code's config folder for this login. Leave empty to use ~/.claude.",
+  "settings.providers.codexHomeHelp": "Codex's home and config folder. Leave empty to use ~/.codex.",
   "settings.providers.autoCompact": "Auto-compact after",
-  "settings.providers.autoCompactHelp":
-    "Compact after 100,000 to 1,000,000 tokens. Leave empty to use Claude Code's default.",
+  "settings.providers.autoCompactHelp": "Compact after 100,000 to 1,000,000 tokens. Leave empty to use Claude Code's default.",
   "settings.providers.switchLabel": "Use {name}",
   "settings.providers.on": "On",
   "settings.providers.off": "Off",
@@ -407,16 +368,13 @@ export const en = {
   "settings.providers.stepIdentity": "Identity",
   "settings.providers.stepConfig": "Config",
   "settings.providers.id": "ID",
-  "settings.providers.idHelp":
-    'What the board stores the provider under. Letters, digits, "-" or "_". It cannot be changed afterwards.',
+  "settings.providers.idHelp": "What the board stores the provider under. Letters, digits, \"-\" or \"_\". It cannot be changed afterwards.",
   "settings.providers.loginCommand": "Log in",
-  "settings.providers.loginCommandHelp":
-    "Run this on the machine the board runs on to log the provider in. Status shows when it is logged in.",
+  "settings.providers.loginCommandHelp": "Run this on the machine the board runs on to log the provider in. Status shows when it is logged in.",
   "settings.providers.next": "Next",
   "settings.providers.card.claude": "Anthropic's coding agent.",
   "settings.providers.card.codex": "OpenAI's coding agent.",
-  "settings.providers.card.opencode":
-    "An open-source agent that runs other providers' models.",
+  "settings.providers.card.opencode": "An open-source agent that runs other providers' models.",
   "job.provider": "Provider",
   "notice.providerRuns": "{step} runs on {who}",
   "notice.providerRan": "{step} ran on {who}",
@@ -424,13 +382,10 @@ export const en = {
   "settings.models.available": "Available",
   "settings.models.gone": "No longer available",
   "settings.models.noneSupported": "No model choice runs on {tool}.",
-  "settings.models.allSupported":
-    "Every model it offers can already be picked.",
-  "settings.models.noneGone":
-    "Every model that can be picked is still offered.",
+  "settings.models.allSupported": "Every model it offers can already be picked.",
+  "settings.models.noneGone": "Every model that can be picked is still offered.",
   "settings.process.concurrency": "Steps that may run at once",
-  "settings.process.cores":
-    "This machine has {cores} cores. A saved number is used from the next step the queue starts; a step already running is never stopped for it.",
+  "settings.process.cores": "This machine has {cores} cores. A saved number is used from the next step the queue starts; a step already running is never stopped for it.",
   "nav.back": "Back",
   "tab.steps": "Logs",
   "tab.phases": "Models per phase",
@@ -444,22 +399,16 @@ export const en = {
   "tab.settings": "Settings",
   "settings.help.page.title": "What this page sets",
   "settings.help.page.lead": "What this page sets.",
-  "settings.help.page.body":
-    "Every step the queue can run has a row here, and a row says what that step runs on and how long it may take. Nothing here starts anything; it is what a run uses when nobody picked something else for that one spec.",
+  "settings.help.page.body": "Every step the queue can run has a row here, and a row says what that step runs on and how long it may take. Nothing here starts anything; it is what a run uses when nobody picked something else for that one spec.",
   "settings.help.onSpec.lead": "On a spec.",
-  "settings.help.onSpec.body":
-    "Create writes the spec's folder. Analyze works out how to do it. Implement writes the code and its tests. Archive merges the branch and moves the folder to archive. Close ends a spec whose idea did not hold, without merging its code. Reopen brings an archived spec back.",
+  "settings.help.onSpec.body": "Create writes the spec's folder. Analyze works out how to do it. Implement writes the code and its tests. Archive merges the branch and moves the folder to archive. Close ends a spec whose idea did not hold, without merging its code. Reopen brings an archived spec back.",
   "settings.help.offSpec.lead": "Not on a spec.",
-  "settings.help.offSpec.body":
-    "Schedule runs a job from a prompt file and names no spec at all.",
-  "settings.help.default":
-    "A row nothing has been saved for shows what its step runs on: Claude Code on Opus, unless the server's config file names another default.",
+  "settings.help.offSpec.body": "Schedule runs a job from a prompt file and names no spec at all.",
+  "settings.help.default": "A row nothing has been saved for shows what its step runs on: Claude Code on Opus, unless the server's config file names another default.",
   "settings.help.aiModel.lead": "AI and Model.",
-  "settings.help.aiModel.body":
-    "The AI is which command line runs the step; the model is which model it is given. Picking an AI fills in that AI's own model, and the two always belong together. Only AIs with a model configured on this server can be picked.",
+  "settings.help.aiModel.body": "The AI is which command line runs the step; the model is which model it is given. Picking an AI fills in that AI's own model, and the two always belong together. Only AIs with a model configured on this server can be picked.",
   "settings.help.timeout.lead": "Timeout.",
-  "settings.help.timeout.body":
-    "How long the step may run before it is stopped, in minutes. It is the only limit on a runaway step, so a step that legitimately takes longer needs a larger number here rather than a retry.",
+  "settings.help.timeout.body": "How long the step may run before it is stopped, in minutes. It is the only limit on a runaway step, so a step that legitimately takes longer needs a larger number here rather than a retry.",
   "settings.row.timeoutAria": "Timeout in minutes for {step}",
   "settings.side.review": "Review",
   "settings.side.verify": "Verify",
@@ -470,16 +419,13 @@ export const en = {
   "settings.col.phase": "Phase",
   "settings.col.timeout": "Timeout (min)",
   "settings.noModels": "No model choices are configured on this server.",
-  "settings.notifications.when":
-    "When a spec needs you — a step failed or stopped, its tests went red as it was merged into main, or its archive is held back on unticked acceptance criteria — this device gets a notification. Tapping it opens the spec.",
-  "settings.notifications.device":
-    "This is a setting of this device only. On an iPhone or iPad it works in the installed app, from iOS 16.4.",
+  "settings.notifications.when": "When a spec needs you — a step failed or stopped, its tests went red as it was merged into main, or its archive is held back on unticked acceptance criteria — this device gets a notification. Tapping it opens the spec.",
+  "settings.notifications.device": "This is a setting of this device only. On an iPhone or iPad it works in the installed app, from iOS 16.4.",
   "settings.notifications.toggle": "Notifications for this device",
   "settings.notifications.on": "On",
   "settings.notifications.off": "Off",
   "settings.notifications.checking": "Checking this device…",
-  "settings.notifications.job":
-    "A scheduled job notifies by its own choice — never, only when the run did not succeed, or every run. It is set on the job's form, on the project's Schedule tab.",
+  "settings.notifications.job": "A scheduled job notifies by its own choice — never, only when the run did not succeed, or every run. It is set on the job's form, on the project's Schedule tab.",
   "settings.usage.readAt": "Usage read {at}",
   "settings.usage.unread": "Usage not read yet.",
   "settings.usage.failed": "The usage could not be read: {reason}",
@@ -495,12 +441,9 @@ export const en = {
   "settings.install.holds.skills": "Skills",
   "settings.install.holds.scripts": "Scripts",
   "settings.install.holds.hooks": "Hooks",
-  "settings.install.cliMissing":
-    "{tool}'s command line is not found on this host.",
-  "settings.install.missing":
-    "Not on this host: {places}. Press Deploy, which runs the installers.",
-  "settings.install.behind":
-    "The installed files are behind the repository. Press Deploy, which runs the installers.",
+  "settings.install.cliMissing": "{tool}'s command line is not found on this host.",
+  "settings.install.missing": "Not on this host: {places}. Press Deploy, which runs the installers.",
+  "settings.install.behind": "The installed files are behind the repository. Press Deploy, which runs the installers.",
   "settings.install.fail": "FAIL",
   "form.create": "Create",
   "form.creating": "creating…",
@@ -510,7 +453,7 @@ export const en = {
   "schedule.searchAria": "Search the schedule",
   "schedule.colLastRun": "Last run",
   "schedule.noEntries": "No schedule entry exists yet.",
-  "schedule.noMatch": 'No schedule entry matches "{term}".',
+  "schedule.noMatch": "No schedule entry matches \"{term}\".",
   "schedule.enabledAria": "Enabled: {name}",
   "schedule.runNow": "Run now",
   "schedule.running": "running…",
@@ -518,14 +461,12 @@ export const en = {
   "schedule.deleting": "deleting…",
   "schedule.deleteAria": "Delete {name}",
   "schedule.deleteTitle": "Delete {project}:{name}?",
-  "schedule.deleteSentence":
-    "The entry is removed and stops firing. Its own run history stays in the queue.",
+  "schedule.deleteSentence": "The entry is removed and stops firing. Its own run history stays in the queue.",
   "schedule.project": "Project",
   "schedule.promptPath": "Prompt file path",
   "schedule.nextRunAt": "Next run: {at}",
   "newSpec.pageTitle": "New spec",
-  "newSpec.noProject":
-    "No project on this machine may have a spec made in it yet. Add one on the Projects page first.",
+  "newSpec.noProject": "No project on this machine may have a spec made in it yet. Add one on the Projects page first.",
   "newSpec.project": "Project",
   "newSpec.chooseProject": "Choose a project…",
   "newSpec.title": "Title",
@@ -534,22 +475,15 @@ export const en = {
   "newSpec.descriptionPlaceholder": "the problem, and what you want instead",
   "newSpec.dependsOnLine": "Depends on:",
   "newSpec.none": "none",
-  "newSpec.archivedTitle":
-    "archived — it can be dropped here, but not added back",
+  "newSpec.archivedTitle": "archived — it can be dropped here, but not added back",
   "newSpec.dependsHelpTitle": "what a dependency does",
-  "newSpec.dependsHelp":
-    "A dependency applies from this spec's next gated step (implement, resolve, archive) — never to a step already running.",
-  "newSpec.createLockedAria":
-    "Create — always runs, and not a step you can drop",
+  "newSpec.dependsHelp": "A dependency applies from this spec's next gated step (implement, resolve, archive) — never to a step already running.",
+  "newSpec.createLockedAria": "Create — always runs, and not a step you can drop",
   "newSpec.optionHelpTitle": "what this does",
-  "newSpec.help.acceptance":
-    "Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. Cleared, every acceptance criterion is marked Not verified. Archive can proceed, and you can verify each row later.",
-  "newSpec.help.formulate":
-    "Ticked, create runs a short AI session that writes an acceptance criterion for each requirement in this description that has none, and keeps the criteria you wrote yourself word for word; cleared, create writes the spec directly from what is typed here — no AI session, done in seconds.",
-  "newSpec.help.approach":
-    "Ticked, analyze marks each approach it considered as a real alternative or as rejected. When it finds two or more real alternatives, Implement waits, and the spec's row lists them with the recommended one chosen: save it to go on, or choose another to have analyze plan that one instead. Cleared, analyze picks the approach and Implement builds it.",
-  "newSpec.help.checks":
-    "How strictly analyze checks this spec's acceptance criteria — that each is written as a testable requirement, has a scenario, contradicts no other and can be built. Off: no checks. Warn: the plan review lists what it finds, and analyze completes. Stop: analyze stops until the criteria are put right. Chosen here, and not changed after the spec is created.",
+  "newSpec.help.acceptance": "Analyze writes an acceptance-criteria table, and archive waits until every row is ticked. Cleared, every acceptance criterion is marked Not verified. Archive can proceed, and you can verify each row later.",
+  "newSpec.help.formulate": "Ticked, create runs a short AI session that writes an acceptance criterion for each requirement in this description that has none, and keeps the criteria you wrote yourself word for word; cleared, create writes the spec directly from what is typed here — no AI session, done in seconds.",
+  "newSpec.help.approach": "Ticked, analyze marks each approach it considered as a real alternative or as rejected. When it finds two or more real alternatives, Implement waits, and the spec's row lists them with the recommended one chosen: save it to go on, or choose another to have analyze plan that one instead. Cleared, analyze picks the approach and Implement builds it.",
+  "newSpec.help.checks": "How strictly analyze checks this spec's acceptance criteria — that each is written as a testable requirement, has a scenario, contradicts no other and can be built. Off: no checks. Warn: the plan review lists what it finds, and analyze completes. Stop: analyze stops until the criteria are put right. Chosen here, and not changed after the spec is created.",
   "time.justNow": "just now",
   "time.minutesAgo": "{n} min ago",
   "time.hoursAgo": "{n} h ago",
@@ -563,107 +497,77 @@ export const en = {
   "setting.label.description": "Description",
   "setting.label.codeLanding": "Code landing",
   "setting.label.previewFrom": "Try a branch",
-  "setting.purpose.AIDE_SPECS_PATH":
-    "Where this project's specs are kept — its own specs/ when unset",
-  "setting.purpose.worktreeLinks":
-    "Gitignored paths a run's worktree needs, which git does not carry",
+  "setting.purpose.AIDE_SPECS_PATH": "Where this project's specs are kept — its own specs/ when unset",
+  "setting.purpose.worktreeLinks": "Gitignored paths a run's worktree needs, which git does not carry",
   "setting.purpose.AIDE_TEST_CMD": "The project's own test command",
-  "setting.purpose.acPrefix":
-    "Put before a criterion's id in a test's name; {spec} is the spec's number, so F{spec} names a test (F02 AC-2)",
-  "setting.purpose.AIDE_INSTALL_CMD":
-    "What installing this project means on this machine, run after its code merges",
-  "setting.purpose.previewCmd":
-    "How to start this project so a spec's branch can be looked at, serving on $PORT",
-  "setting.purpose.description":
-    "One line saying what the project is, shown on the Projects list",
+  "setting.purpose.acPrefix": "Put before a criterion's id in a test's name; {spec} is the spec's number, so F{spec} names a test (F02 AC-2)",
+  "setting.purpose.AIDE_INSTALL_CMD": "What installing this project means on this machine, run after its code merges",
+  "setting.purpose.previewCmd": "How to start this project so a spec's branch can be looked at, serving on $PORT",
+  "setting.purpose.description": "One line saying what the project is, shown on the Projects list",
   "setting.purpose.codeLanding": "What happens to code when a spec is archived",
-  "setting.purpose.previewFrom":
-    "How a spec's branch can be tried before it is merged",
+  "setting.purpose.previewFrom": "How a spec's branch can be tried before it is merged",
   "setting.col.value": "Value",
   "setting.col.comment": "Comment",
   "setting.dashboardFile": "the dashboard's settings.yaml",
   "setting.noTests": "No tests run when a spec lands",
-  "setting.suggested":
-    "Suggested from {source}, the usual {toolchain} default: {command} — Edit to set it",
+  "setting.suggested": "Suggested from {source}, the usual {toolchain} default: {command} — Edit to set it",
   "setting.landing.merge": "Merge into {branch}",
   "setting.landing.mainBranch": "the project's main branch",
   "setting.landing.pr": "Create a pull request",
   "setting.preview.none": "Not before it is merged",
   "setting.preview.command": "A test server on this machine",
   "setting.preview.cloudflare": "A Cloudflare Pages preview",
-  "setting.ph.worktreeLinks":
-    "gitignored paths a run must link in: node_modules .venv",
+  "setting.ph.worktreeLinks": "gitignored paths a run must link in: node_modules .venv",
   "setting.suggestedLinks": "Suggested from the checkout's .gitignore: {list}",
   "setting.ph.specsPath": "its own specs/ when empty",
   "setting.ph.description": "one line: what the project is",
   "setting.ph.acPrefix": "F{spec} names a test (F02 AC-2)",
-  "project.add.info":
-    "The specs path and the install command go to the project's .aide/config on this machine. The other settings go to the dashboard's own settings file. For a repository that already tracks .aide/project.yaml, they are committed to that file instead.",
+  "project.add.info": "The specs path and the install command go to the project's .aide/config on this machine. The other settings go to the dashboard's own settings file. For a repository that already tracks .aide/project.yaml, they are committed to that file instead.",
   "project.add.title": "Add project",
   "project.add.namePh": "the directory the clone makes under the projects root",
   "project.add.gitUrl": "Git URL",
   "project.add.gitUrlPh": "cloned under the projects root",
   "project.add.specsPathPh": "optional — its own specs/ otherwise",
   "project.add.chooseLanding": "Choose how code lands…",
-  "project.add.worktreeLinksPh":
-    "optional — gitignored paths a run must link in: node_modules .venv",
+  "project.add.worktreeLinksPh": "optional — gitignored paths a run must link in: node_modules .venv",
   "project.add.testCmdPh": "optional — the project's own test command",
   "project.add.installCmdPh": "optional — run after its code merges",
   "project.add.previewCmdPh": "optional — serving on $PORT",
   "project.add.acPrefixPh": "optional — F{spec} names a test (F02 AC-2)",
   "project.removeTitle": "Remove {name}?",
-  "project.removeSentence":
-    "Removing {name} takes it off the allowlist and off this dashboard. Its checkout and its specs stay on disk, untouched. This cannot be undone.",
+  "project.removeSentence": "Removing {name} takes it off the allowlist and off this dashboard. Its checkout and its specs stay on disk, untouched. This cannot be undone.",
   "project.cannotRunTitle": "cannot run yet — see the project's page",
   "project.cannotRunAria": "cannot run yet",
   "project.deployButton": "Deploy",
-  "project.noDeploy":
-    "There is not enough information about how this project is deployed to offer Deploy.",
-  "project.notChecked":
-    "Whether this checkout is behind origin has not been checked yet.",
-  "project.notCheckedWith":
-    "Whether this checkout is behind origin has not been checked yet; {phrase}.",
+  "project.noDeploy": "There is not enough information about how this project is deployed to offer Deploy.",
+  "project.notChecked": "Whether this checkout is behind origin has not been checked yet.",
+  "project.notCheckedWith": "Whether this checkout is behind origin has not been checked yet; {phrase}.",
   "project.matchesOrigin": "This checkout matches origin.",
   "project.driftOne": "{n} commit behind origin, checked {when}",
   "project.driftMany": "{n} commits behind origin, checked {when}",
   "project.servingCurrent": "Serving commit {sha} — matches this checkout.",
-  "project.servingStale":
-    "Serving commit {sha}, but this checkout is now at commit {head} — the running service has not picked up the latest merge.",
-  "project.noInstallCmd":
-    "No Install command is configured for this project, so its origin drift is not tracked here.",
-  "project.servedNewest":
-    'the service is already running the newest change, "{subject}"',
-  "project.servedBehindOne":
-    'the service is {n} commit behind this checkout — the newest change is "{subject}"',
-  "project.servedBehindMany":
-    'the service is {n} commits behind this checkout — the newest change is "{subject}"',
+  "project.servingStale": "Serving commit {sha}, but this checkout is now at commit {head} — the running service has not picked up the latest merge.",
+  "project.noInstallCmd": "No Install command is configured for this project, so its origin drift is not tracked here.",
+  "project.servedNewest": "the service is already running the newest change, \"{subject}\"",
+  "project.servedBehindOne": "the service is {n} commit behind this checkout — the newest change is \"{subject}\"",
+  "project.servedBehindMany": "the service is {n} commits behind this checkout — the newest change is \"{subject}\"",
   "project.behindOne": "{prefix} — Deploy pulls it, installs.",
-  "project.behindOneRestart":
-    "{prefix} — Deploy pulls it, installs, and restarts the service.",
+  "project.behindOneRestart": "{prefix} — Deploy pulls it, installs, and restarts the service.",
   "project.behindMany": "{prefix} — Deploy pulls them, installs.",
-  "project.behindManyRestart":
-    "{prefix} — Deploy pulls them, installs, and restarts the service.",
-  "project.stale":
-    "This checkout matches origin, but the service is still running commit {sha}; Deploy restarts it on commit {head}.",
-  "project.servingMatches":
-    "This checkout matches origin, and the service is running commit {sha}.",
+  "project.behindManyRestart": "{prefix} — Deploy pulls them, installs, and restarts the service.",
+  "project.stale": "This checkout matches origin, but the service is still running commit {sha}; Deploy restarts it on commit {head}.",
+  "project.servingMatches": "This checkout matches origin, and the service is running commit {sha}.",
   "project.originUnchecked": "Origin has not been checked yet.",
-  "project.pressAgain":
-    "Pressing again only repeats the pull and install — it does not restart the service sooner.",
-  "project.deployUnderWay":
-    "A deploy is already {state} — follow it on the Running tab.",
+  "project.pressAgain": "Pressing again only repeats the pull and install — it does not restart the service sooner.",
+  "project.deployUnderWay": "A deploy is already {state} — follow it on the Running tab.",
   "project.readinessOk": "Nothing stops a run: this checkout is ready to run.",
   "project.cannotStart": "a run cannot start here yet: {reasons}",
-  "project.noConfigFile":
-    "There is no .aide/config in this checkout, so nothing below was configured on this machine.",
+  "project.noConfigFile": "There is no .aide/config in this checkout, so nothing below was configured on this machine.",
   "settings.notifications.msgOn": "Notifications are on for this device.",
   "settings.notifications.msgOff": "Notifications are off for this device.",
-  "settings.notifications.msgBlocked":
-    "Notifications are blocked for this site. Allow them in the device's own settings, then open this tab again.",
-  "settings.notifications.msgUnsupported":
-    "Notifications need the installed app on this device — add the dashboard to the Home Screen and open it from there.",
-  "settings.notifications.msgFailed":
-    "Notifications could not be turned on. Try again.",
+  "settings.notifications.msgBlocked": "Notifications are blocked for this site. Allow them in the device's own settings, then open this tab again.",
+  "settings.notifications.msgUnsupported": "Notifications need the installed app on this device — add the dashboard to the Home Screen and open it from there.",
+  "settings.notifications.msgFailed": "Notifications could not be turned on. Try again.",
   "message.problem": "Problem",
   "message.solution": "Solution",
 } as const;

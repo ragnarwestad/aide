@@ -14,25 +14,8 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE = new Bun.Transpiler({
-  loader: "ts",
-  target: "browser",
-}).transformSync(
-  readFileSync(
-    join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "..",
-      "src",
-      "render",
-      "ui",
-      "forms",
-      "unsaved-changes.ts",
-    ),
-    "utf-8",
-  ),
+const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
+  readFileSync(join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "forms", "unsaved-changes.ts"), "utf-8"),
 );
 
 type FakeElement = {
@@ -45,14 +28,7 @@ type FakeElement = {
  *  Cancel markers. Matched against the element's OWN properties only —
  *  every case this script cares about asks about the event target
  *  itself, never an ancestor several levels up. */
-function element(
-  opts: {
-    classes?: string[];
-    id?: string;
-    unitChoice?: boolean;
-    discardChanges?: boolean;
-  } = {},
-): FakeElement {
+function element(opts: { classes?: string[]; id?: string; unitChoice?: boolean; discardChanges?: boolean } = {}): FakeElement {
   const classes = opts.classes ?? [];
   const matchesOne = (sel: string): boolean => {
     const s = sel.trim();
@@ -81,9 +57,7 @@ type FakeAnchor = FakeElement & {
  *  click landing directly on the link itself would be — every case this
  *  script cares about reads the anchor's own `target`/`download`/`href`,
  *  never an ancestor's. */
-function anchor(
-  opts: { href?: string; blank?: boolean; download?: boolean } = {},
-): FakeAnchor {
+function anchor(opts: { href?: string; blank?: boolean; download?: boolean } = {}): FakeAnchor {
   const href = opts.href ?? "/other-page";
   const self: FakeAnchor = {
     closest: (sel: string) => (sel === "a[href]" ? self : null),
@@ -120,6 +94,7 @@ function harness() {
     },
   };
 
+
   const document = {
     addEventListener: (type: string, fn: (event: unknown) => void) => {
       if (type === "input") inputHandler = fn;
@@ -141,12 +116,7 @@ function harness() {
   const submit = (form: FakeElement) => submitHandler!({ target: form });
   const click = (
     el: FakeElement,
-    opts: {
-      metaKey?: boolean;
-      ctrlKey?: boolean;
-      shiftKey?: boolean;
-      button?: number;
-    } = {},
+    opts: { metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; button?: number } = {},
   ): boolean => {
     let prevented = false;
     clickHandler!({
@@ -230,10 +200,7 @@ describe("a page with an unsaved edit warns before it is left", () => {
     const h = harness();
     // As a phase pick names the spec's run form: saved the moment it is
     // picked, so nothing this page would lose.
-    h.change({
-      ...element({ classes: ["specform"] }),
-      getAttribute: (a: string) => (a === "form" ? "rowrun-aide/1-x" : null),
-    } as FakeElement);
+    h.change({ ...element({ classes: ["specform"] }), getAttribute: (a: string) => (a === "form" ? "rowrun-aide/1-x" : null) } as FakeElement);
     expect(h.beforeunload().prevented).toBe(false);
   });
 
@@ -295,15 +262,13 @@ describe("a same-document link click while dirty opens the leaveapp dialog inste
   test("dirty + a modified click (e.g. Ctrl+click to open a new tab) is left alone", () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
-    const prevented = h.click(anchor({ href: "/other-page" }), {
-      ctrlKey: true,
-    });
+    const prevented = h.click(anchor({ href: "/other-page" }), { ctrlKey: true });
     expect(prevented).toBe(false);
     expect(h.dialog.wasOpened()).toBe(false);
   });
 
   for (const [label, opts] of [
-    ['target="_blank"', { href: "/x", blank: true }],
+    ["target=\"_blank\"", { href: "/x", blank: true }],
     ["download", { href: "/x", download: true }],
     ["a #-fragment", { href: "#top" }],
     ["a mailto: link", { href: "mailto:a@b.com" }],
@@ -320,7 +285,7 @@ describe("a same-document link click while dirty opens the leaveapp dialog inste
 
   // The link is pressed again rather than its address assigned, so it
   // leaves as it always would: Back's `rel="noreferrer"` goes with it.
-  test("pressing OK presses the link itself again and disarms the guard", () => {
+  test('pressing OK presses the link itself again and disarms the guard', () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
     const link = anchor({ href: "/other-page" });
@@ -331,7 +296,7 @@ describe("a same-document link click while dirty opens the leaveapp dialog inste
     expect(prevented).toBe(false);
   });
 
-  test("pressing Cancel (or Escape) navigates nowhere and leaves the guard armed", () => {
+  test('pressing Cancel (or Escape) navigates nowhere and leaves the guard armed', () => {
     const h = harness();
     h.input(element({ classes: ["specform"] }));
     const link = anchor({ href: "/other-page" });

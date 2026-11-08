@@ -47,12 +47,7 @@
 // that assembles all of them, into the open row of the Specs list — stays
 // here.
 
-import {
-  buttonForm,
-  helpPopover,
-  messageSlot,
-  rowMessage,
-} from "../../ui/components";
+import { buttonForm, helpPopover, messageSlot, rowMessage } from "../../ui/components";
 import type { Language } from "../../../i18n";
 import { shellRest, type NavEntry } from "../../ui/shell.ts";
 import { LOADING_HIDE_RULE } from "../../ui/loading.ts";
@@ -61,41 +56,20 @@ import { groupKey } from "../specs-list/data-model";
 import { landingRefusal, stepResults, tabBar } from "../job-page";
 import { followMarker, followPart } from "../job-page/follow.ts";
 import {
-  actionsHelp,
-  testServerStatus,
-  closedLine,
-  closeControl,
-  pdfControl,
+  actionsHelp, testServerStatus, closedLine, closeControl, pdfControl,
   reopenControl,
 } from "./overview.ts";
 import { descriptionPanel, documentPanel } from "./panels.ts";
 import {
-  resolveSpecTab,
-  SPEC_LINES,
-  SPEC_NOTICE_LINE,
-  SPEC_REFUSED_LINE,
-  SPEC_TABS,
-  specDetailPath,
-  specTabPath,
-  TAB_FILES,
-  TAB_HELP,
+  resolveSpecTab, SPEC_LINES, SPEC_NOTICE_LINE, SPEC_REFUSED_LINE, SPEC_TABS, specDetailPath, specTabPath, TAB_FILES, TAB_HELP,
   type ListView,
 } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./types.ts";
 export {
-  EDITABLE_SPEC_FILE,
-  STATUS_SPEC_FILE,
-  FILE_TABS,
-  resolveSpecTab,
-  TAB_FILES,
-  documentTabScript,
-  listViewIn,
-  specDetailPath,
-  specPagePath,
-  specTabPath,
-  type ListView,
+  EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, FILE_TABS, resolveSpecTab, TAB_FILES,
+  documentTabScript, listViewIn, specDetailPath, specPagePath, specTabPath, type ListView,
 } from "./tabs.ts";
 
 interface SpecDetailOpts {
@@ -111,10 +85,7 @@ interface SpecDetailOpts {
 
 /** What the Steps tab draws of a spec: its lead job and every step of the
  *  round. The follow answer builds only these two, not the whole page's view. */
-export type SpecStepsView = Pick<
-  SpecPageView,
-  "project" | "specFolder" | "lead" | "steps"
->;
+export type SpecStepsView = Pick<SpecPageView, "project" | "specFolder" | "lead" | "steps">;
 
 /** The index the lead job's running step has among the round's steps once it
  *  finishes — what keys its row and what the follow marker names. */
@@ -122,15 +93,10 @@ const runningIndexOf = (view: SpecStepsView): number | undefined =>
   view.lead?.runningStep ? (view.steps?.length ?? 0) : undefined;
 
 /** The Steps tab's table, with the tab's own "(?)" in its first line. */
-function stepsTable(
-  view: SpecStepsView,
-  opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view">,
-): string {
+function stepsTable(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view">): string {
   const lead = view.lead;
   return stepResults(view.steps ?? [], lead?.archiveHeldBack, {
-    tabHref: opts.view
-      ? specDetailPath(view.project, view.specFolder, opts.view, "steps")
-      : specTabPath(view.project, view.specFolder, "steps"),
+    tabHref: opts.view ? specDetailPath(view.project, view.specFolder, opts.view, "steps") : specTabPath(view.project, view.specFolder, "steps"),
     openStep: opts.step,
     runningStep: lead?.runningStep,
     steptab: opts.steptab,
@@ -144,18 +110,10 @@ function stepsTable(
 
 /** What `?follow=1` answers on the Steps tab: the marker and the parts the
  *  page script swaps, drawn by the same functions as the page. */
-export function renderSpecStepsFollowParts(
-  view: SpecStepsView,
-  opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view"> = {},
-): string {
+export function renderSpecStepsFollowParts(view: SpecStepsView, opts: Pick<SpecDetailOpts, "step" | "steptab" | "lang" | "view"> = {}): string {
   return (
-    (view.lead
-      ? followMarker(view.lead, {
-          tab: "steps",
-          step: opts.step,
-          runningIndex: runningIndexOf(view),
-        })
-      : "") + followPart("panel", stepsTable(view, opts))
+    (view.lead ? followMarker(view.lead, { tab: "steps", step: opts.step, runningIndex: runningIndexOf(view) }) : "") +
+    followPart("panel", stepsTable(view, opts))
   );
 }
 
@@ -164,10 +122,7 @@ export function renderSpecStepsFollowParts(
  *  and the open tab's panel. The page's own frame — its "← Back" link and
  *  its title — is not drawn: the row names the spec, and the browser's Back
  *  shuts the row. */
-export function renderSpecDetail(
-  view: SpecPageView,
-  opts: SpecDetailOpts = {},
-): string {
+export function renderSpecDetail(view: SpecPageView, opts: SpecDetailOpts = {}): string {
   const now = opts.now ?? Date.now();
   // Description, whatever is running. The JOB page opens on the
   // activity while a step runs, because that page is about the run;
@@ -194,11 +149,7 @@ export function renderSpecDetail(
     // The Steps tab follows a job that is in flight; the page script reads
     // the marker.
     (tab === "steps" && lead
-      ? followMarker(lead, {
-          tab,
-          step: opts.step,
-          runningIndex: runningIndexOf(view),
-        })
+      ? followMarker(lead, { tab, step: opts.step, runningIndex: runningIndexOf(view) })
       : "") +
     // Where the page script writes what a press on this page answered:
     // Update, Save, the banner, the Status tab's tick, Stop test server.
@@ -217,12 +168,7 @@ export function renderSpecDetail(
     closeControl(view, opts.lang ?? "en") +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
-    buttonForm({
-      action: view.updateAction,
-      hook: "reloadform",
-      data: SPEC_LINES,
-      button: { label: "Update", pending: "updating…" },
-    }) +
+    buttonForm({ action: view.updateAction, hook: "reloadform", data: SPEC_LINES, button: { label: "Update", pending: "updating…" } }) +
     // Last, so it is not between two buttons.
     pdfControl(view);
 
@@ -238,14 +184,14 @@ export function renderSpecDetail(
         ? descriptionPanel(view, now, opts.lang ?? "en", mark)
         : documentPanel(view, TAB_FILES[tab]!, now, opts.lang ?? "en", mark);
 
+
   // Each tab is a page load of the spec's own address, with the list's view
   // and the row's anchor, so the row is still open and in view after it.
   const view_ = opts.view ?? {};
   const anchor = `#spec-${groupKey(view.project, view.specFolder)}`;
   const tabs = tabBar(
     SPEC_TABS,
-    (key) =>
-      `${specDetailPath(view.project, view.specFolder, view_, key)}${anchor}`,
+    (key) => `${specDetailPath(view.project, view.specFolder, view_, key)}${anchor}`,
     tab,
     { steps: (view.steps?.length ?? 0) + (lead?.runningStep ? 1 : 0) },
     actions,
@@ -265,22 +211,12 @@ export function renderSpecDetail(
 
 /** What ends a spec page whose second half failed after the head was sent:
  *  the loading element hidden and one sentence saying what to do. */
-export function renderSpecPageFailedRest(
-  entries: NavEntry[],
-  lang: Language,
-  currentUrl?: string,
-): string {
-  return shellRest(
-    entries,
-    "/specs",
-    "",
-    rowMessage("failed", t(lang, "shell.pageFailed"), { tag: "p" }),
-    {
-      hideHeading: true,
-      hideTabBar: true,
-      lang,
-      currentUrl,
-      afterMain: LOADING_HIDE_RULE,
-    },
-  );
+export function renderSpecPageFailedRest(entries: NavEntry[], lang: Language, currentUrl?: string): string {
+  return shellRest(entries, "/specs", "", rowMessage("failed", t(lang, "shell.pageFailed"), { tag: "p" }), {
+    hideHeading: true,
+    hideTabBar: true,
+    lang,
+    currentUrl,
+    afterMain: LOADING_HIDE_RULE,
+  });
 }

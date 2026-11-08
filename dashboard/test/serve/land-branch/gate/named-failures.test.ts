@@ -6,10 +6,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  failingLines,
-  runProjectSuiteBeforePush,
-} from "../../../../src/serve/land-branch/test-gate.ts";
+import { failingLines, runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
 import { namingRecorder } from "../../../helpers/naming-recorder.ts";
 
 const dirs: string[] = [];
@@ -21,13 +18,8 @@ afterEach(() => {
 });
 
 function git(cwd: string, ...args: string[]): void {
-  const out = Bun.spawnSync({
-    cmd: ["git", "-C", cwd, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  if (out.exitCode !== 0)
-    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
+  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
 }
 
 /** main, and the merge checked out on top of it carrying the spec's change. */
@@ -52,19 +44,13 @@ function merged(): string {
 function recorder(first: string, second: string): void {
   const bin = mkdtempSync(join(tmpdir(), "aide-named-failures-bin-"));
   dirs.push(bin);
-  writeFileSync(
-    join(bin, "resolve"),
-    `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`,
-    { mode: 0o755 },
-  );
+  writeFileSync(join(bin, "resolve"), `#!/bin/sh\nprintf '{"ok":true,"commands":["true"]}\\n'\n`, { mode: 0o755 });
   const runs = join(bin, "runs");
   writeFileSync(
     join(bin, "record"),
-    namingRecorder(
-      `[ -f "$2/spec-change" ] || exit 0\necho run >> ${runs}\n` +
-        `if [ "$(wc -l < ${runs})" -eq 1 ]; then ${first ? `echo 'FAILED t/test_a.py::${first} - first error'` : "echo 'error: command stopped before naming a test'"}; else echo 'FAILED t/test_a.py::${second} - second error'; fi\n` +
-        `echo '{"ok":true,"exitCode":1,"terminalReason":"recorded"}'\nexit 1\n`,
-    ),
+    namingRecorder(`[ -f "$2/spec-change" ] || exit 0\necho run >> ${runs}\n` +
+      `if [ "$(wc -l < ${runs})" -eq 1 ]; then ${first ? `echo 'FAILED t/test_a.py::${first} - first error'` : "echo 'error: command stopped before naming a test'"}; else echo 'FAILED t/test_a.py::${second} - second error'; fi\n` +
+      `echo '{"ok":true,"exitCode":1,"terminalReason":"recorded"}'\nexit 1\n`),
     { mode: 0o755 },
   );
   process.env.AIDE_RESOLVE_TEST_CMD_BIN = join(bin, "resolve");
@@ -79,27 +65,16 @@ test("the same test on both runs is named with its latest error (AC-2)", async (
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMerge",
-    values: {
-      tests: "t/test_a.py::test_one — second error",
-      branch: "aide/81-x",
-      button: "Archive",
-    },
+    values: { tests: "t/test_a.py::test_one — second error", branch: "aide/81-x", button: "Archive" },
   });
 }, 30_000);
 
 test("a test shared by both runs is the merge's even when the first run named another test (AC-3)", async () => {
-  recorder(
-    "test_one - first error'; echo 'FAILED t/test_a.py::test_two",
-    "test_one",
-  );
+  recorder("test_one - first error'; echo 'FAILED t/test_a.py::test_two", "test_one");
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMerge",
-    values: {
-      tests: "t/test_a.py::test_one — second error",
-      branch: "aide/81-x",
-      button: "Archive",
-    },
+    values: { tests: "t/test_a.py::test_one — second error", branch: "aide/81-x", button: "Archive" },
   });
 }, 30_000);
 
@@ -117,28 +92,16 @@ test("different tests on the two runs: both named, and the sentence points at a 
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMergeVaried",
-    values: {
-      tests:
-        "t/test_a.py::test_one — first error; t/test_a.py::test_two — second error",
-      branch: "aide/81-x",
-      button: "Archive",
-    },
+    values: { tests: "t/test_a.py::test_one — first error; t/test_a.py::test_two — second error", branch: "aide/81-x", button: "Archive" },
   });
 }, 30_000);
 
 test("a repeated failure stays the merge's when the retry adds another failure (AC-3)", async () => {
-  recorder(
-    "test_one",
-    "test_one - second error'; echo 'FAILED t/test_a.py::test_two",
-  );
+  recorder("test_one", "test_one - second error'; echo 'FAILED t/test_a.py::test_two");
   const verdict = await runProjectSuiteBeforePush(merged(), job, "aide/81-x");
   expect(verdict.error).toEqual({
     key: "landing.testsRedOnMerge",
-    values: {
-      tests: "t/test_a.py::test_one — second error",
-      branch: "aide/81-x",
-      button: "Archive",
-    },
+    values: { tests: "t/test_a.py::test_one — second error", branch: "aide/81-x", button: "Archive" },
   });
 }, 30_000);
 
@@ -148,11 +111,7 @@ describe("failingLines", () => {
   });
 
   test("a cut tail starts at a line, never inside a word", () => {
-    const out = failingLines(
-      `${"word ".repeat(30)}\nmake sure the database is reachable\n`,
-      "",
-      50,
-    );
+    const out = failingLines(`${"word ".repeat(30)}\nmake sure the database is reachable\n`, "", 50);
     expect(out).toBe("make sure the database is reachable");
   });
 });

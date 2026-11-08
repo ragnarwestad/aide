@@ -5,26 +5,14 @@ export const schedulePagePath = (project: string, name: string): string =>
   `/schedule/${encodeURIComponent(project)}/${encodeURIComponent(name)}`;
 
 /** A run's own address: the entry's page showing that run, at its report. */
-export const scheduleRunPath = (
-  project: string,
-  name: string,
-  runId: string,
-): string =>
+export const scheduleRunPath = (project: string, name: string, runId: string): string =>
   `${schedulePagePath(project, name)}?run=${encodeURIComponent(runId)}#report`;
 
-export const scheduleTabPath = (
-  project: string,
-  name: string,
-  tab: string,
-): string =>
+export const scheduleTabPath = (project: string, name: string, tab: string): string =>
   `${schedulePagePath(project, name)}?tab=${encodeURIComponent(tab)}`;
 
 /** The entry's Settings tab; `edit` draws its fields as inputs. */
-export const scheduleSettingsPath = (
-  project: string,
-  name: string,
-  edit = false,
-): string =>
+export const scheduleSettingsPath = (project: string, name: string, edit = false): string =>
   `${scheduleTabPath(project, name, "settings")}${edit ? "&edit=1" : ""}`;
 
 /** The entry's prompt file, as the default branch of the board's checkout has it. */

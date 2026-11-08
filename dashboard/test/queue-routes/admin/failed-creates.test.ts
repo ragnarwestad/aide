@@ -15,13 +15,9 @@ afterEach(() => {
 });
 
 const record = (id: string, over: Record<string, unknown> = {}) => ({
-  id,
-  project: "aide",
-  title: `Title of ${id}`,
-  description: `Line one\nline "two" <b> & ${id}`,
+  id, project: "aide", title: `Title of ${id}`, description: `Line one\nline "two" <b> & ${id}`,
   reason: { key: "runner.serverRestarted", values: { button: "Create" } },
-  failedAt: `2026-09-19T17:0${id === "first" ? 1 : 2}:00.000Z`,
-  ...over,
+  failedAt: `2026-09-19T17:0${id === "first" ? 1 : 2}:00.000Z`, ...over,
 });
 
 function served(records: unknown[]) {
@@ -33,8 +29,7 @@ function served(records: unknown[]) {
   return { base, failedCreatesPath };
 }
 
-const home = async (base: string) =>
-  await (await fetch(`${base}/specs`)).text();
+const home = async (base: string) => await (await fetch(`${base}/specs`)).text();
 const dismiss = (base: string, id: string) =>
   fetch(`${base}/api/queue/failed-creates/${id}/dismiss`, {
     method: "POST",
@@ -46,9 +41,7 @@ describe("a failed create on the Specs list", () => {
   test("is a message first on the page, with project, title and reason", async () => {
     const s = served([record("first")]);
     const html = await home(s.base);
-    expect(html).toContain(
-      "Creating “Title of first” in aide failed: the server restarted",
-    );
+    expect(html).toContain("Creating “Title of first” in aide failed: the server restarted");
     expect(html.indexOf("Title of first")).toBeLessThan(html.indexOf("<table"));
   });
 
@@ -79,9 +72,7 @@ describe("a failed create on the Specs list", () => {
   test("two messages, newest first; dismissing one leaves the other", async () => {
     const s = served([record("first"), record("second")]);
     const html = await home(s.base);
-    expect(html.indexOf("Title of second")).toBeLessThan(
-      html.indexOf("Title of first"),
-    );
+    expect(html.indexOf("Title of second")).toBeLessThan(html.indexOf("Title of first"));
     expect((await dismiss(s.base, "second")).status).toBe(200);
     const after = await home(s.base);
     expect(after).not.toContain("Title of second");
@@ -92,10 +83,7 @@ describe("a failed create on the Specs list", () => {
     const s = served([record("first")]);
     expect(await (await dismiss(s.base, "first")).json()).toEqual({ ok: true });
     expect(await (await dismiss(s.base, "first")).json()).toEqual({ ok: true });
-    const plain = await fetch(
-      `${s.base}/api/queue/failed-creates/first/dismiss`,
-      { method: "POST", redirect: "manual" },
-    );
+    const plain = await fetch(`${s.base}/api/queue/failed-creates/first/dismiss`, { method: "POST", redirect: "manual" });
     expect(plain.status).toBe(200);
     expect(await plain.json()).toEqual({ ok: true });
     expect((await dismiss(s.base, "nothing")).status).toBe(404);
@@ -117,18 +105,14 @@ describe("Try again opens New spec filled in", () => {
     const html = await (await fetch(`${s.base}/new?retry=first`)).text();
     expect(html).toContain(`<option value="aide" selected>aide</option>`);
     expect(html).toContain(`value="Title of first"`);
-    expect(html).toContain(
-      `Line one\nline &quot;two&quot; &lt;b&gt; &amp; first</textarea>`,
-    );
+    expect(html).toContain(`Line one\nline &quot;two&quot; &lt;b&gt; &amp; first</textarea>`);
   });
 
   test("also after the message was dismissed, as a tap on the notification would", async () => {
     const s = served([record("first")]);
     await dismiss(s.base, "first");
     expect(await home(s.base)).not.toContain("Title of first");
-    expect(await (await fetch(`${s.base}/new?retry=first`)).text()).toContain(
-      `value="Title of first"`,
-    );
+    expect(await (await fetch(`${s.base}/new?retry=first`)).text()).toContain(`value="Title of first"`);
   });
 
   test("an unknown id gives the empty form", async () => {

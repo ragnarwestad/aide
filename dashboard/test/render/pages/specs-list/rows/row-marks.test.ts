@@ -6,11 +6,7 @@
 // tests are unchanged and keep their names.
 
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { noPullRequest, row } from "../../fixtures.ts";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
 
@@ -37,19 +33,12 @@ const specCell = (html: string, folder: string): string =>
 // The State cell is on the header's SECOND row now (tr.specstate), not
 // after the title cell on the same row.
 const stateCellHtml = (html: string, folder: string): string =>
-  rowBlock(html, folder)
-    .match(
-      /<tr class="specstate"[\s\S]*?<td data-col="state">[\s\S]*?<\/td>/,
-    )?.[0]
+  rowBlock(html, folder).match(/<tr class="specstate"[\s\S]*?<td data-col="state">[\s\S]*?<\/td>/)?.[0]
     ?.match(/<td data-col="state">[\s\S]*?<\/td>/)?.[0] ?? "";
 
 // The row's own message panel, where the row's errors move to.
 const noticeCellHtml = (html: string, folder: string): string =>
-  html.match(
-    new RegExp(
-      `<tr class="specnotice"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`,
-    ),
-  )?.[0] ?? "";
+  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`))?.[0] ?? "";
 
 // The view survives an action, and a refusal finds its row ------
 
@@ -91,22 +80,11 @@ describe("a row shows the pull request its run opened", () => {
   // The fact must not be hidden by the "nothing to say while
   // running" branch that blanks an otherwise-empty notice line.
   test("a running row with a pull request open still shows the notice sentence", () => {
-    const html = renderSpecsRows(
-      [
-        row({
-          steps: ["archive"],
-          state: "running",
-          prUrl: "https://github.test/aide/pull/7",
-        }),
-      ],
-      {
-        runnerAvailable: true,
-        targets: [],
-      },
-    );
-    expect(noticeCellHtml(html, FOLDER)).toContain(
-      'href="https://github.test/aide/pull/7"',
-    );
+    const html = renderSpecsRows([row({ steps: ["archive"], state: "running", prUrl: "https://github.test/aide/pull/7" })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+    expect(noticeCellHtml(html, FOLDER)).toContain('href="https://github.test/aide/pull/7"');
   });
 
   // `prError` is one of the three real ERRORS, not the
@@ -117,9 +95,7 @@ describe("a row shows the pull request its run opened", () => {
     const html = open(noPullRequest("archive", RAW));
     const state = stateCellHtml(html, FOLDER);
     expect(state).not.toContain(RAW);
-    expect(state).not.toContain(
-      "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
-    );
+    expect(state).not.toContain("No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.");
     expect(state).not.toContain("pull/7");
     expect(noticeCellHtml(html, FOLDER)).toContain(
       "No pull request could be opened for this branch. — Open one by hand, in the checkout on the serving host.",
@@ -129,8 +105,7 @@ describe("a row shows the pull request its run opened", () => {
   // The one `prError` case that carries
   // raw `gh pr create` stderr never reaches the row either.
   test("gh's own stderr, on the one case that carries it, never reaches the row", () => {
-    const RAW =
-      "error connecting to api.github.com  check your internet connection or https status.github.com";
+    const RAW = "error connecting to api.github.com  check your internet connection or https status.github.com";
     const html = open(noPullRequest("archive", RAW));
     expect(html).not.toContain(RAW);
     expect(noticeCellHtml(html, FOLDER)).toContain(
@@ -158,20 +133,17 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     ...extra,
   });
   const heldForChecks = (targetExtra: Partial<SpecTarget> = {}) =>
-    renderSpecsRows(
-      [row({ specFolder: FOLDER, steps: ["archive"], state: "done" })],
-      {
-        runnerAvailable: true,
-        targets: [
-          target({
-            done: ["implement"],
-            historyDone: ["analyze", "implement"],
-            archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-            ...targetExtra,
-          }),
-        ],
-      },
-    );
+    renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
+      runnerAvailable: true,
+      targets: [
+        target({
+          done: ["implement"],
+          historyDone: ["analyze", "implement"],
+          archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
+          ...targetExtra,
+        }),
+      ],
+    });
 
   // The shape the BOARD actually has in this state, which every test in
   // this block missed: `done` is read off the default branch's own
@@ -183,24 +155,15 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
   // board cannot produce, and the row said nothing about why archive was
   // not moving in the one state this note exists for.
   test("the note is there when only git proves implement ran", () => {
-    const html = heldForChecks({
-      done: ["create", "analyze"],
-      historyDone: ["analyze", "implement"],
-    });
-    expect(noticeCellHtml(html, FOLDER)).toContain(
-      "The Acceptance criteria are not all ticked",
-    );
+    const html = heldForChecks({ done: ["create", "analyze"], historyDone: ["analyze", "implement"] });
+    expect(noticeCellHtml(html, FOLDER)).toContain("The Acceptance criteria are not all ticked");
   });
 
   // The exact sentence, carrying the link.
   test("the sentence, with a link, is in the notice line", () => {
     const notice = noticeCellHtml(heldForChecks(), FOLDER);
-    expect(notice).toContain(
-      "Click the link to start a test server running this branch",
-    );
-    expect(notice).toContain(
-      `href="/specs/aide/${FOLDER}?tab=steps&amp;startTestServer=1"`,
-    );
+    expect(notice).toContain("Click the link to start a test server running this branch");
+    expect(notice).toContain(`href="/specs/aide/${FOLDER}?tab=steps&amp;startTestServer=1"`);
   });
 
   // Ticking the last check starts the archive at once, and the note in
@@ -236,10 +199,7 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     const notice = noticeCellHtml(
       renderSpecsRows(
         [row({ specFolder: FOLDER, steps: ["archive"], state: "queued" })],
-        {
-          runnerAvailable: true,
-          targets: [target({ historyDone: ["analyze", "implement"] })],
-        },
+        { runnerAvailable: true, targets: [target({ historyDone: ["analyze", "implement"] })] },
       ),
       FOLDER,
     );
@@ -250,18 +210,10 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
   // implement is proven done — the link is independent of `heldBackReason`.
   test("a row held back for an unrelated reason still shows the link once implement is done", () => {
     const notice = noticeCellHtml(
-      renderSpecsRows(
-        [row({ specFolder: FOLDER, steps: ["archive"], state: "done" })],
-        {
-          runnerAvailable: true,
-          targets: [
-            target({
-              historyDone: ["analyze", "implement"],
-              archiveHeldBack: { reason: "the Slack webhook" },
-            }),
-          ],
-        },
-      ),
+      renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
+        runnerAvailable: true,
+        targets: [target({ historyDone: ["analyze", "implement"], archiveHeldBack: { reason: "the Slack webhook" } })],
+      }),
       FOLDER,
     );
     expect(notice).toContain("Click the link to start a test server");
@@ -274,10 +226,7 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
   // state.
   test("a row with no historyDone for implement carries no link", () => {
     const notice = noticeCellHtml(
-      renderSpecsRows([row({ specFolder: FOLDER, state: "done" })], {
-        runnerAvailable: true,
-        targets: [],
-      }),
+      renderSpecsRows([row({ specFolder: FOLDER, state: "done" })], { runnerAvailable: true, targets: [] }),
       FOLDER,
     );
     expect(notice).not.toContain("startTestServer=1");
@@ -306,13 +255,10 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
       archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
     });
     const beforeNotice = noticeCellHtml(
-      renderSpecsRows(
-        [row({ specFolder: FOLDER, steps: ["archive"], state: "done" })],
-        {
-          runnerAvailable: true,
-          targets: [heldTarget],
-        },
-      ),
+      renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "done" })], {
+        runnerAvailable: true,
+        targets: [heldTarget],
+      }),
       FOLDER,
     );
     expect(beforeNotice).toContain("Acceptance criteria are not all ticked");
@@ -337,33 +283,24 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
   // precedent, not on the archive-running test above.
   test("a step in flight hides the link even when implement is already proven done, and it returns once that step ends", () => {
     const already = target({ historyDone: ["analyze", "implement"] });
-    const noticeFor = (
-      steps: string[],
-      stepIndex: number,
-      state: QueueRowView["state"],
-    ) =>
+    const noticeFor = (steps: string[], stepIndex: number, state: QueueRowView["state"]) =>
       noticeCellHtml(
-        renderSpecsRows(
-          [row({ specFolder: FOLDER, steps, stepIndex, state })],
-          {
-            runnerAvailable: true,
-            targets: [already],
-          },
-        ),
+        renderSpecsRows([row({ specFolder: FOLDER, steps, stepIndex, state })], {
+          runnerAvailable: true,
+          targets: [already],
+        }),
         FOLDER,
       );
 
     // Analyze or implement running or queued for it hides the link.
-    expect(
-      noticeFor(["analyze", "implement", "archive"], 0, "running"),
-    ).not.toContain("Click the link to start a test server");
-    expect(
-      noticeFor(["analyze", "implement", "archive"], 1, "running"),
-    ).not.toContain("Click the link to start a test server");
-    // Archive running hides it too.
-    expect(noticeFor(["archive"], 0, "running")).not.toContain(
+    expect(noticeFor(["analyze", "implement", "archive"], 0, "running")).not.toContain(
       "Click the link to start a test server",
     );
+    expect(noticeFor(["analyze", "implement", "archive"], 1, "running")).not.toContain(
+      "Click the link to start a test server",
+    );
+    // Archive running hides it too.
+    expect(noticeFor(["archive"], 0, "running")).not.toContain("Click the link to start a test server");
 
     // The step has ended without archiving the spec, with no job left in
     // flight: the link is back.
@@ -409,20 +346,12 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
     const html = renderSpecsRows(
       [
         row({ specFolder: FOLDER, steps: ["archive"], state: "done" }),
-        row({
-          project: "woodstack",
-          specFolder: OTHER_FOLDER,
-          steps: ["archive"],
-          state: "done",
-        }),
+        row({ project: "woodstack", specFolder: OTHER_FOLDER, steps: ["archive"], state: "done" }),
       ],
       {
         runnerAvailable: true,
         targets: [
-          target({
-            historyDone: ["analyze", "implement"],
-            archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-          }),
+          target({ historyDone: ["analyze", "implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } }),
           target({
             project: "woodstack",
             specFolder: OTHER_FOLDER,
@@ -434,16 +363,12 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
       },
     );
     const capableNotice = noticeCellHtml(html, FOLDER);
-    expect(capableNotice).toContain(
-      "Click the link to start a test server running this branch",
-    );
+    expect(capableNotice).toContain("Click the link to start a test server running this branch");
     expect(capableNotice).toContain("startTestServer=1");
 
     const incapableNotice = noticeCellHtml(html, OTHER_FOLDER);
     expect(incapableNotice).toContain("Acceptance criteria are not all ticked");
-    expect(incapableNotice).not.toContain(
-      "Click the link to start a test server",
-    );
+    expect(incapableNotice).not.toContain("Click the link to start a test server");
     expect(incapableNotice).not.toContain("startTestServer=1");
   });
 
@@ -466,10 +391,7 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
               historyDone: ["analyze", "implement"],
               archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
             }),
-            target({
-              historyDone: ["analyze", "implement"],
-              archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-            }),
+            target({ historyDone: ["analyze", "implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } }),
           ],
           testServerAvailable: (_project, specFolder) => specFolder !== GONE,
         },
@@ -498,24 +420,14 @@ describe("a spec held for Checks, or with implement done, carries a link to a bo
 // and keep the amber "archive held back" warning triangle.
 describe("a job the scheduler is holding is info when it resolves on its own, waiting when a person must act", () => {
   const FOLDER = "81-queue-and-runner";
-  const notice = (
-    error: QueueRowView["error"],
-    errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded",
-  ) =>
+  const notice = (error: QueueRowView["error"], errorReason?: "conflict" | "held-back" | "tests-red" | "unlanded") =>
     noticeCellHtml(
-      renderSpecsRows([row({ state: "queued", error, errorReason })], {
-        runnerAvailable: true,
-        targets: [],
-      }),
+      renderSpecsRows([row({ state: "queued", error, errorReason })], { runnerAvailable: true, targets: [] }),
       FOLDER,
     );
 
   test("a held-back reason that resolves on its own is drawn info, not waiting or failed", () => {
-    for (const key of [
-      "runner.landingPause",
-      "runner.archiveRunning",
-      "runner.dependencyNotArchived",
-    ] as const) {
+    for (const key of ["runner.landingPause", "runner.archiveRunning", "runner.dependencyNotArchived"] as const) {
       const html = notice({ key }, "held-back");
       expect(html).toMatch(/class="[^"]*rowmsg info/);
       expect(html).not.toMatch(/class="[^"]*rowmsg waiting/);
@@ -533,9 +445,7 @@ describe("a job the scheduler is holding is info when it resolves on its own, wa
   });
 
   test("a refusal stays red", () => {
-    const html = notice(
-      "cannot fast-forward main — merge it by hand, in the checkout on the serving host",
-    );
+    const html = notice("cannot fast-forward main — merge it by hand, in the checkout on the serving host");
     expect(html).toMatch(/class="[^"]*rowmsg failed/);
   });
 });
@@ -547,13 +457,9 @@ describe("a job the scheduler is holding is info when it resolves on its own, wa
 // whether an EARLIER step's landing ever finished.
 describe("a row shows an unresolved landing failure", () => {
   const FOLDER = "81-queue-and-runner";
-  const MESSAGE =
-    "Analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
+  const MESSAGE = "Analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
   const withFailure = (state: QueueRowView["state"]): string =>
-    renderSpecsRows([row({ state, landingError: MESSAGE })], {
-      runnerAvailable: true,
-      targets: [],
-    });
+    renderSpecsRows([row({ state, landingError: MESSAGE })], { runnerAvailable: true, targets: [] });
 
   // `landingError` is already human prose (nothing
   // to clean up here), so it moves to the notice line and nothing
@@ -580,14 +486,7 @@ describe("a row shows an unresolved landing failure", () => {
       "Archive landing stopped: the project's tests are red on this merge, so nothing was pushed. " +
       "The gate log names the failing test; archive lands the work once it passes.";
     const html = renderSpecsRows(
-      [
-        row({
-          state: "stopped",
-          stopReason: "tests-red",
-          landingError: RED,
-          errorReason: "tests-red",
-        }),
-      ],
+      [row({ state: "stopped", stopReason: "tests-red", landingError: RED, errorReason: "tests-red" })],
       { runnerAvailable: true, targets: [] },
     );
     const notice = noticeCellHtml(html, FOLDER);
@@ -597,13 +496,10 @@ describe("a row shows an unresolved landing failure", () => {
   });
 
   test("any other landing failure stays red", () => {
-    const html = renderSpecsRows(
-      [row({ state: "done", landingError: MESSAGE, errorReason: "conflict" })],
-      {
-        runnerAvailable: true,
-        targets: [],
-      },
-    );
+    const html = renderSpecsRows([row({ state: "done", landingError: MESSAGE, errorReason: "conflict" })], {
+      runnerAvailable: true,
+      targets: [],
+    });
     expect(noticeCellHtml(html, FOLDER)).toMatch(/class="[^"]*rowmsg failed/);
   });
 
@@ -611,16 +507,9 @@ describe("a row shows an unresolved landing failure", () => {
   // step-prefixed, as its `landingError`; the notice line said both,
   // 300 characters twice with " · archive landing failed:" between.
   test("the job's own error is not repeated when the landing mark already carries it", () => {
-    const REASON =
-      "cannot fast-forward main — merge it by hand, in the checkout on the serving host";
+    const REASON = "cannot fast-forward main — merge it by hand, in the checkout on the serving host";
     const html = renderSpecsRows(
-      [
-        row({
-          state: "failed",
-          error: REASON,
-          landingError: `archive landing failed: ${REASON}`,
-        }),
-      ],
+      [row({ state: "failed", error: REASON, landingError: `archive landing failed: ${REASON}` })],
       { runnerAvailable: true, targets: [] },
     );
     const notice = noticeCellHtml(html, FOLDER);
@@ -629,10 +518,7 @@ describe("a row shows an unresolved landing failure", () => {
   });
 
   test("a row with no landing failure carries no mark", () => {
-    const html = renderSpecsRows([row({ state: "done" })], {
-      runnerAvailable: true,
-      targets: [],
-    });
+    const html = renderSpecsRows([row({ state: "done" })], { runnerAvailable: true, targets: [] });
     expect(html).not.toContain("landing failed");
   });
 });
@@ -646,18 +532,14 @@ describe("a row shows an unresolved landing failure", () => {
 // reader to find out two steps later.
 describe("a row shows a push that never reached origin", () => {
   const FOLDER = "81-queue-and-runner";
-  const MESSAGE =
-    "cannot push aide/81-queue-and-runner in /repos/aide: non-fast-forward";
+  const MESSAGE = "cannot push aide/81-queue-and-runner in /repos/aide: non-fast-forward";
 
   // The failure is in the notice line now, and
   // `pushError`'s own raw stderr never reaches the row at all — a fixed
   // sentence for a person takes its place. The State column keeps only
   // the running/resting word.
   test("the failure is in the notice line, as a sentence for a person", () => {
-    const html = renderSpecsRows([row({ pushError: MESSAGE })], {
-      runnerAvailable: true,
-      targets: [],
-    });
+    const html = renderSpecsRows([row({ pushError: MESSAGE })], { runnerAvailable: true, targets: [] });
     expect(specCell(html, FOLDER)).not.toContain(MESSAGE);
     const state = stateCellHtml(html, FOLDER);
     expect(state).not.toContain(MESSAGE);
@@ -675,10 +557,7 @@ describe("a row shows a push that never reached origin", () => {
       "cannot push aide/333-x in /repos/aide/specs:  behind hint: its remote counterpart. " +
       "hint: use 'git pull' before pushing again. " +
       "hint: See the 'Note about fast-forwards' in 'git push --help' for details.";
-    const html = renderSpecsRows([row({ pushError: RAW })], {
-      runnerAvailable: true,
-      targets: [],
-    });
+    const html = renderSpecsRows([row({ pushError: RAW })], { runnerAvailable: true, targets: [] });
     expect(html).not.toContain("hint:");
     expect(html).not.toContain("git push --help");
     expect(noticeCellHtml(html, FOLDER)).toContain(
@@ -687,10 +566,7 @@ describe("a row shows a push that never reached origin", () => {
   });
 
   test("a row with no push failure carries no mark", () => {
-    const html = renderSpecsRows([row({})], {
-      runnerAvailable: true,
-      targets: [],
-    });
+    const html = renderSpecsRows([row({})], { runnerAvailable: true, targets: [] });
     expect(html).not.toContain(MESSAGE);
     expect(html).not.toContain("not pushed");
   });
@@ -716,12 +592,7 @@ describe("a stale pushError clears once the spec's lead job has none", () => {
           createdAt: "2026-08-16T09:00:00Z",
           pushError: "cannot push aide/81-queue-and-runner: non-fast-forward",
         }),
-        row({
-          id: "newer",
-          specFolder: FOLDER,
-          state: "done",
-          createdAt: "2026-08-16T11:00:00Z",
-        }),
+        row({ id: "newer", specFolder: FOLDER, state: "done", createdAt: "2026-08-16T11:00:00Z" }),
       ],
       { runnerAvailable: true, targets: [] },
     );
@@ -733,12 +604,7 @@ describe("a stale pushError clears once the spec's lead job has none", () => {
   test("the lead job's own pushError still shows", () => {
     const html = renderSpecsRows(
       [
-        row({
-          id: "older",
-          specFolder: FOLDER,
-          state: "done",
-          createdAt: "2026-08-16T09:00:00Z",
-        }),
+        row({ id: "older", specFolder: FOLDER, state: "done", createdAt: "2026-08-16T09:00:00Z" }),
         row({
           id: "newer",
           specFolder: FOLDER,
@@ -765,17 +631,10 @@ describe("more than one error mark, ranked, both visible in the notice line", ()
   const FOLDER = "81-queue-and-runner";
 
   test("both sentences show, in the same order liveMarks ranks them", () => {
-    const LANDING =
-      "analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
-    const PUSH_SENTENCE =
-      "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.";
+    const LANDING = "analyze landing failed: cannot merge aide/81-queue-and-runner in /repos/aide-specs";
+    const PUSH_SENTENCE = "A step's push did not reach origin. — Pull the branch in the checkout on the serving host, then push it again from a terminal.";
     const html = renderSpecsRows(
-      [
-        row({
-          pushError: "cannot push aide/81-queue-and-runner: non-fast-forward",
-          landingError: LANDING,
-        }),
-      ],
+      [row({ pushError: "cannot push aide/81-queue-and-runner: non-fast-forward", landingError: LANDING })],
       { runnerAvailable: true, targets: [] },
     );
     const state = stateCellHtml(html, FOLDER);
@@ -806,16 +665,9 @@ describe("the row says what to do once every check is ticked", () => {
   test("an unticked spec still shows the held-back sentence", () => {
     const html = renderSpecsRows([], {
       runnerAvailable: true,
-      targets: [
-        target({
-          done: ["analyze", "implement"],
-          archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE },
-        }),
-      ],
+      targets: [target({ done: ["analyze", "implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
     });
-    expect(noticeCellHtml(html, FOLDER)).toContain(
-      "Acceptance criteria are not all ticked",
-    );
+    expect(noticeCellHtml(html, FOLDER)).toContain("Acceptance criteria are not all ticked");
   });
 
   // Every check ticked, archive next, nothing in flight — the row
@@ -825,33 +677,25 @@ describe("the row says what to do once every check is ticked", () => {
       runnerAvailable: true,
       targets: [target({ done: ["analyze", "implement"] })],
     });
-    expect(noticeCellHtml(html, FOLDER)).toContain(
-      "All checks ticked — press Archive to merge it",
-    );
+    expect(noticeCellHtml(html, FOLDER)).toContain("All checks ticked — press Archive to merge it");
   });
 
   // Queued: the same spec, but archive is already queued — the
   // sentence must not tell the reader to do what is already under way.
   test("an archive job queued suppresses the ready-to-archive sentence", () => {
-    const html = renderSpecsRows(
-      [row({ specFolder: FOLDER, steps: ["archive"], state: "queued" })],
-      {
-        runnerAvailable: true,
-        targets: [target({ done: ["analyze", "implement"] })],
-      },
-    );
+    const html = renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "queued" })], {
+      runnerAvailable: true,
+      targets: [target({ done: ["analyze", "implement"] })],
+    });
     expect(noticeCellHtml(html, FOLDER)).not.toContain("All checks ticked");
   });
 
   // Running: the same suppression while the job is actually going.
   test("an archive job running suppresses the ready-to-archive sentence", () => {
-    const html = renderSpecsRows(
-      [row({ specFolder: FOLDER, steps: ["archive"], state: "running" })],
-      {
-        runnerAvailable: true,
-        targets: [target({ done: ["analyze", "implement"] })],
-      },
-    );
+    const html = renderSpecsRows([row({ specFolder: FOLDER, steps: ["archive"], state: "running" })], {
+      runnerAvailable: true,
+      targets: [target({ done: ["analyze", "implement"] })],
+    });
     expect(noticeCellHtml(html, FOLDER)).not.toContain("All checks ticked");
   });
 

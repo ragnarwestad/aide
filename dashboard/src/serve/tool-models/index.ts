@@ -39,14 +39,8 @@ async function readOpencodeModels(
   base: Pick<ToolModels, "tool" | "at">,
 ): Promise<ToolModels> {
   const result = await run([bin, "models"], process.cwd(), CHECK_TIMEOUT_MS);
-  if (result.timedOut)
-    return {
-      ...base,
-      offered: [],
-      error: "opencode models did not finish in time.",
-    };
-  if (result.code !== 0)
-    return { ...base, offered: [], error: "opencode models could not be run." };
+  if (result.timedOut) return { ...base, offered: [], error: "opencode models did not finish in time." };
+  if (result.code !== 0) return { ...base, offered: [], error: "opencode models could not be run." };
   const offered: OfferedModel[] = stripAnsi(result.stdout)
     .split("\n")
     .map((line) => line.trim())
@@ -57,35 +51,22 @@ async function readOpencodeModels(
 
 /** One reading of `tool`'s models. Never throws: a CLI that cannot be
  *  started is a reading that failed, said as one. */
-export async function readModels(
-  tool: CheckableTool,
-  opts: ModelsOptions = {},
-): Promise<ToolModels> {
+export async function readModels(tool: CheckableTool, opts: ModelsOptions = {}): Promise<ToolModels> {
   const path = opts.scriptPath ?? ((name: string) => scriptFor(name));
   const inner = opts.run ?? runScript;
   const env = opts.env ?? {};
-  const run: typeof runScript = (argv, cwd, timeoutMs, owner, extra) =>
-    inner(argv, cwd, timeoutMs, owner, { ...extra, ...env });
+  const run: typeof runScript = (argv, cwd, timeoutMs, owner, extra) => inner(argv, cwd, timeoutMs, owner, { ...extra, ...env });
   const base = { tool, at: (opts.now ?? (() => new Date()))().toISOString() };
   try {
     switch (tool) {
       case "claude":
-        return await readClaudeModels(
-          run,
-          path("claude"),
-          opts.configured ?? [],
-          base,
-        );
+        return await readClaudeModels(run, path("claude"), opts.configured ?? [], base);
       case "codex":
         return await readCodexModels(run, path("codex"), base);
       case "opencode":
         return await readOpencodeModels(run, path("opencode"), base);
     }
   } catch (err) {
-    return {
-      ...base,
-      offered: [],
-      error: err instanceof Error ? err.message : String(err),
-    };
+    return { ...base, offered: [], error: err instanceof Error ? err.message : String(err) };
   }
 }

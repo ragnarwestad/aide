@@ -28,20 +28,13 @@ import { row, openKeys } from "../../fixtures.ts";
 // first place (its narrower promise is in
 // collapsed-row.test.ts).
 describe("a busy row offers only what its state allows", () => {
-  const target = (
-    specFolder: string,
-    extra: Partial<SpecTarget> = {},
-  ): SpecTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
   });
 
-  const rows = (
-    list: QueueRowView[],
-    targets: SpecTarget[] = [],
-    opts: Partial<SpecsPageOptions> = {},
-  ) =>
+  const rows = (list: QueueRowView[], targets: SpecTarget[] = [], opts: Partial<SpecsPageOptions> = {}) =>
     renderSpecsRows(
       list,
       {
@@ -65,23 +58,12 @@ describe("a busy row offers only what its state allows", () => {
       ),
     )?.[0] ?? "";
   const box = (line: string, step: string) =>
-    line.match(
-      new RegExp(
-        `<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`,
-      ),
-    )?.[0] ?? "";
+    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
   /** The Run button itself, with whatever attributes it carries. */
-  const runBtn = (line: string) =>
-    line.match(/<button [^>]*>(?:<[^>]*>)*Run(?: again)?<\/button>/)?.[0] ?? "";
+  const runBtn = (line: string) => line.match(/<button [^>]*>(?:<[^>]*>)*Run(?: again)?<\/button>/)?.[0] ?? "";
 
   const spec = (state: QueueRowView["state"], folder = "105-busy") =>
-    row({
-      id: "j1",
-      specFolder: folder,
-      steps: ["implement"],
-      stepIndex: 0,
-      state,
-    });
+    row({ id: "j1", specFolder: folder, steps: ["implement"], stepIndex: 0, state });
 
   /** The same open row's controls line — where every lockable control
    *  on it lives. */
@@ -92,9 +74,7 @@ describe("a busy row offers only what its state allows", () => {
 
   /** A posting form on the open row, by the verb it posts to. */
   const control = (cell: string, verb: string) =>
-    cell.match(
-      new RegExp(`<form [^>]*action="/api/queue/j1/${verb}"[\\s\\S]*?</form>`),
-    )?.[0] ?? "";
+    cell.match(new RegExp(`<form [^>]*action="/api/queue/j1/${verb}"[\\s\\S]*?</form>`))?.[0] ?? "";
 
   for (const state of ["queued", "running"] as const) {
     test(`a ${state} spec's opened row offers Cancel, and nothing else it can press`, () => {
@@ -105,8 +85,7 @@ describe("a busy row offers only what its state allows", () => {
       // the hand merge.
       const cell = openControls(spec(state));
       // Cancel is a button naming its dialog, whose OK posts the cancel.
-      const cancel =
-        cell.match(/<button [^>]*data-ask="cancelask-j1"[^>]*>/)?.[0] ?? "";
+      const cancel = cell.match(/<button [^>]*data-ask="cancelask-j1"[^>]*>/)?.[0] ?? "";
       expect(cancel).not.toBe("");
       expect(cancel).not.toContain("disabled");
       expect(control(cell, "cancel")).not.toBe("");
@@ -171,22 +150,14 @@ describe("a busy row offers only what its state allows", () => {
     const html = rows([spec("running")], [target("105-busy")]);
     // The model select is on the phase lines; the rule
     // it obeys is this one, unchanged.
-    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain(
-      "disabled",
-    );
+    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain("disabled");
   });
 
   // --- A gate offers Approve and Cancel, and locks the rest -----
 
   // --- A settled spec is the ordinary row it always was ---------
 
-  for (const state of [
-    "done",
-    "failed",
-    "stopped",
-    "cancelled",
-    "interrupted",
-  ] as const) {
+  for (const state of ["done", "failed", "stopped", "cancelled", "interrupted"] as const) {
     test(`a ${state} spec's row is fully interactive again`, () => {
       const html = rows([spec(state)], [target("105-busy")]);
       const line = controlsLine(html, "105-busy");
@@ -194,9 +165,7 @@ describe("a busy row offers only what its state allows", () => {
         expect(box(line, step)).not.toContain("disabled");
       }
       expect(runBtn(line)).not.toContain("disabled");
-      expect(
-        html.match(/<select name="model\.analyze"[^>]*>/)![0],
-      ).not.toContain("disabled");
+      expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain("disabled");
     });
   }
 
@@ -207,9 +176,7 @@ describe("a busy row offers only what its state allows", () => {
       expect(box(line, step)).not.toContain("disabled");
     }
     expect(runBtn(line)).not.toContain("disabled");
-    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain(
-      "disabled",
-    );
+    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain("disabled");
   });
 });
 

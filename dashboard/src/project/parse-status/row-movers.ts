@@ -1,23 +1,8 @@
 // The movers: each changes one row's Status cell and answers the whole file,
 // or `null` when the row is not there to change. Split from `index.ts`, whose
 // row reader they share (code-health line limit).
-import {
-  FAILED_MARK,
-  NOT_VERIFIED_MARK,
-  cleanFailNote,
-  isFailedMark,
-  isNotVerifiedMark,
-  type CheckState,
-} from "./not-verified.ts";
-import {
-  DONE_MARK,
-  OPEN_MARK,
-  dataRowIndices,
-  isAcceptanceHeading,
-  isDoneMark,
-  phaseSections,
-  tableCells,
-} from "./index.ts";
+import { FAILED_MARK, NOT_VERIFIED_MARK, cleanFailNote, isFailedMark, isNotVerifiedMark, type CheckState } from "./not-verified.ts";
+import { DONE_MARK, OPEN_MARK, dataRowIndices, isAcceptanceHeading, isDoneMark, phaseSections, tableCells } from "./index.ts";
 
 /** `content` with one row's mark changed to `✅`, or `null` when that
  *  row is not there to change.
@@ -33,21 +18,13 @@ import {
  *
  *  Exactly one character moves. The cell keeps its padding, so a tick
  *  never reflows the table. */
-export function tickStatusLine(
-  content: string,
-  phase: string,
-  line: string,
-): string | null {
+export function tickStatusLine(content: string, phase: string, line: string): string | null {
   return setStatusLineMark(content, phase, line, "done");
 }
 
 /** `content` with one row's mark changed to `Not verified`, or `null` when
  *  that row is not there or already is. */
-export function markNotVerifiedStatusLine(
-  content: string,
-  phase: string,
-  line: string,
-): string | null {
+export function markNotVerifiedStatusLine(content: string, phase: string, line: string): string | null {
   return setStatusLineMark(content, phase, line, "notVerified");
 }
 
@@ -58,11 +35,7 @@ export function markNotVerifiedStatusLine(
  *
  *  A check can be made by mistake, and until this existed the only way
  *  back was to open `4-status.md` and edit the table by hand. */
-export function untickStatusLine(
-  content: string,
-  phase: string,
-  line: string,
-): string | null {
+export function untickStatusLine(content: string, phase: string, line: string): string | null {
   return setStatusLineMark(content, phase, line, "open");
 }
 
@@ -70,12 +43,7 @@ export function untickStatusLine(
  *  cell rebuilt whole as `Failed: <note>` (never spliced with `String.replace`:
  *  a note may hold `$&`), or `null` when the row is not there, is not Not
  *  verified, or the note is empty once cleaned. */
-export function markFailedStatusLine(
-  content: string,
-  phase: string,
-  line: string,
-  note: string,
-): string | null {
+export function markFailedStatusLine(content: string, phase: string, line: string, note: string): string | null {
   const text = cleanFailNote(note);
   if (!text || !isAcceptanceHeading(phase.trim())) return null;
   return rewriteRow(content, phase, line, (parts, mark) => {
@@ -89,9 +57,7 @@ export function markFailedStatusLine(
 // A function, not a constant: `index.ts` and this file import each other, and
 // `OPEN_MARK` is not initialised yet while this module loads.
 const markOf = (target: Exclude<CheckState, "failed">): string =>
-  ({ open: OPEN_MARK, notVerified: NOT_VERIFIED_MARK, done: DONE_MARK })[
-    target
-  ];
+  ({ open: OPEN_MARK, notVerified: NOT_VERIFIED_MARK, done: DONE_MARK })[target];
 const checkStateOfMark = (mark: string, phase: string): CheckState =>
   isAcceptanceHeading(phase) && isFailedMark(mark)
     ? "failed"
@@ -128,12 +94,7 @@ function rewriteRow(
  *  refused, which is what makes a stale page's press land on nothing rather
  *  than on the wrong row. A Failed row is refused too: it leaves that state
  *  through Reopen. */
-function setStatusLineMark(
-  content: string,
-  phase: string,
-  line: string,
-  target: Exclude<CheckState, "failed">,
-) {
+function setStatusLineMark(content: string, phase: string, line: string, target: Exclude<CheckState, "failed">) {
   return rewriteRow(content, phase, line, (parts, mark) => {
     const now = checkStateOfMark(mark, phase.trim());
     if (now === target || now === "failed") return false;

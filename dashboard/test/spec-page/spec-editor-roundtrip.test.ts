@@ -104,16 +104,10 @@ An *emphasized* word, a **bold** one, and a [link](https://example.com).
 
 function bulletThematicOverride() {
   return {
-    bulletList(
-      _nodeInfo: unknown,
-      { origin }: { origin?: () => { delim?: string | string[] } },
-    ) {
+    bulletList(_nodeInfo: unknown, { origin }: { origin?: () => { delim?: string | string[] } }) {
       return { ...origin!(), delim: "-" };
     },
-    thematicBreak(
-      _nodeInfo: unknown,
-      { origin }: { origin?: () => { delim?: string | string[] } },
-    ) {
+    thematicBreak(_nodeInfo: unknown, { origin }: { origin?: () => { delim?: string | string[] } }) {
       return { ...origin!(), delim: "---" };
     },
   };
@@ -225,9 +219,7 @@ describe("markdown typed or pasted as plain text into the WYSIWYG surface", () =
   });
 
   test("what the Save posts is the markdown again, heading and bullets intact", async () => {
-    const out = await pasteInto(
-      '## Requirements\n- **REQ-1:** renamed to "State/Action".',
-    );
+    const out = await pasteInto('## Requirements\n- **REQ-1:** renamed to "State/Action".');
     const posted = unescapeMarkdown(out);
     expect(posted).toContain("## Requirements");
     expect(posted).toContain("- **REQ-1:**");

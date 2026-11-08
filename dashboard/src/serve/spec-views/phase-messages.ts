@@ -29,42 +29,22 @@ export function phaseMessagesFor(
     const job = queue.get(id);
     if (!job) continue;
     const result = job.results.find((r) => r.step === step);
-    const running =
-      job.state === "running" && job.steps[job.stepIndex] === step;
+    const running = job.state === "running" && job.steps[job.stepIndex] === step;
     if (!result && !running) continue;
     const file = running ? job.streamFile : result?.streamFile;
     // The step's Log as the Logs tab draws it — Aide's own lines and the
     // AI's, in the order they happened, every line of it: this row is a
     // window on that log, not a shorter copy. Aide's lines include the
     // landing, so the merge step and its test run show here as they go.
-    const transcript = file
-      ? tailFileAt(file, Infinity)
-      : { text: "", start: 0 };
+    const transcript = file ? tailFileAt(file, Infinity) : { text: "", start: 0 };
     const runLog = file ? readRunLog(file) : undefined;
-    const { logs } = stepLog(transcript, runLog, {
-      tool: result?.tool,
-      final: !running,
-      codexSession: codexSessionReader(
-        result?.provider?.key ?? resolveStepProvider(job, step, queue.defaults),
-        queue.defaults.providers,
-      ),
-    });
+    const { logs } = stepLog(transcript, runLog, { tool: result?.tool, final: !running, codexSession: codexSessionReader(result?.provider?.key ?? resolveStepProvider(job, step, queue.defaults), queue.defaults.providers) });
     // The steps the log marked, each with its time and the tokens it used, listed above the Log.
     const marks = stepMarks(logs, stepTokens(transcript.text, result?.tool));
     return {
       logs,
-      steps: stepLinesOf(
-        marks,
-        logs,
-        [],
-        Date.parse(job.stepStartedAt ?? job.startedAt ?? ""),
-        running,
-      ),
-      step: stepKey(
-        workRoundJobs(queue, job.project, job.specFolder),
-        job,
-        step,
-      ),
+      steps: stepLinesOf(marks, logs, [], Date.parse(job.stepStartedAt ?? job.startedAt ?? ""), running),
+      step: stepKey(workRoundJobs(queue, job.project, job.specFolder), job, step),
       running,
     };
   }
@@ -91,10 +71,7 @@ export function sideMessagesFor(
     const to = Math.min(side.transcript.to - whole.start, bytes.length);
     if (to <= 0) continue;
     const text = bytes.subarray(from, Math.max(from, to)).toString("utf-8");
-    const { logs } = stepLog({ text, start: 0 }, undefined, {
-      tool: side.tool ?? result.tool,
-      final: true,
-    });
+    const { logs } = stepLog({ text, start: 0 }, undefined, { tool: side.tool ?? result.tool, final: true });
     return { logs, steps: [], running: false };
   }
   return undefined;

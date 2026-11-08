@@ -7,12 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TestServerStore } from "../../../src/serve/test-servers/store.ts";
-import {
-  refreshTestServerStatus,
-  startTestServer,
-  stopTestServer,
-  type TestServersContext,
-} from "../../../src/serve/test-servers/lifecycle.ts";
+import { refreshTestServerStatus, startTestServer, stopTestServer, type TestServersContext } from "../../../src/serve/test-servers/lifecycle.ts";
 
 let dir: string;
 let lines: string[];
@@ -26,29 +21,18 @@ beforeEach(() => {
 afterEach(() => kill.mockRestore());
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-function makeCtx(
-  overrides: Partial<TestServersContext> = {},
-): TestServersContext {
+function makeCtx(overrides: Partial<TestServersContext> = {}): TestServersContext {
   return {
     store: new TestServerStore(),
     aideCheckout: () => "/checkout/aide",
     startCommand: (_p, { branch, port }) => [
-      "/checkout/aide/dashboard/test/round/run",
-      "/checkout/aide",
-      "--branch",
-      branch,
-      "--port",
-      String(port),
-      "--keep",
+      "/checkout/aide/dashboard/test/round/run", "/checkout/aide",
+      "--branch", branch, "--port", String(port), "--keep",
     ],
     previewAvailable: () => true,
     gitRun: async (_dir, args) =>
       args[0] === "ls-remote"
-        ? {
-            code: 0,
-            stdout: "abc1234567\trefs/heads/aide/spec-1\n",
-            stderr: "",
-          }
+        ? { code: 0, stdout: "abc1234567\trefs/heads/aide/spec-1\n", stderr: "" }
         : { code: 1, stdout: "", stderr: "" },
     spawn: () => ({ pid: 4242 }),
     isAlive: () => false,
@@ -69,9 +53,7 @@ describe("the board log says what a start did", () => {
     const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(true);
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain(
-      "boards: starting aide/spec-1 @ abc1234 on :8801",
-    );
+    expect(lines[0]).toContain("boards: starting aide/spec-1 @ abc1234 on :8801");
     expect(lines[0]).toContain("pid 4242");
     expect(lines[0]).toContain(join(dir, "board.log"));
   });
@@ -84,47 +66,28 @@ describe("the board log says what a start did", () => {
     });
     const result = await startTestServer(ctx, "aide", "spec-1");
     expect(result.ok).toBe(false);
-    expect(!result.ok && result.error).toContain(
-      "could not run /checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep: EACCES",
-    );
-    expect(lines[0]).toContain(
-      "boards: could not start aide/spec-1 @ abc1234 on :8801 — EACCES",
-    );
-    expect(lines[0]).toContain(
-      "/checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep",
-    );
+    expect(!result.ok && result.error).toContain("could not run /checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep: EACCES");
+    expect(lines[0]).toContain("boards: could not start aide/spec-1 @ abc1234 on :8801 — EACCES");
+    expect(lines[0]).toContain("/checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep");
   });
 
   test("a round that died before reporting an address names its command, with its last lines as the detail", async () => {
     const ctx = makeCtx();
     await startTestServer(ctx, "aide", "spec-1");
-    const printed = Array.from(
-      { length: 10 },
-      (_, i) => `step ${i + 1}`,
-    ).concat("cannot check out aide/spec-1 in a worktree");
+    const printed = Array.from({ length: 10 }, (_, i) => `step ${i + 1}`).concat("cannot check out aide/spec-1 in a worktree");
     writeFileSync(join(dir, "board.log"), `${printed.join("\n")}\n`);
     const after = refreshTestServerStatus(ctx, "aide", "spec-1");
     expect(after?.status).toBe("failed");
-    expect(after?.error).toContain(
-      "/checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep",
-    );
+    expect(after?.error).toContain("/checkout/aide/dashboard/test/round/run /checkout/aide --branch aide/spec-1 --port 8801 --keep");
     expect(after?.detail).toBe(printed.slice(-8).join("\n"));
     expect(lines[1]).toContain("boards: aide/spec-1 did not come up on :8801");
   });
 
   test("a start whose port was taken names the port and the process holding it", async () => {
     const asked: number[] = [];
-    const ctx = makeCtx({
-      portHolder: (port) => (
-        asked.push(port),
-        { pid: 777, command: "postgres" }
-      ),
-    });
+    const ctx = makeCtx({ portHolder: (port) => (asked.push(port), { pid: 777, command: "postgres" }) });
     await startTestServer(ctx, "aide", "spec-1");
-    writeFileSync(
-      join(dir, "board.log"),
-      "Error: listen EADDRINUSE: address already in use 127.0.0.1:5432\n",
-    );
+    writeFileSync(join(dir, "board.log"), "Error: listen EADDRINUSE: address already in use 127.0.0.1:5432\n");
     const after = refreshTestServerStatus(ctx, "aide", "spec-1");
     expect(asked).toEqual([5432]);
     expect(after?.error).toContain("5432");
@@ -146,23 +109,16 @@ describe("the board log says why a board was stopped", () => {
     const ctx = makeCtx();
     await startTestServer(ctx, "aide", "spec-1");
     stopTestServer(ctx, "aide", "spec-1", "the Stop button on the spec row");
-    expect(lines.at(-1)).toBe(
-      "boards: stopping aide/spec-1 on :8801 — the Stop button on the spec row — SIGTERM to group 4242",
-    );
+    expect(lines.at(-1)).toBe("boards: stopping aide/spec-1 on :8801 — the Stop button on the spec row — SIGTERM to group 4242");
     expect(kill).toHaveBeenCalledWith(-4242, "SIGTERM");
   });
 
   test("a running board whose process is gone is stopped with that as the reason", async () => {
     const ctx = makeCtx();
     await startTestServer(ctx, "aide", "spec-1");
-    writeFileSync(
-      join(dir, "board.log"),
-      "left running: pid 4300, http://127.0.0.1:8801/?token=t\n",
-    );
+    writeFileSync(join(dir, "board.log"), "left running: pid 4300, http://127.0.0.1:8801/?token=t\n");
     refreshTestServerStatus(ctx, "aide", "spec-1");
     refreshTestServerStatus(ctx, "aide", "spec-1");
-    expect(lines.at(-1)).toBe(
-      "boards: stopping aide/spec-1 on :8801 — its process (pid 4300) is gone — SIGTERM to group 4242",
-    );
+    expect(lines.at(-1)).toBe("boards: stopping aide/spec-1 on :8801 — its process (pid 4300) is gone — SIGTERM to group 4242");
   });
 });

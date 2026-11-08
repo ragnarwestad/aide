@@ -21,17 +21,11 @@ import {
   field,
   messageSlot,
   rowMessage,
-} from "../../ui/components";
+  } from "../../ui/components";
 import { esc } from "../../ui/html.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";
 import { t, type Language } from "../../../i18n";
-import {
-  navEntries,
-  PROJECTS_ROUTE,
-  NEW_SPEC_ROUTE,
-  projectPagePath,
-  projectScheduleTab,
-} from "./routes.ts";
+import { navEntries, PROJECTS_ROUTE, NEW_SPEC_ROUTE, projectPagePath, projectScheduleTab } from "./routes.ts";
 import { projectListBody, projectSummary } from "./overview-list.ts";
 import { driftPrefix, renderProjectPage } from "./project-page.ts";
 import {
@@ -129,9 +123,7 @@ export function renderProjectsPage(
 ): string {
   const lang = opts.lang ?? "en";
   const body =
-    (opts.error
-      ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n"
-      : "") +
+    (opts.error ? rowMessage("failed", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     // One line above the list: the counts on the left, Add on the right
     // — the same shape the spec list's filter row has, where its own
     // count sits beside New spec. Add used to stand alone here, between
@@ -148,9 +140,7 @@ export function renderProjectsPage(
       // only a link to it, gated on the same answer the sentence is gated
       // on.
       warnHref: (name) =>
-        opts.readinessByProject?.[name] === false
-          ? `${projectPagePath(name)}?tab=config`
-          : undefined,
+        opts.readinessByProject?.[name] === false ? `${projectPagePath(name)}?tab=config` : undefined,
       removable: opts.removable,
     });
   // No reload of its own: a served page a reader may leave mid-thought needs
@@ -235,10 +225,7 @@ export function renderAddProjectPage(
       t(lang, "setting.label.previewFrom"),
       `<select name="previewFrom">` +
         previewFromChoices(lang)
-          .map(
-            (o) =>
-              `<option value="${o.value}"${o.value === "none" ? " selected" : ""}>${esc(o.label)}</option>`,
-          )
+          .map((o) => `<option value="${o.value}"${o.value === "none" ? " selected" : ""}>${esc(o.label)}</option>`)
           .join("") +
         `</select>`,
       { wide: true },
@@ -294,11 +281,7 @@ export function renderAddProjectPage(
       { wide: true },
     ) +
     `<span class="factions">` +
-    btn({
-      label: t(lang, "list.checksSave"),
-      variant: "primary",
-      pending: t(lang, "list.checksSaving"),
-    }) +
+    btn({ label: t(lang, "list.checksSave"), variant: "primary", pending: t(lang, "list.checksSaving") }) +
     `</span></span>` +
     messageSlot("refused") +
     `</form>`;

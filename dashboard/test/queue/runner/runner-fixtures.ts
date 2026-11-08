@@ -17,12 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
 import type { NotifyEvent } from "../../../src/integrations/notify.ts";
-import {
-  Runner,
-  type RunnerOptions,
-  type SpawnResult,
-  type Spawner,
-} from "../../../src/queue/runner";
+import { Runner, type RunnerOptions, type SpawnResult, type Spawner } from "../../../src/queue/runner";
 
 export const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -45,13 +40,7 @@ const resolve = (project: string) =>
 
 export let dir: string;
 export let store: QueueStore;
-export let spawns: {
-  jobId: string;
-  step: string;
-  resultFile: string;
-  sessionId: string;
-  streamFile: string;
-}[];
+export let spawns: { jobId: string; step: string; resultFile: string; sessionId: string; streamFile: string }[];
 export let events: NotifyEvent[];
 export let now: number;
 
@@ -62,24 +51,22 @@ export function setNow(ms: number): void {
   now = ms;
 }
 
-export function makeRunner(
-  opts: {
-    spawn?: Spawner;
-    alive?: (pid: number) => boolean;
-    readResult?: (path: string) => unknown;
-    newSessionId?: () => string;
-    maxConcurrent?: number;
-    onStepDone?: RunnerOptions["onStepDone"];
-    /** Overrides the default `(p) => join(dir, p)` — needed for a test
-     *  that maps two different project strings onto the SAME path,
-     *  which the default, injective mapping cannot produce. */
-    projectDir?: (project: string) => string;
-    specsRoot?: RunnerOptions["specsRoot"];
-    /** Another store than the harness's own — a board read back from the
-     *  same mirror, as after a restart. */
-    store?: QueueStore;
-  } = {},
-) {
+export function makeRunner(opts: {
+  spawn?: Spawner;
+  alive?: (pid: number) => boolean;
+  readResult?: (path: string) => unknown;
+  newSessionId?: () => string;
+  maxConcurrent?: number;
+  onStepDone?: RunnerOptions["onStepDone"];
+  /** Overrides the default `(p) => join(dir, p)` — needed for a test
+   *  that maps two different project strings onto the SAME path,
+   *  which the default, injective mapping cannot produce. */
+  projectDir?: (project: string) => string;
+  specsRoot?: RunnerOptions["specsRoot"];
+  /** Another store than the harness's own — a board read back from the
+   *  same mirror, as after a restart. */
+  store?: QueueStore;
+} = {}) {
   return new Runner({
     store: opts.store ?? store,
     onStepDone: opts.onStepDone,
@@ -128,11 +115,7 @@ export const okResult = (cost: number) => ({
 
 export function resetHarness(): void {
   dir = mkdtempSync(join(tmpdir(), "aide-runner-"));
-  store = new QueueStore({
-    mirrorPath: join(dir, "queue.json"),
-    defaults: DEFAULTS,
-    resolve,
-  });
+  store = new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });
   spawns = [];
   events = [];
   now = Date.parse("2026-08-16T10:00:00Z");

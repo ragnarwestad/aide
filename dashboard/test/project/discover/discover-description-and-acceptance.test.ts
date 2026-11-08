@@ -7,11 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  acceptanceNotRequiredIn,
-  criteriaChecksIn,
-  specAcceptanceNotRequired,
-  stripAcceptanceLine,
-  withAcceptanceLine,
+  acceptanceNotRequiredIn, criteriaChecksIn, specAcceptanceNotRequired, stripAcceptanceLine, withAcceptanceLine,
 } from "../../../src/project/discover";
 
 describe("specAcceptanceNotRequired", () => {
@@ -35,31 +31,21 @@ describe("specAcceptanceNotRequired", () => {
     `${line}\n\n---\n\n## Description\n\nprose\n`;
 
   test("the line reads true", () => {
-    expect(
-      specAcceptanceNotRequired(
-        spec("01-set", TRACKING("- **Acceptance:** not required")),
-      ),
-    ).toBe(true);
+    expect(specAcceptanceNotRequired(spec("01-set", TRACKING("- **Acceptance:** not required")))).toBe(true);
   });
 
   // A spec carrying no such record behaves exactly as it does
   // today — absence means required, not "not required".
   test("no line, an empty file, or no file at all is false — never a throw", () => {
-    expect(specAcceptanceNotRequired(spec("02-none", TRACKING("")))).toBe(
-      false,
-    );
+    expect(specAcceptanceNotRequired(spec("02-none", TRACKING("")))).toBe(false);
     expect(specAcceptanceNotRequired(join(dir, "nowhere"))).toBe(false);
   });
 
   test("acceptanceNotRequiredIn reads a description's text the way specAcceptanceNotRequired reads its file", () => {
     for (const line of ["- **Acceptance:** not required", ""]) {
-      expect(acceptanceNotRequiredIn(TRACKING(line))).toBe(
-        specAcceptanceNotRequired(spec(`in-${line.length}`, TRACKING(line))),
-      );
+      expect(acceptanceNotRequiredIn(TRACKING(line))).toBe(specAcceptanceNotRequired(spec(`in-${line.length}`, TRACKING(line))));
     }
-    expect(
-      acceptanceNotRequiredIn(TRACKING("- **Acceptance:** not required")),
-    ).toBe(true);
+    expect(acceptanceNotRequiredIn(TRACKING("- **Acceptance:** not required"))).toBe(true);
     expect(acceptanceNotRequiredIn(TRACKING(""))).toBe(false);
   });
 
@@ -70,9 +56,7 @@ describe("specAcceptanceNotRequired", () => {
 
   describe("stripAcceptanceLine", () => {
     test("takes the line out and leaves everything else where it was", () => {
-      expect(stripAcceptanceLine(DESC("- **Acceptance:** not required"))).toBe(
-        DESC(),
-      );
+      expect(stripAcceptanceLine(DESC("- **Acceptance:** not required"))).toBe(DESC());
     });
 
     test("a text with no line at all comes back as it went in", () => {
@@ -80,32 +64,21 @@ describe("specAcceptanceNotRequired", () => {
     });
 
     test("CRLF is normalised to LF, and the line goes either way", () => {
-      expect(
-        stripAcceptanceLine(
-          DESC("- **Acceptance:** not required").replace(/\n/g, "\r\n"),
-        ),
-      ).toBe(DESC());
+      expect(stripAcceptanceLine(DESC("- **Acceptance:** not required").replace(/\n/g, "\r\n"))).toBe(DESC());
     });
   });
 
   describe("withAcceptanceLine", () => {
     test("inserts right after Created when there is no existing line", () => {
-      expect(withAcceptanceLine(DESC(), true)).toBe(
-        DESC("- **Acceptance:** not required"),
-      );
+      expect(withAcceptanceLine(DESC(), true)).toBe(DESC("- **Acceptance:** not required"));
     });
 
     test("false removes the line rather than writing one", () => {
-      expect(
-        withAcceptanceLine(DESC("- **Acceptance:** not required"), false),
-      ).toBe(DESC());
+      expect(withAcceptanceLine(DESC("- **Acceptance:** not required"), false)).toBe(DESC());
     });
 
     test("replaces an existing line rather than writing a second one", () => {
-      const out = withAcceptanceLine(
-        DESC("- **Acceptance:** not required"),
-        true,
-      );
+      const out = withAcceptanceLine(DESC("- **Acceptance:** not required"), true);
       expect(out).toBe(DESC("- **Acceptance:** not required"));
       expect(out!.match(/Acceptance/g)).toHaveLength(1);
     });
@@ -116,9 +89,7 @@ describe("specAcceptanceNotRequired", () => {
     });
 
     test("but removing needs no anchor — false is never a null", () => {
-      expect(withAcceptanceLine("# X\n\nprose\n", false)).toBe(
-        "# X\n\nprose\n",
-      );
+      expect(withAcceptanceLine("# X\n\nprose\n", false)).toBe("# X\n\nprose\n");
     });
 
     test("what it writes is what specAcceptanceNotRequired reads back", () => {
@@ -136,12 +107,8 @@ describe("criteriaChecksIn", () => {
     `${line}\n---\n\n## Description\n\nBody.\n`;
 
   test("gives the line's value as written", () => {
-    expect(
-      criteriaChecksIn(DESC("- **Acceptance criteria checks:** stop")),
-    ).toBe("stop");
-    expect(
-      criteriaChecksIn(DESC("- **Acceptance criteria checks:** strict")),
-    ).toBe("strict");
+    expect(criteriaChecksIn(DESC("- **Acceptance criteria checks:** stop"))).toBe("stop");
+    expect(criteriaChecksIn(DESC("- **Acceptance criteria checks:** strict"))).toBe("strict");
   });
 
   test("gives null for a description without the line", () => {

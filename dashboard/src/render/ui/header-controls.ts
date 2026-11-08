@@ -4,42 +4,25 @@
 // checkmark and its heading.
 import { LANGUAGES, t, type Language, type TranslationKey } from "../../i18n";
 import { esc } from "./html.ts";
-import {
-  ICON_CHECK,
-  ICON_THEME_AUTO,
-  ICON_THEME_DARK,
-  ICON_THEME_LIGHT,
-} from "./components";
+import { ICON_CHECK, ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT } from "./components";
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
 // chosen one with `aria-current` rather than the `current` class,
 // which means "the page you are on".
-const THEME_CHOICES: [string, string][] = [
-  ["dark", "Dark"],
-  ["light", "Light"],
-  ["auto", "Auto"],
-];
+const THEME_CHOICES: [string, string][] = [["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]];
 
 // Each language's own flag — PaceUp's own picker (`ViewControls.tsx`)
 // draws every choice as a flag plus a name, never a bare two-letter
 // code.
 const LANGUAGE_FLAGS: Record<Language, string> = {
-  en: "🇬🇧",
-  nb: "🇳🇴",
-  es: "🇪🇸",
-  de: "🇩🇪",
-  fr: "🇫🇷",
+  en: "🇬🇧", nb: "🇳🇴", es: "🇪🇸", de: "🇩🇪", fr: "🇫🇷",
 };
 // Each language's OWN name, in its own spelling — never translated into
 // the reader's language: "Español" reads "Español" whether the reader has chosen
 // English, Norwegian or Spanish itself.
 const LANGUAGE_NATIVE_NAMES: Record<Language, string> = {
-  en: "English",
-  nb: "Norsk",
-  es: "Español",
-  de: "Deutsch",
-  fr: "Français",
+  en: "English", nb: "Norsk", es: "Español", de: "Deutsch", fr: "Français",
 };
 
 // Icons keyed by choice — the header control below draws no text label
@@ -47,9 +30,7 @@ const LANGUAGE_NATIVE_NAMES: Record<Language, string> = {
 // `aria-label`/`title` on each button carry the same word for anyone
 // who cannot see the icon).
 const THEME_ICONS: Record<string, string> = {
-  dark: ICON_THEME_DARK,
-  light: ICON_THEME_LIGHT,
-  auto: ICON_THEME_AUTO,
+  dark: ICON_THEME_DARK, light: ICON_THEME_LIGHT, auto: ICON_THEME_AUTO,
 };
 
 // Auto is marked here, on the row AND on the trigger's icon, because the
@@ -59,9 +40,7 @@ const THEME_ICONS: Record<string, string> = {
 // not function-local: themeChoiceRows() needs to read it too, and
 // a function-local const is invisible outside its own function.
 const THEME_LABELS: Record<string, TranslationKey> = {
-  dark: "shell.themeDark",
-  light: "shell.themeLight",
-  auto: "shell.themeAuto",
+  dark: "shell.themeDark", light: "shell.themeLight", auto: "shell.themeAuto",
 };
 
 // The check mark beside the chosen row: always
@@ -120,9 +99,7 @@ export function themeControl(lang: Language): string {
 // which have no request to read one from) falls back to `/`.
 function languageHref(currentUrl: string, target: Language): string {
   const [path, search = ""] = currentUrl.split("?");
-  const kept = search
-    .split("&")
-    .filter((pair) => pair && !pair.startsWith("lang="));
+  const kept = search.split("&").filter((pair) => pair && !pair.startsWith("lang="));
   kept.push(`lang=${target}`);
   return esc(`${path}?${kept.join("&")}`);
 }
@@ -132,12 +109,8 @@ function languageHref(currentUrl: string, target: Language): string {
 // so switching language keeps the reader on the page, tab, sort
 // and filter they were already on. The "…" menu's phone rows use the
 // same addresses as a dropdown's option values.
-export function languageChoiceLinks(
-  lang: Language,
-  currentUrl: string,
-): string {
-  const choice = (l: Language) =>
-    `${checkMark()}${LANGUAGE_FLAGS[l]} ${LANGUAGE_NATIVE_NAMES[l]}`;
+export function languageChoiceLinks(lang: Language, currentUrl: string): string {
+  const choice = (l: Language) => `${checkMark()}${LANGUAGE_FLAGS[l]} ${LANGUAGE_NATIVE_NAMES[l]}`;
   return LANGUAGES.map(
     (l) =>
       `<a href="${languageHref(currentUrl, l)}"${l === lang ? ' aria-current="true"' : ""}>${choice(l)}</a>`,
@@ -203,11 +176,7 @@ function unitSegment(lang: Language): string {
 export function menuSettingRows(lang: Language, currentUrl: string): string {
   return (
     menuRow("theme", t(lang, "shell.theme"), themeSegment(lang)) +
-    menuRow(
-      "lang",
-      t(lang, "shell.language"),
-      languageSelect(lang, currentUrl),
-    ) +
+    menuRow("lang", t(lang, "shell.language"), languageSelect(lang, currentUrl)) +
     menuRow("unit", t(lang, "shell.unit"), unitSegment(lang)) +
     `<div class="menusep" role="separator"></div>`
   );

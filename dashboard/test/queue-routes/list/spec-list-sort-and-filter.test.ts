@@ -13,10 +13,7 @@ import {
 // section unnecessary: asking for the running jobs is a filter, not a
 // second table.
 describe("the job list sorts and filters", () => {
-  const row = (
-    id: string,
-    extra: Partial<QueueRowView> = {},
-  ): QueueRowView => ({
+  const row = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
     id,
     project: "aide",
     specFolder: `${id}-spec`,
@@ -31,10 +28,7 @@ describe("the job list sorts and filters", () => {
 
   /** A spec on disk, as the server hands it to the page. `createdAt` is
    *  what git answered for the folder's first commit. */
-  const target = (
-    specFolder: string,
-    extra: Partial<SpecTarget> = {},
-  ): SpecTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -44,21 +38,13 @@ describe("the job list sorts and filters", () => {
    *  header rows alone: `data-folder` is written more than once per
    *  spec, and a bare match counts a row twice. */
   const specOrder = (html: string): (string | undefined)[] =>
-    [
-      ...html.matchAll(
-        /<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g,
-      ),
-    ].map((m) => m[1]);
+    [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]);
 
   /** One spec's own Started cell, on the second of the header's two rows
    *  since 2026-09-22: the title has the first to itself. */
   const startedCell = (html: string, folder: string): string =>
     html
-      .match(
-        new RegExp(
-          `<tr class="specstate"[^>]*data-folder="${folder}">.*?</tr>`,
-        ),
-      )?.[0]
+      .match(new RegExp(`<tr class="specstate"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
       ?.match(/<td data-col="started">.*?<\/td>/)?.[0] ?? "";
 
   const page = (
@@ -73,25 +59,17 @@ describe("the job list sorts and filters", () => {
     targets: SpecTarget[] = [],
     archivedSpecs?: ArchivedSpecView[],
   ) =>
-    renderSpecsPage(
-      rows,
-      "2026-08-16T00:00:00Z",
-      [{ label: "Overview", path: "projects.html" }],
-      {
-        runnerAvailable: true,
-        targets,
-        filter,
-        archivedSpecs,
-        archived: archivedSpecs?.map((s) => `${s.project}/${s.folder}`),
-      },
-    );
+    renderSpecsPage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+      runnerAvailable: true,
+      targets,
+      filter,
+      archivedSpecs,
+      archived: archivedSpecs?.map((s) => `${s.project}/${s.folder}`),
+    });
 
   /** The minimum an `ArchivedSpecView` needs to render a row — every
    *  field the row markup or the sort touches, and nothing else. */
-  const archived = (
-    folder: string,
-    extra: Partial<ArchivedSpecView> = {},
-  ): ArchivedSpecView => ({
+  const archived = (folder: string, extra: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
     project: "aide",
     folder,
     done: [],
@@ -101,11 +79,7 @@ describe("the job list sorts and filters", () => {
   });
 
   test("the legacy active key (now Running) shows only what is actually running, not queued or done", () => {
-    const rows = [
-      row("a", { state: "running" }),
-      row("b"),
-      row("c", { state: "queued" }),
-    ];
+    const rows = [row("a", { state: "running" }), row("b"), row("c", { state: "queued" })];
     const html = page(rows, { state: "active" });
     expect(html).toContain("a-spec");
     expect(html).not.toContain("b-spec");
@@ -113,9 +87,7 @@ describe("the job list sorts and filters", () => {
   });
 
   test("a stopped job shows under its own Stopped chip, not Failed", () => {
-    const html = page([row("a", { state: "stopped" }), row("b")], {
-      state: "stopped",
-    });
+    const html = page([row("a", { state: "stopped" }), row("b")], { state: "stopped" });
     expect(html).toContain("a-spec");
     expect(html).not.toContain("b-spec");
   });
@@ -137,8 +109,7 @@ describe("the job list sorts and filters", () => {
   });
 
   test("the Created heading's link asks for newest first, and turns round once it is the sort", () => {
-    const link = (html: string) =>
-      html.match(/data-col="created"[^>]*><a[^>]*href="([^"]*)"/)?.[1] ?? "";
+    const link = (html: string) => html.match(/data-col="created"[^>]*><a[^>]*href="([^"]*)"/)?.[1] ?? "";
     const byState = page([], { sort: "state" });
     expect(link(byState)).toContain("sort=created");
     expect(link(byState)).not.toContain("dir=");
@@ -185,9 +156,7 @@ describe("the job list sorts and filters", () => {
         archived("60-newer-archive", { createdAt: "2026-08-20T09:00:00Z" }),
       ],
     );
-    expect(html.indexOf("60-newer-archive")).toBeLessThan(
-      html.indexOf("61-older-archive"),
-    );
+    expect(html.indexOf("60-newer-archive")).toBeLessThan(html.indexOf("61-older-archive"));
   });
 
   // A live phase contributes its own elapsed-so-far, and the sort
@@ -196,22 +165,13 @@ describe("the job list sorts and filters", () => {
   // legitimately outranks one with a smaller SETTLED total — a row
   // moving because its live phase ran on is the sort staying correct.
   test("a phase's own live elapsed time counts toward the started sort, same as the column it sorts by", () => {
-    const settled = (
-      id: string,
-      extra: Partial<QueueRowView> = {},
-    ): QueueRowView =>
+    const settled = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
       row(id, {
         startedAt: "2026-08-16T09:00:00Z",
-        results: [
-          { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:20:00Z" },
-        ],
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:20:00Z" }],
         ...extra,
       });
-    const opts = {
-      runnerAvailable: true,
-      targets: [],
-      filter: { sort: "started" } as const,
-    };
+    const opts = { runnerAvailable: true, targets: [], filter: { sort: "started" } as const };
     const now = Date.parse("2026-08-16T12:00:00Z");
     // Before: "small" has nothing settled yet, so it sorts behind "big"'s
     // 20 measured minutes.
@@ -220,10 +180,7 @@ describe("the job list sorts and filters", () => {
     // After: "small" has been running for an hour (11:00 to NOW 12:00) —
     // more than "big"'s 20 settled minutes — so it now sorts FIRST.
     const after = renderSpecsRows(
-      [
-        row("small", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
-        settled("big"),
-      ],
+      [row("small", { state: "running", startedAt: "2026-08-16T11:00:00Z" }), settled("big")],
       opts,
       now,
     );
@@ -252,21 +209,15 @@ describe("the job list sorts and filters", () => {
   // change as well as after — deliberately: the criterion is that this
   // order is PRESERVED while the field the tie-break reads is replaced.
   test("two specs git cannot date fall back to folder order", () => {
-    const html = page([], { sort: "started" }, [
-      target("88-undatable"),
-      target("89-undatable"),
-    ]);
+    const html = page([], { sort: "started" }, [target("88-undatable"), target("89-undatable")]);
     expect(specOrder(html)).toEqual(["89-undatable", "88-undatable"]);
   });
 
   test("the same column clicked again turns the order round", () => {
-    const html = page(
-      [row("cheap", { spentUsd: 0.5 }), row("dear", { spentUsd: 12 })],
-      {
-        sort: "cost",
-        dir: "asc",
-      },
-    );
+    const html = page([row("cheap", { spentUsd: 0.5 }), row("dear", { spentUsd: 12 })], {
+      sort: "cost",
+      dir: "asc",
+    });
     expect(html.indexOf("cheap-spec")).toBeLessThan(html.indexOf("dear-spec"));
   });
 
@@ -279,10 +230,7 @@ describe("the job list sorts and filters", () => {
   // (100) sorted BEFORE 81 as text. The number is what a
   // person reads the column by, so it is what the column sorts by.
   test("sorting by spec orders by the leading number, not by text", () => {
-    const html = page([row("103"), row("81"), row("9"), row("104")], {
-      sort: "spec",
-      dir: "asc",
-    });
+    const html = page([row("103"), row("81"), row("9"), row("104")], { sort: "spec", dir: "asc" });
     const at = (n: string) => html.indexOf(`${n}-spec"`);
     expect(at("9")).toBeLessThan(at("81"));
     expect(at("81")).toBeLessThan(at("103"));
@@ -293,4 +241,5 @@ describe("the job list sorts and filters", () => {
     const html = page([row("a", { state: "running" })], { state: "active" });
     expect(html).toContain('href="/specs?state=active&amp;sort=cost"');
   });
+
 });

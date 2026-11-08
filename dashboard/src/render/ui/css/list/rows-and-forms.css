@@ -5,21 +5,14 @@
    it. The New spec form shares "pageform"'s layout, with scoped rules
    for its Project control and phase table. */
 
-.row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-}
+.row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 /* The spec banner's test-server line: a sentence and the button that
    stops it, on one row. It has to be a div — a form is not phrasing
    content, so a <p> holding one is closed by the browser before it —
    and a div brings no margin of its own, where every paragraph beside
    it in the banner brings one. This declares the space to the tab bar
    below so the line keeps the banner's rhythm. */
-.row.desc {
-  margin-bottom: var(--sp-4);
-}
+.row.desc { margin-bottom: var(--sp-4); }
 /* State and the action are two boxes of their own, each an exact width,
    and the cell is the sum of them. A column has ONE width for every
    row, so whatever box is given the leftover shows it as empty space: a
@@ -39,24 +32,11 @@
    left the cell (2026-09-07), and a column is what aligns it. The
    button keeps one — it sits inside the name box, which has no column
    boundary to align it — sized for the widest label it can carry. */
-.badgeslot {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-.actionslot {
-  display: inline-flex;
-  justify-content: flex-start;
-  width: 6.5rem;
-}
+.badgeslot { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.actionslot { display: inline-flex; justify-content: flex-start; width: 6.5rem; }
 /* No width of its own: the two boxes above are the width. */
-table.list tr.spechead > td > .row {
-  flex-wrap: nowrap;
-}
-td form {
-  margin: 0;
-  display: inline-block;
-}
+table.list tr.spechead > td > .row { flex-wrap: nowrap; }
+td form { margin: 0; display: inline-block; }
 /* Nothing but hidden fields: the boxes it posts are on
    the phase lines and the button that submits it stands beside the
    state badge, both reaching it by the "form" attribute
@@ -64,9 +44,7 @@ td form {
    and still carries the class specs-client.ts selects on, so a press
    is still intercepted. It just has nothing to show, and a container
    that gave it a gap would open a hole beside the badge. */
-.rowrun {
-  display: none;
-}
+.rowrun { display: none; }
 /* No stack of buttons with a cell of its own: a row draws ONE button,
    beside the state badge, and the two share the page's ordinary "row" container.
    That container wraps, which is the whole width rule the pairing
@@ -78,70 +56,36 @@ td form {
    container gap does not absorb it. "actionform" has no rule at all —
    "td form" above gives it everything it had, and the conflict form's
    rule went with the control it belonged to. */
-.pageform {
-  display: flex;
-  gap: var(--sp-3);
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-top: var(--sp-3);
-}
-.pageform .refused {
-  flex-basis: 100%;
-}
-.newspecform #new-spec-project {
-  width: 350px;
-  box-sizing: border-box;
-}
-.options-row > table.list tr.subrow > td.phasecell {
-  padding-left: var(--sp-3);
-}
+.pageform { display: flex; gap: var(--sp-3); align-items: flex-end;
+  flex-wrap: wrap; margin-top: var(--sp-3); }
+.pageform .refused { flex-basis: 100%; }
+.newspecform #new-spec-project { width: 350px; box-sizing: border-box; }
+.options-row > table.list tr.subrow > td.phasecell { padding-left: var(--sp-3); }
 /* The /new form's rows, read top to bottom on each of its two tabs —
    Spec: Project, Title, Description, Depends on; Options: the phase
    table, with the four settings beside it. Every row but Project and
    Title takes the full width of the wrapping flex as a `.frow`. The open
    tab's panel draws no box of its own, so its rows are the form's flex
    rows; the closed one keeps `[hidden]`'s `display: none`. */
-.pageform > [data-tab-panel]:not([hidden]) {
-  display: contents;
-}
-.pageform .frow {
-  display: flex;
-  gap: var(--sp-4);
-  align-items: flex-start;
-  flex-basis: 100%;
-}
-.pageform .frow .field.wide {
-  flex: 1 1 0;
-}
+.pageform > [data-tab-panel]:not([hidden]) { display: contents; }
+.pageform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
+  flex-basis: 100%; }
+.pageform .frow .field.wide { flex: 1 1 0; }
 /* The phase table with the four settings beside it, on New spec's Options
    tab. The table is as wide as its columns. */
-.options-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-4);
-  align-items: flex-start;
-}
-.options-row > table.list {
-  width: auto;
-}
+.options-row { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: flex-start; }
+.options-row > table.list { width: auto; }
 /* The Options tab's four settings as one group beside the phase table, one
    to a line. The group never shrinks, so no label wraps inside it: where
    the two do not fit side by side, the row's own wrap puts the whole group
    under the table, a phone included. */
-.options-group {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-3);
-  flex: 0 0 auto;
-}
+.options-group { display: flex; flex-direction: column; align-items: flex-start;
+  gap: var(--sp-3); flex: 0 0 auto; }
 /* The Add-project form reads to the same width its own fields do: a
    `.field.wide` stops at 48rem, so a row that splits its width between
    two fields has to stop there too, or the halves above reach past the
    full-width rows below them and no two edges line up. */
-.addprojectform {
-  max-width: 48rem;
-}
+.addprojectform { max-width: 48rem; }
 /* Save and Cancel sit on the same line as the tab's own help mark, to
    the right of it — the form's first child, ahead of the
    field it saves. One rule for both shapes: the Checks tab's plain
@@ -151,54 +95,31 @@ td form {
    the first, where the div is already the width of its block-level
    parent. `.factions` carries no layout of its own — each container that
    draws it gives it `display: flex` for its own shape. */
-.panelhead {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-basis: 100%;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-2);
-}
-.panelhead .factions {
-  display: flex;
-  gap: var(--sp-2);
-  flex: none;
-}
+.panelhead { display: flex; justify-content: space-between; align-items: baseline;
+  flex-basis: 100%; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.panelhead .factions { display: flex; gap: var(--sp-2); flex: none; }
 /* The Settings page's own button rows (its Phases form and the Add and Remove
    forms of the Models tab): always right-aligned, with a deliberate gap to what is
    above them. The Config tab has no such row above both tables: each
    table has its own `.panelhead`. */
-.configactions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--sp-2);
-  flex-basis: 100%;
-  margin-bottom: var(--sp-3);
-}
+.configactions { display: flex; justify-content: flex-end; gap: var(--sp-2);
+  flex-basis: 100%; margin-bottom: var(--sp-3); }
 /* Two independent tables, each with its own heading+actions line
    — the gap between them is declared here, once, never as a margin
    on settingsTableFor()'s own per-table div (dashboard-design.md,
    "spacing lives in the container"). Matches the wider gap
    `.projectsettingsform` gets below in edit mode, so Edit and Cancel do
    not visibly jump when a save reopens the read-only view. */
-.configtables {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-5);
-}
+.configtables { display: flex; flex-direction: column; gap: var(--sp-5); }
 /* Matches `.pageform`'s own margin-top below: view mode's
    plain container needs the same top margin the edit-mode form gets,
    so the first table's own `.panelhead` sits at the same pixel position
    in either state. */
-.tabpanel > .configtables {
-  margin-top: var(--sp-3);
-}
+.tabpanel > .configtables { margin-top: var(--sp-3); }
 /* The same gap in edit mode: `.pageform`'s own `gap: var(--sp-3)`
    is too narrow between the two `.frow`s each wrapping one of these
    tables, so this form widens it to match `.configtables` above. */
-.projectsettingsform {
-  gap: var(--sp-5);
-}
+.projectsettingsform { gap: var(--sp-5); }
 /* `.pageform .factions` above bottom-aligns a `.frow`'s own Save/
    Cancel against a taller field beside it (the New-spec form) — a rule
    that reaches this form's factions too, nested three levels deeper
@@ -207,10 +128,7 @@ td form {
    mode (the two states would no longer share one pixel position).
    Reset back to the ordinary centring here, scoped to these two
    containers' own panelheads only. */
-.configtables .panelhead .factions,
-.projectsettingsform .panelhead .factions {
-  align-self: center;
-}
+.configtables .panelhead .factions, .projectsettingsform .panelhead .factions { align-self: center; }
 /* The Settings page's phases form: as wide as its own table and centred
    in the frame. `table.settingstable` is `width: auto`, so it is as wide
    as its content and no wider — and with the form full width, Save and
@@ -218,13 +136,8 @@ td form {
    edge, a screen away from the rows they save. Narrower than the frame
    the form now sits in the middle; wider, `fit-content` gives way and it
    fills. */
-.settingsform {
-  width: fit-content;
-  margin-inline: auto;
-}
-.settingsform > table.settingstable {
-  margin-top: var(--sp-4);
-}
+.settingsform { width: fit-content; margin-inline: auto; }
+.settingsform > table.settingstable { margin-top: var(--sp-4); }
 
 /* `display: contents` removes this wrapper from layout entirely, so
    its two fields become direct items of `.scheduleform`'s own grid
@@ -234,9 +147,7 @@ td form {
    own `gap` replaces this rule's old `gap`, and there is no box left
    for a `flex-wrap` fallback to act on — narrow.css collapses the grid
    itself to one column instead. */
-.scheduleform .frow {
-  display: contents;
-}
+.scheduleform .frow { display: contents; }
 /* The "…" menu: Units, Settings and About, behind one
    disclosure at the right-hand end of the header. A POPOVER like
    .intro below — an open menu must lay over the page, not push the
@@ -245,48 +156,19 @@ td form {
    shared class is what gives it the same trigger look and the same
    outside-click/Escape close, since "menu-script.ts"'s closeAll()
    already reads every "details.menu", not one by name. */
-.menu {
-  position: relative;
-}
-.menu > summary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  line-height: 1;
-  list-style: none;
-  cursor: pointer;
-}
-.menu > summary::-webkit-details-marker {
-  display: none;
-}
-.menu > summary:hover {
-  background: var(--surface-2);
-  color: var(--text);
-}
+.menu { position: relative; }
+.menu > summary { display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 999px; border: 0; background: none;
+  color: var(--muted); line-height: 1; list-style: none; cursor: pointer; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary:hover { background: var(--surface-2); color: var(--text); }
 /* Menu rows, not a box with text in it: every item is a full-width flat
    with a hover, the way a menu reads. */
-.menupanel {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
-  min-width: 13rem;
-  padding: var(--sp-1);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r);
-  box-shadow: var(--overlay-shadow);
-}
+.menupanel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
+  display: flex; flex-direction: column; align-items: stretch; gap: 2px;
+  min-width: 13rem; padding: var(--sp-1); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--r);
+  box-shadow: var(--overlay-shadow); }
 /* The "…" menu's own flat mobile rows:
    one `.morerows` block per setting inside the panel, so they reach
    phone width without a second, nested <details> — see menu-script.js's
@@ -294,157 +176,67 @@ td form {
    control right; hidden by default here, shown only inside narrow.css's
    breakpoint. Their controls are styled by the `.seg` rules below, not
    by the panel's own row rules. */
-.menupanel > * {
-  display: block;
-  padding: 6px 10px;
-  border-radius: var(--r-s);
-}
-.menupanel > a {
-  color: var(--text);
-}
-.menupanel > a:hover {
-  background: var(--surface-2);
-  text-decoration: none;
-}
+.menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
+.menupanel > a { color: var(--text); }
+.menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
 /* The language menu's own rows: a check mark, a flag and the
    name in one row, needing the flex layout the base rule above does not
    give an <a> — scoped to `.menu.lang` alone, so Settings, About, Test
    servers and the state dropdown's own `<a role="radio">` rows (all
    sharing the same `.menupanel > a` ancestor shape) keep their current
    block layout untouched. */
-.menu.lang .menupanel > a {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
+.menu.lang .menupanel > a { display: flex; align-items: center; gap: var(--sp-2); }
 /* Theme's own rows: a button, not a link, exactly the
    reason Units' buttons already needed the same colour/hover pair —
    nothing about being a <button> instead of an <a> should read as a
    lesser row in the same menu. The icon and its label share the row
    the way every other icon-plus-word control on this site does. */
-.menupanel > button {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: 0;
-  color: var(--text);
-  font: var(--fs-m)/1 var(--sans);
-  cursor: pointer;
-}
-.menupanel > button:hover {
-  background: var(--surface-2);
-}
+.menupanel > button { display: flex; align-items: center; gap: var(--sp-2);
+  width: 100%; text-align: left; background: none; border: 0; color: var(--text);
+  font: var(--fs-m)/1 var(--sans); cursor: pointer; }
+.menupanel > button:hover { background: var(--surface-2); }
 .menupanel > button[aria-current],
-.menupanel > a[aria-current] {
-  font-weight: 600;
-}
+.menupanel > a[aria-current] { font-weight: 600; }
 /* The chosen row also gets a text colour distinct from
    the other rows in the SAME menu — scoped to the theme and language
    menus alone, so Settings, About, Test servers and the unit radios
    keep their current colour. */
 .menu.theme .menupanel > button,
-.menu.lang .menupanel > a {
-  color: var(--muted);
-}
+.menu.lang .menupanel > a { color: var(--muted); }
 .menu.theme .menupanel > button[aria-current],
-.menu.lang .menupanel > a[aria-current] {
-  color: var(--text);
-}
+.menu.lang .menupanel > a[aria-current] { color: var(--text); }
 /* Unit's own rows: a <label> wrapping a radio, the shape
    Settings' own Units block already used — this shape has never
    rendered inside a .menupanel before, so there is no prior rule to
    break. Styled to match the button/a rows beside them. */
-.menupanel > label {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: 6px 10px;
-  border-radius: var(--r-s);
-  cursor: pointer;
-  color: var(--text);
-  font: var(--fs-m)/1 var(--sans);
-}
-.menupanel > label:hover {
-  background: var(--surface-2);
-}
+.menupanel > label { display: flex; align-items: center; gap: var(--sp-2);
+  padding: 6px 10px; border-radius: var(--r-s); cursor: pointer; color: var(--text);
+  font: var(--fs-m)/1 var(--sans); }
+.menupanel > label:hover { background: var(--surface-2); }
 /* Desktop default: the mobile-only rows stay out of the way entirely
    — narrow.css reveals them at phone width. */
-.menu .morerows {
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  padding: 2px 10px;
-}
+.menu .morerows { display: none; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  padding: 2px 10px; }
 /* A segmented control: word buttons side by side, one border round the
    group. `.seg > button` and `.seg > label` are not direct children of
    the panel, so the panel's own row rules above do not reach them. */
-.seg {
-  display: inline-flex;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-s);
-  overflow: hidden;
-}
-.seg > * + * {
-  border-left: 1px solid var(--line-strong);
-}
-.seg > button,
-.seg > label {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 var(--sp-3);
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-  background: var(--surface);
-  color: var(--muted);
-  font: var(--fs-m)/1 var(--sans);
-  cursor: pointer;
-}
-.seg > label > span {
-  display: inline-flex;
-  align-items: center;
-  height: 100%;
-}
-.seg > button[aria-current],
-.seg > label > input:checked + span {
-  color: var(--text);
-  font-weight: 600;
-}
-.seg > button[aria-current],
-.seg > label:has(> input:checked) {
-  background: var(--surface-2);
-}
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-s); overflow: hidden; }
+.seg > * + * { border-left: 1px solid var(--line-strong); }
+.seg > button, .seg > label { position: relative; display: inline-flex; align-items: center; height: 28px;
+  padding: 0 var(--sp-3); margin: 0; border: 0; border-radius: 0; background: var(--surface); color: var(--muted);
+  font: var(--fs-m)/1 var(--sans); cursor: pointer; }
+.seg > label > span { display: inline-flex; align-items: center; height: 100%; }
+.seg > button[aria-current], .seg > label > input:checked + span { color: var(--text); font-weight: 600; }
+.seg > button[aria-current], .seg > label:has(> input:checked) { background: var(--surface-2); }
 /* The radio stays a real, focusable input laid over its own label and
    drawn as nothing — not display:none, which would take it out of the
    keyboard's reach. The page's one focus ring then lands on the whole
    label, since the input fills it. */
-.seg > label > input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
+.seg > label > input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0;
+  appearance: none; -webkit-appearance: none; background: transparent; border: 0; cursor: pointer; }
 /* The rule between the three setting rows and the links; narrow.css
    shows it together with the first row. */
-.menupanel > .menusep {
-  display: none;
-  height: 1px;
-  padding: 0;
-  margin: var(--sp-1) 0;
-  background: var(--line);
-}
+.menupanel > .menusep { display: none; height: 1px; padding: 0; margin: var(--sp-1) 0; background: var(--line); }
 
 /* The check mark beside the chosen row in the theme and language menus
    is always rendered, opacity-toggled rather than
@@ -452,20 +244,9 @@ td form {
    the same pattern the state dropdown's own `.check` span below uses,
    under a name of its own since "check" already means two other things
    under this same `.menupanel` shape. */
-.menucheck {
-  display: inline-flex;
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-  opacity: 0;
-}
-.menucheck svg {
-  width: 14px;
-  height: 14px;
-}
-[aria-current] > .menucheck {
-  opacity: 1;
-}
+.menucheck { display: inline-flex; width: 14px; height: 14px; flex: 0 0 auto; opacity: 0; }
+.menucheck svg { width: 14px; height: 14px; }
+[aria-current] > .menucheck { opacity: 1; }
 
 /* The state dropdown's own rows: a round, radio-STYLED glyph
    beside each option, matching the control's underlying semantics —
@@ -474,87 +255,34 @@ td form {
    `role="radiogroup"` and each option `role="radio"`/`aria-checked`
    so what assistive tech announces agrees with what the
    round mark shows. */
-.menupanel.state a,
-.menu.state .menupanel a {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-.menu.state .check {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 auto;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-}
-.menu.state a[aria-checked="true"] .check {
-  background: var(--text);
-  border-color: var(--text);
-}
+.menupanel.state a, .menu.state .menupanel a { display: flex; align-items: center; gap: var(--sp-2); }
+.menu.state .check { width: 14px; height: 14px; flex: 0 0 auto; border: 1px solid var(--line-strong);
+  border-radius: 50%; }
+.menu.state a[aria-checked="true"] .check { background: var(--text); border-color: var(--text); }
 /* The base `.menu > summary` above is a bare 32px icon circle, sized for
    the header's "…" and Theme triggers, which carry no text. This
    trigger's own label ("Archived (12)") needs room a fixed circle
    cannot give it — sized to its content instead, as a pill. */
-.menu.state > summary {
-  width: auto;
-  height: auto;
-  border-radius: 999px;
-  padding: 3px 9px;
-  gap: var(--sp-1);
-  font-size: var(--fs-s);
-  color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-}
-.menu.state > summary:hover {
-  color: var(--text);
-  border-color: var(--muted);
-}
+.menu.state > summary { width: auto; height: auto; border-radius: 999px;
+  padding: 3px 9px; gap: var(--sp-1); font-size: var(--fs-s); color: var(--muted);
+  background: var(--surface); border: 1px solid var(--line-strong); }
+.menu.state > summary:hover { color: var(--text); border-color: var(--muted); }
 
 /* The About dialog: opened from the menu, closed by the cross, Escape
    or a click on the backdrop. The panel carries the padding so a click
    inside it can never be mistaken for one outside (the script closes on
    clicks whose target is the dialog element itself). */
-dialog.about {
-  padding: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r);
-  background: var(--surface);
-  color: var(--text);
-  max-width: 34rem;
-  box-shadow: var(--overlay-shadow);
-}
-dialog.about::backdrop {
-  background: var(--backdrop);
-}
-.aboutpanel {
-  position: relative;
-  padding: var(--sp-5) var(--sp-6);
-}
-.aboutpanel h2 {
-  margin: 0 0 var(--sp-3);
-  font-size: var(--fs-l);
-  font-weight: 600;
-}
-.aboutclose {
-  position: absolute;
-  top: var(--sp-3);
-  right: var(--sp-3);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-}
-.aboutclose:hover {
-  background: var(--surface-2);
-  color: var(--text);
-}
+dialog.about { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
+  background: var(--surface); color: var(--text); max-width: 34rem;
+  box-shadow: var(--overlay-shadow); }
+dialog.about::backdrop { background: var(--backdrop); }
+.aboutpanel { position: relative; padding: var(--sp-5) var(--sp-6); }
+.aboutpanel h2 { margin: 0 0 var(--sp-3); font-size: var(--fs-l); font-weight: 600; }
+.aboutclose { position: absolute; top: var(--sp-3); right: var(--sp-3);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 999px; border: 0; background: none;
+  color: var(--muted); cursor: pointer; }
+.aboutclose:hover { background: var(--surface-2); color: var(--text); }
 
 /* A confirmation asked OVER the list rather than on a page of its own
    (2026-08-31, the schedule row's Delete), and the progress dialog a
@@ -562,67 +290,29 @@ dialog.about::backdrop {
    border, surface, shadow and backdrop — because it is the same kind of
    thing: something laid over the page until it is answered. Narrower,
    since what it holds is one sentence, one field and two buttons. */
-dialog.confirmdialog,
-dialog.progressdialog {
-  padding: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r);
-  background: var(--surface);
-  color: var(--text);
-  max-width: 26rem;
-  box-shadow: var(--overlay-shadow);
-}
-dialog.confirmdialog::backdrop,
-dialog.progressdialog::backdrop {
-  background: var(--backdrop);
-}
-.confirmpanel,
-.progresspanel {
-  padding: var(--sp-5) var(--sp-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-}
-.confirmpanel h2,
-.progresspanel h2 {
-  margin: 0;
-  font-size: var(--fs-l);
-  font-weight: 600;
-}
-.confirmpanel p,
-.progresspanel p {
-  margin: 0;
-}
+dialog.confirmdialog, dialog.progressdialog { padding: 0; border: 1px solid var(--line-strong);
+  border-radius: var(--r); background: var(--surface); color: var(--text); max-width: 26rem;
+  box-shadow: var(--overlay-shadow); }
+dialog.confirmdialog::backdrop, dialog.progressdialog::backdrop { background: var(--backdrop); }
+.confirmpanel, .progresspanel { padding: var(--sp-5) var(--sp-6); display: flex; flex-direction: column;
+  gap: var(--sp-3); }
+.confirmpanel h2, .progresspanel h2 { margin: 0; font-size: var(--fs-l); font-weight: 600; }
+.confirmpanel p, .progresspanel p { margin: 0; }
 /* The two answers of a confirm box on one row (`dialogAnswers()`): the
    affirmative belongs to the form it submits, Cancel to the
    `method="dialog"` form beside it, so the row is made by this wrapper.
    A form's own class may carry a margin, which the row resets. */
-.dialogactions {
-  display: flex;
-  gap: var(--sp-2);
-}
-.progresspanel textarea {
-  width: 100%;
-  box-sizing: border-box;
-}
-.dialogactions > form {
-  margin: 0;
-}
+.dialogactions { display: flex; gap: var(--sp-2); }
+.progresspanel textarea { width: 100%; box-sizing: border-box; }
+.dialogactions > form { margin: 0; }
 
 /* The Deploy panel's own state sentence, button and refusal line,
    spaced apart the way `.confirmpanel` already spaces its own parts —
    via the container's `gap`, never a margin on the message or the form
    beside it (design-system.md "Spacing lives in the
    container"). */
-.deploypanel {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-3);
-}
-.deploypanel .rowmsg {
-  margin: 0;
-}
+.deploypanel { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); }
+.deploypanel .rowmsg { margin: 0; }
 
 /* The covering layer a click that leaves the page gets, from the click
    until the new document arrives — the same dialog+backdrop
@@ -643,37 +333,17 @@ dialog.progressdialog::backdrop {
    minus a gap on every side, measured on the whole box (`border-box`),
    and a taller layer scrolls inside itself. All of it sits on `[open]`,
    so a closed layer is not placed. */
-dialog.pageoverlay {
-  border: 0;
-  border-radius: var(--r);
-  background: var(--surface);
-  box-shadow: var(--overlay-shadow);
-  padding: var(--sp-5);
-}
-dialog.pageoverlay[open] {
-  display: grid;
-  place-items: center;
-  position: fixed;
-  inset: 0;
-  margin: auto;
-  box-sizing: border-box;
-  width: fit-content;
-  height: fit-content;
-  max-width: calc(100% - 2 * var(--sp-4));
-  max-height: calc(100% - 2 * var(--sp-4));
-  overflow: auto;
-}
-dialog.pageoverlay::backdrop {
-  background: var(--backdrop);
-}
+dialog.pageoverlay { border: 0; border-radius: var(--r); background: var(--surface);
+  box-shadow: var(--overlay-shadow); padding: var(--sp-5); }
+dialog.pageoverlay[open] { display: grid; place-items: center; position: fixed; inset: 0; margin: auto;
+  box-sizing: border-box; width: fit-content; height: fit-content;
+  max-width: calc(100% - 2 * var(--sp-4)); max-height: calc(100% - 2 * var(--sp-4));
+  overflow: auto; }
+dialog.pageoverlay::backdrop { background: var(--backdrop); }
 /* The line of text under the spinner: the page's own word for a
    navigation, or the one a Save form hands the layer. */
-dialog.pageoverlay > .overlaynote {
-  margin: var(--sp-3) 0 0;
-  max-width: 22rem;
-  color: var(--muted);
-  text-align: center;
-}
+dialog.pageoverlay > .overlaynote { margin: var(--sp-3) 0 0; max-width: 22rem;
+  color: var(--muted); text-align: center; }
 
 /* How runs work: a small question mark at the right-hand end of the
    search field's own row, not a block between the page's title and the list the
@@ -688,77 +358,34 @@ dialog.pageoverlay > .overlaynote {
    instead of the row's plain gap — more room from the
    "(?)" popover beside it than every other pair of controls on this row
    gets, because the two are easy to mis-click together. */
-.menu.state {
-  margin-left: var(--sp-3);
-}
-.specsearch > .btn.primary {
-  margin-left: auto;
-}
-details.intro {
-  position: relative;
-}
-details.intro > summary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1px solid var(--line-strong);
-  color: var(--muted);
-  font-size: var(--fs-s);
-  font-weight: 600;
-  list-style: none;
-  cursor: pointer;
-}
-details.intro > summary::-webkit-details-marker {
-  display: none;
-}
-details.intro > summary:hover {
-  border-color: var(--muted);
-  color: var(--text);
-}
-details.intro[open] p {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 20;
-  width: 28rem;
-  max-width: 80vw;
-  margin: 0;
-  padding: var(--sp-3);
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r);
-  box-shadow: var(--overlay-shadow);
-  font-family: var(--sans), sans-serif;
-  font-size: var(--fs-m);
-  font-weight: 400;
-  color: var(--text);
-}
+.menu.state { margin-left: var(--sp-3); }
+.specsearch > .btn.primary { margin-left: auto; }
+details.intro { position: relative; }
+details.intro > summary { display: inline-flex; align-items: center;
+  justify-content: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--line-strong); color: var(--muted);
+  font-size: var(--fs-s); font-weight: 600; list-style: none; cursor: pointer; }
+details.intro > summary::-webkit-details-marker { display: none; }
+details.intro > summary:hover { border-color: var(--muted); color: var(--text); }
+details.intro[open] p { position: absolute; right: 0; top: calc(100% + 6px);
+  z-index: 20; width: 28rem; max-width: 80vw; margin: 0; padding: var(--sp-3);
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r); box-shadow: var(--overlay-shadow);
+  font-family: var(--sans), sans-serif; font-size: var(--fs-m); font-weight: 400; color: var(--text); }
 /* Menu-script.ts measures the opened popover and adds this
    class when its default side above would run past the viewport's
    left or right edge — flips it to the other side instead. */
-details.intro.intro-flip[open] p {
-  right: auto;
-  left: 0;
-}
+details.intro.intro-flip[open] p { right: auto; left: 0; }
 /* The spec page's tabs append this mark INSIDE their own first
    line (the file/commit stamp, the checklist's head line, the Logs
    table's header row) rather than drawing it as a preceding sibling —
    floating it right pins it to that line's own end, off any wrapped
    continuation on a narrow screen, while `position: relative` above
    still anchors the open flyout to the mark itself. */
-.tabpanel details.intro {
-  float: right;
-}
-p.intro {
-  margin: 0 0 var(--sp-3);
-}
+.tabpanel details.intro { float: right; }
+p.intro { margin: 0 0 var(--sp-3); }
 
 /* The board line ("<machine> - Prod" / "… - Test - 434") lives in the
    header on a desktop; the "…" menu's copy of it (`.boardrow`) is for
    phones only — narrow.css swaps the two. */
-.menupanel > .boardrow {
-  display: none;
-}
+.menupanel > .boardrow { display: none; }

@@ -9,14 +9,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { QueueRowView, SpecTarget } from "../../../../../src/render";
-import {
-  groupBySpec,
-  phasesFor,
-} from "../../../../../src/render/pages/specs-list/data-model";
-import {
-  actionState,
-  nextPhase,
-} from "../../../../../src/render/pages/specs-list/row-state.ts";
+import { groupBySpec, phasesFor } from "../../../../../src/render/pages/specs-list/data-model";
+import { actionState, nextPhase } from "../../../../../src/render/pages/specs-list/row-state.ts";
 import { wordPhase } from "../../../../../src/render/ui/job-state";
 import { row } from "../../fixtures.ts";
 
@@ -32,16 +26,7 @@ const finished = (id: string, step: string, at: string): QueueRowView =>
     state: "done",
     createdAt: at,
     startedAt: at,
-    results: [
-      {
-        step,
-        ok: true,
-        costUsd: 0,
-        costMeasured: true,
-        terminalReason: "completed",
-        at,
-      },
-    ],
+    results: [{ step, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", at }],
   });
 
 const analysis = finished("analysis", "analyze", ANALYZED_AT);
@@ -56,8 +41,7 @@ const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
   ...extra,
 });
 
-const implementLine = (jobs: QueueRowView[], t: SpecTarget) =>
-  phasesFor(jobs, t).find((p) => p.step === "implement")!;
+const implementLine = (jobs: QueueRowView[], t: SpecTarget) => phasesFor(jobs, t).find((p) => p.step === "implement")!;
 
 const wordOf = (jobs: QueueRowView[], t: SpecTarget) => {
   const p = implementLine(jobs, t);
@@ -71,16 +55,12 @@ const wordOf = (jobs: QueueRowView[], t: SpecTarget) => {
 describe("a phase line after a new analysis", () => {
   const dirs: string[] = [];
   afterEach(() => {
-    for (const dir of dirs.splice(0))
-      rmSync(dir, { recursive: true, force: true });
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
   });
   const specDirWithImplementRecord = (): string => {
     const dir = mkdtempSync(join(tmpdir(), "aide-after-analysis-"));
     dirs.push(dir);
-    writeFileSync(
-      join(dir, "3-solution.md"),
-      "# Solution\n\n## Tracking info\n\n- **Result:** completed\n",
-    );
+    writeFileSync(join(dir, "3-solution.md"), "# Solution\n\n## Tracking info\n\n- **Result:** completed\n");
     return dir;
   };
 
@@ -88,9 +68,7 @@ describe("a phase line after a new analysis", () => {
     const line = implementLine([analysis, earlierImplement], target());
     expect(line.attempts).toEqual([]);
     expect(line.fileResult).toBeUndefined();
-    expect(
-      wordOf([analysis, earlierImplement], target()).badge,
-    ).toBeUndefined();
+    expect(wordOf([analysis, earlierImplement], target()).badge).toBeUndefined();
   });
 
   test("an implement the stamped file remembers, with no job, is not a result either", () => {
@@ -107,13 +85,7 @@ describe("a phase line after a new analysis", () => {
   });
 
   test("an attempt in flight keeps every attempt", () => {
-    const running = row({
-      id: "running",
-      steps: ["implement"],
-      stepIndex: 0,
-      state: "running",
-      createdAt: LATER,
-    });
+    const running = row({ id: "running", steps: ["implement"], stepIndex: 0, state: "running", createdAt: LATER });
     const line = implementLine([analysis, earlierImplement, running], target());
     expect(line.attempts.map((a) => a.id)).toEqual(["running", "earlier"]);
   });
@@ -125,19 +97,12 @@ describe("a phase line after a new analysis", () => {
   });
 
   test("with implement done, the phase is untouched", () => {
-    const t = target({
-      done: ["create", "analyze", "implement"],
-      historyDone: ["create", "analyze", "implement"],
-    });
-    expect(
-      implementLine([analysis, earlierImplement], t).attempts.map((a) => a.id),
-    ).toEqual(["earlier"]);
+    const t = target({ done: ["create", "analyze", "implement"], historyDone: ["create", "analyze", "implement"] });
+    expect(implementLine([analysis, earlierImplement], t).attempts.map((a) => a.id)).toEqual(["earlier"]);
   });
 
   test("with no analysis named as superseding it, the phase is untouched", () => {
     const t = target({ superseded: undefined });
-    expect(
-      implementLine([analysis, earlierImplement], t).attempts.map((a) => a.id),
-    ).toEqual(["earlier"]);
+    expect(implementLine([analysis, earlierImplement], t).attempts.map((a) => a.id)).toEqual(["earlier"]);
   });
 });

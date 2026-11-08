@@ -18,9 +18,7 @@ import type { QueueRowView } from "./types.ts";
  *  list's pip strip and the job page's — would otherwise each carry the
  *  same guarded `indexOf`, and a transposition in one of them is a
  *  silent lie about progress. */
-export function completedThirds(
-  attempt: QueueRowView | undefined,
-): 1 | 2 | undefined {
+export function completedThirds(attempt: QueueRowView | undefined): 1 | 2 | undefined {
   // The state itself, never `inFlight`: that is queued OR running, and a
   // job waiting to start is in no TDD phase at all.
   if (attempt?.state !== "running") return undefined;

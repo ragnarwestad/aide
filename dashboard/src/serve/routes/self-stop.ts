@@ -14,14 +14,9 @@ import type { RoutesContext } from "./";
 
 /** `undefined` for a path that is not this route's own, so it joins the
  *  same `??`-chain `handleRoutes()`'s dispatcher already is. */
-export function selfStopRoute(
-  ctx: RoutesContext,
-  req: Request,
-  path: string,
-): Response | null {
+export function selfStopRoute(ctx: RoutesContext, req: Request, path: string): Response | null {
   if (path !== "/api/self-stop") return null;
-  if (req.method !== "POST")
-    return new Response("method not allowed", { status: 405 });
+  if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   // An ordinary (prod) server never draws the Stop button, but a
   // request can be sent by hand regardless of what the page draws.
   if (!getBoardInfo()) return new Response("not a test board", { status: 404 });

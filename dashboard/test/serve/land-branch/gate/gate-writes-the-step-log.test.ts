@@ -19,13 +19,7 @@ function repo(): string {
   const dir = mkdtempSync(join(tmpdir(), "aide-gate-log-"));
   dirs.push(dir);
   writeFileSync(join(dir, "README.md"), "# p\n");
-  for (const args of [
-    ["init", "-q", "-b", "main"],
-    ["config", "user.name", "T"],
-    ["config", "user.email", "t@e.x"],
-    ["add", "-A"],
-    ["commit", "-qm", "main"],
-  ]) {
+  for (const args of [["init", "-q", "-b", "main"], ["config", "user.name", "T"], ["config", "user.email", "t@e.x"], ["add", "-A"], ["commit", "-qm", "main"]]) {
     Bun.spawnSync({ cmd: ["git", "-C", dir, ...args] });
   }
   return dir;
@@ -34,14 +28,8 @@ function repo(): string {
 function scripts(recorderBody: string): void {
   const bin = mkdtempSync(join(tmpdir(), "aide-gate-log-bin-"));
   dirs.push(bin);
-  writeFileSync(
-    join(bin, "resolve"),
-    `#!/bin/sh\nprintf '{"ok":true,"commands":["make test","make e2e"]}\\n'\n`,
-    { mode: 0o755 },
-  );
-  writeFileSync(join(bin, "record"), `#!/bin/sh\n${recorderBody}\n`, {
-    mode: 0o755,
-  });
+  writeFileSync(join(bin, "resolve"), `#!/bin/sh\nprintf '{"ok":true,"commands":["make test","make e2e"]}\\n'\n`, { mode: 0o755 });
+  writeFileSync(join(bin, "record"), `#!/bin/sh\n${recorderBody}\n`, { mode: 0o755 });
   process.env.AIDE_RESOLVE_TEST_CMD_BIN = join(bin, "resolve");
   process.env.AIDE_RECORD_TEST_RUN_BIN = join(bin, "record");
   process.env.AIDE_TEST_GATE_LOG = join(bin, "gate.log");
@@ -55,10 +43,7 @@ function job(dir: string) {
   const streamFile = join(dir, "j1.archive.stream.jsonl");
   const runLog = join(dir, "j1.archive.run.log");
   const implementLog = join(dir, "j1.implement.run.log");
-  writeFileSync(
-    runLog,
-    "aide-run-spec 10:00:00 +0s model turn started (transcript at byte 0)\n",
-  );
+  writeFileSync(runLog, "aide-run-spec 10:00:00 +0s model turn started (transcript at byte 0)\n");
   writeFileSync(implementLog, "");
   return {
     runLog,
@@ -68,16 +53,7 @@ function job(dir: string) {
       specFolder: "81-x",
       streamFile,
       stepStartedAt: new Date().toISOString(),
-      results: [
-        {
-          step: "implement" as const,
-          ok: true,
-          costUsd: 0,
-          costMeasured: true,
-          terminalReason: "completed",
-          streamFile: join(dir, "j1.implement.stream.jsonl"),
-        },
-      ],
+      results: [{ step: "implement" as const, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", streamFile: join(dir, "j1.implement.stream.jsonl") }],
     },
   };
 }
@@ -89,12 +65,8 @@ test("a green run says when it started, with how many commands, and that it ende
   await runProjectSuiteBeforePush(root, j, "aide/81-x");
   const log = readFileSync(runLog, "utf-8");
   expect(readFileSync(implementLog, "utf-8")).toBe("");
-  expect(log).toMatch(
-    /^aide-run-spec \d\d:\d\d:\d\d \+\d+s the landing runs the project's tests on the merge \(2 command\(s\)\)$/m,
-  );
-  expect(log).toMatch(
-    /^aide-run-spec \d\d:\d\d:\d\d \+\d+s the landing's tests are green$/m,
-  );
+  expect(log).toMatch(/^aide-run-spec \d\d:\d\d:\d\d \+\d+s the landing runs the project's tests on the merge \(2 command\(s\)\)$/m);
+  expect(log).toMatch(/^aide-run-spec \d\d:\d\d:\d\d \+\d+s the landing's tests are green$/m);
 }, 30_000);
 
 test("a red run says so as an error, and says it runs them once more", async () => {
@@ -103,9 +75,7 @@ test("a red run says so as an error, and says it runs them once more", async () 
   const { job: j, runLog } = job(root);
   await runProjectSuiteBeforePush(root, j, "aide/81-x");
   const log = readFileSync(runLog, "utf-8");
-  expect(log).toMatch(
-    /\+\d+s error: the landing's tests are red — running them once more$/m,
-  );
+  expect(log).toMatch(/\+\d+s error: the landing's tests are red — running them once more$/m);
   expect(log).toMatch(/\+\d+s error: the landing's tests are red again$/m);
 }, 30_000);
 
@@ -117,18 +87,9 @@ test("the run's progress is in the Log between its start and its end, and its wh
   );
   const { job: j, runLog } = job(root);
   await runProjectSuiteBeforePush(root, j, "aide/81-x");
-  const lines = readFileSync(runLog, "utf-8")
-    .split("\n")
-    .map((l) => l.replace(/^aide-run-spec \S+ \+\d+s /, ""));
-  const start = lines.findIndex((l) =>
-    l.startsWith("the landing runs the project's tests"),
-  );
+  const lines = readFileSync(runLog, "utf-8").split("\n").map((l) => l.replace(/^aide-run-spec \S+ \+\d+s /, ""));
+  const start = lines.findIndex((l) => l.startsWith("the landing runs the project's tests"));
   const end = lines.indexOf("the landing's tests are green");
-  expect(lines.slice(start + 1, end)).toEqual([
-    "tests: running make test",
-    "tests: pytest 50%",
-  ]);
-  expect(
-    readFileSync(runLog.replace(/\.run\.log$/, ".tests.log"), "utf-8"),
-  ).toContain("the whole output");
+  expect(lines.slice(start + 1, end)).toEqual(["tests: running make test", "tests: pytest 50%"]);
+  expect(readFileSync(runLog.replace(/\.run\.log$/, ".tests.log"), "utf-8")).toContain("the whole output");
 }, 30_000);

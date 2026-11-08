@@ -9,10 +9,7 @@ import { join } from "node:path";
 import { spawnEnv } from "../tool-path.ts";
 import { scriptArgv } from "../../integrations/script-argv.ts";
 import { signalGroup } from "../serve-helpers/signal-group.ts";
-import {
-  trackLandingProcess,
-  untrackLandingProcess,
-} from "./cancel-landing.ts";
+import { trackLandingProcess, untrackLandingProcess } from "./cancel-landing.ts";
 
 /** Where the installer puts the scripts; launchd's PATH does not reach
  *  ~/.local/bin (the same resolution run-aide-write-spec.ts uses). */
@@ -24,10 +21,7 @@ import {
  *  added is "unknown" to the copy installed from main (2026-09-14).
  *  Then the installed copy under ~/.local/bin, then the bare name. An
  *  explicit override (a test's fake) wins over all three. */
-export function scriptFor(
-  name: string,
-  opts: { beside?: string; override?: string } = {},
-): string {
+export function scriptFor(name: string, opts: { beside?: string; override?: string } = {}): string {
   if (opts.override) return opts.override;
   if (opts.beside) {
     const sibling = join(opts.beside, name);
@@ -45,12 +39,7 @@ export async function runScript(
   owner?: string,
   /** Added to the step's own environment. */
   extraEnv: Record<string, string> = {},
-): Promise<{
-  code: number;
-  stdout: string;
-  stderr: string;
-  timedOut: boolean;
-}> {
+): Promise<{ code: number; stdout: string; stderr: string; timedOut: boolean }> {
   // The same PATH a step's own spawn gets (`tool-path.ts`). Without it
   // this server, under launchd, cannot see `~/.local/bin` — where aide's
   // scripts and Claude Code itself live — so a script run from here
@@ -61,14 +50,7 @@ export async function runScript(
   // touching this server. Left alive, those held the output pipes open
   // and ports taken, and the next landing's suite timed out on them
   //.
-  const proc = Bun.spawn({
-    cmd: scriptArgv(argv, env.PATH),
-    cwd,
-    env,
-    stdout: "pipe",
-    stderr: "pipe",
-    detached: true,
-  });
+  const proc = Bun.spawn({ cmd: scriptArgv(argv, env.PATH), cwd, env, stdout: "pipe", stderr: "pipe", detached: true });
   if (owner) trackLandingProcess(owner, proc.pid);
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -95,14 +77,8 @@ export async function runScript(
  *  from `aide-translation-merge-args`, so the rule for which files those
  *  are lives in one place. Any failure gives none: the merge is then git's
  *  own, exactly as without them. */
-export async function translationMergeArgs(
-  root: string,
-  work: string,
-  opts: { scriptDir?: string } = {},
-): Promise<string[]> {
-  const script = scriptFor("aide-translation-merge-args", {
-    beside: opts.scriptDir,
-  });
+export async function translationMergeArgs(root: string, work: string, opts: { scriptDir?: string } = {}): Promise<string[]> {
+  const script = scriptFor("aide-translation-merge-args", { beside: opts.scriptDir });
   try {
     const result = await runScript([script, root, work], work, 10_000);
     if (result.code !== 0) return [];

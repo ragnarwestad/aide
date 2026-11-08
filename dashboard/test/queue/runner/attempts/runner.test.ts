@@ -7,7 +7,7 @@ import {
   setNow,
   spawns,
   store,
-} from "./runner-fixtures.ts";
+} from "../runner-fixtures.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);

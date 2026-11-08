@@ -36,11 +36,7 @@ export const REOPEN_SENTENCE =
 export const CLOSE_ASK_ID = "closeask";
 export const REOPEN_ASK_ID = "reopenask";
 
-export function closeAskDialog(
-  project: string,
-  specFolder: string,
-  lang: Language,
-): string {
+export function closeAskDialog(project: string, specFolder: string, lang: Language): string {
   return progressDialog(lang, {
     id: CLOSE_ASK_ID,
     title: t(lang, "dialog.closing"),
@@ -73,12 +69,7 @@ const resetBox = (formId: string): string =>
 
 /** Reopen's dialog, by its id: the spec page draws one, the list one per
  *  place a Reopen is pressed. */
-export function reopenAskDialog(
-  project: string,
-  specFolder: string,
-  lang: Language,
-  id: string,
-): string {
+export function reopenAskDialog(project: string, specFolder: string, lang: Language, id: string): string {
   return progressDialog(lang, {
     id,
     title: t(lang, "list.reopening"),

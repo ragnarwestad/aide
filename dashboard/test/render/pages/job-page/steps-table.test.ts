@@ -8,24 +8,13 @@ import { t } from "../../../../src/i18n";
 describe("a step's fold arrow", () => {
   const html = (): string =>
     stepResults(
-      [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 0,
-          costMeasured: false,
-          terminalReason: "completed",
-          at: "2026-09-30T10:00:00Z",
-        },
-      ],
+      [{ step: "implement", ok: true, costUsd: 0, costMeasured: false, terminalReason: "completed", at: "2026-09-30T10:00:00Z" }],
       undefined,
       { tabHref: "/jobs/j1?tab=steps", lang: "nb" },
     );
 
   test("says what it does in the page's language", () => {
-    const title = t("nb", "job.stepFoldTitle", {
-      action: t("nb", "list.foldShow"),
-    });
+    const title = t("nb", "job.stepFoldTitle", { action: t("nb", "list.foldShow") });
     expect(html()).toContain(`title="${esc(title)}"`);
   });
 

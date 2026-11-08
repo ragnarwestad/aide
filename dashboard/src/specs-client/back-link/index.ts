@@ -38,17 +38,11 @@ export function isThisPage(address: unknown, here: Here): boolean {
  *  nowhere — the server's Back stands and is remembered, replacing what
  *  an earlier visit left. Loaded from itself, the remembered Back is used
  *  when it is a path on this board other than the page itself. */
-export function keptBack(o: {
-  served: string;
-  referrer: unknown;
-  here: Here;
-  stored: string | null;
-}): {
+export function keptBack(o: { served: string; referrer: unknown; here: Here; stored: string | null }): {
   href: string;
   remember?: string;
 } {
-  if (!isThisPage(o.referrer, o.here))
-    return { href: o.served, remember: o.served };
+  if (!isThisPage(o.referrer, o.here)) return { href: o.served, remember: o.served };
   const usable = isBoardPath(o.stored) && !isThisPage(o.stored, o.here);
   return { href: usable ? (o.stored as string) : o.served };
 }
@@ -61,11 +55,7 @@ export function keepBack(
   doc: Document,
   io: BackIo = {
     referrer: () => doc.referrer,
-    here: () => ({
-      href: location.href,
-      host: location.host,
-      pathname: location.pathname,
-    }),
+    here: () => ({ href: location.href, host: location.host, pathname: location.pathname }),
     storage: () => sessionStorage,
   },
 ): void {
@@ -83,12 +73,7 @@ export function keepBack(
     } catch {
       // No storage, blocked, or refusing: nothing remembered.
     }
-    const { href, remember } = keptBack({
-      served,
-      referrer: io.referrer(),
-      here,
-      stored,
-    });
+    const { href, remember } = keptBack({ served, referrer: io.referrer(), here, stored });
     if (href !== served) link.setAttribute("href", href);
     if (remember !== undefined) storage?.setItem(key, remember);
   } catch {

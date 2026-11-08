@@ -21,9 +21,7 @@ const fakeMarker = (attrs: Record<string, string>): MarkerLike => ({
  *  do on the page's own element. */
 export function followFakes(attrs: Record<string, string> | undefined) {
   const win = new Window();
-  let current: MarkerLike | null = attrs
-    ? fakeMarker({ "data-follow": "", ...attrs })
-    : null;
+  let current: MarkerLike | null = attrs ? fakeMarker({ "data-follow": "", ...attrs }) : null;
   const facade = {
     getAttribute: (n: string) => current?.getAttribute(n) ?? null,
     hasAttribute: (n: string) => current?.hasAttribute(n) ?? false,

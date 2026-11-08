@@ -10,17 +10,7 @@ import { createChoicesIn } from "../../../src/project/discover";
 const REPO = join(import.meta.dir, "..", "..", "..", "..");
 
 const description = (...lines: string[]): string =>
-  [
-    "# A spec - Description",
-    "",
-    "## Tracking info",
-    "",
-    "- **Created:** `2026-10-10 11:11 UTC`",
-    ...lines,
-    "",
-    "---",
-    "",
-  ].join("\n");
+  ["# A spec - Description", "", "## Tracking info", "", "- **Created:** `2026-10-10 11:11 UTC`", ...lines, "", "---", ""].join("\n");
 
 describe("createChoicesIn", () => {
   test("a description with none of the lines reads as the defaults", () => {
@@ -48,44 +38,18 @@ describe("createChoicesIn", () => {
   });
 
   test("only `no` turns the AI formulation off", () => {
-    expect(
-      createChoicesIn(
-        description("- **Let AI formulate acceptance criteria:** yes"),
-      ).aiFormulate,
-    ).toBe(true);
-    expect(
-      createChoicesIn(
-        description("- **Let AI formulate acceptance criteria:** maybe"),
-      ).aiFormulate,
-    ).toBe(true);
-    expect(
-      createChoicesIn(
-        description("- **Let AI formulate acceptance criteria:** no"),
-      ).aiFormulate,
-    ).toBe(false);
+    expect(createChoicesIn(description("- **Let AI formulate acceptance criteria:** yes")).aiFormulate).toBe(true);
+    expect(createChoicesIn(description("- **Let AI formulate acceptance criteria:** maybe")).aiFormulate).toBe(true);
+    expect(createChoicesIn(description("- **Let AI formulate acceptance criteria:** no")).aiFormulate).toBe(false);
   });
 
   test("the level is read as the runner reads it, for every case of the shared table", () => {
-    const cases = JSON.parse(
-      readFileSync(
-        join(REPO, "core", "tests", "fixtures", "criteria-checks-level.json"),
-        "utf-8",
-      ),
-    ).cases as {
-      name: string;
-      description: string | null;
-      level: string;
+    const cases = JSON.parse(readFileSync(join(REPO, "core", "tests", "fixtures", "criteria-checks-level.json"), "utf-8")).cases as {
+      name: string; description: string | null; level: string;
     }[];
     for (const c of cases) {
-      const text = description(
-        ...(c.description === null
-          ? []
-          : [`- **Acceptance criteria checks:** ${c.description}`]),
-      );
-      expect([c.name, createChoicesIn(text).criteriaChecks as string]).toEqual([
-        c.name,
-        c.level,
-      ]);
+      const text = description(...(c.description === null ? [] : [`- **Acceptance criteria checks:** ${c.description}`]));
+      expect([c.name, createChoicesIn(text).criteriaChecks as string]).toEqual([c.name, c.level]);
     }
   });
 });

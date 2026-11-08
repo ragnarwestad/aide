@@ -17,6 +17,7 @@ refusal. The producers themselves are spread across [A job's states](job-states.
 and [The specs list and the spec page](the-specs-list.md) — this page is the convention all of them share, so the
 next sentence is written the same way.
 
+
 ## The two lines
 
 An error message has two lines, and detail behind them:
@@ -89,8 +90,7 @@ apart as `problem` and `solution` beside the one-line `text`:
 ```typescript
 const PUSH_ERROR_SENTENCE = errorSentence({
   what: "A step's push did not reach origin.",
-  resolve:
-    "Pull the branch in the checkout on the serving host, then push it again from a terminal.",
+  resolve: "Pull the branch in the checkout on the serving host, then push it again from a terminal.",
 });
 ```
 

@@ -18,35 +18,14 @@ const SESSION = "ses_f5706d229ffeybcta39ML4GY02";
 const line = (o: unknown) => JSON.stringify(o);
 
 const STREAM = [
-  line({
-    type: "step_start",
-    sessionID: SESSION,
-    part: { type: "step-start" },
-  }),
-  line({
-    type: "tool_use",
-    sessionID: SESSION,
-    part: { type: "tool", tool: "glob" },
-  }),
-  line({
-    type: "tool_use",
-    sessionID: SESSION,
-    part: { type: "tool", tool: "read" },
-  }),
-  line({
-    type: "text",
-    sessionID: SESSION,
-    part: { type: "text", text: "The file says hello" },
-  }),
+  line({ type: "step_start", sessionID: SESSION, part: { type: "step-start" } }),
+  line({ type: "tool_use", sessionID: SESSION, part: { type: "tool", tool: "glob" } }),
+  line({ type: "tool_use", sessionID: SESSION, part: { type: "tool", tool: "read" } }),
+  line({ type: "text", sessionID: SESSION, part: { type: "text", text: "The file says hello" } }),
   line({
     type: "step_finish",
     sessionID: SESSION,
-    part: {
-      type: "step-finish",
-      reason: "stop",
-      cost: 0.02,
-      tokens: { input: 10, output: 2 },
-    },
+    part: { type: "step-finish", reason: "stop", cost: 0.02, tokens: { input: 10, output: 2 } },
   }),
 ].join("\n");
 
@@ -69,9 +48,7 @@ describe("summarizeOpencodeStream", () => {
 
   test("a half-written last line costs nothing", () => {
     const killed = `${STREAM}\n{"type":"text","part":{"ty`;
-    expect(summarizeOpencodeStream(killed)).toEqual(
-      summarizeOpencodeStream(STREAM),
-    );
+    expect(summarizeOpencodeStream(killed)).toEqual(summarizeOpencodeStream(STREAM));
   });
 
   test("the entries are escaped, so a transcript cannot write markup onto the page", () => {
@@ -98,10 +75,7 @@ describe("summarizeStream telling the schemas apart", () => {
   test("a claude transcript is still read as claude", () => {
     const claude = [
       line({ type: "system", subtype: "init", cwd: "/x" }),
-      line({
-        type: "assistant",
-        message: { content: [{ type: "text", text: "Reading queue.ts" }] },
-      }),
+      line({ type: "assistant", message: { content: [{ type: "text", text: "Reading queue.ts" }] } }),
     ].join("\n");
     expect(summarizeStream(claude)).toEqual(["Reading queue.ts"]);
   });
@@ -109,10 +83,7 @@ describe("summarizeStream telling the schemas apart", () => {
   test("a codex transcript is still read as codex", () => {
     const codex = [
       line({ type: "thread.started", thread_id: "t1" }),
-      line({
-        type: "item.completed",
-        item: { item_type: "agent_message", text: "done" },
-      }),
+      line({ type: "item.completed", item: { item_type: "agent_message", text: "done" } }),
     ].join("\n");
     expect(summarizeStream(codex)).toEqual(["done"]);
   });
@@ -152,21 +123,9 @@ const CMD_STREAM = [
     },
   }),
   // A non-shell tool is not a command, and says nothing about one.
-  line({
-    type: "tool_use",
-    sessionID: SESSION,
-    part: { type: "tool", tool: "read" },
-  }),
-  line({
-    type: "text",
-    sessionID: SESSION,
-    part: { type: "text", text: "half way" },
-  }),
-  line({
-    type: "text",
-    sessionID: SESSION,
-    part: { type: "text", text: "all done" },
-  }),
+  line({ type: "tool_use", sessionID: SESSION, part: { type: "tool", tool: "read" } }),
+  line({ type: "text", sessionID: SESSION, part: { type: "text", text: "half way" } }),
+  line({ type: "text", sessionID: SESSION, part: { type: "text", text: "all done" } }),
 ].join("\n");
 
 describe("finalMessage for opencode", () => {
@@ -175,11 +134,7 @@ describe("finalMessage for opencode", () => {
   });
 
   test("a transcript that said nothing has no closing word", () => {
-    const quiet = line({
-      type: "step_start",
-      sessionID: SESSION,
-      part: { type: "step-start" },
-    });
+    const quiet = line({ type: "step_start", sessionID: SESSION, part: { type: "step-start" } });
     expect(finalMessage(quiet)).toBeUndefined();
   });
 });

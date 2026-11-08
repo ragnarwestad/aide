@@ -11,13 +11,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  queueHarness,
-  statusSaying,
-  IMPLEMENTED,
-} from "../helpers/queue-server.ts";
+import { queueHarness, statusSaying, IMPLEMENTED } from "../helpers/queue-server.ts";
 import { connect as connectStream, type Stream } from "../helpers/sse.ts";
 import { flippingGit } from "../helpers/fake-git.ts";
+
 
 const harness = queueHarness("aide-queue-events-", IMPLEMENTED);
 
@@ -30,16 +27,9 @@ afterEach(async () => {
   harness.cleanup();
 });
 
-const JOB = {
-  project: "aide",
-  specFolder: "81-queue-and-runner",
-  steps: ["analyze"],
-};
+const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
-const postJson = {
-  "content-type": "application/json",
-  accept: "application/json",
-};
+const postJson = { "content-type": "application/json", accept: "application/json" };
 
 /** One held-open connection, read frame by frame — `connectStream`
  *  (`helpers/sse.ts`) plus this file's own default query and cleanup
@@ -94,10 +84,7 @@ describe("GET /api/queue/events", () => {
     const s = await connect(base);
     const id = await enqueue(base);
     expect(await s.next()).toContain("event: changed");
-    const cancelled = await fetch(`${base}/api/queue/${id}/cancel`, {
-      method: "POST",
-      headers: postJson,
-    });
+    const cancelled = await fetch(`${base}/api/queue/${id}/cancel`, { method: "POST", headers: postJson });
     expect(cancelled.status).toBe(200);
     expect(await s.next()).toContain("event: changed");
   });
@@ -112,12 +99,7 @@ describe("GET /api/queue/events", () => {
     const s = await connect(base);
     const reported = await fetch(`${base}/api/aide-run`, {
       method: "POST",
-      body: JSON.stringify({
-        host: "h",
-        sessionId: "s1",
-        command: "implement",
-        spec: "81",
-      }),
+      body: JSON.stringify({ host: "h", sessionId: "s1", command: "implement", spec: "81" }),
     });
     expect(reported.status).toBe(200);
     expect(await s.next()).toContain("event: changed");
@@ -146,10 +128,7 @@ describe("GET /api/queue/events", () => {
     expect(await still.next()).toContain("event: changed");
     // And again, so a registry left in a broken state after the first
     // broadcast is caught rather than passed over.
-    await fetch(`${base}/api/queue/${await enqueueOther(base)}/cancel`, {
-      method: "POST",
-      headers: postJson,
-    });
+    await fetch(`${base}/api/queue/${await enqueueOther(base)}/cancel`, { method: "POST", headers: postJson });
     expect(await still.next()).toContain("event: changed");
   });
 });
@@ -157,18 +136,9 @@ describe("GET /api/queue/events", () => {
 // The number on the app's icon travels with the event a queue move sends.
 describe("a `changed` event after a queue move carries how many specs wait", () => {
   const failedJob = {
-    id: "f1",
-    project: "aide",
-    specFolder: "81-queue-and-runner",
-    steps: ["implement"],
-    stepIndex: 0,
-    state: "failed",
-    timeoutSec: { implement: 60 },
-    permissionMode: { implement: "acceptEdits" },
-    model: { implement: "sonnet" },
-    createdAt: "2026-09-01T10:00:00.000Z",
-    results: [],
-    spentUsd: 0,
+    id: "f1", project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"], stepIndex: 0, state: "failed",
+    timeoutSec: { implement: 60 }, permissionMode: { implement: "acceptEdits" }, model: { implement: "sonnet" },
+    createdAt: "2026-09-01T10:00:00.000Z", results: [], spentUsd: 0,
   };
   const enqueueFor = (base: string, specFolder: string) =>
     fetch(`${base}/api/queue`, {
@@ -178,19 +148,14 @@ describe("a `changed` event after a queue move carries how many specs wait", () 
     });
 
   test("another spec's job is queued while one spec has failed: the event says 1 waits", async () => {
-    const { base } = harness.start({
-      alsoSpecs: ["82-another-spec"],
-      queueMirror: JSON.stringify([failedJob]),
-    });
+    const { base } = harness.start({ alsoSpecs: ["82-another-spec"], queueMirror: JSON.stringify([failedJob]) });
     const s = await connect(base);
     expect((await enqueueFor(base, "82-another-spec")).status).toBe(200);
     expect(await s.next()).toContain('data: {"waiting":1}');
   });
 
   test("a new job for the failed spec itself leaves nothing waiting: the event says 0", async () => {
-    const { base } = harness.start({
-      queueMirror: JSON.stringify([failedJob]),
-    });
+    const { base } = harness.start({ queueMirror: JSON.stringify([failedJob]) });
     const s = await connect(base);
     expect((await enqueueFor(base, "81-queue-and-runner")).status).toBe(200);
     expect(await s.next()).toContain('data: {"waiting":0}');
@@ -224,11 +189,7 @@ describe("a spec created outside the dashboard reaches an open page", () => {
   // have named.
   test("a folder written after the watch opened broadcasts `changed`, and the rows then hold it", async () => {
     const heard: ((event: string, filename: string | null) => void)[] = [];
-    const specsWatch = ((
-      _root: string,
-      _opts: unknown,
-      cb: (event: string, filename: string | null) => void,
-    ) => {
+    const specsWatch = ((_root: string, _opts: unknown, cb: (event: string, filename: string | null) => void) => {
       heard.push(cb);
       return { close() {} };
     }) as unknown as typeof import("node:fs").watch;
@@ -242,10 +203,7 @@ describe("a spec created outside the dashboard reaches an open page", () => {
 
     const at = join(dir, "root", "aide", "specs", "206-made-by-hand");
     mkdirSync(at, { recursive: true });
-    writeFileSync(
-      join(at, "1-description.md"),
-      "# 206-made-by-hand - Description\n",
-    );
+    writeFileSync(join(at, "1-description.md"), "# 206-made-by-hand - Description\n");
     writeFileSync(join(at, "4-status.md"), statusSaying(["create"]));
     heard[0]!("rename", "206-made-by-hand/1-description.md");
     expect(await s.next()).toContain("event: changed");
@@ -313,10 +271,7 @@ describe("a background discovery of an archived spec's branch reaches an open ta
     // the live spec) run to completion after a single release.
     let release = (): void => {};
     const gate = new Promise<void>((r) => (release = r));
-    const git = flippingGit([true], {
-      hold: () => gate,
-      branch: "aide/77-old-thing",
-    });
+    const git = flippingGit([true], { hold: () => gate, branch: "aide/77-old-thing" });
     const { base } = harness.start({
       extra: { gitRun: git.run, driftPollMs: 0, specCachePollMs: 30_000 },
       archivedSpecs: { "77-old-thing": {} },
@@ -331,9 +286,7 @@ describe("a background discovery of an archived spec's branch reaches an open ta
     // ordinary "archived", not as a problem (the contract:
     // fail closed, never claim a mark it cannot back up).
     const before = await fetch(`${base}/specs?rows=1&state=archived`);
-    expect(await before.text()).not.toContain(
-      "its branch is still on origin — re-run archive",
-    );
+    expect(await before.text()).not.toContain("its branch is still on origin — re-run archive");
 
     const s = await connect(base);
     release();

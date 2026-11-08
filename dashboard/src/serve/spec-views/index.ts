@@ -7,14 +7,8 @@
 import { SPEC_FILES, specFileText, type SpecRef } from "../../project/discover";
 import type { SpecFileView, QueueRowView, SpecTarget } from "../../render";
 import type { QueueStore, Job } from "../../queue/queue.ts";
-import type {
-  SpecCreatedAtChecker,
-  SpecFileCommitChecker,
-} from "../../git/description-freshness.ts";
-import type {
-  BranchStatusChecker,
-  GitRunner,
-} from "../../git/branch-status.ts";
+import type { SpecCreatedAtChecker, SpecFileCommitChecker } from "../../git/description-freshness.ts";
+import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 
 /** Everything these view builders read off `createServer`'s closure,
@@ -66,25 +60,20 @@ export interface SpecViewsContext {
   testServers: TestServersContext;
 }
 
-export async function specFileViews(
-  ctx: SpecViewsContext,
-  dir: string,
-): Promise<SpecFileView[]> {
+export async function specFileViews(ctx: SpecViewsContext, dir: string): Promise<SpecFileView[]> {
   // Each file's stamp is asked of the cache, which runs `git log` once
   // per file and TTL. The page streams its head before the spec is
   // built, so the wait is the spec's own, and the stamp is there on the
   // first view.
-  return await Promise.all(
-    SPEC_FILES.map(async (name) => {
-      const commit = await ctx.specFileCommits.commitFor(dir, name);
-      return {
-        label: name,
-        text: specFileText(dir, name),
-        sha: commit?.sha,
-        at: commit?.at,
-      };
-    }),
-  );
+  return await Promise.all(SPEC_FILES.map(async (name) => {
+    const commit = await ctx.specFileCommits.commitFor(dir, name);
+    return {
+      label: name,
+      text: specFileText(dir, name),
+      sha: commit?.sha,
+      at: commit?.at,
+    };
+  }));
 }
 
 /** WHEN a spec was archived. The stamp the archive step writes into
@@ -102,11 +91,6 @@ export async function specFileViews(
  *  shrinking minority. */
 
 // The three families that used to live here as well.
-export {
-  archivedSteps,
-  archivedModels,
-  archivedPhaseOutcomes,
-  archivedSpecRows,
-} from "./archived.ts";
+export { archivedSteps, archivedModels, archivedPhaseOutcomes, archivedSpecRows } from "./archived.ts";
 export { specPageView } from "./spec-page.ts";
 export { jobDetailView } from "./job-detail.ts";

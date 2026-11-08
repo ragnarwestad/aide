@@ -74,7 +74,6 @@ cd aide/implementations/copilot
 ```
 
 **What does install.sh do?**
-
 1. ✅ Installs every `core/scripts/aide-*` script and `upgrade-ai-tools` to `~/.local/bin/`, the shared tools through
    mise, and puts `~/.local/bin` on PATH
 2. ✅ Installs `core/AGENTS.md` as global Copilot instructions in `~/.copilot/copilot-instructions.md`
@@ -84,7 +83,6 @@ cd aide/implementations/copilot
 **⚠️ NOTE:** `core/AGENTS.md` is already built (`core/scripts/build-agents-md.sh`) and committed. Regular users do not need to rebuild it.
 
 **Output (abridged):**
-
 ```text
 🔧 GitHub Copilot Setup
 =======================
@@ -124,7 +122,6 @@ No extra setup. Copilot CLI reads its own copy of the skills in `~/.agents/skill
 ### Test that everything works:
 
 **1. Check the instructions file:**
-
 ```bash
 head -3 ~/.copilot/copilot-instructions.md
 ```
@@ -207,15 +204,15 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 
 ## Comparison with Claude Code
 
-| Feature                     | Claude Code                       | Copilot CLI                                      |
-| --------------------------- | --------------------------------- | ------------------------------------------------ |
-| **Slash commands / Skills** | ✅ Native `/aide-create`          | ✅ Native in the CLI (reads `~/.agents/skills/`) |
-| **Custom instructions**     | ✅ Auto-read CLAUDE.md            | ✅ Auto-read CLAUDE.md + copilot-instructions.md |
-| **Permissions**             | ✅ Pre-approval via settings.json | ✅ config.json + CLI flags                       |
-| **Plan mode**               | ✅ Native                         | ✅ Native (Shift+Tab in the CLI)                 |
-| **Headless runs**           | ✅ `claude -p`                    | ✅ `copilot -p`                                  |
-| **Models**                  | The Claude family                 | Claude, GPT                                      |
-| **Setup**                   | ✅ `install.sh`                   | ✅ `install.sh`                                  |
+| Feature                     | Claude Code                       | Copilot CLI                                                  |
+|-----------------------------|-----------------------------------|--------------------------------------------------------------|
+| **Slash commands / Skills** | ✅ Native `/aide-create`          | ✅ Native in the CLI (reads `~/.agents/skills/`)             |
+| **Custom instructions**     | ✅ Auto-read CLAUDE.md            | ✅ Auto-read CLAUDE.md + copilot-instructions.md             |
+| **Permissions**             | ✅ Pre-approval via settings.json | ✅ config.json + CLI flags                                   |
+| **Plan mode**               | ✅ Native                         | ✅ Native (Shift+Tab in the CLI)                             |
+| **Headless runs**           | ✅ `claude -p`                    | ✅ `copilot -p`                                              |
+| **Models**                  | The Claude family                 | Claude, GPT                                                  |
+| **Setup**                   | ✅ `install.sh`                   | ✅ `install.sh`                                              |
 
 **Conclusion:**
 
@@ -231,7 +228,6 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 ### Problem: Custom instructions are not loaded
 
 **Solution:**
-
 1. Run `core/implementations/copilot/install.sh` again (installs `~/.copilot/copilot-instructions.md`)
 2. Check that the file exists: `cat ~/.copilot/copilot-instructions.md`
 3. Start a new Copilot session

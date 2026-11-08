@@ -107,9 +107,6 @@ export function makeFakeTimers() {
  *  here — the same trick `EventSource` and `FormData` already use. */
 export function makeFakeDate() {
   const clock = { at: Date.parse("2026-08-23T12:00:00Z") };
-  const FakeDate = {
-    now: () => clock.at,
-    parse: (iso: string) => Date.parse(iso),
-  };
+  const FakeDate = { now: () => clock.at, parse: (iso: string) => Date.parse(iso) };
   return { clock, FakeDate };
 }

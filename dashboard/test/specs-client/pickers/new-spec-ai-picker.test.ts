@@ -17,20 +17,8 @@ const FORM = "new-spec-form";
 
 function modelSelect(step: string, chosen: string) {
   const options = [
-    {
-      value: "sonnet",
-      dataset: { tool: "claude" },
-      hidden: false,
-      disabled: false,
-      selected: chosen === "sonnet",
-    },
-    {
-      value: "codex-fast",
-      dataset: { tool: "codex" },
-      hidden: false,
-      disabled: false,
-      selected: chosen === "codex-fast",
-    },
+    { value: "sonnet", dataset: { tool: "claude" }, hidden: false, disabled: false, selected: chosen === "sonnet" },
+    { value: "codex-fast", dataset: { tool: "codex" }, hidden: false, disabled: false, selected: chosen === "codex-fast" },
   ];
   return {
     name: `model.${step}`,
@@ -51,23 +39,14 @@ function modelSelect(step: string, chosen: string) {
 
 function aiSelect(step: string, tool: string) {
   const options = [
-    {
-      value: "claude",
-      dataset: { default: "sonnet", tool: "claude" },
-      selected: tool === "claude",
-    },
-    {
-      value: "codex",
-      dataset: { default: "codex-fast", tool: "codex" },
-      selected: tool === "codex",
-    },
+    { value: "claude", dataset: { default: "sonnet", tool: "claude" }, selected: tool === "claude" },
+    { value: "codex", dataset: { default: "codex-fast", tool: "codex" }, selected: tool === "codex" },
   ];
   return {
     name: `provider.${step}`,
     options,
     tagName: "SELECT",
-    getAttribute: (n: string) =>
-      n === "form" ? FORM : n === "data-ai" ? `model.${step}` : null,
+    getAttribute: (n: string) => (n === "form" ? FORM : n === "data-ai" ? `model.${step}` : null),
     get selectedOptions() {
       return options.filter((o) => o.selected);
     },
@@ -90,20 +69,12 @@ function aiSelect(step: string, tool: string) {
  *  than paper over it. */
 function standUpDocument(elements: Record<string, string>[]): void {
   const getAttr = (el: Record<string, unknown>, attr: string): string | null =>
-    attr === "name"
-      ? ((el.name as string) ?? null)
-      : (el.getAttribute as (n: string) => string | null)(attr);
+    attr === "name" ? ((el.name as string) ?? null) : (el.getAttribute as (n: string) => string | null)(attr);
   const querySelectorAll = (sel: string) => {
-    const conditions = [...sel.matchAll(/\[([\w-]+)(?:="([^"]*)")?\]/g)].map(
-      (m) => [m[1]!, m[2]] as const,
-    );
-    return elements.filter((el) =>
-      conditions.every(([attr, value]) =>
-        value === undefined
-          ? getAttr(el, attr) !== null
-          : getAttr(el, attr) === value,
-      ),
-    );
+    const conditions = [...sel.matchAll(/\[([\w-]+)(?:="([^"]*)")?\]/g)].map((m) => [m[1]!, m[2]] as const);
+    return elements.filter((el) => conditions.every(([attr, value]) =>
+      value === undefined ? getAttr(el, attr) !== null : getAttr(el, attr) === value,
+    ));
   };
   (globalThis as { document?: unknown }).document = {
     querySelectorAll,
@@ -120,10 +91,7 @@ describe("the New page's AI picker stays on its own phase line", () => {
     const implementModel = modelSelect("implement", "sonnet");
     const archiveModel = modelSelect("archive", "sonnet");
     const implementAi = aiSelect("implement", "claude");
-    standUpDocument([implementModel, archiveModel] as unknown as Record<
-      string,
-      string
-    >[]);
+    standUpDocument([implementModel, archiveModel] as unknown as Record<string, string>[]);
 
     implementAi.value = "codex";
     applyAiPick(implementAi as unknown as HTMLSelectElement);
@@ -136,10 +104,7 @@ describe("the New page's AI picker stays on its own phase line", () => {
     const implementModel = modelSelect("implement", "sonnet");
     const archiveModel = modelSelect("archive", "sonnet");
     const archiveAi = aiSelect("archive", "claude");
-    standUpDocument([implementModel, archiveModel] as unknown as Record<
-      string,
-      string
-    >[]);
+    standUpDocument([implementModel, archiveModel] as unknown as Record<string, string>[]);
 
     archiveAi.value = "codex";
     applyAiPick(archiveAi as unknown as HTMLSelectElement);

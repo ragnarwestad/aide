@@ -45,15 +45,7 @@ describe("mergeBranchIntoDefault: finalizeCreate", () => {
       calledWithWork = work;
       return { ok: true, specFolder: "01-a-brand-new-spec" };
     };
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-      undefined,
-      finalizeCreate,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, undefined, finalizeCreate);
     expect(result.ok).toBe(true);
     expect(result.assignedSpecFolder).toBe("01-a-brand-new-spec");
     // `work`, not `ROOT`: the finalize step runs in the merge worktree,
@@ -61,9 +53,7 @@ describe("mergeBranchIntoDefault: finalizeCreate", () => {
     expect(calledWithWork).not.toBe(ROOT);
     expect(calledWithWork.length).toBeGreaterThan(0);
     // Before the push: the rename lands in the same commit being pushed.
-    const pushIdx = argv(git.calls).indexOf(
-      "push -q origin HEAD:refs/heads/master",
-    );
+    const pushIdx = argv(git.calls).indexOf("push -q origin HEAD:refs/heads/master");
     expect(pushIdx).toBeGreaterThan(-1);
   });
 
@@ -74,15 +64,7 @@ describe("mergeBranchIntoDefault: finalizeCreate", () => {
       error: { key: "landing.createAssignNumberFailed" },
       detail: "no such spec folder",
     });
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-      undefined,
-      finalizeCreate,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, undefined, finalizeCreate);
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain("assign");
     expect(result.detail).toContain("no such spec folder");
@@ -101,28 +83,14 @@ describe("mergeBranchIntoDefault: finalizeCreate", () => {
       ...REACHES_MERGE,
       "ls-remote origin": { code: 0 },
       reset: { code: 0 },
-      push: [
-        { code: 1, stderr: "! [rejected] master -> master (fetch first)" },
-        { code: 0 },
-      ],
+      push: [{ code: 1, stderr: "! [rejected] master -> master (fetch first)" }, { code: 0 }],
     });
     let calls = 0;
     const finalizeCreate: CreateFinalizer = async () => {
       calls += 1;
-      return {
-        ok: true,
-        specFolder: calls === 1 ? "01-a-brand-new-spec" : "02-a-brand-new-spec",
-      };
+      return { ok: true, specFolder: calls === 1 ? "01-a-brand-new-spec" : "02-a-brand-new-spec" };
     };
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-      undefined,
-      finalizeCreate,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, undefined, finalizeCreate);
     expect(result.ok).toBe(true);
     expect(calls).toBe(2);
     expect(result.assignedSpecFolder).toBe("02-a-brand-new-spec");
@@ -137,10 +105,7 @@ describe("mergeBranchIntoDefault: the moment before the checkout moves", () => {
   // after the merge reached origin and before that fast-forward.
   test("the hook fires after the push and before the checkout's own fast-forward, with the assigned folder", async () => {
     const git = fakeGit({ ...REACHES_MERGE, reset: { code: 0 } });
-    const finalizeCreate: CreateFinalizer = async () => ({
-      ok: true,
-      specFolder: "01-a-brand-new-spec",
-    });
+    const finalizeCreate: CreateFinalizer = async () => ({ ok: true, specFolder: "01-a-brand-new-spec" });
     let firedAt = -1;
     let assigned: string | undefined;
     const hooks = {
@@ -149,26 +114,11 @@ describe("mergeBranchIntoDefault: the moment before the checkout moves", () => {
         assigned = info.assignedSpecFolder;
       },
     };
-    const result = await mergeBranchIntoDefault(
-      git.run,
-      ROOT,
-      BRANCH,
-      "master",
-      noWait,
-      undefined,
-      finalizeCreate,
-      hooks,
-    );
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait, undefined, finalizeCreate, hooks);
     expect(result.ok).toBe(true);
     expect(assigned).toBe("01-a-brand-new-spec");
-    const pushIdx = argv(git.calls).indexOf(
-      "push -q origin HEAD:refs/heads/master",
-    );
-    const ffIdx = git.calls.findIndex(
-      (c) =>
-        c.dir === ROOT &&
-        c.args.join(" ") === "merge -q --ff-only origin/master",
-    );
+    const pushIdx = argv(git.calls).indexOf("push -q origin HEAD:refs/heads/master");
+    const ffIdx = git.calls.findIndex((c) => c.dir === ROOT && c.args.join(" ") === "merge -q --ff-only origin/master");
     expect(pushIdx).toBeGreaterThan(-1);
     expect(ffIdx).toBeGreaterThan(pushIdx);
     expect(firedAt).toBeGreaterThan(pushIdx);

@@ -23,11 +23,7 @@ export function removeProject(
   // read as a removal that skipped something.
   const steps: ProjectStep[] = [{ step: "confirm", ok: true }];
   if (!allowed.has(req.name)) {
-    steps.push({
-      step: "allowlist",
-      ok: false,
-      error: `"${req.name}" is not on the allowlist`,
-    });
+    steps.push({ step: "allowlist", ok: false, error: `"${req.name}" is not on the allowlist` });
     return { ok: false, steps };
   }
   allowed.delete(req.name);

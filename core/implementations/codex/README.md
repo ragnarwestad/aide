@@ -26,7 +26,6 @@
 This implementation lets you use the **OpenAI Codex CLI** to follow the same workflows as Claude Code, with terminal-based AI assistance.
 
 **Architecture:**
-
 ```text
 core/implementations/codex/
 ├── README.md                           # This file
@@ -36,7 +35,6 @@ core/implementations/codex/
 ```
 
 **Reuses:**
-
 - ✅ `core/rules/` - Same workflows, git rules, testing rules
 - ✅ `core/templates/` - Same 4-file document structure
 - ✅ `core/scripts/` - Same scripts (aide-generate-pdf, etc.)
@@ -46,7 +44,6 @@ core/implementations/codex/
 ## What is OpenAI Codex?
 
 **OpenAI Codex** is an AI coding agent from OpenAI that can:
-
 - ✅ Run locally in the terminal with access to the file system
 - ✅ Work on many tasks in parallel
 - ✅ Navigate the repo, edit files, run commands
@@ -55,12 +52,10 @@ core/implementations/codex/
 - ✅ Perform large refactorings
 
 **Difference from GitHub Copilot:**
-
 - GitHub Copilot: IDE-based, code completion and chat
 - OpenAI Codex: Terminal-based agent, autonomous multi-step tasks
 
 **Model:**
-
 - Whichever model the installed Codex CLI ships as its default — see [docs/AI_SUPPORT_MATRIX.md](../../../docs/AI_SUPPORT_MATRIX.md)
 
 ---
@@ -68,11 +63,9 @@ core/implementations/codex/
 ## Prerequisites
 
 ### 1. OpenAI subscription
-
 - ChatGPT Plus, Pro, Business, or Enterprise — the CLI signs in with it (`codex login`)
 
 ### 2. Codex CLI
-
 ```bash
 # Install the Codex CLI
 npm install -g @openai/codex
@@ -172,7 +165,6 @@ Codex's instruction file is `AGENTS.md`. Aide generates `core/AGENTS.md` from `c
 # AGENTS.md
 
 ## Project rules
-
 - Follow the TDD workflow (RED → GREEN → VERIFY)
 - Use Norwegian in commit messages
 - Always run the tests before considering a task done
@@ -185,7 +177,7 @@ Codex's instruction file is `AGENTS.md`. Aide generates `core/AGENTS.md` from `c
 hooks from `core/implementations/claude-code/settings.json`:
 
 | Hook                                        | Event              | What it does                                                  |
-| ------------------------------------------- | ------------------ | ------------------------------------------------------------- |
+|---------------------------------------------|--------------------|---------------------------------------------------------------|
 | `aide-markdownlint.sh`                      | PostToolUse        | Lints markdown files right after they are edited              |
 | `aide-block-git-add-all.sh`                 | PreToolUse         | Blocks `git add .` / `git add -A` (explicit file names only)  |
 | `aide-block-watch-mode.sh`                  | PreToolUse         | Blocks `pnpm test` without `--run` (watch mode never exits)   |
@@ -287,7 +279,6 @@ Follow the project's coding standard for all code."
 ### TDD workflow
 
 Codex supports the TDD cycle:
-
 - Writes tests first (RED)
 - Implements until tests pass (GREEN)
 - Verifies the full suite, types, lint and build (VERIFY)
@@ -308,13 +299,11 @@ in `core/skills/` there, so the Aide workflows (`/aide-create`,
 ### 1. Be explicit about context
 
 ❌ **Bad:**
-
 ```bash
 codex "Analyze PROJ-7890"
 ```
 
 ✅ **Good:**
-
 ```bash
 codex "Analyze PROJ-7890 by following core/skills/workflows/SKILL.md.
 First read 1-description.md, then search the codebase,
@@ -335,12 +324,10 @@ Follow the project's coding standards"
 ## Limitations
 
 ### Codex does NOT have:
-
 - ❌ Automatic reading of CLAUDE.md at startup (use `AGENTS.md`)
 - ❌ A free tier (requires Plus/Pro/Enterprise)
 
 ### Codex DOES have:
-
 - ✅ Terminal-based CLI
 - ✅ Parallel tasks
 - ✅ GitHub/Slack/IDE integration
@@ -350,13 +337,11 @@ Follow the project's coding standards"
 - ✅ Auto-iteration on failures
 
 ### Costs:
-
 - API: $1.50/1M input tokens, $6/1M output tokens
 - Subscription: ChatGPT Plus/Pro/Business/Enterprise
 - Rate limits (extra credits can be purchased)
 
 ### Workarounds:
-
 1. **Auto-read CLAUDE.md → AGENTS.md:** Use `AGENTS.md` (installed globally as `~/.codex/AGENTS.md`)
 2. **Agents → Explicit prompts:** Ask Codex to follow specific workflows
 3. **Free → Paid:** Requires a subscription
@@ -409,7 +394,7 @@ codex exec '/aide-create "A test spec" Just checking that the flow works.'
 ### Flags for automation
 
 | Flag                           | Description                                    |
-| ------------------------------ | ---------------------------------------------- |
+|--------------------------------|------------------------------------------------|
 | `exec "prompt"`                | Headless mode - run without the interactive UI |
 | `--output-last-message <file>` | Write the last message to a file               |
 | `--json`                       | JSONL output for parsing                       |

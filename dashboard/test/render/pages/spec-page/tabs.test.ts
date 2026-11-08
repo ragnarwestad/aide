@@ -36,16 +36,12 @@ describe("documentTabScript", () => {
   });
 
   test("viewer with a job queued", () => {
-    const view = baseView({
-      lead: { state: "queued" } as SpecPageView["lead"],
-    });
+    const view = baseView({ lead: { state: "queued" } as SpecPageView["lead"] });
     expect(documentTabScript(view, "description")).toBe("viewer");
   });
 
   test("viewer with a job running", () => {
-    const view = baseView({
-      lead: { state: "running" } as SpecPageView["lead"],
-    });
+    const view = baseView({ lead: { state: "running" } as SpecPageView["lead"] });
     expect(documentTabScript(view, "description")).toBe("viewer");
   });
 
@@ -71,17 +67,12 @@ describe("documentTabScript", () => {
   });
 
   test("undefined for an Analysis tab whose 2-analysis.md has never been written", () => {
-    const view = baseView({
-      files: [{ label: "1-description.md", text: "# Q\n" }],
-    });
+    const view = baseView({ files: [{ label: "1-description.md", text: "# Q\n" }] });
     expect(documentTabScript(view, "analysis")).toBeUndefined();
   });
 
   test("undefined for an archived spec's Analysis tab whose 2-analysis.md has never been written", () => {
-    const view = baseView({
-      archived: true,
-      files: [{ label: "1-description.md", text: "# Q\n" }],
-    });
+    const view = baseView({ archived: true, files: [{ label: "1-description.md", text: "# Q\n" }] });
     expect(documentTabScript(view, "analysis")).toBeUndefined();
   });
 
@@ -91,24 +82,16 @@ describe("documentTabScript", () => {
   });
 
   const statusView = (overrides: Partial<SpecPageView> = {}): SpecPageView =>
-    baseView({
-      files: [{ label: "4-status.md", text: "# S\n" }],
-      ...overrides,
-    });
+    baseView({ files: [{ label: "4-status.md", text: "# S\n" }], ...overrides });
 
   test("viewer for the Status tab of an active spec, never the editor", () => {
     expect(documentTabScript(statusView(), "status")).toBe("viewer");
   });
 
   test("viewer for the Status tab of an archived spec and of one with a job in flight", () => {
-    expect(documentTabScript(statusView({ archived: true }), "status")).toBe(
-      "viewer",
-    );
+    expect(documentTabScript(statusView({ archived: true }), "status")).toBe("viewer");
     expect(
-      documentTabScript(
-        statusView({ lead: { state: "running" } as SpecPageView["lead"] }),
-        "status",
-      ),
+      documentTabScript(statusView({ lead: { state: "running" } as SpecPageView["lead"] }), "status"),
     ).toBe("viewer");
   });
 

@@ -38,6 +38,7 @@ does not state something, the entry says so rather than guessing.
 The tools compared here are a selection. A longer list of tools and resources for spec-driven development is kept
 at [awesome-spec-driven-development](https://github.com/Engineering4AI/awesome-spec-driven-development).
 
+
 ## The criteria
 
 **What it is.** The kind of tool: commands that run inside an AI CLI, an editor or IDE, a framework of agents, or a
@@ -66,7 +67,7 @@ tool.
 ## Summary
 
 | Tool               | Document structure                                     | AI tool support                                                 | Execution                                       | Code handling                                | Invasiveness                                                               |
-| ------------------ | ------------------------------------------------------ | --------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------- |
+|--------------------|--------------------------------------------------------|-----------------------------------------------------------------|-------------------------------------------------|----------------------------------------------|----------------------------------------------------------------------------|
 | Aide               | 4 files per spec, then archived                        | 4 tools, one install per machine                                | By hand, or unattended                          | Merges, or opens a pull request              | No files required in the repo; branches and merges show in the git history |
 | OpenSpec           | Change folder holding a capability delta               | 30+ tools, files in the project                                 | By hand                                         | You merge                                    | `openspec/` and per-tool commands                                          |
 | GitHub Spec Kit    | Spec, plan and tasks under `.specify/`                 | 50+ tools, files in the project                                 | By hand                                         | You merge                                    | `.specify/` and per-tool commands                                          |

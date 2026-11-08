@@ -2,7 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createRootLock } from "../../../src/serve/serve.ts";
+import {
+  createRootLock,
+} from "../../../src/serve/serve.ts";
 import { type GitRunner } from "../../../src/git/branch-status.ts";
 import { statusSaying } from "../../helpers/queue-server.ts";
 
@@ -16,8 +18,7 @@ const ownDirs: string[] = [];
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 // `Runner.complete()` writes `state: "done"` and `landing: true`
@@ -26,10 +27,7 @@ afterEach(() => {
 // `cache-warmer.test.ts`'s `recordingGit({ hold })` holds `ls-remote`,
 // long enough to observe the job mid-landing.
 describe("a step reads busy for the whole landing window", () => {
-  const AUTH = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
   const SPEC = "81-queue-and-runner";
 
   function own(prefix: string): string {
@@ -45,14 +43,8 @@ describe("a step reads busy for the whole landing window", () => {
     mkdirSync(join(project, ".aide"), { recursive: true });
     writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
     mkdirSync(join(project, "specs", SPEC), { recursive: true });
-    writeFileSync(
-      join(project, "specs", SPEC, "1-description.md"),
-      "# 81 - Description\n",
-    );
-    writeFileSync(
-      join(project, "specs", SPEC, "4-status.md"),
-      statusSaying(["create", "analyze"]),
-    );
+    writeFileSync(join(project, "specs", SPEC, "1-description.md"), "# 81 - Description\n");
+    writeFileSync(join(project, "specs", SPEC, "4-status.md"), statusSaying(["create", "analyze"]));
     mkdirSync(specs, { recursive: true });
     return { root: projectsRoot, specs };
   }
@@ -67,15 +59,10 @@ describe("a step reads busy for the whole landing window", () => {
     const run = async (dir: string, args: string[]) => {
       calls.push({ dir, args });
       const a = args.join(" ");
-      if (a.startsWith("symbolic-ref"))
-        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
-        return { code: 0, stdout: "origin/master\n" };
-      if (
-        a.startsWith("merge -q --ff-only") ||
-        a.startsWith("merge -q --no-edit")
-      ) {
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
         await gate;
         return { code: 0, stdout: "" };
       }
@@ -85,11 +72,7 @@ describe("a step reads busy for the whole landing window", () => {
     return { run, calls, release: () => release() };
   }
 
-  async function runStep(
-    base: string,
-    specFolder: string,
-    step: string,
-  ): Promise<{ id: string }> {
+  async function runStep(base: string, specFolder: string, step: string): Promise<{ id: string }> {
     const made = (await (
       await fetch(`${base}/api/queue`, {
         method: "POST",
@@ -106,9 +89,7 @@ describe("a step reads busy for the whole landing window", () => {
     done: (job: Record<string, unknown>) => boolean,
   ): Promise<Record<string, unknown>> {
     for (let n = 0; n < 100; n++) {
-      const body = (await (
-        await fetch(`${base}/api/queue/${id}`, { headers: AUTH })
-      ).json()) as {
+      const body = (await (await fetch(`${base}/api/queue/${id}`, { headers: AUTH })).json()) as {
         job: Record<string, unknown>;
       };
       if (done(body.job)) return body.job;
@@ -117,25 +98,18 @@ describe("a step reads busy for the whole landing window", () => {
     throw new Error("the job never settled");
   }
 
-  function serverWithHeldMerge(
-    dir: string,
-    paths: { root: string },
-    git: { run: GitRunner },
-  ) {
+  function serverWithHeldMerge(dir: string, paths: { root: string }, git: { run: GitRunner }) {
     const results = join(dir, "jobs");
     mkdirSync(results, { recursive: true });
-    return {
-      ...harness.start({
-        extra: {
-          projectRoot: paths.root,
-          queueProjectRoot: paths.root,
-          gitRun: git.run,
-          queueRunnerBin: WAITING_RUNNER,
-          queueResultDir: results,
-        },
-      }),
-      results,
-    };
+    return { ...harness.start({
+      extra: {
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        gitRun: git.run,
+        queueRunnerBin: WAITING_RUNNER,
+        queueResultDir: results,
+      },
+    }), results };
   }
 
   const ANALYZE_RESULT = (specs: string) => ({
@@ -158,10 +132,7 @@ describe("a step reads busy for the whole landing window", () => {
     const { base, results } = serverWithHeldMerge(dir, paths, git);
 
     const job = await runStep(base, SPEC, "analyze");
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify(ANALYZE_RESULT(paths.specs)),
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ANALYZE_RESULT(paths.specs)));
 
     const midLanding = await settle(base, job.id, (j) => j.state === "done");
     expect(midLanding.landing).toBe(true);
@@ -169,11 +140,7 @@ describe("a step reads busy for the whole landing window", () => {
     const refused = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: AUTH,
-      body: JSON.stringify({
-        project: "aide",
-        specFolder: SPEC,
-        steps: ["implement"],
-      }),
+      body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["implement"] }),
     });
     expect(refused.status).toBe(400);
     const body = (await refused.json()) as { error?: string };
@@ -197,22 +164,14 @@ describe("a step reads busy for the whole landing window", () => {
     // enqueued — and therefore timestamped — after it.
     await settle(base, job.id, (j) => j.state === "running");
     const decoy = await runStep(base, SPEC, "implement");
-    const cancelled = await fetch(`${base}/api/queue/${decoy.id}/cancel`, {
-      method: "POST",
-      headers: AUTH,
-    });
+    const cancelled = await fetch(`${base}/api/queue/${decoy.id}/cancel`, { method: "POST", headers: AUTH });
     expect(cancelled.status).toBe(200);
     await settle(base, decoy.id, (j) => j.state === "cancelled");
 
-    writeFileSync(
-      join(results, `${job.id}.json`),
-      JSON.stringify(ANALYZE_RESULT(paths.specs)),
-    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ANALYZE_RESULT(paths.specs)));
     await settle(base, job.id, (j) => j.state === "done");
 
-    const html = await (
-      await fetch(`${base}/specs/aide/${SPEC}`, { headers: AUTH })
-    ).text();
+    const html = await (await fetch(`${base}/specs/aide/${SPEC}`, { headers: AUTH })).text();
     // The lead is the analyze job that is STILL LANDING, not the newer
     // cancelled decoy: the page says so by disabling Close for exactly
     // that reason, and by counting the analyze job's one step. A page
@@ -221,9 +180,7 @@ describe("a step reads busy for the whole landing window", () => {
     // The disabled reason names the button ("Close can't run
     // right now"), reworded when its own "(?)" was folded into the
     // action row's single shared one.
-    expect(html).toContain(
-      "Close can't run right now because a merge is in progress.",
-    );
+    expect(html).toContain("Close can't run right now because a merge is in progress.");
     expect(html).toContain("Logs (1)");
     expect(html.slice(html.indexOf("<body"))).not.toContain("cancelled");
 
@@ -244,10 +201,7 @@ describe("a step reads busy for the whole landing window", () => {
 // specs repo can finish within seconds of each other under queue
 // concurrency. So the same measurement is taken over two LANDINGS.
 describe("two landings against one repo run one at a time", () => {
-  const AUTH = {
-    "content-type": "application/json",
-    accept: "application/json",
-  };
+  const AUTH = { "content-type": "application/json", accept: "application/json" };
   const SHARED_REPO = "/repos/aide-specs";
   const SECOND_SPEC = "82-second-spec";
 
@@ -268,11 +222,9 @@ describe("two landings against one repo run one at a time", () => {
       }
       await new Promise((r) => setTimeout(r, 5));
       if (mutating) inFlight--;
-      if (a.startsWith("symbolic-ref"))
-        return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}"))
-        return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
       if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
       return { code: 0, stdout: "" };
     };
@@ -303,11 +255,7 @@ describe("two landings against one repo run one at a time", () => {
           await fetch(`${base}/api/queue`, {
             method: "POST",
             headers: AUTH,
-            body: JSON.stringify({
-              project: "aide",
-              specFolder,
-              steps: ["analyze"],
-            }),
+            body: JSON.stringify({ project: "aide", specFolder, steps: ["analyze"] }),
           })
         ).json()) as { job: { id: string } };
         writeFileSync(
@@ -319,16 +267,12 @@ describe("two landings against one repo run one at a time", () => {
             costMeasured: true,
             terminalReason: "completed",
             branch: `aide/${specFolder}`,
-            branchUrls: [
-              { root: SHARED_REPO, url: "https://example.test/aide-specs" },
-            ],
+            branchUrls: [{ root: SHARED_REPO, url: "https://example.test/aide-specs" }],
             repos: [],
           }),
         );
         for (let n = 0; n < 100; n++) {
-          const body = (await (
-            await fetch(`${base}/api/queue/${made.job.id}`, { headers: AUTH })
-          ).json()) as {
+          const body = (await (await fetch(`${base}/api/queue/${made.job.id}`, { headers: AUTH })).json()) as {
             job: Record<string, unknown>;
           };
           if (body.job.state === "done" && !body.job.landing) return body.job;
@@ -357,10 +301,7 @@ describe("the per-repo lock lets go once its chain has settled", () => {
       order.push(`${name}:end`);
       return name;
     };
-    const both = Promise.all([
-      lock.run("/repo", slow("a", 20)),
-      lock.run("/repo", slow("b", 1)),
-    ]);
+    const both = Promise.all([lock.run("/repo", slow("a", 20)), lock.run("/repo", slow("b", 1))]);
     expect(await both).toEqual(["a", "b"]);
     expect(order).toEqual(["a:start", "a:end", "b:start", "b:end"]);
   });

@@ -9,8 +9,7 @@ const HEADING = /^## Description[ \t]*$/;
 /** The two lines that close the description in a created file: the create
  *  step's own, and the template's note. */
 const isClosing = (line: string): boolean =>
-  line.trim() ===
-    "*This description can be edited before /aide-analyze runs.*" ||
+  line.trim() === "*This description can be edited before /aide-analyze runs.*" ||
   line.startsWith("_(This field can be edited manually");
 
 /** The text the New spec page's Description field became: everything after

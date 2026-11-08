@@ -5,12 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  compareRoutes,
-  readServeSources,
-  routesOnPage,
-  scanSource,
-} from "../helpers/route-scan";
+import { compareRoutes, readServeSources, routesOnPage, scanSource } from "../helpers/route-scan";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const page = readFileSync(join(ROOT, "docs", "http-routes.md"), "utf-8");
@@ -21,30 +16,15 @@ const source = scanSource(files, constants);
 describe("the page's rows", () => {
   test("every row says what it takes, what it answers and who it is made for", () => {
     const bad = rows.filter(
-      (r) =>
-        !r.takes ||
-        !r.answers ||
-        !["page", "form", "interface"].includes(r.madeFor),
+      (r) => !r.takes || !r.answers || !["page", "form", "interface"].includes(r.madeFor),
     );
     expect(bad.map((r) => `${r.method} ${r.path}`)).toEqual([]);
   });
 
   test("every row is a read or an action, a POST is an action, and the test-board start is marked", () => {
-    expect(
-      rows
-        .filter((r) => !["read", "action"].includes(r.kind))
-        .map((r) => r.path),
-    ).toEqual([]);
-    expect(
-      rows
-        .filter((r) => r.method === "POST" && r.kind !== "action")
-        .map((r) => r.path),
-    ).toEqual([]);
-    const start = rows.find(
-      (r) =>
-        r.method === "GET" &&
-        r.path === "/specs/<project>/<spec>?startTestServer=1",
-    );
+    expect(rows.filter((r) => !["read", "action"].includes(r.kind)).map((r) => r.path)).toEqual([]);
+    expect(rows.filter((r) => r.method === "POST" && r.kind !== "action").map((r) => r.path)).toEqual([]);
+    const start = rows.find((r) => r.method === "GET" && r.path === "/specs/<project>/<spec>?startTestServer=1");
     expect(start?.kind).toBe("action");
   });
 
@@ -63,18 +43,13 @@ describe("the scanner reads the real tree", () => {
   test("every route file that checks req.method yields a route, and no constant is left unresolved", () => {
     const silent = Object.entries(files)
       .filter(([, text]) => text.includes("req.method"))
-      .filter(
-        ([name, text]) => scanSource({ [name]: text }, constants).length === 0,
-      )
+      .filter(([name, text]) => scanSource({ [name]: text }, constants).length === 0)
       .map(([name]) => name);
     expect(silent).toEqual([]);
   });
 
   test("/api/queue is read as both a read and an action", () => {
-    expect(source.find((r) => r.path === "/api/queue")?.methods).toEqual([
-      "GET",
-      "POST",
-    ]);
+    expect(source.find((r) => r.path === "/api/queue")?.methods).toEqual(["GET", "POST"]);
   });
 });
 
@@ -91,11 +66,7 @@ describe("the page against the source", () => {
   });
 
   test("the fallback row stands for the plain 404 core-routes.ts still ends in", () => {
-    expect(rows.some((r) => r.method === "GET" && r.path === "/<file>")).toBe(
-      true,
-    );
-    expect(files["src/serve/core-routes.ts"]).toContain(
-      'return new Response("not found", { status: 404 });',
-    );
+    expect(rows.some((r) => r.method === "GET" && r.path === "/<file>")).toBe(true);
+    expect(files["src/serve/core-routes.ts"]).toContain('return new Response("not found", { status: 404 });');
   });
 });

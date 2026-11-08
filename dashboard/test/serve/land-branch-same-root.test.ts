@@ -9,13 +9,7 @@
 // pushed to main, and the spec archived, in a round on 2026-09-04.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  mkdtempSync,
-  mkdirSync,
-  symlinkSync,
-  rmSync,
-  realpathSync,
-} from "node:fs";
+import { mkdtempSync, mkdirSync, symlinkSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sameRoot } from "../../src/serve/land-branch/merge.ts";

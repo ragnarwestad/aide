@@ -32,14 +32,12 @@ function svg(c: string[], w: number): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${bars(c, w)}</svg>`;
 }
 
-const dataUri = (c: string[]) =>
-  `data:image/svg+xml,${encodeURIComponent(svg(c, 10))}`;
+const dataUri = (c: string[]) => `data:image/svg+xml,${encodeURIComponent(svg(c, 10))}`;
 
 /** The mark at nav size, both themes. The dark copy is hidden by
  *  default and swapped by the media query in css.ts — `content: url()`
  *  would need a file, and there is no file. */
-export const MARK =
-  `<span class="mark" aria-hidden="true">` +
+export const MARK = `<span class="mark" aria-hidden="true">` +
   `<span class="mark-l">${svg(LIGHT, 9)}</span>` +
   `<span class="mark-d">${svg(DARK, 9)}</span>` +
   `</span>`;
@@ -103,8 +101,7 @@ export const appIcon = (background: string): string => icon(background, 0.86);
 /** For the manifest's `maskable` purpose: the OS may crop this one to
  *  a circle or a squircle, so the mark keeps well clear of the edges.
  *  Same bars, less of the canvas. */
-export const appIconMaskable = (background: string): string =>
-  icon(background, 0.7);
+export const appIconMaskable = (background: string): string => icon(background, 0.7);
 
 /** The mark with NOTHING behind it, for Android's notification badge:
  *  that one is drawn as a white silhouette of whatever is opaque, so an

@@ -15,9 +15,7 @@ afterEach(() => {
 describe("the column the reader sorted by is remembered", () => {
   /** The `Set-Cookie` this route writes for the sort, if any. */
   const sortCookie = (res: Response, port: number | undefined): string =>
-    res.headers
-      .getSetCookie()
-      .find((c) => c.startsWith(`aide_sort_${port}=`)) ?? "";
+    res.headers.getSetCookie().find((c) => c.startsWith(`aide_sort_${port}=`)) ?? "";
   /** Which column the rendered table says it is sorted by. */
   const sortedBy = (html: string): string =>
     /<a class="sortlink on[^"]*"[^>]*>([A-Za-z/]+)</.exec(html)?.[1] ?? "";
@@ -25,16 +23,12 @@ describe("the column the reader sorted by is remembered", () => {
   test("choosing one writes it down, and a bare / gets it back", async () => {
     const { base, server } = start();
     const chosen = await fetch(`${base}/specs?sort=spec`);
-    expect(sortCookie(chosen, server.port)).toContain(
-      `aide_sort_${server.port}=spec`,
-    );
+    expect(sortCookie(chosen, server.port)).toContain(`aide_sort_${server.port}=spec`);
     expect(sortedBy(await chosen.text())).toBe("Specification");
     const jar = sortCookie(chosen, server.port).split(";")[0]!;
     // The Specs tab: `/` with nothing on it. The token rides along
     // because every request needs it, not because the sort does.
-    const plain = await fetch(`${base}/specs`, {
-      headers: { cookie: `${jar}` },
-    });
+    const plain = await fetch(`${base}/specs`, { headers: { cookie: `${jar}` } });
     expect(sortedBy(await plain.text())).toBe("Specification");
   });
 
@@ -44,9 +38,7 @@ describe("the column the reader sorted by is remembered", () => {
   test("the rows-only fetch writes it too", async () => {
     const { base, server } = start();
     const res = await fetch(`${base}/specs?sort=cost&rows=1`);
-    expect(sortCookie(res, server.port)).toContain(
-      `aide_sort_${server.port}=cost`,
-    );
+    expect(sortCookie(res, server.port)).toContain(`aide_sort_${server.port}=cost`);
   });
 
   test("a link that names a sort still wins over what is remembered", async () => {
@@ -57,9 +49,7 @@ describe("the column the reader sorted by is remembered", () => {
     expect(sortedBy(await res.text())).toBe("State");
     // And it becomes the new memory, so the next bare `/` agrees with
     // what the reader is looking at.
-    expect(sortCookie(res, server.port)).toContain(
-      `aide_sort_${server.port}=state`,
-    );
+    expect(sortCookie(res, server.port)).toContain(`aide_sort_${server.port}=state`);
   });
 
   // The default sort is Created.

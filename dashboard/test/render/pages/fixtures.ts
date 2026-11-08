@@ -13,15 +13,10 @@ import {
  *  URI — what "self-contained" means here, since the site is published
  *  as plain files and opened from a folder as often as from a server. */
 export function external(html: string): (string | undefined)[] {
-  return [...html.matchAll(/<link[^>]+href="(?!data:)([^"]*)"/g)].map(
-    (m) => m[1],
-  );
+  return [...html.matchAll(/<link[^>]+href="(?!data:)([^"]*)"/g)].map((m) => m[1]);
 }
 
-export function project(
-  name: string,
-  overrides: Partial<ProjectView> = {},
-): ProjectView {
+export function project(name: string, overrides: Partial<ProjectView> = {}): ProjectView {
   return {
     name,
     manifest: { ok: true, data: { name } },
@@ -90,9 +85,7 @@ export const generatedAt = "2026-08-16T12:00:00+02:00";
 // dialog, head tags) — a served page proves the same thing a generated
 // one used to, and the Projects page is the one every such
 // test already expected as current.
-export const site: string[] = [
-  renderProjectsPage([healthy, broken], generatedAt, navEntries(), {}),
-];
+export const site: string[] = [renderProjectsPage([healthy, broken], generatedAt, navEntries(), {})];
 
 export const NAV = [{ label: "Overview", path: "projects.html" }];
 
@@ -126,20 +119,8 @@ export const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
 /** A row whose `step` reports that `gh` opened no pull request for its
  *  branch. On the step's own result, which is where that answer lives —
  *  a job field is rewritten by the next landing to finish. */
-export const noPullRequest = (
-  step: string,
-  why = "gh auth login required",
-): Partial<QueueRowView> => ({
-  results: [
-    {
-      step,
-      ok: true,
-      costUsd: 0,
-      costMeasured: true,
-      terminalReason: "completed",
-      prError: why,
-    },
-  ],
+export const noPullRequest = (step: string, why = "gh auth login required"): Partial<QueueRowView> => ({
+  results: [{ step, ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", prError: why }],
 });
 
 /** A row is COLLAPSED unless the view names it: the

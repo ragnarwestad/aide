@@ -11,17 +11,11 @@ import type { ServerOptions } from "../options.ts";
 
 export function setupPush(
   opts: ServerOptions,
-  inputs: {
-    jobs: () => Job[];
-    notify: () => void;
-    scheduleStore: ScheduleStore;
-    served: ReadonlySet<string>;
-  },
+  inputs: { jobs: () => Job[]; notify: () => void; scheduleStore: ScheduleStore; served: ReadonlySet<string> },
 ): Push {
   // The one count every page loads with, every live update carries and every
   // push sends for the app's icon.
-  const waiting = () =>
-    waitingCount(inputs.jobs(), (project) => inputs.served.has(project));
+  const waiting = () => waitingCount(inputs.jobs(), (project) => inputs.served.has(project));
   setWaitingCount(waiting);
   return createPush({
     waiting,
@@ -33,9 +27,7 @@ export function setupPush(
     // The entry's own choice, read when a run ends: an edit made while it
     // ran applies to it, and a deleted entry sends nothing.
     scheduleNotify: (project, key) => {
-      const entry = inputs.scheduleStore
-        .list(project)
-        .find((e) => scheduleTrackingKey(e.name) === key);
+      const entry = inputs.scheduleStore.list(project).find((e) => scheduleTrackingKey(e.name) === key);
       return entry ? scheduleNotifyOf(entry) : null;
     },
     fetch: opts.pushFetch,

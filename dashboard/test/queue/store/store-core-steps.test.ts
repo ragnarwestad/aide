@@ -23,11 +23,7 @@ const resolve = (project: string) =>
       ? { specFolders: ["01-first"] }
       : null;
 
-const REQ = {
-  project: "aide",
-  specFolder: "81-queue-and-runner",
-  steps: ["analyze"],
-};
+const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
 // --- Reopening is a step like any other ---------------------------
 //
@@ -42,10 +38,7 @@ describe("reopen", () => {
   // the request in REQ names "81-queue-and-runner", which `resolve`
   // lists in `specFolders`, never `archivedFolders`.
   test("a reopen is refused when the target spec is already active", () => {
-    const r = parseJobRequest(
-      { ...REQ, steps: ["reopen"] },
-      { resolve, defaults: DEFAULTS },
-    );
+    const r = parseJobRequest({ ...REQ, steps: ["reopen"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
     expect(!r.ok && r.error).toContain("already active");
   });
@@ -88,11 +81,7 @@ describe("reopen", () => {
 
   test("a reopen bundled with a step that is not one is refused whole", () => {
     const r = parseJobRequest(
-      {
-        ...REQ,
-        specFolder: "17-clean-up-console-log",
-        steps: ["reopen", "analyze"],
-      },
+      { ...REQ, specFolder: "17-clean-up-console-log", steps: ["reopen", "analyze"] },
       { resolve: withArchived, defaults: DEFAULTS },
     );
     expect(r.ok).toBe(false);
@@ -126,17 +115,8 @@ describe("the round boundary", () => {
   test("only jobs after a successfully landed reopen-with-reset belong to the current round", () => {
     const jobs = [
       { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
-      {
-        steps: ["reopen"],
-        resetFiles: true,
-        state: "done",
-        createdAt: "2026-08-24T11:00:00Z",
-      },
-      {
-        steps: ["analyze"],
-        state: "failed",
-        createdAt: "2026-08-24T12:00:00Z",
-      },
+      { steps: ["reopen"], resetFiles: true, state: "done", createdAt: "2026-08-24T11:00:00Z" },
+      { steps: ["analyze"], state: "failed", createdAt: "2026-08-24T12:00:00Z" },
     ];
     expect(currentWorkRoundJobs(jobs)).toEqual([jobs[2]]);
   });
@@ -152,13 +132,7 @@ describe("the round boundary", () => {
   test("a reopen-with-reset still landing is not a boundary yet", () => {
     const jobs = [
       { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
-      {
-        steps: ["reopen"],
-        resetFiles: true,
-        state: "done",
-        landing: true,
-        createdAt: "2026-08-24T11:00:00Z",
-      },
+      { steps: ["reopen"], resetFiles: true, state: "done", landing: true, createdAt: "2026-08-24T11:00:00Z" },
     ];
     expect(currentWorkRoundJobs(jobs)).toEqual(jobs);
   });
@@ -169,11 +143,7 @@ describe("the round boundary", () => {
     const jobs = [
       { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
       { steps: ["reset"], state: "done", createdAt: "2026-08-24T11:00:00Z" },
-      {
-        steps: ["analyze"],
-        state: "failed",
-        createdAt: "2026-08-24T12:00:00Z",
-      },
+      { steps: ["analyze"], state: "failed", createdAt: "2026-08-24T12:00:00Z" },
     ];
     expect(currentWorkRoundJobs(jobs)).toEqual([jobs[2]]);
   });

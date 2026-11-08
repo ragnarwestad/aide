@@ -6,12 +6,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { parse as parseJsonc } from "jsonc-parser";
 import type { DiscoveredProject, SpecRef } from "../../project/discover";
-import {
-  mergeQueueDefaults,
-  parseAllowedHosts,
-  parseHeaderAuth,
-  parseQueueProjects,
-} from "../../queue/queue.ts";
+import { mergeQueueDefaults, parseAllowedHosts, parseHeaderAuth, parseQueueProjects } from "../../queue/queue.ts";
 import { navEntries } from "../../render";
 import type { ServerOptions } from "../options.ts";
 import { QUEUE_DEFAULTS, parseQueueConcurrency } from "./config.ts";
@@ -56,8 +51,7 @@ export function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--queue-mirror" && v) opts.queueMirrorPath = argv[++i];
     else if (a === "--pending-models" && v) opts.pendingModelsPath = argv[++i];
     else if (a === "--pending-steps" && v) opts.pendingStepsPath = argv[++i];
-    else if (a === "--queue-projects" && v)
-      opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
+    else if (a === "--queue-projects" && v) opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
     else if (a === "--runner-bin" && v) opts.queueRunnerBin = argv[++i];
     // Like `--runner-bin`: launchd's PATH carries neither `~/.local/bin`
     // nor mise's shims, so the installed `aide-generate-pdf` is
@@ -67,37 +61,25 @@ export function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
     // Where the dashboard keeps the clones it works in.
     // `~/.aide/dashboard/checkouts` unless a host wants them elsewhere.
-    else if (a === "--dashboard-checkouts" && v)
-      opts.dashboardCheckoutRoot = argv[++i];
+    else if (a === "--dashboard-checkouts" && v) opts.dashboardCheckoutRoot = argv[++i];
     else if (a === "--queue-config" && v) queueConfigFile = argv[++i];
     // Which spec/branch this process is a TEST board for —
     // absent means an ordinary (prod) server.
     else if (a === "--test-board" && v) opts.testBoardSpec = argv[++i];
     else throw new Error(`unknown argument: ${a}`);
   }
-  if (!opts.mirrorPath)
-    opts.mirrorPath = join(homedir(), ".aide", "dashboard", "aide-runs.json");
-  if (!opts.queueMirrorPath)
-    opts.queueMirrorPath = join(
-      homedir(),
-      ".aide",
-      "dashboard",
-      "aide-queue.json",
-    );
+  if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), ".aide", "dashboard", "aide-runs.json");
+  if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), ".aide", "dashboard", "aide-queue.json");
   // Beside the queue mirror, not the served board's own directory: a
   // round's board has a queue of its own and no push or pending paths,
   // and it sent its test project's failures to the phone subscribed to
   // prod and wrote its choices into prod's pending files.
   const queueDir = dirname(opts.queueMirrorPath);
-  if (!opts.pendingModelsPath)
-    opts.pendingModelsPath = join(queueDir, "pending-models.json");
+  if (!opts.pendingModelsPath) opts.pendingModelsPath = join(queueDir, "pending-models.json");
   if (!opts.modelIdsPath) opts.modelIdsPath = join(queueDir, "model-ids.json");
-  if (!opts.pendingStepsPath)
-    opts.pendingStepsPath = join(queueDir, "pending-steps.json");
-  if (!opts.pushSubscriptionsPath)
-    opts.pushSubscriptionsPath = join(queueDir, "push-subscriptions.json");
-  if (!opts.failedCreatesPath)
-    opts.failedCreatesPath = join(queueDir, "failed-creates.json");
+  if (!opts.pendingStepsPath) opts.pendingStepsPath = join(queueDir, "pending-steps.json");
+  if (!opts.pushSubscriptionsPath) opts.pushSubscriptionsPath = join(queueDir, "push-subscriptions.json");
+  if (!opts.failedCreatesPath) opts.failedCreatesPath = join(queueDir, "failed-creates.json");
   if (!opts.pushKeyPath) opts.pushKeyPath = join(queueDir, "push-key.json");
   if (queueConfigFile) {
     // Kept whether or not the file is readable: the Add/Remove routes
@@ -106,22 +88,15 @@ export function parseArgs(argv: string[]): ServerOptions {
     opts.queueConfigFile = queueConfigFile;
     // A missing or broken config leaves the built-in defaults in place.
     try {
-      const raw = parseJsonc(readFileSync(queueConfigFile, "utf-8")) as Record<
-        string,
-        unknown
-      >;
+      const raw = parseJsonc(readFileSync(queueConfigFile, "utf-8")) as Record<string, unknown>;
       opts.queueDefaults = mergeQueueDefaults(QUEUE_DEFAULTS, raw);
       // The notify command is an argv ARRAY: it is run with no shell,
       // so a string would have to be split by someone, and that someone
       // would get quoting wrong.
-      if (
-        Array.isArray(raw.notifyCommand) &&
-        raw.notifyCommand.every((a) => typeof a === "string")
-      ) {
+      if (Array.isArray(raw.notifyCommand) && raw.notifyCommand.every((a) => typeof a === "string")) {
         opts.queueNotifyCommand = raw.notifyCommand as string[];
       }
-      if (raw.push === "none" || raw.push === "branch" || raw.push === "pr")
-        opts.queuePush = raw.push;
+      if (raw.push === "none" || raw.push === "branch" || raw.push === "pr") opts.queuePush = raw.push;
       opts.queueConcurrency = parseQueueConcurrency(raw.concurrency);
       // The allowlist WINS over `--queue-projects` when the file has
       // one: the flag is the seed for a first install, and the file is
@@ -137,23 +112,15 @@ export function parseArgs(argv: string[]): ServerOptions {
       if (typeof raw.headerAuth !== "undefined") {
         const headerAuth = parseHeaderAuth(raw.headerAuth);
         if (headerAuth) opts.headerAuth = headerAuth;
-        else
-          console.error(
-            `headerAuth in ${queueConfigFile} is malformed — ignored`,
-          );
+        else console.error(`headerAuth in ${queueConfigFile} is malformed — ignored`);
       }
       if (typeof raw.allowedHosts !== "undefined") {
         const allowedHosts = parseAllowedHosts(raw.allowedHosts);
         if (allowedHosts) opts.allowedHosts = allowedHosts;
-        else
-          console.error(
-            `allowedHosts in ${queueConfigFile} is malformed — ignored`,
-          );
+        else console.error(`allowedHosts in ${queueConfigFile} is malformed — ignored`);
       }
     } catch {
-      console.error(
-        `cannot read ${queueConfigFile} — keeping the built-in defaults`,
-      );
+      console.error(`cannot read ${queueConfigFile} — keeping the built-in defaults`);
     }
   }
   if (root) {

@@ -16,14 +16,7 @@
 // runs the built IIFE exactly as a browser's inlined `<script>` would,
 // against a `happy-dom` document set up before each call.
 
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { specEditorClientScript } from "../../src/serve/serve-helpers";
 
 let scriptText: string;
@@ -88,12 +81,11 @@ function setHost(rawMarkup: string): HTMLElement {
 // textarea from outside and asks a mounted editor to redraw from it —
 // the only way in, since the WYSIWYG view is a separate DOM tree this
 // instance owns.
-describe('a "spec-cancel" event on the raw textarea redraws the mounted editor', () => {
+describe("a \"spec-cancel\" event on the raw textarea redraws the mounted editor", () => {
   test("the visible WYSIWYG content reflects raw.value after the event, not what was mounted with", () => {
     setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
     mount();
-    const raw =
-      document.querySelector<HTMLTextAreaElement>(".spec-editor-raw")!;
+    const raw = document.querySelector<HTMLTextAreaElement>(".spec-editor-raw")!;
     const contents = document.querySelector(".toastui-editor-contents")!;
     expect(contents.textContent).toContain("original");
 
@@ -108,12 +100,11 @@ describe('a "spec-cancel" event on the raw textarea redraws the mounted editor',
 // Spec-form-actions.ts's one-way dirty latch needs to see an
 // "input" on the raw textarea the instant the editor's own content
 // changes — cheap and immediate, with no getMarkdown() call of its own.
-describe('an editor content change re-dispatches as "input" on the raw textarea', () => {
-  test('setMarkdown (the same call the Cancel-redraw above makes) fires an "input" on raw', () => {
+describe("an editor content change re-dispatches as \"input\" on the raw textarea", () => {
+  test("setMarkdown (the same call the Cancel-redraw above makes) fires an \"input\" on raw", () => {
     setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
     mount();
-    const raw =
-      document.querySelector<HTMLTextAreaElement>(".spec-editor-raw")!;
+    const raw = document.querySelector<HTMLTextAreaElement>(".spec-editor-raw")!;
     let fired = false;
     raw.addEventListener("input", () => {
       fired = true;
@@ -132,8 +123,7 @@ describe("the typing surface follows the raw textarea's disabled state", () => {
   test("not editable while the textarea is disabled, editable again after", async () => {
     setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
     mount();
-    const raw =
-      document.querySelector<HTMLTextAreaElement>(".spec-editor-raw")!;
+    const raw = document.querySelector<HTMLTextAreaElement>(".spec-editor-raw")!;
     const surface = document.querySelector<HTMLElement>("[contenteditable]")!;
     expect(surface.getAttribute("contenteditable")).toBe("true");
 
@@ -152,10 +142,9 @@ describe("the typing surface follows the raw textarea's disabled state", () => {
 // out of. The library marks the growing mode with `auto-height` on the host.
 describe("the editor grows with its text", () => {
   test("a wide screen mounts the editor growing with its text", () => {
-    const host = setHost(
-      '<textarea class="spec-editor-raw"># original\n</textarea>',
-    );
+    const host = setHost('<textarea class="spec-editor-raw"># original\n</textarea>');
     mount();
     expect(host.classList.contains("auto-height")).toBe(true);
   });
 });
+

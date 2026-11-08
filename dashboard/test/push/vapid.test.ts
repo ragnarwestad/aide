@@ -47,51 +47,20 @@ describe("the signed token", () => {
   test("header, audience, expiry, subject and signature all verify against the public key sent with it", async () => {
     const keys = await loadOrCreateKeys(undefined);
     const now = 1_800_000_000;
-    const token = await signToken(keys, {
-      endpoint: "https://fcm.googleapis.com/fcm/send/abc",
-      sub: "https://board.test",
-      now,
-    });
+    const token = await signToken(keys, { endpoint: "https://fcm.googleapis.com/fcm/send/abc", sub: "https://board.test", now });
     const [h, p, s] = token.split(".") as [string, string, string];
-    expect(JSON.parse(Buffer.from(h, "base64url").toString())).toEqual({
-      typ: "JWT",
-      alg: "ES256",
-    });
-    const claims = JSON.parse(Buffer.from(p, "base64url").toString()) as {
-      aud: string;
-      exp: number;
-      sub: string;
-    };
+    expect(JSON.parse(Buffer.from(h, "base64url").toString())).toEqual({ typ: "JWT", alg: "ES256" });
+    const claims = JSON.parse(Buffer.from(p, "base64url").toString()) as { aud: string; exp: number; sub: string };
     expect(claims.aud).toBe("https://fcm.googleapis.com");
     expect(claims.sub).toBe("https://board.test");
     expect(claims.exp).toBeGreaterThan(now);
     expect(claims.exp).toBeLessThanOrEqual(now + 24 * 60 * 60);
 
-    const publicKey = await crypto.subtle.importKey(
-      "raw",
-      fromB64u(keys.publicKey),
-      { name: "ECDSA", namedCurve: "P-256" },
-      false,
-      ["verify"],
-    );
+    const publicKey = await crypto.subtle.importKey("raw", fromB64u(keys.publicKey), { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
     const signature = fromB64u(s);
     expect(signature).toHaveLength(64);
-    expect(
-      await crypto.subtle.verify(
-        { name: "ECDSA", hash: "SHA-256" },
-        publicKey,
-        signature,
-        new TextEncoder().encode(`${h}.${p}`),
-      ),
-    ).toBe(true);
+    expect(await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, publicKey, signature, new TextEncoder().encode(`${h}.${p}`))).toBe(true);
     // A different message does not verify: the check is not vacuous.
-    expect(
-      await crypto.subtle.verify(
-        { name: "ECDSA", hash: "SHA-256" },
-        publicKey,
-        signature,
-        new TextEncoder().encode(`${h}.x${p}`),
-      ),
-    ).toBe(false);
+    expect(await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, publicKey, signature, new TextEncoder().encode(`${h}.x${p}`))).toBe(false);
   });
 });

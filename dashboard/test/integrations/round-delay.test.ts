@@ -5,12 +5,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  DELAY_CHOICES,
-  nextDelay,
-  readDelay,
-  writeDelay,
-} from "../../src/integrations/round-delay.ts";
+import { DELAY_CHOICES, nextDelay, readDelay, writeDelay } from "../../src/integrations/round-delay.ts";
 
 const dirs: string[] = [];
 afterEach(() => {

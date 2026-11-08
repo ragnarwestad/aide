@@ -1,12 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  specHead,
-  specControls,
-  OPEN_81,
-  setupQueueRoutesHarness,
-} from "../fixtures.ts";
+import { specHead, specControls, OPEN_81, setupQueueRoutesHarness } from "../fixtures.ts";
 
 /** The message a job carries, as text. A job stores
  *  WHICH message and what fills its blanks; the reader composes it.
@@ -18,22 +13,7 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
-import {
-  SPEC,
-  AUTH,
-  createOwnDirs,
-  gitFor,
-  repos,
-  installs,
-  serverWith,
-  resultDir,
-  runStep,
-  settle,
-  merges,
-  repoOf,
-  result,
-  stepWithResult,
-} from "./every-step-lands-fixtures.ts";
+import { SPEC, AUTH, createOwnDirs, gitFor, repos, installs, serverWith, resultDir, runStep, settle, merges, repoOf, result, stepWithResult } from "./every-step-lands-fixtures.ts";
 
 const { harness } = setupQueueRoutesHarness();
 const { own, cleanup: cleanupOwnDirs } = createOwnDirs();
@@ -85,18 +65,12 @@ describe("every step lands its own work", () => {
       const { base } = serverWithHarness(dir, paths, git);
 
       const landed = await stepWithResult(base, dir, step, {
-        branchUrls: [
-          { root: paths.specs, url: "https://example.test/aide-specs" },
-        ],
+        branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
       });
 
       expect(landed.error).toBeFalsy();
       expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
-      expect(
-        git.calls.some(
-          (c) => repoOf(c.dir) === paths.specs && c.args[0] === "push",
-        ),
-      ).toBe(true);
+      expect(git.calls.some((c) => repoOf(c.dir) === paths.specs && c.args[0] === "push")).toBe(true);
       // Landed, so the row stops advertising a branch at all.
       expect(landed.branchUrls).toEqual([]);
     },
@@ -117,13 +91,7 @@ describe("every step lands its own work", () => {
       { root: paths.project, url: "https://example.test/aide" },
       { root: paths.specs, url: "https://example.test/aide-specs" },
     ];
-    const done = await stepWithResult(
-      base,
-      dir,
-      "implement",
-      { branchUrls },
-      (j) => j.state === "done",
-    );
+    const done = await stepWithResult(base, dir, "implement", { branchUrls }, (j) => j.state === "done");
 
     expect(merges(git.calls)).toEqual([]);
     expect(done.landing).toBeFalsy();
@@ -161,9 +129,7 @@ describe("every step lands its own work", () => {
 
     // Archive's own run reports the specs repo alone.
     const landed = await stepWithResult(base, dir, "archive", {
-      branchUrls: [
-        { root: paths.specs, url: "https://example.test/aide-specs" },
-      ],
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
     });
 
     expect(landed.error).toBeFalsy();
@@ -193,16 +159,12 @@ describe("every step lands its own work", () => {
       base,
       dir,
       "implement",
-      {
-        branchUrls: [{ root: paths.project, url: "https://example.test/aide" }],
-      },
+      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
       (j) => j.state === "done",
     );
     const job = await stepWithResult(base, dir, "archive", {
       terminalReason: "acceptance-criteria-unticked",
-      branchUrls: [
-        { root: paths.specs, url: "https://example.test/aide-specs" },
-      ],
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
     });
 
     expect(job.state).toBe("done");
@@ -217,9 +179,7 @@ describe("every step lands its own work", () => {
     const git = gitFor();
     const { base } = serverWithHarness(dir, paths, git);
 
-    const job = await stepWithResult(base, dir, "archive", {
-      terminalReason: "already-landed",
-    });
+    const job = await stepWithResult(base, dir, "archive", { terminalReason: "already-landed" });
 
     expect(job.state).toBe("done");
     expect(merges(git.calls, paths.project)).toHaveLength(0);
@@ -233,10 +193,7 @@ describe("every step lands its own work", () => {
     // only then does the code merge conflict. So the spec IS archived on
     // disk by the time the row is asked for — which is the whole reason
     // the row needed the open-branch exception to survive at all.
-    const git = gitFor({
-      conflicting: [paths.project],
-      openOn: [paths.project],
-    });
+    const git = gitFor({ conflicting: [paths.project], openOn: [paths.project] });
     const { base } = serverWithHarness(dir, paths, git);
     const marker = installs(paths.project);
 
@@ -244,22 +201,14 @@ describe("every step lands its own work", () => {
       base,
       dir,
       "implement",
-      {
-        branchUrls: [{ root: paths.project, url: "https://example.test/aide" }],
-      },
+      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
       (j) => j.state === "done",
     );
     const archiving = await runStep(base, "archive");
     paths.archiveSpec();
     writeFileSync(
       join(resultDir(dir), `${archiving.id}.json`),
-      JSON.stringify(
-        result({
-          branchUrls: [
-            { root: paths.specs, url: "https://example.test/aide-specs" },
-          ],
-        }),
-      ),
+      JSON.stringify(result({ branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] })),
     );
     const failed = await settle(base, archiving.id, (j) => !!j.error);
 
@@ -268,23 +217,13 @@ describe("every step lands its own work", () => {
     expect(failed.errorReason).toBe("conflict");
     expect(failed.landing).toBeFalsy();
     // The message names the failing step.
-    expect(
-      sentence(failed.landingError).startsWith(
-        "Problem: Archive merge failed:",
-      ),
-    ).toBe(true);
+    expect(sentence(failed.landingError).startsWith("Problem: Archive merge failed:")).toBe(true);
     // Nothing half-merged, and nothing deployed from a merge that never
     // happened.
-    expect(
-      git.calls.some(
-        (c) =>
-          repoOf(c.dir) === paths.project &&
-          c.args.join(" ") === "merge --abort",
-      ),
-    ).toBe(true);
+    expect(git.calls.some((c) => repoOf(c.dir) === paths.project && c.args.join(" ") === "merge --abort")).toBe(true);
     expect(existsSync(marker)).toBe(false);
     // Still in the active list, with its branch, exactly as it was.
-    const html = await (await fetch(`${base}/specs`)).text();
+    const html = await (await fetch(`${base}/specs`, )).text();
     expect(specHead(html, SPEC)).not.toBe("");
   }, 20000);
 
@@ -303,25 +242,14 @@ describe("every step lands its own work", () => {
       await fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({
-          project: "aide",
-          specFolder: SPEC,
-          steps: ["analyze", "close"],
-          closeReason: "the idea did not hold",
-        }),
+        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze", "close"], closeReason: "the idea did not hold" }),
       })
     ).json()) as { job: { id: string } };
     const id = made.job.id;
 
     writeFileSync(
       join(resultDir(dir), `${id}.json`),
-      JSON.stringify(
-        result({
-          branchUrls: [
-            { root: paths.specs, url: "https://example.test/aide-specs" },
-          ],
-        }),
-      ),
+      JSON.stringify(result({ branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] })),
     );
     // Wait for `close` to actually be running — proof `analyze`'s
     // landing has fully settled, since `Runner.tick()` refuses to
@@ -329,29 +257,14 @@ describe("every step lands its own work", () => {
     // budget than `settle`'s default: this crosses TWO poll ticks (one
     // to notice `analyze`'s result, one to start `close` once its
     // landing has cleared), on top of the landing's own retries.
-    const running = await settle(
-      base,
-      id,
-      (j) => j.stepIndex === 1 && j.state === "running",
-      300,
-    );
+    const running = await settle(base, id, (j) => j.stepIndex === 1 && j.state === "running", 300);
     expect(sentence(running.landingError)).toContain("Analyze merge failed");
 
     writeFileSync(
       join(resultDir(dir), `${id}.json`),
-      JSON.stringify(
-        result({
-          branchUrls: [
-            { root: paths.project, url: "https://example.test/aide" },
-          ],
-        }),
-      ),
+      JSON.stringify(result({ branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] })),
     );
-    const done = await settle(
-      base,
-      id,
-      (j) => j.state === "done" && !j.landing,
-    );
+    const done = await settle(base, id, (j) => j.state === "done" && !j.landing);
 
     expect(done.error).toBeFalsy();
     expect(sentence(done.landingError)).toContain("Analyze merge failed");
@@ -379,18 +292,8 @@ describe("every step lands its own work", () => {
     });
 
     expect(landed.error).toBeFalsy();
-    expect(
-      git.calls.some(
-        (c) => c.args[0] === "diff" && c.args.includes(`specs/${SPEC}`),
-      ),
-    ).toBe(true);
-    expect(
-      git.calls.some(
-        (c) =>
-          c.args[0] === "merge" &&
-          c.args.some((a) => a.startsWith("refs/remotes/origin/aide/")),
-      ),
-    ).toBe(false);
+    expect(git.calls.some((c) => c.args[0] === "diff" && c.args.includes(`specs/${SPEC}`))).toBe(true);
+    expect(git.calls.some((c) => c.args[0] === "merge" && c.args.some((a) => a.startsWith("refs/remotes/origin/aide/")))).toBe(false);
     await Bun.sleep(200);
     expect(existsSync(marker)).toBe(false);
   });
@@ -409,15 +312,11 @@ describe("every step lands its own work", () => {
       base,
       dir,
       "implement",
-      {
-        branchUrls: [{ root: paths.project, url: "https://example.test/aide" }],
-      },
+      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
       (j) => j.state === "done",
     );
     await stepWithResult(base, dir, "analyze", {
-      branchUrls: [
-        { root: paths.specs, url: "https://example.test/aide-specs" },
-      ],
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
     });
 
     expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
@@ -439,16 +338,12 @@ describe("every step lands its own work", () => {
       base,
       dir,
       "analyze",
-      {
-        branchUrls: [
-          { root: paths.specs, url: "https://example.test/aide-specs" },
-        ],
-      },
+      { branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] },
       (j) => !!j.error,
     );
 
     const url = `${base}/?${OPEN_81}`;
-    const html = await (await fetch(url)).text();
+    const html = await (await fetch(url, )).text();
     expect(html).not.toContain("resolveform");
     expect(specControls(html, SPEC)).not.toContain('value="resolve"');
     // The failure itself is still on the row, and still names the repo
@@ -458,26 +353,17 @@ describe("every step lands its own work", () => {
 
   // Both routes are gone, not merely unreachable from the
   // page: the actions they offered are what this whole spec removes.
-  test.each(["merge", "approve"])(
-    "POST /api/queue/<id>/%s is not a route any more",
-    async (verb) => {
-      const dir = own(`aide-149-route-${verb}-`);
-      const paths = repos(dir);
-      const { base } = serverWithHarness(dir, paths, gitFor());
-      const job = await runStep(base, "analyze");
+  test.each(["merge", "approve"])("POST /api/queue/<id>/%s is not a route any more", async (verb) => {
+    const dir = own(`aide-149-route-${verb}-`);
+    const paths = repos(dir);
+    const { base } = serverWithHarness(dir, paths, gitFor());
+    const job = await runStep(base, "analyze");
 
-      const res = await fetch(`${base}/api/queue/${job.id}/${verb}`, {
-        method: "POST",
-        headers: AUTH,
-      });
-      expect(res.status).toBe(404);
-      // Cancel is untouched — it is the one thing on that route that was
-      // never about merging.
-      const cancel = await fetch(`${base}/api/queue/${job.id}/cancel`, {
-        method: "POST",
-        headers: AUTH,
-      });
-      expect(cancel.status).toBe(200);
-    },
-  );
+    const res = await fetch(`${base}/api/queue/${job.id}/${verb}`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(404);
+    // Cancel is untouched — it is the one thing on that route that was
+    // never about merging.
+    const cancel = await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST", headers: AUTH });
+    expect(cancel.status).toBe(200);
+  });
 });

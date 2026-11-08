@@ -7,15 +7,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import {
-  modelLists,
-  modelsBlock,
-  stamp,
-  TOOL_TAB_LABELS,
-  type CheckableTool,
-  type ModelsPanel,
-  type ToolModels,
-} from "../../../src/render";
+import { modelLists, modelsBlock, stamp, TOOL_TAB_LABELS, type CheckableTool, type ModelsPanel, type ToolModels } from "../../../src/render";
 import { t } from "../../../src/i18n";
 import type { ModelChoice } from "../../../src/queue/types.ts";
 
@@ -39,14 +31,9 @@ function parse(html: string): Document {
 function posted(html: string, action: string): Record<string, string>[] {
   return Array.from(parse(html).querySelectorAll("form"))
     .filter((f) => f.getAttribute("action") === action)
-    .map((f) =>
-      Object.fromEntries(
-        Array.from(f.querySelectorAll("input")).map((i) => [
-          i.getAttribute("name") ?? "",
-          i.getAttribute("value") ?? "",
-        ]),
-      ),
-    );
+    .map((f) => Object.fromEntries(
+      Array.from(f.querySelectorAll("input")).map((i) => [i.getAttribute("name") ?? "", i.getAttribute("value") ?? ""]),
+    ));
 }
 
 const text = (html: string): string => parse(html).body.textContent ?? "";
@@ -54,10 +41,7 @@ const text = (html: string): string => parse(html).body.textContent ?? "";
 const CODEX: ToolModels = {
   tool: "codex",
   at: AT,
-  offered: [
-    { model: "gpt-6.1-sol", name: "GPT-6.1-Sol" },
-    { model: "gpt-5.5", name: "GPT-5.5" },
-  ],
+  offered: [{ model: "gpt-6.1-sol", name: "GPT-6.1-Sol" }, { model: "gpt-5.5", name: "GPT-5.5" }],
 };
 const CLAUDE: ToolModels = {
   tool: "claude",
@@ -72,12 +56,8 @@ const CLAUDE: ToolModels = {
 
 describe("modelLists", () => {
   test("a model the AI offers that is no choice of it is offered to add", () => {
-    const choices: Record<string, ModelChoice> = {
-      "gpt-6.1-sol": { tool: "codex" },
-    };
-    expect(
-      modelLists("codex", choices, CODEX).offered.map((m) => m.model),
-    ).toEqual(["gpt-5.5"]);
+    const choices: Record<string, ModelChoice> = { "gpt-6.1-sol": { tool: "codex" } };
+    expect(modelLists("codex", choices, CODEX).offered.map((m) => m.model)).toEqual(["gpt-5.5"]);
   });
 
   test("a choice of the AI that it no longer offers is listed to remove", () => {
@@ -86,9 +66,7 @@ describe("modelLists", () => {
       "gpt-5.6-luna": { tool: "codex" },
       "gpt-reserve": { tool: "codex" },
     };
-    expect(modelLists("codex", choices, CODEX).gone.map((c) => c.name)).toEqual(
-      ["gpt-5.6-luna", "gpt-reserve"],
-    );
+    expect(modelLists("codex", choices, CODEX).gone.map((c) => c.name)).toEqual(["gpt-5.6-luna", "gpt-reserve"]);
   });
 
   test("a Claude choice matches its family without case, and other names are no longer offered", () => {
@@ -106,17 +84,12 @@ describe("modelLists", () => {
 
   test("OpenCode's models compare exactly, each as its provider/model", () => {
     const reading: ToolModels = {
-      tool: "opencode",
-      at: AT,
-      offered: [
-        { model: "opencode/gemini-3.1-pro" },
-        { model: "opencode/glm-5" },
-      ],
+      tool: "opencode", at: AT, offered: [{ model: "opencode/gemini-3.1-pro" }, { model: "opencode/glm-5" }],
     };
     const choices: Record<string, ModelChoice> = {
       "gemini-3.1-pro": { tool: "opencode", model: "opencode/gemini-3.1-pro" },
       "gemini-2-pro": { tool: "opencode", model: "opencode/gemini-2-pro" },
-      glm: { tool: "opencode", model: "opencode/GLM-5" },
+      "glm": { tool: "opencode", model: "opencode/GLM-5" },
     };
     const lists = modelLists("opencode", choices, reading);
     expect(lists.offered.map((m) => m.model)).toEqual(["opencode/glm-5"]);
@@ -128,11 +101,7 @@ describe("modelLists", () => {
       "gpt-5.5": { tool: "codex" },
       stand: { tool: "fake-claude", model: "opus" },
     };
-    expect(modelLists("claude", choices, CLAUDE)).toEqual({
-      supported: [],
-      offered: CLAUDE.offered,
-      gone: [],
-    });
+    expect(modelLists("claude", choices, CLAUDE)).toEqual({ supported: [], offered: CLAUDE.offered, gone: [] });
   });
 
   test("the models that can be picked are this AI's choices, gone or not, and no other AI's", () => {
@@ -142,10 +111,7 @@ describe("modelLists", () => {
       Opus: { model: "opus" },
     };
     const lists = modelLists("codex", choices, CODEX);
-    expect(lists.supported).toEqual([
-      { name: "gpt-6.1-sol", model: "gpt-6.1-sol" },
-      { name: "luna", model: "gpt-5.6-luna" },
-    ]);
+    expect(lists.supported).toEqual([{ name: "gpt-6.1-sol", model: "gpt-6.1-sol" }, { name: "luna", model: "gpt-5.6-luna" }]);
     expect(lists.offered.map((m) => m.model)).toEqual(["gpt-5.5"]);
     expect(lists.gone).toEqual([{ name: "luna", model: "gpt-5.6-luna" }]);
   });
@@ -153,75 +119,44 @@ describe("modelLists", () => {
 
 /** The Models tab's answer for a reading, as the Models address draws it. */
 const modelsTab = (tool: CheckableTool, panel: ModelsPanel): string =>
-  modelsBlock(
-    tool,
-    panel,
-    stamp(panel.reading.at),
-    "en",
-    TOOL_TAB_LABELS[tool],
-  );
+  modelsBlock(tool, panel, stamp(panel.reading.at), "en", TOOL_TAB_LABELS[tool]);
 
 describe("the models on an AI's tab", () => {
   test("the Codex tab lists them under its three headings, with Add and Remove", () => {
     const html = modelsTab("codex", {
-      reading: CODEX,
-      choices: {
-        "gpt-6.1-sol": { tool: "codex" },
-        "gpt-5.6-luna": { tool: "codex" },
-      },
+      reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" }, "gpt-5.6-luna": { tool: "codex" } },
     });
-    const headings = Array.from(parse(html).querySelectorAll("h3")).map(
-      (h) => h.textContent,
-    );
-    expect(headings).toEqual(
-      ["supported", "available", "gone"].map((k) =>
-        t("en", `settings.models.${k}` as "settings.models.supported"),
-      ),
-    );
+    const headings = Array.from(parse(html).querySelectorAll("h3")).map((h) => h.textContent);
+    expect(headings).toEqual(["supported", "available", "gone"].map((k) => t("en", `settings.models.${k}` as "settings.models.supported")));
     expect(posted(html, ADD)).toEqual([{ tool: "codex", model: "gpt-5.5" }]);
     expect(posted(html, REMOVE)).toEqual([{ name: "gpt-5.6-luna" }]);
   });
 
   test("each model offered and no choice has an Add that posts the AI and the model", () => {
     const html = modelsTab("codex", {
-      reading: CODEX,
-      choices: { "gpt-6.1-sol": { tool: "codex" } },
+      reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" } },
     });
     expect(posted(html, ADD)).toEqual([{ tool: "codex", model: "gpt-5.5" }]);
   });
 
   test("each choice no longer offered has a Remove that posts its name", () => {
     const html = modelsTab("codex", {
-      reading: CODEX,
-      choices: {
-        "gpt-6.1-sol": { tool: "codex" },
-        "gpt-5.5": { tool: "codex" },
-        "gpt-5.6-luna": { tool: "codex" },
-      },
+      reading: CODEX, choices: { "gpt-6.1-sol": { tool: "codex" }, "gpt-5.5": { tool: "codex" }, "gpt-5.6-luna": { tool: "codex" } },
     });
     expect(posted(html, REMOVE)).toEqual([{ name: "gpt-5.6-luna" }]);
   });
 
   test("Claude's families are offered with the version each gives today", () => {
     const html = modelsTab("claude", { reading: CLAUDE, choices: {} });
-    expect(posted(html, ADD).filter((f) => f.model)).toContainEqual({
-      tool: "claude",
-      model: "opus",
-    });
+    expect(posted(html, ADD).filter((f) => f.model)).toContainEqual({ tool: "claude", model: "opus" });
     expect(text(html)).toContain("opus → Opus 5.5");
     expect(text(html)).toContain("haiku → Haiku 4.5");
   });
 
   test("a reading that failed says so, and offers nothing to add or remove", () => {
-    const failed: ToolModels = {
-      tool: "claude",
-      at: AT,
-      offered: [],
-      error: "claude did not finish in time.",
-    };
+    const failed: ToolModels = { tool: "claude", at: AT, offered: [], error: "claude did not finish in time." };
     const html = modelsTab("claude", {
-      reading: failed,
-      choices: { plan: { model: "opusplan" } },
+      reading: failed, choices: { plan: { model: "opusplan" } },
     });
     expect(text(html)).toContain("could not be read");
     expect(posted(html, REMOVE)).toEqual([]);
@@ -231,33 +166,19 @@ describe("the models on an AI's tab", () => {
   test("with nothing offered, Currently supported by Aide names each Claude choice by its version", () => {
     const html = modelsTab("claude", {
       reading: { tool: "claude", at: AT, offered: [] },
-      choices: {
-        Fable: { model: "fable" },
-        "claude-opus-4-8": { model: "claude-opus-4-8" },
-      },
-      options: [
-        { name: "Fable", ranAs: "claude-fable-5-1" },
-        { name: "claude-opus-4-8" },
-      ],
+      choices: { Fable: { model: "fable" }, "claude-opus-4-8": { model: "claude-opus-4-8" } },
+      options: [{ name: "Fable", ranAs: "claude-fable-5-1" }, { name: "claude-opus-4-8" }],
     });
     const doc = parse(html);
-    expect(doc.querySelector("h3")?.textContent).toBe(
-      t("en", "settings.models.supported"),
-    );
+    expect(doc.querySelector("h3")?.textContent).toBe(t("en", "settings.models.supported"));
     expect(text(html)).toContain("Fable 5.1");
     expect(text(html)).toContain("Opus 4.8");
   });
 
   test("the Claude Models tab has no field to type a model in, whatever it offers", () => {
-    for (const reading of [
-      { tool: "claude" as const, at: AT, offered: [] },
-      CLAUDE,
-    ]) {
+    for (const reading of [{ tool: "claude" as const, at: AT, offered: [] }, CLAUDE]) {
       const html = modelsTab("claude", { reading, choices: {} });
-      expect(
-        parse(html).querySelectorAll('input[name="model"]:not([type="hidden"])')
-          .length,
-      ).toBe(0);
+      expect(parse(html).querySelectorAll('input[name="model"]:not([type="hidden"])').length).toBe(0);
     }
   });
 });
@@ -268,18 +189,11 @@ describe("the Models tab stamps its own reading", () => {
   const stamped = (at: string) => at.replace("T", " ").slice(0, 19) + " UTC";
 
   test("it shows its reading's time", () => {
-    expect(
-      text(modelsTab("codex", { reading: models, choices: {} })),
-    ).toContain(stamped(MODELS_AT));
+    expect(text(modelsTab("codex", { reading: models, choices: {} }))).toContain(stamped(MODELS_AT));
   });
 
   test("it names the provider the reading was read with", () => {
-    const named = text(
-      modelsTab("codex", {
-        reading: { ...models, provider: "Codex-p" },
-        choices: {},
-      }),
-    );
+    const named = text(modelsTab("codex", { reading: { ...models, provider: "Codex-p" }, choices: {} }));
     expect(named).toContain("Codex-p");
   });
 });

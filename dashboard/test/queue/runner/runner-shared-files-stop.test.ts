@@ -3,22 +3,14 @@
 // files it shares, and the step result keeps the list.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import {
-  store,
-  enqueue,
-  makeRunner,
-  okResult,
-  resetHarness,
-  cleanupHarness,
-} from "./runner-fixtures.ts";
+import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "./runner-fixtures.ts";
 import { renderSentence, type Sentence } from "../../../src/i18n/message.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
 // The script's own sentence names no spec: what names them is the list in the result.
-const SCRIPT_SENTENCE =
-  "Analyze stopped: other open specs change the same files.";
+const SCRIPT_SENTENCE = "Analyze stopped: other open specs change the same files.";
 
 const SHARED = [
   { spec: "603-b", files: ["x.ts", "y.ts"] },
@@ -51,8 +43,7 @@ describe("an analyze stopped on files another open spec changes", () => {
   test("its sentence names each spec and each file it shares", () => {
     const after = stopped(SHARED);
     const en = renderSentence("en", after?.error as Sentence) ?? "";
-    for (const text of ["603-b", "x.ts", "y.ts", "604-c", "z.ts"])
-      expect(en).toContain(text);
+    for (const text of ["603-b", "x.ts", "y.ts", "604-c", "z.ts"]) expect(en).toContain(text);
   });
 
   test("the step result keeps the specs and their files", () => {

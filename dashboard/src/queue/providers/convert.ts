@@ -6,13 +6,7 @@
 import { listedModelName, resolveStepModel } from "../model-name.ts";
 import type { ScheduleEntry } from "../schedule.ts";
 import type { Job, QueueDefaults, StepResult } from "../types.ts";
-import {
-  expandDir,
-  PROVIDER_TOOLS,
-  willRun,
-  type Provider,
-  type ProviderTool,
-} from "./index.ts";
+import { expandDir, PROVIDER_TOOLS, willRun, type Provider, type ProviderTool } from "./index.ts";
 import { SHORT_TOOL_NAMES } from "./tools.ts";
 
 export interface ConversionInput {
@@ -43,18 +37,11 @@ export function convertToProviders(input: ConversionInput): Conversion {
   };
 
   // Accounts claim their names first, so one named like a tool keeps it.
-  const accounts: {
-    key: string;
-    name: string;
-    dir: string;
-    provider: Provider;
-  }[] = [];
+  const accounts: { key: string; name: string; dir: string; provider: Provider }[] = [];
   for (const [name, account] of Object.entries(input.claudeAccounts ?? {})) {
     const key = free(name);
     accounts.push({
-      key,
-      name,
-      dir: expandDir(account.configDir, home),
+      key, name, dir: expandDir(account.configDir, home),
       provider: { name: key, tool: "claude", configDir: account.configDir },
     });
   }
@@ -67,13 +54,8 @@ export function convertToProviders(input: ConversionInput): Conversion {
   for (const a of accounts) providers[a.key] = a.provider;
 
   const toolOfModel = (model: string | undefined): ProviderTool => {
-    const listed = model
-      ? listedModelName(Object.keys(defaults.modelChoices ?? {}), model)
-      : undefined;
-    const tool =
-      listed && "name" in listed
-        ? defaults.modelChoices?.[listed.name]?.tool
-        : undefined;
+    const listed = model ? listedModelName(Object.keys(defaults.modelChoices ?? {}), model) : undefined;
+    const tool = listed && "name" in listed ? defaults.modelChoices?.[listed.name]?.tool : undefined;
     return tool === "codex" || tool === "opencode" ? tool : "claude";
   };
 
@@ -85,20 +67,14 @@ export function convertToProviders(input: ConversionInput): Conversion {
   const schedules: Record<string, ScheduleEntry[]> = {};
   for (const [project, entries] of Object.entries(input.schedules)) {
     schedules[project] = entries.map((e) =>
-      e.model && !e.provider
-        ? { ...e, provider: toolKey[toolOfModel(e.model)] }
-        : { ...e },
+      e.model && !e.provider ? { ...e, provider: toolKey[toolOfModel(e.model)] } : { ...e },
     );
   }
 
   // A provider of a job's own: one for an account no longer configured that
   // a job will still run on, shared by every job with the same name and folder.
   const own = new Map<string, string>();
-  const keyForAccount = (
-    name: string,
-    dir: string,
-    make: boolean,
-  ): string | undefined => {
+  const keyForAccount = (name: string, dir: string, make: boolean): string | undefined => {
     const configured = accounts.find((a) => a.dir === dir);
     if (configured) return configured.key;
     if (!make) return undefined;
@@ -111,70 +87,37 @@ export function convertToProviders(input: ConversionInput): Conversion {
     return own.get(id);
   };
   const keyForAccountName = (name: string): string | undefined =>
-    accounts.find((a) => a.name === name)?.key ??
-    [...own].find(([id]) => id.startsWith(`${name}\n`))?.[1];
+    accounts.find((a) => a.name === name)?.key ?? [...own].find(([id]) => id.startsWith(`${name}\n`))?.[1];
 
   const jobs = input.jobs.map((stored): Job => {
     // The fields providers replace, read off the stored job as unknown.
     const {
-      claudeAccount: rawAccount,
-      usageLimitLeft: _left,
-      usageLimitLeftBefore: _before,
-      ...job
-    } = stored as Job & {
-      claudeAccount?: { name?: unknown; configDir?: unknown };
-      usageLimitLeft?: unknown;
-      usageLimitLeftBefore?: unknown;
-    };
+      claudeAccount: rawAccount, usageLimitLeft: _left, usageLimitLeftBefore: _before, ...job
+    } = stored as Job & { claudeAccount?: { name?: unknown; configDir?: unknown }; usageLimitLeft?: unknown; usageLimitLeftBefore?: unknown };
     const account =
-      rawAccount &&
-      typeof rawAccount.name === "string" &&
-      typeof rawAccount.configDir === "string"
+      rawAccount && typeof rawAccount.name === "string" && typeof rawAccount.configDir === "string"
         ? { name: rawAccount.name, dir: rawAccount.configDir }
         : undefined;
     const stepProvider: Record<string, string> = { ...job.provider };
     for (const step of job.steps) {
       if (stepProvider[step]) continue;
-      const tool = toolOfModel(
-        resolveStepModel(job, step, defaults.model ?? {}),
-      );
-      const onAccount =
-        tool === "claude" && account
-          ? keyForAccount(account.name, account.dir, willRun(job))
-          : undefined;
+      const tool = toolOfModel(resolveStepModel(job, step, defaults.model ?? {}));
+      const onAccount = tool === "claude" && account ? keyForAccount(account.name, account.dir, willRun(job)) : undefined;
       stepProvider[step] = onAccount ?? toolKey[tool];
     }
-    return {
-      ...job,
-      provider: stepProvider,
-      results: job.results.map((r) => resultWithProvider(r)),
-    };
+    return { ...job, provider: stepProvider, results: job.results.map((r) => resultWithProvider(r)) };
   });
 
   // Run after the jobs, so a provider made for a job's own account is known.
   function resultWithProvider(r: StepResult): StepResult {
-    const { claudeAccount: accountName, ...result } = r as StepResult & {
-      claudeAccount?: string;
-    };
+    const { claudeAccount: accountName, ...result } = r as StepResult & { claudeAccount?: string };
     if (result.provider || result.tool === "none") return result;
-    const tool: ProviderTool =
-      result.tool === "codex" || result.tool === "opencode"
-        ? result.tool
-        : "claude";
+    const tool: ProviderTool = result.tool === "codex" || result.tool === "opencode" ? result.tool : "claude";
     if (tool === "claude" && accountName) {
       const key = keyForAccountName(accountName);
-      return {
-        ...result,
-        provider: {
-          key: key ?? accountName,
-          name: key ? providers[key]!.name : accountName,
-        },
-      };
+      return { ...result, provider: { key: key ?? accountName, name: key ? providers[key]!.name : accountName } };
     }
-    return {
-      ...result,
-      provider: { key: toolKey[tool], name: providers[toolKey[tool]]!.name },
-    };
+    return { ...result, provider: { key: toolKey[tool], name: providers[toolKey[tool]]!.name } };
   }
 
   return { providers, provider, schedules, jobs };

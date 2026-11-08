@@ -1,7 +1,11 @@
 // Split out of model-and-phase-picks.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { harness, flush, OK_ACTION } from "../fixtures.ts";
+import {
+  harness,
+  flush,
+  OK_ACTION,
+} from "../fixtures.ts";
 
 // --- A hand-made tick stops deciding once its own press has gone through ---
 //
@@ -12,14 +16,10 @@ import { harness, flush, OK_ACTION } from "../fixtures.ts";
 // through). The override has to expire the moment its own press
 // succeeds.
 describe("a hand-made tick stops deciding once its own press has gone through", () => {
-  const ticks = (h: ReturnType<typeof harness>) =>
-    h.stepBoxes.map((b) => b.checked);
+  const ticks = (h: ReturnType<typeof harness>) => h.stepBoxes.map((b) => b.checked);
 
   test("the box follows the server again after its own Run has succeeded and a later redraw happens", async () => {
-    const h = harness(
-      () => ({ ok: true, body: OK_ACTION, text: "<tr>fresh</tr>" }),
-      "rowrun",
-    );
+    const h = harness(() => ({ ok: true, body: OK_ACTION, text: "<tr>fresh</tr>" }), "rowrun");
     h.changeStep(0, false); // analyze, which the server serves ticked
     await h.submit();
     // A later, unrelated redraw — a different job for the same spec
@@ -40,8 +40,7 @@ describe("a hand-made tick stops deciding once its own press has gone through", 
 // re-derives its ticks from the row's history (`preTicked`) on every
 // render, so a swap is not a no-op for them; it is an overwrite.
 describe("a hand-ticked phase box survives the five-second swap", () => {
-  const ticks = (h: ReturnType<typeof harness>) =>
-    h.stepBoxes.map((b) => b.checked);
+  const ticks = (h: ReturnType<typeof harness>) => h.stepBoxes.map((b) => b.checked);
 
   const swap = async (h: ReturnType<typeof harness>) => {
     h.document.visibilityState = "visible";
@@ -143,16 +142,10 @@ describe("a hand-ticked phase box survives the five-second swap", () => {
     await swap(h);
 
     expect(h.aiSelects.map((s) => s.value)).toEqual([
-      "claude",
-      "claude",
-      "codex",
-      "claude",
+      "claude", "claude", "codex", "claude",
     ]);
     expect(h.modelSelects.map((s) => s.value)).toEqual([
-      "sonnet",
-      "fable",
-      "codex-fast",
-      "sonnet",
+      "sonnet", "fable", "codex-fast", "sonnet",
     ]);
   });
 });
@@ -223,9 +216,7 @@ describe("a swap older than the press is discarded, not applied", () => {
     let asked = 0;
     const h = harness((url) => {
       if (url.includes("/cancel")) return { ok: true, body: REFUSED };
-      return asked++ === 0
-        ? { ok: true, text: STALE, hold: tickHeld }
-        : { ok: true, text: FRESH };
+      return asked++ === 0 ? { ok: true, text: STALE, hold: tickHeld } : { ok: true, text: FRESH };
     });
     h.document.visibilityState = "visible";
     h.tick();
@@ -256,8 +247,7 @@ describe("a swap older than the press is discarded, not applied", () => {
 // from the file. A reader half-way through ticking would otherwise have the
 // boxes reset under them, and then Save the file's own state back.
 describe("a tick in the unfolded acceptance criteria survives a redraw", () => {
-  const ticks = (h: ReturnType<typeof harness>) =>
-    h.tickBoxes.map((b) => b.checked);
+  const ticks = (h: ReturnType<typeof harness>) => h.tickBoxes.map((b) => b.checked);
   const swap = async (h: ReturnType<typeof harness>) => {
     h.document.visibilityState = "visible";
     h.tick();
@@ -273,10 +263,7 @@ describe("a tick in the unfolded acceptance criteria survives a redraw", () => {
   });
 
   test("and after the whole table is replaced", async () => {
-    const h = harness(() => ({
-      ok: true,
-      text: "<table><tbody><tr>fresh</tr></tbody></table>",
-    }));
+    const h = harness(() => ({ ok: true, text: "<table><tbody><tr>fresh</tr></tbody></table>" }));
     h.changeTick(0, true);
     await swap(h);
     expect(ticks(h)).toEqual([true, true, false]);
@@ -296,14 +283,9 @@ describe("a tick in the unfolded acceptance criteria survives a redraw", () => {
   });
 
   test("once that list's own Save has gone through its remembered ticks are dropped", async () => {
-    const h = harness(
-      () => ({ ok: true, body: OK_ACTION, text: "<tr>fresh</tr>" }),
-      "actionform",
-      "",
-      {
-        formId: "rowchecks-aide/493-a",
-      },
-    );
+    const h = harness(() => ({ ok: true, body: OK_ACTION, text: "<tr>fresh</tr>" }), "actionform", "", {
+      formId: "rowchecks-aide/493-a",
+    });
     h.changeTick(0, true);
     h.changeTick(2, true);
     await h.submit();

@@ -11,10 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "../../helpers/queue-server.ts";
 import { createScheduleStore } from "../../../src/queue/schedule-store.ts";
-import {
-  refreshSchedules,
-  type ScheduleContext,
-} from "../../../src/serve/schedules";
+import { refreshSchedules, type ScheduleContext } from "../../../src/serve/schedules";
 
 const harness = queueHarness("aide-schedule-runner-");
 
@@ -68,26 +65,15 @@ async function jobsUntil(
   return list;
 }
 
-const NIGHTLY: Entry = {
-  name: "nightly-report",
-  cron: "* * * * *",
-  prompt: "docs/nightly.md",
-};
+const NIGHTLY: Entry = { name: "nightly-report", cron: "* * * * *", prompt: "docs/nightly.md" };
 
 describe("refreshSchedules", () => {
   test("a due entry with no prior job is enqueued as a schedule step", async () => {
     const { base } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 30,
-      },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30 },
     });
     writeSchedule("aide", [NIGHTLY]);
-    const list = await jobsUntil(base, (l) =>
-      l.some((j) => j.specFolder === "schedule-nightly-report"),
-    );
+    const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
     const job = list.find((j) => j.specFolder === "schedule-nightly-report");
     expect(job).toBeDefined();
     expect(job?.project).toBe("aide");
@@ -96,55 +82,31 @@ describe("refreshSchedules", () => {
 
   test("does not enqueue a duplicate while one is already queued", async () => {
     const { base } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 20,
-      },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
     writeSchedule("aide", [NIGHTLY]);
-    await jobsUntil(base, (l) =>
-      l.some((j) => j.specFolder === "schedule-nightly-report"),
-    );
+    await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
     // Several more ticks, all of which should see the same job already
     // queued and enqueue nothing further.
     await new Promise((r) => setTimeout(r, 150));
     const list = await jobs(base);
-    expect(
-      list.filter((j) => j.specFolder === "schedule-nightly-report"),
-    ).toHaveLength(1);
+    expect(list.filter((j) => j.specFolder === "schedule-nightly-report")).toHaveLength(1);
   });
 
   // A schedule job is not a spec, so a project that has none yet — a
   // fresh install's own aide checkout — still gets its entries fired.
   test("a due entry fires in an allowed project with no specs", async () => {
     const { base } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 30,
-        queueProjects: ["aide", "fresh"],
-      },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30, queueProjects: ["aide", "fresh"] },
     });
     writeSchedule("fresh", [NIGHTLY]);
-    const list = await jobsUntil(base, (l) =>
-      l.some((j) => j.project === "fresh"),
-    );
-    expect(list.find((j) => j.project === "fresh")?.specFolder).toBe(
-      "schedule-nightly-report",
-    );
+    const list = await jobsUntil(base, (l) => l.some((j) => j.project === "fresh"));
+    expect(list.find((j) => j.project === "fresh")?.specFolder).toBe("schedule-nightly-report");
   });
 
   test("a project with no schedule entries gets nothing enqueued", async () => {
     const { base } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 20,
-      },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
     await new Promise((r) => setTimeout(r, 150));
     const list = await jobs(base);
@@ -156,145 +118,83 @@ describe("refreshSchedules", () => {
   // nobody watching to notice.
   test("a due entry fires on the provider it names (AC-9)", async () => {
     const { base } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 30,
+      extra: { queueConfigFile: cfg,
+        driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30,
         queueDefaults: {
-          timeoutSec: { default: 1200 },
-          permissionMode: { default: "acceptEdits" },
+          timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
           model: { default: "sonnet" },
-          modelChoices: {
-            sonnet: {},
-            "codex-fast": { tool: "codex" as const },
-          },
-          providers: {
-            Claude: { name: "Claude", tool: "claude" as const },
-            Codex: { name: "Codex", tool: "codex" as const },
-          },
+          modelChoices: { sonnet: {}, "codex-fast": { tool: "codex" as const } },
+          providers: { Claude: { name: "Claude", tool: "claude" as const }, Codex: { name: "Codex", tool: "codex" as const } },
         },
       },
     });
-    writeSchedule("aide", [
-      { ...NIGHTLY, model: "codex-fast", provider: "Codex" } as Entry,
-    ]);
-    const list = await jobsUntil(base, (l) =>
-      l.some((j) => j.specFolder === "schedule-nightly-report"),
-    );
-    expect(
-      (
-        list.find((j) => j.specFolder === "schedule-nightly-report") as
-          { provider?: unknown } | undefined
-      )?.provider,
-    ).toEqual({ schedule: "Codex" });
+    writeSchedule("aide", [{ ...NIGHTLY, model: "codex-fast", provider: "Codex" } as Entry]);
+    const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
+    expect((list.find((j) => j.specFolder === "schedule-nightly-report") as { provider?: unknown } | undefined)?.provider).toEqual({ schedule: "Codex" });
   });
 
   test("a due entry fires on the model it names", async () => {
     const { base } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 30,
+      extra: { queueConfigFile: cfg,
+        driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30,
         queueDefaults: {
-          timeoutSec: { default: 1200 },
-          permissionMode: { default: "acceptEdits" },
+            
+          timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
           model: { default: "sonnet" },
-          modelChoices: {
-            sonnet: {},
-            "codex-fast": { tool: "codex" as const },
-          },
+          modelChoices: { sonnet: { }, "codex-fast": {  tool: "codex" as const } },
         },
       },
     });
     writeSchedule("aide", [{ ...NIGHTLY, model: "codex-fast" }]);
-    const list = await jobsUntil(base, (l) =>
-      l.some((j) => j.specFolder === "schedule-nightly-report"),
-    );
-    expect(
-      list.find((j) => j.specFolder === "schedule-nightly-report")?.modelChoice,
-    ).toBe("codex-fast");
+    const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
+    expect(list.find((j) => j.specFolder === "schedule-nightly-report")?.modelChoice).toBe("codex-fast");
   });
 
   // Jobs are read from the queue config file and nowhere else.
   test("a due entry only a project's manifest lists enqueues nothing", async () => {
     const { base, dir } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 20,
-      },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
     writeFileSync(
       join(dir, "root", "aide", ".aide", "project.yaml"),
       'name: aide\nschedule:\n  - name: from-manifest\n    cron: "* * * * *"\n    prompt: docs/nightly.md\n',
     );
-    writeSchedule("aide", [
-      {
-        name: "other",
-        cron: "0 3 * * *",
-        prompt: "docs/nightly.md",
-        since: "2999-01-01T00:00:00Z",
-      },
-    ]);
+    writeSchedule("aide", [{ name: "other", cron: "0 3 * * *", prompt: "docs/nightly.md", since: "2999-01-01T00:00:00Z" }]);
     await new Promise((r) => setTimeout(r, 200));
-    expect((await jobs(base)).some((j) => j.steps.includes("schedule"))).toBe(
-      false,
-    );
+    expect((await jobs(base)).some((j) => j.steps.includes("schedule"))).toBe(false);
   });
 
   test("a server whose config file does not exist has no scheduled jobs, whatever the manifests say", async () => {
     const { base, dir } = harness.start({
-      extra: {
-        queueConfigFile: join(cfgDir, "missing.json"),
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 20,
-      },
+      extra: { queueConfigFile: join(cfgDir, "missing.json"), driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20 },
     });
     writeFileSync(
       join(dir, "root", "aide", ".aide", "project.yaml"),
       'name: aide\nschedule:\n  - name: from-manifest\n    cron: "* * * * *"\n    prompt: docs/nightly.md\n',
     );
     await new Promise((r) => setTimeout(r, 200));
-    expect((await jobs(base)).some((j) => j.steps.includes("schedule"))).toBe(
-      false,
-    );
+    expect((await jobs(base)).some((j) => j.steps.includes("schedule"))).toBe(false);
     const page = await (await fetch(`${base}/schedule`)).text();
     expect(page).not.toContain("from-manifest");
   });
 
   test("scheduleCheckMs: 0 turns the poll off entirely", async () => {
     const { base } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 0,
-      },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 0 },
     });
     writeSchedule("aide", [NIGHTLY]);
     await new Promise((r) => setTimeout(r, 150));
     const list = await jobs(base);
-    expect(list.some((j) => j.specFolder === "schedule-nightly-report")).toBe(
-      false,
-    );
+    expect(list.some((j) => j.specFolder === "schedule-nightly-report")).toBe(false);
   });
 });
 
 // A fire the queue refuses leaves a line in the serve log, once per
 // fire window and reason, and a name in another case fires on the listed one.
 describe("refreshSchedules and a refused fire", () => {
-  const DAILY: Entry = {
-    name: "nightly",
-    cron: "0 3 * * *",
-    prompt: "docs/nightly.md",
-  };
+  const DAILY: Entry = { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" };
   const QUEUE_DEFAULTS = {
-    timeoutSec: { default: 1200 },
-    permissionMode: { default: "acceptEdits" },
+    timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
     model: { default: "Sonnet" },
     modelChoices: { Sonnet: {}, Opus: {} },
   };
@@ -314,13 +214,7 @@ describe("refreshSchedules and a refused fire", () => {
 
   test("through the server: one line however many ticks pass, and none once the entry is fixed", async () => {
     const { base } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 20,
-        queueDefaults: QUEUE_DEFAULTS,
-      },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
     });
     const original = console.error;
     const lines: string[] = [];
@@ -328,30 +222,19 @@ describe("refreshSchedules and a refused fire", () => {
     try {
       writeSchedule("aide", [{ ...DAILY, model: "retired" }]);
       const deadline = Date.now() + 2000;
-      while (
-        Date.now() < deadline &&
-        !lines.some((l) => l.includes("scheduled fire refused"))
-      ) {
+      while (Date.now() < deadline && !lines.some((l) => l.includes("scheduled fire refused"))) {
         await new Promise((r) => setTimeout(r, 10));
       }
       await new Promise((r) => setTimeout(r, 100));
-      const refused = lines.filter((l) =>
-        l.includes("scheduled fire refused for aide/nightly"),
-      );
+      const refused = lines.filter((l) => l.includes("scheduled fire refused for aide/nightly"));
       expect(refused).toHaveLength(1);
       expect(refused[0]).toContain("unknown or not-allowed model: retired");
 
       writeSchedule("aide", [{ ...DAILY, model: "Sonnet" }]);
-      const list = await jobsUntil(base, (l) =>
-        l.some((j) => j.specFolder === "schedule-nightly"),
-      );
-      expect(
-        list.find((j) => j.specFolder === "schedule-nightly")?.modelChoice,
-      ).toBe("Sonnet");
+      const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly"));
+      expect(list.find((j) => j.specFolder === "schedule-nightly")?.modelChoice).toBe("Sonnet");
       await new Promise((r) => setTimeout(r, 100));
-      expect(
-        lines.filter((l) => l.includes("scheduled fire refused")),
-      ).toHaveLength(1);
+      expect(lines.filter((l) => l.includes("scheduled fire refused"))).toHaveLength(1);
     } finally {
       console.error = original;
     }
@@ -359,30 +242,17 @@ describe("refreshSchedules and a refused fire", () => {
 
   test("a due entry naming the model in another case is enqueued on the listed spelling", async () => {
     const { base } = harness.start({
-      extra: {
-        queueConfigFile: cfg,
-        driftPollMs: 0,
-        specCachePollMs: 0,
-        scheduleCheckMs: 20,
-        queueDefaults: QUEUE_DEFAULTS,
-      },
+      extra: { queueConfigFile: cfg, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 20, queueDefaults: QUEUE_DEFAULTS },
     });
     writeSchedule("aide", [{ ...DAILY, model: "sonnet" }]);
-    const list = await jobsUntil(base, (l) =>
-      l.some((j) => j.specFolder === "schedule-nightly"),
-    );
-    expect(
-      list.find((j) => j.specFolder === "schedule-nightly")?.modelChoice,
-    ).toBe("Sonnet");
+    const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly"));
+    expect(list.find((j) => j.specFolder === "schedule-nightly")?.modelChoice).toBe("Sonnet");
   });
 
   describe("called directly with a stub queue and a clock", () => {
     let root: string;
     let clock = 0;
-    let answer: { ok: true } | { ok: false; error: string } = {
-      ok: false,
-      error: "refused: one",
-    };
+    let answer: { ok: true } | { ok: false; error: string } = { ok: false, error: "refused: one" };
     let ctx: ScheduleContext;
 
     const setup = (entries: Entry[]) => {
@@ -438,10 +308,7 @@ describe("refreshSchedules and a refused fire", () => {
         enqueued.push(r);
         return { ok: true };
       };
-      ctx = {
-        ...ctx,
-        queue: { list: () => [], enqueue },
-      } as unknown as ScheduleContext;
+      ctx = { ...ctx, queue: { list: () => [], enqueue } } as unknown as ScheduleContext;
       const lines = [...(await tick()), ...(await tick())];
       expect(enqueued).toEqual([]);
       expect(lines).toHaveLength(1);

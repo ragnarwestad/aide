@@ -35,18 +35,13 @@ export async function readBounded(
   cap: number = MAX_BODY,
 ): Promise<{ text: string } | { refusal: Response }> {
   const claimed = Number(req.headers.get("content-length") ?? "0");
-  if (claimed > cap)
-    return { refusal: json({ error: "payload too large" }, 413) };
+  if (claimed > cap) return { refusal: json({ error: "payload too large" }, 413) };
   const text = await req.text();
-  if (text.length > cap)
-    return { refusal: json({ error: "payload too large" }, 413) };
+  if (text.length > cap) return { refusal: json({ error: "payload too large" }, 413) };
   return { text };
 }
 
-export function cookieValue(
-  header: string | null,
-  name: string,
-): string | null {
+export function cookieValue(header: string | null, name: string): string | null {
   for (const part of (header ?? "").split(";")) {
     const [k, ...rest] = part.trim().split("=");
     if (k === name) return decodeURIComponent(rest.join("="));
@@ -115,17 +110,14 @@ export function sortChoice(
  *  above is. */
 export const stateCookieName = (port: number): string => `aide_state_${port}`;
 
-export function stateChoice(
-  url: URL,
-  req: Request,
-  port: number,
-): { state?: string; setCookie?: string } {
+export function stateChoice(url: URL, req: Request, port: number): { state?: string; setCookie?: string } {
   const cookieName = stateCookieName(port);
   const state = url.searchParams.get("state");
   if (state) {
     return {
       state,
-      setCookie: `${cookieName}=${encodeURIComponent(state)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+      setCookie:
+        `${cookieName}=${encodeURIComponent(state)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
     };
   }
   const stored = cookieValue(req.headers.get("cookie"), cookieName);
@@ -135,8 +127,7 @@ export function stateChoice(
 /** The Jobs tab's own memory of its view: a cookie of its own, so the Specs
  *  list's `aide_state_<port>` and `aide_sort_<port>` and this one never read
  *  each other's choices. Named after the bound port, as those are. */
-export const jobsViewCookieName = (port: number): string =>
-  `aide_jobs_view_${port}`;
+export const jobsViewCookieName = (port: number): string => `aide_jobs_view_${port}`;
 
 /** The Jobs tab's view: the keys that cut and order its rows. */
 export interface JobsViewKeys {
@@ -154,11 +145,7 @@ export interface JobsViewKeys {
  *  keys that have a value, as a query string. Nothing in it is trusted: the
  *  renderer falls back to All, no search and the tab's order
  *  for anything it does not know. */
-export function jobsViewChoice(
-  url: URL,
-  req: Request,
-  port: number,
-): { view: JobsViewKeys; setCookie?: string } {
+export function jobsViewChoice(url: URL, req: Request, port: number): { view: JobsViewKeys; setCookie?: string } {
   const cookieName = jobsViewCookieName(port);
   // One literal read per key: a page reads its address only that way.
   const named = {
@@ -168,13 +155,8 @@ export function jobsViewChoice(
     q: url.searchParams.get("q"),
   };
   const namesAny = Object.values(named).some((v) => v !== null);
-  const stored = namesAny
-    ? null
-    : new URLSearchParams(
-        cookieValue(req.headers.get("cookie"), cookieName) ?? "",
-      );
-  const pick = (key: keyof JobsViewKeys): string | undefined =>
-    (stored ? stored.get(key) : named[key]) || undefined;
+  const stored = namesAny ? null : new URLSearchParams(cookieValue(req.headers.get("cookie"), cookieName) ?? "");
+  const pick = (key: keyof JobsViewKeys): string | undefined => (stored ? stored.get(key) : named[key]) || undefined;
   const view: JobsViewKeys = {};
   for (const key of ["state", "sort", "dir", "q"] as const) {
     const value = pick(key);
@@ -206,24 +188,16 @@ export function languageChoice(
     return {
       lang: requested as Language,
       currentUrl,
-      setCookie: `${LANG_COOKIE}=${requested}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+      setCookie:
+        `${LANG_COOKIE}=${requested}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
     };
   }
   const stored = cookieValue(req.headers.get("cookie"), LANG_COOKIE);
-  return {
-    lang:
-      stored && (LANGUAGES as string[]).includes(stored)
-        ? (stored as Language)
-        : "en",
-    currentUrl,
-  };
+  return { lang: stored && (LANGUAGES as string[]).includes(stored) ? (stored as Language) : "en", currentUrl };
 }
 
 // A body may arrive as JSON (API) or urlencoded (a form the page posts).
-export function bodyToObject(
-  text: string,
-  contentType: string | null,
-): unknown {
+export function bodyToObject(text: string, contentType: string | null): unknown {
   if ((contentType ?? "").includes("application/x-www-form-urlencoded")) {
     const params = new URLSearchParams(text);
     const out: Record<string, unknown> = {};
@@ -256,18 +230,13 @@ export function bodyToObject(
     // JSON caller reaches it without coming through here — so this is
     // about the SHAPE at this seam, not the only thing standing between
     // an untouched field and a refused request.
-    const modelKeys = [...new Set(params.keys())].filter((k) =>
-      k.startsWith("model."),
-    );
+    const modelKeys = [...new Set(params.keys())].filter((k) => k.startsWith("model."));
     if (modelKeys.length) {
       const picked: Record<string, string> = {};
       for (const key of modelKeys) {
         const values = params.getAll(key).filter(Boolean);
-        if (values.length === 1)
-          picked[key.slice("model.".length)] = values[0]!;
-        else if (values.length > 1)
-          (picked as Record<string, unknown>)[key.slice("model.".length)] =
-            values;
+        if (values.length === 1) picked[key.slice("model.".length)] = values[0]!;
+        else if (values.length > 1) (picked as Record<string, unknown>)[key.slice("model.".length)] = values;
         delete out[key];
       }
       if (Object.keys(picked).length) out.model = picked;
@@ -275,9 +244,7 @@ export function bodyToObject(
     // The provider chosen beside each model: `provider.<step>` folds to
     // `{ provider: { step: key } }` the way `model.<step>` does; the
     // schedule form's bare `provider` stays a whole-job string.
-    const providerKeys = [...new Set(params.keys())].filter((k) =>
-      k.startsWith("provider."),
-    );
+    const providerKeys = [...new Set(params.keys())].filter((k) => k.startsWith("provider."));
     if (providerKeys.length) {
       const picked: Record<string, string> = {};
       for (const key of providerKeys) {
@@ -292,9 +259,7 @@ export function bodyToObject(
     // row rather than the flat, seconds-denominated `timeoutSec` the
     // job-creation routes post. Run before the flat-numeric loop below,
     // which only fires while `out.timeoutSec` is still a string.
-    const timeoutKeys = [...new Set(params.keys())].filter((k) =>
-      k.startsWith("timeoutSec."),
-    );
+    const timeoutKeys = [...new Set(params.keys())].filter((k) => k.startsWith("timeoutSec."));
     if (timeoutKeys.length) {
       const picked: Record<string, number> = {};
       for (const key of timeoutKeys) {
@@ -304,29 +269,23 @@ export function bodyToObject(
       }
       if (Object.keys(picked).length) out.timeoutSec = picked;
     }
-    if (typeof out.timeoutSec === "string")
-      out.timeoutSec = Number(out.timeoutSec);
+    if (typeof out.timeoutSec === "string") out.timeoutSec = Number(out.timeoutSec);
     // Settings' Process tab: `Number("")` is 0 and `Number("abc")` NaN,
     // and the route's 1-8 check refuses both.
-    if (typeof out.concurrency === "string")
-      out.concurrency = Number(out.concurrency);
+    if (typeof out.concurrency === "string") out.concurrency = Number(out.concurrency);
     return out;
   }
   return JSON.parse(text) as unknown;
 }
 
-export async function parseBody(
-  req: Request,
-): Promise<Record<string, unknown> | Response> {
+export async function parseBody(req: Request): Promise<Record<string, unknown> | Response> {
   const body = await readBounded(req);
   if ("refusal" in body) return body.refusal;
   try {
-    return (bodyToObject(body.text, req.headers.get("content-type")) ??
-      {}) as Record<string, unknown>;
+    return (bodyToObject(body.text, req.headers.get("content-type")) ?? {}) as Record<string, unknown>;
   } catch {
     return json({ error: "malformed body" }, 400);
   }
 }
 
-export const trimmedText = (v: unknown): string =>
-  typeof v === "string" ? v.trim() : "";
+export const trimmedText = (v: unknown): string => (typeof v === "string" ? v.trim() : "");

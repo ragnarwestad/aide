@@ -13,14 +13,8 @@ const DIALOG = "src/render/ui/components/confirm-dialog.ts";
 const PROGRESS = "src/render/ui/components/progress-dialog.ts";
 const HOLD = "src/specs-client/progress-dialog/index.ts";
 
-const writing = (
-  files: { file: string; text: string }[],
-  needle: string,
-): string[] =>
-  files
-    .filter((f) => f.text.includes(needle))
-    .map((f) => f.file)
-    .sort();
+const writing = (files: { file: string; text: string }[], needle: string): string[] =>
+  files.filter((f) => f.text.includes(needle)).map((f) => f.file).sort();
 
 describe("one ask dialog, one opener", () => {
   const render = read("src/render/**/*.ts");
@@ -42,28 +36,17 @@ describe("one ask dialog, one opener", () => {
 
   test("only the progress dialog writes its class, its mark and its cover word", () => {
     // The page script reads the mark and the word; only markup writes them.
-    expect(writing([...render, ...serve], "data-progress-dialog")).toEqual([
-      PROGRESS,
-    ]);
-    expect(writing([...render, ...serve], `class="progressdialog`)).toEqual([
-      PROGRESS,
-    ]);
-    expect(writing([...render, ...serve], "data-cover-note")).toEqual([
-      PROGRESS,
-    ]);
+    expect(writing([...render, ...serve], "data-progress-dialog")).toEqual([PROGRESS]);
+    expect(writing([...render, ...serve], `class="progressdialog`)).toEqual([PROGRESS]);
+    expect(writing([...render, ...serve], "data-cover-note")).toEqual([PROGRESS]);
   });
 
   test("one script file opens every dialog from its button, and one asks again after a refusal", () => {
     expect(writing(client, "data-ask")).toEqual(["src/specs-client/ask.ts"]);
-    expect(writing(client, "showModal")).toEqual([
-      "src/specs-client/ask.ts",
-      HOLD,
-    ]);
+    expect(writing(client, "showModal")).toEqual(["src/specs-client/ask.ts", HOLD]);
   });
 
   test("only the New-spec form wears the New-spec form's class", () => {
-    expect(writing(render, "newspecform")).toEqual([
-      "src/render/pages/new-spec-page/index.ts",
-    ]);
+    expect(writing(render, "newspecform")).toEqual(["src/render/pages/new-spec-page/index.ts"]);
   });
 });

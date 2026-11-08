@@ -25,15 +25,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import {
-  configValue,
-  resolveAcPrefix,
-  resolveDescription,
-  resolveWorktreeLinks,
-  resolveInstallCmd,
-  resolvePreviewCmd,
-  resolveTestCmd,
-} from "./discover";
+import { configValue, resolveAcPrefix, resolveDescription, resolveWorktreeLinks, resolveInstallCmd, resolvePreviewCmd, resolveTestCmd } from "./discover";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
 import { t, type TranslationKey } from "../i18n";
 import type { BoardMessage } from "../i18n/message.ts";
@@ -103,21 +95,9 @@ export const SETTING_KEYS = [
  *  (Worktree links, Preview command, Test command). A flat `SETTING_KEYS`
  *  order stays untouched elsewhere; this is only how the renderer groups
  *  the same rows into two tables. */
-export const SETTING_GROUPS: {
-  file: ".aide/config" | "manifest";
-  keys: readonly string[];
-}[] = [
+export const SETTING_GROUPS: { file: ".aide/config" | "manifest"; keys: readonly string[] }[] = [
   { file: ".aide/config", keys: ["AIDE_SPECS_PATH", "AIDE_INSTALL_CMD"] },
-  {
-    file: "manifest",
-    keys: [
-      "worktreeLinks",
-      "previewCmd",
-      "AIDE_TEST_CMD",
-      "acPrefix",
-      "description",
-    ],
-  },
+  { file: "manifest", keys: ["worktreeLinks", "previewCmd", "AIDE_TEST_CMD", "acPrefix", "description"] },
 ];
 
 export type SettingsGroupFile = (typeof SETTING_GROUPS)[number]["file"];
@@ -130,12 +110,8 @@ export const EDIT_GROUP_PARAM: Record<SettingsGroupFile, string> = {
   manifest: "manifest",
 };
 
-export function groupForEditParam(
-  param: string | null,
-): SettingsGroupFile | null {
-  const found = (
-    Object.entries(EDIT_GROUP_PARAM) as [SettingsGroupFile, string][]
-  ).find(([, v]) => v === param);
+export function groupForEditParam(param: string | null): SettingsGroupFile | null {
+  const found = (Object.entries(EDIT_GROUP_PARAM) as [SettingsGroupFile, string][]).find(([, v]) => v === param);
   return found?.[0] ?? null;
 }
 
@@ -154,10 +130,7 @@ export const EDITABLE_FIELD: Record<string, string> = {
 
 /** What each key is for, in English: the catalogue's `setting.purpose.<key>`. */
 const PURPOSE: Record<string, string> = Object.fromEntries(
-  SETTING_KEYS.map((key) => [
-    key,
-    t("en", `setting.purpose.${key}` as TranslationKey),
-  ]),
+  SETTING_KEYS.map((key) => [key, t("en", `setting.purpose.${key}` as TranslationKey)]),
 );
 
 /** The keys a lockfile can answer, and which command each is: the test
@@ -178,9 +151,7 @@ const RESOLVED_BY: Record<string, ReadinessCheckName> = {
 /** The checks a settings row already speaks for — exported so
  *  `project-page.ts` can filter its checkout-level section by the SAME
  *  set `RESOLVED_BY` names, rather than a second, hand-copied list. */
-export const FIELD_OWNED_CHECKS: ReadonlySet<ReadinessCheckName> = new Set(
-  Object.values(RESOLVED_BY),
-);
+export const FIELD_OWNED_CHECKS: ReadonlySet<ReadinessCheckName> = new Set(Object.values(RESOLVED_BY));
 
 /** What `key`'s own file says is configured, and its fixed source (every key
  *  has exactly one file). `null` when nothing is
@@ -198,22 +169,12 @@ function configuredValue(
     return links ? { value: links, source: source ?? undefined } : null;
   }
   if (key === "description" || key === "acPrefix") {
-    const { value, source } = (
-      key === "description" ? resolveDescription : resolveAcPrefix
-    )(manifestDir);
+    const { value, source } = (key === "description" ? resolveDescription : resolveAcPrefix)(manifestDir);
     return value ? { value, source: source ?? undefined } : null;
   }
-  if (
-    key === "AIDE_INSTALL_CMD" ||
-    key === "AIDE_TEST_CMD" ||
-    key === "previewCmd"
-  ) {
+  if (key === "AIDE_INSTALL_CMD" || key === "AIDE_TEST_CMD" || key === "previewCmd") {
     const resolve =
-      key === "AIDE_INSTALL_CMD"
-        ? resolveInstallCmd
-        : key === "AIDE_TEST_CMD"
-          ? resolveTestCmd
-          : resolvePreviewCmd;
+      key === "AIDE_INSTALL_CMD" ? resolveInstallCmd : key === "AIDE_TEST_CMD" ? resolveTestCmd : resolvePreviewCmd;
     const { value, source } = resolve(manifestDir);
     return value ? { value, source: source ?? undefined } : null;
   }
@@ -244,24 +205,14 @@ export function projectSettings(
       // Read verbatim, and only from a check that FAILED: the
       // worktree-links check reports the unset case too, and "no links
       // are configured" is not a value that failed to resolve.
-      const failed = check
-        ? readiness?.checks.find((c) => c.check === check && !c.ok)
-        : undefined;
+      const failed = check ? readiness?.checks.find((c) => c.check === check && !c.ok) : undefined;
       return {
         key,
         purpose,
         value: configured.value,
         origin: "configured",
         ...(configured.source ? { source: configured.source } : {}),
-        ...(failed
-          ? {
-              problem: {
-                text: failed.detail,
-                blocking: failed.blocking,
-                message: failed.message,
-              },
-            }
-          : {}),
+        ...(failed ? { problem: { text: failed.detail, blocking: failed.blocking, message: failed.message } } : {}),
       };
     }
     const kind = DERIVABLE[key];
@@ -283,27 +234,14 @@ export function projectSettings(
     // and before this it was visible only on the Health tab. Read
     // verbatim, same as the `configured` branch.
     const check = RESOLVED_BY[key];
-    const unresolved = check
-      ? readiness?.checks.find((c) => c.check === check && !c.ok)
-      : undefined;
+    const unresolved = check ? readiness?.checks.find((c) => c.check === check && !c.ok) : undefined;
     return {
       key,
       purpose,
       value: null,
       origin: "unset",
-      ...(unresolved
-        ? {
-            problem: {
-              text: unresolved.detail,
-              blocking: unresolved.blocking,
-              message: unresolved.message,
-            },
-          }
-        : {}),
+      ...(unresolved ? { problem: { text: unresolved.detail, blocking: unresolved.blocking, message: unresolved.message } } : {}),
     };
   });
-  return {
-    hasConfigFile: existsSync(join(projectDir, ".aide", "config")),
-    rows,
-  };
+  return { hasConfigFile: existsSync(join(projectDir, ".aide", "config")), rows };
 }

@@ -4,12 +4,7 @@
 
 import { inFlight, type QueueRowView } from "../../ui/job-state";
 import { stepButton } from "../../../format/step-label.ts";
-import {
-  RUN_STEPS,
-  groupKey,
-  offersArchiveAgain,
-  type SpecGroup,
-} from "./data-model";
+import { RUN_STEPS, groupKey, offersArchiveAgain, type SpecGroup } from "./data-model";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status";
 
 /** Whether a job is in flight on this spec — queued, running, or parked
@@ -25,8 +20,7 @@ export const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
 
 /** An archived row whose code never landed, with its archive running
  *  again: it reads and acts as a live row does until the run is over. */
-export const archivingAgain = (g: SpecGroup): boolean =>
-  offersArchiveAgain(g) && specBusy(g);
+export const archivingAgain = (g: SpecGroup): boolean => offersArchiveAgain(g) && specBusy(g);
 
 // THE phase a spec is still waiting on — one fact, read by both halves
 // of the State column, so the badge and the button beside it cannot
@@ -115,17 +109,13 @@ function defaultTicked(g: SpecGroup): Set<string> {
 // the job that made it: the create-time ticks a fresh spec was given, or
 // the ticks left on a row after a later Run, would be gone the moment
 // the page next redrew. This is what closes that gap.
-export function chosenSteps(
-  g: SpecGroup,
-  opts: { pendingSteps?: Record<string, string[]> },
-): Set<string> {
+export function chosenSteps(g: SpecGroup, opts: { pendingSteps?: Record<string, string[]> }): Set<string> {
   const recorded = opts.pendingSteps?.[groupKey(g.project, g.specFolder)];
   const chosen = recorded ? new Set(recorded) : defaultTicked(g);
   // A phase that has run is run again only when the reader ticks it:
   // its box is no longer locked, and a choice remembered from before it
   // ran would otherwise run it a second time on the next press.
-  if (recorded)
-    for (const step of g.done) if (step !== "archive") chosen.delete(step);
+  if (recorded) for (const step of g.done) if (step !== "archive") chosen.delete(step);
   // Held back on its checks: archive is what comes next, and the round
   // offered beside it is a choice the reader makes by ticking. The
   // remembered choice names the chain that has just run, and ticked
@@ -185,15 +175,13 @@ export function actionState(
 // alone: they are written after the form's closing tag, on the same
 // line, and `form="<id>"` is what makes the browser post them with it
 // anyway.
-export const runFormId = (g: SpecGroup): string =>
-  `rowrun-${groupKey(g.project, g.specFolder)}`;
+export const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.specFolder)}`;
 
 // The row's own anchor. `id`, not `data-folder`: a badge pointing at
 // another spec's row needs something `href="#..."` can find with no
 // script at all — this page's own rule. Same shape as `runFormId`, so
 // "an id that names a spec" stays the one convention it already is.
-export const rowAnchorId = (g: SpecGroup): string =>
-  `spec-${groupKey(g.project, g.specFolder)}`;
+export const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
 
 export { specNumber } from "../../../project/spec-folder.ts";
 
@@ -206,9 +194,7 @@ export { specNumber } from "../../../project/spec-folder.ts";
 const PRECHECK_REFUSAL = "acceptance-criteria-unticked";
 
 const refusedForChecks = (a: QueueRowView): boolean =>
-  (a.results ?? []).some(
-    (r) => r.step === "archive" && r.terminalReason === PRECHECK_REFUSAL,
-  );
+  (a.results ?? []).some((r) => r.step === "archive" && r.terminalReason === PRECHECK_REFUSAL);
 
 /** Is this spec waiting on a person to judge its acceptance criteria?
  *  Two records say so and either may be the only one there: the note
@@ -220,10 +206,8 @@ export function heldBackOnChecks(g: SpecGroup): boolean {
   if (g.acceptanceOpen === false) return false;
   const archive = g.phases.find((p) => p.step === "archive");
   if (!archive) return false;
-  return (
-    archive.heldBack?.reason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE ||
-    archive.attempts.some(refusedForChecks)
-  );
+  return archive.heldBack?.reason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE ||
+    archive.attempts.some(refusedForChecks);
 }
 
 /** The question `chosenSteps` asks: is
@@ -231,10 +215,7 @@ export function heldBackOnChecks(g: SpecGroup): boolean {
  *  reopened with the files kept and at implemented, where
  *  nothing is open by construction. */
 export function roundOffered(g: SpecGroup): boolean {
-  return (
-    heldBackOnChecks(g) ||
-    (g.reopenedRound === true && g.done.includes("implement"))
-  );
+  return heldBackOnChecks(g) || (g.reopenedRound === true && g.done.includes("implement"));
 }
 
 /** Is a round of work under way on this spec right now — a job in
@@ -249,7 +230,5 @@ export function roundOffered(g: SpecGroup): boolean {
 export function roundUnderWay(g: SpecGroup): boolean {
   const lead = g.lead;
   if (!lead || !inFlight(lead)) return false;
-  return lead.steps
-    .slice(lead.stepIndex)
-    .some((s) => s === "analyze" || s === "implement");
+  return lead.steps.slice(lead.stepIndex).some((s) => s === "analyze" || s === "implement");
 }

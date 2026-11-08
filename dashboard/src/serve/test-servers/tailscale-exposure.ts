@@ -17,10 +17,7 @@ const DEFAULT_TAILSCALE_BIN = "/usr/local/bin/tailscale";
 function output(cmd: string[]): { ok: boolean; stdout: string } {
   try {
     const proc = Bun.spawnSync(cmd);
-    return {
-      ok: proc.exitCode === 0,
-      stdout: new TextDecoder().decode(proc.stdout),
-    };
+    return { ok: proc.exitCode === 0, stdout: new TextDecoder().decode(proc.stdout) };
   } catch {
     return { ok: false, stdout: "" };
   }
@@ -42,9 +39,7 @@ export function parseExposedPorts(json: string): Set<number> | undefined {
   }
   const tcp = (parsed as { TCP?: unknown }).TCP;
   if (!tcp || typeof tcp !== "object") return undefined;
-  const ports = Object.keys(tcp)
-    .map(Number)
-    .filter((n) => Number.isInteger(n));
+  const ports = Object.keys(tcp).map(Number).filter((n) => Number.isInteger(n));
   return new Set(ports);
 }
 

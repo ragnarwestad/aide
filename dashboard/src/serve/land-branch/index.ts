@@ -12,22 +12,8 @@ export type { LandContext } from "./types.ts";
 export { installAfterMerge } from "./install.ts";
 export { landBranch } from "./merge.ts";
 export {
-  landNewSpec,
-  landStepBranch,
-  landStoppedStepBranch,
-  landArchivedSpec,
-  landClosedSpec,
-  landScheduleRun,
+  landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec, landScheduleRun,
 } from "./steps.ts";
 export { withFreshness } from "./freshness.ts";
-export {
-  deleteLeftBehindBranch,
-  type DeleteLeftBehindResult,
-} from "./left-behind/delete-branch.ts";
-export {
-  createLaunchdRestart,
-  isDashboardRoot,
-  landingJobNames,
-  restartAfterLanding,
-  type RestartHook,
-} from "./restart.ts";
+export { deleteLeftBehindBranch, type DeleteLeftBehindResult } from "./left-behind/delete-branch.ts";
+export { createLaunchdRestart, isDashboardRoot, landingJobNames, restartAfterLanding, type RestartHook } from "./restart.ts";

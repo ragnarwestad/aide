@@ -7,10 +7,7 @@ import { Window } from "happy-dom";
 import type { SpecTarget } from "../../../src/render";
 import { groupBySpec } from "../../../src/render/pages/specs-list/data-model";
 import { approachPanel } from "../../../src/render/pages/specs-list/approach-choice";
-import {
-  cancelApproach,
-  pickApproach,
-} from "../../../src/specs-client/approach-choice";
+import { cancelApproach, pickApproach } from "../../../src/specs-client/approach-choice";
 import { restoreChosen } from "../../../src/specs-client/row-swap.ts";
 
 const FOLDER = "590-choose-the-approach";
@@ -46,11 +43,8 @@ function list(): { rows: HTMLElement; redraw: () => void } {
 }
 
 const radio = (rows: HTMLElement, letter: string) =>
-  rows.querySelector(
-    `input[name="approach"][value="${letter}"]`,
-  ) as HTMLInputElement;
-const cancel = (rows: HTMLElement) =>
-  rows.querySelector(`#${FORM}-cancel`) as HTMLButtonElement;
+  rows.querySelector(`input[name="approach"][value="${letter}"]`) as HTMLInputElement;
+const cancel = (rows: HTMLElement) => rows.querySelector(`#${FORM}-cancel`) as HTMLButtonElement;
 
 describe("the approach radios", () => {
   test("a pick outlives a redraw, with Cancel still offered", () => {

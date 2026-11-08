@@ -69,5 +69,5 @@ Save as `~/Library/LaunchAgents/com.<user>.upgrade-ai-tools.plist`, then
 
 Do not run both — remove the cron line when installing the launchd agent.
 
-The matrix (`docs/AI_SUPPORT_MATRIX.md`) reflects the _last verified_ versions and
+The matrix (`docs/AI_SUPPORT_MATRIX.md`) reflects the *last verified* versions and
 is updated manually via `/check-news` — not by the cron job.

@@ -11,25 +11,14 @@ import { prErrorOf, prErrorSentence } from "../row-shared.ts";
 /** The explanations one phase has, plain text and each once: a
  *  description changed since the analysis (analyze only), a pull request
  *  the latest attempt could not open, and the phase's own qualifier. */
-export function phaseExplanations(
-  g: Pick<SpecGroup, "analyzeStale" | "done">,
-  p: Phase,
-  lang: Language,
-): string[] {
+export function phaseExplanations(g: Pick<SpecGroup, "analyzeStale" | "done">, p: Phase, lang: Language): string[] {
   const said = [
-    p.step === "analyze" && g.analyzeStale
-      ? t(lang, "list.descriptionChangedSince")
-      : undefined,
+    p.step === "analyze" && g.analyzeStale ? t(lang, "list.descriptionChangedSince") : undefined,
     prErrorOf(p) ? prErrorSentence(lang) : undefined,
     renderSentence(
       lang,
-      wordPhase(
-        g.done.includes(p.step),
-        p.heldBack,
-        p.attempts[0],
-        { ...p.history, fileResult: p.fileResult, step: p.step },
-        lang,
-      ).qualifier,
+      wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], { ...p.history, fileResult: p.fileResult, step: p.step }, lang)
+        .qualifier,
     ),
   ];
   return [...new Set(said.filter((s): s is string => !!s))];

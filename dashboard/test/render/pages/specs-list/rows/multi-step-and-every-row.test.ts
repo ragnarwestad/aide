@@ -8,8 +8,7 @@ import {
 import { row, openKeys } from "../../fixtures.ts";
 
 // The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.
-const noFold = (html: string): string =>
-  html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
+const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
 
 /** What a phase that has not run draws in the State column: a dash,
  *  the same one Created and Cost use for "nothing here" (2026-09-08).
@@ -29,26 +28,18 @@ describe("a multi-step job is shown on every step it ran", () => {
   const rows = (list: QueueRowView[], targets: SpecTarget[] = []) =>
     renderSpecsRows(
       list,
-      {
-        runnerAvailable: true,
-        targets,
-        filter: { open: openKeys(list, targets) },
-      },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-08-17T12:00:00Z"),
     );
   // A phase line says what the spec's own FILES say, and
   // the job's outcome qualifies it. This block is about WHICH job
   // speaks for a line, so the file side has to agree the analysis is
   // done — otherwise the line is answering a different question.
-  const analysed: SpecTarget[] = [
-    { project: "aide", specFolder: "90-grouped", done: ["analyze"] },
-  ];
+  const analysed: SpecTarget[] = [{ project: "aide", specFolder: "90-grouped", done: ["analyze"] }];
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    html.match(
-      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
   const twoStep = (extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({
@@ -67,21 +58,18 @@ describe("a multi-step job is shown on every step it ran", () => {
     });
 
   test("an older failed attempt does not speak for a step that has since passed", () => {
-    const html = rows(
-      [
-        row({
-          id: "old",
-          specFolder: "90-grouped",
-          steps: ["analyze"],
-          stepIndex: 0,
-          state: "failed",
-          error: "unknown spec",
-          startedAt: "2026-08-17T09:00:00Z",
-        }),
-        twoStep(),
-      ],
-      analysed,
-    );
+    const html = rows([
+      row({
+        id: "old",
+        specFolder: "90-grouped",
+        steps: ["analyze"],
+        stepIndex: 0,
+        state: "failed",
+        error: "unknown spec",
+        startedAt: "2026-08-17T09:00:00Z",
+      }),
+      twoStep(),
+    ], analysed);
     const analyze = subRow(html, "analyze");
     expect(noFold(analyze)).not.toContain("<a ");
     expect(analyze).toContain("b-done");
@@ -94,24 +82,14 @@ describe("a multi-step job is shown on every step it ran", () => {
     expect(subRow(html, "analyze")).toContain("$5.95");
     expect(subRow(html, "implement")).toContain("$12.73");
     // The header still totals the JOB, which is what was spent on the spec.
-    const head = html.slice(
-      html.indexOf('<tr class="'),
-      html.indexOf('<tr class="subrow'),
-    );
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
     expect(head).toContain("$18.68");
   });
 
   test("a finished step reads as done while the next one is still running", () => {
-    const html = rows(
-      [
-        twoStep({
-          state: "running",
-          spentUsd: 5.95,
-          results: [{ step: "analyze", ok: true, costUsd: 5.95 }],
-        }),
-      ],
-      analysed,
-    );
+    const html = rows([
+      twoStep({ state: "running", spentUsd: 5.95, results: [{ step: "analyze", ok: true, costUsd: 5.95 }] }),
+    ], analysed);
     expect(subRow(html, "analyze")).toContain("b-done");
     expect(subRow(html, "implement")).toContain("b-running");
   });
@@ -122,39 +100,30 @@ describe("a multi-step job is shown on every step it ran", () => {
   // is what this test has always been about — and the sentence is said
   // once, for the row.
   test("the step that failed is marked as such; the reason is said once, on the row", () => {
-    const html = rows(
-      [
-        twoStep({
-          state: "failed",
-          error: "cannot fast-forward main",
-          spentUsd: 5.95,
-          results: [
-            { step: "analyze", ok: true, costUsd: 5.95 },
-            { step: "implement", ok: false, costUsd: 0 },
-          ],
-        }),
-      ],
-      analysed,
-    );
+    const html = rows([
+      twoStep({
+        state: "failed",
+        error: "cannot fast-forward main",
+        spentUsd: 5.95,
+        results: [
+          { step: "analyze", ok: true, costUsd: 5.95 },
+          { step: "implement", ok: false, costUsd: 0 },
+        ],
+      }),
+    ], analysed);
     expect(subRow(html, "analyze")).toContain("b-done");
     expect(subRow(html, "analyze")).not.toContain("cannot fast-forward");
     expect(subRow(html, "implement")).toContain("b-refused");
     expect(subRow(html, "implement")).not.toContain("cannot fast-forward");
-    expect(
-      html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "",
-    ).toContain("Cannot fast-forward main");
+    expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
+      "Cannot fast-forward main",
+    );
     expect([...html.matchAll(/cannot fast-forward main/gi)]).toHaveLength(1);
   });
 
   test("a job with no per-step results still lands on the step it is on", () => {
     const html = rows([
-      row({
-        id: "plain",
-        specFolder: "90-grouped",
-        steps: ["implement"],
-        stepIndex: 0,
-        state: "queued",
-      }),
+      row({ id: "plain", specFolder: "90-grouped", steps: ["implement"], stepIndex: 0, state: "queued" }),
     ]);
     expect(noFold(subRow(html, "implement"))).not.toContain("<a ");
     expect(subRow(html, "analyze")).toContain(PHASE_NOT_RUN);
@@ -167,24 +136,10 @@ describe("a multi-step job is shown on every step it ran", () => {
 // from one to the other the first time it ran, and nothing about that
 // crossing was meaningful to the reader.
 describe("every spec is a row", () => {
-  const job = (
-    id: string,
-    step: string,
-    extra: Partial<QueueRowView> = {},
-  ): QueueRowView =>
-    row({
-      id,
-      specFolder: "90-has-run",
-      steps: [step],
-      stepIndex: 0,
-      state: "done",
-      ...extra,
-    });
+  const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    row({ id, specFolder: "90-has-run", steps: [step], stepIndex: 0, state: "done", ...extra });
 
-  const target = (
-    specFolder: string,
-    extra: Partial<SpecTarget> = {},
-  ): SpecTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -211,22 +166,15 @@ describe("every spec is a row", () => {
       Date.parse("2026-08-17T12:00:00Z"),
     );
 
-  const heads = (html: string) =>
-    html.match(/<tr class="[^"]*spechead[^"]*"[^>]*>/g) ?? [];
+  const heads = (html: string) => html.match(/<tr class="[^"]*spechead[^"]*"[^>]*>/g) ?? [];
   // One header row and everything up to the next `<tr`, which is the
   // whole header line and nothing else.
   const head = (html: string, folder: string) =>
-    html.match(
-      new RegExp(
-        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`,
-      ),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>\\s*<tr class="specstate".*?</tr>`))?.[0] ?? "";
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    html.match(
-      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   /** The line the run control opens onto, under the header. */
   const runLine = (html: string, folder: string) =>
     html.match(
@@ -241,8 +189,7 @@ describe("every spec is a row", () => {
     expect(heads(html)).toHaveLength(1);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["create", "analyze", "implement", "archive"]);
-    for (const phase of order)
-      expect(subRow(html, phase!)).toContain(PHASE_NOT_RUN);
+    for (const phase of order) expect(subRow(html, phase!)).toContain(PHASE_NOT_RUN);
   });
 
   test("a never-run spec's own row runs analyze", () => {
@@ -298,10 +245,7 @@ describe("every spec is a row", () => {
     // An empty target list is "we do not know", never "everything is
     // archived": a specs root that is not checked out on this host looks
     // exactly the same from here.
-    const html = rows(
-      [job("j1", "analyze")],
-      [target("01-first", { project: "paceup" })],
-    );
+    const html = rows([job("j1", "analyze")], [target("01-first", { project: "paceup" })]);
     expect(html).toContain("90-has-run");
     expect(html).toContain("01-first");
   });
@@ -318,17 +262,11 @@ describe("every spec is a row", () => {
       // here is where the undated BLOCK sits relative to a spec that
       // has a date, and a fixture with no date on any of the three
       // would put all of them in the block.
-      [
-        target("90-has-run", { createdAt: "2026-08-16T09:00:00Z" }),
-        target("88-never"),
-        target("89-never"),
-      ],
+      [target("90-has-run", { createdAt: "2026-08-16T09:00:00Z" }), target("88-never"), target("89-never")],
     );
-    const order = [
-      ...html.matchAll(
-        /<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g,
-      ),
-    ].map((m) => m[1]);
+    const order = [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map(
+      (m) => m[1],
+    );
     // The higher-numbered folder comes first within the block.
     expect(order).toEqual(["89-never", "88-never", "90-has-run"]);
   });
@@ -338,23 +276,15 @@ describe("every spec is a row", () => {
     // only groups where `activityAt` is 0 on both sides.
     const html = rows(
       [
-        job("j1", "analyze", {
-          specFolder: "aa-spec",
-          startedAt: "2026-08-16T09:00:00Z",
-        }),
-        job("j2", "analyze", {
-          specFolder: "bb-spec",
-          startedAt: "2026-08-16T09:00:00Z",
-        }),
+        job("j1", "analyze", { specFolder: "aa-spec", startedAt: "2026-08-16T09:00:00Z" }),
+        job("j2", "analyze", { specFolder: "bb-spec", startedAt: "2026-08-16T09:00:00Z" }),
       ],
       [],
       { filter: { sort: "started" } },
     );
-    const order = [
-      ...html.matchAll(
-        /<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g,
-      ),
-    ].map((m) => m[1]);
+    const order = [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map(
+      (m) => m[1],
+    );
     expect(order).toEqual(["aa-spec", "bb-spec"]);
   });
 

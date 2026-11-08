@@ -14,7 +14,6 @@
 ## The workflow
 
 ### Overall flow
-
 ```text
 (Explore) - Create - Analyze - Implement - Archive
 ```
@@ -26,7 +25,6 @@ the idea or scope is not ready for `/aide-create` yet.
 ### Phase 1: Create document structure
 
 **What is done:**
-
 1. Takes the title and the description
 2. Assigns the next available number and creates the directory: `specs/<NN>-slug/`
 3. Fills in `1-description.md` with them
@@ -34,7 +32,6 @@ the idea or scope is not ready for `/aide-create` yet.
 5. Stages all new files in git (automatically)
 
 **Output:**
-
 ```text
 specs/05-class-to-functional/
 ├── 0-README.md            (reading order)
@@ -47,7 +44,6 @@ specs/05-class-to-functional/
 ### Phase 2: Analyze the codebase
 
 **What is done:**
-
 1. Reads `1-description.md`
 2. Analyzes the codebase (specific files + line numbers, and what depends on them, an interface's other side included)
 3. **Grades the complexity** by the change's risk (the criteria are in `aide-analyze`'s `references/complexity-and-analysis.md`)
@@ -66,7 +62,6 @@ specs/05-class-to-functional/
 ### Phase 3: Implement the solution
 
 **What is done:**
-
 1. Reads `2-analysis.md` and `3-solution.md`
 2. Follows a TDD approach:
    - **RED**: Writes tests that prove the problem (should fail)

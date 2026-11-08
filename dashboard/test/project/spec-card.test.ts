@@ -18,32 +18,14 @@ const SAVED: CardValues = {
   criteriaChecks: "off",
   chooseApproach: false,
 };
-const FIELDS: CardField[] = [
-  "dependsOn",
-  "acceptanceRequired",
-  "aiFormulate",
-  "criteriaChecks",
-  "chooseApproach",
-];
-const SETTINGS_ANALYZE_READS: CardField[] = [
-  "acceptanceRequired",
-  "criteriaChecks",
-  "chooseApproach",
-];
+const FIELDS: CardField[] = ["dependsOn", "acceptanceRequired", "aiFormulate", "criteriaChecks", "chooseApproach"];
+const SETTINGS_ANALYZE_READS: CardField[] = ["acceptanceRequired", "criteriaChecks", "chooseApproach"];
 
-const row = (jobInFlight = false, analyzeRun = false): CardFacts => ({
-  place: "running-row",
-  jobInFlight,
-  analyzeRun,
-});
-const open = (facts: CardFacts, saved: CardValues = SAVED) =>
-  cardStep(undefined, { type: "opened", facts, saved });
+const row = (jobInFlight = false, analyzeRun = false): CardFacts => ({ place: "running-row", jobInFlight, analyzeRun });
+const open = (facts: CardFacts, saved: CardValues = SAVED) => cardStep(undefined, { type: "opened", facts, saved });
 
 /** The changes a reader makes by hand: the card as shown, with these fields moved. */
-const shownWith = (
-  state: CardState,
-  changes: Partial<CardValues>,
-): CardValues => ({
+const shownWith = (state: CardState, changes: Partial<CardValues>): CardValues => ({
   ...cardStep(state, { type: "refused" }).view.shown,
   ...changes,
 });
@@ -68,16 +50,14 @@ describe("the card on the Running row", () => {
 
   test("a queued, running or landing job locks Depends on and the three settings, and Save and Cancel do not show", () => {
     const { view } = open(row(true));
-    for (const field of ["dependsOn", ...SETTINGS_ANALYZE_READS] as CardField[])
-      expect(view.locks[field]).toBe("job-in-flight");
+    for (const field of ["dependsOn", ...SETTINGS_ANALYZE_READS] as CardField[]) expect(view.locks[field]).toBe("job-in-flight");
     expect(view.locks.aiFormulate).toBe("create-used");
     expect(view.saveCancel).toBe(false);
   });
 
   test("a job in flight wins over analyze having run", () => {
     const { view } = open(row(true, true));
-    for (const field of SETTINGS_ANALYZE_READS)
-      expect(view.locks[field]).toBe("job-in-flight");
+    for (const field of SETTINGS_ANALYZE_READS) expect(view.locks[field]).toBe("job-in-flight");
     expect(view.saveCancel).toBe(false);
   });
 
@@ -89,53 +69,38 @@ describe("the card on the Running row", () => {
 
   test("once analyze has run, the three settings are locked and Depends on stays open", () => {
     const { view } = open(row(false, true));
-    for (const field of SETTINGS_ANALYZE_READS)
-      expect(view.locks[field]).toBe("analyze-run");
+    for (const field of SETTINGS_ANALYZE_READS) expect(view.locks[field]).toBe("analyze-run");
     expect(view.locks.dependsOn).toBeNull();
     expect(view.saveCancel).toBe(true);
   });
 
   test("before analyze has run, the three settings are open", () => {
     const { view } = open(row());
-    for (const field of SETTINGS_ANALYZE_READS)
-      expect(view.locks[field]).toBeNull();
+    for (const field of SETTINGS_ANALYZE_READS) expect(view.locks[field]).toBeNull();
   });
 
   test("AI formulation is locked by create whatever the facts say", () => {
     for (const jobInFlight of [false, true]) {
-      for (const analyzeRun of [false, true])
-        expect(open(row(jobInFlight, analyzeRun)).view.locks.aiFormulate).toBe(
-          "create-used",
-        );
+      for (const analyzeRun of [false, true]) expect(open(row(jobInFlight, analyzeRun)).view.locks.aiFormulate).toBe("create-used");
     }
   });
 });
 
 describe("the card on New spec", () => {
   test("every field is open and Save and Cancel do not show", () => {
-    const { view } = open({
-      place: "new-spec",
-      jobInFlight: false,
-      analyzeRun: false,
-    });
+    const { view } = open({ place: "new-spec", jobInFlight: false, analyzeRun: false });
     for (const field of FIELDS) expect(view.locks[field]).toBeNull();
     expect(view.saveCancel).toBe(false);
   });
 
   test("AI formulation can be chosen", () => {
-    expect(
-      open({ place: "new-spec", jobInFlight: false, analyzeRun: false }).view
-        .locks.aiFormulate,
-    ).toBeNull();
+    expect(open({ place: "new-spec", jobInFlight: false, analyzeRun: false }).view.locks.aiFormulate).toBeNull();
   });
 });
 
 describe("what a change does to the card", () => {
   test("a change shows and offers Cancel, and Cancel puts back what was saved", () => {
-    const changed = change(open(row()).state, {
-      dependsOn: [],
-      criteriaChecks: "stop",
-    });
+    const changed = change(open(row()).state, { dependsOn: [], criteriaChecks: "stop" });
     expect(changed.view.shown.dependsOn).toEqual([]);
     expect(changed.view.shown.criteriaChecks).toBe("stop");
     expect(changed.view.cancelOffered).toBe(true);
@@ -143,11 +108,7 @@ describe("what a change does to the card", () => {
   });
 
   test("a change back to the saved value is no change, in any order of the dependencies", () => {
-    const start = cardStep(undefined, {
-      type: "opened",
-      facts: row(),
-      saved: { ...SAVED, dependsOn: ["a", "b"] },
-    });
+    const start = cardStep(undefined, { type: "opened", facts: row(), saved: { ...SAVED, dependsOn: ["a", "b"] } });
     const there = change(start.state, { dependsOn: ["b"] });
     expect(there.view.cancelOffered).toBe(true);
     const back = change(there.state, { dependsOn: ["b", "a"] });
@@ -155,10 +116,7 @@ describe("what a change does to the card", () => {
   });
 
   test("saved leaves nothing to cancel and Cancel would put back the values just saved", () => {
-    const changed = change(open(row()).state, {
-      dependsOn: [],
-      chooseApproach: true,
-    });
+    const changed = change(open(row()).state, { dependsOn: [], chooseApproach: true });
     const after = cardStep(changed.state, { type: "saved" });
     expect(after.view.cancelOffered).toBe(false);
     expect(after.view.restore.dependsOn).toEqual([]);
@@ -189,11 +147,7 @@ describe("what a change does to the card", () => {
 
   test("a redraw with the same facts keeps a change not yet saved", () => {
     const changed = change(open(row()).state, { dependsOn: [] });
-    const redrawn = cardStep(changed.state, {
-      type: "opened",
-      facts: row(),
-      saved: SAVED,
-    });
+    const redrawn = cardStep(changed.state, { type: "opened", facts: row(), saved: SAVED });
     expect(redrawn.view.shown.dependsOn).toEqual([]);
     expect(redrawn.view.cancelOffered).toBe(true);
   });
@@ -208,42 +162,24 @@ describe("what a change does to the card", () => {
 });
 
 describe("when a job starts and ends under a card with unsaved changes", () => {
-  const unsaved = () =>
-    change(open(row()).state, { dependsOn: [], criteriaChecks: "stop" }).state;
+  const unsaved = () => change(open(row()).state, { dependsOn: [], criteriaChecks: "stop" }).state;
 
   test("the card locks, shows what was saved and offers no Save or Cancel", () => {
-    const { view } = cardStep(unsaved(), {
-      type: "job-started",
-      facts: row(true),
-      saved: SAVED,
-    });
-    for (const field of ["dependsOn", ...SETTINGS_ANALYZE_READS] as CardField[])
-      expect(view.locks[field]).toBe("job-in-flight");
+    const { view } = cardStep(unsaved(), { type: "job-started", facts: row(true), saved: SAVED });
+    for (const field of ["dependsOn", ...SETTINGS_ANALYZE_READS] as CardField[]) expect(view.locks[field]).toBe("job-in-flight");
     expect(view.shown).toEqual(SAVED);
     expect(view.saveCancel).toBe(false);
     expect(view.cancelOffered).toBe(false);
   });
 
   test("a job starting is in flight whatever the facts of the event say", () => {
-    const { view } = cardStep(unsaved(), {
-      type: "job-started",
-      facts: row(false),
-      saved: SAVED,
-    });
+    const { view } = cardStep(unsaved(), { type: "job-started", facts: row(false), saved: SAVED });
     expect(view.saveCancel).toBe(false);
   });
 
   test("when the job ends with analyze not run, both changes show again and Cancel is offered", () => {
-    const started = cardStep(unsaved(), {
-      type: "job-started",
-      facts: row(true),
-      saved: SAVED,
-    });
-    const { view } = cardStep(started.state, {
-      type: "job-ended",
-      facts: row(false),
-      saved: SAVED,
-    });
+    const started = cardStep(unsaved(), { type: "job-started", facts: row(true), saved: SAVED });
+    const { view } = cardStep(started.state, { type: "job-ended", facts: row(false), saved: SAVED });
     expect(view.shown.dependsOn).toEqual([]);
     expect(view.shown.criteriaChecks).toBe("stop");
     expect(view.saveCancel).toBe(true);
@@ -251,41 +187,19 @@ describe("when a job starts and ends under a card with unsaved changes", () => {
   });
 
   test("when the job ends with analyze run, the Depends on change shows again and the setting shows what was saved", () => {
-    const started = cardStep(unsaved(), {
-      type: "job-started",
-      facts: row(true),
-      saved: SAVED,
-    });
-    const { view } = cardStep(started.state, {
-      type: "job-ended",
-      facts: row(false, true),
-      saved: SAVED,
-    });
+    const started = cardStep(unsaved(), { type: "job-started", facts: row(true), saved: SAVED });
+    const { view } = cardStep(started.state, { type: "job-ended", facts: row(false, true), saved: SAVED });
     expect(view.shown.dependsOn).toEqual([]);
     expect(view.shown.criteriaChecks).toBe("off");
     expect(view.cancelOffered).toBe(true);
   });
 
   test("a change the job's own save has since made is no longer a change", () => {
-    const started = cardStep(unsaved(), {
-      type: "job-started",
-      facts: row(true),
-      saved: SAVED,
-    });
+    const started = cardStep(unsaved(), { type: "job-started", facts: row(true), saved: SAVED });
     const both = { ...SAVED, dependsOn: [], criteriaChecks: "stop" as const };
-    expect(
-      cardStep(started.state, {
-        type: "job-ended",
-        facts: row(false),
-        saved: both,
-      }).view.cancelOffered,
-    ).toBe(false);
+    expect(cardStep(started.state, { type: "job-ended", facts: row(false), saved: both }).view.cancelOffered).toBe(false);
     const one = { ...SAVED, criteriaChecks: "stop" as const };
-    const { view } = cardStep(started.state, {
-      type: "job-ended",
-      facts: row(false),
-      saved: one,
-    });
+    const { view } = cardStep(started.state, { type: "job-ended", facts: row(false), saved: one });
     expect(view.shown.criteriaChecks).toBe("stop");
     expect(view.shown.dependsOn).toEqual([]);
     expect(view.cancelOffered).toBe(true);

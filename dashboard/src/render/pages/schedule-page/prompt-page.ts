@@ -22,46 +22,25 @@ export interface SchedulePromptPageOptions {
   currentUrl?: string;
 }
 
-export function renderSchedulePromptPage(
-  nav: NavEntry[],
-  generatedAt: string,
-  o: SchedulePromptPageOptions,
-): string {
+export function renderSchedulePromptPage(nav: NavEntry[], generatedAt: string, o: SchedulePromptPageOptions): string {
   const settings = scheduleSettingsPath(o.project, o.entry.name);
   // The job is a link to its Settings tab, placed into the sentence after
   // escaping, as `renderReportPanel` places its time.
   const MARK = "\u0000";
   const job = `<a href="${esc(settings)}">${esc(`${o.project}:${o.entry.name}`)}</a>`;
-  const of = esc(t(o.lang, "schedule.promptOfJob", { job: MARK })).replace(
-    MARK,
-    job,
-  );
+  const of = esc(t(o.lang, "schedule.promptOfJob", { job: MARK })).replace(MARK, job);
   const body =
     `<div class="doc">` +
     backLink(settings, o.entry.prompt, "", { lang: o.lang }) +
     `<p class="muted">${of}</p>` +
     (o.text !== null
       ? viewerPair(o.text)
-      : rowMessage(
-          "failed",
-          t(o.lang, "schedule.promptUnreadable", {
-            file: o.entry.prompt,
-            project: o.project,
-          }),
-          { tag: "p" },
-        )) +
+      : rowMessage("failed", t(o.lang, "schedule.promptUnreadable", { file: o.entry.prompt, project: o.project }), { tag: "p" })) +
     `</div>`;
-  return pageShell(
-    o.entry.prompt,
-    nav,
-    schedulePromptPath(o.project, o.entry.name),
-    body,
-    generatedAt,
-    {
-      hideHeading: true,
-      lang: o.lang,
-      currentUrl: o.currentUrl,
-      ...(o.text !== null ? { scriptSrc: o.viewerSrc } : {}),
-    },
-  );
+  return pageShell(o.entry.prompt, nav, schedulePromptPath(o.project, o.entry.name), body, generatedAt, {
+    hideHeading: true,
+    lang: o.lang,
+    currentUrl: o.currentUrl,
+    ...(o.text !== null ? { scriptSrc: o.viewerSrc } : {}),
+  });
 }

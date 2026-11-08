@@ -14,20 +14,22 @@
 When a project's tests run while a spec goes through the board, who runs them, and what happens when they are red.
 The same holds for every project the board runs; the last section is about Aide's own suite.
 
+
 ## When the tests run
 
 A phase has two parts: the AI, which does the work, and Aide itself, which starts the AI and checks what it left.
 Both can run the tests.
 
 | Phase           | The AI                                                                                   | Aide itself                                                                                                                                          | When it is red                                                                                                                                                                                              |
-| --------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|-----------------|------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | create, analyze | none                                                                                     | none                                                                                                                                                 | —                                                                                                                                                                                                           |
 | implement       | the test files it wrote and the ones covering the files it changed; never the full suite | the full suite once, after the AI is done; a green run ticks the spec's "Run the full test suite" row                                                | the failing tests go back to the same AI, which fixes them, and Aide runs the suite again: at most two such rounds, within the step's time limit. Still red: the step fails, and Implement is offered again |
 | archive         | only the tests covering files it touched while resolving a merge conflict                | the full suite once, in the landing, on exactly what the default branch is about to become — not when implement's green run covers exactly that code | the whole suite runs once more (not after a timeout). Green then: it lands, marked "merged after a retry". Red twice: nothing reaches the default branch, the spec's branch is kept, and the job stops      |
 | close, reopen   | none                                                                                     | none                                                                                                                                                 | —                                                                                                                                                                                                           |
 
-A run that is still going when the step's time limit runs out is stopped, and the step ends on its time limit with
-the work so far committed. The landing is described in full in [landing.md](landing.md).
+The step's time limit counts the AI's turns, not these runs: each run has a limit of its own, an hour unless
+`AIDE_TEST_RUN_LIMIT_SEC` says otherwise. A run still going at that limit is stopped, and the step ends there with the
+work so far committed. The landing is described in full in [landing.md](landing.md).
 
 ---
 
@@ -81,7 +83,6 @@ name, and none for a criterion an existing test already proves — that test get
 
   The whole output is kept beside the step's run log as `<job id>.<step>.tests.log`. A run the AI makes itself
   shows in the Log only when it has ended.
-
 - **Implement red:** the step has failed, and the spec's row names the tests that still fail. When the project has
   `AIDE_TEST_FILES_CMD`, every red file is run once more alone before the verdict. A test is described as possibly
   unstable only when that check passes; otherwise the row makes no claim about the cause. The test output is behind
@@ -121,7 +122,7 @@ repository an implement that changes a page therefore looks at it before the ste
   [the design system](design-system.md), fixes what is wrong, and takes them again. The folder keeps the last round.
 - **Where they are kept:** the runner names the folder in the prompt, `<job id>.<step>.screenshots` beside the step's
   run log, and empties it before the turn. After the turn it logs `screenshots: <n> of the changed pages, kept with
-the step's logs`. The review is given the folder beside the diff and reports what looks wrong as a defect. The
+  the step's logs`. The review is given the folder beside the diff and reports what looks wrong as a defect. The
   step's Log tab links each picture.
 - **When it cannot:** the script writes one sentence saying why to `not-taken.txt` in the folder and exits 1. The
   runner logs it as an error line, `the changed pages were not looked at: <why>`, and the step goes on as it would

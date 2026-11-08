@@ -7,25 +7,8 @@ import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE = new Bun.Transpiler({
-  loader: "ts",
-  target: "browser",
-}).transformSync(
-  readFileSync(
-    join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "..",
-      "src",
-      "render",
-      "ui",
-      "busy",
-      "nav-overlay.ts",
-    ),
-    "utf-8",
-  ),
+const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
+  readFileSync(join(import.meta.dir, "..", "..", "..", "..", "src", "render", "ui", "busy", "nav-overlay.ts"), "utf-8"),
 );
 
 function run() {
@@ -33,29 +16,15 @@ function run() {
   const note = { textContent: "", hidden: true };
   const dialog = {
     open: false,
-    showModal() {
-      dialog.open = true;
-    },
-    close() {
-      dialog.open = false;
-    },
+    showModal() { dialog.open = true; },
+    close() { dialog.open = false; },
     querySelector: () => note,
   };
-  const body = {
-    dataset: { overlayNote: "Loading…" },
-    insertAdjacentHTML() {},
-    lastElementChild: dialog,
-  };
-  const doc = {
-    body,
-    addEventListener: (type: string, fn: (e: unknown) => void) =>
-      void (listeners[type] ??= []).push(fn),
-  };
+  const body = { dataset: { overlayNote: "Loading…" }, insertAdjacentHTML() {}, lastElementChild: dialog };
+  const doc = { body, addEventListener: (type: string, fn: (e: unknown) => void) => void (listeners[type] ??= []).push(fn) };
   const win = { addEventListener() {} };
   new Function("document", "window", SOURCE)(doc, win);
-  const fire = (type: string, detail?: unknown) => {
-    for (const fn of listeners[type] ?? []) fn({ detail });
-  };
+  const fire = (type: string, detail?: unknown) => { for (const fn of listeners[type] ?? []) fn({ detail }); };
   return { dialog, note, fire };
 }
 

@@ -23,30 +23,19 @@ browserDeadline();
 const FOLDER = "81-queue-and-runner";
 const ACCEPTANCE_ROW = "| REQ-1: a person has judged this | ⬜ | |";
 const STATUS = [
-  "# Queue - Status",
-  "",
-  "## Tracking info",
-  "",
-  "- **Workflow steps completed:** analyze, implement",
-  "",
-  "## Acceptance criteria",
-  "",
-  "| Task | Status | Notes |",
-  "|------|--------|-------|",
-  ACCEPTANCE_ROW,
-  "",
+  "# Queue - Status", "",
+  "## Tracking info", "",
+  "- **Workflow steps completed:** analyze, implement", "",
+  "## Acceptance criteria", "",
+  "| Task | Status | Notes |", "|------|--------|-------|",
+  ACCEPTANCE_ROW, "",
 ].join("\n");
 
 // mirrors acceptance-hold-back-reads-the-branch.test.ts's own JSON shape,
 // which is proven against the real reader (readSpecState)
 const STATE_JSON = JSON.stringify({
-  completedPhases: ["analyze", "implement"],
-  archived: null,
-  reopened: null,
-  acceptanceCriteria: [
-    { task: "REQ-1: a person has judged this", done: false },
-  ],
-  phaseCounts: {},
+  completedPhases: ["analyze", "implement"], archived: null, reopened: null,
+  acceptanceCriteria: [{ task: "REQ-1: a person has judged this", done: false }], phaseCounts: {},
 });
 
 const harness = queueHarness("aide-e2e-acceptance-");
@@ -59,16 +48,11 @@ let base: string;
  *  write that caused it: a fixed sleep has to guess how long that poll
  *  takes, and a guess that is long enough on an idle machine is not long
  *  enough on a loaded one. */
-async function waitUntil(
-  cond: () => Promise<boolean>,
-  ms: number,
-  label: string,
-): Promise<void> {
+async function waitUntil(cond: () => Promise<boolean>, ms: number, label: string): Promise<void> {
   const deadline = Date.now() + ms;
   for (;;) {
     if (await cond()) return;
-    if (Date.now() >= deadline)
-      throw new Error(`${label} did not happen within ${ms}ms`);
+    if (Date.now() >= deadline) throw new Error(`${label} did not happen within ${ms}ms`);
     await new Promise((r) => setTimeout(r, 50));
   }
 }
@@ -81,10 +65,7 @@ beforeAll(async () => {
     status: STATUS,
   });
   base = started.base;
-  writeFileSync(
-    join(started.dir, "root", "aide", "specs", FOLDER, "4-status.json"),
-    STATE_JSON,
-  );
+  writeFileSync(join(started.dir, "root", "aide", "specs", FOLDER, "4-status.json"), STATE_JSON);
   // archiveHeldBackApplies() only shows the row's message once `done`
   // (freshness-verified against real git history) includes "implement" —
   // the hand-written status/state files alone are not enough.
@@ -107,19 +88,14 @@ beforeAll(async () => {
   );
 });
 
-afterAll(async () => {
-  await browser.close();
-  harness.cleanup();
-});
+afterAll(async () => { await browser.close(); harness.cleanup(); });
 
 describe("the acceptance gate, on a page a person could click", () => {
+
   test("ticking the row clears the message and archive becomes possible", async () => {
-    await withBrowser(
-      page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`),
-      "page.goto(status)",
-    );
+    await withBrowser(page.goto(`${base}/specs/aide/${FOLDER}?tab=status&live=0`), "page.goto(status)");
     await page.locator(`input[name="tick"][value="${ACCEPTANCE_ROW}"]`).check();
-    await page.locator('form.specform button[type="submit"]').click();
+    await page.locator("form.specform button[type=\"submit\"]").click();
     await page.locator(".checklist .check.open").waitFor({ state: "detached" });
     expect(await page.locator(".checklist .check.open").count()).toBe(0);
 
@@ -144,16 +120,8 @@ describe("the acceptance gate, on a page a person could click", () => {
     const queued = await withBrowser(
       page.request.get(`${base}/api/queue`),
       "GET /api/queue",
-    ).then(
-      (r: {
-        json: () => Promise<{
-          jobs: { specFolder: string; error?: { key?: string } }[];
-        }>;
-      }) => r.json(),
-    );
-    const job = queued.jobs.find(
-      (j: { specFolder: string }) => j.specFolder === FOLDER,
-    );
+    ).then((r: { json: () => Promise<{ jobs: { specFolder: string; error?: { key?: string } }[] }> }) => r.json());
+    const job = queued.jobs.find((j: { specFolder: string }) => j.specFolder === FOLDER);
     expect(job?.error?.key).not.toBe("runner.acceptanceCriteriaUnticked");
   });
 });

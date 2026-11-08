@@ -8,21 +8,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 
 import { pageShell } from "../../../src/render/ui/shell.ts";
 import { setPendingRestartNotice } from "../../../src/render/ui/pending-restart.ts";
-import {
-  createServerState,
-  setPendingRestart,
-  STARTED_AT,
-} from "../../../src/serve/state.ts";
+import { createServerState, setPendingRestart, STARTED_AT } from "../../../src/serve/state.ts";
 
 const ENTRIES = [{ label: "Projects", path: "/projects" }];
-const render = (): string =>
-  pageShell(
-    "Projects",
-    ENTRIES,
-    "/projects",
-    "<p>body</p>",
-    "2026-09-14T00:00:00Z",
-  );
+const render = (): string => pageShell("Projects", ENTRIES, "/projects", "<p>body</p>", "2026-09-14T00:00:00Z");
 
 afterEach(() => setPendingRestartNotice([]));
 
@@ -30,8 +19,7 @@ afterEach(() => setPendingRestartNotice([]));
  *  the tests about WHICH jobs are named read what a reader reads. */
 const text = (html: string): string => html.replace(/<[^>]*>/g, "");
 const noticeOf = (html: string): string =>
-  html.match(/<p [^>]*class="restart-notice rowmsg waiting">.*?<\/p>/s)?.[0] ??
-  "";
+  html.match(/<p [^>]*class="restart-notice rowmsg waiting">.*?<\/p>/s)?.[0] ?? "";
 
 describe("pageShell's waiting-Deploy notice", () => {
   test("the server's own pending-restart writer is what feeds it", () => {

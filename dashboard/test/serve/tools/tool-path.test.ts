@@ -8,21 +8,11 @@
 // the check, written later, had not.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runScript } from "../../../src/serve/land-branch/run-script.ts";
-import {
-  extraPathDirs,
-  pathWithToolDirs,
-  spawnEnv,
-} from "../../../src/serve/tool-path.ts";
+import { extraPathDirs, pathWithToolDirs, spawnEnv } from "../../../src/serve/tool-path.ts";
 
 const dirs: string[] = [];
 const home = () => {
@@ -40,29 +30,20 @@ afterEach(() => {
   if (savedPath !== undefined) process.env.PATH = savedPath;
   savedHome = undefined;
   savedPath = undefined;
-  for (const dir of dirs.splice(0))
-    rmSync(dir, { recursive: true, force: true });
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
 describe("pathWithToolDirs", () => {
   test("~/.local/bin is prepended when launchd's PATH does not carry it", () => {
     const dir = home();
-    const path = pathWithToolDirs(
-      { HOME: dir, PATH: "/usr/bin:/bin" } as NodeJS.ProcessEnv,
-      [],
-    );
+    const path = pathWithToolDirs({ HOME: dir, PATH: "/usr/bin:/bin" } as NodeJS.ProcessEnv, []);
     expect(path).toBe(`${join(dir, ".local", "bin")}:/usr/bin:/bin`);
   });
 
   test("mise's shims are prepended too, which is where three of the four CLIs live", () => {
     const dir = home();
-    mkdirSync(join(dir, ".local", "share", "mise", "shims"), {
-      recursive: true,
-    });
-    const path = pathWithToolDirs(
-      { HOME: dir, PATH: "/usr/bin" } as NodeJS.ProcessEnv,
-      [],
-    );
+    mkdirSync(join(dir, ".local", "share", "mise", "shims"), { recursive: true });
+    const path = pathWithToolDirs({ HOME: dir, PATH: "/usr/bin" } as NodeJS.ProcessEnv, []);
     expect(path).toContain(join(dir, ".local", "share", "mise", "shims"));
     expect(path).toContain(join(dir, ".local", "bin"));
     expect(path.endsWith("/usr/bin")).toBe(true);
@@ -72,48 +53,35 @@ describe("pathWithToolDirs", () => {
     const dir = home();
     const data = join(dir, "elsewhere");
     mkdirSync(join(data, "shims"), { recursive: true });
-    const path = pathWithToolDirs({
-      HOME: dir,
-      MISE_DATA_DIR: data,
-      PATH: "/usr/bin",
-    } as NodeJS.ProcessEnv);
+    const path = pathWithToolDirs({ HOME: dir, MISE_DATA_DIR: data, PATH: "/usr/bin" } as NodeJS.ProcessEnv);
     expect(path).toContain(join(data, "shims"));
   });
 
   test("a directory that does not exist is not added at all", () => {
     const dir = home();
     // No mise on this machine: only ~/.local/bin, which home() made.
-    expect(extraPathDirs({ HOME: dir, PATH: "" } as NodeJS.ProcessEnv)).toEqual(
-      [join(dir, ".local", "bin")],
-    );
+    expect(extraPathDirs({ HOME: dir, PATH: "" } as NodeJS.ProcessEnv)).toEqual([
+      join(dir, ".local", "bin"),
+    ]);
   });
 
   test("a PATH that already carries a directory is left exactly as it is", () => {
     const dir = home();
     const already = `/usr/bin:${join(dir, ".local", "bin")}:/bin`;
-    const path = pathWithToolDirs(
-      { HOME: dir, PATH: already } as NodeJS.ProcessEnv,
-      [],
-    );
+    const path = pathWithToolDirs({ HOME: dir, PATH: already } as NodeJS.ProcessEnv, []);
     expect(path).toBe(already);
   });
 
   test("an operator's own PATH is kept, never replaced", () => {
     const dir = home();
-    const path = pathWithToolDirs({
-      HOME: dir,
-      PATH: "/opt/mine:/usr/bin",
-    } as NodeJS.ProcessEnv);
+    const path = pathWithToolDirs({ HOME: dir, PATH: "/opt/mine:/usr/bin" } as NodeJS.ProcessEnv);
     expect(path).toContain("/opt/mine");
     expect(path).toContain("/usr/bin");
   });
 
   test("spawnEnv keeps the rest of the environment", () => {
     const dir = home();
-    const env = spawnEnv(
-      { HOME: dir, PATH: "/usr/bin", KEEP: "yes" } as NodeJS.ProcessEnv,
-      [],
-    );
+    const env = spawnEnv({ HOME: dir, PATH: "/usr/bin", KEEP: "yes" } as NodeJS.ProcessEnv, []);
     expect(env.KEEP).toBe("yes");
     expect(env.PATH).toBe(`${join(dir, ".local", "bin")}:/usr/bin`);
   });
@@ -124,10 +92,7 @@ describe("pathWithToolDirs", () => {
     const dir = home();
     const system = join(dir, "usr-local-bin");
     mkdirSync(system);
-    const path = pathWithToolDirs(
-      { HOME: dir, PATH: "/usr/bin:/bin" } as NodeJS.ProcessEnv,
-      [system],
-    );
+    const path = pathWithToolDirs({ HOME: dir, PATH: "/usr/bin:/bin" } as NodeJS.ProcessEnv, [system]);
     expect(path).toBe(`${join(dir, ".local", "bin")}:/usr/bin:/bin:${system}`);
   });
 
@@ -136,12 +101,7 @@ describe("pathWithToolDirs", () => {
     const system = join(dir, "usr-local-bin");
     mkdirSync(system);
     const already = `${join(dir, ".local", "bin")}:${system}:/usr/bin`;
-    expect(
-      pathWithToolDirs({ HOME: dir, PATH: already } as NodeJS.ProcessEnv, [
-        system,
-        join(dir, "nowhere"),
-      ]),
-    ).toBe(already);
+    expect(pathWithToolDirs({ HOME: dir, PATH: already } as NodeJS.ProcessEnv, [system, join(dir, "nowhere")])).toBe(already);
   });
 });
 

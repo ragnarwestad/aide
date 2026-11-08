@@ -49,7 +49,7 @@ Each entry says what the word is and links the page that has the rest.
 - **Sent back** — a spec whose short analysis turned out too small: either
   its implement found it so, or its analyze wrote a short analysis over a
   limit. The step stops, the description keeps a `Sent back to a full
-analysis:` line, and the board queues Analyze (with a full analysis) and the
+  analysis:` line, and the board queues Analyze (with a full analysis) and the
   steps after it. It is queued at most once per spec.
   [The sent-back check](../dashboard/docs/the-runner.md).
 - **Phase** — one of the four steps a spec passes through: create,

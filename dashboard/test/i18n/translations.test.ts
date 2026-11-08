@@ -17,12 +17,8 @@ describe("t()", () => {
   });
 
   test("substitutes a {param} placeholder", () => {
-    expect(t("en", "list.stateQueued", { step: "analyzing" })).toBe(
-      "analyzing queued",
-    );
-    expect(t("nb", "list.stateQueued", { step: "analyserer" })).toBe(
-      "analyserer i kø",
-    );
+    expect(t("en", "list.stateQueued", { step: "analyzing" })).toBe("analyzing queued");
+    expect(t("nb", "list.stateQueued", { step: "analyserer" })).toBe("analyserer i kø");
   });
 
   test("LANGUAGES names all five", () => {

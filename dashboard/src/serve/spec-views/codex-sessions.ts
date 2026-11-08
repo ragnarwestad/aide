@@ -11,33 +11,21 @@ import { tailFile } from "../serve-helpers";
 
 const THREAD = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){4}[0-9a-f]{8}$/;
 
-export function codexHome(
-  env: Record<string, string | undefined> = process.env,
-): string {
+export function codexHome(env: Record<string, string | undefined> = process.env): string {
   return env.CODEX_HOME || join(env.HOME || homedir(), ".codex");
 }
 
 /** A thread's session file as text, or undefined when there is no such file,
  *  it cannot be read, or it is empty. Never throws. */
-export function readCodexSession(
-  thread: string,
-  home: string = codexHome(),
-): string | undefined {
+export function readCodexSession(thread: string, home: string = codexHome()): string | undefined {
   if (!THREAD.test(thread)) return undefined;
   const sessions = join(home, "sessions");
   try {
-    const found = (readdirSync(sessions, { recursive: true }) as string[]).find(
-      (path) => {
-        const name = basename(path);
-        return (
-          name.startsWith("rollout-") &&
-          name.endsWith(`-${thread}.jsonl`) &&
-          statSync(join(sessions, path)).isFile()
-        );
-      },
-    );
-    const text =
-      found === undefined ? "" : tailFile(join(sessions, found), Infinity);
+    const found = (readdirSync(sessions, { recursive: true }) as string[]).find((path) => {
+      const name = basename(path);
+      return name.startsWith("rollout-") && name.endsWith(`-${thread}.jsonl`) && statSync(join(sessions, path)).isFile();
+    });
+    const text = found === undefined ? "" : tailFile(join(sessions, found), Infinity);
     return text.trim() ? text : undefined;
   } catch {
     return undefined;
@@ -52,10 +40,7 @@ export function codexSessionReader(
   providers: Record<string, Provider> | undefined,
 ): (thread: string) => string | undefined {
   const provider = providerKey ? providers?.[providerKey] : undefined;
-  const folder =
-    provider?.tool === "codex"
-      ? provider.shadowHome || provider.codexHome
-      : undefined;
+  const folder = provider?.tool === "codex" ? provider.shadowHome || provider.codexHome : undefined;
   const home = folder ? expandDir(folder, homedir()) : undefined;
   return (thread) => readCodexSession(thread, home);
 }

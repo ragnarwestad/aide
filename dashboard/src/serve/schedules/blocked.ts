@@ -43,19 +43,12 @@ export const UNCONFIRMED_HOLD_MS = 10 * 60_000;
 /** When each job's dependency first could not be confirmed, by job id. */
 const unconfirmedSince = new Map<string, number>();
 
-export async function blockedDependencies(
-  ctx: ScheduleContext,
-): Promise<DependencyHolds> {
+export async function blockedDependencies(ctx: ScheduleContext): Promise<DependencyHolds> {
   const blocked: DependencyHolds = new Map<string, string>();
   if (!ctx.projectRoot) return blocked;
   // Every job queued as the question is asked: one queued while origin is
   // being asked is left for the next tick (`dependency-hold.ts`).
-  const checked = new Set(
-    ctx.queue
-      .list()
-      .filter((job) => job.state === "queued")
-      .map((job) => job.id),
-  );
+  const checked = new Set(ctx.queue.list().filter((job) => job.state === "queued").map((job) => job.id));
   blocked.checked = checked;
   const waiting = ctx.queue.list().filter((job) => {
     if (job.state !== "queued") return false;
@@ -67,43 +60,23 @@ export async function blockedDependencies(
   // that names nothing costs neither a walk of the specs root nor a
   // git call, the same way a spec without the field asks origin
   // nothing in the script.
-  const key = (j: { project: string; specFolder: string }) =>
-    `${j.project}/${j.specFolder}`;
+  const key = (j: { project: string; specFolder: string }) => `${j.project}/${j.specFolder}`;
   const named = new Map(ctx.targets().map((t) => [key(t), t.dependsOn ?? []]));
   // An open branch may have dropped a dependency the checkout still names,
   // and the runner's own gate reads the checkout.
   const branchAnswers = (j: Job) =>
-    ctx
-      .readBranchFileSteps()
-      .peekFileSteps(ctx.readScan()?.dirs.get(key(j)) ?? "", j.specFolder).steps
-      ?.dependsOn !== undefined;
+    ctx.readBranchFileSteps().peekFileSteps(ctx.readScan()?.dirs.get(key(j)) ?? "", j.specFolder).steps?.dependsOn !== undefined;
   // A spec the cached scan does not hold yet — one `create` landed a
   // moment ago — has not said it names nothing: it is read off disk below.
-  if (
-    !waiting.some(
-      (j) =>
-        !named.has(key(j)) ||
-        (named.get(key(j)) ?? []).length > 0 ||
-        branchAnswers(j),
-    )
-  )
-    return blocked;
+  if (!waiting.some((j) => !named.has(key(j)) || (named.get(key(j)) ?? []).length > 0 || branchAnswers(j))) return blocked;
 
   // Not `targets()`: that drops archived specs, and an archived
   // dependency is precisely the case that must resolve — to
   // "satisfied", without asking origin anything.
-  const projects = new Map(
-    discoverProjects(
-      ctx.projectRoot,
-      undefined,
-      manifestInside(ctx.machineryProjectDir),
-    ).map((p) => [p.name, p]),
-  );
+  const projects = new Map(discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map((p) => [p.name, p]));
   for (const job of waiting) {
     const project = projects.get(job.project);
-    const spec = project?.specs.find(
-      (s) => s.folder === job.specFolder && !s.archived,
-    );
+    const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
     if (!project || !spec) {
       // The step after a `create` can be queued before the landing that
       // numbered its spec reaches the checkout this scan reads. Not found
@@ -117,10 +90,7 @@ export async function blockedDependencies(
       }
       continue;
     }
-    for (const id of new Set([
-      ...(named.get(key(job)) ?? []),
-      ...spec.dependsOn,
-    ])) {
+    for (const id of new Set([...(named.get(key(job)) ?? []), ...spec.dependsOn])) {
       const dep = resolveDependencyFolder(project, id);
       // An unknown identifier, or the spec itself: both are refusals
       // the script makes on its own, and neither is something waiting
@@ -140,10 +110,7 @@ export async function blockedDependencies(
       const roots = ctx.specRoots(job.project);
       const specsRoot = roots[roots.length - 1];
       if (!specsRoot) continue;
-      const archived = await ctx.branchStatus.archivedOnOrigin(
-        specsRoot,
-        dep.folder,
-      );
+      const archived = await ctx.branchStatus.archivedOnOrigin(specsRoot, dep.folder);
       if (archived === null) {
         const now = (ctx.now ?? Date.now)();
         const since = unconfirmedSince.get(job.id) ?? now;
@@ -184,24 +151,15 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
     return job.steps[job.stepIndex] === "implement";
   });
   if (waiting.length === 0) return blocked;
-  const projects = new Map(
-    discoverProjects(
-      ctx.projectRoot,
-      undefined,
-      manifestInside(ctx.machineryProjectDir),
-    ).map((p) => [p.name, p]),
-  );
+  const projects = new Map(discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map((p) => [p.name, p]));
   for (const job of waiting) {
     const project = projects.get(job.project);
-    const spec = project?.specs.find(
-      (s) => s.folder === job.specFolder && !s.archived,
-    );
+    const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
     // An unresolved spec is the script's own refusal to make (unknown
     // spec), never something parking here could fix — the same rule
     // blockedDependencies already keeps for an unknown dependency id.
     if (!spec) continue;
-    if (!completedSteps(ctx, spec.dir, job.specFolder).includes("analyze"))
-      blocked.add(job.id);
+    if (!completedSteps(ctx, spec.dir, job.specFolder).includes("analyze")) blocked.add(job.id);
   }
   return blocked;
 }
@@ -218,34 +176,16 @@ export function blockedForMissingAnalyze(ctx: ScheduleContext): Set<string> {
 export function waitingForApproachChoice(ctx: ScheduleContext): Set<string> {
   const waiting = new Set<string>();
   if (!ctx.projectRoot) return waiting;
-  const chained = ctx.queue
-    .list()
-    .filter(
-      (job) =>
-        job.state === "queued" &&
-        job.steps[job.stepIndex] === "implement" &&
-        job.steps[job.stepIndex - 1] === "analyze",
-    );
-  if (chained.length === 0) return waiting;
-  const projects = new Map(
-    discoverProjects(
-      ctx.projectRoot,
-      undefined,
-      manifestInside(ctx.machineryProjectDir),
-    ).map((p) => [p.name, p]),
+  const chained = ctx.queue.list().filter(
+    (job) => job.state === "queued" && job.steps[job.stepIndex] === "implement" && job.steps[job.stepIndex - 1] === "analyze",
   );
+  if (chained.length === 0) return waiting;
+  const projects = new Map(discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map((p) => [p.name, p]));
   for (const job of chained) {
-    const spec = projects
-      .get(job.project)
-      ?.specs.find((s) => s.folder === job.specFolder && !s.archived);
+    const spec = projects.get(job.project)?.specs.find((s) => s.folder === job.specFolder && !s.archived);
     if (!spec) continue;
-    const peek = ctx
-      .readBranchFileSteps()
-      .peekFileSteps(spec.dir, job.specFolder);
-    const branch =
-      peek.checkedAt !== null && !peek.stale
-        ? peek.steps?.approaches
-        : undefined;
+    const peek = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder);
+    const branch = peek.checkedAt !== null && !peek.stale ? peek.steps?.approaches : undefined;
     if (specPendingChoice(spec.dir, branch)) waiting.add(job.id);
   }
   return waiting;
@@ -256,27 +196,17 @@ export function waitingForApproachChoice(ctx: ScheduleContext): Set<string> {
  *  landings, so it starts when none is in flight. */
 export function deployWaitingForLanding(ctx: ScheduleContext): Set<string> {
   if (landingJobNames(ctx.queue).length === 0) return new Set();
-  return new Set(
-    ctx.queue
-      .list()
-      .filter((job) => job.state === "queued" && isDeployJob(job))
-      .map((job) => job.id),
-  );
+  return new Set(ctx.queue.list().filter((job) => job.state === "queued" && isDeployJob(job)).map((job) => job.id));
 }
 
 /** Every queued job held with a fixed sentence this tick, by id: not
  *  analyzed yet first, then waiting for a choice of approach, and a deploy
  *  waiting for a landing. */
-export function fixedSentenceHolds(
-  ctx: ScheduleContext,
-): Map<string, BoardMessage> {
+export function fixedSentenceHolds(ctx: ScheduleContext): Map<string, BoardMessage> {
   const holds = new Map<string, BoardMessage>();
-  for (const id of blockedForMissingAnalyze(ctx))
-    holds.set(id, { key: "runner.notAnalyzed" });
-  for (const id of waitingForApproachChoice(ctx))
-    if (!holds.has(id)) holds.set(id, { key: "runner.approachChoice" });
-  for (const id of deployWaitingForLanding(ctx))
-    holds.set(id, { key: "runner.landingPause" });
+  for (const id of blockedForMissingAnalyze(ctx)) holds.set(id, { key: "runner.notAnalyzed" });
+  for (const id of waitingForApproachChoice(ctx)) if (!holds.has(id)) holds.set(id, { key: "runner.approachChoice" });
+  for (const id of deployWaitingForLanding(ctx)) holds.set(id, { key: "runner.landingPause" });
   return holds;
 }
 
@@ -289,44 +219,20 @@ export function fixedSentenceHolds(
 export function archiveWithOpenAcceptance(ctx: ScheduleContext): Set<string> {
   const open = new Set<string>();
   if (!ctx.projectRoot) return open;
-  const waiting = ctx.queue
-    .list()
-    .filter(
-      (job) => job.state === "queued" && job.steps[job.stepIndex] === "archive",
-    );
+  const waiting = ctx.queue.list().filter((job) => job.state === "queued" && job.steps[job.stepIndex] === "archive");
   if (waiting.length === 0) return open;
-  const projects = new Map(
-    discoverProjects(
-      ctx.projectRoot,
-      undefined,
-      manifestInside(ctx.machineryProjectDir),
-    ).map((p) => [p.name, p]),
-  );
+  const projects = new Map(discoverProjects(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map((p) => [p.name, p]));
   for (const job of waiting) {
-    const spec = projects
-      .get(job.project)
-      ?.specs.find((s) => s.folder === job.specFolder && !s.archived);
+    const spec = projects.get(job.project)?.specs.find((s) => s.folder === job.specFolder && !s.archived);
     if (!spec) continue;
-    const peek = ctx
-      .readBranchFileSteps()
-      .peekFileSteps(spec.dir, job.specFolder);
+    const peek = ctx.readBranchFileSteps().peekFileSteps(spec.dir, job.specFolder);
     if (peek.checkedAt === null || peek.stale) continue;
     // Only once implement has run: before that, the script's own refusal —
     // "not reached implement yet" — is the reason, and this would put the
     // lesser one on the row.
-    const done =
-      peek.steps?.stateSteps ??
-      peek.steps?.proseSteps ??
-      readSpecState(spec.dir)?.completedPhases ??
-      [];
+    const done = peek.steps?.stateSteps ?? peek.steps?.proseSteps ?? readSpecState(spec.dir)?.completedPhases ?? [];
     if (!done.includes("implement")) continue;
-    if (
-      acceptanceStillOpen(
-        peek.steps?.acceptanceOpen,
-        readSpecState(spec.dir)?.acceptanceCriteria,
-      )
-    )
-      open.add(job.id);
+    if (acceptanceStillOpen(peek.steps?.acceptanceOpen, readSpecState(spec.dir)?.acceptanceCriteria)) open.add(job.id);
   }
   return open;
 }
@@ -350,14 +256,8 @@ export function archiveWithOpenAcceptance(ctx: ScheduleContext): Set<string> {
  *  Read off disk alone, such a job sat queued behind "held back: not
  *  analyzed yet" with the real reason only in landingError
  *  (2026-09-03). */
-function completedSteps(
-  ctx: ScheduleContext,
-  dir: string,
-  folder: string,
-): string[] {
-  const branchAnswer = ctx
-    .readBranchFileSteps()
-    .peekFileSteps(dir, folder).steps;
+function completedSteps(ctx: ScheduleContext, dir: string, folder: string): string[] {
+  const branchAnswer = ctx.readBranchFileSteps().peekFileSteps(dir, folder).steps;
   return (
     branchAnswer?.stateSteps ??
     (branchAnswer?.proseSteps.length ? branchAnswer.proseSteps : undefined) ??

@@ -6,71 +6,26 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  parsePhaseOutcome,
-  specPhaseOutcome,
-} from "../../src/project/parse-phase-outcome.ts";
+import { parsePhaseOutcome, specPhaseOutcome } from "../../src/project/parse-phase-outcome.ts";
 
 const ANALYSIS_LINE = JSON.parse(
-  readFileSync(
-    join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "core",
-      "tests",
-      "fixtures",
-      "analysis-line.json",
-    ),
-    "utf-8",
-  ),
+  readFileSync(join(import.meta.dir, "..", "..", "..", "core", "tests", "fixtures", "analysis-line.json"), "utf-8"),
 ).cases as { name: string; line: string | null; analysis: "short" | "full" }[];
 
 const SENT_BACK_LINE = JSON.parse(
-  readFileSync(
-    join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "core",
-      "tests",
-      "fixtures",
-      "sent-back-line.json",
-    ),
-    "utf-8",
-  ),
-).cases as {
-  name: string;
-  where: "tracking-info" | "description";
-  line: string | null;
-  sentBack: string | null;
-}[];
+  readFileSync(join(import.meta.dir, "..", "..", "..", "core", "tests", "fixtures", "sent-back-line.json"), "utf-8"),
+).cases as { name: string; where: "tracking-info" | "description"; line: string | null; sentBack: string | null }[];
 
 const withTracking = (...lines: string[]) =>
-  [
-    "# 247 - Analysis",
-    "",
-    "## Tracking info",
-    "",
-    ...lines,
-    "",
-    "## Findings",
-    "",
-  ].join("\n");
+  ["# 247 - Analysis", "", "## Tracking info", "", ...lines, "", "## Findings", ""].join("\n");
 
 describe("parsePhaseOutcome", () => {
   // The runner's check reads the same bullet over the same table
   // (core/tests/fixtures/analysis-line.json): only `short` is kept.
   test("the analysis is read as the runner reads it, for every case of the shared table", () => {
     for (const c of ANALYSIS_LINE) {
-      const outcome = parsePhaseOutcome(
-        withTracking(...(c.line === null ? [] : [c.line])),
-      );
-      expect([c.name, outcome.analysis === "short" ? "short" : "full"]).toEqual(
-        [c.name, c.analysis],
-      );
+      const outcome = parsePhaseOutcome(withTracking(...(c.line === null ? [] : [c.line])));
+      expect([c.name, outcome.analysis === "short" ? "short" : "full"]).toEqual([c.name, c.analysis]);
     }
   });
 
@@ -82,98 +37,48 @@ describe("parsePhaseOutcome", () => {
       const content =
         c.where === "tracking-info"
           ? withTracking(...line)
-          : [
-              "# 1 - Description",
-              "",
-              "## Tracking info",
-              "",
-              "- **Result:** completed",
-              "",
-              "## Description",
-              "",
-              ...line,
-              "",
-            ].join("\n");
-      expect([c.name, parsePhaseOutcome(content).sentBack ?? null]).toEqual([
-        c.name,
-        c.sentBack,
-      ]);
+          : ["# 1 - Description", "", "## Tracking info", "", "- **Result:** completed", "", "## Description", "", ...line, ""].join("\n");
+      expect([c.name, parsePhaseOutcome(content).sentBack ?? null]).toEqual([c.name, c.sentBack]);
     }
   });
 
   test("an Analysis bullet outside Tracking info is ignored", () => {
-    const content = [
-      "# 1 - Analysis",
-      "",
-      "## Tracking info",
-      "",
-      "- **Result:** completed",
-      "",
-      "## Findings",
-      "",
-      "- **Analysis:** short",
-      "",
-    ].join("\n");
+    const content = ["# 1 - Analysis", "", "## Tracking info", "", "- **Result:** completed", "", "## Findings", "", "- **Analysis:** short", ""].join("\n");
     expect(parsePhaseOutcome(content).analysis).toBeUndefined();
   });
 
   test("a recorded model comes back", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Model:** claude claude-sonnet-5"))
-        .model,
-    ).toBe("claude claude-sonnet-5");
+    expect(parsePhaseOutcome(withTracking("- **Model:** claude claude-sonnet-5")).model).toBe(
+      "claude claude-sonnet-5",
+    );
   });
 
   test("no Model line means no model", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Result:** completed")).model,
-    ).toBeUndefined();
+    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).model).toBeUndefined();
   });
 
   test("a recorded model id comes back beside the model", () => {
-    const outcome = parsePhaseOutcome(
-      withTracking(
-        "- **Model:** claude opus",
-        "- **Model id:** claude-opus-5-5",
-      ),
-    );
+    const outcome = parsePhaseOutcome(withTracking("- **Model:** claude opus", "- **Model id:** claude-opus-5-5"));
     expect(outcome.model).toBe("claude opus");
     expect(outcome.modelId).toBe("claude-opus-5-5");
   });
 
   test("no Model id line means no model id", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Model:** claude opus")).modelId,
-    ).toBeUndefined();
+    expect(parsePhaseOutcome(withTracking("- **Model:** claude opus")).modelId).toBeUndefined();
   });
 
   test("a look-alike Model id bullet outside Tracking info is ignored", () => {
-    const content = [
-      "# 1 - Analysis",
-      "",
-      "## Tracking info",
-      "",
-      "- **Result:** completed",
-      "",
-      "## Risk analysis",
-      "",
-      "- **Model id:** x",
-      "",
-    ].join("\n");
+    const content = ["# 1 - Analysis", "", "## Tracking info", "", "- **Result:** completed", "", "## Risk analysis", "", "- **Model id:** x", ""].join("\n");
     expect(parsePhaseOutcome(content).modelId).toBeUndefined();
   });
 
   // The same read as Model, on its own field.
   test("a recorded effort comes back", () => {
-    expect(parsePhaseOutcome(withTracking("- **Effort:** high")).effort).toBe(
-      "high",
-    );
+    expect(parsePhaseOutcome(withTracking("- **Effort:** high")).effort).toBe("high");
   });
 
   test("no Effort line means no effort", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Result:** completed")).effort,
-    ).toBeUndefined();
+    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).effort).toBeUndefined();
   });
 
   test("a look-alike Effort bullet outside Tracking info is ignored", () => {
@@ -193,21 +98,15 @@ describe("parsePhaseOutcome", () => {
   });
 
   test("a Time spent line becomes milliseconds", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Time spent:** 5m32s")).timeSpentMs,
-    ).toBe(332_000);
+    expect(parsePhaseOutcome(withTracking("- **Time spent:** 5m32s")).timeSpentMs).toBe(332_000);
   });
 
   test("a Time spent line past an hour still parses (over-60 minutes case)", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Time spent:** 75m00s")).timeSpentMs,
-    ).toBe(4_500_000);
+    expect(parsePhaseOutcome(withTracking("- **Time spent:** 75m00s")).timeSpentMs).toBe(4_500_000);
   });
 
   test("no Time spent line means no figure", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Result:** completed")).timeSpentMs,
-    ).toBeUndefined();
+    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).timeSpentMs).toBeUndefined();
   });
 
   test("a Cost line becomes a dollar figure, unmeasured unset", () => {
@@ -217,17 +116,13 @@ describe("parsePhaseOutcome", () => {
   });
 
   test("a Cost line marked (unmeasured) carries the flag", () => {
-    const outcome = parsePhaseOutcome(
-      withTracking("- **Cost:** $0.0123 (unmeasured)"),
-    );
+    const outcome = parsePhaseOutcome(withTracking("- **Cost:** $0.0123 (unmeasured)"));
     expect(outcome.cost).toBe(0.0123);
     expect(outcome.costUnmeasured).toBe(true);
   });
 
   test("no Cost line at all means no figure, never 0", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Result:** completed")).cost,
-    ).toBeUndefined();
+    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).cost).toBeUndefined();
   });
 
   test("a look-alike bullet outside Tracking info is ignored", () => {
@@ -250,15 +145,11 @@ describe("parsePhaseOutcome", () => {
   // Codex phase gets Tokens with no Cost line at all, so the two must
   // parse independently of each other.
   test("a Tokens line becomes a number", () => {
-    expect(parsePhaseOutcome(withTracking("- **Tokens:** 9562")).tokens).toBe(
-      9562,
-    );
+    expect(parsePhaseOutcome(withTracking("- **Tokens:** 9562")).tokens).toBe(9562);
   });
 
   test("no Tokens line at all means no figure, never 0", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Result:** completed")).tokens,
-    ).toBeUndefined();
+    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).tokens).toBeUndefined();
   });
 
   test("a look-alike Tokens bullet outside Tracking info is ignored", () => {
@@ -285,15 +176,11 @@ describe("parsePhaseOutcome", () => {
   // unlike the four fields above (each speaks for the latest attempt
   // only) — parsed the same way regardless.
   test("a recorded Attempts line becomes a number", () => {
-    expect(parsePhaseOutcome(withTracking("- **Attempts:** 3")).attempts).toBe(
-      3,
-    );
+    expect(parsePhaseOutcome(withTracking("- **Attempts:** 3")).attempts).toBe(3);
   });
 
   test("no Attempts line at all means no figure, never 0", () => {
-    expect(
-      parsePhaseOutcome(withTracking("- **Result:** completed")).attempts,
-    ).toBeUndefined();
+    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).attempts).toBeUndefined();
   });
 
   test("a look-alike Attempts bullet outside Tracking info is ignored", () => {
@@ -320,14 +207,10 @@ describe("specPhaseOutcome", () => {
   });
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-  const write = (name: string, content: string) =>
-    writeFileSync(join(dir, name), content);
+  const write = (name: string, content: string) => writeFileSync(join(dir, name), content);
 
   test("create reads 1-description.md", () => {
-    write(
-      "1-description.md",
-      withTracking("- **Result:** completed", "- **Time spent:** 1m00s"),
-    );
+    write("1-description.md", withTracking("- **Result:** completed", "- **Time spent:** 1m00s"));
     expect(specPhaseOutcome(dir, "create").timeSpentMs).toBe(60_000);
   });
 

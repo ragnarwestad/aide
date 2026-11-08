@@ -9,14 +9,7 @@ import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../../../src/queue/queue.ts";
 import { resolveStepModel } from "../../../src/queue/model-name.ts";
 import { resolveStepModel as reExported } from "../../../src/serve/serve-helpers/runner-argv.ts";
-import {
-  enqueue,
-  makeRunner,
-  okResult,
-  resetHarness,
-  cleanupHarness,
-  store as harnessStore,
-} from "../runner/runner-fixtures.ts";
+import { enqueue, makeRunner, okResult, resetHarness, cleanupHarness, store as harnessStore } from "../runner/runner-fixtures.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -24,8 +17,7 @@ const DEFAULTS: QueueDefaults = {
   model: { default: "sonnet" },
   modelChoices: { Opus: { model: "opus" }, Sonnet: { model: "sonnet" } },
 };
-const resolve = (project: string) =>
-  project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null;
+const resolve = (project: string) => (project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null);
 
 let dir: string;
 beforeEach(() => {
@@ -38,10 +30,7 @@ describe("QueueStore.recordModelId()", () => {
     const store = new QueueStore({ defaults: DEFAULTS, resolve });
     store.recordModelId("Opus", "claude-opus-5-5");
     store.recordModelId("Sonnet", "claude-sonnet-5");
-    expect(store.modelIds).toEqual({
-      Opus: "claude-opus-5-5",
-      Sonnet: "claude-sonnet-5",
-    });
+    expect(store.modelIds).toEqual({ Opus: "claude-opus-5-5", Sonnet: "claude-sonnet-5" });
   });
 
   test("the newer id wins", () => {
@@ -63,30 +52,17 @@ describe("QueueStore.recordModelId()", () => {
     const first = new QueueStore({ defaults: DEFAULTS, resolve, modelIdsPath });
     first.recordModelId("Opus", "claude-opus-5-5");
     first.recordModelId("Opus", "claude-opus-5-6");
-    const second = new QueueStore({
-      defaults: DEFAULTS,
-      resolve,
-      modelIdsPath,
-    });
+    const second = new QueueStore({ defaults: DEFAULTS, resolve, modelIdsPath });
     expect(second.modelIds).toEqual({ Opus: "claude-opus-5-6" });
-    expect(JSON.parse(readFileSync(modelIdsPath, "utf-8"))).toEqual({
-      Opus: "claude-opus-5-6",
-    });
+    expect(JSON.parse(readFileSync(modelIdsPath, "utf-8"))).toEqual({ Opus: "claude-opus-5-6" });
   });
 
   test("a corrupt sidecar starts empty, and a malformed entry is dropped", () => {
     const modelIdsPath = join(dir, "model-ids.json");
     writeFileSync(modelIdsPath, "{not json");
-    expect(
-      new QueueStore({ defaults: DEFAULTS, resolve, modelIdsPath }).modelIds,
-    ).toEqual({});
-    writeFileSync(
-      modelIdsPath,
-      JSON.stringify({ Opus: "claude-opus-5-5", Sonnet: 5, Fable: "" }),
-    );
-    expect(
-      new QueueStore({ defaults: DEFAULTS, resolve, modelIdsPath }).modelIds,
-    ).toEqual({ Opus: "claude-opus-5-5" });
+    expect(new QueueStore({ defaults: DEFAULTS, resolve, modelIdsPath }).modelIds).toEqual({});
+    writeFileSync(modelIdsPath, JSON.stringify({ Opus: "claude-opus-5-5", Sonnet: 5, Fable: "" }));
+    expect(new QueueStore({ defaults: DEFAULTS, resolve, modelIdsPath }).modelIds).toEqual({ Opus: "claude-opus-5-5" });
   });
 });
 
@@ -96,9 +72,7 @@ describe("Runner.complete() records the id against the choice the step ran on", 
 
   test("a step that ran on a choice with an id records it under that choice (the configured default when none was picked)", () => {
     const job = enqueue();
-    const runner = makeRunner({
-      readResult: () => ({ ...okResult(1), modelId: "claude-opus-5-5" }),
-    });
+    const runner = makeRunner({ readResult: () => ({ ...okResult(1), modelId: "claude-opus-5-5" }) });
     runner.tick();
     runner.poll();
     expect(harnessStore.get(job.id)?.state).toBe("done");

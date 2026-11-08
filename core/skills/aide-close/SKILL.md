@@ -50,6 +50,7 @@ done.
 
 First write `--- Step 1 of 4: Move the spec to the archive as closed — started`, and when this step ends, `--- Step 1 of 4: Move the spec to the archive as closed — done`.
 
+
 A script resolves the argument to a folder, checks whether a merge is
 open, and stamps and moves the folder. Close does not ask whether the
 work is done:
@@ -96,6 +97,7 @@ Branch on the JSON's `terminalReason`:
 ### Step 2 of 4: Commit
 
 First write `--- Step 2 of 4: Commit — started`, and when this step ends, `--- Step 2 of 4: Commit — done`.
+
 
 Step 1 left the move and the stamp in the working directory; this step
 gets them onto a commit.
@@ -144,6 +146,7 @@ close is finished only once Step 4, the merge into main, is done. So the
 report's first line ends `— not finished, the merge into main is next
 (Step 4)`, and the report never calls the close done or complete.
 
+
 ```text
 Closed: 17-a-spec-that-turned-out-wrong
 
@@ -165,7 +168,6 @@ when that merge is, not before. Working interactively there is no such
 step: the steps above say what reaches the default branch.
 
 IMPORTANT:
-
 - Closing is a move: a spec is never deleted
 - When the specs root lies outside the project root, spec files are
   staged with the specs repo's git, never the project's

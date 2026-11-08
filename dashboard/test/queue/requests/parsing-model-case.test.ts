@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  parseCreateRequest,
-  parseJobRequest,
-  type QueueDefaults,
-} from "../../../src/queue/queue.ts";
+import { parseCreateRequest, parseJobRequest, type QueueDefaults } from "../../../src/queue/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
   timeoutSec: { default: 1200 },
@@ -11,11 +7,9 @@ const DEFAULTS: QueueDefaults = {
   model: { default: "Sonnet" },
   modelChoices: { Sonnet: {}, Opus: {} },
 };
-const resolve = (project: string) =>
-  project === "aide" ? { specFolders: ["81-queue"] } : null;
+const resolve = (project: string) => (project === "aide" ? { specFolders: ["81-queue"] } : null);
 const BASE = { project: "aide", specFolder: "81-queue", steps: ["analyze"] };
-const parse = (extra: object, defaults = DEFAULTS) =>
-  parseJobRequest({ ...BASE, ...extra }, { resolve, defaults });
+const parse = (extra: object, defaults = DEFAULTS) => parseJobRequest({ ...BASE, ...extra }, { resolve, defaults });
 
 describe("a model name that differs from a listed one only in case", () => {
   test("whole-job pick is stored under the listed spelling", () => {
@@ -30,13 +24,7 @@ describe("a model name that differs from a listed one only in case", () => {
 
   test("New-spec picks, running and pending, are stored under the listed spelling", () => {
     const r = parseCreateRequest(
-      {
-        project: "aide",
-        title: "T",
-        description: "D",
-        steps: ["analyze"],
-        model: { analyze: "opus", implement: "sonnet" },
-      },
+      { project: "aide", title: "T", description: "D", steps: ["analyze"], model: { analyze: "opus", implement: "sonnet" } },
       { allow: () => true, defaults: DEFAULTS },
     );
     expect(r.ok).toBe(true);

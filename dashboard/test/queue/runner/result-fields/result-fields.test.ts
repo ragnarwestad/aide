@@ -6,24 +6,13 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  providerError,
-  testsNotStarted,
-  testsRed,
-  timeLimit,
-} from "../../../../src/queue/runner/types.ts";
+import { providerError, testsNotStarted, testsRed, timeLimit } from "../../../../src/queue/runner/types.ts";
 import { scopeAnalyzeChecks } from "../../../../src/queue/runner/cross-check-message.ts";
 import { sideRun } from "../../../../src/queue/runner/side-run.ts";
 
 type Case = { name: string; written: unknown; read: unknown };
 const FIELDS = JSON.parse(
-  readFileSync(
-    join(
-      import.meta.dir,
-      "../../../../../core/tests/fixtures/result-fields.json",
-    ),
-    "utf-8",
-  ),
+  readFileSync(join(import.meta.dir, "../../../../../core/tests/fixtures/result-fields.json"), "utf-8"),
 ).fields as Record<string, Case[]>;
 
 const PARSERS: Record<string, (raw: unknown) => unknown> = {

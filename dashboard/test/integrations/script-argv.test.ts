@@ -32,7 +32,7 @@ describe("a script's argv", () => {
   });
 
   test("runs a script that is not even executable, so no exec of the file itself is needed", async () => {
-    const s = file('#!/bin/sh\necho "$1"\n');
+    const s = file("#!/bin/sh\necho \"$1\"\n");
     const proc = Bun.spawn({ cmd: scriptArgv([s, "ran"]), stdout: "pipe" });
     expect((await new Response(proc.stdout).text()).trim()).toBe("ran");
   });
@@ -45,14 +45,8 @@ describe("a script's argv", () => {
   });
 
   test("leaves a binary, an unknown name and a missing path alone", () => {
-    expect(scriptArgv(["/bin/sh", "-c", "true"])).toEqual([
-      "/bin/sh",
-      "-c",
-      "true",
-    ]);
-    expect(scriptArgv(["no-such-command-anywhere"], "/usr/bin:/bin")).toEqual([
-      "no-such-command-anywhere",
-    ]);
+    expect(scriptArgv(["/bin/sh", "-c", "true"])).toEqual(["/bin/sh", "-c", "true"]);
+    expect(scriptArgv(["no-such-command-anywhere"], "/usr/bin:/bin")).toEqual(["no-such-command-anywhere"]);
     expect(scriptArgv(["/no/such/file"])).toEqual(["/no/such/file"]);
   });
 });

@@ -4,23 +4,23 @@
 
 - [Sporingsinfo](#sporingsinfo)
 - [Analyse-fase](#analyse-fase)
-  - [Oppgaver](#oppgaver)
+    - [Oppgaver](#oppgaver)
 - [Fase 1: Quick Wins (Prioritet 1)](#fase-1-quick-wins-prioritet-1)
-  - [Oppgaver](#oppgaver)
-  - [Endrede filer](#endrede-filer)
-  - [Implementeringsdetaljer](#implementeringsdetaljer)
-  - [Neste steg](#neste-steg)
+    - [Oppgaver](#oppgaver)
+    - [Endrede filer](#endrede-filer)
+    - [Implementeringsdetaljer](#implementeringsdetaljer)
+    - [Neste steg](#neste-steg)
 - [Fase 2: Strukturelle forbedringer (Prioritet 2)](#fase-2-strukturelle-forbedringer-prioritet-2)
-  - [Oppgaver](#oppgaver)
-  - [Endrede/nye filer](#endredenye-filer)
-  - [Implementeringsdetaljer](#implementeringsdetaljer)
-  - [Neste steg](#neste-steg)
+    - [Oppgaver](#oppgaver)
+    - [Endrede/nye filer](#endredenye-filer)
+    - [Implementeringsdetaljer](#implementeringsdetaljer)
+    - [Neste steg](#neste-steg)
 - [Fase 3: Avanserte optimaliseringer (Prioritet 3)](#fase-3-avanserte-optimaliseringer-prioritet-3)
-  - [Oppgaver](#oppgaver)
-  - [Endrede/nye filer](#endredenye-filer)
-  - [Implementeringsdetaljer](#implementeringsdetaljer)
-  - [Testresultater](#testresultater)
-  - [Neste steg](#neste-steg)
+    - [Oppgaver](#oppgaver)
+    - [Endrede/nye filer](#endredenye-filer)
+    - [Implementeringsdetaljer](#implementeringsdetaljer)
+    - [Testresultater](#testresultater)
+    - [Neste steg](#neste-steg)
 - [Notasjon](#notasjon)
 - [Relaterte dokumenter](#relaterte-dokumenter)
 
@@ -49,7 +49,7 @@
 ### Oppgaver
 
 | Oppgave                                       | Status | Notater                              |
-| --------------------------------------------- | ------ | ------------------------------------ |
+|-----------------------------------------------|--------|--------------------------------------|
 | Les MCP-konfigurasjon (.claude/settings.json) | ✅     | 3 MCP-servere identifisert           |
 | Kartlegg systems/ struktur                    | ✅     | Kun dokumentasjon, ingen kode        |
 | Analyser dokumentasjonsflyt                   | ✅     | Hierarkisk, men implisitt            |
@@ -66,7 +66,7 @@
 ### Oppgaver
 
 | Oppgave                                | Status | Notater                                                |
-| -------------------------------------- | ------ | ------------------------------------------------------ |
+|----------------------------------------|--------|--------------------------------------------------------|
 | 1.1: Dokumenter MCP-bruk med eksempler | ✅     | Lagt til i CLAUDE.md med konkrete eksempler            |
 | 1.2: Lag "Start Her" decision tree     | ✅     | Lagt til i CLAUDE.md med visual flow og trigger-tabell |
 | 1.3: Legg til MCP availability check   | ✅     | Lagt til i task-analyzer.md                            |
@@ -78,13 +78,13 @@
 ### Endrede filer
 
 1. **CLAUDE.md** (workspace root)
-   - Lagt til "Dokumentasjonsflyt" seksjon med decision tree og trigger-tabell
-   - Lagt til "MCP-servere" seksjon med konkrete eksempler for alle 3 MCP-servere
-   - Totalt ~70 nye linjer
+    - Lagt til "Dokumentasjonsflyt" seksjon med decision tree og trigger-tabell
+    - Lagt til "MCP-servere" seksjon med konkrete eksempler for alle 3 MCP-servere
+    - Totalt ~70 nye linjer
 
 2. **.claude/agents/task-analyzer.md**
-   - Lagt til "MCP Availability Check" seksjon før JIRA-data henting
-   - Totalt ~25 nye linjer
+    - Lagt til "MCP Availability Check" seksjon før JIRA-data henting
+    - Totalt ~25 nye linjer
 
 ### Implementeringsdetaljer
 
@@ -125,7 +125,7 @@
 ### Oppgaver
 
 | Oppgave                                     | Status | Notater                             |
-| ------------------------------------------- | ------ | ----------------------------------- |
+|---------------------------------------------|--------|-------------------------------------|
 | 2.1: Opprett core/docs/KNOWLEDGE_ROUTING.md | ✅     | 10 problemtyper med routing rules   |
 | 2.2: Utvid systems/README.md med eksempler  | ✅     | 3 konkrete eksempler + nøkkellæring |
 | Oppdater CLAUDE.md med referanse            | ✅     | Lagt til i "Ved oppstart av sesjon" |
@@ -136,33 +136,33 @@
 ### Endrede/nye filer
 
 1. **core/docs/KNOWLEDGE_ROUTING.md** (ny fil, ~380 linjer)
-   - 10 problemtyper med routing rules:
-     - Frontend UI-bug
-     - Backend API-feil
-     - Tverrfaglig (frontend + backend)
-     - Refaktorering
-     - Test-generering
-     - Ny funksjonalitet
-     - Database-endring
-     - Performance-problem
-     - Deployment/Infrastruktur
-   - For hver problemtype: Beskrivelse, dokumentasjon, workflow, eksempler
-   - Quick Reference tabell for rask oppslag
-   - Instruksjoner for utvidelse av routing rules
+    - 10 problemtyper med routing rules:
+        - Frontend UI-bug
+        - Backend API-feil
+        - Tverrfaglig (frontend + backend)
+        - Refaktorering
+        - Test-generering
+        - Ny funksjonalitet
+        - Database-endring
+        - Performance-problem
+        - Deployment/Infrastruktur
+    - For hver problemtype: Beskrivelse, dokumentasjon, workflow, eksempler
+    - Quick Reference tabell for rask oppslag
+    - Instruksjoner for utvidelse av routing rules
 
 2. **systems/README.md** (utvidet med ~230 linjer)
-   - Ny seksjon: "Eksempler: Hvordan AI bruker systems/"
-   - 3 konkrete eksempler:
-     - Eksempel 1: Backend 500-feil (avgiftspliktige perioder)
-     - Eksempel 2: Tverrfaglig endring (legg til felt i saksoversikt)
-     - Eksempel 3: Root cause analyse (hvorfor vises ikke 'arbeidsland'?)
-   - "Nøkkellæring fra eksemplene" med 4 prinsipper
-   - Konkrete bash-kommandoer og forventet output
-   - Viser hvordan dokumentasjonen brukes til å ta beslutninger
+    - Ny seksjon: "Eksempler: Hvordan AI bruker systems/"
+    - 3 konkrete eksempler:
+        - Eksempel 1: Backend 500-feil (avgiftspliktige perioder)
+        - Eksempel 2: Tverrfaglig endring (legg til felt i saksoversikt)
+        - Eksempel 3: Root cause analyse (hvorfor vises ikke 'arbeidsland'?)
+    - "Nøkkellæring fra eksemplene" med 4 prinsipper
+    - Konkrete bash-kommandoer og forventet output
+    - Viser hvordan dokumentasjonen brukes til å ta beslutninger
 
 3. **CLAUDE.md** (workspace root, utvidet)
-   - Lagt til referanse til KNOWLEDGE_ROUTING.md i "Ved oppstart av sesjon"
-   - Plassert under "Når du skal løse problemer"
+    - Lagt til referanse til KNOWLEDGE_ROUTING.md i "Ved oppstart av sesjon"
+    - Plassert under "Når du skal løse problemer"
 
 ### Implementeringsdetaljer
 
@@ -180,9 +180,9 @@
 - Viser hele analyseforløpet fra problem til konklusjon
 - Demonstrerer bruk av grep, API mapping, og dokumentasjon
 - Eksemplene dekker:
-  - Backend-only problem (Eksempel 1)
-  - Tverrfaglig problem med ripple effects (Eksempel 2)
-  - Root cause analyse (Eksempel 3)
+    - Backend-only problem (Eksempel 1)
+    - Tverrfaglig problem med ripple effects (Eksempel 2)
+    - Root cause analyse (Eksempel 3)
 - Nøkkellæring oppsummerer viktige prinsipper fra eksemplene
 
 **2.3 CLAUDE.md oppdatering:**
@@ -208,7 +208,7 @@
 ### Oppgaver
 
 | Oppgave                                | Status | Notater                              |
-| -------------------------------------- | ------ | ------------------------------------ |
+|----------------------------------------|--------|--------------------------------------|
 | 3.1: Lag core/scripts/validate-docs.sh | ✅     | Fullstendig dokumentasjonsvalidering |
 | 3.2: Lag core/docs/MCP_HEALTH_CHECK.md | ✅     | Health check dokumentasjon           |
 | Oppdater CLAUDE.md med referanse       | ✅     | Lagt til i MCP-servere seksjon       |
@@ -220,33 +220,33 @@
 ### Endrede/nye filer
 
 1. **core/scripts/validate-docs.sh** (ny fil, ~160 linjer)
-   - Validerer systems/ struktur (README.md obligatorisk, architecture.md og dependencies.md anbefalt)
-   - Validerer CLAUDE.md referanser (alle lenker må peke til eksisterende filer)
-   - Fargekodet output (grønn ✅, gul ⚠️, rød ❌)
-   - Exit code basert på feil (0 = OK, 1 = kritiske feil)
-   - Skiller mellom kritiske feil og advarsler
+    - Validerer systems/ struktur (README.md obligatorisk, architecture.md og dependencies.md anbefalt)
+    - Validerer CLAUDE.md referanser (alle lenker må peke til eksisterende filer)
+    - Fargekodet output (grønn ✅, gul ⚠️, rød ❌)
+    - Exit code basert på feil (0 = OK, 1 = kritiske feil)
+    - Skiller mellom kritiske feil og advarsler
 
 2. **core/docs/MCP_HEALTH_CHECK.md** (ny fil, ~180 linjer)
-   - Forklarer MCP-konseptet og hvorfor health check er viktig
-   - Dokumenterer alle 3 MCP-servere (IDE Diagnostics, JIRA, Confluence)
-   - Fallback-strategier for hver MCP ved feil
-   - Eksempler på health check output
-   - Fordeler med health check-tilnærmingen
+    - Forklarer MCP-konseptet og hvorfor health check er viktig
+    - Dokumenterer alle 3 MCP-servere (IDE Diagnostics, JIRA, Confluence)
+    - Fallback-strategier for hver MCP ved feil
+    - Eksempler på health check output
+    - Fordeler med health check-tilnærmingen
 
 3. **CLAUDE.md** (workspace root, oppdatert)
-   - Lagt til referanse til MCP_HEALTH_CHECK.md under MCP-servere seksjon
-   - Plassert etter Confluence MCP-dokumentasjon
+    - Lagt til referanse til MCP_HEALTH_CHECK.md under MCP-servere seksjon
+    - Plassert etter Confluence MCP-dokumentasjon
 
 4. **implementations/claude-code/setup.sh** (oppdatert)
-   - Lagt til steg 4: "Validerer dokumentasjonsstruktur..."
-   - Kjører validate-docs.sh automatisk hvis tilgjengelig
-   - Fallback-melding hvis scriptet ikke finnes
+    - Lagt til steg 4: "Validerer dokumentasjonsstruktur..."
+    - Kjører validate-docs.sh automatisk hvis tilgjengelig
+    - Fallback-melding hvis scriptet ikke finnes
 
 5. **systems/example-web/README.md** (ny fil, ~45 linjer)
-   - Workspace-dokumentasjon for example-web
-   - Referanser til docs/ filer
-   - Ekstern kodebase-informasjon
-   - Relaterte systemer
+    - Workspace-dokumentasjon for example-web
+    - Referanser til docs/ filer
+    - Ekstern kodebase-informasjon
+    - Relaterte systemer
 
 ### Implementeringsdetaljer
 
@@ -254,14 +254,14 @@
 
 - Bash script med moderne syntax (`#!/usr/bin/env bash`)
 - Sjekker alle systems/*/ kataloger for konsistent struktur:
-  - README.md (KRITISK - exit 1 hvis mangler)
-  - architecture.md (WARNING hvis mangler)
-  - dependencies.md (WARNING hvis mangler)
+    - README.md (KRITISK - exit 1 hvis mangler)
+    - architecture.md (WARNING hvis mangler)
+    - dependencies.md (WARNING hvis mangler)
 - Validerer CLAUDE.md referanser:
-  - Finner alle markdown-lenker: `[tekst](path/to/file.md)`
-  - Ignorerer eksterne lenker (http://, https://)
-  - Fjerner anchor tags (#section) før filsjekk
-  - Rapporterer manglende filer som kritiske feil
+    - Finner alle markdown-lenker: `[tekst](path/to/file.md)`
+    - Ignorerer eksterne lenker (http://, https://)
+    - Fjerner anchor tags (#section) før filsjekk
+    - Rapporterer manglende filer som kritiske feil
 - Fargekodet output for god UX
 - Teller ERRORS og WARNINGS separat
 - Exit med korrekt exit code
@@ -270,11 +270,11 @@
 
 - Komplett dokumentasjon av MCP health check-konseptet
 - For hver MCP-server:
-  - Formål og bruksområde
-  - Konkrete eksempler på hvordan kalle
-  - Forventet status (tilgjengelig/avhenger av auth)
-  - Fallback-strategier ved feil
-  - Når MCP er bedre vs. når script er bedre
+    - Formål og bruksområde
+    - Konkrete eksempler på hvordan kalle
+    - Forventet status (tilgjengelig/avhenger av auth)
+    - Fallback-strategier ved feil
+    - Når MCP er bedre vs. når script er bedre
 - Eksempler på health check output i både success- og error-case
 - Fordeler med health check-tilnærmingen
 - Implementeringsinstruksjoner for Claude Code
@@ -353,7 +353,7 @@ Forbedringene implementert:
 ## Notasjon
 
 | Symbol | Betydning           |
-| ------ | ------------------- |
+|--------|---------------------|
 | ⬜     | Ikke startet        |
 | 🔄     | Under arbeid        |
 | ✅     | Fullført            |

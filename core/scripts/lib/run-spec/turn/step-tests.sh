@@ -23,7 +23,7 @@
 # `exec resume <thread> -`, opencode `--session <id>`; the step's own
 # transcript appended to), which fixes what it broke and runs the suite
 # again — up to AIDE_TEST_FIX_ROUNDS more turns (2), each within what
-# is left of the step's time limit. The record on the branch is always
+# is left of the step's time limit, which the test runs do not use up. The record on the branch is always
 # the runner's last run. Each red run's failing tests are read by name
 # (lib/failing-tests.sh): a fix round is handed those, and a step
 # still red carries them in the result's `testsRed`, with whether they lie
@@ -41,11 +41,12 @@
 # An `archive` runs nothing here, merged or not: its landing runs the
 # suite once on exactly what main is about to become, and a run here too
 # was the same suite two and three times per archive (2026-09-19).
-# The runner's own run of the tests, inside what is left of the step's
-# time limit: the limit is the whole step's, not the session's alone. A
-# run still going when it runs out is stopped (124), and the step ends
-# on its time limit with the work committed, like a session that ran
-# out. `child` is this run while it lasts, so Cancel stops it too.
+# The runner's own run of the tests, under its own limit
+# (test_run_limit_sec, run-spec/turn/time-limit.sh), and the time it took
+# added to the step's deadline. A run still going at its limit is stopped
+# (124), and the step ends on that limit with the work committed, like a
+# session that ran out. `child` is this run while it lasts, so Cancel
+# stops it too.
 # The run's progress (aide-record-test-run --progress-file) into the Log
 # as it comes: every line written since the last call, stamped.
 step_tests_progress_seen=0
@@ -60,8 +61,9 @@ stage_test_progress() {
 }
 
 run_step_tests_within_time() {
-  local deadline tests_pid
-  deadline=$(( started_at + ${timeout_sec%.*} ))
+  local deadline tests_pid run_started
+  run_started="$(date +%s)"
+  deadline=$(( run_started + ${test_run_limit_sec%.*} ))
   : > "$work_dir/step-test-progress"
   step_tests_progress_seen=0
   # The recorder's own answer, read after the run (recorder_failure): a
@@ -89,12 +91,14 @@ run_step_tests_within_time() {
       kill -KILL "-$tests_pid" 2>/dev/null || true
       wait "$tests_pid" 2>/dev/null
       child=""
+      step_tests_seconds=$(( step_tests_seconds + $(date +%s) - run_started ))
       return 124
     fi
     sleep 1
   done
   wait "$tests_pid"
   local rc=$?
+  step_tests_seconds=$(( step_tests_seconds + $(date +%s) - run_started ))
   stage_test_progress
   # The whole output, kept beside the step's own run log: the Log shows
   # its progress, this file what the tests actually said.
@@ -108,7 +112,7 @@ run_step_tests_within_time() {
 }
 
 # Run every still-red file once, alone, using the project's configured
-# file command. The check stays inside the step's deadline and `child`
+# file command. The check stays inside one test run's limit and `child`
 # points at it so Cancel stops it too. $1 is failing_tests JSON, $2 output.
 run_red_files_again() {
   local named="$1" out="$2" cmd deadline file pid rc log rows
@@ -120,7 +124,7 @@ run_red_files_again() {
     printf '[]\n' > "$out"
     return 0
   fi
-  deadline=$(( started_at + ${timeout_sec%.*} ))
+  deadline=$(( $(date +%s) + ${test_run_limit_sec%.*} ))
   while IFS= read -r file; do
     [ "$(date +%s)" -lt "$deadline" ] || { stage "no time left to run the remaining red test files again"; break; }
     log="$work_dir/red-again-$(wc -l < "$rows" | tr -d ' ').log"
@@ -253,9 +257,9 @@ EOF_CMDS
           break
         fi
         if [ "$step_tests_rc" -eq 124 ]; then
-          stop_step timeout "stopped at its own $(time_limit_words "$timeout_sec") time limit for this step while the project's tests were running; the work is committed to the branch" \
+          stop_step timeout "stopped when one run of the project's tests reached its own $(time_limit_words "$test_run_limit_sec") limit; the work is committed to the branch" \
             "press $step_button again to test it"
-          time_limit_json="$(jq -cn --argjson s "$timeout_sec" '{seconds:$s, during:"tests"}')"
+          time_limit_json="$(jq -cn --argjson s "$test_run_limit_sec" '{seconds:$s, during:"tests"}')"
           break
         fi
         # The recorder did not run the tests: no session can fix that by
@@ -315,7 +319,7 @@ port $step_tests_port is held by $(printf '%s' "$step_tests_holder" | jq -r '"\(
         fi
         # Another turn, or the end: the cap, a session the runner cannot
         # resume, and what the step has left of its time.
-        step_time_left=$(( started_at + ${timeout_sec%.*} - $(date +%s) ))
+        step_time_left=$(( $(step_deadline) - $(date +%s) ))
         if [ "$step_fix_round" -ge "$step_fix_rounds" ] || [ -z "$session_out" ] \
            || [ "$step_time_left" -le 0 ]; then
           stop_step tests-red "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's.

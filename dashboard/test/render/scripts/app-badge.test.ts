@@ -8,23 +8,8 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE = new Bun.Transpiler({
-  loader: "ts",
-  target: "browser",
-}).transformSync(
-  readFileSync(
-    join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "src",
-      "render",
-      "scripts",
-      "app-badge.ts",
-    ),
-    "utf-8",
-  ),
+const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
+  readFileSync(join(import.meta.dir, "..", "..", "..", "src", "render", "scripts", "app-badge.ts"), "utf-8"),
 );
 
 interface Opts {
@@ -71,17 +56,14 @@ function run(opts: Opts = {}) {
   const listeners: Record<string, ((e: { detail: unknown }) => void)[]> = {};
   const document = {
     querySelector: (selector: string) =>
-      selector.includes("aide-waiting") && opts.meta !== undefined
-        ? { getAttribute: () => opts.meta, content: opts.meta }
-        : null,
+      selector.includes("aide-waiting") && opts.meta !== undefined ? { getAttribute: () => opts.meta, content: opts.meta } : null,
     addEventListener: (type: string, fn: (e: { detail: unknown }) => void) => {
       (listeners[type] ??= []).push(fn);
     },
   };
   // eslint-disable-next-line no-new-func -- the file under test IS a script
   new Function("navigator", "document", SOURCE)(navigator, document);
-  const announce = (detail: unknown) =>
-    (listeners["aide:waiting"] ?? []).forEach((fn) => fn({ detail }));
+  const announce = (detail: unknown) => (listeners["aide:waiting"] ?? []).forEach((fn) => fn({ detail }));
   return { calls, announce, handled: () => handled };
 }
 

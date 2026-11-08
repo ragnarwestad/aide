@@ -6,11 +6,7 @@
 // JSON on stdin, spawn-and-forget, SIGTERM at 10 s and SIGKILL a second
 // later, and absent entirely unless configured.
 import { describe, expect, test } from "bun:test";
-import {
-  Notifier,
-  type NotifyEvent,
-  type NotifyChild,
-} from "../../src/integrations/notify.ts";
+import { Notifier, type NotifyEvent, type NotifyChild } from "../../src/integrations/notify.ts";
 
 const EVENT: NotifyEvent = {
   event: "finished",
@@ -19,8 +15,7 @@ const EVENT: NotifyEvent = {
   step: "analyze",
   jobId: "job-1",
   costUsd: 2.1,
-  branchUrl:
-    "https://github.com/example/aide/compare/main...aide/81-queue-and-runner",
+  branchUrl: "https://github.com/example/aide/compare/main...aide/81-queue-and-runner",
   at: "2026-08-16T22:00:00Z",
 };
 
@@ -69,11 +64,7 @@ describe("absent unless configured", () => {
 describe("the contract", () => {
   test("the argv array is passed verbatim — no shell anywhere", () => {
     const r = recorder();
-    const command = [
-      "/Users/x/aide-dashboard/notify-slack.sh",
-      "--channel",
-      "aide runs",
-    ];
+    const command = ["/Users/x/aide-dashboard/notify-slack.sh", "--channel", "aide runs"];
     new Notifier({ command, spawn: r.spawn }).notify(EVENT);
     expect(r.calls.length).toBe(1);
     expect(r.calls[0]!.argv).toEqual(command);
@@ -84,9 +75,7 @@ describe("the contract", () => {
     new Notifier({ command: ["notify"], spawn: r.spawn }).notify(EVENT);
     const line = r.calls[0]!.line;
     expect(line.trimEnd()).not.toContain("\n");
-    expect(JSON.parse(line)).toEqual(
-      EVENT as unknown as Record<string, unknown>,
-    );
+    expect(JSON.parse(line)).toEqual(EVENT as unknown as Record<string, unknown>);
   });
 
   test("a spawn that throws never reaches the caller", () => {
@@ -104,11 +93,7 @@ describe("a notification may never outlive the job it reports", () => {
   test("SIGTERM at 10 s, SIGKILL a second later", () => {
     const r = recorder();
     const clock = fakeSchedule();
-    new Notifier({
-      command: ["notify"],
-      spawn: r.spawn,
-      schedule: clock.schedule,
-    }).notify(EVENT);
+    new Notifier({ command: ["notify"], spawn: r.spawn, schedule: clock.schedule }).notify(EVENT);
     expect(clock.timers.map((t) => t.ms)).toEqual([10_000, 11_000]);
     clock.runAll();
     expect(r.killed).toEqual(["SIGTERM", "SIGKILL"]);
@@ -119,10 +104,7 @@ describe("a notification may never outlive the job it reports", () => {
     const killed: string[] = [];
     const notifier = new Notifier({
       command: ["notify"],
-      spawn: () => ({
-        kill: (s) => void killed.push(s),
-        exited: Promise.resolve(0),
-      }),
+      spawn: () => ({ kill: (s) => void killed.push(s), exited: Promise.resolve(0) }),
       schedule: clock.schedule,
     });
     notifier.notify(EVENT);

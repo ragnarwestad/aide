@@ -12,10 +12,8 @@ export async function handlePushRoutes(
   url: URL,
   path: string,
 ): Promise<Response | null> {
-  if (path !== "/api/push/subscribe" && path !== "/api/push/unsubscribe")
-    return null;
-  if (req.method !== "POST")
-    return new Response("method not allowed", { status: 405 });
+  if (path !== "/api/push/subscribe" && path !== "/api/push/unsubscribe") return null;
+  if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   const read = await readBounded(req, MAX_BODY);
   if ("refusal" in read) return read.refusal;
   let body: unknown;
@@ -25,8 +23,6 @@ export async function handlePushRoutes(
     return json({ ok: false, error: "the body is not JSON" }, 400);
   }
   const answer =
-    path === "/api/push/subscribe"
-      ? await ctx.push.subscribe(body, url.origin)
-      : await ctx.push.unsubscribe(body);
+    path === "/api/push/subscribe" ? await ctx.push.subscribe(body, url.origin) : await ctx.push.unsubscribe(body);
   return answer.ok ? json({ ok: true }) : json(answer, 400);
 }

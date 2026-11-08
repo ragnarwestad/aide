@@ -11,12 +11,7 @@ import { dataAttrs } from "./button.ts";
  *  words in one language only. */
 export type FoldTitle = Extract<
   TranslationKey,
-  | "list.foldTitle"
-  | "list.specFoldTitle"
-  | "list.checksFoldTitle"
-  | "list.phaseFoldTitle"
-  | "job.stepFoldTitle"
-  | "jobs.foldTitle"
+  "list.foldTitle" | "list.specFoldTitle" | "list.checksFoldTitle" | "list.phaseFoldTitle" | "job.stepFoldTitle" | "jobs.foldTitle"
 >;
 
 // A LINK, not a button, with the state in the address: it works with script
@@ -53,10 +48,6 @@ export function foldArrow(o: {
  *  inside a row, where a click must not load the page or ask the server.
  *  `summary` and `body` are trusted markup; the caller escapes what it
  *  hands in. */
-export function foldDisclosure(o: {
-  summary: string;
-  body: string;
-  data?: Record<string, string>;
-}): string {
+export function foldDisclosure(o: { summary: string; body: string; data?: Record<string, string> }): string {
   return `<details class="foldbox"${dataAttrs(o.data)}><summary>${ICON_CHEVRON}${o.summary}</summary>${o.body}</details>`;
 }

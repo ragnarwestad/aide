@@ -28,11 +28,7 @@ if (host && raw) {
   style.textContent = viewerCss + editorDarkCss;
   document.head.appendChild(style);
 
-  new Viewer({
-    el: host,
-    initialValue: raw.textContent ?? "",
-    usageStatistics: false,
-  });
+  new Viewer({ el: host, initialValue: raw.textContent ?? "", usageStatistics: false });
   host.dataset.mounted = "true";
   // A link from the Specs list to one approach of the plan.
   requestAnimationFrame(() => scrollToApproach(host, location.hash));
@@ -43,14 +39,11 @@ if (host && raw) {
   // wrapper to put it on instead.
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
   const currentTheme = (): string =>
-    document.documentElement.dataset.theme ??
-    (prefersDark.matches ? "dark" : "light");
+    document.documentElement.dataset.theme ?? (prefersDark.matches ? "dark" : "light");
   const applyTheme = (): void => {
     host.classList.toggle("toastui-editor-dark", currentTheme() === "dark");
   };
   applyTheme();
-  new MutationObserver(applyTheme).observe(document.documentElement, {
-    attributeFilter: ["data-theme"],
-  });
+  new MutationObserver(applyTheme).observe(document.documentElement, { attributeFilter: ["data-theme"] });
   prefersDark.addEventListener("change", applyTheme);
 }

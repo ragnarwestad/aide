@@ -19,9 +19,6 @@
     return;
   }
   if (started) return;
-  const to =
-    document
-      .querySelector('meta[name="aide-start"]')
-      ?.getAttribute("content") ?? "";
+  const to = document.querySelector('meta[name="aide-start"]')?.getAttribute("content") ?? "";
   if (to) location.replace(to);
 })();

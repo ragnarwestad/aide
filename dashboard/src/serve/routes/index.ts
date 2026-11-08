@@ -18,7 +18,9 @@ import type { GitRunner } from "../../git/branch-status.ts";
 import type { BranchStatusChecker } from "../../git/branch-status.ts";
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { SpecRef } from "../../project/discover";
-import type { Job, QueueStore } from "../../queue/queue.ts";
+import type {
+  Job, QueueStore,
+} from "../../queue/queue.ts";
 import type {
   ProjectReadiness,
   ProjectStep,
@@ -89,20 +91,14 @@ export interface RoutesContext {
   machinerySpecDir: (project: string, dir: string) => Promise<string>;
   watchers: Set<ReadableStreamDefaultController<Uint8Array>>;
   phaseWatchers: Map<ReadableStreamDefaultController<Uint8Array>, Set<string>>;
-  writeTo: (
-    c: ReadableStreamDefaultController<Uint8Array>,
-    text: string,
-  ) => void;
+  writeTo: (c: ReadableStreamDefaultController<Uint8Array>, text: string) => void;
   queue: QueueStore;
   displayProjectDir: (project: string) => string;
   machineryProjectDir: (project: string) => string;
   ownedSpecsRoot: (project: string) => string | undefined;
   /** `fresh`: no answer older than this call — after a save that the
    *  clone has to carry. */
-  ensureCheckout: (
-    project: string,
-    opts?: { fresh?: boolean; clone?: boolean },
-  ) => Promise<DashboardCheckout | undefined>;
+  ensureCheckout: (project: string, opts?: { fresh?: boolean; clone?: boolean }) => Promise<DashboardCheckout | undefined>;
   gitRun: GitRunner;
   branchStatus: BranchStatusChecker;
   mergeLock: ReturnType<typeof createRootLock>;
@@ -114,17 +110,12 @@ export interface RoutesContext {
    *  captured value would be `undefined` for the request that fires
    *  before it does. Names the port-scoped sort/state cookies. */
   serverPort: () => number;
-  jobRow: (
-    job: ReturnType<QueueStore["list"]>[number],
-  ) => Promise<QueueRowView>;
+  jobRow: (job: ReturnType<QueueStore["list"]>[number]) => Promise<QueueRowView>;
   /** What a Deploy press asks of the landing code (see `deploy-steps.ts`). */
   deploy: DeployHooks;
   /** Delete branch on an archived row: deletes a merged branch its landing
    *  left on origin (`land-branch/left-behind/delete-branch.ts`). */
-  deleteLeftBehindBranch: (
-    project: string,
-    folder: string,
-  ) => Promise<DeleteLeftBehindResult>;
+  deleteLeftBehindBranch: (project: string, folder: string) => Promise<DeleteLeftBehindResult>;
   /** Tell every open tab to ask for its rows again. */
   notifyQueueChanged: () => void;
   persistAllowlist: (what: string) => ProjectStep;
@@ -135,11 +126,7 @@ export interface RoutesContext {
     readiness?: ProjectReadiness,
   ) => Response;
   archivedSpecRows: (state: string | undefined) => ArchivedSpecView[];
-  specPageView: (
-    project: string,
-    specFolder: string,
-    tab?: string,
-  ) => Promise<SpecPageView | null>;
+  specPageView: (project: string, specFolder: string, tab?: string) => Promise<SpecPageView | null>;
   jobDetailView: (job: Job) => Promise<JobDetailView>;
   /** This process's own boot-time commit and the repo it runs from
    *  see `state.ts`'s own doc comment for why both fields
@@ -154,10 +141,7 @@ export interface RoutesContext {
   readDeployFailure: (project: string) => DeployFailure | undefined;
   /** The address a live spec's branch has been built on (see
    *  `state.ts`'s `branchPreviews`), for the specs list's preview link. */
-  readBranchPreview: (
-    project: string,
-    specFolder: string,
-  ) => string | undefined;
+  readBranchPreview: (project: string, specFolder: string) => string | undefined;
   /** Where `aide-generate-pdf` writes the PDF it makes,
    *  outside every checkout. */
   pdfCacheDir: string;
@@ -181,12 +165,7 @@ export interface RoutesContext {
   push: Push;
 }
 
-export async function handleRoutes(
-  ctx: RoutesContext,
-  req: Request,
-  url: URL,
-  path: string,
-): Promise<Response> {
+export async function handleRoutes(ctx: RoutesContext, req: Request, url: URL, path: string): Promise<Response> {
   return (
     selfStopRoute(ctx, req, path) ??
     (await selfDelayRoute(ctx, req, path)) ??

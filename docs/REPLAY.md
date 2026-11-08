@@ -160,10 +160,10 @@ on the serving host, under `~/.aide/replays/`.
 634, 637, 639 and 640, at Aide commit c206cae8, with implement on Sonnet and the judge
 on Opus (`analyze-model/b1` and `analyze-model/a1`):
 
-| Analyze on               | Green | Original tests | Judge mean | Analyze cost            |
-| ------------------------ | ----- | -------------- | ---------- | ----------------------- |
-| Sonnet alone             | 8/8   | 87 %           | 2.4        | 51 % below Opus         |
-| Sonnet with Opus advisor | 7/7   | 88.6 %         | 2.57       | 27 % above Sonnet alone |
+| Analyze on               | Green | Original tests | Judge mean | Analyze cost              |
+| ------------------------ | ----- | -------------- | ---------- | ------------------------- |
+| Sonnet alone             | 8/8   | 87 %           | 2.4        | 51 % below Opus           |
+| Sonnet with Opus advisor | 7/7   | 88.6 %         | 2.57       | 27 % above Sonnet alone   |
 
 The second round has seven specs: 640's analysis ran out of time on a loaded host and
 was left out. Neither meets the bar: the original tests are more than 5 points lower,

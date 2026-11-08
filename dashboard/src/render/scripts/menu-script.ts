@@ -7,9 +7,7 @@
 (() => {
   const DISCLOSURES = "details.menu, details.intro";
   const closeAll = (except?: Element | null): void => {
-    for (const d of Array.from(
-      document.querySelectorAll("details.menu[open], details.intro[open]"),
-    )) {
+    for (const d of Array.from(document.querySelectorAll("details.menu[open], details.intro[open]"))) {
       if (d !== except) (d as HTMLDetailsElement).open = false;
     }
   };
@@ -39,10 +37,7 @@
       document.querySelector<HTMLDialogElement>("dialog.about")?.showModal();
       return;
     }
-    if (
-      target instanceof HTMLDialogElement &&
-      target.classList.contains("about")
-    ) {
+    if (target instanceof HTMLDialogElement && target.classList.contains("about")) {
       target.close();
       return;
     }
@@ -53,9 +48,7 @@
   // one-shot flag asks the next load to open the "…" menu again: a
   // setting changed in the menu leaves the menu open.
   document.addEventListener("change", (e) => {
-    const select = (e.target as Element | null)?.closest?.(
-      "select[data-lang-select]",
-    ) as HTMLSelectElement | null;
+    const select = (e.target as Element | null)?.closest?.("select[data-lang-select]") as HTMLSelectElement | null;
     if (!select) return;
     try {
       sessionStorage.setItem("menu-open", "1");
@@ -72,11 +65,7 @@
     } catch {
       /* no storage: nothing to reopen */
     }
-    const menu = flagged
-      ? (document
-          .querySelector(".morerows")
-          ?.closest("details.menu") as HTMLDetailsElement | null)
-      : null;
+    const menu = flagged ? (document.querySelector(".morerows")?.closest("details.menu") as HTMLDetailsElement | null) : null;
     if (menu) menu.open = true;
   });
   document.addEventListener("keydown", (e) => {
@@ -120,8 +109,7 @@
       // popover wider than the window itself would otherwise clear the
       // right edge only by running past the left one instead.
       let shift = 0;
-      if (rect.right > window.innerWidth)
-        shift -= rect.right - window.innerWidth;
+      if (rect.right > window.innerWidth) shift -= rect.right - window.innerWidth;
       if (rect.left + shift < 0) shift = -rect.left;
       if (shift !== 0) p.style.transform = `translateX(${shift}px)`;
     },

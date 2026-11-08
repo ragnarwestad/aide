@@ -30,11 +30,7 @@ describe("POST /api/self-stop", () => {
   test("with no board info, answers 404 and never calls the exit hook", async () => {
     let exitCalled = false;
     const { base } = harness.start({
-      extra: {
-        selfStopExit: () => {
-          exitCalled = true;
-        },
-      },
+      extra: { selfStopExit: () => { exitCalled = true; } },
     });
     const res = await fetch(`${base}/api/self-stop`, { method: "POST" });
     expect(res.status).toBe(404);
@@ -49,12 +45,7 @@ describe("POST /api/self-stop", () => {
   test("with board info set, responds 200 and calls the exit hook only after the body is received", async () => {
     let exitCalled = false;
     const { base } = harness.start({
-      extra: {
-        testBoardSpec: TEST_BOARD,
-        selfStopExit: () => {
-          exitCalled = true;
-        },
-      },
+      extra: { testBoardSpec: TEST_BOARD, selfStopExit: () => { exitCalled = true; } },
     });
     const res = await fetch(`${base}/api/self-stop`, { method: "POST" });
     expect(res.status).toBe(200);

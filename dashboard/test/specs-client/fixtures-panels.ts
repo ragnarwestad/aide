@@ -11,11 +11,7 @@ type Chip = ReturnType<typeof chip>;
 /** The New-spec form: it IS `/new` — no `#jobrows`
  *  beside it and no disclosure around it — so it is bound directly
  *  rather than by delegation, a second code path tested as one. */
-export function buildCreateForm(
-  chips: Chip[],
-  tokenInput: { value: string },
-  on: Record<string, Listener>,
-) {
+export function buildCreateForm(chips: Chip[], tokenInput: { value: string }, on: Record<string, Listener>) {
   const createButton = {
     textContent: "Create",
     className: "btn primary",
@@ -25,8 +21,7 @@ export function buildCreateForm(
     disabled: false,
     isConnected: true,
     dataset: { pending: "creating…" },
-    insertAdjacentHTML: (_where: string, html: string) =>
-      void (createButton.innerHTML += html),
+    insertAdjacentHTML: (_where: string, html: string) => void (createButton.innerHTML += html),
   };
   createButton.classList = classes(createButton);
   const slot = { textContent: "" };
@@ -36,21 +31,12 @@ export function buildCreateForm(
   // `reset()` reverts the select the way the browser's own does —
   // silently, without firing `change`, which is the whole reason the
   // reset path needs a re-sync of its own.
-  const projectSelect = {
-    value: "aide",
-    addEventListener: (t: string, fn: Listener) =>
-      void (on[`select:${t}`] = fn),
-  };
+  const projectSelect = { value: "aide", addEventListener: (t: string, fn: Listener) => void (on[`select:${t}`] = fn) };
   const createForm = {
     action: "http://dash.test/api/queue/create",
-    fields: [
-      ["project", "aide"],
-      ["title", "A spec"],
-    ] as [string, string][],
+    fields: [["project", "aide"], ["title", "A spec"]] as [string, string][],
     querySelectorAll: (sel: string) =>
-      sel.includes("data-project")
-        ? (chips as unknown as (typeof createButton)[])
-        : [createButton],
+      sel.includes("data-project") ? (chips as unknown as (typeof createButton)[]) : [createButton],
     querySelector: (sel: string) =>
       sel.includes("token")
         ? tokenInput
@@ -67,8 +53,7 @@ export function buildCreateForm(
       resets.push(1);
       projectSelect.value = "aide";
     },
-    addEventListener: (type: string, fn: Listener) =>
-      void (on[`create:${type}`] = fn),
+    addEventListener: (type: string, fn: Listener) => void (on[`create:${type}`] = fn),
   };
   return { createButton, slot, resets, projectSelect, createForm };
 }
@@ -77,10 +62,7 @@ export function buildCreateForm(
  *  Add form, the one whose SUCCESS has something to say — the
  *  readiness answer the server worked out for the project that was
  *  just added. */
-export function buildProjectsPanel(
-  tokenInput: { value: string },
-  on: Record<string, Listener>,
-) {
+export function buildProjectsPanel(tokenInput: { value: string }, on: Record<string, Listener>) {
   // The button is rendered ENABLED by the server — turning it off is
   // this code's job, and a fake that started it disabled could not
   // tell the two apart.
@@ -112,10 +94,8 @@ export function buildProjectsPanel(
       removeDialog.shows += 1;
     },
     addEventListener: () => {},
-    getAttribute: (name: string) =>
-      name === "data-cover-note" ? "Removing…" : null,
-    querySelector: (sel: string) =>
-      sel.includes("refused") ? removeSlot : null,
+    getAttribute: (name: string) => (name === "data-cover-note" ? "Removing…" : null),
+    querySelector: (sel: string) => (sel.includes("refused") ? removeSlot : null),
   };
   const addButton = {
     textContent: "Save",
@@ -135,10 +115,7 @@ export function buildProjectsPanel(
     // Every real form element has one.
     dataset: {} as Record<string, string>,
     action: "http://dash.test/api/queue/projects",
-    fields: [
-      ["name", "skjer"],
-      ["gitUrl", "git@example.com:me/skjer.git"],
-    ] as [string, string][],
+    fields: [["name", "skjer"], ["gitUrl", "git@example.com:me/skjer.git"]] as [string, string][],
     querySelectorAll: () => [addButton],
     querySelector: (sel: string) =>
       sel.includes("token")
@@ -147,8 +124,7 @@ export function buildProjectsPanel(
           ? addSlot
           : null,
     closest: () => null,
-    addEventListener: (type: string, fn: Listener) =>
-      void (on[`add:${type}`] = fn),
+    addEventListener: (type: string, fn: Listener) => void (on[`add:${type}`] = fn),
   };
   const removeForm = {
     dataset: {} as Record<string, string>,
@@ -157,16 +133,7 @@ export function buildProjectsPanel(
     querySelectorAll: () => [removeButton],
     querySelector: (sel: string) => (sel.includes("token") ? tokenInput : null),
     closest: (sel: string) => (sel.startsWith("dialog") ? removeDialog : null),
-    addEventListener: (type: string, fn: Listener) =>
-      void (on[`remove:${type}`] = fn),
+    addEventListener: (type: string, fn: Listener) => void (on[`remove:${type}`] = fn),
   };
-  return {
-    removeButton,
-    removeSlot,
-    removeDialog,
-    addButton,
-    addSlot,
-    addForm,
-    removeForm,
-  };
+  return { removeButton, removeSlot, removeDialog, addButton, addSlot, addForm, removeForm };
 }

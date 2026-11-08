@@ -15,7 +15,7 @@ deliberately does not.
 ## What is installed
 
 | Piece               | Where                          |
-| ------------------- | ------------------------------ |
+|---------------------|--------------------------------|
 | Global instructions | `~/.config/opencode/AGENTS.md` |
 | Shared CLI scripts  | `~/.local/bin/`                |
 

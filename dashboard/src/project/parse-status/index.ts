@@ -99,8 +99,7 @@ const WORKFLOW_RE = /workflow steps completed:\*\*\s*(.*)/i;
 // Reset uses the same durable grammar without moving an active folder.
 // `core/scripts/aide-run-spec` keeps the bash twin of this rule in
 // `work_round_boundary_in`.
-const WORK_ROUND_RE =
-  /(?:reopened|reset):\*\*[^\n]*?history before\s*`([0-9a-fA-F]{7,40})`/gi;
+const WORK_ROUND_RE = /(?:reopened|reset):\*\*[^\n]*?history before\s*`([0-9a-fA-F]{7,40})`/gi;
 
 export function parseStatus(content: string): StatusInfo {
   const m = content.match(PROGRESS_RE);
@@ -131,9 +130,7 @@ export function parseStatus(content: string): StatusInfo {
 
   // Independent of `phase` above: these rows are
   // never `phase`'s own to gate behind — see the field's own doc comment.
-  const acceptanceCheck = checks.find(
-    (check) => /^acceptance\b/i.test(check.phase) && !check.done,
-  );
+  const acceptanceCheck = checks.find((check) => /^acceptance\b/i.test(check.phase) && !check.done);
   const acceptancePhase = acceptanceCheck?.phase ?? null;
 
   return {
@@ -240,8 +237,7 @@ export interface StatusCheck {
 }
 
 export const DONE_MARK = "✅";
-export const isAcceptanceHeading = (heading: string): boolean =>
-  /^acceptance\b/i.test(heading);
+export const isAcceptanceHeading = (heading: string): boolean => /^acceptance\b/i.test(heading);
 /** What a row goes back to when a check is taken off it. The mark it
  *  carried BEFORE it was ticked is gone by then — the tick overwrote it
  *  — so this is the file's own plain "not started", the one every
@@ -291,11 +287,7 @@ const MAX_MARK_LENGTH = 30;
  *  the two original forms alone matched it. */
 export function isDoneMark(mark: string): boolean {
   const trimmed = mark.trim();
-  return (
-    trimmed === DONE_MARK ||
-    isNotVerifiedMark(trimmed) ||
-    /^(?:✅\s*)?completed$/i.test(trimmed)
-  );
+  return trimmed === DONE_MARK || isNotVerifiedMark(trimmed) || /^(?:✅\s*)?completed$/i.test(trimmed);
 }
 
 function splitRowCells(line: string): [string, string, string] | null {
@@ -345,10 +337,7 @@ function isSeparatorRow(line: string): boolean {
  *  own header row — the one immediately followed by the separator row —
  *  already excluded. Shared by `parseStatusChecks` and `tickStatusLine`
  *  so neither can drift from what "a task row" means. */
-export function dataRowIndices(
-  lines: string[],
-  section: { from: number; to: number },
-): number[] {
+export function dataRowIndices(lines: string[], section: { from: number; to: number }): number[] {
   const result: number[] = [];
   for (let i = section.from; i < section.to; i++) {
     if (!tableCells(lines[i]!)) continue;
@@ -361,9 +350,7 @@ export function dataRowIndices(
 /** Every phase section, as line-index ranges over `lines`. The heading
  *  test is `PHASE_HEADING_RE`, the same constant `parseStatus` reads,
  *  so the two agree about what a phase is. */
-export function phaseSections(
-  lines: string[],
-): { heading: string; from: number; to: number }[] {
+export function phaseSections(lines: string[]): { heading: string; from: number; to: number }[] {
   const sections: { heading: string; from: number; to: number }[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
@@ -371,8 +358,7 @@ export function phaseSections(
     const last = sections[sections.length - 1];
     if (last && last.to === -1) last.to = i;
     const heading = line.slice(3).trim();
-    if (PHASE_HEADING_RE.test(heading))
-      sections.push({ heading, from: i + 1, to: -1 });
+    if (PHASE_HEADING_RE.test(heading)) sections.push({ heading, from: i + 1, to: -1 });
   }
   const last = sections[sections.length - 1];
   if (last && last.to === -1) last.to = lines.length;
@@ -393,9 +379,7 @@ export function phaseSections(
  *  like a spec that simply has no criteria. */
 export function acceptanceSectionUnreadable(content: string): boolean {
   const lines = content.split("\n");
-  const section = phaseSections(lines).find((s) =>
-    /^acceptance\b/i.test(s.heading),
-  );
+  const section = phaseSections(lines).find((s) => /^acceptance\b/i.test(s.heading));
   if (!section) return false;
   return dataRowIndices(lines, section).length === 0;
 }
@@ -428,12 +412,8 @@ export function parseStatusChecks(content: string): StatusCheck[] {
         line: lines[i]!,
         task: cells[0],
         done: isDoneMark(cells[1]),
-        ...(isAcceptanceHeading(section.heading) && isNotVerifiedMark(cells[1])
-          ? { notVerified: true }
-          : {}),
-        ...(isAcceptanceHeading(section.heading) && isFailedMark(cells[1])
-          ? { failed: true }
-          : {}),
+        ...(isAcceptanceHeading(section.heading) && isNotVerifiedMark(cells[1]) ? { notVerified: true } : {}),
+        ...(isAcceptanceHeading(section.heading) && isFailedMark(cells[1]) ? { failed: true } : {}),
         note: cells[2],
       });
     }
@@ -441,32 +421,9 @@ export function parseStatusChecks(content: string): StatusCheck[] {
   return checks;
 }
 
-export {
-  tickStatusLine,
-  markNotVerifiedStatusLine,
-  untickStatusLine,
-  markFailedStatusLine,
-} from "./row-movers.ts";
+export { tickStatusLine, markNotVerifiedStatusLine, untickStatusLine, markFailedStatusLine } from "./row-movers.ts";
 
-export {
-  notVerifiedCount,
-  failedCount,
-  cleanFailNote,
-  failNoteTooLong,
-  FAIL_NOTE_MAX,
-  checkStateOf,
-  type CheckState,
-} from "./not-verified.ts";
+export { notVerifiedCount, failedCount, cleanFailNote, failNoteTooLong, FAIL_NOTE_MAX, checkStateOf, type CheckState } from "./not-verified.ts";
 
 // What used to live here too, in parts beside this file.
-export {
-  archiveHeldBackReason,
-  acceptanceCriteriaUnticked,
-  acceptanceRowsOf,
-  ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
-  acceptanceStillOpen,
-  archiveHeldBackApplies,
-  clearArchiveHeldBack,
-  latestRoundBoundary,
-  reopenedRound,
-} from "./held-back.ts";
+export { archiveHeldBackReason, acceptanceCriteriaUnticked, acceptanceRowsOf, ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceStillOpen, archiveHeldBackApplies, clearArchiveHeldBack, latestRoundBoundary, reopenedRound } from "./held-back.ts";

@@ -22,13 +22,14 @@ offers a link to start a test server: a running copy of the project, built from 
 branch, on the same machine as this dashboard. Open it and click through the change instead of
 reading the diff again.
 
+
 A project's manifest says how a branch of it is tried, in `deployment.previewFrom`:
 
-| Value              | What the row offers                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------- |
-| `command`          | The test server this page describes.                                                  |
-| `cloudflare-pages` | A preview link to the address the host built the branch on, instead of a test server. |
-| `none`, or absent  | Neither — a branch cannot be tried without merging.                                   |
+| Value              | What the row offers                                                                       |
+|--------------------|-------------------------------------------------------------------------------------------|
+| `command`          | The test server this page describes.                                                      |
+| `cloudflare-pages` | A preview link to the address the host built the branch on, instead of a test server.     |
+| `none`, or absent  | Neither — a branch cannot be tried without merging.                                       |
 
 The value is chosen as **Try a branch**, on the Add project form and on the project's Config tab.
 
@@ -55,7 +56,7 @@ the project as it stands today. It opens in a new tab the same way.
 The two differ on a second press:
 
 | Pressed again                | What happens                                                                                  |
-| ---------------------------- | --------------------------------------------------------------------------------------------- |
+|------------------------------|-----------------------------------------------------------------------------------------------|
 | **The link on a spec's row** | Takes you to the one that link already started, whatever state it is in — never a second one. |
 | **The Deploy tab's button**  | Stops the one it started and starts a fresh one, so it ends up running the latest main.       |
 
@@ -131,7 +132,7 @@ Three places to press Stop:
   listed there, whichever spec started it, with its project, spec, branch and status, and a Stop of
   its own whatever its state. This is where you go to free a port when all six are taken.
 - **The test server's own header.** Every page there carries a line naming the machine and the spec
-  it runs ("_machine_ - Test - _spec number_", with the folder and branch in its tooltip), with a
+  it runs ("*machine* - Test - *spec number*", with the folder and branch in its tooltip), with a
   **Stop** button beside it. It frees the worktree, the log and the port the same way the other two
   do, without going back to this dashboard.
 

@@ -11,8 +11,7 @@ const LOOPBACK_NAMES = ["localhost", "127.0.0.1", "[::1]"];
 /** `Self.DNSName` from a `tailscale status --json` answer, lower-cased and
  *  without the trailing dot; `undefined` for anything else. */
 export function parseSelfDnsName(json: unknown): string | undefined {
-  const dns = (json as { Self?: { DNSName?: unknown } } | null | undefined)
-    ?.Self?.DNSName;
+  const dns = (json as { Self?: { DNSName?: unknown } } | null | undefined)?.Self?.DNSName;
   if (typeof dns !== "string") return undefined;
   const name = dns.replace(/\.$/, "").toLowerCase();
   return name || undefined;
@@ -21,14 +20,11 @@ export function parseSelfDnsName(json: unknown): string | undefined {
 /** Asks the tailscale CLI for this machine's name; `undefined` on any failure. */
 export async function lookupTailscaleName(): Promise<string | undefined> {
   try {
-    const proc = Bun.spawn(
-      [Bun.which("tailscale") ?? DEFAULT_TAILSCALE_BIN, "status", "--json"],
-      {
-        stdout: "pipe",
-        stderr: "ignore",
-        timeout: LOOKUP_TIMEOUT_MS,
-      },
-    );
+    const proc = Bun.spawn([Bun.which("tailscale") ?? DEFAULT_TAILSCALE_BIN, "status", "--json"], {
+      stdout: "pipe",
+      stderr: "ignore",
+      timeout: LOOKUP_TIMEOUT_MS,
+    });
     const text = await new Response(proc.stdout).text();
     if ((await proc.exited) !== 0) return undefined;
     return parseSelfDnsName(JSON.parse(text));
@@ -52,10 +48,7 @@ export function createHostAllowlist(o: {
   now?: () => number;
   retryMs?: number;
 }): HostAllowlist {
-  const names = new Set<string>([
-    ...LOOPBACK_NAMES,
-    ...o.extra.map((n) => n.toLowerCase()),
-  ]);
+  const names = new Set<string>([...LOOPBACK_NAMES, ...o.extra.map((n) => n.toLowerCase())]);
   const now = o.now ?? Date.now;
   const retryMs = o.retryMs ?? 30_000;
   let found = false;

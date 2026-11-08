@@ -4,25 +4,12 @@
 // through.
 
 import {
-  closeSync,
-  existsSync,
-  fstatSync,
-  openSync,
-  readFileSync,
-  readSync,
-  statSync,
+  closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, statSync,
 } from "node:fs";
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import {
-  APPLE_TOUCH_ICON,
-  APP_BADGE_PNG_96,
-  APP_ICON,
-  APP_ICON_MASKABLE,
-  APP_ICON_MASKABLE_PNG_512,
-  APP_ICON_PNG_192,
-  APP_ICON_PNG_512,
-  SERVICE_WORKER,
-  WEBMANIFEST,
+  APPLE_TOUCH_ICON, APP_BADGE_PNG_96, APP_ICON, APP_ICON_MASKABLE, APP_ICON_MASKABLE_PNG_512, APP_ICON_PNG_192, APP_ICON_PNG_512,
+  SERVICE_WORKER, WEBMANIFEST,
 } from "../../render";
 
 // Page code is TypeScript, split across src/specs-client/*.ts and bundled
@@ -59,16 +46,12 @@ export function specsClientScript(): Promise<string | undefined> {
 // redirects to), so it is the anchor for finding the real entry file
 // on disk regardless of how node_modules happens to be laid out.
 function toastUiEditorResolveFix(): import("bun").BunPlugin {
-  const pkgDir = dirname(
-    Bun.resolveSync("@toast-ui/editor/package.json", import.meta.dir),
-  );
+  const pkgDir = dirname(Bun.resolveSync("@toast-ui/editor/package.json", import.meta.dir));
   const realEntry = join(pkgDir, "dist/esm/index.js");
   return {
     name: "toast-ui-editor-resolve-fix",
     setup(build) {
-      build.onResolve({ filter: /^@toast-ui\/editor$/ }, () => ({
-        path: realEntry,
-      }));
+      build.onResolve({ filter: /^@toast-ui\/editor$/ }, () => ({ path: realEntry }));
     },
   };
 }
@@ -113,12 +96,8 @@ export function etagFor(text: string): string {
 // a browser holding a copy asks "still this?" instead of downloading
 // ~770 KB again, and a new build (a fresh process) answers with
 // a different ETag and the full body.
-let specEditorAsset: Promise<
-  { text: string; etag: string } | undefined
-> | null = null;
-function buildSpecEditorAsset(): Promise<
-  { text: string; etag: string } | undefined
-> {
+let specEditorAsset: Promise<{ text: string; etag: string } | undefined> | null = null;
+function buildSpecEditorAsset(): Promise<{ text: string; etag: string } | undefined> {
   if (specEditorAsset !== null) return specEditorAsset;
   specEditorAsset = specEditorClientScript().then((text) =>
     text === undefined ? undefined : { text, etag: etagFor(text) },
@@ -134,8 +113,7 @@ export async function serveSpecEditorAsset(req: Request): Promise<Response> {
     "cache-control": "no-cache",
     etag: built.etag,
   });
-  if (req.headers.get("if-none-match") === built.etag)
-    return new Response(null, { status: 304, headers });
+  if (req.headers.get("if-none-match") === built.etag) return new Response(null, { status: 304, headers });
   return new Response(built.text, { headers });
 }
 
@@ -165,12 +143,8 @@ export function specViewerClientScript(): Promise<string | undefined> {
 
 export const SPEC_VIEWER_ASSET_PATH = "/spec-viewer.js";
 
-let specViewerAsset: Promise<
-  { text: string; etag: string } | undefined
-> | null = null;
-function buildSpecViewerAsset(): Promise<
-  { text: string; etag: string } | undefined
-> {
+let specViewerAsset: Promise<{ text: string; etag: string } | undefined> | null = null;
+function buildSpecViewerAsset(): Promise<{ text: string; etag: string } | undefined> {
   if (specViewerAsset !== null) return specViewerAsset;
   specViewerAsset = specViewerClientScript().then((text) =>
     text === undefined ? undefined : { text, etag: etagFor(text) },
@@ -186,8 +160,7 @@ export async function serveSpecViewerAsset(req: Request): Promise<Response> {
     "cache-control": "no-cache",
     etag: built.etag,
   });
-  if (req.headers.get("if-none-match") === built.etag)
-    return new Response(null, { status: 304, headers });
+  if (req.headers.get("if-none-match") === built.etag) return new Response(null, { status: 304, headers });
   return new Response(built.text, { headers });
 }
 
@@ -204,10 +177,7 @@ export function tailFile(path: string, maxBytes = STREAM_TAIL_BYTES): string {
 
 /** The tail and the byte in the file where it begins, measured on the raw
  *  bytes: the run log's turn lines name byte offsets into the transcript. */
-export function tailFileAt(
-  path: string,
-  maxBytes = STREAM_TAIL_BYTES,
-): { text: string; start: number } {
+export function tailFileAt(path: string, maxBytes = STREAM_TAIL_BYTES): { text: string; start: number } {
   let fd: number | null = null;
   try {
     fd = openSync(path, "r");
@@ -221,10 +191,7 @@ export function tailFileAt(
     const cut = buf.indexOf(0x0a);
     // A window with no line break keeps its partial line.
     if (cut < 0) return { text: buf.toString("utf-8"), start: windowStart };
-    return {
-      text: buf.subarray(cut + 1).toString("utf-8"),
-      start: windowStart + cut + 1,
-    };
+    return { text: buf.subarray(cut + 1).toString("utf-8"), start: windowStart + cut + 1 };
   } catch {
     return { text: "", start: 0 }; // no transcript kept, or not readable — the page says so
   } finally {
@@ -247,14 +214,9 @@ export function serveStatic(root: string, pathname: string): Response {
   if (target !== resolvedRoot && !target.startsWith(resolvedRoot + sep)) {
     return new Response("not found", { status: 404 });
   }
-  if (!existsSync(target) || !statSync(target).isFile())
-    return new Response("not found", { status: 404 });
-  const type = target.endsWith(".html")
-    ? "text/html; charset=utf-8"
-    : "application/octet-stream";
-  return new Response(readFileSync(target), {
-    headers: { "content-type": type },
-  });
+  if (!existsSync(target) || !statSync(target).isFile()) return new Response("not found", { status: 404 });
+  const type = target.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream";
+  return new Response(readFileSync(target), { headers: { "content-type": type } });
 }
 
 /** What makes this page an app you install: eight answers
@@ -286,26 +248,17 @@ export function servePwaAsset(path: string): Response | null {
     // "512" names the size a launcher asks for, not the file: the
     // mark is vector, so one SVG answers every size.
     const icon = path === "/icon-512.svg" ? APP_ICON : APP_ICON_MASKABLE;
-    return new Response(icon, {
-      headers: { "content-type": "image/svg+xml; charset=utf-8" },
-    });
+    return new Response(icon, { headers: { "content-type": "image/svg+xml; charset=utf-8" } });
   }
   const png =
-    path === "/icon-192.png"
-      ? APP_ICON_PNG_192
-      : path === "/icon-512.png"
-        ? APP_ICON_PNG_512
-        : path === "/icon-512-maskable.png"
-          ? APP_ICON_MASKABLE_PNG_512
-          : path === "/badge-96.png"
-            ? APP_BADGE_PNG_96
-            : null;
-  if (png)
-    return new Response(png, { headers: { "content-type": "image/png" } });
+    path === "/icon-192.png" ? APP_ICON_PNG_192
+    : path === "/icon-512.png" ? APP_ICON_PNG_512
+    : path === "/icon-512-maskable.png" ? APP_ICON_MASKABLE_PNG_512
+    : path === "/badge-96.png" ? APP_BADGE_PNG_96
+    : null;
+  if (png) return new Response(png, { headers: { "content-type": "image/png" } });
   if (path === "/apple-touch-icon.png") {
-    return new Response(APPLE_TOUCH_ICON, {
-      headers: { "content-type": "image/png" },
-    });
+    return new Response(APPLE_TOUCH_ICON, { headers: { "content-type": "image/png" } });
   }
   return null;
 }

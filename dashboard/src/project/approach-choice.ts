@@ -17,11 +17,7 @@
 
 import { chooseApproachIn, specFileText } from "./discover";
 
-export const APPROACH_MARKS = [
-  "recommended",
-  "real alternative",
-  "considered and rejected",
-] as const;
+export const APPROACH_MARKS = ["recommended", "real alternative", "considered and rejected"] as const;
 export type ApproachMark = (typeof APPROACH_MARKS)[number];
 
 export interface Approach {
@@ -41,16 +37,13 @@ const FENCE = /^(```|~~~)/;
 const APPROACHES_HEADING = /^(#{2,6})[ \t]+Approaches[ \t]*$/i;
 const HEADING = /^(#{1,6})[ \t]/;
 // `[ \t]`, never `\s`, in the line patterns: `\s` matches a newline.
-const LEAD =
-  /^\*\*Approach ([A-Z]):[ \t]+(.+?)[ \t]+\((recommended|real alternative|considered and rejected)\)\.?\*\*/;
+const LEAD = /^\*\*Approach ([A-Z]):[ \t]+(.+?)[ \t]+\((recommended|real alternative|considered and rejected)\)\.?\*\*/;
 const CHOSEN = /^\*\*Chosen approach:\*\*[ \t]+Approach ([A-Z])[ \t]*$/;
 
 /** Where the newest round's Approaches section is, as line indexes: the
  *  heading's line, and the line after its last. Code blocks are skipped,
  *  so an example in one is never read as the spec's own section. */
-function approachesSection(
-  lines: string[],
-): { heading: number; end: number } | null {
+function approachesSection(lines: string[]): { heading: number; end: number } | null {
   let fence = false;
   let start = 0;
   for (let i = 0; i < lines.length; i++) {
@@ -114,11 +107,7 @@ export function parseApproaches(solution: string): ApproachChoice {
   for (const p of paragraphs(lines.slice(section.heading + 1, section.end))) {
     const lead = p.match(LEAD);
     if (lead && !approaches.some((a) => a.letter === lead[1])) {
-      approaches.push({
-        letter: lead[1]!,
-        title: lead[2]!,
-        mark: lead[3] as ApproachMark,
-      });
+      approaches.push({ letter: lead[1]!, title: lead[2]!, mark: lead[3] as ApproachMark });
       continue;
     }
     const pick = p.match(CHOSEN);
@@ -130,14 +119,9 @@ export function parseApproaches(solution: string): ApproachChoice {
 /** The real alternatives (recommended or real alternative) waiting for a
  *  choice: the spec asked to choose, two or more are real, and none is
  *  chosen. Null otherwise. */
-export function pendingChoice(
-  optedIn: boolean,
-  parsed: ApproachChoice,
-): Approach[] | null {
+export function pendingChoice(optedIn: boolean, parsed: ApproachChoice): Approach[] | null {
   if (!optedIn || parsed.chosen) return null;
-  const real = parsed.approaches.filter(
-    (a) => a.mark !== "considered and rejected",
-  );
+  const real = parsed.approaches.filter((a) => a.mark !== "considered and rejected");
   return real.length >= 2 ? real : null;
 }
 
@@ -169,14 +153,7 @@ export function withChosenApproach(solution: string, letter: string): string {
  *  `branch` (its open branch's `3-solution.md`, when that has been read)
  *  or else the checkout's. The solution is not read for a spec that did
  *  not ask. */
-export function specPendingChoice(
-  dir: string,
-  branch?: ApproachChoice,
-): Approach[] | null {
-  if (!chooseApproachIn(specFileText(dir, "1-description.md") ?? ""))
-    return null;
-  return pendingChoice(
-    true,
-    branch ?? parseApproaches(specFileText(dir, "3-solution.md") ?? ""),
-  );
+export function specPendingChoice(dir: string, branch?: ApproachChoice): Approach[] | null {
+  if (!chooseApproachIn(specFileText(dir, "1-description.md") ?? "")) return null;
+  return pendingChoice(true, branch ?? parseApproaches(specFileText(dir, "3-solution.md") ?? ""));
 }

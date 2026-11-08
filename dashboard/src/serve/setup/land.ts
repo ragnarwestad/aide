@@ -9,19 +9,12 @@
 // earlier removes the one dependency the runner stage would otherwise
 // need a box for: `runnerSetupCtx.landNewSpec` and its three siblings.
 
-import type {
-  BranchStatusChecker,
-  GitRunner,
-} from "../../git/branch-status.ts";
+import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
 import type { RepoMergeResult } from "../../git/branch-merge/index.ts";
 import type {
-  DescriptionFreshnessChecker,
-  SpecCreatedAtChecker,
+  DescriptionFreshnessChecker, SpecCreatedAtChecker,
 } from "../../git/description-freshness.ts";
-import type {
-  WorkflowHistoryChecker,
-  BranchFileStepsChecker,
-} from "../../git/workflow-history.ts";
+import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import type { CodeLanding } from "../../project/discover";
 import type { AideRunStore } from "../../queue/aide-run-store.ts";
 import type { Job, QueueStore, WorkflowStep } from "../../queue/queue.ts";
@@ -44,12 +37,7 @@ import {
   type RestartHook,
 } from "../land-branch";
 import type { DeployHooks } from "../routes/deploy-steps.ts";
-import {
-  setDeployFailure,
-  setDeployFault,
-  setPendingRestart,
-  type ServerState,
-} from "../state.ts";
+import { setDeployFailure, setDeployFault, setPendingRestart, type ServerState } from "../state.ts";
 import { createDeployJob } from "../deploy-job/index.ts";
 import type { TestServersContext } from "../test-servers/lifecycle.ts";
 
@@ -62,22 +50,14 @@ export interface LandSetupInputs {
   mergeLock: ReturnType<typeof import("../serve-helpers").createRootLock>;
   gitRun: GitRunner;
   branchStatus: BranchStatusChecker;
-  warmSpec: (t: {
-    dir?: string;
-    specFolder: string;
-    reopenedAfter?: string;
-  }) => Promise<void>;
+  warmSpec: (t: { dir?: string; specFolder: string; reopenedAfter?: string }) => Promise<void>;
   machinerySpecsRoot: (project: string) => string | undefined;
   specsRoot: (dir: string) => Promise<string>;
   workflowHistory: WorkflowHistoryChecker;
   specCreatedAt: SpecCreatedAtChecker;
   freshness: DescriptionFreshnessChecker;
   branchFileSteps: BranchFileStepsChecker;
-  rootsStillHolding: (
-    project: string,
-    branch: string,
-    fresh: boolean,
-  ) => Promise<string[]>;
+  rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
   queueInstallTimeoutMs?: number;
   restart: RestartHook;
   restartPollMs?: number;
@@ -136,18 +116,10 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   function landNewSpec(job: Job, outcome: Partial<StepOutcome>) {
     return landNewSpecImpl(landCtx, job, outcome);
   }
-  function landStepBranch(
-    job: Job,
-    step: WorkflowStep,
-    outcome: Partial<StepOutcome>,
-  ) {
+  function landStepBranch(job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) {
     return landStepBranchImpl(landCtx, job, step, outcome);
   }
-  function landStoppedStepBranch(
-    job: Job,
-    step: WorkflowStep,
-    outcome: Partial<StepOutcome>,
-  ) {
+  function landStoppedStepBranch(job: Job, step: WorkflowStep, outcome: Partial<StepOutcome>) {
     return landStoppedStepBranchImpl(landCtx, job, step, outcome);
   }
   function landArchivedSpec(job: Job, outcome: Partial<StepOutcome>) {
@@ -165,9 +137,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
    *  landed before the answer went out, and the page read "the request
    *  failed" for a deploy that had succeeded (2026-09-03). `landBranch`
    *  calls the implementation directly and never restarts. */
-  async function installAfterMerge(
-    result: RepoMergeResult,
-  ): Promise<{ restart?: () => void }> {
+  async function installAfterMerge(result: RepoMergeResult): Promise<{ restart?: () => void }> {
     if (!(await installAfterMergeImpl(landCtx, result))) return {};
     return {
       restart: () => {
@@ -207,10 +177,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     installCheckout: deploy.installCheckout,
     restartRegistered: deploy.restartRegistered,
     restartWhenSettled: deploy.restartWhenSettled,
-    readServing: () => ({
-      sha: state.servingSha,
-      repoRoot: state.servingRepoRoot,
-    }),
+    readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
     setFailure: (project, failure) => setDeployFailure(state, project, failure),
     setFault: (fault) => setDeployFault(state, fault),
     dashboardRoot: inputs.dashboardRoot,
@@ -224,16 +191,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   }
 
   return {
-    jobRow,
-    landNewSpec,
-    landStepBranch,
-    landStoppedStepBranch,
-    landArchivedSpec,
-    landClosedSpec,
-    landScheduleRun,
-    deploy,
-    deployJob,
-    withFreshness,
-    deleteLeftBehindBranch,
+    jobRow, landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec, landClosedSpec, landScheduleRun,
+    deploy, deployJob, withFreshness, deleteLeftBehindBranch,
   };
 }

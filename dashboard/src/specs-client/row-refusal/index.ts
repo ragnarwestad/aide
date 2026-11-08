@@ -17,19 +17,12 @@ const SPEC_GAP = "specgap";
 
 let held: { why: string; spec?: string } | null = null;
 
-const hasClass = (el: Element, name: string): boolean =>
-  ` ${el.className} `.indexOf(` ${name} `) !== -1;
+const hasClass = (el: Element, name: string): boolean => ` ${el.className} `.indexOf(` ${name} `) !== -1;
 
 /** Where the spec's rows end: its gap row, or its last row when it has none. */
-export function groupEnd(
-  head: Element,
-): { before: Element } | { after: Element } {
+export function groupEnd(head: Element): { before: Element } | { after: Element } {
   let last = head;
-  for (
-    let el = head.nextElementSibling;
-    el && !hasClass(el, SPEC_HEAD);
-    el = el.nextElementSibling
-  ) {
+  for (let el = head.nextElementSibling; el && !hasClass(el, SPEC_HEAD); el = el.nextElementSibling) {
     if (hasClass(el, SPEC_GAP)) return { before: el };
     last = el;
   }
@@ -40,18 +33,13 @@ export function groupEnd(
  *  previous write put in is taken out first, so a redraw that left it
  *  and one that replaced it end the same way. */
 export function applyRefusal(): void {
-  for (const old of Array.from(document.querySelectorAll("tr[data-refusal]")))
-    old.remove();
+  for (const old of Array.from(document.querySelectorAll("tr[data-refusal]"))) old.remove();
   const listLine = document.getElementById(LIST_LINE_ID);
   writeLine(listLine, held && !held.spec ? held.why : "");
   if (!held?.spec) return;
   const head = document.getElementById(`spec-${held.spec}`);
-  const template = document.getElementById(
-    TEMPLATE_ID,
-  ) as HTMLTemplateElement | null;
-  const copy = template?.content
-    ?.querySelector("tr[data-refusal]")
-    ?.cloneNode(true) as Element | undefined;
+  const template = document.getElementById(TEMPLATE_ID) as HTMLTemplateElement | null;
+  const copy = template?.content?.querySelector("tr[data-refusal]")?.cloneNode(true) as Element | undefined;
   if (!head || !copy) return;
   const end = groupEnd(head);
   // In with its line empty, and the words written after: a line that

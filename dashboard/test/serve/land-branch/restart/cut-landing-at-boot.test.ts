@@ -19,43 +19,17 @@ test("a job read back with its analyze's landing in flight has that landing run 
   const results = mkdtempSync(join(tmpdir(), "aide-cut-landing-results-"));
   dirs.push(results);
   const resultFile = join(results, "j1.json");
-  writeFileSync(
-    resultFile,
-    JSON.stringify({
-      ok: true,
-      exitCode: 0,
-      terminalReason: "completed",
-      repos: [],
-      branch: "aide/81-queue-and-runner",
-      // A root of the test's own: the landing works in it, and the fake git sees where.
-      branchUrls: [{ root: results, url: "https://example.invalid/compare" }],
-    }),
-  );
+  writeFileSync(resultFile, JSON.stringify({
+    ok: true, exitCode: 0, terminalReason: "completed", repos: [], branch: "aide/81-queue-and-runner",
+    // A root of the test's own: the landing works in it, and the fake git sees where.
+    branchUrls: [{ root: results, url: "https://example.invalid/compare" }],
+  }));
   const job = {
-    id: "j1",
-    project: "aide",
-    specFolder: "81-queue-and-runner",
-    steps: ["analyze"],
-    stepIndex: 0,
-    state: "done",
-    model: {},
-    timeoutSec: {},
-    permissionMode: {},
-    effort: {},
-    createdAt: "2026-09-27T08:00:00.000Z",
-    finishedAt: "2026-09-27T08:10:00.000Z",
-    spentUsd: 0,
-    landing: true,
-    resultFile,
-    results: [
-      {
-        step: "analyze",
-        ok: true,
-        costUsd: 0,
-        tool: "claude",
-        startedAt: "2026-09-27T08:00:01.000Z",
-      },
-    ],
+    id: "j1", project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0,
+    state: "done", model: {}, timeoutSec: {}, permissionMode: {}, effort: {},
+    createdAt: "2026-09-27T08:00:00.000Z", finishedAt: "2026-09-27T08:10:00.000Z", spentUsd: 0,
+    landing: true, resultFile,
+    results: [{ step: "analyze", ok: true, costUsd: 0, tool: "claude", startedAt: "2026-09-27T08:00:01.000Z" }],
   };
   const calls: string[] = [];
   const gitRun = async (dir: string, args: string[]) => {
@@ -63,10 +37,7 @@ test("a job read back with its analyze's landing in flight has that landing run 
     if (dir.endsWith(basename(results))) calls.push(args.join(" "));
     return { code: 1, stdout: "" };
   };
-  harness.start({
-    queueMirror: JSON.stringify([job]),
-    extra: { gitRun, queueRunnerBin: "/usr/bin/true", queueResultDir: results },
-  });
+  harness.start({ queueMirror: JSON.stringify([job]), extra: { gitRun, queueRunnerBin: "/usr/bin/true", queueResultDir: results } });
   const deadline = Date.now() + 2000;
   while (calls.length === 0 && Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 20));

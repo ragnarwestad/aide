@@ -15,7 +15,4 @@ export const code = (text: string): string =>
 
 /** Every file under `glob` (from the dashboard's root), as its code. */
 export const read = (glob: string): { file: string; text: string }[] =>
-  [...new Bun.Glob(glob).scanSync(ROOT)].map((file) => ({
-    file,
-    text: code(readFileSync(join(ROOT, file), "utf8")),
-  }));
+  [...new Bun.Glob(glob).scanSync(ROOT)].map((file) => ({ file, text: code(readFileSync(join(ROOT, file), "utf8")) }));

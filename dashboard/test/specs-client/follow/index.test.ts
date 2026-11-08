@@ -11,26 +11,16 @@ afterEach(async () => {
   while (windows.length) await windows.pop()!.happyDOM.close();
 });
 
-const MARKER = (
-  attrs = 'data-tab="steps" data-running="1" data-phases="aide/605-x:analyze"',
-) => `<span hidden data-follow ${attrs}></span>`;
+const MARKER = (attrs = 'data-tab="steps" data-running="1" data-phases="aide/605-x:analyze"') => `<span hidden data-follow ${attrs}></span>`;
 const ROW = (cells: string) => `<tr><td>${cells}</td></tr>`;
-const LOG = (text: string) =>
-  `<tr class="steplog"><td><div class="logbox"><div><pre class="specfile"><span class="muted">— AI —</span>\n${text}</pre></div></div></td></tr>`;
+const LOG = (text: string) => `<tr class="steplog"><td><div class="logbox"><div><pre class="specfile"><span class="muted">— AI —</span>\n${text}</pre></div></div></td></tr>`;
 const PAGE = (marker: string, rows: string, head = "Running") =>
   `${marker}<div data-follow-part="head"><p>${head}</p></div>` +
   `<div data-follow-part="panel"><div class="tablewrap"><table><thead><tr><th>Step</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 
-interface Reply {
-  ok?: boolean;
-  html: string;
-  hold?: Promise<void>;
-}
+interface Reply { ok?: boolean; html: string; hold?: Promise<void> }
 
-function setup(
-  html: string,
-  o: { search?: string; reply?: (url: string) => Reply } = {},
-) {
+function setup(html: string, o: { search?: string; reply?: (url: string) => Reply } = {}) {
   const win = new Window();
   windows.push(win);
   win.document.write(`<body>${html}</body>`);
@@ -40,11 +30,7 @@ function setup(
   const replaced: string[] = [];
   const clock = { at: 10_000 };
   const timers: { fn: () => void; ms: number }[] = [];
-  const state: {
-    busy: boolean;
-    phases: number;
-    reply: (url: string) => Reply;
-  } = {
+  const state: { busy: boolean; phases: number; reply: (url: string) => Reply } = {
     busy: false,
     phases: 0,
     reply: o.reply ?? (() => ({ html: "" })),
@@ -69,25 +55,11 @@ function setup(
     phasesChanged: () => void state.phases++,
   };
   const follow = createFollow(env);
-  const nodes = (): Element[] => [
-    ...doc.querySelectorAll("[data-follow-part] *"),
-  ];
+  const nodes = (): Element[] => [...doc.querySelectorAll("[data-follow-part] *")];
   const flush = async () => {
     for (let i = 0; i < 20; i++) await Promise.resolve();
   };
-  return {
-    win,
-    doc,
-    follow,
-    loc,
-    asked,
-    replaced,
-    clock,
-    timers,
-    state,
-    nodes,
-    flush,
-  };
+  return { win, doc, follow, loc, asked, replaced, clock, timers, state, nodes, flush };
 }
 
 describe("a followed page whose parts are equal to the answer's keeps every node", () => {
@@ -157,9 +129,7 @@ describe("what a longer log does to its table", () => {
     t.follow.request();
     await t.flush();
     expect(t.doc.querySelector("thead")).toBe(head);
-    [...t.doc.querySelectorAll("tbody > tr")].forEach((tr, i) =>
-      expect(tr).toBe(trs[i]!),
-    );
+    [...t.doc.querySelectorAll("tbody > tr")].forEach((tr, i) => expect(tr).toBe(trs[i]!));
     expect(t.doc.querySelector("pre")).toBe(pre);
     earlier.forEach((n, i) => expect(pre.childNodes[i]).toBe(n));
     expect(pre.textContent).toContain("line one\nline two");
@@ -182,30 +152,22 @@ describe("what a longer log does to its table", () => {
 
   test("a row the answer adds is added, and one it drops is dropped", async () => {
     const t = setup(PAGE(MARKER(), ROW("0 ok") + ROW("1 running")));
-    t.state.reply = () => ({
-      html: PAGE(MARKER(), ROW("0 ok") + ROW("1 ok") + ROW("2 running")),
-    });
+    t.state.reply = () => ({ html: PAGE(MARKER(), ROW("0 ok") + ROW("1 ok") + ROW("2 running")) });
     t.follow.request();
     await t.flush();
-    expect(
-      [...t.doc.querySelectorAll("tbody > tr")].map((tr) => tr.textContent),
-    ).toEqual(["0 ok", "1 ok", "2 running"]);
+    expect([...t.doc.querySelectorAll("tbody > tr")].map((tr) => tr.textContent)).toEqual(["0 ok", "1 ok", "2 running"]);
     t.clock.at += 5000;
     t.state.reply = () => ({ html: PAGE(MARKER(), ROW("0 ok")) });
     t.follow.request();
     await t.flush();
-    expect(
-      [...t.doc.querySelectorAll("tbody > tr")].map((tr) => tr.textContent),
-    ).toEqual(["0 ok"]);
+    expect([...t.doc.querySelectorAll("tbody > tr")].map((tr) => tr.textContent)).toEqual(["0 ok"]);
   });
 });
 
 describe("a row holding the reader's selection", () => {
   test("is left as it was until the selection is gone, and replaced then", async () => {
     const t = setup(PAGE(MARKER(), ROW("0 ok") + LOG("line one")));
-    t.state.reply = () => ({
-      html: PAGE(MARKER(), ROW("0 ok") + LOG("rewritten")),
-    });
+    t.state.reply = () => ({ html: PAGE(MARKER(), ROW("0 ok") + LOG("rewritten")) });
     const log = t.doc.querySelector("tr.steplog")!;
     t.win.getSelection().selectAllChildren(t.doc.querySelector("pre") as never);
     t.follow.request();
@@ -217,20 +179,14 @@ describe("a row holding the reader's selection", () => {
     t.doc.dispatchEvent(new t.win.Event("selectionchange") as unknown as Event);
     await t.flush();
     expect(t.doc.querySelector("tr.steplog")).not.toBe(log);
-    expect(t.doc.querySelector("tr.steplog")!.textContent).toContain(
-      "rewritten",
-    );
+    expect(t.doc.querySelector("tr.steplog")!.textContent).toContain("rewritten");
   });
 });
 
 describe("the address the asks pin", () => {
   test("a page with no tab and no step asks with the marker's, and the address holds both after", async () => {
-    const t = setup(
-      PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")),
-    );
-    t.state.reply = () => ({
-      html: PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")),
-    });
+    const t = setup(PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")));
+    t.state.reply = () => ({ html: PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")) });
     t.follow.request();
     await t.flush();
     const url = new URL(t.asked[0]!, "http://x");
@@ -244,23 +200,15 @@ describe("the address the asks pin", () => {
   });
 
   test("`live` is pinned to the index too, and a step the reader chose is kept", async () => {
-    const live = setup(
-      PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")),
-      { search: "?tab=steps&step=live" },
-    );
+    const live = setup(PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")), { search: "?tab=steps&step=live" });
     live.follow.request();
     await live.flush();
     expect(new URLSearchParams(live.loc.search).get("step")).toBe("2");
 
-    const chosen = setup(
-      PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")),
-      { search: "?tab=steps&step=0" },
-    );
+    const chosen = setup(PAGE(MARKER('data-tab="steps" data-running="2"'), ROW("0")), { search: "?tab=steps&step=0" });
     chosen.follow.request();
     await chosen.flush();
-    expect(new URL(chosen.asked[0]!, "http://x").searchParams.get("step")).toBe(
-      "0",
-    );
+    expect(new URL(chosen.asked[0]!, "http://x").searchParams.get("step")).toBe("0");
     expect(chosen.replaced).toEqual([]);
   });
 });
@@ -279,17 +227,8 @@ describe("what the answer's marker does to the page's own", () => {
   });
 
   test("an answer with a marker replaces the page's, and the stream is asked to look at its phases", async () => {
-    const t = setup(
-      PAGE(MARKER('data-tab="steps" data-running="1"'), ROW("0")),
-    );
-    t.state.reply = () => ({
-      html: PAGE(
-        MARKER(
-          'data-tab="steps" data-running="1" data-phases="aide/605-x:implement"',
-        ),
-        ROW("0"),
-      ),
-    });
+    const t = setup(PAGE(MARKER('data-tab="steps" data-running="1"'), ROW("0")));
+    t.state.reply = () => ({ html: PAGE(MARKER('data-tab="steps" data-running="1" data-phases="aide/605-x:implement"'), ROW("0")) });
     expect(t.follow.phases()).toBe("");
     t.follow.request();
     await t.flush();

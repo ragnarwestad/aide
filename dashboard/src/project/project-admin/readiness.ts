@@ -31,39 +31,19 @@ import type { ProjectReadiness, ReadinessCheck } from "./types.ts";
 /** One answer: its flags, and its sentence as a message, with the English
  *  `detail` every caller reads rendered from that same message. */
 function answer(
-  check: ReadinessCheck["check"],
-  subject: string,
-  ok: boolean,
-  blocking: boolean,
-  message: BoardMessage,
+  check: ReadinessCheck["check"], subject: string, ok: boolean, blocking: boolean, message: BoardMessage,
 ): ReadinessCheck {
-  return {
-    check,
-    subject,
-    ok,
-    blocking,
-    detail: renderMessage("en", message),
-    message,
-  };
+  return { check, subject, ok, blocking, detail: renderMessage("en", message), message };
 }
 
 /** What a repository is called inside a sentence, as a message of its own,
  *  since a sentence is written in the reader's language after this is built. */
 const labelOf = (label: string): BoardMessage => ({
-  key:
-    label === "project"
-      ? "readiness.label.project"
-      : label === "specs"
-        ? "readiness.label.specs"
-        : "readiness.label.dashboard",
+  key: label === "project" ? "readiness.label.project" : label === "specs" ? "readiness.label.specs" : "readiness.label.dashboard",
 });
 
 /** `git -C dir <args>`, trimmed, or `null` when git refused. */
-async function gitSays(
-  run: GitRunner,
-  dir: string,
-  args: string[],
-): Promise<string | null> {
+async function gitSays(run: GitRunner, dir: string, args: string[]): Promise<string | null> {
   const r = await run(dir, args);
   return r.code === 0 ? (r.stdout ?? "").trim() : null;
 }
@@ -72,24 +52,13 @@ async function gitSays(
  *  then a local `main`, then a local `master`, and failing all three the
  *  branch that is checked out — which makes the switch a no-op. */
 async function defaultBranchOf(run: GitRunner, root: string): Promise<string> {
-  const head = await gitSays(run, root, [
-    "symbolic-ref",
-    "--short",
-    "refs/remotes/origin/HEAD",
-  ]);
+  const head = await gitSays(run, root, ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]);
   if (head) return head.replace(/^origin\//, "");
   for (const candidate of ["main", "master"]) {
-    const r = await run(root, [
-      "show-ref",
-      "--verify",
-      "--quiet",
-      `refs/heads/${candidate}`,
-    ]);
+    const r = await run(root, ["show-ref", "--verify", "--quiet", `refs/heads/${candidate}`]);
     if (r.code === 0) return candidate;
   }
-  return (
-    (await gitSays(run, root, ["rev-parse", "--abbrev-ref", "HEAD"])) ?? ""
-  );
+  return (await gitSays(run, root, ["rev-parse", "--abbrev-ref", "HEAD"])) ?? "";
 }
 
 /** Which OTHER worktree has `branch` checked out, if any. `git switch`
@@ -104,13 +73,8 @@ async function branchHeldElsewhere(
   if (!listed) return null;
   let at = "";
   for (const line of listed.split("\n")) {
-    if (line.startsWith("worktree "))
-      at = line.slice("worktree ".length).trim();
-    else if (
-      line.trim() === `branch refs/heads/${branch}` &&
-      resolve(at) !== resolve(root)
-    )
-      return at;
+    if (line.startsWith("worktree ")) at = line.slice("worktree ".length).trim();
+    else if (line.trim() === `branch refs/heads/${branch}` && resolve(at) !== resolve(root)) return at;
   }
   return null;
 }
@@ -121,33 +85,20 @@ async function branchHeldElsewhere(
  *  all — a run reads
  *  origin's default branch into a worktree of its own, so what sits
  *  uncommitted here decides nothing. */
-async function repoChecks(
-  run: GitRunner,
-  root: string,
-  label: string,
-): Promise<ReadinessCheck[]> {
+async function repoChecks(run: GitRunner, root: string, label: string): Promise<ReadinessCheck[]> {
   const checks: ReadinessCheck[] = [];
   const base = await defaultBranchOf(run, root);
-  const current =
-    (await gitSays(run, root, ["rev-parse", "--abbrev-ref", "HEAD"])) ?? "";
+  const current = (await gitSays(run, root, ["rev-parse", "--abbrev-ref", "HEAD"])) ?? "";
   if (!base) {
-    checks.push(
-      answer("defaultBranch", root, false, true, {
-        key: "readiness.branch.unknown",
-        values: { root },
-        inner: labelOf(label),
-      }),
-    );
+    checks.push(answer("defaultBranch", root, false, true, {
+      key: "readiness.branch.unknown", values: { root }, inner: labelOf(label),
+    }));
     return checks;
   }
   if (current === base) {
-    checks.push(
-      answer("defaultBranch", root, true, false, {
-        key: "readiness.branch.on",
-        values: { base },
-        inner: labelOf(label),
-      }),
-    );
+    checks.push(answer("defaultBranch", root, true, false, {
+      key: "readiness.branch.on", values: { base }, inner: labelOf(label),
+    }));
     return checks;
   }
   // A branch git can reach is one it can switch to: either it is there
@@ -155,56 +106,33 @@ async function repoChecks(
   // named remote-tracking ref, which is what the runner relies on. Both
   // missing is the case that refuses — a dangling origin/HEAD, the
   // state Skjer's checkout was in.
-  const local =
-    (await run(root, ["show-ref", "--verify", "--quiet", `refs/heads/${base}`]))
-      .code === 0;
+  const local = (await run(root, ["show-ref", "--verify", "--quiet", `refs/heads/${base}`])).code === 0;
   const remote =
-    (
-      await run(root, [
-        "show-ref",
-        "--verify",
-        "--quiet",
-        `refs/remotes/origin/${base}`,
-      ])
-    ).code === 0;
+    (await run(root, ["show-ref", "--verify", "--quiet", `refs/remotes/origin/${base}`])).code === 0;
   if (!local && !remote) {
-    checks.push(
-      answer("defaultBranch", root, false, true, {
-        key: "readiness.branch.missing",
-        values: { current, base },
-        inner: labelOf(label),
-      }),
-    );
+    checks.push(answer("defaultBranch", root, false, true, {
+      key: "readiness.branch.missing", values: { current, base }, inner: labelOf(label),
+    }));
     return checks;
   }
   const held = await branchHeldElsewhere(run, root, base);
   checks.push(
     held
       ? answer("defaultBranch", root, false, true, {
-          key: "readiness.branch.held",
-          values: { current, base, held },
-          inner: labelOf(label),
+          key: "readiness.branch.held", values: { current, base, held }, inner: labelOf(label),
         })
-      : // Worth saying and nothing more: the runner puts a clean
-        // checkout on its default branch itself, and leaves it there.
-        answer("defaultBranch", root, false, false, {
-          key: "readiness.branch.moves",
-          values: { current, base },
-          inner: labelOf(label),
+      // Worth saying and nothing more: the runner puts a clean
+      // checkout on its default branch itself, and leaves it there.
+      : answer("defaultBranch", root, false, false, {
+          key: "readiness.branch.moves", values: { current, base }, inner: labelOf(label),
         }),
   );
   return checks;
 }
 
 /** The one-line answer both browser modes show. */
-function readinessNote(
-  project: string,
-  canRun: boolean,
-  checks: ReadinessCheck[],
-): string {
-  const head = canRun
-    ? `${project} added — ready to run`
-    : `${project} added — cannot run yet`;
+function readinessNote(project: string, canRun: boolean, checks: ReadinessCheck[]): string {
+  const head = canRun ? `${project} added — ready to run` : `${project} added — cannot run yet`;
   const said = [
     ...checks.filter((c) => c.blocking).map((c) => c.detail),
     // The non-blocking answers that still deviate from "nothing to
@@ -240,32 +168,19 @@ async function dashboardCheckoutChecks(
   const checks: ReadinessCheck[] = [];
   for (const { root, label } of roots) {
     const origin = await gitSays(run, root, ["remote", "get-url", "origin"]);
-    checks.push(
-      answer(
-        "dashboardCheckout",
-        root,
-        origin !== null,
-        // Worth SAYING and nothing more, the same shape as a checkout on
-        // a feature branch. A project the dashboard cannot clone still
-        // runs — it falls back to the checkout it was pointed at, exactly
-        // as it always did — so refusing the run here
-        // would take away something that works. What the reader needs to
-        // know is that this project is the one where a run and their own
-        // editing can still meet.
-        false,
-        origin === null
-          ? {
-              key: "readiness.checkout.noOrigin",
-              values: { root },
-              inner: labelOf(label),
-            }
-          : {
-              key: "readiness.checkout.willMake",
-              values: { dir: machineryDir },
-              inner: labelOf(label),
-            },
-      ),
-    );
+    checks.push(answer("dashboardCheckout", root, origin !== null,
+      // Worth SAYING and nothing more, the same shape as a checkout on
+      // a feature branch. A project the dashboard cannot clone still
+      // runs — it falls back to the checkout it was pointed at, exactly
+      // as it always did — so refusing the run here
+      // would take away something that works. What the reader needs to
+      // know is that this project is the one where a run and their own
+      // editing can still meet.
+      false,
+      origin === null
+        ? { key: "readiness.checkout.noOrigin", values: { root }, inner: labelOf(label) }
+        : { key: "readiness.checkout.willMake", values: { dir: machineryDir }, inner: labelOf(label) },
+    ));
   }
   return checks;
 }
@@ -299,22 +214,13 @@ export async function assessProjectReadiness(
   // answers with the real path.
 
   const isRoot = top !== null && real(top) === real(projectDir);
-  checks.push(
-    answer(
-      "gitRoot",
-      projectDir,
-      isRoot,
-      !isRoot,
-      top === null
-        ? { key: "readiness.gitRoot.notRepo", values: { dir: projectDir } }
-        : isRoot
-          ? { key: "readiness.gitRoot.ok", values: { dir: projectDir } }
-          : {
-              key: "readiness.gitRoot.inside",
-              values: { dir: projectDir, top },
-            },
-    ),
-  );
+  checks.push(answer("gitRoot", projectDir, isRoot, !isRoot,
+    top === null
+      ? { key: "readiness.gitRoot.notRepo", values: { dir: projectDir } }
+      : isRoot
+        ? { key: "readiness.gitRoot.ok", values: { dir: projectDir } }
+        : { key: "readiness.gitRoot.inside", values: { dir: projectDir, top } },
+  ));
   const projectRoot = isRoot ? projectDir : top || projectDir;
 
   // 2. The specs root, configured or fallen back to, has to EXIST: the
@@ -322,52 +228,25 @@ export async function assessProjectReadiness(
   const configured = configValue(projectDir, "AIDE_SPECS_PATH");
   const specsRoot = configured ?? join(projectDir, "specs");
   const specsThere = existsSync(specsRoot) && statSync(specsRoot).isDirectory();
-  checks.push(
-    answer(
-      "specsRoot",
-      specsRoot,
-      specsThere,
-      !specsThere,
-      specsThere
-        ? {
-            key: configured
-              ? "readiness.specsRoot.ok"
-              : "readiness.specsRoot.okOwn",
-            values: { root: specsRoot },
-          }
-        : {
-            key: configured
-              ? "readiness.specsRoot.missingConfigured"
-              : "readiness.specsRoot.missingFallback",
-            values: { root: specsRoot },
-          },
-    ),
-  );
+  checks.push(answer("specsRoot", specsRoot, specsThere, !specsThere,
+    specsThere
+      ? { key: configured ? "readiness.specsRoot.ok" : "readiness.specsRoot.okOwn", values: { root: specsRoot } }
+      : { key: configured ? "readiness.specsRoot.missingConfigured" : "readiness.specsRoot.missingFallback", values: { root: specsRoot } },
+  ));
 
-  const roots: { root: string; label: string }[] = [
-    { root: projectRoot, label: "project" },
-  ];
+  const roots: { root: string; label: string }[] = [{ root: projectRoot, label: "project" }];
   if (specsThere) {
     // 3. And it has to be IN a repository: a run commits and pushes the
     //    spec it writes, and a specs root outside git is a run whose
     //    analysis nothing keeps.
-    const specsTop = await gitSays(run, specsRoot, [
-      "rev-parse",
-      "--show-toplevel",
-    ]);
-    checks.push(
-      answer(
-        "specsRepo",
-        specsRoot,
-        specsTop !== null,
-        specsTop === null,
-        specsTop === null
-          ? { key: "readiness.specsRepo.none", values: { root: specsRoot } }
-          : resolve(specsTop) === resolve(projectRoot)
-            ? { key: "readiness.specsRepo.own" }
-            : { key: "readiness.specsRepo.other", values: { top: specsTop } },
-      ),
-    );
+    const specsTop = await gitSays(run, specsRoot, ["rev-parse", "--show-toplevel"]);
+    checks.push(answer("specsRepo", specsRoot, specsTop !== null, specsTop === null,
+      specsTop === null
+        ? { key: "readiness.specsRepo.none", values: { root: specsRoot } }
+        : resolve(specsTop) === resolve(projectRoot)
+          ? { key: "readiness.specsRepo.own" }
+          : { key: "readiness.specsRepo.other", values: { top: specsTop } },
+    ));
     if (specsTop !== null && resolve(specsTop) !== resolve(projectRoot)) {
       roots.push({ root: specsTop, label: "specs" });
     }
@@ -394,64 +273,33 @@ export async function assessProjectReadiness(
   //    does this.
   //    Read from the COMMITTED manifest alone, the same file
   //    `aide-run-spec` itself reads.
-  const machineryManifest = machineryDir
-    ? join(machineryDir, ".aide", "project.yaml")
-    : undefined;
+  const machineryManifest = machineryDir ? join(machineryDir, ".aide", "project.yaml") : undefined;
   const { links } = resolveWorktreeLinks(
     projectDir,
-    manifestFile ??
-      (machineryManifest && existsSync(machineryManifest)
-        ? machineryManifest
-        : undefined),
+    manifestFile ?? (machineryManifest && existsSync(machineryManifest) ? machineryManifest : undefined),
   );
   const linkError = links ? worktreeLinksError(links, "worktreeLinks") : null;
   const missing = links
-    ? links
-        .split(/\s+/)
-        .filter(Boolean)
-        .filter((e) => !existsSync(join(projectRoot, e)))
+    ? links.split(/\s+/).filter(Boolean).filter((e) => !existsSync(join(projectRoot, e)))
     : [];
   checks.push(
     !links
-      ? // Not a failure: most projects need none, and the dashboard
-        // cannot infer which gitignored paths a test command wants.
-        // Said all the same, because it is silent otherwise. Names the
-        // destination, not only the gap: this is the one readiness answer
-        // a person closes out themselves.
-        answer("worktreeLinks", projectDir, false, false, {
-          key: "readiness.links.none",
-        })
+      // Not a failure: most projects need none, and the dashboard
+      // cannot infer which gitignored paths a test command wants.
+      // Said all the same, because it is silent otherwise. Names the
+      // destination, not only the gap: this is the one readiness answer
+      // a person closes out themselves.
+      ? answer("worktreeLinks", projectDir, false, false, { key: "readiness.links.none" })
       : linkError
-        ? answer("worktreeLinks", projectDir, false, true, {
-            key: "readiness.links.invalid",
-            values: { error: linkError },
-          })
+        ? answer("worktreeLinks", projectDir, false, true, { key: "readiness.links.invalid", values: { error: linkError } })
         : missing.length
-          ? answer(
-              "worktreeLinks",
-              projectDir,
-              false,
-              true,
-              missing.length === 1
-                ? {
-                    key: "readiness.links.missingOne",
-                    values: { entry: missing[0]!, root: projectRoot },
-                  }
-                : {
-                    key: "readiness.links.missingMany",
-                    values: { entries: missing.join(", "), root: projectRoot },
-                  },
-            )
-          : answer("worktreeLinks", projectDir, true, false, {
-              key: "readiness.links.ok",
-              values: { links },
-            }),
+          ? answer("worktreeLinks", projectDir, false, true,
+            missing.length === 1
+              ? { key: "readiness.links.missingOne", values: { entry: missing[0]!, root: projectRoot } }
+              : { key: "readiness.links.missingMany", values: { entries: missing.join(", "), root: projectRoot } })
+          : answer("worktreeLinks", projectDir, true, false, { key: "readiness.links.ok", values: { links } }),
   );
 
   const canRun = checks.every((c) => !c.blocking);
-  return {
-    canRun,
-    checks,
-    note: readinessNote(basename(projectDir), canRun, checks),
-  };
+  return { canRun, checks, note: readinessNote(basename(projectDir), canRun, checks) };
 }

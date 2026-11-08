@@ -21,11 +21,7 @@ export {
   groupKey,
 } from "./types.ts";
 
-export {
-  phaseDuration,
-  computeSpecTotalDurationMs,
-  phasesFor,
-} from "./phases.ts";
+export { phaseDuration, computeSpecTotalDurationMs, phasesFor } from "./phases.ts";
 
 export {
   STATE_FILTERS,

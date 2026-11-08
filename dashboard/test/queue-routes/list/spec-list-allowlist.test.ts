@@ -19,29 +19,19 @@ describe("jobs of a project no longer in the allowlist are not rows", () => {
     // Enqueued while the project was still allowed and had a spec, then
     // served by a queue that no longer lists it — the shape of a
     // project retired after the fact.
-    const first = start({ queueProjects: ["aide", "aide-dashboard"] }, [
-      "aide-dashboard",
-    ]);
+    const first = start({ queueProjects: ["aide", "aide-dashboard"] }, ["aide-dashboard"]);
     await fetch(`${first.base}/api/queue`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-      },
+      headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify(dead),
     });
     const mirror = join(first.dir, "queue.json");
-    const { base } = start({
-      queueMirrorPath: mirror,
-      queueProjects: ["aide"],
-    });
+    const { base } = start({ queueMirrorPath: mirror, queueProjects: ["aide"] });
     const html = await (await fetch(`${base}/specs?rows=1`)).text();
     expect(html).not.toContain("01-first");
     expect(html).not.toContain("aide-dashboard");
     // The API keeps the history: this is a page rule, not a deletion.
-    const api = (await (await fetch(`${base}/api/queue`)).json()) as {
-      jobs: { project: string }[];
-    };
+    const api = (await (await fetch(`${base}/api/queue`)).json()) as { jobs: { project: string }[] };
     expect(api.jobs.some((j) => j.project === "aide-dashboard")).toBe(true);
   });
 });

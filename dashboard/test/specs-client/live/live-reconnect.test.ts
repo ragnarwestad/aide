@@ -149,11 +149,7 @@ describe("the stream follows the address's phases", () => {
   const A = "aide%2F500-x%3Aanalyze";
   const B = "aide%2F500-x%3Aimplement";
   const start = () => {
-    const h = harness(
-      () => ({ ok: true, text: "<tr>fresh</tr>" }),
-      "actionform",
-      `?open=${OPEN}`,
-    );
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "actionform", `?open=${OPEN}`);
     h.visibility("visible");
     return h;
   };
@@ -201,15 +197,10 @@ describe("the stream follows the address's phases", () => {
 // asks the stream again; a spec row's › leaves it as it was.
 describe("a job row's › reopens the stream with the address's open", () => {
   const start = (onJobRow: boolean) => {
-    const h = harness(
-      () => ({ ok: true, text: "<tr>fresh</tr>" }),
-      "actionform",
-      "?open=aide%2F81-x",
-    );
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }), "actionform", "?open=aide%2F81-x");
     h.visibility("visible");
     const plain = h.foldLink.closest;
-    h.foldLink.closest = (sel: string) =>
-      sel === "tr[data-job]" ? (onJobRow ? h.foldLink : null) : plain(sel);
+    h.foldLink.closest = (sel: string) => (sel === "tr[data-job]" ? (onJobRow ? h.foldLink : null) : plain(sel));
     return h;
   };
 
@@ -220,9 +211,7 @@ describe("a job row's › reopens the stream with the address's open", () => {
     await flush();
     expect(h.sources).toHaveLength(2);
     expect(h.sources[0]!.closed).toBe(true);
-    expect(h.live()!.url).toContain(
-      encodeURIComponent("aide/schedule-nightly"),
-    );
+    expect(h.live()!.url).toContain(encodeURIComponent("aide/schedule-nightly"));
   });
 
   test("a spec row's › leaves the stream as it was", async () => {
@@ -276,17 +265,11 @@ describe("the stream follows the follow marker's phases", () => {
   const answer = (phases: string) =>
     `<span hidden data-follow data-tab="steps" data-running="1"${phases ? ` data-phases="${phases}"` : ""}></span>`;
   const page = (marker: Record<string, string>, reply: () => string) =>
-    harness(
-      (url) => ({ ok: true, text: url.includes("follow=1") ? reply() : "" }),
-      "actionform",
-      "?tab=steps",
-      {
-        pathname: "/jobs/j1",
-        follow: { "data-tab": "steps", "data-running": "1", ...marker },
-      },
-    );
-  const phasesOf = (url: string) =>
-    new URL(url, "http://dash.test").searchParams.get("phases");
+    harness((url) => ({ ok: true, text: url.includes("follow=1") ? reply() : "" }), "actionform", "?tab=steps", {
+      pathname: "/jobs/j1",
+      follow: { "data-tab": "steps", "data-running": "1", ...marker },
+    });
+  const phasesOf = (url: string) => new URL(url, "http://dash.test").searchParams.get("phases");
 
   test("the stream's address carries the marker's phases beside the page's own query", () => {
     const h = page({ "data-phases": `${A},${B}` }, () => answer(`${A},${B}`));

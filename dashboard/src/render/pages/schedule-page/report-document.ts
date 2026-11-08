@@ -9,29 +9,18 @@
 import { REPORT_FRAME_CSS, TOKENS_CSS } from "../../ui/css";
 import { esc } from "../../ui/html.ts";
 
-const REMOVED_WITH_CONTENT =
-  "script, style, link, meta, base, object, embed, iframe";
+const REMOVED_WITH_CONTENT = "script, style, link, meta, base, object, embed, iframe";
 const UNWRAPPED = "form, font";
-const STYLING_ATTRIBUTES = new Set([
-  "style",
-  "bgcolor",
-  "background",
-  "color",
-  "face",
-  "size",
-]);
+const STYLING_ATTRIBUTES = new Set(["style", "bgcolor", "background", "color", "face", "size"]);
 const SAFE_LINK = /^(https?:|mailto:|#|[^:]*$)/i;
 
 function cleanAttributes(el: HTMLRewriterTypes.Element): void {
   // A copy first: removing from `attributes` while iterating skips entries.
   for (const [name, value] of [...el.attributes]) {
     const lower = name.toLowerCase();
-    if (lower.startsWith("on") || STYLING_ATTRIBUTES.has(lower))
-      el.removeAttribute(name);
-    else if (lower === "href" && !SAFE_LINK.test(value.trim()))
-      el.removeAttribute(name);
-    else if (lower === "src" && /^\s*(javascript|vbscript):/i.test(value))
-      el.removeAttribute(name);
+    if (lower.startsWith("on") || STYLING_ATTRIBUTES.has(lower)) el.removeAttribute(name);
+    else if (lower === "href" && !SAFE_LINK.test(value.trim())) el.removeAttribute(name);
+    else if (lower === "src" && /^\s*(javascript|vbscript):/i.test(value)) el.removeAttribute(name);
   }
 }
 
@@ -69,10 +58,7 @@ async function shortCells(html: string): Promise<boolean[]> {
 
 /** `baseHref` is the run's own directory, so a relative link written next
  *  to the report resolves there and opens in a new tab. */
-export async function buildReportDocument(
-  reportHtml: string,
-  baseHref: string,
-): Promise<string> {
+export async function buildReportDocument(reportHtml: string, baseHref: string): Promise<string> {
   const short = await shortCells(reportHtml);
   let cell = 0;
   const body = await new HTMLRewriter()

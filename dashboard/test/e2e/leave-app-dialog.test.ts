@@ -12,6 +12,7 @@ import { queueHarness, ran } from "../helpers/queue-server.ts";
 
 browserDeadline();
 
+
 const harness = queueHarness("aide-e2e-leave-app-");
 let browser: Browser;
 let page: Page;
@@ -33,12 +34,7 @@ afterAll(async () => {
 /** Dirties the page through the Settings page's own tracked form: a time
  *  limit typed into, which needs no bundle to interact with. */
 async function dirtyTheSettingsForm(): Promise<void> {
-  await page
-    .locator(
-      '.settingsform input[name="timeoutSec.analyze"], input[form="settings-form"][name="timeoutSec.analyze"]',
-    )
-    .first()
-    .fill("61");
+  await page.locator('.settingsform input[name="timeoutSec.analyze"], input[form="settings-form"][name="timeoutSec.analyze"]').first().fill("61");
 }
 
 /** The header's brand link to the Running tab, an in-app link on every page.
@@ -62,7 +58,7 @@ describe("the leave-app dialog replaces the native prompt for an in-app link", (
     expect(await exitLink().count()).toBe(1);
   });
 
-  test("pressing Cancel leaves no stray .awaiting link and no open pageoverlay behind", async () => {
+  test('pressing Cancel leaves no stray .awaiting link and no open pageoverlay behind', async () => {
     await withBrowser(
       page.goto(`${base}/settings`),
       "page.goto(settings page)",
@@ -76,13 +72,11 @@ describe("the leave-app dialog replaces the native prompt for an in-app link", (
 
     await dialog.waitFor({ state: "hidden" });
     expect(new URL(page.url()).pathname).toBe("/settings");
-    expect(
-      await exitLink().evaluate((el) => el.classList.contains("awaiting")),
-    ).toBe(false);
+    expect(await exitLink().evaluate((el) => el.classList.contains("awaiting"))).toBe(false);
     expect(await page.locator("dialog.pageoverlay").count()).toBe(0);
   });
 
-  test("pressing OK navigates to the link's destination", async () => {
+  test('pressing OK navigates to the link\'s destination', async () => {
     await withBrowser(
       page.goto(`${base}/settings`),
       "page.goto(settings page)",

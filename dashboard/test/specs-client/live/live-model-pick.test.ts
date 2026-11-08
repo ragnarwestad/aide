@@ -1,7 +1,9 @@
 // Split out of model-and-phase-picks.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import { harness } from "../fixtures.ts";
+import {
+  harness,
+} from "../fixtures.ts";
 
 // --- A live model pick posts itself ---------------------------------
 
@@ -70,12 +72,7 @@ describe("a live model pick posts itself", () => {
       return { ok: true, body: OK };
     });
     await h.changeModel(LIVE, "fable");
-    expect(atRequest).toEqual({
-      run: true,
-      box: true,
-      model: true,
-      otherRow: false,
-    });
+    expect(atRequest).toEqual({ run: true, box: true, model: true, otherRow: false });
     expect(h.rows.innerHTML).not.toBe("");
     expect(h.modelSelects[LIVE]!.disabled).toBe(false);
   });
@@ -95,18 +92,11 @@ describe("a live model pick posts itself", () => {
   test("a refused pick is dropped, and the reason is shown", async () => {
     const h = harness((url) =>
       url.includes("/api/queue/job-1/model")
-        ? {
-            ok: false,
-            body: {
-              error: "archive is not a step this run can still be given",
-            },
-          }
+        ? { ok: false, body: { error: "archive is not a step this run can still be given" } }
         : { ok: true },
     );
     await h.changeModel(LIVE, "fable");
-    expect(h.listRefused.textContent).toBe(
-      "Problem: Archive is not a step this run can still be given",
-    );
+    expect(h.listRefused.textContent).toBe("Problem: Archive is not a step this run can still be given");
     // Not remembered either: the swap put the server's own value back,
     // and nothing replays the refused one over it.
     expect(h.modelSelects[LIVE]!.value).toBe("sonnet");

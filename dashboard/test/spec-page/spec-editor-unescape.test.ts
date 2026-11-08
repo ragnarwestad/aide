@@ -11,7 +11,7 @@ describe("unescapeMarkdown", () => {
   test("the exact damage seen on 417: a heading and its REQ bullets come back", () => {
     const damaged =
       "\\#\\# Requirements\n\n" +
-      '\\- \\*\\*REQ\\-1:\\*\\* The column SHALL be renamed to "State/Action"\\.\n' +
+      "\\- \\*\\*REQ\\-1:\\*\\* The column SHALL be renamed to \"State/Action\"\\.\n" +
       "\\- \\*\\*REQ\\-2:\\*\\* The Norwegian one SHALL be renamed too\\.\n";
     expect(unescapeMarkdown(damaged)).toBe(
       "## Requirements\n\n" +
@@ -21,16 +21,14 @@ describe("unescapeMarkdown", () => {
   });
 
   test("markdown that was never escaped is returned byte for byte", () => {
-    const clean =
-      "# Title\n\n- **REQ-1:** a thing\n\n---\n\n*emphasis* and `code`\n";
+    const clean = "# Title\n\n- **REQ-1:** a thing\n\n---\n\n*emphasis* and `code`\n";
     expect(unescapeMarkdown(clean)).toBe(clean);
   });
 
   // A backslash in code is far more likely to be meant: a regex in a
   // fence, a `\d` in a span. Those are the one place the escapes stay.
   test("a fenced code block keeps every backslash it has", () => {
-    const text =
-      "before \\* after\n\n```ts\nconst re = /\\d\\.\\*/;\n```\n\nafter \\# here\n";
+    const text = "before \\* after\n\n```ts\nconst re = /\\d\\.\\*/;\n```\n\nafter \\# here\n";
     expect(unescapeMarkdown(text)).toBe(
       "before * after\n\n```ts\nconst re = /\\d\\.\\*/;\n```\n\nafter # here\n",
     );
@@ -42,21 +40,17 @@ describe("unescapeMarkdown", () => {
   });
 
   test("an inline code span keeps its backslashes while the text around it loses them", () => {
-    expect(
-      unescapeMarkdown("say \\*this\\* but `not \\*that\\*` here\\."),
-    ).toBe("say *this* but `not \\*that\\*` here.");
+    expect(unescapeMarkdown("say \\*this\\* but `not \\*that\\*` here\\.")).toBe(
+      "say *this* but `not \\*that\\*` here.",
+    );
   });
 
   test("an unmatched backtick opens nothing", () => {
-    expect(unescapeMarkdown("a ` lone tick and \\*this\\*")).toBe(
-      "a ` lone tick and *this*",
-    );
+    expect(unescapeMarkdown("a ` lone tick and \\*this\\*")).toBe("a ` lone tick and *this*");
   });
 
   test("a backslash before a character markdown never escapes is left alone", () => {
-    expect(unescapeMarkdown("C:\\temp and \\n and \\q")).toBe(
-      "C:\\temp and \\n and \\q",
-    );
+    expect(unescapeMarkdown("C:\\temp and \\n and \\q")).toBe("C:\\temp and \\n and \\q");
   });
 
   test("a doubled backslash was an escaped backslash, and becomes one", () => {

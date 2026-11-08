@@ -12,7 +12,7 @@
     // MD029: Ordered list item prefix - CRITICAL for our numbering issues
     // Catches lists that don't restart at 1 after headers
     "MD029": {
-      "style": "ordered",
+      "style": "ordered"
     },
 
     // MD040: Fenced code blocks should have a language specified
@@ -24,12 +24,18 @@
     "MD051": true,
 
     // MD060: Table pipes line up, the way the IDE's formatter leaves them
-    "MD060": { "style": "aligned" },
+    "MD060": { "style": "aligned" }
   },
 
   // Ignore patterns
-  "ignores": ["node_modules", "**/node_modules/**", ".git"],
+  "ignores": [
+    "node_modules",
+    "**/node_modules/**",
+    ".git"
+  ],
 
   // Globs to lint
-  "globs": ["**/*.md"],
+  "globs": [
+    "**/*.md"
+  ]
 }

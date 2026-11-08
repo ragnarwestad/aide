@@ -66,8 +66,9 @@ trap 'rm -rf "$OUT"' EXIT
 export TMPDIR="$OUT/tmp"
 mkdir -p "$TMPDIR"
 
-# Two pools, dealt separately: the files that start a browser take the
-# first `BROWSER_WORKERS` workers, everything else takes the rest. Dealt
+# Two pools, dealt separately: the files that start a browser go to the
+# first `BROWSER_WORKERS` workers only, and everything else is spread over
+# all of them. Dealt
 # together — one round-robin over every file — which pool a worker ended
 # up carrying was decided by the file COUNT, so adding any test file
 # anywhere reshuffled the browsers and a run went red for reasons that
@@ -103,9 +104,12 @@ for f in $browser; do
   echo "$f" >> "$OUT/list.$(( i % BROWSER_WORKERS ))"
   i=$(( i + 1 ))
 done
-i=0
+# The rest is dealt over EVERY worker, the browser ones included, starting
+# after them: a worker kept for one browser file alone left a run the
+# board gives two cores with one process running the whole suite.
+i=$BROWSER_WORKERS
 for f in $rest; do
-  echo "$f" >> "$OUT/list.$(( BROWSER_WORKERS + i % (WORKERS - BROWSER_WORKERS) ))"
+  echo "$f" >> "$OUT/list.$(( i % WORKERS ))"
   i=$(( i + 1 ))
 done
 

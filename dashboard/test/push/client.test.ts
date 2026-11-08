@@ -6,8 +6,7 @@
 import { describe, expect, test } from "bun:test";
 import { pushControl, type PushDeps } from "../../src/specs-client/push.ts";
 
-const KEY =
-  "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8";
+const KEY = "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8";
 
 interface Setup {
   permission?: NotificationPermission;
@@ -31,9 +30,7 @@ function device(o: Setup = {}) {
       return true;
     },
   });
-  let current: ReturnType<typeof makeSub> | null = o.existing
-    ? makeSub("https://push.test/old")
-    : null;
+  let current: ReturnType<typeof makeSub> | null = o.existing ? makeSub("https://push.test/old") : null;
   const deps: PushDeps = {
     publicKey: KEY,
     lang: "nb",
@@ -48,9 +45,7 @@ function device(o: Setup = {}) {
       pushManager: {
         getSubscription: async () => current,
         subscribe: async (options) => {
-          log.push(
-            `subscribe ${options.userVisibleOnly} ${options.applicationServerKey.length}`,
-          );
+          log.push(`subscribe ${options.userVisibleOnly} ${options.applicationServerKey.length}`);
           current = makeSub("https://push.test/new");
           return current;
         },
@@ -62,30 +57,15 @@ function device(o: Setup = {}) {
       return { ok: o.serverOk ?? true };
     },
   };
-  return {
-    deps,
-    log,
-    posts,
-    control: pushControl(deps),
-    current: () => current,
-  };
+  return { deps, log, posts, control: pushControl(deps), current: () => current };
 }
 
 describe("Turn on", () => {
   test("asks first, clears an old subscription, subscribes with the server's key, then posts", async () => {
     const d = device({ existing: true });
     const view = await d.control.turnOn();
-    expect(d.log).toEqual([
-      "ask",
-      "unsubscribe https://push.test/old",
-      "subscribe true 65",
-      "post /api/push/subscribe",
-    ]);
-    expect(d.posts[0]!.body).toEqual({
-      endpoint: "https://push.test/new",
-      keys: { p256dh: "P", auth: "A" },
-      lang: "nb",
-    });
+    expect(d.log).toEqual(["ask", "unsubscribe https://push.test/old", "subscribe true 65", "post /api/push/subscribe"]);
+    expect(d.posts[0]!.body).toEqual({ endpoint: "https://push.test/new", keys: { p256dh: "P", auth: "A" }, lang: "nb" });
     expect(view.state).toBe("on");
   });
 
@@ -128,12 +108,7 @@ describe("Turn off and the state on load", () => {
   test("unsubscribes the device, posts its endpoint, and reads Off", async () => {
     const d = device({ permission: "granted", existing: true });
     const view = await d.control.turnOff();
-    expect(d.posts).toEqual([
-      {
-        path: "/api/push/unsubscribe",
-        body: { endpoint: "https://push.test/old" },
-      },
-    ]);
+    expect(d.posts).toEqual([{ path: "/api/push/unsubscribe", body: { endpoint: "https://push.test/old" } }]);
     expect(d.current()).toBeNull();
     expect(view.state).toBe("off");
   });
@@ -155,19 +130,12 @@ describe("Turn off and the state on load", () => {
   test("a device whose permission was withdrawn is unsubscribed on load and reads Blocked", async () => {
     const d = device({ permission: "denied", existing: true });
     const view = await d.control.load();
-    expect(d.posts).toEqual([
-      {
-        path: "/api/push/unsubscribe",
-        body: { endpoint: "https://push.test/old" },
-      },
-    ]);
+    expect(d.posts).toEqual([{ path: "/api/push/unsubscribe", body: { endpoint: "https://push.test/old" } }]);
     expect(d.current()).toBeNull();
     expect(view.state).toBe("blocked");
   });
 
   test("a device that never subscribed reads Off", async () => {
-    expect((await device({ permission: "default" }).control.load()).state).toBe(
-      "off",
-    );
+    expect((await device({ permission: "default" }).control.load()).state).toBe("off");
   });
 });

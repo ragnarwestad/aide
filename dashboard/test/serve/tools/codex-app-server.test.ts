@@ -23,7 +23,7 @@ writeFileSync(
     "#!/bin/sh",
     'echo $$ > "$1"',
     'echo "$AIDE_TEST_HOME" > "$1.env"',
-    "while IFS= read -r line; do",
+    'while IFS= read -r line; do',
     '  [ "$2" = silent ] && continue',
     '  case "$line" in',
     `    *'"id":1'*) printf '%s\\n' '{"id":1,"result":{}}' ;;`,
@@ -38,11 +38,7 @@ writeFileSync(
 );
 
 const MESSAGES = [
-  {
-    id: 1,
-    method: "initialize",
-    params: { clientInfo: { name: "test", version: "0" } },
-  },
+  { id: 1, method: "initialize", params: { clientInfo: { name: "test", version: "0" } } },
   { method: "initialized" },
   { id: 2, method: "account/rateLimits/read" },
 ];
@@ -59,38 +55,20 @@ const isGone = (pid: number): boolean => {
 describe("the app-server exchange", () => {
   test("answers with the line carrying the request's id, and ends the server", async () => {
     const pidFile = join(dir, "answer.pid");
-    const reply = await appServerExchange(
-      [STAND_IN, pidFile, "answer"],
-      MESSAGES,
-      2,
-      10_000,
-    );
+    const reply = await appServerExchange([STAND_IN, pidFile, "answer"], MESSAGES, 2, 10_000);
     expect(reply).toEqual({ answer: { id: 2, result: { ok: true } } });
     expect(isGone(Number(readFileSync(pidFile, "utf8").trim()))).toBe(true);
   });
 
   test("the env it is handed is laid over the board's own for the server (AC-3)", async () => {
     const pidFile = join(dir, "env.pid");
-    await appServerExchange(
-      [STAND_IN, pidFile, "answer"],
-      MESSAGES,
-      2,
-      10_000,
-      { AIDE_TEST_HOME: "/home/x/.codex-p" },
-    );
-    expect(readFileSync(`${pidFile}.env`, "utf8").trim()).toBe(
-      "/home/x/.codex-p",
-    );
+    await appServerExchange([STAND_IN, pidFile, "answer"], MESSAGES, 2, 10_000, { AIDE_TEST_HOME: "/home/x/.codex-p" });
+    expect(readFileSync(`${pidFile}.env`, "utf8").trim()).toBe("/home/x/.codex-p");
   });
 
   test("a server that never answers times out, and is ended", async () => {
     const pidFile = join(dir, "silent.pid");
-    const reply = await appServerExchange(
-      [STAND_IN, pidFile, "silent"],
-      MESSAGES,
-      2,
-      300,
-    );
+    const reply = await appServerExchange([STAND_IN, pidFile, "silent"], MESSAGES, 2, 300);
     expect(reply).toEqual({ timedOut: true });
     expect(isGone(Number(readFileSync(pidFile, "utf8").trim()))).toBe(true);
   });

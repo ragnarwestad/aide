@@ -18,15 +18,11 @@ afterEach(() => {
  *  under test — `rev-parse HEAD` — with `answer`. `--show-toplevel` gets a
  *  boring, unused answer so the boot read's `Promise.all` settles either
  *  way. */
-function bootGit(answer: { code: number; stdout?: string }): {
-  run: GitRunner;
-} {
+function bootGit(answer: { code: number; stdout?: string }): { run: GitRunner } {
   const run: GitRunner = async (_dir, args) => {
     const cmd = args.join(" ");
-    if (cmd === "rev-parse HEAD")
-      return { code: answer.code, stdout: answer.stdout ?? "" };
-    if (cmd === "rev-parse --show-toplevel")
-      return { code: 0, stdout: "/tmp/wherever\n" };
+    if (cmd === "rev-parse HEAD") return { code: answer.code, stdout: answer.stdout ?? "" };
+    if (cmd === "rev-parse --show-toplevel") return { code: 0, stdout: "/tmp/wherever\n" };
     return { code: 1, stdout: "" };
   };
   return { run };
@@ -36,17 +32,11 @@ function bootGit(answer: { code: number; stdout?: string }): {
  *  boot-time read is fire-and-forget (`.then()`, not awaited by
  *  `createServer`), so the answer can arrive a moment after the server
  *  starts rather than on the very first request. */
-async function pollVersion(
-  base: string,
-  want: string | null,
-  budgetMs = 2000,
-): Promise<string | null> {
+async function pollVersion(base: string, want: string | null, budgetMs = 2000): Promise<string | null> {
   const deadline = Date.now() + budgetMs;
   let sha: string | null = undefined as unknown as string | null;
   while (Date.now() < deadline) {
-    const body = (await (await fetch(`${base}/api/version`)).json()) as {
-      sha: string | null;
-    };
+    const body = (await (await fetch(`${base}/api/version`)).json()) as { sha: string | null };
     sha = body.sha;
     if (sha === want) return sha;
     await new Promise((r) => setTimeout(r, 25));
@@ -93,13 +83,9 @@ describe("GET /api/version — this process's own boot-time commit", () => {
   test("answers startedAt, the same on every call for the life of the process", async () => {
     const { run } = bootGit({ code: 0, stdout: "abc1234deadbeef\n" });
     const { base } = harness.start({ extra: { gitRun: run } });
-    const first = (await (await fetch(`${base}/api/version`)).json()) as {
-      startedAt: string;
-    };
+    const first = (await (await fetch(`${base}/api/version`)).json()) as { startedAt: string };
     await new Promise((r) => setTimeout(r, 15));
-    const second = (await (await fetch(`${base}/api/version`)).json()) as {
-      startedAt: string;
-    };
+    const second = (await (await fetch(`${base}/api/version`)).json()) as { startedAt: string };
     expect(Number.isNaN(Date.parse(first.startedAt))).toBe(false);
     expect(second.startedAt).toBe(first.startedAt);
   });

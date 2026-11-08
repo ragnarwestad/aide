@@ -1,11 +1,7 @@
 // Split out of branch-status.test.ts by theme.
 
 import { describe, expect, test } from "bun:test";
-import {
-  BranchStatusChecker,
-  specBranch,
-  type GitRunner,
-} from "../../../src/git/branch-status.ts";
+import { BranchStatusChecker, specBranch, type GitRunner } from "../../../src/git/branch-status.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 
 // A landing that failed is not a spec that is done.
@@ -32,12 +28,7 @@ describe("BranchStatusChecker.openSpecBranches", () => {
     // `--exit-code` would make "this repo has no open spec branch" an
     // error, which is the ordinary answer for a healthy repo.
     expect(call.args).not.toContain("--exit-code");
-    expect(call.args).toEqual([
-      "ls-remote",
-      "--heads",
-      "origin",
-      "refs/heads/aide/*",
-    ]);
+    expect(call.args).toEqual(["ls-remote", "--heads", "origin", "refs/heads/aide/*"]);
     expect(call.dir).toBe("/repos/aide");
   });
 
@@ -45,10 +36,7 @@ describe("BranchStatusChecker.openSpecBranches", () => {
     const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
     const checker = new BranchStatusChecker({ run: git.run });
     const open = await checker.openSpecBranches("/repos/aide");
-    expect([...open!].sort()).toEqual([
-      "aide/178-nobody-waits",
-      "aide/191-one-answer",
-    ]);
+    expect([...open!].sort()).toEqual(["aide/178-nobody-waits", "aide/191-one-answer"]);
     expect(open!.has(specBranch("191-one-answer"))).toBe(true);
   });
 
@@ -70,11 +58,7 @@ describe("BranchStatusChecker.openSpecBranches", () => {
 
   test("one answer stands for the TTL, per root", async () => {
     const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
-    const checker = new BranchStatusChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
     await checker.openSpecBranches("/repos/aide");
     const before = git.calls.length;
     await checker.openSpecBranches("/repos/aide");
@@ -91,11 +75,7 @@ describe("BranchStatusChecker.openSpecBranches", () => {
     let stdout = LISTED;
     const run: GitRunner = async (_dir, args) =>
       args[0] === "ls-remote" ? { code: 0, stdout } : { code: 1, stdout: "" };
-    const checker = new BranchStatusChecker({
-      run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
     expect((await checker.openSpecBranches("/repos/aide"))!.size).toBe(2);
     stdout = "";
     expect((await checker.openSpecBranches("/repos/aide"))!.size).toBe(2); // still cached
@@ -108,14 +88,8 @@ describe("BranchStatusChecker.openSpecBranches", () => {
   test("an unanswerable refresh does not leave the old answer standing", async () => {
     let code = 0;
     const run: GitRunner = async (_dir, args) =>
-      args[0] === "ls-remote"
-        ? { code, stdout: code === 0 ? LISTED : "" }
-        : { code: 1, stdout: "" };
-    const checker = new BranchStatusChecker({
-      run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+      args[0] === "ls-remote" ? { code, stdout: code === 0 ? LISTED : "" } : { code: 1, stdout: "" };
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
     expect((await checker.openSpecBranches("/repos/aide"))!.size).toBe(2);
     code = 128;
     expect(await checker.openSpecBranches("/repos/aide", true)).toBeNull();
@@ -134,32 +108,18 @@ describe("BranchStatusChecker.peekOpenSpecBranches", () => {
 
   test("a root nothing has ever asked about answers null, and spawns no git", () => {
     const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
-    const checker = new BranchStatusChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
-    expect(checker.peekOpenSpecBranches("/repos/aide")).toEqual({
-      open: null,
-      checkedAt: null,
-    });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(checker.peekOpenSpecBranches("/repos/aide")).toEqual({ open: null, checkedAt: null });
     expect(git.calls.length).toBe(0);
   });
 
   test("after a check, it hands back that set and when it was taken", async () => {
     const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
-    const checker = new BranchStatusChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
     await checker.openSpecBranches("/repos/aide");
     const before = git.calls.length;
     const { open, checkedAt } = checker.peekOpenSpecBranches("/repos/aide");
-    expect([...open!].sort()).toEqual([
-      "aide/178-nobody-waits",
-      "aide/191-one-answer",
-    ]);
+    expect([...open!].sort()).toEqual(["aide/178-nobody-waits", "aide/191-one-answer"]);
     expect(checkedAt).toBe(1000);
     // A read, not a check: the peek itself asked git nothing.
     expect(git.calls.length).toBe(before);
@@ -170,11 +130,7 @@ describe("BranchStatusChecker.peekOpenSpecBranches", () => {
   test("past the TTL the same set stands, with its original timestamp", async () => {
     const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
     let clock = 1000;
-    const checker = new BranchStatusChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => clock,
-    });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
     await checker.openSpecBranches("/repos/aide");
     clock += 60_000;
     expect(checker.peekOpenSpecBranches("/repos/aide").checkedAt).toBe(1000);
@@ -185,30 +141,16 @@ describe("BranchStatusChecker.peekOpenSpecBranches", () => {
   // different root from one nobody has asked yet.
   test("an unanswerable check is a real, timestamped null", async () => {
     const git = fakeGit({ "ls-remote": { code: 128, stdout: "" } });
-    const checker = new BranchStatusChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 5000,
-    });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
     await checker.openSpecBranches("/repos/aide");
-    expect(checker.peekOpenSpecBranches("/repos/aide")).toEqual({
-      open: null,
-      checkedAt: 5000,
-    });
+    expect(checker.peekOpenSpecBranches("/repos/aide")).toEqual({ open: null, checkedAt: 5000 });
   });
 
   test("the peek is per root — one repo's answer never stands in for another's", async () => {
     const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
-    const checker = new BranchStatusChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
     await checker.openSpecBranches("/repos/aide");
-    expect(checker.peekOpenSpecBranches("/repos/aide-specs")).toEqual({
-      open: null,
-      checkedAt: null,
-    });
+    expect(checker.peekOpenSpecBranches("/repos/aide-specs")).toEqual({ open: null, checkedAt: null });
   });
 });
 
@@ -219,8 +161,7 @@ describe("BranchStatusChecker.peekOpenSpecBranches", () => {
 // tick; with it, the second caller onward awaits the first's own
 // in-flight promise instead.
 describe("BranchStatusChecker.openSpecBranches in-flight de-duplication", () => {
-  const LISTED =
-    "a3f9c21deadbeef0000000000000000000000000\trefs/heads/aide/191-one-answer\n";
+  const LISTED = "a3f9c21deadbeef0000000000000000000000000\trefs/heads/aide/191-one-answer\n";
 
   /** A fake whose `ls-remote` does not resolve until `release()` is
    *  called — so two calls started before either resolves can be proven
@@ -252,11 +193,7 @@ describe("BranchStatusChecker.openSpecBranches in-flight de-duplication", () => 
 
   test("a third call after the first two settled, within the TTL, spawns nothing new", async () => {
     const git = gatedGit();
-    const checker = new BranchStatusChecker({
-      run: git.run,
-      ttlMs: 30_000,
-      now: () => 1000,
-    });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
     const first = checker.openSpecBranches("/repos/aide", false);
     const second = checker.openSpecBranches("/repos/aide", false);
     git.release();
@@ -289,10 +226,7 @@ describe("BranchStatusChecker.forgetOpenSpecBranch", () => {
     "a3f9c21deadbeef0000000000000000000000000\trefs/heads/aide/191-one-answer\n" +
     "b7e1d05feedface0000000000000000000000000\trefs/heads/aide/178-nobody-waits\n";
 
-  async function warm(): Promise<{
-    checker: BranchStatusChecker;
-    calls: number;
-  }> {
+  async function warm(): Promise<{ checker: BranchStatusChecker; calls: number }> {
     const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED_TWO } });
     const checker = new BranchStatusChecker({ run: git.run });
     await checker.openSpecBranches("/repos/aide");
@@ -337,8 +271,7 @@ describe("BranchStatusChecker.forgetOpenSpecBranch", () => {
 });
 
 describe("BranchStatusChecker.rememberOpenSpecBranch", () => {
-  const LISTED_ONE =
-    "b7e1d05feedface0000000000000000000000000\trefs/heads/aide/178-nobody-waits\n";
+  const LISTED_ONE = "b7e1d05feedface0000000000000000000000000\trefs/heads/aide/178-nobody-waits\n";
 
   async function warm(): Promise<BranchStatusChecker> {
     const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED_ONE } });
@@ -360,10 +293,7 @@ describe("BranchStatusChecker.rememberOpenSpecBranch", () => {
   test("a root nobody has asked about is left unanswered", () => {
     const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED_ONE } });
     const checker = new BranchStatusChecker({ run: git.run });
-    checker.rememberOpenSpecBranch(
-      "/repos/never-asked",
-      "aide/178-nobody-waits",
-    );
+    checker.rememberOpenSpecBranch("/repos/never-asked", "aide/178-nobody-waits");
     expect(checker.peekOpenSpecBranches("/repos/never-asked").open).toBeNull();
   });
 });

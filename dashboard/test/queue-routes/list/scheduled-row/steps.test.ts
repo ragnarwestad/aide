@@ -17,11 +17,7 @@ afterEach(() => {
 });
 
 const KEY = "aide/schedule-nightly";
-const said = (text: string) =>
-  JSON.stringify({
-    type: "assistant",
-    message: { content: [{ type: "text", text }] },
-  });
+const said = (text: string) => JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text }] } });
 
 /** A scheduled step's transcript with two marked steps, and its run log beside it. */
 function transcript(): string {
@@ -38,11 +34,7 @@ function transcript(): string {
   writeFileSync(stream, lines.map((l) => `${said(l)}\n`).join(""));
   writeFileSync(
     stream.replace(/\.stream\.jsonl$/, ".run.log"),
-    [
-      "--- Step Aide: preparing — started",
-      "--- Step Aide: preparing — done",
-      "model turn started (transcript at byte 0)",
-    ]
+    ["--- Step Aide: preparing — started", "--- Step Aide: preparing — done", "model turn started (transcript at byte 0)"]
       .map((l, i) => `aide-run-spec 10:00:0${i} +${i}s ${l}\n`)
       .join(""),
   );
@@ -68,28 +60,16 @@ const scheduledJob = () => ({
 });
 
 const rows = async (query = ""): Promise<string> => {
-  const { base } = harness.start({
-    extra: { queueProjects: ["aide"] },
-    queueMirror: JSON.stringify([scheduledJob()]),
-  });
-  return await (
-    await fetch(`${base}/?rows=1${query ? `&${query}` : ""}`)
-  ).text();
+  const { base } = harness.start({ extra: { queueProjects: ["aide"] }, queueMirror: JSON.stringify([scheduledJob()]) });
+  return await (await fetch(`${base}/?rows=1${query ? `&${query}` : ""}`)).text();
 };
 
-const stepKeys = (html: string): string[] =>
-  [...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g)].map(
-    (m) => m[1]!,
-  );
+const stepKeys = (html: string): string[] => [...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g)].map((m) => m[1]!);
 
 describe("a running scheduled job's row on the Running tab", () => {
   test("open, it has a line for each step its log has marked", async () => {
     const html = await rows(`open=${KEY}`);
-    expect(stepKeys(html)).toEqual([
-      "Step Aide: preparing",
-      "Step 1 of 2",
-      "Step 2 of 2",
-    ]);
+    expect(stepKeys(html)).toEqual(["Step Aide: preparing", "Step 1 of 2", "Step 2 of 2"]);
   });
 
   test("shut, it has no step line", async () => {

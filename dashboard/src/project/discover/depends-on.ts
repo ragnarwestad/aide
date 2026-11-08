@@ -9,8 +9,7 @@ import { join } from "node:path";
 const DEPENDS_ON_LINE = /^[ \t]*-[ \t]*\*\*Depends on:\*\*[ \t]*(.*)$/m;
 // The same line with the break that ends it, for taking it out: leaving
 // the newline behind would put a blank line where the line used to be.
-const DEPENDS_ON_LINE_WITH_BREAK =
-  /^[ \t]*-[ \t]*\*\*Depends on:\*\*[ \t]*.*(\n|$)/m;
+const DEPENDS_ON_LINE_WITH_BREAK = /^[ \t]*-[ \t]*\*\*Depends on:\*\*[ \t]*.*(\n|$)/m;
 
 // The `Depends on:` line in Tracking info — the specs this one
 // builds on, comma-separated, backticks and whitespace stripped. A

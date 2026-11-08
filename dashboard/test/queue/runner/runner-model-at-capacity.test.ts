@@ -4,17 +4,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore } from "../../../src/queue/queue.ts";
-import {
-  DEFAULTS,
-  dir,
-  store,
-  enqueue,
-  makeRunner,
-  okResult,
-  resetHarness,
-  setNow,
-  cleanupHarness,
-} from "./runner-fixtures.ts";
+import { DEFAULTS, dir, store, enqueue, makeRunner, okResult, resetHarness, setNow, cleanupHarness } from "./runner-fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 
 beforeEach(resetHarness);
@@ -24,11 +14,7 @@ describe("a step stopped because the model is at capacity", () => {
   const atCapacity = () => {
     const job = enqueue({ steps: ["analyze"] });
     const runner = makeRunner({
-      readResult: () => ({
-        ...okResult(0.1),
-        ok: false,
-        terminalReason: "model-at-capacity",
-      }),
+      readResult: () => ({ ...okResult(0.1), ok: false, terminalReason: "model-at-capacity" }),
     });
     runner.tick();
     runner.poll();
@@ -45,11 +31,7 @@ describe("a step stopped because the model is at capacity", () => {
   });
 
   test("names the model and says to choose another model after two attempts (AC-2, AC-7)", () => {
-    const text =
-      renderSentence(
-        "en",
-        atCapacity()?.error as Parameters<typeof renderSentence>[1],
-      ) ?? "";
+    const text = renderSentence("en", atCapacity()?.error as Parameters<typeof renderSentence>[1]) ?? "";
     expect(text).toContain("sonnet");
     expect(text).toContain("at capacity right now");
     expect(text).toContain("two attempts");
@@ -64,31 +46,18 @@ describe("a board whose defaults name no model", () => {
       defaults: { ...DEFAULTS, model: {} },
       resolve: () => ({ specFolders: ["81-queue-and-runner"] }),
     });
-    const r = bare.enqueue({
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps: ["analyze"],
-    });
+    const r = bare.enqueue({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] });
     if (!r.ok) throw new Error(r.error);
     const runner = makeRunner({
       store: bare,
-      readResult: () => ({
-        ...okResult(0.1),
-        ok: false,
-        terminalReason: "model-at-capacity",
-        modelId: "claude-sonnet-5",
-      }),
+      readResult: () => ({ ...okResult(0.1), ok: false, terminalReason: "model-at-capacity", modelId: "claude-sonnet-5" }),
     });
     runner.tick();
     runner.poll();
     setNow(Date.parse("2026-08-16T10:03:00Z"));
     runner.tick();
     runner.poll();
-    const text =
-      renderSentence(
-        "en",
-        bare.get(r.job.id)?.error as Parameters<typeof renderSentence>[1],
-      ) ?? "";
+    const text = renderSentence("en", bare.get(r.job.id)?.error as Parameters<typeof renderSentence>[1]) ?? "";
     expect(text).toContain("claude-sonnet-5");
     expect(text).toContain("at capacity right now");
   });

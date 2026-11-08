@@ -5,16 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
 import {
-  backLink,
-  btn,
-  btnLink,
-  buttonForm,
-  facts,
-  foldArrow,
-  helpPopover,
-  labelledCheckbox,
-  messageSlot,
-  resolveBackHref,
+  backLink, btn, btnLink, buttonForm, facts, foldArrow, helpPopover, labelledCheckbox, messageSlot, resolveBackHref,
   saveCancelActions,
 } from "../../../src/render/ui/components";
 import { TOOL_ICONS } from "../../../src/render/ui/components/icons.ts";
@@ -25,9 +16,7 @@ describe("resolveBackHref", () => {
   const ORIGIN = "https://dash.example";
 
   test("a same-origin referer is kept — path and query survive", () => {
-    expect(resolveBackHref(`${ORIGIN}/?state=all&q=archive`, ORIGIN, "/")).toBe(
-      "/?state=all&q=archive",
-    );
+    expect(resolveBackHref(`${ORIGIN}/?state=all&q=archive`, ORIGIN, "/")).toBe("/?state=all&q=archive");
   });
 
   test("no referer at all falls back", () => {
@@ -35,9 +24,7 @@ describe("resolveBackHref", () => {
   });
 
   test("a foreign-origin referer is discarded, not followed", () => {
-    expect(resolveBackHref("https://evil.example/", ORIGIN, "/fallback")).toBe(
-      "/fallback",
-    );
+    expect(resolveBackHref("https://evil.example/", ORIGIN, "/fallback")).toBe("/fallback");
   });
 
   // Behind the HTTPS proxy the board is reached through, the browser's
@@ -48,23 +35,13 @@ describe("resolveBackHref", () => {
   // The same rule the admission check already follows: host and port,
   // never the scheme (`serve-helpers/request-guard.ts`).
   test("a proxy that ended TLS is the same origin — the scheme is not compared", () => {
-    expect(
-      resolveBackHref(
-        "https://dash.example/test-servers",
-        "http://dash.example",
-        "/fallback",
-      ),
-    ).toBe("/test-servers");
+    expect(resolveBackHref("https://dash.example/test-servers", "http://dash.example", "/fallback")).toBe(
+      "/test-servers",
+    );
   });
 
   test("a different port is a different origin, scheme or no scheme", () => {
-    expect(
-      resolveBackHref(
-        "https://dash.example:8443/x",
-        "http://dash.example",
-        "/fallback",
-      ),
-    ).toBe("/fallback");
+    expect(resolveBackHref("https://dash.example:8443/x", "http://dash.example", "/fallback")).toBe("/fallback");
   });
 
   test("a malformed referer falls back rather than throwing", () => {
@@ -74,33 +51,22 @@ describe("resolveBackHref", () => {
 
 describe("backLink()", () => {
   test("asked to keep, the link carries the hook the page script finds it by; otherwise none", () => {
-    expect(
-      first(
-        backLink("/", "Settings", "", { keep: true }),
-        "a.backlink",
-      ).hasAttribute("data-keep"),
-    ).toBe(true);
-    expect(
-      first(backLink("/", "Settings"), "a.backlink").hasAttribute("data-keep"),
-    ).toBe(false);
+    expect(first(backLink("/", "Settings", "", { keep: true }), "a.backlink").hasAttribute("data-keep")).toBe(true);
+    expect(first(backLink("/", "Settings"), "a.backlink").hasAttribute("data-keep")).toBe(false);
   });
 });
 
 // --- the button, the button link and the message line -----------------------
 
 /** The first element `selector` finds in the markup, parsed. */
-const first = (html: string, selector: string): Element =>
-  parsed(html).querySelector(selector)!;
+const first = (html: string, selector: string): Element => parsed(html).querySelector(selector)!;
 
 /** An element's attributes by name, in any order, as the browser reads them. */
 const attrs = (el: Element): Record<string, string> =>
   Object.fromEntries([...el.attributes].map((a) => [a.name, a.value]));
 
 /** The same, with the class list sorted: which classes, not their order. */
-const shape = (el: Element): Record<string, string> => ({
-  ...attrs(el),
-  class: el.className.split(" ").sort().join(" "),
-});
+const shape = (el: Element): Record<string, string> => ({ ...attrs(el), class: el.className.split(" ").sort().join(" ") });
 
 describe("btn()", () => {
   test("carries the form it belongs to, a value, data attributes and a spoken name, every value escaped", () => {
@@ -131,17 +97,7 @@ describe("btn()", () => {
 
   // Characterisation: the options above change nothing for a call without them.
   test("without the new options draws what it always drew, and the ask button as its tests pin it", () => {
-    const save = first(
-      btn({
-        id: "f-save",
-        label: "Save",
-        variant: "primary",
-        pending: "saving…",
-        title: "t",
-        disabled: true,
-      }),
-      "button",
-    );
+    const save = first(btn({ id: "f-save", label: "Save", variant: "primary", pending: "saving…", title: "t", disabled: true }), "button");
     expect(shape(save)).toEqual({
       id: "f-save",
       type: "submit",
@@ -150,24 +106,13 @@ describe("btn()", () => {
       title: "t",
       disabled: "",
     });
-    const close = first(
-      btn({ label: "Close", type: "button", data: { ask: "closeask" } }),
-      "button",
-    );
-    expect(attrs(close)).toEqual({
-      type: "button",
-      class: "btn",
-      "data-ask": "closeask",
-    });
+    const close = first(btn({ label: "Close", type: "button", data: { ask: "closeask" } }), "button");
+    expect(attrs(close)).toEqual({ type: "button", class: "btn", "data-ask": "closeask" });
   });
 
   // Characterisation: the component already capitalises; the hand-written copies did not.
   test("writes its pending word with a capital first letter", () => {
-    expect(
-      first(btn({ label: "Run", pending: "starting…" }), "button").getAttribute(
-        "data-pending",
-      ),
-    ).toBe("Starting…");
+    expect(first(btn({ label: "Run", pending: "starting…" }), "button").getAttribute("data-pending")).toBe("Starting…");
   });
 });
 
@@ -184,12 +129,7 @@ describe("btnLink()", () => {
       }),
       "a",
     );
-    expect(el.className.split(" ").sort()).toEqual([
-      "btn",
-      "primary",
-      "proj-row-action",
-      "small",
-    ]);
+    expect(el.className.split(" ").sort()).toEqual(["btn", "primary", "proj-row-action", "small"]);
     expect(el.getAttribute("href")).toBe("/projects/a?x=1&y=2");
     expect(el.getAttribute("data-discard-changes")).toBe("");
     expect(el.textContent).toBe("Remove <it>");
@@ -216,9 +156,7 @@ describe("messageSlot()", () => {
   };
 
   test("an id names it, for a form elsewhere on the page to write into", () => {
-    expect(
-      line(messageSlot("refused", "failed", { id: "spec-refused" })),
-    ).toEqual({
+    expect(line(messageSlot("refused", "failed", { id: "spec-refused" }))).toEqual({
       id: "spec-refused",
       classes: ["failed", "refused", "rowmsg"],
       live: "polite",
@@ -242,17 +180,8 @@ describe("messageSlot()", () => {
 
 describe("foldArrow()", () => {
   test("takes its title from the catalogue in the page's language, with the action word filled in", () => {
-    const html = foldArrow({
-      href: "/",
-      open: false,
-      lang: "nb",
-      title: "list.foldTitle",
-      params: { folder: "12-x" },
-    });
-    const title = t("nb", "list.foldTitle", {
-      action: t("nb", "list.foldShow"),
-      folder: "12-x",
-    });
+    const html = foldArrow({ href: "/", open: false, lang: "nb", title: "list.foldTitle", params: { folder: "12-x" } });
+    const title = t("nb", "list.foldTitle", { action: t("nb", "list.foldShow"), folder: "12-x" });
     expect(html).toContain(`title="${esc(title)}"`);
   });
 
@@ -294,19 +223,14 @@ describe("buttonForm()", () => {
       button: { label: "Cancel" },
     });
     expect(attrOf(html, "form", "method")).toBe("post");
-    expect(attrOf(html, "form", "action")).toBe(
-      "/api/queue/j1/cancel?a=1&amp;b=2",
-    );
+    expect(attrOf(html, "form", "action")).toBe("/api/queue/j1/cancel?a=1&amp;b=2");
     expect(attrOf(html, "form", "class")?.split(" ")).toContain("actionform");
     expect(hiddenFields(html)).toEqual({ f_state: "all&quot;" });
     expect(html).toContain(btn({ label: "Cancel" }));
   });
 
   test("closes a dialog with no action when its method is the dialog's own", () => {
-    const html = buttonForm({
-      method: "dialog",
-      button: { label: "OK", value: "leave" },
-    });
+    const html = buttonForm({ method: "dialog", button: { label: "OK", value: "leave" } });
     expect(attrOf(html, "form", "method")).toBe("dialog");
     expect(attrOf(html, "form", "action")).toBeUndefined();
     expect(attrOf(html, "button", "value")).toBe("leave");
@@ -329,35 +253,20 @@ function parsed(html: string): HTMLElement {
 
 describe("facts()", () => {
   test("marks a row's value as a figure only when the row asks for it", () => {
-    const body = parsed(
-      facts([
-        { label: "Cost", value: "$1.20", num: true },
-        { label: "Model", value: "opus" },
-      ]),
-    );
-    const values = [...body.querySelectorAll("tr")].map((tr) =>
-      tr.children[1]!.classList.contains("num"),
-    );
+    const body = parsed(facts([{ label: "Cost", value: "$1.20", num: true }, { label: "Model", value: "opus" }]));
+    const values = [...body.querySelectorAll("tr")].map((tr) => tr.children[1]!.classList.contains("num"));
     expect(values).toEqual([true, false]);
   });
 });
 
 describe("labelledCheckbox()", () => {
   test("open, a click on its words ticks the box: both sit in one label", () => {
-    const box = parsed(
-      labelledCheckbox({ label: "Reset", name: "resetFiles", value: "1" }),
-    ).querySelector("input")!;
+    const box = parsed(labelledCheckbox({ label: "Reset", name: "resetFiles", value: "1" })).querySelector("input")!;
     expect(box.closest("label")?.textContent).toBe("Reset");
   });
 
   test("disabled, its help popover is never inside a label, and the box is off", () => {
-    const body = parsed(
-      labelledCheckbox({
-        label: "Reset",
-        disabled: true,
-        help: helpPopover("Why", "Because."),
-      }),
-    );
+    const body = parsed(labelledCheckbox({ label: "Reset", disabled: true, help: helpPopover("Why", "Because.") }));
     expect(body.querySelector("details")?.closest("label")).toBeNull();
     expect(body.querySelector("input")?.disabled).toBe(true);
   });

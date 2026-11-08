@@ -38,23 +38,19 @@
 **The spec:** "Add a 'processing status' field to the case overview"
 
 **Analysis:**
-
 1. Frontend uses: `GET /api/case/{caseId}`
 2. The backend endpoint lives in: `my-api/src/.../CaseController.java:156`
 3. Assessment: **Both**
 
 **Document in `2-analysis.md`:**
-
 ```markdown
 ## Affected projects
 
 ### my-api
-
 - CaseController.java:156 - Add `processingStatus` to the response
 - CaseDto.java:42 - Add new field
 
 ### my-app
-
 - src/pages/case/CaseOverview.tsx:89 - Show `processingStatus` in the UI
 ```
 

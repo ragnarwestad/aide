@@ -6,13 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 export function git(cwd: string, ...args: string[]): string {
-  const out = Bun.spawnSync({
-    cmd: ["git", "-C", cwd, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  if (out.exitCode !== 0)
-    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
+  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
   return out.stdout.toString();
 }
 
@@ -22,10 +17,7 @@ export function git(cwd: string, ...args: string[]): string {
  *  `opts.clone: false` leaves the projects root EMPTY, for a test that
  *  calls `addProject` itself: a project is added by its git address now,
  *  and Add refuses a directory that is already there. */
-export function projectWithOrigin(
-  files: Record<string, string>,
-  opts: { clone?: boolean } = {},
-) {
+export function projectWithOrigin(files: Record<string, string>, opts: { clone?: boolean } = {}) {
   const root = mkdtempSync(join(tmpdir(), "aide-untracked-settings-"));
   const origin = join(root, "origin.git");
   const seed = join(root, "seed");
@@ -53,12 +45,5 @@ export function projectWithOrigin(
   }
   const base = join(root, "checkouts");
   mkdirSync(base);
-  return {
-    root,
-    origin,
-    projects,
-    dir,
-    base,
-    cleanup: () => rmSync(root, { recursive: true, force: true }),
-  };
+  return { root, origin, projects, dir, base, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }

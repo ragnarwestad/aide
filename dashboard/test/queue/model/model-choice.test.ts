@@ -27,11 +27,7 @@ const resolve = (project: string) =>
       ? { specFolders: ["01-first"] }
       : null;
 
-const REQ = {
-  project: "aide",
-  specFolder: "81-queue-and-runner",
-  steps: ["analyze"],
-};
+const REQ = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
 let dir: string;
 
@@ -40,6 +36,7 @@ beforeEach(() => {
 });
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
 
 // A model may be picked for the whole job — the CONFIG lists which
 // models may be picked, so a request can never invent one.
@@ -65,20 +62,14 @@ describe("per-job model choice", () => {
   });
 
   test("an unlisted model is refused — a request cannot invent one", () => {
-    const r = parseJobRequest(
-      { ...REQ, model: "gpt-9" },
-      { resolve, defaults: WITH_CHOICES },
-    );
+    const r = parseJobRequest({ ...REQ, model: "gpt-9" }, { resolve, defaults: WITH_CHOICES });
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.error).toContain("gpt-9");
   });
 
   test("with no choices configured, naming a model is refused rather than ignored", () => {
-    const r = parseJobRequest(
-      { ...REQ, model: "fable" },
-      { resolve, defaults: DEFAULTS },
-    );
+    const r = parseJobRequest({ ...REQ, model: "fable" }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.error).toContain("model");
@@ -150,21 +141,13 @@ describe("a model choice may name its tool", () => {
       ),
     });
     for (const tool of RUNNABLE_TOOLS) {
-      expect(merged.modelChoices?.[tool]).toEqual({
-        tool,
-        model: `${tool}-model`,
-      });
+      expect(merged.modelChoices?.[tool]).toEqual({ tool, model: `${tool}-model` });
     }
   });
 
   test("an OpenCode model keeps its provider prefix", () => {
     const merged = mergeQueueDefaults(DEFAULTS, {
-      modelChoices: {
-        "gemini-3.1-pro": {
-          tool: "opencode",
-          model: "opencode/gemini-3.1-pro",
-        },
-      },
+      modelChoices: { "gemini-3.1-pro": { tool: "opencode", model: "opencode/gemini-3.1-pro" } },
     });
     expect(merged.modelChoices?.["gemini-3.1-pro"]).toEqual({
       tool: "opencode",
@@ -193,30 +176,23 @@ describe("a model choice may name its tool", () => {
 // case; a name the file saves is left as the file wrote it.
 describe("the built-in model names take the host's spelling", () => {
   test("a single case-only match is spelled as listed", () => {
-    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, {
-      modelChoices: { Fable: {}, Opus: {}, Sonnet: {} },
-    });
+    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: { Fable: {}, Opus: {}, Sonnet: {} } });
     expect(merged.model.default).toBe("Opus");
   });
 
   test("an exact match is kept as it is", () => {
-    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, {
-      modelChoices: { opus: {} },
-    });
+    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: { opus: {} } });
     expect(merged.model.default).toBe("opus");
   });
 
   test("several case-only matches leave the built-in name alone", () => {
-    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, {
-      modelChoices: { Opus: {}, OPUS: {} },
-    });
+    const merged = mergeQueueDefaults(QUEUE_DEFAULTS, { modelChoices: { Opus: {}, OPUS: {} } });
     expect(merged.model.default).toBe("opus");
   });
 
   test("a name the file saves is kept as written", () => {
     const merged = mergeQueueDefaults(QUEUE_DEFAULTS, {
-      modelChoices: { Opus: {}, Sonnet: {} },
-      model: { analyze: "sonnet" },
+      modelChoices: { Opus: {}, Sonnet: {} }, model: { analyze: "sonnet" },
     });
     expect(merged.model.analyze).toBe("sonnet");
     expect(merged.model.default).toBe("Opus");

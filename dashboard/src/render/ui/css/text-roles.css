@@ -1,30 +1,12 @@
 /* --- text roles ----------------------------------------------------- */
 
-.small {
-  font-size: var(--fs-s);
-}
-.muted {
-  color: var(--muted);
-}
-.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.label {
-  font-weight: 600;
-  margin-right: var(--sp-1);
-}
-.desc {
-  margin-top: 0;
-}
-.summary {
-  color: var(--muted);
-}
-.counts {
-  color: var(--muted);
-  margin-left: var(--sp-2);
-  font-size: var(--fs-s);
-}
+.small { font-size: var(--fs-s); }
+.muted { color: var(--muted); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.label { font-weight: 600; margin-right: var(--sp-1); }
+.desc { margin-top: 0; }
+.summary { color: var(--muted); }
+.counts { color: var(--muted); margin-left: var(--sp-2); font-size: var(--fs-s); }
 /* A whole spec file, shown as written. Markdown is
    deliberately not rendered, so this carries what a reader needs to
    read one anyway: the file's own line breaks, a measure that does not
@@ -37,37 +19,22 @@
    share this one width; the site's own header and top tab bar keep the
    frame's, because the spec LIST is a table that wants all of it.
    Declared for both selectors at once so the number has one home. */
-.doc,
-.specfile {
-  max-width: 60rem;
-}
+.doc, .specfile { max-width: 60rem; }
 /* A page whose content is FIELDS takes the fields' own right edge
    instead: `.field.wide` caps itself at 48rem to stay readable, so at
    60rem the tab row's buttons sat 12rem clear of the editor and the
    pickers they act on — the same complaint the rule above answers,
    one number further in. */
-.doc.formdoc,
-.doc.formdoc .specfile {
-  max-width: 48rem;
-}
-.specfile {
-  white-space: pre-wrap;
-  overflow-x: auto;
-  font: var(--fs-s)/1.5 var(--mono);
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  padding: var(--sp-3);
-}
+.doc.formdoc, .doc.formdoc .specfile { max-width: 48rem; }
+.specfile { white-space: pre-wrap; overflow-x: auto;
+  font: var(--fs-s)/1.5 var(--mono); color: var(--text);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: var(--sp-3); }
 /* The small caption over a group of controls: Repos, Show, Theme, Units.
    It shouted in capitals until 2026-08-23 — four words in a row that a
    reader has to slow down for, saying nothing the ordinary spelling did
    not. The weight and the colour already set it apart from what it
    heads. */
-.lbl {
-  font-size: var(--fs-s);
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-}
+.lbl { font-size: var(--fs-s); font-weight: 600; color: var(--muted);
+  letter-spacing: 0.04em; }
+

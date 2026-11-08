@@ -12,9 +12,7 @@
 
 import type { BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import {
-  BranchStatusChecker,
-  createGitRunner,
-  type GitRunner,
+  BranchStatusChecker, createGitRunner, type GitRunner,
 } from "../../git/branch-status.ts";
 import {
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
@@ -76,8 +74,7 @@ export function setupProjectResolution(
   // Where the dashboard's OWN clones live. Named as an option so a test
   // can put them in a temp directory; there is no other reason to move
   // them.
-  const checkoutBase =
-    opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT;
+  const checkoutBase = opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT;
   /** What `ensureCheckout` last worked out, so the SYNC readers can ask
    *  where a project's own specs are without awaiting a clone. Empty
    *  until the first ensure settles, which is what the fallback below is
@@ -137,12 +134,7 @@ export function setupProjectResolution(
         if (result.ok) {
           saidAbout.delete(project);
           clearCheckoutFault(project);
-        } else
-          complain(
-            project,
-            result.error ?? "it could not be made",
-            !result.absent,
-          );
+        } else complain(project, result.error ?? "it could not be made", !result.absent);
         if (result.checkout) resolvedCheckouts.set(project, result.checkout);
         return result.checkout;
       })
@@ -164,9 +156,7 @@ export function setupProjectResolution(
   ): Promise<DashboardCheckout | undefined> => {
     // `clone` is a press's, never a tick's: see `EnsureRequest.mayClone`.
     if (opts?.clone) return checkoutEnsurer.make(project);
-    return opts?.fresh
-      ? checkoutEnsurer.fresh(project)
-      : checkoutEnsurer.get(project);
+    return opts?.fresh ? checkoutEnsurer.fresh(project) : checkoutEnsurer.get(project);
   };
   // One runner, two users now: the read path asks whether a branch
   // landed, the write path lands it.
@@ -236,28 +226,9 @@ export function setupProjectResolution(
     attachBranchFileSteps: (checker: BranchFileStepsChecker) => {
       branchFileSteps = checker;
     },
-    checkoutEnsurer,
-    ensureCheckout,
-    gitRun,
-    branchStatus,
-    displayProjectDir,
-    machineryProjectDir,
-    codeLanding,
-    promptFileFor,
-    chromeFor,
-    noSandboxFor,
-    ownedSpecsRoot,
-    machinerySpecsRoot,
-    targets,
-    specRoots,
-    rootsStillHolding,
-    peekUnlanded,
-    peekUnlandedCheckedAt,
-    peekMergedOnOrigin,
-    specDir,
-    specRef,
-    specsRoot,
-    machinerySpecDir,
-    peekMachinerySpecDir,
+    checkoutEnsurer, ensureCheckout, gitRun, branchStatus,
+    displayProjectDir, machineryProjectDir, codeLanding, promptFileFor, chromeFor, noSandboxFor, ownedSpecsRoot, machinerySpecsRoot,
+    targets, specRoots, rootsStillHolding, peekUnlanded, peekUnlandedCheckedAt, peekMergedOnOrigin,
+    specDir, specRef, specsRoot, machinerySpecDir, peekMachinerySpecDir,
   };
 }

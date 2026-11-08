@@ -8,34 +8,17 @@ import { NO_DEPLOY_SENTENCE } from "../../../src/render/pages/projects-page/proj
 import { parseArgs } from "../../../src/serve/serve.ts";
 import type { GitRunner } from "../../../src/git/branch-status.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
-import {
-  harness,
-  ownDirs,
-  projectsRoot,
-  settled,
-  stranded,
-  serve,
-  get,
-  behindBy,
-  unanswerable,
-  INSTALLS,
-  loadUntil,
-  setTestCmd,
-  setWorktreeLinks,
-} from "./project-detail-route-fixtures.ts";
+import { harness, ownDirs, projectsRoot, settled, stranded, serve, get, behindBy, unanswerable, INSTALLS, loadUntil, setTestCmd, setWorktreeLinks } from "./project-detail-route-fixtures.ts";
 
 afterEach(() => {
   harness.cleanup();
-  while (ownDirs.length)
-    rmSync(ownDirs.pop()!, { recursive: true, force: true });
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 describe("what the page says about whether a run could start", () => {
   test("a checkout a run cannot move to its default branch says so, with nothing pressed", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (
-      await get(serve(root, stranded(root, "aide")), "aide")
-    ).text();
+    const html = await (await get(serve(root, stranded(root, "aide")), "aide")).text();
     expect(html).toContain("there is no such branch, here or on origin");
     // The whole point: no Add, no Run, no query string — a plain GET.
     expect(html).toContain("cannot start");
@@ -43,9 +26,7 @@ describe("what the page says about whether a run could start", () => {
 
   test("a settled checkout says a run could start here", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (
-      await get(serve(root, settled(root, "aide")), "aide")
-    ).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).not.toContain("there is no such branch");
     expect(html).toContain("ready to run");
   });
@@ -53,12 +34,8 @@ describe("what the page says about whether a run could start", () => {
   test("a worktree link with nothing to link is on the page", async () => {
     const root = projectsRoot({ aide: null });
     setWorktreeLinks(root, "aide", "node_modules");
-    const html = await (
-      await get(serve(root, settled(root, "aide")), "aide")
-    ).text();
-    expect(html).toContain(
-      "A run refuses a worktree link with nothing to link",
-    );
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toContain("A run refuses a worktree link with nothing to link");
   });
 
   // A field-owned check that is UNSET (nothing
@@ -67,23 +44,15 @@ describe("what the page says about whether a run could start", () => {
   // tab's removal would otherwise have left unreachable.
   test("no worktree links configured at all is on the Config row", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (
-      await get(serve(root, settled(root, "aide")), "aide")
-    ).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toMatch(/worktree links/i);
     expect(html).toContain("No worktree links are configured");
   });
 
   test("a specs root that is not there is on the page", async () => {
-    const root = projectsRoot({
-      aide: "AIDE_SPECS_PATH=/tmp/aide-no-such-specs-root\n",
-    });
-    const html = await (
-      await get(serve(root, settled(root, "aide")), "aide")
-    ).text();
-    expect(html).toContain(
-      "There is no specs root at /tmp/aide-no-such-specs-root",
-    );
+    const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/tmp/aide-no-such-specs-root\n" });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toContain("There is no specs root at /tmp/aide-no-such-specs-root");
   });
 
   // Fail-open, the way the drift check on /projects already does: the
@@ -117,14 +86,7 @@ describe("what the page says about whether a run could start", () => {
     const root = projectsRoot({ aide: null });
     const git = settled(root, "aide");
     await get(serve(root, git), "aide");
-    for (const forbidden of [
-      "merge",
-      "pull",
-      "reset",
-      "checkout",
-      "fetch",
-      "switch",
-    ]) {
+    for (const forbidden of ["merge", "pull", "reset", "checkout", "fetch", "switch"]) {
       expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
     }
   });
@@ -137,23 +99,14 @@ describe("what the page says about whether a run could start", () => {
 /** The buttons on a page whose label says Deploy. The tab bar's own Deploy is a link. */
 const deployButtons = (page: string): string[] => {
   const html = page.replace(/<(style|script)\b[\s\S]*?<\/\1>/g, "");
-  return (
-    html.match(
-      /<button\b[^>]*>(?:(?!<\/button>)[\s\S])*Deploy(?:(?!<\/button>)[\s\S])*<\/button>/g,
-    ) ?? []
-  );
+  return html.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*Deploy(?:(?!<\/button>)[\s\S])*<\/button>/g) ?? [];
 };
 
 /** The messages on a page, one string per box, so a test reads one line at a time. */
-const messages = (html: string): string[] =>
-  html.match(/<div class="[^"]*\browmsg\b[^"]*">[\s\S]*?<\/div>/g) ?? [];
+const messages = (html: string): string[] => html.match(/<div class="[^"]*\browmsg\b[^"]*">[\s\S]*?<\/div>/g) ?? [];
 
 /** The board's own server: the checkout of `aide` is the one this process runs from. */
-const serveBoard = (
-  root: string,
-  git: { run: GitRunner },
-  driftPollMs?: number,
-): string =>
+const serveBoard = (root: string, git: { run: GitRunner }, driftPollMs?: number): string =>
   harness.start({
     extra: {
       projectRoot: root,
@@ -165,19 +118,12 @@ const serveBoard = (
   }).base;
 
 /** The board's Deploy ask button, whole opening tag. */
-const askTag = (html: string): string =>
-  html.match(/<button\b[^>]*data-ask="deployask"[^>]*>/)?.[0] ?? "";
+const askTag = (html: string): string => html.match(/<button\b[^>]*data-ask="deployask"[^>]*>/)?.[0] ?? "";
 
 describe("the Deploy tab of a project that is not the board's own", () => {
   test("a project with an install command, behind origin, has no Deploy button", async () => {
     const root = projectsRoot({ aide: INSTALLS });
-    const html = await loadUntil(
-      serve(root, behindBy(root, "aide", 2), 25),
-      "aide",
-      "2 commits behind origin",
-      2000,
-      "deploy",
-    );
+    const html = await loadUntil(serve(root, behindBy(root, "aide", 2), 25), "aide", "2 commits behind origin", 2000, "deploy");
     expect(html).toContain("2 commits behind origin, checked");
     expect(deployButtons(html)).toEqual([]);
     expect(html).not.toContain('class="deployform"');
@@ -185,85 +131,53 @@ describe("the Deploy tab of a project that is not the board's own", () => {
 
   test("a project with no install command has no Deploy button", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (
-      await get(serve(root, settled(root, "aide")), "aide", "deploy")
-    ).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "deploy")).text();
     expect(deployButtons(html)).toEqual([]);
   });
 
   test("the tab says once that Deploy is not offered, with or without an install command, and never names the board", async () => {
     for (const config of [INSTALLS, null]) {
       const root = projectsRoot({ aide: config });
-      const html = await (
-        await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")
-      ).text();
+      const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
       expect(html.split(NO_DEPLOY_SENTENCE).length - 1).toBe(1);
       expect(NO_DEPLOY_SENTENCE).not.toMatch(/board/i);
-      expect(
-        messages(html).filter((m) => m.includes(NO_DEPLOY_SENTENCE))[0],
-      ).not.toMatch(/board/i);
+      expect(messages(html).filter((m) => m.includes(NO_DEPLOY_SENTENCE))[0]).not.toMatch(/board/i);
     }
   });
 
   test("the tab bar offers Deploy, with or without an install command", async () => {
     for (const config of [INSTALLS, null]) {
       const root = projectsRoot({ aide: config });
-      const html = await (
-        await get(serve(root, settled(root, "aide"), 0), "aide", "config")
-      ).text();
+      const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "config")).text();
       expect(html).toMatch(/<a [^>]*>Deploy<\/a>/);
     }
   });
 
   test("a project with no install command is counted against origin by the background poll, and the section carries the address the page asks origin through", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await loadUntil(
-      serve(root, behindBy(root, "aide", 3), 25),
-      "aide",
-      "3 commits behind origin",
-      2000,
-      "deploy",
-    );
+    const html = await loadUntil(serve(root, behindBy(root, "aide", 3), 25), "aide", "3 commits behind origin", 2000, "deploy");
     expect(html).toContain("3 commits behind origin, checked");
-    expect(html).toContain(
-      'data-origin-check="/api/queue/projects/aide/drift"',
-    );
+    expect(html).toContain('data-origin-check="/api/queue/projects/aide/drift"');
   });
 
   test("a project with no install command and no answer from origin yet reloads itself", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (
-      await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")
-    ).text();
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
     expect(html).toContain("has not been checked yet");
     expect(html).toContain("data-reload-every=");
   });
 
   test("the behind-origin sentence names no Deploy action", async () => {
     const root = projectsRoot({ aide: INSTALLS });
-    const html = await loadUntil(
-      serve(root, behindBy(root, "aide", 2), 25),
-      "aide",
-      "2 commits behind origin",
-      2000,
-      "deploy",
-    );
-    const lines = messages(html).filter((m) =>
-      m.includes("2 commits behind origin"),
-    );
+    const html = await loadUntil(serve(root, behindBy(root, "aide", 2), 25), "aide", "2 commits behind origin", 2000, "deploy");
+    const lines = messages(html).filter((m) => m.includes("2 commits behind origin"));
     expect(lines).toHaveLength(1);
     expect(lines[0]).not.toContain("Deploy");
   });
 
   test("a project level with origin says so", async () => {
     const root = projectsRoot({ aide: INSTALLS });
-    const html = await loadUntil(
-      serve(root, behindBy(root, "aide", 0), 25),
-      "aide",
-      "matches origin",
-      2000,
-      "deploy",
-    );
+    const html = await loadUntil(serve(root, behindBy(root, "aide", 0), 25), "aide", "matches origin", 2000, "deploy");
     expect(html).toContain("This checkout matches origin.");
     expect(deployButtons(html)).toEqual([]);
   });
@@ -279,9 +193,7 @@ describe("the Deploy tab of a project that is not the board's own", () => {
     const deadline = Date.now() + 15_000;
     let html = await (await get(base, "aide", "deploy")).text();
     while (
-      html.includes(
-        "Whether this checkout is behind origin has not been checked yet",
-      ) &&
+      html.includes("Whether this checkout is behind origin has not been checked yet") &&
       Date.now() < deadline
     ) {
       await new Promise((r) => setTimeout(r, 25));
@@ -290,9 +202,7 @@ describe("the Deploy tab of a project that is not the board's own", () => {
     expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
     expect(html).not.toContain("commits behind origin");
     expect(html).not.toContain("matches origin");
-    expect(html).not.toContain(
-      "Whether this checkout is behind origin has not been checked yet",
-    );
+    expect(html).not.toContain("Whether this checkout is behind origin has not been checked yet");
   });
 
   // The request itself spawns no git — with the schedule
@@ -301,14 +211,7 @@ describe("the Deploy tab of a project that is not the board's own", () => {
     const root = projectsRoot({ aide: INSTALLS });
     const git = settled(root, "aide");
     await get(serve(root, git, 0), "aide");
-    for (const forbidden of [
-      "merge",
-      "pull",
-      "reset",
-      "checkout",
-      "fetch",
-      "switch",
-    ]) {
+    for (const forbidden of ["merge", "pull", "reset", "checkout", "fetch", "switch"]) {
       expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
     }
   });
@@ -317,13 +220,7 @@ describe("the Deploy tab of a project that is not the board's own", () => {
 describe("the Deploy tab of the board's own project", () => {
   test("behind origin, it shows the count and a live Deploy ask button, and not the sentence that Deploy is not offered", async () => {
     const root = projectsRoot({ aide: INSTALLS });
-    const html = await loadUntil(
-      serveBoard(root, behindBy(root, "aide", 3), 25),
-      "aide",
-      "commits behind origin",
-      2000,
-      "deploy",
-    );
+    const html = await loadUntil(serveBoard(root, behindBy(root, "aide", 3), 25), "aide", "commits behind origin", 2000, "deploy");
     expect(html).toContain("3 commits behind origin, checked");
     expect(html).not.toContain(NO_DEPLOY_SENTENCE);
     expect(askTag(html)).not.toBe("");
@@ -336,13 +233,7 @@ describe("the Deploy tab of the board's own project", () => {
 
   test("level with origin, the ask button is off", async () => {
     const root = projectsRoot({ aide: INSTALLS });
-    const html = await loadUntil(
-      serveBoard(root, behindBy(root, "aide", 0), 25),
-      "aide",
-      "matches origin",
-      2000,
-      "deploy",
-    );
+    const html = await loadUntil(serveBoard(root, behindBy(root, "aide", 0), 25), "aide", "matches origin", 2000, "deploy");
     expect(html).toContain("This checkout matches origin.");
     expect(askTag(html)).toMatch(/\bdisabled\b/);
     expect(askTag(html)).toContain('title="This checkout matches origin."');
@@ -355,12 +246,8 @@ describe("the Deploy tab of the board's own project", () => {
     const root = projectsRoot({ aide: INSTALLS });
     // The schedule is off entirely, so the answer never arrives: exactly
     // the state a fresh boot or a project just added is in.
-    const html = await (
-      await get(serveBoard(root, settled(root, "aide"), 0), "aide", "deploy")
-    ).text();
-    expect(html).toContain(
-      "Whether this checkout is behind origin has not been checked yet.",
-    );
+    const html = await (await get(serveBoard(root, settled(root, "aide"), 0), "aide", "deploy")).text();
+    expect(html).toContain("Whether this checkout is behind origin has not been checked yet.");
     expect(html).not.toContain("AIDE_INSTALL_CMD");
     expect(askTag(html)).toMatch(/\bdisabled\b/);
     expect(askTag(html)).toContain('title="Origin has not been checked yet."');
@@ -385,14 +272,8 @@ describe("the Deploy tab of the board's own project", () => {
       behindCount: number,
     ) =>
       fakeGit({
-        "rev-parse --show-toplevel": {
-          code: 0,
-          stdout: `${join(root, name)}\n`,
-        },
-        "rev-parse HEAD": [
-          { code: 0, stdout: `${bootSha}\n` },
-          { code: 0, stdout: `${checkoutSha}\n` },
-        ],
+        "rev-parse --show-toplevel": { code: 0, stdout: `${join(root, name)}\n` },
+        "rev-parse HEAD": [{ code: 0, stdout: `${bootSha}\n` }, { code: 0, stdout: `${checkoutSha}\n` }],
         "log -1 --format=%s": { code: 0, stdout: `${newestSubject}\n` },
         "rev-list --count": { code: 0, stdout: `${behindCount}\n` },
       });
@@ -401,23 +282,10 @@ describe("the Deploy tab of the board's own project", () => {
       const root = projectsRoot({ aide: INSTALLS });
       const base = serveBoard(
         root,
-        servingUnchecked(
-          root,
-          "aide",
-          "abc1234deadbeef",
-          "9999999cafefeed",
-          "Add the frobnicator",
-          2,
-        ),
+        servingUnchecked(root, "aide", "abc1234deadbeef", "9999999cafefeed", "Add the frobnicator", 2),
         0,
       );
-      const html = await loadUntil(
-        base,
-        "aide",
-        "Whether this checkout",
-        2000,
-        "deploy",
-      );
+      const html = await loadUntil(base, "aide", "Whether this checkout", 2000, "deploy");
       // The sentence is rendered through `esc()`, so its quotes come out
       // as `&quot;` the same way any other HTML text does.
       expect(html).toContain(
@@ -431,23 +299,10 @@ describe("the Deploy tab of the board's own project", () => {
       const root = projectsRoot({ aide: INSTALLS });
       const base = serveBoard(
         root,
-        servingUnchecked(
-          root,
-          "aide",
-          "abc1234deadbeef",
-          "abc1234deadbeef",
-          "Add the frobnicator",
-          0,
-        ),
+        servingUnchecked(root, "aide", "abc1234deadbeef", "abc1234deadbeef", "Add the frobnicator", 0),
         0,
       );
-      const html = await loadUntil(
-        base,
-        "aide",
-        "Whether this checkout",
-        2000,
-        "deploy",
-      );
+      const html = await loadUntil(base, "aide", "Whether this checkout", 2000, "deploy");
       expect(html).toContain(
         "Whether this checkout is behind origin has not been checked yet; the service is already " +
           "running the newest change, &quot;Add the frobnicator&quot;.",
@@ -467,21 +322,14 @@ describe("the Deploy tab of the board's own project", () => {
     const run: GitRunner = async (dir, args) => {
       if (args.join(" ") === "rev-parse HEAD") {
         headCalls += 1;
-        return {
-          code: 0,
-          stdout: `${headCalls === 1 ? "abc1234deadbeef" : "9999999cafefeed"}\n`,
-        };
+        return { code: 0, stdout: `${headCalls === 1 ? "abc1234deadbeef" : "9999999cafefeed"}\n` };
       }
       return level.run(dir, args);
     };
     const base = serveBoard(root, { run }, 25);
     const deadline = Date.now() + 15_000;
     let html = await (await get(base, "aide", "deploy")).text();
-    while (
-      (!html.includes("matches origin") ||
-        !html.includes("still running commit")) &&
-      Date.now() < deadline
-    ) {
+    while ((!html.includes("matches origin") || !html.includes("still running commit")) && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 25));
       html = await (await get(base, "aide", "deploy")).text();
     }
@@ -509,9 +357,7 @@ describe("refreshDrift's schedule-level guarantees (ported from the /projects ro
     const base = serve(root, { run: stuck }, 25);
     const res = await Promise.race([
       get(base, "aide", "deploy"),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("the page waited on git")), 500),
-      ),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("the page waited on git")), 500)),
     ]);
     expect(res.status).toBe(200);
     expect(await res.text()).toMatch(/aria-current="page"[^>]*>Deploy/);
@@ -525,15 +371,11 @@ describe("refreshDrift's schedule-level guarantees (ported from the /projects ro
       // readiness check beside the drift check reads local git and is
       // allowed to, so hanging everything would be a test about that
       // instead.
-      if (dir.endsWith("/atlasaurus") && args[0] === "fetch")
-        return await new Promise(() => {});
+      if (dir.endsWith("/atlasaurus") && args[0] === "fetch") return await new Promise(() => {});
       const cmd = args.join(" ");
-      if (cmd.startsWith("rev-parse --show-toplevel"))
-        return { code: 0, stdout: `${dir}\n` };
-      if (cmd.startsWith("symbolic-ref"))
-        return { code: 0, stdout: "refs/remotes/origin/main\n" };
-      if (cmd.startsWith("rev-parse --abbrev-ref HEAD"))
-        return { code: 0, stdout: "main\n" };
+      if (cmd.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${dir}\n` };
+      if (cmd.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/main\n" };
+      if (cmd.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "main\n" };
       if (cmd.startsWith("show-ref")) return { code: 0, stdout: "" };
       if (args[0] === "fetch") return { code: 0, stdout: "" };
       if (cmd.startsWith("rev-list --count")) return { code: 0, stdout: "5\n" };
@@ -541,21 +383,13 @@ describe("refreshDrift's schedule-level guarantees (ported from the /projects ro
     };
     const root = projectsRoot({ aide: INSTALLS, atlasaurus: INSTALLS });
     const base = serve(root, { run: mixed }, 25);
-    const html = await loadUntil(
-      base,
-      "aide",
-      "5 commits behind origin",
-      2000,
-      "deploy",
-    );
+    const html = await loadUntil(base, "aide", "5 commits behind origin", 2000, "deploy");
     expect(html).toContain("5 commits behind origin");
     // And the schedule keeps ticking rather than being stuck on the round
     // that never finished. The hanging project is what shows it: nothing
     // ever answers for it, so every further tick asks it again.
     const asked = () =>
-      calls.filter(
-        (c) => c.dir.endsWith("/atlasaurus") && c.args[0] === "fetch",
-      ).length;
+      calls.filter((c) => c.dir.endsWith("/atlasaurus") && c.args[0] === "fetch").length;
     const roundOne = asked();
     expect(roundOne).toBeGreaterThan(0);
     const deadline = Date.now() + 15_000;
@@ -578,28 +412,17 @@ describe('the "Serving" line on a project\'s own page', () => {
    *  after — reproducing the real shape, where the same question is asked
    *  once at boot and again on every page load, never in the other
    *  order. */
-  function serving(
-    root: string,
-    name: string,
-    bootSha: string,
-    checkoutSha: string,
-  ): { run: GitRunner } {
+  function serving(root: string, name: string, bootSha: string, checkoutSha: string): { run: GitRunner } {
     let headCalls = 0;
     const run: GitRunner = async (_dir, args) => {
       const cmd = args.join(" ");
       if (cmd === "rev-parse HEAD") {
         headCalls += 1;
-        return {
-          code: 0,
-          stdout: `${headCalls === 1 ? bootSha : checkoutSha}\n`,
-        };
+        return { code: 0, stdout: `${headCalls === 1 ? bootSha : checkoutSha}\n` };
       }
-      if (cmd.startsWith("rev-parse --show-toplevel"))
-        return { code: 0, stdout: `${join(root, name)}\n` };
-      if (cmd.startsWith("symbolic-ref"))
-        return { code: 0, stdout: "origin/main\n" };
-      if (cmd.startsWith("rev-parse --abbrev-ref HEAD"))
-        return { code: 0, stdout: "main\n" };
+      if (cmd.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${join(root, name)}\n` };
+      if (cmd.startsWith("symbolic-ref")) return { code: 0, stdout: "origin/main\n" };
+      if (cmd.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "main\n" };
       if (cmd.startsWith("show-ref")) return { code: 0, stdout: "" };
       return { code: 1, stdout: "" };
     };
@@ -639,10 +462,7 @@ describe('the "Serving" line on a project\'s own page', () => {
   // to show on it.
   test("a project this server does not run from shows no Serving line at all", async () => {
     const root = projectsRoot({ aide: null, other: null });
-    const base = serve(
-      root,
-      serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef"),
-    );
+    const base = serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef"));
     // Give the boot-time read every chance to resolve before asserting its
     // absence — the assertion must mean "this project truly has none", not
     // "the read had not finished yet".
@@ -651,6 +471,7 @@ describe('the "Serving" line on a project\'s own page', () => {
     expect(html).not.toContain("Serving");
     expect(html).toMatch(/>Deploy</);
   });
+
 });
 
 // The served nav is Specs, Projects and Schedule — there is no Archive
@@ -674,10 +495,7 @@ describe("the nav does not name the projects", () => {
     const root = projectsRoot({ aide: null });
     const opts = parseArgs(["--root", root]);
     expect(opts.navEntries?.some((e) => e.label === "aide")).toBe(false);
-    expect(opts.navEntries?.map((e) => e.label)).toEqual([
-      "Projects",
-      "Schedule",
-    ]);
+    expect(opts.navEntries?.map((e) => e.label)).toEqual(["Projects", "Schedule"]);
   });
 });
 
@@ -687,35 +505,27 @@ describe("the nav does not name the projects", () => {
 // restart it triggers empties the answer and the reader's next page load
 // beats the first poll back. The sentence has to correct itself.
 describe("the Deploy tab asks for itself again while the origin answer is missing", () => {
+
   test("no answer yet: the Deploy tab carries the reload marker", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     // Poll off, so the answer never arrives: the same state a page drawn
     // in the seconds after a restart is in.
-    const html = await (
-      await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")
-    ).text();
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
     expect(html).toContain("has not been checked yet");
     expect(html).toContain("data-reload-every=");
   });
 
   test("no answer yet, but on Config: no refresh, because its forms would be cleared mid-edit", async () => {
     const root = projectsRoot({ aide: INSTALLS });
-    const html = await (
-      await get(serve(root, settled(root, "aide"), 0), "aide", "config")
-    ).text();
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "config")).text();
     expect(html).not.toContain("data-reload-every=");
   });
 
   test("once the answer is there, the Deploy tab stops refreshing", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, behindBy(root, "aide", 0), 25);
-    const html = await loadUntil(
-      base,
-      "aide",
-      "matches origin",
-      2000,
-      "deploy",
-    );
+    const html = await loadUntil(base, "aide", "matches origin", 2000, "deploy");
     expect(html).not.toContain("data-reload-every=");
   });
+
 });

@@ -30,6 +30,7 @@
 
 ---
 
+
 ## Overview
 
 ### What is Context7?
@@ -39,7 +40,6 @@ Context7 is an MCP server from Upstash that gives Codex access to **up-to-date, 
 ### Why use Context7?
 
 **For Aide:**
-
 - ✅ Always up-to-date info about UI libraries
 - ✅ Correct React/TypeScript patterns
 - ✅ Spring Boot / Kotlin best practices
@@ -52,7 +52,6 @@ Context7 is an MCP server from Upstash that gives Codex access to **up-to-date, 
 ### Automatic configuration (via install.sh)
 
 Run the installation script:
-
 ```bash
 cd core/implementations/codex
 ./install.sh
@@ -96,19 +95,16 @@ Refactor to React 19, use context7 for react@19
 ## Relevant libraries for Aide
 
 ### Frontend
-
 - `react` - React core
 - `@mui/material` - Material UI
 - `react-hook-form` - Forms
 
 ### Backend
-
 - `spring-boot` - Spring Boot
 - `kotlin` - Kotlin
 - `spring-data-jpa` - Database
 
 ### Testing
-
 - `vitest` - Testing
 - `@testing-library/react` - React testing
 

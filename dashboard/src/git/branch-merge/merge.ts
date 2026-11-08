@@ -20,28 +20,15 @@
 //     and a single collective "ok" over two repos is exactly the blind
 //     spot this whole spec exists to remove.
 
+
 import { prepareMergeWorktree, WORKTREE_TIMEOUT_MS } from "./worktree.ts";
 import type { BoardMessage, Sentence } from "../../i18n/message.ts";
 import { conflictFiles, gitErrorDetail } from "../../format/git-error.ts";
-import {
-  LS_REMOTE_NO_MATCH,
-  lsRemoteBranch,
-  type GitRunner,
-} from "../branch-status.ts";
-import {
-  finalizeCreateOnAttempt,
-  type CreateFinalizer,
-} from "../create-finalizer.ts";
+import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "../branch-status.ts";
+import { finalizeCreateOnAttempt, type CreateFinalizer } from "../create-finalizer.ts";
 import type { MergeHooks } from "../merge-hooks.ts";
 import { pushRefusal, refuse, type RepoMergeResult } from "./result.ts";
-import {
-  GIT_LOCKED,
-  LOCK_RETRIES,
-  LOCK_WAIT_MS,
-  pushWithRetry,
-  sleep,
-  type Wait,
-} from "./retry.ts";
+import { GIT_LOCKED, LOCK_RETRIES, LOCK_WAIT_MS, pushWithRetry, sleep, type Wait } from "./retry.ts";
 
 /** Where a landing does its merging: a worktree of the repo it is
  *  landing into, named for the branch so two landings in one repo never
@@ -52,9 +39,7 @@ export function mergeWorktreePath(root: string, branch: string): string {
   return `${root}.landing.${branch.replace(/[^A-Za-z0-9._-]/g, "-")}`;
 }
 
-export type LandingGate = (
-  root: string,
-) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
+export type LandingGate = (root: string) => Promise<{ ok: boolean; error?: Sentence; detail?: string }>;
 
 export async function mergeBranchIntoDefault(
   run: GitRunner,
@@ -132,34 +117,19 @@ export async function mergeBranchIntoDefault(
     //    reads. It refused loudly before this moved into a worktree,
     //    and it still does. Merge commits do not count: those are a
     //    landing's own, left by one that pushed and died.
-    const ahead = await run(root, [
-      "rev-list",
-      "--count",
-      `origin/${base}..${base}`,
-    ]);
+    const ahead = await run(root, ["rev-list", "--count", `origin/${base}..${base}`]);
     if (ahead.code === 0 && Number(ahead.stdout.trim()) > 0) {
       const own = await run(root, [
-        "rev-list",
-        `origin/${base}..${base}`,
-        "--no-merges",
-        "--not",
-        "--remotes=origin",
+        "rev-list", `origin/${base}..${base}`, "--no-merges", "--not", "--remotes=origin",
       ]);
       if (own.code === 0 && own.stdout.trim() !== "") {
-        return refuse(root, branch, {
-          key: "landing.cannotFastForward",
-          values: { base },
-        });
+        return refuse(root, branch, { key: "landing.cannotFastForward", values: { base } });
       }
     }
 
     work = mergeWorktreePath(root, branch);
     await prepareMergeWorktree(run, root, work);
-    const added = await run(
-      root,
-      ["worktree", "add", "--detach", "-q", work, `origin/${base}`],
-      WORKTREE_TIMEOUT_MS,
-    );
+    const added = await run(root, ["worktree", "add", "--detach", "-q", work, `origin/${base}`], WORKTREE_TIMEOUT_MS);
     if (added.code !== 0) {
       await run(root, ["worktree", "prune"]);
       return refuse(
@@ -187,10 +157,7 @@ export async function mergeBranchIntoDefault(
     // landing is never gated again. Scoped to the lifetime of this one
     // `mergeBranchIntoDefault()` call — never module- or server-lifetime
     // — so no verdict outlives the landing it was reached for.
-    const gateVerdicts = new Map<
-      string,
-      { ok: boolean; error?: Sentence; detail?: string }
-    >();
+    const gateVerdicts = new Map<string, { ok: boolean; error?: Sentence; detail?: string }>();
     // Set on the attempt that actually pushes — never on one whose push
     // was rejected and dropped, so a retry's own rename (recomputed
     // against the base that moved) is the one that survives.
@@ -199,9 +166,7 @@ export async function mergeBranchIntoDefault(
       // The tip BEFORE this attempt's own merge, so a
       // branch that adds nothing to THIS repo can be told apart from one
       // that does.
-      const preMergeHead = gate
-        ? (await run(work, ["rev-parse", "HEAD"])).stdout.trim()
-        : "";
+      const preMergeHead = gate ? (await run(work, ["rev-parse", "HEAD"])).stdout.trim() : "";
       await run(work, ["fetch", "--quiet", "origin", base, branch]);
       // A merge that lost a lock race is retried like the pull is — it
       // used to be reported as a conflict, which it is not.
@@ -215,27 +180,14 @@ export async function mergeBranchIntoDefault(
           merged = true;
           break;
         }
-        const real = await run(work, [
-          ...((await hooks?.mergeArgs?.(work)) ?? []),
-          "merge",
-          "-q",
-          "--no-edit",
-          ref,
-        ]);
+        const real = await run(work, [...((await hooks?.mergeArgs?.(work)) ?? []), "merge", "-q", "--no-edit", ref]);
         if (real.code === 0) {
           merged = true;
           break;
         }
         // The files in conflict, read before the abort clears them.
-        const unmerged = await run(work, [
-          "diff",
-          "--name-only",
-          "--diff-filter=U",
-        ]);
-        conflicted =
-          unmerged.code === 0
-            ? unmerged.stdout.split("\n").filter(Boolean)
-            : [];
+        const unmerged = await run(work, ["diff", "--name-only", "--diff-filter=U"]);
+        conflicted = unmerged.code === 0 ? unmerged.stdout.split("\n").filter(Boolean) : [];
         await run(work, ["merge", "--abort"]);
         // git names a conflict on stdout and a lock it lost on stderr.
         lastStderr = `${real.stdout ?? ""}\n${real.stderr ?? ""}`.trim();
@@ -243,31 +195,14 @@ export async function mergeBranchIntoDefault(
       }
       if (!merged) {
         const why: BoardMessage = conflicted.length
-          ? {
-              key: "landing.mergeConflictIn",
-              values: {
-                base,
-                files: conflictFiles(
-                  conflicted.slice(0, 5),
-                  conflicted.length - 5,
-                ),
-              },
-            }
+          ? { key: "landing.mergeConflictIn", values: { base, files: conflictFiles(conflicted.slice(0, 5), conflicted.length - 5) } }
           : { key: "landing.mergeConflict", values: { base } };
-        return {
-          ...refuse(root, branch, why, gitErrorDetail(lastStderr) || undefined),
-          reason: "conflict",
-        };
+        return { ...refuse(root, branch, why, gitErrorDetail(lastStderr) || undefined), reason: "conflict" };
       }
       // A create job's folder is renumbered here, before the gate, on
       // every attempt (create-finalizer.ts says why).
       if (finalizeCreate) {
-        const finalized = await finalizeCreateOnAttempt(run, finalizeCreate, {
-          work,
-          root,
-          branch,
-          base,
-        });
+        const finalized = await finalizeCreateOnAttempt(run, finalizeCreate, { work, root, branch, base });
         if ("refused" in finalized) return finalized.refused;
         assignedSpecFolder = finalized.specFolder;
       }
@@ -280,12 +215,7 @@ export async function mergeBranchIntoDefault(
         // An empty diff against the pre-merge tip means
         // this merge added nothing to `root` — there is nothing the
         // suite could fail for that this merge caused, so it never runs.
-        const changed = await run(work, [
-          "diff",
-          "--quiet",
-          preMergeHead,
-          "HEAD",
-        ]);
+        const changed = await run(work, ["diff", "--quiet", preMergeHead, "HEAD"]);
         if (changed.code !== 0) {
           // An identical resulting tree reuses the
           // verdict already reached for it within this same call, rather
@@ -308,13 +238,8 @@ export async function mergeBranchIntoDefault(
             return {
               root,
               ok: false,
-              error: verdict.error ?? {
-                key: "landing.testsRedOnMergeFallback",
-                values: { base },
-              },
-              ...(verdict.detail
-                ? { detail: `${verdict.detail}\n${branch} in ${root}` }
-                : { detail: `${branch} in ${root}` }),
+              error: verdict.error ?? { key: "landing.testsRedOnMergeFallback", values: { base } },
+              ...(verdict.detail ? { detail: `${verdict.detail}\n${branch} in ${root}` } : { detail: `${branch} in ${root}` }),
               reason: "tests-red",
             };
           }
@@ -335,7 +260,13 @@ export async function mergeBranchIntoDefault(
     for (let attempt = 0; ; attempt++) {
       const failed = await mergeAndGate();
       if (failed) return failed;
-      const pushResult = await pushWithRetry(run, work, base, wait);
+      const pushResult = await pushWithRetry(
+        run,
+        work,
+        base,
+        wait,
+        attempt === 0,
+      );
       if (pushResult.ok) break;
       if (!pushResult.moved) return pushRefusal(root, branch, base, pushResult);
       await run(work, ["fetch", "--quiet", "origin", base]);
@@ -361,9 +292,7 @@ export async function mergeBranchIntoDefault(
     //     Not fatal on failure. The merge is on origin, which is what
     //     "landed" means; a checkout that could not fast-forward is a
     //     local state the next landing's own pull settles.
-    await hooks?.beforeCheckoutMoves?.(
-      assignedSpecFolder ? { assignedSpecFolder } : {},
-    );
+    await hooks?.beforeCheckoutMoves?.(assignedSpecFolder ? { assignedSpecFolder } : {});
     await run(root, ["fetch", "-q", "origin", base]);
     //     A gate's own record left dirty here — `test-run.json`, never
     //     committed — blocks a fast-forward with "local changes would
@@ -376,26 +305,10 @@ export async function mergeBranchIntoDefault(
     //     would leave the checkout behind, and `installAfterMerge` then
     //     installs the code from before the merge — the one failure
     //     this step exists to prevent.
-    let caughtUp = await run(root, [
-      "merge",
-      "-q",
-      "--ff-only",
-      `origin/${base}`,
-    ]);
-    for (
-      let n = 0;
-      caughtUp.code !== 0 &&
-      GIT_LOCKED.test(caughtUp.stderr ?? "") &&
-      n < LOCK_RETRIES;
-      n++
-    ) {
+    let caughtUp = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
+    for (let n = 0; caughtUp.code !== 0 && GIT_LOCKED.test(caughtUp.stderr ?? "") && n < LOCK_RETRIES; n++) {
       await wait(LOCK_WAIT_MS);
-      caughtUp = await run(root, [
-        "merge",
-        "-q",
-        "--ff-only",
-        `origin/${base}`,
-      ]);
+      caughtUp = await run(root, ["merge", "-q", "--ff-only", `origin/${base}`]);
     }
     if (caughtUp.code !== 0) {
       console.error(
@@ -413,20 +326,13 @@ export async function mergeBranchIntoDefault(
     //    already happened, so this follows `installError`'s precedent
     //    and is reported beside a success rather than turning it into
     //    a failure.
-    const deleted = await run(root, [
-      "push",
-      "-q",
-      "origin",
-      "--delete",
-      branch,
-    ]);
+    const deleted = await run(root, ["push", "-q", "origin", "--delete", branch]);
     if (deleted.code !== 0) {
       // The stderr tail is never part of the sentence
       // — it rides in `detail` instead, for whoever needs the exact
       // words; the board itself shows the fixed BRANCH_LEFT_BEHIND
       // sentence, never this text directly (`row-marks.ts`).
-      const detail =
-        (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
+      const detail = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
       // Names the branch; the ROOT is added where this is composed for
       // the row (`landBranch`), which is the one place that
       // knows whether several repos are being reported at once.
@@ -436,10 +342,7 @@ export async function mergeBranchIntoDefault(
         // The ROOT is folded in where this is composed for the row
         // (`landBranch`), which is the one place that knows
         // whether several repos are being reported at once.
-        branchDeleteError: {
-          key: "landing.branchDeleteFailed",
-          values: { branch },
-        },
+        branchDeleteError: { key: "landing.branchDeleteFailed", values: { branch } },
         detail,
         ...(assignedSpecFolder ? { assignedSpecFolder } : {}),
       };
@@ -459,11 +362,7 @@ export async function mergeBranchIntoDefault(
     //    like the fetch at step 2 — this host may not even have the ref,
     //    and a cleanup must never turn a landed merge into a failure.
     await run(root, ["branch", "-d", branch]);
-    return {
-      root,
-      ok: true,
-      ...(assignedSpecFolder ? { assignedSpecFolder } : {}),
-    };
+    return { root, ok: true, ...(assignedSpecFolder ? { assignedSpecFolder } : {}) };
   } catch (err) {
     return refuse(
       root,
@@ -478,11 +377,7 @@ export async function mergeBranchIntoDefault(
     // own administrative record of it behind — and that record is
     // enough to make the next `worktree add` at the same path refuse.
     if (work) {
-      await run(
-        root,
-        ["worktree", "remove", "--force", work],
-        WORKTREE_TIMEOUT_MS,
-      );
+      await run(root, ["worktree", "remove", "--force", work], WORKTREE_TIMEOUT_MS);
       await run(root, ["worktree", "prune"]);
     }
   }

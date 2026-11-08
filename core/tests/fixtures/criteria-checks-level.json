@@ -12,10 +12,6 @@
     { "name": "off", "description": "off", "level": "off" },
     { "name": "warn", "description": "warn", "level": "warn" },
     { "name": "stop", "description": "stop", "level": "stop" },
-    {
-      "name": "an-unknown-value-is-off",
-      "description": "strict",
-      "level": "off"
-    }
+    { "name": "an-unknown-value-is-off", "description": "strict", "level": "off" }
   ]
 }

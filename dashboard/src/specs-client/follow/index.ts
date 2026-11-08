@@ -28,10 +28,7 @@ export interface FollowEnv {
   phasesChanged: () => void;
 }
 
-export function createFollow(env: FollowEnv): {
-  request: () => void;
-  phases: () => string;
-} {
+export function createFollow(env: FollowEnv): { request: () => void; phases: () => string } {
   let out = false;
   let again = false;
   let scheduled = false;
@@ -42,8 +39,7 @@ export function createFollow(env: FollowEnv): {
 
   const marker = (): Element | null => env.doc.querySelector("[data-follow]");
   const phases = (): string => marker()?.getAttribute("data-phases") ?? "";
-  const declined = (): boolean =>
-    new URLSearchParams(env.location.search).get("live") === "0";
+  const declined = (): boolean => new URLSearchParams(env.location.search).get("live") === "0";
 
   /** The ask's query: the page's own, with the tab and the running step the
    *  marker names where the address has none. Both are written into the
@@ -60,11 +56,7 @@ export function createFollow(env: FollowEnv): {
     }
     const running = mark.getAttribute("data-running");
     const step = params.get("step");
-    if (
-      running !== null &&
-      (step === null || step === "live") &&
-      step !== running
-    ) {
+    if (running !== null && (step === null || step === "live") && step !== running) {
       params.set("step", running);
       pinned = true;
     }
@@ -82,17 +74,11 @@ export function createFollow(env: FollowEnv): {
       pending = answer;
       if (!listening) {
         listening = true;
-        env.doc.addEventListener(
-          "selectionchange",
-          () => pending && apply(pending),
-        );
+        env.doc.addEventListener("selectionchange", () => pending && apply(pending));
       }
     }
-    boxesIn(env.doc).forEach(
-      (box, i) => boxes[i] && restoreBox(box, boxes[i]!),
-    );
-    if (win && y !== undefined && win.scrollY !== y)
-      win.scrollTo(win.scrollX, y);
+    boxesIn(env.doc).forEach((box, i) => boxes[i] && restoreBox(box, boxes[i]!));
+    if (win && y !== undefined && win.scrollY !== y) win.scrollTo(win.scrollX, y);
     const mine = marker();
     const next = answer.querySelector("[data-follow]");
     if (mine) {
@@ -129,8 +115,7 @@ export function createFollow(env: FollowEnv): {
       again = true;
       return;
     }
-    const wait =
-      lastStart === undefined ? 0 : lastStart + MIN_GAP_MS - env.now();
+    const wait = lastStart === undefined ? 0 : lastStart + MIN_GAP_MS - env.now();
     if (wait > 0) {
       again = true;
       if (!scheduled) {

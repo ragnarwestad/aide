@@ -40,7 +40,7 @@ RUNNER_ERROR_REGISTRY: list[dict] = [
     {"pattern": r'the merge with main it was handed open was dropped', "solution": "press $step_button again"},
     {"pattern": r'left no real progress', "solution": "press $step_button again"},
     {"pattern": r'changed things outside analyze', "solution": "press $step_button again"},
-    {"pattern": r'stopped at its own .* time limit for this step while the project', "solution": "press $step_button again to test it"},
+    {"pattern": r'stopped when one run of the project.s tests reached its own', "solution": "press $step_button again to test it"},
     {"pattern": r'error_msg="stopped at its own .* time limit for this step;', "solution": "press $step_button again to carry on"},
     {"pattern": r'provider limit reached', "solution": "once it resets"},
     {"pattern": r'is at capacity right now', "solution": "press $step_button again"},

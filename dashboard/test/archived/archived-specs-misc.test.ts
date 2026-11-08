@@ -2,17 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { sourceWithParts } from "../helpers/source-with-parts.ts";
-import {
-  ALL_VIEW,
-  ARCHIVED,
-  ARCHIVED_VIEW,
-  STAMPED,
-  harness,
-  order,
-  specsList,
-  stamp,
-  start,
-} from "./archived-specs-fixtures.ts";
+import { ALL_VIEW, ARCHIVED, ARCHIVED_VIEW, STAMPED, harness, order, specsList, stamp, start } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
 
@@ -33,39 +23,26 @@ describe("building the archived rows", () => {
   const pageRoutesSrc = sourceWithParts("serve/routes/page-routes");
 
   test("is asked for by the reader's own chip, by the Jobs tab's Active entry and for an open archived spec the chip hides, and by nothing else", () => {
-    const calls = [
-      ...(specViewsSrc + pageRoutesSrc).matchAll(
-        /\barchivedSpecRows\(([^)]*)\)/g,
-      ),
-    ]
+    const calls = [...(specViewsSrc + pageRoutesSrc).matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
       .map((m) => m[1]!)
       // Its own declaration reads the same as a call; it is not one.
       .filter((arg) => !arg.includes(":"));
-    expect(calls.sort()).toEqual([
-      "ACTIVE_FILTER_KEY",
-      "ARCHIVED_STATE",
-      "chosenState",
-    ]);
+    expect(calls.sort()).toEqual(["ACTIVE_FILTER_KEY", "ARCHIVED_STATE", "chosenState"]);
   });
 
   test("skips a row before it reads anything for it", () => {
-    const body = specViewsSrc.slice(
-      specViewsSrc.indexOf("function archivedSpecRows"),
-    );
+    const body = specViewsSrc.slice(specViewsSrc.indexOf("function archivedSpecRows"));
     const fn = body.slice(0, body.indexOf("\n}\n"));
     // The gate is the resolved filter's own answer...
     expect(fn).toContain("filterShowsArchived(state)");
     // ...and it stands in front of the per-row file reads, which is what
     // makes it a gate rather than a filter over work already done: the
     // phase lines a locked row opens come off `4-status.md`'s own claim.
-    expect(fn.indexOf("continue;")).toBeLessThan(
-      fn.indexOf("archivedSteps(ref.dir)"),
-    );
+    expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("archivedSteps(ref.dir)"));
   });
 
   test("and the gate answers for every chip there is", async () => {
-    const { filterShowsArchived } =
-      await import("../../src/render/pages/specs-list");
+    const { filterShowsArchived } = await import("../../src/render/pages/specs-list");
     // Absent resolves to the default chip, which is All.
     expect(filterShowsArchived(undefined)).toBe(true);
     expect(filterShowsArchived("all")).toBe(true);
@@ -87,14 +64,9 @@ describe("building the archived rows", () => {
     const rows = await (await fetch(`${base}/specs?rows=1`)).text();
     for (const folder of Object.keys(ARCHIVED)) expect(rows).toContain(folder);
     // Active: the chip that cuts them cuts them here as well.
-    const activeRows = await (
-      await fetch(`${base}/specs?rows=1&state=not-archived`)
-    ).text();
-    for (const folder of Object.keys(ARCHIVED))
-      expect(activeRows).not.toContain(folder);
-    const archivedRows = await (
-      await fetch(`${base}/specs?rows=1&state=archived`)
-    ).text();
+    const activeRows = await (await fetch(`${base}/specs?rows=1&state=not-archived`)).text();
+    for (const folder of Object.keys(ARCHIVED)) expect(activeRows).not.toContain(folder);
+    const archivedRows = await (await fetch(`${base}/specs?rows=1&state=archived`)).text();
     expect(archivedRows).toContain(STAMPED);
   });
 });
@@ -111,10 +83,7 @@ describe("an archive bigger than the page", () => {
   const MANY = Object.fromEntries(
     Array.from({ length: 30 }, (_, i) => [
       `${100 + i}-archived-spec`,
-      {
-        description: `# Spec ${100 + i} - Description\n`,
-        status: stamp("2026-08-13"),
-      },
+      { description: `# Spec ${100 + i} - Description\n`, status: stamp("2026-08-13") },
     ]),
   );
 
@@ -136,9 +105,7 @@ describe("an archive bigger than the page", () => {
   // after it was drawn.
   test("the five-second refresh sends the same thirty", async () => {
     const { base } = start({}, MANY);
-    const rows = await (
-      await fetch(`${base}/specs?rows=1&state=archived`)
-    ).text();
+    const rows = await (await fetch(`${base}/specs?rows=1&state=archived`)).text();
     expect(order(rows)).toHaveLength(30);
     expect(rows).not.toContain("not shown");
   });

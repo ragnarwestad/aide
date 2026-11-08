@@ -3,10 +3,7 @@
 // which would leave the reader on the server's JSON answer.
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { chromium, type Browser } from "playwright";
-import {
-  browserDeadline,
-  withBrowser,
-} from "../../helpers/browser-deadline.ts";
+import { browserDeadline, withBrowser } from "../../helpers/browser-deadline.ts";
 import { queueHarness } from "../../helpers/queue-server.ts";
 
 browserDeadline();
@@ -29,8 +26,7 @@ test("a row's press on the Specs list reached from Running is posted by the page
   const page = await browser.newPage();
   let navigations = 0;
   page.on("request", (r) => {
-    if (r.isNavigationRequest() && r.frame() === page.mainFrame())
-      navigations++;
+    if (r.isNavigationRequest() && r.frame() === page.mainFrame()) navigations++;
   });
   await page.route(
     (url) => url.pathname === "/api/queue",
@@ -47,10 +43,7 @@ test("a row's press on the Specs list reached from Running is posted by the page
     form.method = "post";
     form.action = "/api/queue";
     document.getElementById("jobrows")!.appendChild(form);
-    const press = new SubmitEvent("submit", {
-      bubbles: true,
-      cancelable: true,
-    });
+    const press = new SubmitEvent("submit", { bubbles: true, cancelable: true });
     form.dispatchEvent(press);
     return press.defaultPrevented;
   });

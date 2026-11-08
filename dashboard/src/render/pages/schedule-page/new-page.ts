@@ -17,11 +17,7 @@ export function scheduleNewPath(project: string): string {
 
 /** What a new entry starts on: every morning at seven, so the Cron
  *  field shows a next run from the start. */
-export const NEW_SCHEDULE_DEFAULTS = {
-  name: "",
-  cron: "0 7 * * *",
-  prompt: "",
-} as const;
+export const NEW_SCHEDULE_DEFAULTS = { name: "", cron: "0 7 * * *", prompt: "" } as const;
 
 export interface ScheduleNewPageOptions {
   project: string;
@@ -37,11 +33,7 @@ export interface ScheduleNewPageOptions {
   currentUrl?: string;
 }
 
-export function renderScheduleNewPage(
-  nav: NavEntry[],
-  generatedAt: string,
-  opts: ScheduleNewPageOptions,
-): string {
+export function renderScheduleNewPage(nav: NavEntry[], generatedAt: string, opts: ScheduleNewPageOptions): string {
   const lang = opts.lang ?? "en";
   const title = t(lang, "schedule.newJob");
   const body =

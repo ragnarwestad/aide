@@ -17,14 +17,12 @@ const filled = `<tr class="specdetail" data-spec-detail="${KEY}"><td colspan="6"
 const table = (rows: string) =>
   `<div class="tablewrap"><table class="list speclist"><thead><tr><th>Spec</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 
-const group = (key: string, phase: string, detail = "") =>
-  head(key, phase) + detail + gap;
+const group = (key: string, phase: string, detail = "") => head(key, phase) + detail + gap;
 
 /** The module afresh for each test: it remembers the last rows it drew, and
  *  the first redraw after a load is the case under test. */
 let loads = 0;
-const rowSwap = (): Promise<typeof RowSwap> =>
-  import(`../../../src/specs-client/row-swap.ts?load=${++loads}`);
+const rowSwap = (): Promise<typeof RowSwap> => import(`../../../src/specs-client/row-swap.ts?load=${++loads}`);
 
 let win: Window;
 let mod: typeof RowSwap;
@@ -36,21 +34,14 @@ const saved: Record<string, unknown> = {};
  *  around it and drops its `<tr>`s, which a browser keeps. A template parses
  *  rows as rows, so the three positions the row swap uses go through one. */
 function parseRowsInContext(window: Window): void {
-  const proto = (
-    window as unknown as { HTMLElement: { prototype: Record<string, unknown> } }
-  ).HTMLElement.prototype;
-  proto.insertAdjacentHTML = function (
-    this: Element,
-    where: string,
-    html: string,
-  ): void {
+  const proto = (window as unknown as { HTMLElement: { prototype: Record<string, unknown> } }).HTMLElement.prototype;
+  proto.insertAdjacentHTML = function (this: Element, where: string, html: string): void {
     const template = this.ownerDocument.createElement("template");
     template.innerHTML = html;
     const rows = template.content;
     if (where === "beforebegin") this.parentNode!.insertBefore(rows, this);
     else if (where === "beforeend") this.appendChild(rows);
-    else if (where === "afterend")
-      this.parentNode!.insertBefore(rows, this.nextSibling);
+    else if (where === "afterend") this.parentNode!.insertBefore(rows, this.nextSibling);
   };
 }
 
@@ -59,15 +50,10 @@ beforeEach(async () => {
   parseRowsInContext(win);
   mod = await rowSwap();
   asked.length = 0;
-  for (const name of ["document", "location", "fetch"])
-    saved[name] = (globalThis as Record<string, unknown>)[name];
+  for (const name of ["document", "location", "fetch"]) saved[name] = (globalThis as Record<string, unknown>)[name];
   Object.assign(globalThis, {
     document: win.document,
-    location: {
-      pathname: `/specs/${KEY}`,
-      search: "",
-      href: `http://dash.test/specs/${KEY}`,
-    },
+    location: { pathname: `/specs/${KEY}`, search: "", href: `http://dash.test/specs/${KEY}` },
     fetch: async (url: string) => {
       asked.push(url);
       return { ok: true, text: async () => answer };
@@ -83,17 +69,12 @@ afterEach(async () => {
 /** The page as the server first draws it: the open spec in its row. */
 function load(): HTMLTextAreaElement {
   win.document.body.innerHTML = `<div id="jobrows">${table(group(KEY, "phase v1", filled) + group(OTHER, "phase v1"))}</div>`;
-  const box = win.document.querySelector(
-    "textarea",
-  ) as unknown as HTMLTextAreaElement;
+  const box = win.document.querySelector("textarea") as unknown as HTMLTextAreaElement;
   box.value = "typed after the page opened";
   return box;
 }
 
-const detail = () =>
-  win.document.querySelector(
-    "tr[data-spec-detail]",
-  ) as unknown as Element | null;
+const detail = () => win.document.querySelector("tr[data-spec-detail]") as unknown as Element | null;
 
 describe("the open spec survives a redraw of the rows", () => {
   test("the first redraw after a load, which replaces all of the rows, keeps the same element and what was typed", async () => {
@@ -102,13 +83,9 @@ describe("the open spec survives a redraw of the rows", () => {
     answer = table(group(KEY, "phase v1", standIn) + group(OTHER, "phase v1"));
     await mod.swapRows();
     expect(detail() === before).toBe(true);
-    expect((win.document.querySelector("textarea") as unknown) === box).toBe(
-      true,
-    );
+    expect((win.document.querySelector("textarea") as unknown) === box).toBe(true);
     expect(box.value).toBe("typed after the page opened");
-    expect(win.document.querySelectorAll("tr[data-spec-detail]")).toHaveLength(
-      1,
-    );
+    expect(win.document.querySelectorAll("tr[data-spec-detail]")).toHaveLength(1);
   });
 
   test("a later redraw that replaces only the open spec's rows keeps it too", async () => {
@@ -120,9 +97,7 @@ describe("the open spec survives a redraw of the rows", () => {
     await mod.swapRows();
     expect(win.document.body.innerHTML).toContain("phase v2");
     expect(detail() === before).toBe(true);
-    expect((win.document.querySelector("textarea") as unknown) === box).toBe(
-      true,
-    );
+    expect((win.document.querySelector("textarea") as unknown) === box).toBe(true);
     expect(box.value).toBe("typed after the page opened");
   });
 

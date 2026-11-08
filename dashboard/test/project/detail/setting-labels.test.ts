@@ -10,8 +10,6 @@ import { SETTING_LABELS } from "../../../src/project/setting-labels.ts";
 
 describe("SETTING_LABELS", () => {
   test("has exactly one label per SETTING_KEYS entry, and no others", () => {
-    expect(Object.keys(SETTING_LABELS).sort()).toEqual(
-      [...SETTING_KEYS].sort(),
-    );
+    expect(Object.keys(SETTING_LABELS).sort()).toEqual([...SETTING_KEYS].sort());
   });
 });

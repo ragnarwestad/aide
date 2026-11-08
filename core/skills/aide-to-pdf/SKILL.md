@@ -15,13 +15,11 @@ You will help the user **generate a PDF** from a spec.
 **Input:** $ARGUMENTS (a spec number, a full folder ID, or an issue key its title began with)
 
 The user has run:
-
 ```bash
 /aide-to-pdf <ISSUE_ID>
 ```
 
 **Examples:**
-
 - `/aide-to-pdf 17` - by number
 - `/aide-to-pdf 17-fix-validation` - by folder
 - `/aide-to-pdf PROJ-7637` - by the issue key the title began with
@@ -35,7 +33,6 @@ The user has run:
    - If no input: Ask the user for a number or full ID
 
 2. **Determine REPORTS_ROOT:**
-
    ```bash
    # The lib resolves it: .aide/config in the project root wins,
    # otherwise <project-root>/specs
@@ -44,7 +41,6 @@ The user has run:
    ```
 
 3. **Resolve to the full directory ID** (flat structure: everything lives as `<NN>-slug/` directly under REPORTS_ROOT):
-
    ```bash
    if echo "$INPUT" | grep -qE '^PROJ-[0-9]+$'; then
      # Issue key: find the directory containing it
@@ -70,7 +66,6 @@ The user has run:
    - If not: Inform the user that they must run `/aide-create` first
 
 5. **Generate PDF:**
-
    ```bash
    # Pass the resolved directory ID (full NN-slug) to the script
    aide-generate-pdf "$DIR"
@@ -91,7 +86,6 @@ The user has run:
 ## Error handling
 
 **If `md-to-pdf` is not installed:**
-
 ```text
 md-to-pdf is not installed
 
@@ -103,7 +97,6 @@ npx md-to-pdf
 ```
 
 **If documentation does not exist:**
-
 ```text
 Could not find documentation for <ISSUE_ID>
 

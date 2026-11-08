@@ -2,20 +2,8 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  ARCHIVED,
-  ARCHIVED_VIEW,
-  ALL_VIEW,
-  LIVE,
-  LIVE_OTHER,
-  OTHER,
-  SAME_DAY,
-  STAMPED,
-  UNDATED,
-  UNSTAMPED,
-  harness,
-  order,
-  specsList,
-  start,
+  ARCHIVED, ARCHIVED_VIEW, ALL_VIEW, LIVE, LIVE_OTHER, OTHER, SAME_DAY, STAMPED, UNDATED,
+  UNSTAMPED, harness, order, specsList, start,
 } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
@@ -26,9 +14,7 @@ describe("the default filter", () => {
   test("is All, and it is the one the bare page resolves to", async () => {
     const html = await specsList(start().base);
     expect(html).toContain(">All");
-    expect(html).toMatch(
-      /aria-checked="true"><span class="check" aria-hidden="true"><\/span>All/,
-    );
+    expect(html).toMatch(/aria-checked="true"><span class="check" aria-hidden="true"><\/span>All/);
   });
 
   // A spec that reaches the archive stays on the list the reader is
@@ -43,8 +29,7 @@ describe("the default filter", () => {
   test("the Active chip is what holds the archived ones back", async () => {
     const html = await specsList(start().base, "?state=not-archived");
     expect(html).toContain(LIVE);
-    for (const folder of Object.keys(ARCHIVED))
-      expect(html).not.toContain(folder);
+    for (const folder of Object.keys(ARCHIVED)) expect(html).not.toContain(folder);
     // Not the folder alone: the title and the description are what a
     // reader would see, and a row that leaked either would be a row.
     expect(html).not.toContain("One page shows the whole spec");
@@ -73,10 +58,7 @@ describe("the Archived chip", () => {
   // what the dashboard shows, and a discovered project that is not on
   // it is not the dashboard's business.
   test("shows only the projects the queue is allowed to run", async () => {
-    const html = await specsList(
-      start({ queueProjects: ["skjer"] }).base,
-      ARCHIVED_VIEW,
-    );
+    const html = await specsList(start({ queueProjects: ["skjer"] }).base, ARCHIVED_VIEW);
     expect(html).not.toContain(STAMPED);
     expect(html).toContain(OTHER);
   });
@@ -96,15 +78,7 @@ describe("the All chip", () => {
     // Folder number, descending: 150, 92, 81, 60, 31, 05, 01. The live
     // spec sits BETWEEN two archived ones, which a list that
     // concatenated the two sets could not produce.
-    expect(rows).toEqual([
-      STAMPED,
-      UNSTAMPED,
-      LIVE,
-      SAME_DAY,
-      UNDATED,
-      OTHER,
-      LIVE_OTHER,
-    ]);
+    expect(rows).toEqual([STAMPED, UNSTAMPED, LIVE, SAME_DAY, UNDATED, OTHER, LIVE_OTHER]);
   });
 
   // The three chips that were here before this spec each list the states
@@ -112,8 +86,7 @@ describe("the All chip", () => {
   test("the three older chips keep their meaning", async () => {
     for (const state of ["active", "waiting", "failed"]) {
       const html = await specsList(start().base, `?state=${state}`);
-      for (const folder of Object.keys(ARCHIVED))
-        expect(html).not.toContain(folder);
+      for (const folder of Object.keys(ARCHIVED)) expect(html).not.toContain(folder);
     }
   });
 });
@@ -122,32 +95,19 @@ describe("the All chip", () => {
 
 const stateFile = (rows: { done: boolean; notVerified?: boolean }[]) =>
   JSON.stringify({
-    completedPhases: [],
-    archived: null,
-    reopened: null,
-    phaseCounts: {},
+    completedPhases: [], archived: null, reopened: null, phaseCounts: {},
     acceptanceCriteria: rows.map((r, i) => ({ task: `AC-${i + 1}: x`, ...r })),
   });
-const marked = [
-  { done: true, notVerified: true },
-  { done: true, notVerified: true },
-];
+const marked = [{ done: true, notVerified: true }, { done: true, notVerified: true }];
 
 describe("the Not verified entry", () => {
   const withMarks = () =>
-    start(
-      {},
-      {
-        ...ARCHIVED,
-        [STAMPED]: { ...ARCHIVED[STAMPED], state: stateFile(marked) },
-        // Ticked since: no flag left, so no mark and no match.
-        [SAME_DAY]: {
-          ...ARCHIVED[SAME_DAY],
-          state: stateFile([{ done: true }]),
-        },
-      },
-      stateFile([marked[0]!]),
-    );
+    start({}, {
+      ...ARCHIVED,
+      [STAMPED]: { ...ARCHIVED[STAMPED], state: stateFile(marked) },
+      // Ticked since: no flag left, so no mark and no match.
+      [SAME_DAY]: { ...ARCHIVED[SAME_DAY], state: stateFile([{ done: true }]) },
+    }, stateFile([marked[0]!]));
 
   test("lists the live spec and the archived spec with a count, and no other", async () => {
     const html = await specsList(withMarks().base, "?state=not-verified");

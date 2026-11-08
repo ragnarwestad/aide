@@ -10,11 +10,7 @@ import { createEndedWithoutSpec } from "../queue/create-failure.ts";
 import type { Job } from "../queue/queue.ts";
 import type { ScheduleNotify } from "../queue/schedule.ts";
 import {
-  ACCEPTANCE_CRITERIA_UNTICKED,
-  WAITS_FOR_PERSON,
-  waitsForPerson,
-  type JobState,
-  type StopReason,
+  ACCEPTANCE_CRITERIA_UNTICKED, WAITS_FOR_PERSON, waitsForPerson, type JobState, type StopReason,
 } from "../queue/steps.ts";
 import { isSpecFolder } from "../render/ui/shell.ts";
 
@@ -33,13 +29,7 @@ export const seenOf = (job: Job): Seen => ({
 });
 
 export interface Attention {
-  kind:
-    | "failed"
-    | "stopped"
-    | "interrupted"
-    | "archive-held-back"
-    | "create-failed"
-    | "schedule-run";
+  kind: "failed" | "stopped" | "interrupted" | "archive-held-back" | "create-failed" | "schedule-run";
   step: string;
   reason?: StopReason;
   /** How a scheduled run ended, for `schedule-run`. */
@@ -57,60 +47,33 @@ export type ScheduleChoice = () => ScheduleNotify | null;
 /** The same test `parse-request.ts` applies: one step, `schedule`, under
  *  a `schedule-` key. */
 const isScheduleJob = (job: Job): boolean =>
-  job.steps.length === 1 &&
-  job.steps[0] === "schedule" &&
-  job.specFolder.startsWith("schedule-");
+  job.steps.length === 1 && job.steps[0] === "schedule" && job.specFolder.startsWith("schedule-");
 
-const SCHEDULE_OUTCOMES = new Set<JobState>([
-  "done",
-  "failed",
-  "stopped",
-  "interrupted",
-]);
+const SCHEDULE_OUTCOMES = new Set<JobState>(["done", "failed", "stopped", "interrupted"]);
 
 /** One notification when a scheduled run ENDS (the edge into a final
  *  state), by the entry's own choice. `cancelled` is a person's own act
  *  and has no outcome here. */
-function scheduleRunAttention(
-  prev: Seen | undefined,
-  job: Job,
-  choice?: ScheduleChoice,
-): Attention | null {
-  if (!SCHEDULE_OUTCOMES.has(job.state) || job.state === prev?.state)
-    return null;
+function scheduleRunAttention(prev: Seen | undefined, job: Job, choice?: ScheduleChoice): Attention | null {
+  if (!SCHEDULE_OUTCOMES.has(job.state) || job.state === prev?.state) return null;
   const wanted = choice?.();
   if (!wanted || wanted === "never") return null;
   if (wanted === "failure" && job.state === "done") return null;
-  return {
-    kind: "schedule-run",
-    step: "schedule",
-    outcome: job.state as ScheduleOutcome,
-  };
+  return { kind: "schedule-run", step: "schedule", outcome: job.state as ScheduleOutcome };
 }
 
-export function attentionFor(
-  prev: Seen | undefined,
-  job: Job,
-  scheduleChoice?: ScheduleChoice,
-): Attention | null {
+export function attentionFor(prev: Seen | undefined, job: Job, scheduleChoice?: ScheduleChoice): Attention | null {
   // A create that ended without a spec names its project and title and
   // opens New spec, once: the edge of the rule, not the state, is the trigger.
-  if (createEndedWithoutSpec(job))
-    return prev?.createFailed
-      ? null
-      : { kind: "create-failed", step: "create" };
-  if (isScheduleJob(job))
-    return scheduleRunAttention(prev, job, scheduleChoice);
+  if (createEndedWithoutSpec(job)) return prev?.createFailed ? null : { kind: "create-failed", step: "create" };
+  if (isScheduleJob(job)) return scheduleRunAttention(prev, job, scheduleChoice);
   // A create still under way has no spec to name and none to open.
   if (!isSpecFolder(job.specFolder)) return null;
   const last = job.results.at(-1);
   if (job.state !== prev?.state && WAITS_FOR_PERSON.has(job.state)) {
     // An interrupted step left no result of its own, so the step that
     // was in flight is the one at `stepIndex`; the others ended with one.
-    const step =
-      job.state === "interrupted"
-        ? job.steps[job.stepIndex]
-        : (last?.step ?? job.steps[job.stepIndex]);
+    const step = job.state === "interrupted" ? job.steps[job.stepIndex] : (last?.step ?? job.steps[job.stepIndex]);
     const specs =
       job.state === "stopped" && job.stopReason === "shared-files"
         ? (last?.sharedFiles ?? []).map((s) => specNumber(s.spec))
@@ -139,18 +102,10 @@ export function attentionFor(
  *  Only spec folders count (`isSpecFolder`): not a scheduled job, a deploy, or
  *  a create that has no number yet. Two jobs with the same `createdAt` are
  *  settled by the order given, which is newest first as `queue.list()` has it. */
-export function waitingCount(
-  jobs: readonly Job[],
-  serves: (project: string) => boolean,
-): number {
+export function waitingCount(jobs: readonly Job[], serves: (project: string) => boolean): number {
   const latest = new Map<string, Job>();
   for (const job of jobs) {
-    if (
-      job.state === "cancelled" ||
-      !serves(job.project) ||
-      !isSpecFolder(job.specFolder)
-    )
-      continue;
+    if (job.state === "cancelled" || !serves(job.project) || !isSpecFolder(job.specFolder)) continue;
     const key = `${job.project}/${job.specFolder}`;
     const seen = latest.get(key);
     if (!seen || job.createdAt > seen.createdAt) latest.set(key, job);
@@ -175,12 +130,8 @@ export function messageKeyFor(a: Attention): MessageKey {
   if (a.kind === "failed") return "push.failed";
   if (a.reason === "provider-limit") return "push.stoppedProviderLimit";
   if (a.reason === "tests-red") return "push.stoppedTestsRed";
-  if (a.reason === "acceptance-criteria")
-    return "push.stoppedAcceptanceCriteria";
-  if (a.reason === "shared-files")
-    return a.specs?.length
-      ? "push.stoppedSharedFilesNamed"
-      : "push.stoppedSharedFiles";
+  if (a.reason === "acceptance-criteria") return "push.stoppedAcceptanceCriteria";
+  if (a.reason === "shared-files") return a.specs?.length ? "push.stoppedSharedFilesNamed" : "push.stoppedSharedFiles";
   if (a.reason === "model-at-capacity") return "push.stoppedModelAtCapacity";
   if (a.reason === "sent-back") return "push.stoppedSentBack";
   return "push.stoppedTimeout";

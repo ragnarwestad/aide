@@ -20,18 +20,11 @@ const start = (extra: Partial<ServerOptions> = {}) =>
 
 afterEach(() => harness.cleanup());
 
-async function enqueue(
-  base: string,
-  steps: string[] = ["analyze"],
-): Promise<string> {
+async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps,
-    }),
+    body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
   });
   const body = (await res.json()) as { job: { id: string } };
   return body.job.id;
@@ -44,10 +37,7 @@ describe("a phase job's page shows that phase's file", () => {
 
   const withFiles = (dir: string): void => {
     const spec = join(dir, "root", "aide", "specs", SPEC);
-    writeFileSync(
-      join(spec, "2-analysis.md"),
-      "# Q - Analysis\n\n## Findings\n\nSeven files.\n",
-    );
+    writeFileSync(join(spec, "2-analysis.md"), "# Q - Analysis\n\n## Findings\n\nSeven files.\n");
     writeFileSync(
       join(spec, "3-solution.md"),
       "# Q - Solution\n\n## Plan review\n\nOne must-fix.\n\n## Risk analysis\n\nMedium.\n",
@@ -90,15 +80,7 @@ describe("POST the Update action", () => {
       redirect: "manual",
       body: "",
     });
-    return {
-      status: res.status,
-      body: (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        note?: string;
-        changed?: boolean;
-      },
-    };
+    return { status: res.status, body: (await res.json()) as { ok?: boolean; error?: string; note?: string; changed?: boolean } };
   };
 
   /** A specs checkout that is clean, on its default branch and behind.
@@ -110,27 +92,18 @@ describe("POST the Update action", () => {
    *  before/after pair by one and report "already up to date".
    *  `after` is the commit the pull leaves; the one it started from
    *  means nothing moved. */
-  const pullable = (
-    extra: Record<string, { code: number; stdout?: string }> = {},
-    after = "7b1e004",
-  ) => {
+  const pullable = (extra: Record<string, { code: number; stdout?: string }> = {}, after = "7b1e004") => {
     const headCallsByDir = new Map<string, number>();
     const answers: Record<string, { code: number; stdout?: string }> = {
       "rev-parse --show-toplevel": { code: 0, stdout: "/host/aide-specs\n" },
       "diff --quiet HEAD": { code: 0 },
       "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
-      "symbolic-ref --quiet refs/remotes/origin/HEAD": {
-        code: 0,
-        stdout: "refs/remotes/origin/main\n",
-      },
+      "symbolic-ref --quiet refs/remotes/origin/HEAD": { code: 0, stdout: "refs/remotes/origin/main\n" },
       fetch: { code: 0 },
       "merge-base --is-ancestor": { code: 0 },
       "merge -q --ff-only origin/": { code: 0 },
       "merge -q --ff-only": { code: 0 },
-      "log -1 --format=%H": {
-        code: 0,
-        stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n",
-      },
+      "log -1 --format=%H": { code: 0, stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n" },
       ...extra,
     };
     return async (dir: string, args: string[]) => {
@@ -141,8 +114,7 @@ describe("POST the Update action", () => {
         return { code: 0, stdout: `${seen === 0 ? "a3f9c21" : after}\n` };
       }
       for (const [prefix, answer] of Object.entries(answers)) {
-        if (line.startsWith(prefix))
-          return { code: answer.code, stdout: answer.stdout ?? "" };
+        if (line.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
       }
       return { code: 1, stdout: "" };
     };
@@ -166,31 +138,14 @@ describe("POST the Update action", () => {
   });
 
   for (const [what, extra, expected] of [
-    [
-      "uncommitted changes",
-      { "diff --quiet HEAD": { code: 1 } },
-      "uncommitted",
-    ],
+    ["uncommitted changes", { "diff --quiet HEAD": { code: 1 } }, "uncommitted"],
     [
       "a checkout on another branch",
-      {
-        "rev-parse --abbrev-ref HEAD": {
-          code: 0,
-          stdout: "aide/150-one-page\n",
-        },
-      },
+      { "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/150-one-page\n" } },
       "aide/150-one-page",
     ],
-    [
-      "a checkout that has diverged",
-      { "merge-base --is-ancestor": { code: 1 } },
-      "fast-forward",
-    ],
-    [
-      "a directory that is not a git tree",
-      { "rev-parse --show-toplevel": { code: 128 } },
-      "git working tree",
-    ],
+    ["a checkout that has diverged", { "merge-base --is-ancestor": { code: 1 } }, "fast-forward"],
+    ["a directory that is not a git tree", { "rev-parse --show-toplevel": { code: 128 } }, "git working tree"],
   ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
     test(`${what} changes nothing and says which one applied`, async () => {
       const { base } = start({ gitRun: pullable(extra) });
@@ -202,14 +157,11 @@ describe("POST the Update action", () => {
 
   test("a spec nobody has cannot be pulled for", async () => {
     const { base } = start({ gitRun: pullable() });
-    const res = await fetch(
-      `${base}/api/queue/specs/aide/99-no-such-spec/update`,
-      {
-        method: "POST",
-        headers: {},
-        redirect: "manual",
-      },
-    );
+    const res = await fetch(`${base}/api/queue/specs/aide/99-no-such-spec/update`, {
+      method: "POST",
+      headers: {},
+      redirect: "manual",
+    });
     expect(res.status).toBe(404);
   });
 
@@ -238,10 +190,7 @@ describe("POST the Update action", () => {
 describe("a running implement's TDD phase reaches the page", () => {
   const seedRunning = (dir: string, id: string, sessionId: string): string => {
     const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<
-      string,
-      unknown
-    >[];
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
     const job = jobs.find((j) => j.id === id)!;
     job.state = "running";
     job.startedAt = "2026-08-23T10:00:00Z";
@@ -254,12 +203,7 @@ describe("a running implement's TDD phase reaches the page", () => {
     fetch(`${base}/api/aide-run`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        host: "laptop",
-        sessionId,
-        command: "implement",
-        phase,
-      }),
+      body: JSON.stringify({ host: "laptop", sessionId, command: "implement", phase }),
     });
 
   // The fetch happens IMMEDIATELY

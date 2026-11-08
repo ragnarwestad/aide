@@ -18,22 +18,15 @@ export interface SortColumns {
 
 /** The sort and direction the address asks for: an unknown sort is the
  *  fallback column, an unknown direction that column's first. */
-export function resolveSort(
-  cols: SortColumns,
-  f: { sort?: string; dir?: string },
-): { sort: string; dir: SortDir } {
+export function resolveSort(cols: SortColumns, f: { sort?: string; dir?: string }): { sort: string; dir: SortDir } {
   const sort = cols.keys.includes(f.sort ?? "") ? f.sort! : cols.fallback;
-  const dir =
-    f.dir === "asc" || f.dir === "desc" ? f.dir : cols.firstDir[sort]!;
+  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : cols.firstDir[sort]!;
   return { sort, dir };
 }
 
 /** `path` with every key that has a value as a query, in the order given.
  *  UNESCAPED: the caller writing it into markup escapes it. */
-export function queryHref(
-  path: string,
-  keys: Record<string, string | undefined>,
-): string {
+export function queryHref(path: string, keys: Record<string, string | undefined>): string {
   const q = Object.entries(keys)
     .filter(([, v]) => v)
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
@@ -56,16 +49,8 @@ export function sortHeading(
   const first = cols.firstDir[key]!;
   // Clicking the column you are already sorted by turns it round.
   const next = on ? (now.dir === "asc" ? "desc" : "asc") : first;
-  const linkCls = on
-    ? now.dir === "asc"
-      ? "sortlink on asc"
-      : "sortlink on"
-    : first === "asc"
-      ? "sortlink asc"
-      : "sortlink";
-  const aria = on
-    ? ` aria-sort="${now.dir === "asc" ? "ascending" : "descending"}"`
-    : "";
+  const linkCls = on ? (now.dir === "asc" ? "sortlink on asc" : "sortlink on") : first === "asc" ? "sortlink asc" : "sortlink";
+  const aria = on ? ` aria-sort="${now.dir === "asc" ? "ascending" : "descending"}"` : "";
   return (
     `<th${aria}><a class="${linkCls}" href="${esc(href(key, next === first ? "" : next))}">` +
     `${esc(label)}${ICON_CHEVRON}</a></th>`

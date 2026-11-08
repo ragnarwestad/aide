@@ -16,21 +16,14 @@ export interface FailingTests {
 const NONE: FailingTests = { tests: [], files: [], errors: [] };
 
 const strings = (v: unknown): string[] | undefined =>
-  Array.isArray(v) && v.every((s) => typeof s === "string")
-    ? (v as string[])
-    : undefined;
-const count = (v: unknown): number | undefined =>
-  typeof v === "number" && Number.isFinite(v) ? v : undefined;
+  Array.isArray(v) && v.every((s) => typeof s === "string") ? (v as string[]) : undefined;
+const count = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
 
 /** The `failingTests` on the recorder's answer, its last JSON line on
  *  stdout. None named when there is no such line: a recorder that was
  *  stopped, or one installed before it named them. */
 export function recordedFailures(stdout: string): FailingTests {
-  const line = stdout
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.startsWith('{"ok":'))
-    .at(-1);
+  const line = stdout.split("\n").map((l) => l.trim()).filter((l) => l.startsWith('{"ok":')).at(-1);
   if (!line) return NONE;
   let raw: unknown;
   try {
@@ -55,10 +48,7 @@ export function recordedFailures(stdout: string): FailingTests {
 }
 
 /** True when the second run failed a test the first did not. */
-export function variedBetween(
-  before: readonly string[],
-  after: readonly string[],
-): boolean {
+export function variedBetween(before: readonly string[], after: readonly string[]): boolean {
   const was = new Set(before);
   return after.some((t) => !was.has(t));
 }

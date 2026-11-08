@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  renderSpecsRows,
-  type QueueRowView,
-  type SpecTarget,
-} from "../../../../../src/render";
+import { renderSpecsRows, type QueueRowView, type SpecTarget } from "../../../../../src/render";
 import { roundOffered } from "../../../../../src/render/pages/specs-list/row-state.ts";
 import type { SpecGroup } from "../../../../../src/render/pages/specs-list";
 import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../../src/project/parse-status";
@@ -31,23 +27,15 @@ describe("a round under way silences the held-back marks", () => {
   });
 
   const notice = (list: QueueRowView[]) =>
-    renderSpecsRows(list, { runnerAvailable: true, targets: [target()] }).match(
-      new RegExp(
-        `<tr class="specnotice"[^>]*data-folder="${FOLDER}">[\\s\\S]*?</tr>`,
-      ),
-    )?.[0] ?? "";
+    renderSpecsRows(list, { runnerAvailable: true, targets: [target()] })
+      .match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${FOLDER}">[\\s\\S]*?</tr>`))?.[0] ?? "";
 
   const HOLD = "Acceptance criteria are not all ticked";
   const LINK = "Click the link to start a test server running this branch";
 
   test("neither the hold nor the test-server link is drawn while analyze runs", () => {
     const html = notice([
-      row({
-        specFolder: FOLDER,
-        steps: ["analyze", "implement", "archive"],
-        stepIndex: 0,
-        state: "running",
-      }),
+      row({ specFolder: FOLDER, steps: ["analyze", "implement", "archive"], stepIndex: 0, state: "running" }),
     ]);
     expect(html).not.toContain(HOLD);
     expect(html).not.toContain(LINK);
@@ -55,12 +43,7 @@ describe("a round under way silences the held-back marks", () => {
 
   test("nor while implement runs, with archive still ahead of it", () => {
     const html = notice([
-      row({
-        specFolder: FOLDER,
-        steps: ["analyze", "implement", "archive"],
-        stepIndex: 1,
-        state: "running",
-      }),
+      row({ specFolder: FOLDER, steps: ["analyze", "implement", "archive"], stepIndex: 1, state: "running" }),
     ]);
     expect(html).not.toContain(HOLD);
     expect(html).not.toContain(LINK);
@@ -73,14 +56,7 @@ describe("a round under way silences the held-back marks", () => {
   // Archive pressed and waiting its turn: the hold stays until the run
   // rewrites it, but the link goes, since that run will move the branch.
   test("a job queued for archive alone keeps the hold, not the link", () => {
-    const html = notice([
-      row({
-        specFolder: FOLDER,
-        steps: ["archive"],
-        stepIndex: 0,
-        state: "queued",
-      }),
-    ]);
+    const html = notice([row({ specFolder: FOLDER, steps: ["archive"], stepIndex: 0, state: "queued" })]);
     expect(html).toContain(HOLD);
     expect(html).not.toContain(LINK);
   });
@@ -89,26 +65,14 @@ describe("a round under way silences the held-back marks", () => {
   // done, archive is the step it is waiting on.
   test("a bundled job already past implement keeps the hold, not the link", () => {
     const html = notice([
-      row({
-        specFolder: FOLDER,
-        steps: ["analyze", "implement", "archive"],
-        stepIndex: 2,
-        state: "queued",
-      }),
+      row({ specFolder: FOLDER, steps: ["analyze", "implement", "archive"], stepIndex: 2, state: "queued" }),
     ]);
     expect(html).toContain(HOLD);
     expect(html).not.toContain(LINK);
   });
 
   test("an idle row is untouched", () => {
-    const html = notice([
-      row({
-        specFolder: FOLDER,
-        steps: ["archive"],
-        stepIndex: 0,
-        state: "done",
-      }),
-    ]);
+    const html = notice([row({ specFolder: FOLDER, steps: ["archive"], stepIndex: 0, state: "done" })]);
     expect(html).toContain(HOLD);
     expect(html).toContain(LINK);
   });
@@ -128,12 +92,7 @@ describe("a spec whose criteria have all been ticked since archive refused", () 
     state: "done",
     results: [
       { step: "implement", ok: true, costUsd: 1, terminalReason: "completed" },
-      {
-        step: "archive",
-        ok: true,
-        costUsd: 0,
-        terminalReason: "acceptance-criteria-unticked",
-      },
+      { step: "archive", ok: true, costUsd: 0, terminalReason: "acceptance-criteria-unticked" },
     ],
   });
   const target: SpecTarget = {
@@ -156,9 +115,7 @@ describe("a spec whose criteria have all been ticked since archive refused", () 
 
   test("offers archive, not another round of analyze and implement", () => {
     const box = (step: string) =>
-      html.match(
-        new RegExp(`<input type="checkbox"[^>]*value="${step}"[^>]*>`),
-      )?.[0] ?? "";
+      html.match(new RegExp(`<input type="checkbox"[^>]*value="${step}"[^>]*>`))?.[0] ?? "";
     expect(box("archive")).toContain("checked");
     expect(box("archive")).not.toContain("disabled");
     // Implement reads as the phase behind it, not as a round to run
@@ -172,28 +129,15 @@ describe("a reopened spec at implemented, with every row ticked", () => {
   const FOLDER = "511-reopened";
   const done = ["create", "analyze", "implement"];
   const boxes = (target: SpecTarget) => {
-    const idle = row({
-      specFolder: FOLDER,
-      steps: ["implement"],
-      stepIndex: 0,
-      state: "done",
-    });
+    const idle = row({ specFolder: FOLDER, steps: ["implement"], stepIndex: 0, state: "done" });
     const html = renderSpecsRows([idle], {
       runnerAvailable: true,
       targets: [target],
       filter: { open: openKeys([idle], [target]) },
     });
-    return (step: string) =>
-      html.match(
-        new RegExp(`<input type="checkbox"[^>]*value="${step}"[^>]*>`),
-      )?.[0] ?? "";
+    return (step: string) => html.match(new RegExp(`<input type="checkbox"[^>]*value="${step}"[^>]*>`))?.[0] ?? "";
   };
-  const base: SpecTarget = {
-    project: "aide",
-    specFolder: FOLDER,
-    done,
-    acceptanceOpen: false,
-  };
+  const base: SpecTarget = { project: "aide", specFolder: FOLDER, done, acceptanceOpen: false };
 
   test("offers Analyze and Implement unticked beside the ticked Archive", () => {
     const box = boxes({ ...base, reopenedRound: true });
@@ -211,17 +155,11 @@ describe("a reopened spec at implemented, with every row ticked", () => {
 
   test("a spec reopened with reset, later declined on archive, offers none of it", () => {
     // `reopenedRound` is false for it: a Reopened mark follows the stamp.
-    expect(boxes({ ...base, reopenedRound: false })("implement")).not.toContain(
-      "checked",
-    );
+    expect(boxes({ ...base, reopenedRound: false })("implement")).not.toContain("checked");
   });
 
   test("a reopened spec that is only at analyzed is not offered another round", () => {
-    const g = {
-      done: ["create", "analyze"],
-      reopenedRound: true,
-      phases: [],
-    } as unknown as SpecGroup;
+    const g = { done: ["create", "analyze"], reopenedRound: true, phases: [] } as unknown as SpecGroup;
     expect(roundOffered(g)).toBe(false);
   });
 });

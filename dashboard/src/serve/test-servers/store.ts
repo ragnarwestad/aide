@@ -3,13 +3,7 @@
 // is (`src/queue/persist.ts`'s own shape) — loaded once at construction,
 // kept in memory, written back on every change.
 
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 // Named `status`, never `state` (which a repo-wide guard, in
@@ -62,9 +56,7 @@ function parseTestServers(raw: unknown): Record<string, TestServer> {
       typeof v.wrapperPid !== "number" ||
       typeof v.workDir !== "string" ||
       typeof v.logPath !== "string" ||
-      (v.status !== "starting" &&
-        v.status !== "running" &&
-        v.status !== "failed") ||
+      (v.status !== "starting" && v.status !== "running" && v.status !== "failed") ||
       typeof v.startedAt !== "string"
     ) {
       continue;
@@ -121,11 +113,7 @@ export class TestServerStore {
   listAll(): { project: string; specFolder: string; entry: TestServer }[] {
     return Object.entries(this.entries).map(([key, entry]) => {
       const slash = key.indexOf("/");
-      return {
-        project: key.slice(0, slash),
-        specFolder: key.slice(slash + 1),
-        entry,
-      };
+      return { project: key.slice(0, slash), specFolder: key.slice(slash + 1), entry };
     });
   }
 

@@ -63,13 +63,7 @@ export const LS_REMOTE_NO_MATCH = 2;
 /** Ask origin — not a local remote-tracking ref — whether it still has
  *  this branch. */
 export function lsRemoteBranch(branch: string): string[] {
-  return [
-    "ls-remote",
-    "--exit-code",
-    "--heads",
-    "origin",
-    `refs/heads/${branch}`,
-  ];
+  return ["ls-remote", "--exit-code", "--heads", "origin", `refs/heads/${branch}`];
 }
 
 /** The same question about EVERY spec branch at once, which
@@ -113,11 +107,7 @@ export function createGitRunner(timeoutMs = DEFAULT_TIMEOUT_MS): GitRunner {
         env: { ...process.env, GIT_TERMINAL_PROMPT: "0", ...env },
       });
     } catch (e) {
-      return {
-        code: 128,
-        stdout: "",
-        stderr: `cannot run git in ${dir}: ${String(e)}`,
-      };
+      return { code: 128, stdout: "", stderr: `cannot run git in ${dir}: ${String(e)}` };
     }
     const killer = setTimeout(() => proc.kill(), callTimeoutMs ?? timeoutMs);
     try {
@@ -149,18 +139,12 @@ export class BranchStatusChecker {
   /** The drift answer, in its own map. `cache` holds a boolean and this
    *  one a number-or-null: widening the existing field's type would let
    *  either question be answered with the other's answer. */
-  private readonly driftCache = new Map<
-    string,
-    { at: number; behind: number | null }
-  >();
+  private readonly driftCache = new Map<string, { at: number; behind: number | null }>();
   /** The archived answer, in a map of its own for the same reason
    *  `driftCache` has one: a set-or-null is not a boolean, and one
    *  field holding both would let either question be answered with the
    *  other's answer. */
-  private readonly openCache = new Map<
-    string,
-    { at: number; open: Set<string> | null }
-  >();
+  private readonly openCache = new Map<string, { at: number; open: Set<string> | null }>();
   /** A cache miss used to mean "spawn ls-remote", full stop —
    *  fine while every caller asked about a distinct root, one at a time.
    *  `warmSpec` now asks about every LIVE spec's root inside one
@@ -169,10 +153,7 @@ export class BranchStatusChecker {
    *  fire N concurrent `ls-remote` calls to origin the same tick; with
    *  it, the second caller onward awaits the first's own in-flight
    *  promise instead. */
-  private readonly openInFlight = new Map<
-    string,
-    Promise<Set<string> | null>
-  >();
+  private readonly openInFlight = new Map<string, Promise<Set<string> | null>>();
 
   constructor(opts: BranchStatusOptions) {
     this.run = opts.run;
@@ -194,11 +175,7 @@ export class BranchStatusChecker {
    *  against a dependency that had not landed yet — the script's own
    *  gate then refused them, because it asks origin every time. A page
    *  wanting the cheap cached read simply leaves it out. */
-  async isMerged(
-    projectDir: string,
-    branch: string,
-    fresh = false,
-  ): Promise<boolean> {
+  async isMerged(projectDir: string, branch: string, fresh = false): Promise<boolean> {
     // JSON, not a control character: a path cannot contain an
     // unescaped quote, so the pair is still unambiguous — and the file
     // stays text. A NUL here made git classify this source file as
@@ -226,23 +203,15 @@ export class BranchStatusChecker {
         // of those as absence would take the badge and the button off
         // open work during a network blip.
         const onOrigin = await this.run(projectDir, lsRemoteBranch(branch));
-        if (onOrigin.code === LS_REMOTE_NO_MATCH)
-          return this.remember(key, at, true);
+        if (onOrigin.code === LS_REMOTE_NO_MATCH) return this.remember(key, at, true);
         // Best effort. Naming both refs explicitly still updates the
         // corresponding refs/remotes/origin/* on a normal clone, so a
         // merge done on someone else's machine is visible here without
         // fetching every branch. A failure is ignored: whatever the
         // checkout already knows is better than no answer.
-        await this.run(projectDir, [
-          "fetch",
-          "--quiet",
-          "origin",
-          base,
-          branch,
-        ]);
+        await this.run(projectDir, ["fetch", "--quiet", "origin", base, branch]);
         const ancestor = await this.run(projectDir, [
-          "merge-base",
-          "--is-ancestor",
+          "merge-base", "--is-ancestor",
           `refs/remotes/origin/${branch}`,
           `refs/remotes/origin/${base}`,
         ]);
@@ -274,33 +243,18 @@ export class BranchStatusChecker {
    *  job, and the reason is logged since nothing else would say it. Not
    *  cached — this gate always asks fresh, archived dependency or not
    */
-  async archivedOnOrigin(
-    specsRoot: string,
-    dependencyFolder: string,
-  ): Promise<boolean | null> {
+  async archivedOnOrigin(specsRoot: string, dependencyFolder: string): Promise<boolean | null> {
     const unknown = (why: string): null => {
-      console.error(
-        `queue: cannot tell whether ${dependencyFolder} is archived in ${specsRoot} — ${why}`,
-      );
+      console.error(`queue: cannot tell whether ${dependencyFolder} is archived in ${specsRoot} — ${why}`);
       return null;
     };
     try {
       const base = await this.defaultBranch(specsRoot);
       if (!base) return unknown("no default branch");
-      const fetched = await this.run(specsRoot, [
-        "fetch",
-        "--quiet",
-        "origin",
-        base,
-      ]);
-      if (fetched.code !== 0)
-        return unknown(
-          `git fetch failed: ${fetched.stdout.trim().split("\n")[0] ?? ""}`,
-        );
+      const fetched = await this.run(specsRoot, ["fetch", "--quiet", "origin", base]);
+      if (fetched.code !== 0) return unknown(`git fetch failed: ${fetched.stdout.trim().split("\n")[0] ?? ""}`);
       const found = await this.run(specsRoot, [
-        "cat-file",
-        "-e",
-        `refs/remotes/origin/${base}:./archive/${dependencyFolder}`,
+        "cat-file", "-e", `refs/remotes/origin/${base}:./archive/${dependencyFolder}`,
       ]);
       return found.code === 0;
     } catch (err) {
@@ -332,11 +286,7 @@ export class BranchStatusChecker {
    *  not wait out the TTL.
    *
    *  `reach` (the Deploy tab's own check): a fetch that fails, or any null, keeps the last answer. */
-  async commitsBehindOrigin(
-    projectDir: string,
-    fresh = false,
-    reach = false,
-  ): Promise<number | null> {
+  async commitsBehindOrigin(projectDir: string, fresh = false, reach = false): Promise<number | null> {
     const at = this.now();
     const hit = this.driftCache.get(projectDir);
     if (!fresh && hit && at - hit.at < this.ttlMs) return hit.behind;
@@ -345,24 +295,13 @@ export class BranchStatusChecker {
     try {
       const base = await this.defaultBranch(projectDir);
       if (base) {
-        const current = await this.run(projectDir, [
-          "rev-parse",
-          "--abbrev-ref",
-          "HEAD",
-        ]);
+        const current = await this.run(projectDir, ["rev-parse", "--abbrev-ref", "HEAD"]);
         if (current.code === 0 && current.stdout.trim() === base) {
           // Best effort, as it is in `isMerged` — unless `reach` asks for origin's own answer.
-          const fetched = await this.run(projectDir, [
-            "fetch",
-            "--quiet",
-            "origin",
-            base,
-          ]);
+          const fetched = await this.run(projectDir, ["fetch", "--quiet", "origin", base]);
           if (reach && fetched.code !== 0) return null;
           const count = await this.run(projectDir, [
-            "rev-list",
-            "--count",
-            `HEAD..refs/remotes/origin/${base}`,
+            "rev-list", "--count", `HEAD..refs/remotes/origin/${base}`,
           ]);
           if (count.code === 0) {
             const n = Number.parseInt(count.stdout.trim(), 10);
@@ -389,14 +328,9 @@ export class BranchStatusChecker {
    *  withheld — so the row can label how old it is rather than fall
    *  silent. A `behind` of `null` with a real `checkedAt` is the
    *  existing fail-open case: asked, unanswerable. */
-  peekDrift(projectDir: string): {
-    behind: number | null;
-    checkedAt: number | null;
-  } {
+  peekDrift(projectDir: string): { behind: number | null; checkedAt: number | null } {
     const hit = this.driftCache.get(projectDir);
-    return hit
-      ? { behind: hit.behind, checkedAt: hit.at }
-      : { behind: null, checkedAt: null };
+    return hit ? { behind: hit.behind, checkedAt: hit.at } : { behind: null, checkedAt: null };
   }
 
   /** Every `aide/*` branch origin still has in this root — the question
@@ -414,10 +348,7 @@ export class BranchStatusChecker {
    *  needs it: it asks immediately after `mergeBranchIntoDefault` has
    *  deleted the branch on origin, so an answer cached up to 30 seconds
    *  earlier would report every successful landing as unlanded. */
-  async openSpecBranches(
-    root: string,
-    fresh = false,
-  ): Promise<Set<string> | null> {
+  async openSpecBranches(root: string, fresh = false): Promise<Set<string> | null> {
     const at = this.now();
     const hit = this.openCache.get(root);
     if (!fresh && hit && at - hit.at < this.ttlMs) return hit.open;
@@ -479,14 +410,9 @@ export class BranchStatusChecker {
    *  exactly as an unanswerable one does. Past the TTL the cached set
    *  still comes back — stale, not withheld — so the archive row can
    *  label how old it is. */
-  peekOpenSpecBranches(root: string): {
-    open: Set<string> | null;
-    checkedAt: number | null;
-  } {
+  peekOpenSpecBranches(root: string): { open: Set<string> | null; checkedAt: number | null } {
     const hit = this.openCache.get(root);
-    return hit
-      ? { open: hit.open, checkedAt: hit.at }
-      : { open: null, checkedAt: null };
+    return hit ? { open: hit.open, checkedAt: hit.at } : { open: null, checkedAt: null };
   }
 
   /** Take one branch out of the cached OPEN set for `root` — the same
@@ -551,21 +477,14 @@ export class BranchStatusChecker {
    *  and the one that decides where a merge lands is not the one to get
    *  it wrong. */
   async defaultBranch(projectDir: string): Promise<string | null> {
-    const head = await this.run(projectDir, [
-      "symbolic-ref",
-      "--quiet",
-      "refs/remotes/origin/HEAD",
-    ]);
+    const head = await this.run(projectDir, ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"]);
     if (head.code === 0) {
       const name = head.stdout.trim().replace(/^refs\/remotes\/origin\//, "");
       if (name) return name;
     }
     for (const candidate of ["main", "master"]) {
       const found = await this.run(projectDir, [
-        "show-ref",
-        "--verify",
-        "--quiet",
-        `refs/remotes/origin/${candidate}`,
+        "show-ref", "--verify", "--quiet", `refs/remotes/origin/${candidate}`,
       ]);
       if (found.code === 0) return candidate;
     }
@@ -575,9 +494,6 @@ export class BranchStatusChecker {
 
 /** Where a project is checked out on this machine — the same resolution
  *  the runner already uses for the directory it runs a spec in. */
-export function projectCheckout(
-  root: string | undefined,
-  project: string,
-): string {
+export function projectCheckout(root: string | undefined, project: string): string {
   return join(root ?? "", project);
 }

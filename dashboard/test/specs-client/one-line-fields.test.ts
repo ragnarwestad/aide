@@ -2,10 +2,7 @@
 // and never hold a line break.
 import { afterEach, describe, expect, test } from "bun:test";
 import { Window } from "happy-dom";
-import {
-  bindOneLineFields,
-  foldLineBreaks,
-} from "../../src/specs-client/forms.ts";
+import { bindOneLineFields, foldLineBreaks } from "../../src/specs-client/forms.ts";
 import { oneLine } from "../../src/project/project-admin/manifest-io.ts";
 
 let win: Window | undefined;
@@ -27,8 +24,7 @@ function load(saveDisabled = false) {
   let scroll = 20;
   Object.defineProperty(field, "scrollHeight", { get: () => scroll });
   const submits: number[] = [];
-  (form as { requestSubmit: () => void }).requestSubmit = () =>
-    void submits.push(1);
+  (form as { requestSubmit: () => void }).requestSubmit = () => void submits.push(1);
   bindOneLineFields(form);
   const key = (extra: object = {}) => {
     const e = new win!.Event("keydown", { bubbles: true, cancelable: true });
@@ -36,26 +32,13 @@ function load(saveDisabled = false) {
     field.dispatchEvent(e as unknown as Event);
     return e as unknown as Event;
   };
-  return {
-    win,
-    form,
-    field,
-    submits,
-    key,
-    setScroll: (n: number) => (scroll = n),
-  };
+  return { win, form, field, submits, key, setScroll: (n: number) => (scroll = n) };
 }
 
 describe("Enter", () => {
   test("saves once, with or without a modifier, and adds no break", () => {
     const t = load();
-    for (const extra of [
-      {},
-      { shiftKey: true },
-      { ctrlKey: true },
-      { altKey: true },
-      { metaKey: true },
-    ]) {
+    for (const extra of [{}, { shiftKey: true }, { ctrlKey: true }, { altKey: true }, { metaKey: true }]) {
       expect(t.key(extra).defaultPrevented).toBe(true);
     }
     expect(t.submits).toHaveLength(5);
@@ -89,14 +72,7 @@ describe("a line break", () => {
   });
 
   test("is folded the same way in the browser and on the server", () => {
-    for (const input of [
-      "a\r\nb",
-      " a\nb ",
-      "a  \n\n  b",
-      "plain",
-      "a\rb\nc",
-      "",
-    ]) {
+    for (const input of ["a\r\nb", " a\nb ", "a  \n\n  b", "plain", "a\rb\nc", ""]) {
       expect(oneLine(input)).toBe(foldLineBreaks(input).trim());
     }
   });

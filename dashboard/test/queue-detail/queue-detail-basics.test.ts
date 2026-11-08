@@ -30,18 +30,11 @@ const start = (extra: Partial<ServerOptions> = {}) =>
 
 afterEach(() => harness.cleanup());
 
-async function enqueue(
-  base: string,
-  steps: string[] = ["analyze"],
-): Promise<string> {
+async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
     headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify({
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps,
-    }),
+    body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps }),
   });
   const body = (await res.json()) as { job: { id: string } };
   return body.job.id;
@@ -55,14 +48,7 @@ describe("GET /jobs/<id>", () => {
   test("shows what the job IS: its spec's title and its phase's file", async () => {
     const { base, dir } = start();
     writeFileSync(
-      join(
-        dir,
-        "root",
-        "aide",
-        "specs",
-        "81-queue-and-runner",
-        "3-solution.md",
-      ),
+      join(dir, "root", "aide", "specs", "81-queue-and-runner", "3-solution.md"),
       "# Q - Solution\n\n## Steps\n\nSeven files, one route.\n",
     );
     const id = await enqueue(base);
@@ -80,6 +66,7 @@ describe("GET /jobs/<id>", () => {
     const res = await fetch(`${base}/specs/no-such-job`);
     expect(res.status).toBe(404);
   });
+
 });
 
 describe("GET /api/queue/<id>", () => {
@@ -88,9 +75,7 @@ describe("GET /api/queue/<id>", () => {
     const id = await enqueue(base);
     const res = await fetch(`${base}/api/queue/${id}`);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      job: { id: string; specFolder: string; results: unknown[] };
-    };
+    const body = (await res.json()) as { job: { id: string; specFolder: string; results: unknown[] } };
     expect(body.job.id).toBe(id);
     expect(body.job.specFolder).toBe("81-queue-and-runner");
     expect(body.job.results).toEqual([]);
@@ -118,7 +103,9 @@ describe("GET /api/queue/<id>", () => {
   });
 });
 
-describe("the finished steps a job table cannot show", () => {});
+describe("the finished steps a job table cannot show", () => {
+
+});
 
 // --- A job already carrying more steps than settings --------------
 //
@@ -133,10 +120,7 @@ describe("the page resolves a step its job's tables never named", () => {
     const { base, dir } = start();
     const id = await enqueue(base, ["analyze"]);
     const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf8")) as Record<
-      string,
-      unknown
-    >[];
+    const jobs = JSON.parse(readFileSync(mirror, "utf8")) as Record<string, unknown>[];
     const job = jobs.find((j) => j.id === id)!;
     // Ticked on afterwards: `job.steps` grows, the settings tables do not.
     job.steps = ["analyze", "implement"];

@@ -47,7 +47,6 @@ and [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) l
   for a small fix.
   **Analysed:** Aide is spec-first, with the project's own documentation carrying what lasts. What came of it: the source for "a
   flow suited to the kind of task" in `docs/ROADMAP.md`.
-
 - [Structured-Prompt-Driven Development](https://martinfowler.com/articles/structured-prompt-driven/) (Wei Zhang
   and Jessie Jie Xia, martinfowler.com) — the prompt as a versioned artifact, written in seven parts: requirements,
   entities, approach, structure, operations, norms and safeguards. When the code turns out wrong, the prompt is

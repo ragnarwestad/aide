@@ -60,17 +60,13 @@ export async function connect(base: string, query: string): Promise<Stream> {
     async next(ms = 4000) {
       for (;;) {
         const f = await frame(ms);
-        if (f === null)
-          throw new Error(
-            `no event within ${ms}ms (buffered: ${JSON.stringify(buf)})`,
-          );
+        if (f === null) throw new Error(`no event within ${ms}ms (buffered: ${JSON.stringify(buf)})`);
         if (!f.startsWith(":")) return f;
       }
     },
     async quiet(ms) {
       const f = await frame(ms);
-      if (f !== null && !f.startsWith(":"))
-        throw new Error(`an idle stream spoke: ${JSON.stringify(f)}`);
+      if (f !== null && !f.startsWith(":")) throw new Error(`an idle stream spoke: ${JSON.stringify(f)}`);
     },
     async close() {
       await reader.cancel().catch(() => {});
@@ -78,9 +74,6 @@ export async function connect(base: string, query: string): Promise<Stream> {
   };
   // The handshake comment, so the caller knows it is subscribed.
   const first = await frame(4000);
-  if (!first?.startsWith(":"))
-    throw new Error(
-      `expected the handshake comment, got: ${JSON.stringify(first)}`,
-    );
+  if (!first?.startsWith(":")) throw new Error(`expected the handshake comment, got: ${JSON.stringify(first)}`);
   return stream;
 }

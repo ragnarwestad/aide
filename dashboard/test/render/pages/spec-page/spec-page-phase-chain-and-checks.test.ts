@@ -29,25 +29,15 @@ describe("the checks block", () => {
     ...extra,
   });
 
-  const DONE = check({
-    task: "Run the full test suite",
-    line: "| Run the full test suite | ✅ | |",
-    done: true,
-  });
+  const DONE = check({ task: "Run the full test suite", line: "| Run the full test suite | ✅ | |", done: true });
   const LATER = check({
     phase: "Phase 5: SHIP",
     task: "Watch the first real run",
     line: "| Watch the first real run | ⬜ | |",
   });
 
-  const withChecks = (
-    rows = [check(), DONE],
-    extra: Partial<SpecPageView> = {},
-  ) =>
-    view({
-      checks: { rows, phase: PHASE, baseSha: "b7c40e2deadbeef" },
-      ...extra,
-    });
+  const withChecks = (rows = [check(), DONE], extra: Partial<SpecPageView> = {}) =>
+    view({ checks: { rows, phase: PHASE, baseSha: "b7c40e2deadbeef" }, ...extra });
 
   /** The checks section alone. The page has real forms on it — Update,
    *  for one — so a claim about "the form" is a claim about this
@@ -61,14 +51,9 @@ describe("the checks block", () => {
   // Running, or a landing in flight — not queued: a queued job writes
   // nothing yet, and an archive job parked on the acceptance hold-back
   // is queued precisely for this tick.
-  for (const lead_ of [
-    lead({ state: "running" }),
-    lead({ state: "done", landing: true }),
-  ]) {
+  for (const lead_ of [lead({ state: "running" }), lead({ state: "done", landing: true })]) {
     test(`a ${lead_.landing ? "landing" : lead_.state} job leaves every check visible but removes the controls`, () => {
-      const checks = section(
-        page(withChecks([check(), DONE, LATER], { lead: lead_ }), "status"),
-      );
+      const checks = section(page(withChecks([check(), DONE, LATER], { lead: lead_ }), "status"));
       expect(checks).toContain("Manual check at 375px in a real browser");
       expect(checks).toContain("Run the full test suite");
       expect(checks).not.toContain('name="tick"');
@@ -78,24 +63,14 @@ describe("the checks block", () => {
   }
 
   test("a queued job — parked, or merely waiting for a slot — leaves the controls in place", () => {
-    expect(
-      section(
-        page(
-          withChecks([check()], { lead: lead({ state: "queued" }) }),
-          "status",
-        ),
-      ),
-    ).toContain('name="tick"');
+    expect(section(page(withChecks([check()], { lead: lead({ state: "queued" }) }), "status"))).toContain(
+      'name="tick"',
+    );
   });
 
   test("a completed job does not make the checks read-only", () => {
-    expect(
-      section(
-        page(
-          withChecks([check()], { lead: lead({ state: "done" }) }),
-          "status",
-        ),
-      ),
-    ).toContain('name="tick"');
+    expect(section(page(withChecks([check()], { lead: lead({ state: "done" }) }), "status"))).toContain(
+      'name="tick"',
+    );
   });
 });

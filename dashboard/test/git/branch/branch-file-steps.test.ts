@@ -24,16 +24,13 @@ const TARGET: OpenBranchTarget = {
   archivedRelPath: `aide/specs/archive/${FOLDER}/4-status.md`,
 };
 
-const fake = (
-  answers: Record<string, { code: number; stdout?: string }>,
-): { run: GitRunner; calls: string[][] } => {
+const fake = (answers: Record<string, { code: number; stdout?: string }>): { run: GitRunner; calls: string[][] } => {
   const calls: string[][] = [];
   const run: GitRunner = async (_dir, args) => {
     calls.push(args);
     const line = args.join(" ");
     for (const [prefix, answer] of Object.entries(answers)) {
-      if (line.startsWith(prefix))
-        return { code: answer.code, stdout: answer.stdout ?? "" };
+      if (line.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
     }
     return { code: 1, stdout: "" };
   };
@@ -50,20 +47,17 @@ const JSON_PATH = TARGET.relPath.replace(/4-status\.md$/, "4-status.json");
 const branchFile = (proseSteps: string[], stateSteps?: string[]) => {
   const answers: Record<string, { code: number; stdout?: string }> = {
     "fetch --quiet origin": { code: 0 },
-    [`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${TARGET.relPath}`]:
-      {
-        code: 0,
-        stdout: "deadbeef1234\n",
-      },
+    [`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${TARGET.relPath}`]: {
+      code: 0,
+      stdout: "deadbeef1234\n",
+    },
     [`show refs/remotes/origin/${TARGET.branch}:${TARGET.relPath}`]: {
       code: 0,
       stdout: `# Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${proseSteps.join(", ")}\n`,
     },
   };
   if (stateSteps) {
-    answers[
-      `log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${JSON_PATH}`
-    ] = {
+    answers[`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${JSON_PATH}`] = {
       code: 0,
       stdout: "cafef00d1234\n",
     };
@@ -86,12 +80,7 @@ describe("BranchFileStepsChecker", () => {
     const git = fake(branchFile(["create", "analyze", "implement"]));
     const checker = new BranchFileStepsChecker({ run: git.run });
     const steps = await checker.read(DIR, FOLDER, TARGET);
-    expect(steps).toEqual({
-      proseSteps: ["create", "analyze", "implement"],
-      stateSteps: undefined,
-      acceptanceOpen: false,
-      acceptance: [],
-    });
+    expect(steps).toEqual({ proseSteps: ["create", "analyze", "implement"], stateSteps: undefined, acceptanceOpen: false, acceptance: [] });
   });
 
   // The branch half of a known class of bug: the
@@ -99,9 +88,7 @@ describe("BranchFileStepsChecker", () => {
   // its own prose — proving the state file, not the prose alone, is
   // what a caller reads once one exists on the branch.
   test("a branch whose own 4-status.json exists answers stateSteps from it", async () => {
-    const git = fake(
-      branchFile(["create", "analyze"], ["create", "analyze", "implement"]),
-    );
+    const git = fake(branchFile(["create", "analyze"], ["create", "analyze", "implement"]));
     const checker = new BranchFileStepsChecker({ run: git.run });
     const steps = await checker.read(DIR, FOLDER, TARGET);
     expect(steps).toEqual({
@@ -115,41 +102,24 @@ describe("BranchFileStepsChecker", () => {
   // A Depends on saved on a spec with an open branch is written
   // onto the branch, so the row and the hold read the branch's own line.
   test("the branch's 1-description.md answers dependsOn", async () => {
-    const descriptionPath = TARGET.relPath.replace(
-      /4-status\.md$/,
-      "1-description.md",
-    );
+    const descriptionPath = TARGET.relPath.replace(/4-status\.md$/, "1-description.md");
     const answers = branchFile(["create", "analyze"]);
-    answers[
-      `log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${descriptionPath}`
-    ] = { code: 0, stdout: "d00dfeed1234\n" };
+    answers[`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${descriptionPath}`] = { code: 0, stdout: "d00dfeed1234\n" };
     answers[`show refs/remotes/origin/${TARGET.branch}:${descriptionPath}`] = {
       code: 0,
-      stdout:
-        "# D\n\n## Tracking info\n\n- **Created:** `2026-10-12`\n- **Depends on:** `99-a-second-spec`, 88\n",
+      stdout: "# D\n\n## Tracking info\n\n- **Created:** `2026-10-12`\n- **Depends on:** `99-a-second-spec`, 88\n",
     };
     const checker = new BranchFileStepsChecker({ run: fake(answers).run });
-    expect((await checker.read(DIR, FOLDER, TARGET))?.dependsOn).toEqual([
-      "99-a-second-spec",
-      "88",
-    ]);
+    expect((await checker.read(DIR, FOLDER, TARGET))?.dependsOn).toEqual(["99-a-second-spec", "88"]);
   });
 
   test("peekFileSteps hands back the read answer, spawning no git", async () => {
     const git = fake(branchFile(["analyze"]));
-    const checker = new BranchFileStepsChecker({
-      run: git.run,
-      now: () => 1000,
-    });
+    const checker = new BranchFileStepsChecker({ run: git.run, now: () => 1000 });
     await checker.read(DIR, FOLDER, TARGET);
     const before = git.calls.length;
     const { steps, checkedAt } = checker.peekFileSteps(DIR, FOLDER);
-    expect(steps).toEqual({
-      proseSteps: ["analyze"],
-      stateSteps: undefined,
-      acceptanceOpen: false,
-      acceptance: [],
-    });
+    expect(steps).toEqual({ proseSteps: ["analyze"], stateSteps: undefined, acceptanceOpen: false, acceptance: [] });
     expect(checkedAt).toBe(1000);
     expect(git.calls.length).toBe(before);
   });
@@ -172,20 +142,14 @@ describe("BranchFileStepsChecker", () => {
   test("a spec nothing has ever asked about answers null, and spawns no git", () => {
     const git = fake(branchFile(["create"]));
     const checker = new BranchFileStepsChecker({ run: git.run });
-    expect(checker.peekFileSteps(DIR, FOLDER)).toEqual({
-      steps: null,
-      checkedAt: null,
-    });
+    expect(checker.peekFileSteps(DIR, FOLDER)).toEqual({ steps: null, checkedAt: null });
     expect(git.calls.length).toBe(0);
   });
 
   test("a second read inside the TTL window spawns no new git call", async () => {
     const git = fake(branchFile(["analyze"]));
     let clock = 0;
-    const checker = new BranchFileStepsChecker({
-      run: git.run,
-      now: () => clock,
-    });
+    const checker = new BranchFileStepsChecker({ run: git.run, now: () => clock });
     await checker.read(DIR, FOLDER, TARGET);
     const before = git.calls.length;
     await checker.read(DIR, FOLDER, TARGET);
@@ -203,10 +167,7 @@ describe("BranchFileStepsChecker", () => {
   test("a forgotten spec is asked about git again inside the TTL window", async () => {
     const git = fake(branchFile(["analyze"]));
     let clock = 0;
-    const checker = new BranchFileStepsChecker({
-      run: git.run,
-      now: () => clock,
-    });
+    const checker = new BranchFileStepsChecker({ run: git.run, now: () => clock });
     await checker.read(DIR, FOLDER, TARGET);
     const before = git.calls.length;
     checker.forget(DIR, FOLDER);
@@ -258,10 +219,7 @@ describe("BranchFileStepsChecker", () => {
 // branch is not held for the disk copy's sake.
 describe("the branch's own acceptance rows", () => {
   const withRows = (rows: { task: string; done: boolean }[]) => {
-    const answers = branchFile(
-      ["create", "analyze", "implement"],
-      ["create", "analyze", "implement"],
-    );
+    const answers = branchFile(["create", "analyze", "implement"], ["create", "analyze", "implement"]);
     answers[`show refs/remotes/origin/${TARGET.branch}:${JSON_PATH}`] = {
       code: 0,
       stdout: JSON.stringify({
@@ -276,32 +234,14 @@ describe("the branch's own acceptance rows", () => {
   };
 
   test("an open row on the branch answers acceptanceOpen", async () => {
-    const git = fake(
-      withRows([
-        { task: "REQ-1", done: true },
-        { task: "REQ-2", done: false },
-      ]),
-    );
-    const steps = await new BranchFileStepsChecker({ run: git.run }).read(
-      DIR,
-      FOLDER,
-      TARGET,
-    );
+    const git = fake(withRows([{ task: "REQ-1", done: true }, { task: "REQ-2", done: false }]));
+    const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
     expect(steps?.acceptanceOpen).toBe(true);
   });
 
   test("every row ticked on the branch answers not open, whatever disk says", async () => {
-    const git = fake(
-      withRows([
-        { task: "REQ-1", done: true },
-        { task: "REQ-2", done: true },
-      ]),
-    );
-    const steps = await new BranchFileStepsChecker({ run: git.run }).read(
-      DIR,
-      FOLDER,
-      TARGET,
-    );
+    const git = fake(withRows([{ task: "REQ-1", done: true }, { task: "REQ-2", done: true }]));
+    const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
     expect(steps?.acceptanceOpen).toBe(false);
   });
 
@@ -314,11 +254,7 @@ describe("the branch's own acceptance rows", () => {
         "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: it works | ⬜ | |\n",
     };
     const git = fake(answers);
-    const steps = await new BranchFileStepsChecker({ run: git.run }).read(
-      DIR,
-      FOLDER,
-      TARGET,
-    );
+    const steps = await new BranchFileStepsChecker({ run: git.run }).read(DIR, FOLDER, TARGET);
     expect(steps?.acceptanceOpen).toBe(true);
   });
 });
@@ -335,9 +271,7 @@ describe("the branch's acceptance rows, as text", () => {
         "## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| Write it | ✅ | |\n\n" +
         "## Acceptance criteria\n\n| Task | Status | Notes |\n|---|---|---|\n| AC-1: it folds | ⬜ | |\n",
     };
-    const steps = await new BranchFileStepsChecker({
-      run: fake(answers).run,
-    }).read(DIR, FOLDER, TARGET);
+    const steps = await new BranchFileStepsChecker({ run: fake(answers).run }).read(DIR, FOLDER, TARGET);
     expect(steps?.acceptance?.map((r) => r.task)).toEqual(["AC-1: it folds"]);
   });
 });
@@ -354,9 +288,7 @@ describe("the branch's Not verified rows", () => {
         "## Acceptance criteria\n\n| Task | Status | Notes |\n|---|---|---|\n" +
         "| AC-1: after deploy | Not verified | |\n| AC-2: also after deploy | Not verified | |\n| AC-3: done | ✅ | |\n",
     };
-    const steps = await new BranchFileStepsChecker({
-      run: fake(answers).run,
-    }).read(DIR, FOLDER, TARGET);
+    const steps = await new BranchFileStepsChecker({ run: fake(answers).run }).read(DIR, FOLDER, TARGET);
     expect(notVerifiedCount(steps?.acceptance ?? [])).toBe(2);
     expect(steps?.acceptanceOpen).toBe(false);
   });
@@ -366,34 +298,21 @@ describe("the branch's Not verified rows", () => {
 // the default branch only with archive: the rows a person ticks before
 // that were drawn with no tests under them.
 describe("the branch's record of which test covers which criterion", () => {
-  const COVERAGE_PATH = TARGET.relPath.replace(
-    /4-status\.md$/,
-    "ac-coverage.json",
-  );
+  const COVERAGE_PATH = TARGET.relPath.replace(/4-status\.md$/, "ac-coverage.json");
 
   test("is read off the branch beside 4-status.md", async () => {
     const answers = branchFile(["create", "analyze", "implement"]);
-    answers[
-      `log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${COVERAGE_PATH}`
-    ] = { code: 0, stdout: "abc123\n" };
+    answers[`log -1 --format=%H refs/remotes/origin/${TARGET.branch} -- ${COVERAGE_PATH}`] = { code: 0, stdout: "abc123\n" };
     answers[`show refs/remotes/origin/${TARGET.branch}:${COVERAGE_PATH}`] = {
       code: 0,
-      stdout: JSON.stringify({
-        acs: { "AC-1": [{ file: "t.test.ts", name: "it works (AC-1)" }] },
-      }),
+      stdout: JSON.stringify({ acs: { "AC-1": [{ file: "t.test.ts", name: "it works (AC-1)" }] } }),
     };
-    const steps = await new BranchFileStepsChecker({
-      run: fake(answers).run,
-    }).read(DIR, FOLDER, TARGET);
-    expect(steps?.acCoverage).toEqual({
-      "AC-1": [{ file: "t.test.ts", name: "it works (AC-1)" }],
-    });
+    const steps = await new BranchFileStepsChecker({ run: fake(answers).run }).read(DIR, FOLDER, TARGET);
+    expect(steps?.acCoverage).toEqual({ "AC-1": [{ file: "t.test.ts", name: "it works (AC-1)" }] });
   });
 
   test("a branch with none answers none", async () => {
-    const steps = await new BranchFileStepsChecker({
-      run: fake(branchFile(["create"])).run,
-    }).read(DIR, FOLDER, TARGET);
+    const steps = await new BranchFileStepsChecker({ run: fake(branchFile(["create"])).run }).read(DIR, FOLDER, TARGET);
     expect(steps?.acCoverage).toBeUndefined();
   });
 });

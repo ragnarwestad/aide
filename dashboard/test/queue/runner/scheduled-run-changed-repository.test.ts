@@ -43,11 +43,7 @@ const handler = () =>
 describe("a scheduled job's own commits are landed", () => {
   test("a completed run that pushed to the specs root is landed", () => {
     landed = [];
-    const outcome = {
-      ok: true,
-      terminalReason: "completed",
-      branchUrls: [{ root: "/repos/aide-specs", url: "" }],
-    };
+    const outcome = { ok: true, terminalReason: "completed", branchUrls: [{ root: "/repos/aide-specs", url: "" }] };
     handler()(job(), "schedule", outcome);
     expect(landed.length).toBe(1);
     expect(landed[0]!.outcome).toBe(outcome);
@@ -55,11 +51,7 @@ describe("a scheduled job's own commits are landed", () => {
 
   test("a completed run that pushed to the project repository is landed", () => {
     landed = [];
-    const outcome = {
-      ok: true,
-      terminalReason: "completed",
-      branchUrls: [{ root: "/repos/aide-code", url: "" }],
-    };
+    const outcome = { ok: true, terminalReason: "completed", branchUrls: [{ root: "/repos/aide-code", url: "" }] };
     handler()(job(), "schedule", outcome);
     expect(landed.length).toBe(1);
   });
@@ -73,9 +65,7 @@ describe("a scheduled job's own commits are landed", () => {
 
   test("a completed run with no branchUrls field at all is not landed", () => {
     landed = [];
-    expect(
-      handler()(job(), "schedule", { ok: true, terminalReason: "completed" }),
-    ).toBeUndefined();
+    expect(handler()(job(), "schedule", { ok: true, terminalReason: "completed" })).toBeUndefined();
     expect(landed.length).toBe(0);
   });
 });

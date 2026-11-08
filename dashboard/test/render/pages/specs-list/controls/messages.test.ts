@@ -6,7 +6,12 @@ import {
   type QueueRowView,
   type SpecTarget,
 } from "../../../../../src/render";
-import { NAV, detail, row, openKeys } from "../../fixtures.ts";
+import {
+  NAV,
+  detail,
+  row,
+  openKeys,
+} from "../../fixtures.ts";
 
 // --- A row's long message gets a panel, not the State column -------
 //
@@ -19,10 +24,7 @@ import { NAV, detail, row, openKeys } from "../../fixtures.ts";
 // own, under the head row, once.
 
 describe("a long message gets a panel row of its own", () => {
-  const target = (
-    specFolder: string,
-    extra: Partial<SpecTarget> = {},
-  ): SpecTarget => ({
+  const target = (specFolder: string, extra: Partial<SpecTarget> = {}): SpecTarget => ({
     project: "aide",
     specFolder,
     ...extra,
@@ -47,9 +49,7 @@ describe("a long message gets a panel row of its own", () => {
    *  lines. The duplication this spec removes is only visible across
    *  all three at once, which is why no existing helper caught it. */
   const wholeRow = (html: string) =>
-    html.match(
-      /<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/,
-    )?.[0] ?? "";
+    html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
   const panel = (html: string) =>
     html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const BUILT = ["analyze", "implement"];
@@ -63,12 +63,7 @@ describe("a long message gets a panel row of its own", () => {
     for (const state of ["running", "queued"] as const) {
       const html = rows(
         [
-          row({
-            id: "retry",
-            specFolder: "141-says-what",
-            steps: ["archive"],
-            state,
-          }),
+          row({ id: "retry", specFolder: "141-says-what", steps: ["archive"], state }),
           row({
             id: "old",
             specFolder: "141-says-what",
@@ -77,12 +72,7 @@ describe("a long message gets a panel row of its own", () => {
             error: "the specs tree is dirty: /Users/ragnar/develop/aide-specs",
           }),
         ],
-        [
-          target("141-says-what", {
-            done: BUILT,
-            archiveHeldBack: { reason: REASON },
-          }),
-        ],
+        [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
       );
       expect(panel(html)).toBe("");
       expect(wholeRow(html)).not.toContain("hand ticks survive");
@@ -91,20 +81,10 @@ describe("a long message gets a panel row of its own", () => {
   });
 
   test("a stopped side model's part, model and reason reach the row unchanged (AC-6)", () => {
-    const error =
-      "Verify on gpt-6.1-sol could not run: the model is at capacity";
-    const html = rows(
-      [
-        row({
-          id: "failed",
-          specFolder: "714-side-model",
-          steps: ["implement"],
-          state: "failed",
-          error,
-        }),
-      ],
-      [target("714-side-model")],
-    );
+    const error = "Verify on gpt-6.1-sol could not run: the model is at capacity";
+    const html = rows([
+      row({ id: "failed", specFolder: "714-side-model", steps: ["implement"], state: "failed", error }),
+    ], [target("714-side-model")]);
     expect(panel(html)).toContain(error);
   });
 });
@@ -128,12 +108,8 @@ describe("the held-back note belongs to the archive row alone", () => {
         steps: ["implement"],
         results: [
           {
-            step: "implement",
-            ok: true,
-            costUsd: 0.1,
-            costMeasured: true,
-            terminalReason: "completed",
-            at: "2026-08-20T10:01:00Z",
+            step: "implement", ok: true, costUsd: 0.1, costMeasured: true,
+            terminalReason: "completed", at: "2026-08-20T10:01:00Z",
           },
         ],
         archiveHeldBack: "the Slack webhook (Phase 4, still unchecked)",

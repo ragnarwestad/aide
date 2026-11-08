@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { retryDecision } from "../../../src/queue/runner/retry.ts";
+import { retryDecision } from "../../../../src/queue/runner/retry.ts";
 
 describe("retryDecision", () => {
   test("retries vanished runs and eligible provider failures once (AC-1, AC-3, AC-10)", () => {

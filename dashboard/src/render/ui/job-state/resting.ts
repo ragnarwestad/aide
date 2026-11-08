@@ -7,25 +7,9 @@ import { capitalizeFirst } from "../../../format/error-sentence.ts";
 import { BADGE_VARIANT, currentStep } from "./format.ts";
 import { heldBackResolvesOnItsOwn } from "./notice.ts";
 import type { QueueRowView } from "./types.ts";
-import {
-  GERUND_EN,
-  GERUND_NB,
-  GERUND_ES,
-  GERUND_DE,
-  GERUND_FR,
-  gerund,
-  landingStepIndex,
-} from "../../../format/gerund.ts";
+import { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingStepIndex } from "../../../format/gerund.ts";
 
-export {
-  GERUND_EN,
-  GERUND_NB,
-  GERUND_ES,
-  GERUND_DE,
-  GERUND_FR,
-  gerund,
-  landingStepIndex,
-};
+export { GERUND_EN, GERUND_NB, GERUND_ES, GERUND_DE, GERUND_FR, gerund, landingStepIndex };
 
 /** What the badge says when nothing is running: the resting state and
  *  what can happen next, in one sentence. Handed in rather than worked
@@ -75,25 +59,20 @@ export interface RestingState {
 // the same `readyPhase` names both, so they cannot disagree — and
 // "nothing waiting on you" said nothing "done" does not. The colour
 // still tells the two apart at a glance.
-export function restingChip(
-  lang: Language,
-  resting: RestingState = {},
-): string {
+export function restingChip(lang: Language, resting: RestingState = {}): string {
   // Two reasons share this one field (spec-lookup.ts): a dependency
   // still open is genuinely waiting on something outside this spec,
   // but unticked Acceptance criteria are this spec's own next step —
   // exactly what "ready" already means everywhere else on this badge,
   // so it reads that way here too. The notice panel below still says
   // which of the two it is, in full.
-  if (resting.archiveHeldBack === ACCEPTANCE_CRITERIA_UNTICKED_NOTE)
-    return badge("ready", t(lang, "list.ready"));
+  if (resting.archiveHeldBack === ACCEPTANCE_CRITERIA_UNTICKED_NOTE) return badge("ready", t(lang, "list.ready"));
   // The same word every other stop the SYSTEM made gets (2026-09-08):
   // the badge says the state, and why it stopped is the sentence on the
   // row's own notice line, where the held-back reason already is in
   // full. "archive held back" said the phase as well, which the button
   // beside it already names.
-  if (resting.archiveHeldBack)
-    return badge("waiting", capitalizeFirst(t(lang, "state.stopped")));
+  if (resting.archiveHeldBack) return badge("waiting", capitalizeFirst(t(lang, "state.stopped")));
   if (resting.readyPhase) return badge("ready", t(lang, "list.ready"));
   return badge("done", t(lang, "list.done"));
 }
@@ -101,27 +80,16 @@ export function restingChip(
 /** The step a landing belongs to: the one that just finished. A job in
  *  `done` still points at it; one that has already stepped on to its
  *  next step points one past it. */
-export function landingStep(r: {
-  steps: readonly string[];
-  stepIndex: number;
-  state: QueueRowView["state"];
-}): string {
+export function landingStep(r: { steps: readonly string[]; stepIndex: number; state: QueueRowView["state"] }): string {
   return r.steps[landingStepIndex(r.state, r.stepIndex)] ?? currentStep(r);
 }
 
 /** "Held back", neutral when the hold clears on its own and amber when it waits on a person. */
 function heldBackBadge(r: QueueRowView, lang: Language): string {
-  return badge(
-    heldBackResolvesOnItsOwn(r) ? "idle" : "waiting",
-    capitalizeFirst(t(lang, "state.heldBack")),
-  );
+  return badge(heldBackResolvesOnItsOwn(r) ? "idle" : "waiting", capitalizeFirst(t(lang, "state.heldBack")));
 }
 
-export function specStateChip(
-  r: QueueRowView,
-  lang: Language,
-  resting: RestingState = {},
-): string {
+export function specStateChip(r: QueueRowView, lang: Language, resting: RestingState = {}): string {
   if (r.state === "running") {
     // A running job whose reason is a hold waits as a held-back one does: a
     // deploy's fetch or restart waiting for a landing to settle.
@@ -173,3 +141,4 @@ export function specStateChip(
   // (`job-page.ts`, which this does not change).
   return badge(BADGE_VARIANT[r.state], capitalizeFirst(r.state));
 }
+

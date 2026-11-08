@@ -9,8 +9,6 @@ import { heldBackReasonText } from "../../../../src/render/ui/job-state/notice.t
 
 describe("the acceptance-criteria hold-back reads in the reader's language", () => {
   test("a reason an archive run wrote is shown as written", () => {
-    expect(
-      heldBackReasonText("nb", "depends on 12, which is not archived yet"),
-    ).toBe("depends on 12, which is not archived yet");
+    expect(heldBackReasonText("nb", "depends on 12, which is not archived yet")).toBe("depends on 12, which is not archived yet");
   });
 });

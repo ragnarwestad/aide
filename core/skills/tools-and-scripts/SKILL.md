@@ -54,15 +54,15 @@ say whether that file passed alone; without the key it makes no instability clai
 when set; otherwise detect them from what the project ships — never assume
 a toolchain:
 
-| Found in the project root | Toolchain | Typical commands                  |
-| ------------------------- | --------- | --------------------------------- |
-| `pnpm-lock.yaml`          | pnpm      | `pnpm run lint`, `pnpm run build` |
-| `package-lock.json`       | npm       | `npm run lint`, `npm run build`   |
-| `yarn.lock`               | yarn      | `yarn lint`, `yarn build`         |
-| `gradlew`                 | Gradle    | `./gradlew build`                 |
-| `pom.xml`                 | Maven     | `mvn verify`                      |
-| `go.mod`                  | Go        | `go build ./...`                  |
-| `Cargo.toml`              | Cargo     | `cargo build`                     |
+| Found in the project root       | Toolchain | Typical commands                        |
+|---------------------------------|-----------|-----------------------------------------|
+| `pnpm-lock.yaml`                | pnpm      | `pnpm run lint`, `pnpm run build`       |
+| `package-lock.json`             | npm       | `npm run lint`, `npm run build`         |
+| `yarn.lock`                     | yarn      | `yarn lint`, `yarn build`               |
+| `gradlew`                       | Gradle    | `./gradlew build`                       |
+| `pom.xml`                       | Maven     | `mvn verify`                            |
+| `go.mod`                        | Go        | `go build ./...`                        |
+| `Cargo.toml`                    | Cargo     | `cargo build`                           |
 
 For JS/TS projects, read `package.json` `scripts` for the exact names — the
 table's commands are the usual defaults, not a promise. Test runners must run
@@ -81,11 +81,11 @@ in single-run mode, never watch mode (see the testing rules).
 Optional file in the project root: `.aide/config`, plain `KEY=value` lines
 with `#` comments. Recognized keys:
 
-| Key                | Purpose                                                                                                          |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `AIDE_LINT_CMD`    | Overrides the detected lint command                                                                              |
-| `AIDE_BUILD_CMD`   | Overrides the detected build command                                                                             |
-| `AIDE_INSTALL_CMD` | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged |
+| Key                   | Purpose                                                                                                          |
+|-----------------------|------------------------------------------------------------------------------------------------------------------|
+| `AIDE_LINT_CMD`       | Overrides the detected lint command                                                                              |
+| `AIDE_BUILD_CMD`      | Overrides the detected build command                                                                             |
+| `AIDE_INSTALL_CMD`    | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged |
 
 The worktree links live in the project's **manifest**, not here:
 

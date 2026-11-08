@@ -10,64 +10,32 @@
 // separate theme, split out to schedules/blocked.ts; `tickRunner` below
 // is where the two meet.
 
-import {
-  specBranch,
-  type BranchStatusChecker,
-} from "../../git/branch-status.ts";
+import { specBranch, type BranchStatusChecker } from "../../git/branch-status.ts";
 import type {
-  DescriptionFreshnessChecker,
-  SpecCreatedAtChecker,
-  SpecFileCommitChecker,
+  DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
 } from "../../git/description-freshness.ts";
-import type {
-  WorkflowHistoryChecker,
-  BranchFileStepsChecker,
-} from "../../git/workflow-history.ts";
+import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import { resolveOpenBranchTarget } from "../../git/branch-file.ts";
-import {
-  askPullRequest,
-  type GhRunner,
-  type PullRequestAnswer,
-} from "../../integrations/pull-requests.ts";
+import { askPullRequest, type GhRunner, type PullRequestAnswer } from "../../integrations/pull-requests.ts";
 import type { DashboardCheckout } from "../../git/dashboard-checkout.ts";
 import type { CheckoutEnsurer } from "../../git/checkout-ensurer.ts";
 import {
-  SPEC_FILES,
-  buildProjectViews,
-  manifestInside,
-  type CodeLanding,
+  SPEC_FILES, buildProjectViews, manifestInside, type CodeLanding,
 } from "../../project/discover";
-import {
-  isDue,
-  mostRecentFireTime,
-  scheduleTrackingKey,
-  type ScheduleJobRef,
-} from "../../queue/schedule.ts";
+import { isDue, mostRecentFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../queue/schedule.ts";
 import type { Job, QueueStore } from "../../queue/queue.ts";
 import { resolveStepProvider } from "../../queue/providers/index.ts";
-import {
-  restartAfterUsageLimit,
-  usageLimitHolds,
-} from "../../queue/runner/usage-limit.ts";
+import { restartAfterUsageLimit, usageLimitHolds } from "../../queue/runner/usage-limit.ts";
 import { switchedOffHolds } from "../../queue/runner/switched-off.ts";
 import type { Runner } from "../../queue/runner";
 import type { CheckableTool, SpecTarget } from "../../render";
 import { STATUS_SPEC_FILE } from "../../render";
-import {
-  archiveWithOpenAcceptance,
-  blockedDependencies,
-  fixedSentenceHolds,
-} from "./blocked.ts";
+import { archiveWithOpenAcceptance, blockedDependencies, fixedSentenceHolds } from "./blocked.ts";
 import { stepTool } from "../serve-helpers/runner-argv.ts";
 import { logRefusal } from "../serve-helpers";
 import type { ScheduleStore } from "../../queue/schedule-store.ts";
 
-export {
-  archiveWithOpenAcceptance,
-  blockedDependencies,
-  blockedForMissingAnalyze,
-  fixedSentenceHolds,
-} from "./blocked.ts";
+export { archiveWithOpenAcceptance, blockedDependencies, blockedForMissingAnalyze, fixedSentenceHolds } from "./blocked.ts";
 
 /** Everything the schedules read off `createServer`'s closure, bundled
  *  the same way the earlier extractions' contexts are. `readScan` is
@@ -140,11 +108,7 @@ export interface ScheduleContext {
 export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
   if (!ctx.projectRoot) return;
   await Promise.all(
-    buildProjectViews(
-      ctx.projectRoot,
-      undefined,
-      manifestInside(ctx.machineryProjectDir),
-    ).map(async (p) => {
+    buildProjectViews(ctx.projectRoot, undefined, manifestInside(ctx.machineryProjectDir)).map(async (p) => {
       const root = ctx.machineryProjectDir(p.name);
       // Each call try/catches internally and degrades to null, so one
       // project's unreachable origin never takes the others with it.
@@ -174,20 +138,12 @@ export async function warmSpec(
   // `setInterval` callback (no caller to catch it) requires. `null` is
   // this checker's own "no open branch" answer, so a throwing `gitRun`
   // reads exactly like a spec with none.
-  const target = resolveOpenBranchTarget(
-    ctx,
-    dir,
-    t.specFolder,
-    STATUS_SPEC_FILE,
-    false,
-  ).catch(() => null);
+  const target = resolveOpenBranchTarget(ctx, dir, t.specFolder, STATUS_SPEC_FILE, false).catch(() => null);
   await Promise.all([
     ctx.readWorkflowHistory().read(dir, t.specFolder, t.reopenedAfter),
     ctx.readFreshness().isStale(dir, t.specFolder, t.reopenedAfter),
     ctx.readSpecCreatedAt().createdAt(dir, t.specFolder),
-    target.then((tgt) =>
-      ctx.readBranchFileSteps().read(dir, t.specFolder, tgt),
-    ),
+    target.then((tgt) => ctx.readBranchFileSteps().read(dir, t.specFolder, tgt)),
     ...SPEC_FILES.map((file) => ctx.readSpecFileCommits().commitFor(dir, file)),
   ]);
 }
@@ -210,22 +166,14 @@ export async function rereadSpec(
     warmSpec(ctx, { dir, specFolder, reopenedAfter: t?.reopenedAfter }),
     // Only for a step that has just ended: implement's push is what makes the branch exist. A criteria save
     // calls this too and must not wait on origin.
-    opts.askOrigin && t
-      ? ctx.branchStatus.openSpecBranches(
-          ctx.machineryProjectDir(t.project),
-          true,
-        )
-      : undefined,
+    opts.askOrigin && t ? ctx.branchStatus.openSpecBranches(ctx.machineryProjectDir(t.project), true) : undefined,
   ]);
   ctx.notifyQueueChanged();
 }
 
 /** Every live spec of one project read again now, after a fetch brought in what another machine pushed, and the
  *  page told once. Marked stale first: an answer younger than its window is otherwise handed back as it was. */
-export async function rereadProject(
-  ctx: ScheduleContext,
-  project: string,
-): Promise<void> {
+export async function rereadProject(ctx: ScheduleContext, project: string): Promise<void> {
   const live = ctx.targets().filter((t) => t.project === project);
   for (const t of live) {
     if (!t.dir) continue;
@@ -281,8 +229,7 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
     const archivedKeys = scan?.archived ?? [];
     const roots = new Set<string>();
     // A live spec's code checkout too: the specs list offers a test server only for a branch origin holds there.
-    for (const t of live)
-      for (const root of ctx.specRoots(t.project)) roots.add(root);
+    for (const t of live) for (const root of ctx.specRoots(t.project)) roots.add(root);
     // Every archived dir. There is no write-time stamp
     // for Created to short-circuit against, so this is the whole archive
     // on the first sweep that reaches it. `createdAtForArchived`'s
@@ -300,20 +247,13 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
     // what a reader's last page load actually saw — the same reason
     // `scheduleNotify` (`sse-watchers.ts`) invalidates before it
     // notifies.
-    const before = new Map(
-      [...roots].map((root) => [
-        root,
-        ctx.branchStatus.peekOpenSpecBranches(root).open,
-      ]),
-    );
+    const before = new Map([...roots].map((root) => [root, ctx.branchStatus.peekOpenSpecBranches(root).open]));
     await Promise.all([
       // Each call try/catches internally and degrades to null or to
       // nothing-known, so one unreachable origin never takes the
       // others with it.
       ...[...roots].map((root) => ctx.branchStatus.openSpecBranches(root)),
-      ...createdAtTargets.map((t) =>
-        ctx.readSpecCreatedAt().createdAtForArchived(t.dir, t.folder),
-      ),
+      ...createdAtTargets.map((t) => ctx.readSpecCreatedAt().createdAtForArchived(t.dir, t.folder)),
       ...live.map((t) => warmSpec(ctx, t)),
       // And the checkout the LIST is read from. Every other
       // caller of `ensureCheckout` is a project that has something
@@ -331,18 +271,13 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       ...[...ctx.allowed].map((project) => ctx.ensureCheckout(project)),
     ]);
     const gitMoved = await refreshMergedAnswers(ctx, archivedKeys);
-    const mergedMoved =
-      (await refreshPullRequestAnswers(ctx, archivedKeys)) || gitMoved;
+    const mergedMoved = (await refreshPullRequestAnswers(ctx, archivedKeys)) || gitMoved;
     // Only a root whose answer MOVED tells anyone, and only
     // once per tick, however many roots moved — a tick that finds
     // nothing new stays silent, exactly as it does
     // for every other reason a page might redraw.
     const moved = [...roots].some(
-      (root) =>
-        !sameOpenSet(
-          before.get(root) ?? null,
-          ctx.branchStatus.peekOpenSpecBranches(root).open,
-        ),
+      (root) => !sameOpenSet(before.get(root) ?? null, ctx.branchStatus.peekOpenSpecBranches(root).open),
     );
     if (moved || mergedMoved) ctx.notifyQueueChanged();
   } finally {
@@ -354,27 +289,17 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
  *  there — a merge whose delete failed, or a landing that never finished.
  *  Asked only for those, normally none, after the open sets are in; the
  *  archived row peeks the answer. True when a row's reading moved. */
-async function refreshMergedAnswers(
-  ctx: ScheduleContext,
-  archivedKeys: string[],
-): Promise<boolean> {
+async function refreshMergedAnswers(ctx: ScheduleContext, archivedKeys: string[]): Promise<boolean> {
   const asks: { root: string; branch: string; was: boolean }[] = [];
   for (const key of archivedKeys) {
     const cut = key.indexOf("/");
     const branch = specBranch(key.slice(cut + 1));
     for (const root of ctx.specRoots(key.slice(0, cut))) {
-      if (!ctx.branchStatus.peekOpenSpecBranches(root).open?.has(branch))
-        continue;
-      asks.push({
-        root,
-        branch,
-        was: ctx.branchStatus.peekMerged(root, branch) === true,
-      });
+      if (!ctx.branchStatus.peekOpenSpecBranches(root).open?.has(branch)) continue;
+      asks.push({ root, branch, was: ctx.branchStatus.peekMerged(root, branch) === true });
     }
   }
-  const now = await Promise.all(
-    asks.map((a) => ctx.branchStatus.isMerged(a.root, a.branch)),
-  );
+  const now = await Promise.all(asks.map((a) => ctx.branchStatus.isMerged(a.root, a.branch)));
   return asks.some((a, i) => a.was !== now[i]);
 }
 
@@ -385,10 +310,7 @@ async function refreshMergedAnswers(
  *  leaves the last answer where it was, and an answer is dropped once its
  *  spec is no longer asked about, so a spec archived again is asked afresh.
  *  True when an answer's `merged` moved or one was dropped. */
-async function refreshPullRequestAnswers(
-  ctx: ScheduleContext,
-  archivedKeys: string[],
-): Promise<boolean> {
+async function refreshPullRequestAnswers(ctx: ScheduleContext, archivedKeys: string[]): Promise<boolean> {
   const { codeLanding, ghRun, pullRequests } = ctx;
   if (!codeLanding || !ghRun || !pullRequests) return false;
   const landing = new Map<string, boolean>();
@@ -396,13 +318,11 @@ async function refreshPullRequestAnswers(
   for (const key of archivedKeys) {
     const cut = key.indexOf("/");
     const project = key.slice(0, cut);
-    if (!landing.has(project))
-      landing.set(project, codeLanding(project) === "pr");
+    if (!landing.has(project)) landing.set(project, codeLanding(project) === "pr");
     if (!landing.get(project)) continue;
     const root = ctx.machineryProjectDir(project);
     const branch = specBranch(key.slice(cut + 1));
-    if (ctx.branchStatus.peekOpenSpecBranches(root).open?.has(branch))
-      asks.push({ key, root, branch });
+    if (ctx.branchStatus.peekOpenSpecBranches(root).open?.has(branch)) asks.push({ key, root, branch });
   }
   let moved = false;
   for (const key of [...pullRequests.keys()]) {
@@ -410,14 +330,11 @@ async function refreshPullRequestAnswers(
     pullRequests.delete(key);
     moved = true;
   }
-  const answers = await Promise.all(
-    asks.map((a) => askPullRequest(ghRun, a.root, a.branch).catch(() => null)),
-  );
+  const answers = await Promise.all(asks.map((a) => askPullRequest(ghRun, a.root, a.branch).catch(() => null)));
   asks.forEach((a, i) => {
     const answer = answers[i];
     if (!answer) return;
-    if ((pullRequests.get(a.key)?.merged ?? false) !== answer.merged)
-      moved = true;
+    if ((pullRequests.get(a.key)?.merged ?? false) !== answer.merged) moved = true;
     pullRequests.set(a.key, answer);
   });
   return moved;
@@ -462,11 +379,7 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
       const jobs: ScheduleJobRef[] = ctx.queue
         .list()
         .filter((j) => j.project === project && j.specFolder === key)
-        .map((j) => ({
-          specFolder: j.specFolder,
-          createdAt: j.createdAt,
-          startedAt: j.startedAt,
-        }));
+        .map((j) => ({ specFolder: j.specFolder, createdAt: j.createdAt, startedAt: j.startedAt }));
       if (!isDue(entry, now, jobs)) {
         refused.delete(memoKey);
         continue;
@@ -477,9 +390,7 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
       // enqueued byte for byte as before, and the config's own `schedule`
       // default decides.
       const result = ctx.queue.enqueue({
-        project,
-        specFolder: key,
-        steps: ["schedule"],
+        project, specFolder: key, steps: ["schedule"],
         ...(entry.model ? { model: entry.model } : {}),
         ...(entry.provider ? { provider: entry.provider } : {}),
       });
@@ -506,13 +417,9 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   // again before the checkout refresh and the tool recheck, and gets both.
   const providerOf = (job: Job): string => {
     const step = job.steps[job.stepIndex] ?? "";
-    return (
-      resolveStepProvider(job, step, ctx.queue.defaults) ??
-      stepTool(job, step, ctx.queue.defaults)
-    );
+    return resolveStepProvider(job, step, ctx.queue.defaults) ?? stepTool(job, step, ctx.queue.defaults);
   };
-  const nameOf = (key: string): string =>
-    ctx.queue.defaults.providers?.[key]?.name ?? key;
+  const nameOf = (key: string): string => ctx.queue.defaults.providers?.[key]?.name ?? key;
   restartAfterUsageLimit(ctx.queue, providerOf, (ctx.now ?? Date.now)());
   // Nothing may be STARTED in a checkout that is not there.
   // Every project with a job waiting, and only those — a clone is
@@ -524,25 +431,13 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
   // asked — such a fetch took its picture of origin before this job
   // was queued, and a spec pushed in between is one the step will
   // refuse as unknown. `CheckoutEnsurer` explains what that costs.
-  await Promise.all(
-    [
-      ...new Set(
-        ctx.queue
-          .list()
-          .filter((j) => j.state === "queued")
-          .map((j) => j.project),
-      ),
-    ].map((project) => ctx.checkoutEnsurer.fresh(project)),
-  );
+  await Promise.all([...new Set(ctx.queue.list().filter((j) => j.state === "queued").map((j) => j.project))]
+    .map((project) => ctx.checkoutEnsurer.fresh(project)));
   // The login a waiting job's tool will use, asked again before the job
   // can start, so the notice on every page is about the run to come.
   if (ctx.recheckTools) {
     const queued = ctx.queue.list().filter((j) => j.state === "queued");
-    await ctx.recheckTools(
-      queued.map((j) =>
-        stepTool(j, j.steps[j.stepIndex] ?? "", ctx.queue.defaults),
-      ),
-    );
+    await ctx.recheckTools(queued.map((j) => stepTool(j, j.steps[j.stepIndex] ?? "", ctx.queue.defaults)));
   }
   runner.tick(
     await blockedDependencies(ctx),
@@ -550,11 +445,7 @@ export async function tickRunner(ctx: ScheduleContext): Promise<void> {
     archiveWithOpenAcceptance(ctx),
     new Map([
       ...usageLimitHolds(ctx.queue.list(), providerOf, nameOf),
-      ...switchedOffHolds(
-        ctx.queue.list(),
-        providerOf,
-        ctx.queue.defaults.providers,
-      ),
+      ...switchedOffHolds(ctx.queue.list(), providerOf, ctx.queue.defaults.providers),
     ]),
   );
 }

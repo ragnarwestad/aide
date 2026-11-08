@@ -9,40 +9,26 @@
 import { describe, expect, test } from "bun:test";
 
 import { landBranch } from "../../../src/serve/land-branch";
-import {
-  BRANCH,
-  landCtx,
-  landingGit,
-  REPOS,
-  ROOT,
-} from "./landing-fixtures.ts";
+import { BRANCH, landCtx, landingGit, REPOS, ROOT } from "./landing-fixtures.ts";
 
 const ffIndex = (calls: { dir: string; args: string[] }[]): number =>
-  calls.findIndex(
-    (c) =>
-      c.dir === ROOT && c.args.join(" ") === "merge -q --ff-only origin/master",
-  );
+  calls.findIndex((c) => c.dir === ROOT && c.args.join(" ") === "merge -q --ff-only origin/master");
 
 describe("what is settled before the checkout moves", () => {
   test("a create job carries its assigned folder before the numbered folder can be seen", async () => {
     const git = landingGit({ reset: { code: 0 } });
     const updates: { at: number; patch: Record<string, unknown> }[] = [];
-    const renames: { at: number; project: string; from: string; to: string }[] =
-      [];
+    const renames: { at: number; project: string; from: string; to: string }[] = [];
     const { ctx } = landCtx(git.run, {
       queue: {
         get: () => undefined,
-        update: (_id: string, patch: Record<string, unknown>) =>
-          void updates.push({ at: git.calls.length, patch }),
+        update: (_id: string, patch: Record<string, unknown>) => void updates.push({ at: git.calls.length, patch }),
         transition: () => ({ ok: true }),
         branchesFor: () => [],
         renamePendingModel: (project: string, from: string, to: string) =>
           void renames.push({ at: git.calls.length, project, from, to }),
       },
-      finalizeCreateSpec: async () => ({
-        ok: true,
-        specFolder: "151-the-real-name",
-      }),
+      finalizeCreateSpec: async () => ({ ok: true, specFolder: "151-the-real-name" }),
     });
     const job = { id: "job-1", project: "aide", specFolder: "new-abcd1234" };
     await landBranch(
@@ -52,27 +38,17 @@ describe("what is settled before the checkout moves", () => {
       {
         step: "create",
         repos: REPOS,
-        failedNote: (why: string) => ({
-          key: "landing.createLandingFailed",
-          values: { why },
-        }),
+        failedNote: (why: string) => ({ key: "landing.createLandingFailed", values: { why } }),
       } as unknown as Parameters<typeof landBranch>[3],
     );
     const ff = ffIndex(git.calls);
     expect(ff).toBeGreaterThan(-1);
-    const renamed = updates.find(
-      (u) => u.patch.specFolder === "151-the-real-name",
-    );
+    const renamed = updates.find((u) => u.patch.specFolder === "151-the-real-name");
     expect(renamed).toBeDefined();
     expect(renamed!.at).toBeLessThanOrEqual(ff);
     // The pendingModels entry moves the same moment the job's own
     // specFolder does, before the checkout moves.
-    const modelRename = renames.find(
-      (r) =>
-        r.project === "aide" &&
-        r.from === "new-abcd1234" &&
-        r.to === "151-the-real-name",
-    );
+    const modelRename = renames.find((r) => r.project === "aide" && r.from === "new-abcd1234" && r.to === "151-the-real-name");
     expect(modelRename).toBeDefined();
     expect(modelRename!.at).toBeLessThanOrEqual(ff);
   });
@@ -87,40 +63,24 @@ describe("what is settled before the checkout moves", () => {
       branchStatus: {
         defaultBranch: async () => "master",
         invalidate: () => {},
-        forgetOpenSpecBranch: (root: string, branch: string) =>
-          void forgotten.push({ at: git.calls.length, root, branch }),
+        forgetOpenSpecBranch: (root: string, branch: string) => void forgotten.push({ at: git.calls.length, root, branch }),
         rememberOpenSpecBranch: () => {},
       },
     });
     await landBranch(
       ctx as unknown as Parameters<typeof landBranch>[0],
-      {
-        id: "job-1",
-        project: "aide",
-        specFolder: "150-spec",
-      } as unknown as Parameters<typeof landBranch>[1],
+      { id: "job-1", project: "aide", specFolder: "150-spec" } as unknown as Parameters<typeof landBranch>[1],
       { branch: BRANCH },
       {
         step: "archive",
         repos: REPOS,
-        failedNote: (why: string) => ({
-          key: "landing.archiveLandingFailed",
-          values: { why },
-        }),
+        failedNote: (why: string) => ({ key: "landing.archiveLandingFailed", values: { why } }),
       } as unknown as Parameters<typeof landBranch>[3],
     );
     const ff = ffIndex(git.calls);
     expect(ff).toBeGreaterThan(-1);
-    expect(
-      forgotten.some(
-        (f) => f.root === ROOT && f.branch === BRANCH && f.at <= ff,
-      ),
-    ).toBe(true);
-    expect(
-      forgotten.some(
-        (f) => f.root === `${ROOT}/aide` && f.branch === BRANCH && f.at <= ff,
-      ),
-    ).toBe(true);
+    expect(forgotten.some((f) => f.root === ROOT && f.branch === BRANCH && f.at <= ff)).toBe(true);
+    expect(forgotten.some((f) => f.root === `${ROOT}/aide` && f.branch === BRANCH && f.at <= ff)).toBe(true);
     expect(forgotten.some((f) => f.root === "/repos/aide-code")).toBe(false);
   });
 });
@@ -131,36 +91,20 @@ describe("what is settled once the landing has moved the folder", () => {
     const history: [string, string][] = [];
     const fileSteps: [string, string][] = [];
     const { ctx } = landCtx(git.run, {
-      workflowHistory: {
-        forget: (dir: string, folder: string) =>
-          void history.push([dir, folder]),
-      },
-      branchFileSteps: {
-        forget: (dir: string, folder: string) =>
-          void fileSteps.push([dir, folder]),
-      },
+      workflowHistory: { forget: (dir: string, folder: string) => void history.push([dir, folder]) },
+      branchFileSteps: { forget: (dir: string, folder: string) => void fileSteps.push([dir, folder]) },
     });
     await landBranch(
       ctx as unknown as Parameters<typeof landBranch>[0],
-      {
-        id: "job-1",
-        project: "aide",
-        specFolder: "150-spec",
-      } as unknown as Parameters<typeof landBranch>[1],
+      { id: "job-1", project: "aide", specFolder: "150-spec" } as unknown as Parameters<typeof landBranch>[1],
       { branch: BRANCH },
       {
         step: "archive",
         repos: REPOS,
-        failedNote: (why: string) => ({
-          key: "landing.archiveLandingFailed",
-          values: { why },
-        }),
+        failedNote: (why: string) => ({ key: "landing.archiveLandingFailed", values: { why } }),
       } as unknown as Parameters<typeof landBranch>[3],
     );
-    const expected: [string, string][] = [
-      [`${ROOT}/archive/150-spec`, "150-spec"],
-      [`${ROOT}/150-spec`, "150-spec"],
-    ];
+    const expected: [string, string][] = [[`${ROOT}/archive/150-spec`, "150-spec"], [`${ROOT}/150-spec`, "150-spec"]];
     expect(history).toEqual(expected);
     expect(fileSteps).toEqual(expected);
   });

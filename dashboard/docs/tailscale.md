@@ -15,6 +15,7 @@ The dashboard answers on the machine it runs on alone, at `http://127.0.0.1:8788
 computer, over HTTPS, is an add-on: this page sets it up with [Tailscale](https://tailscale.com). Nothing in the
 install depends on it, and nothing here is done by an install.
 
+
 ## What it gives you
 
 - **HTTPS**, with a certificate Tailscale issues and renews itself, at `https://<serving-host>.<tailnet>.ts.net/`.

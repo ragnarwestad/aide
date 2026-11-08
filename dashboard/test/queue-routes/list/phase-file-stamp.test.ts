@@ -47,29 +47,14 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
   const withTracking = (...lines: string[]) =>
-    [
-      "# 284 - Description",
-      "",
-      "## Tracking info",
-      "",
-      ...lines,
-      "",
-      "## Description",
-      "",
-    ].join("\n");
+    ["# 284 - Description", "", "## Tracking info", "", ...lines, "", "## Description", ""].join("\n");
 
   // create is stamped with a real Time spent and — per 1-description.md's
   // own "structural and final" ruling — never a Cost line at all.
   const stampCreate = (timeSpent: string) =>
-    writeFileSync(
-      join(dir, "1-description.md"),
-      withTracking(`- **Time spent:** ${timeSpent}`),
-    );
+    writeFileSync(join(dir, "1-description.md"), withTracking(`- **Time spent:** ${timeSpent}`));
 
-  const job = (
-    id: string,
-    extra: Partial<QueueRowView> = {},
-  ): QueueRowView => ({
+  const job = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
     id,
     project: "aide",
     specFolder: "aa-spec",
@@ -90,23 +75,12 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
   });
 
   const page = (rows: QueueRowView[], targets: SpecTarget[]) =>
-    renderSpecsRows(
-      rows,
-      { runnerAvailable: true, targets, filter: { open: "aide/aa-spec" } },
-      Date.parse(NOW),
-    );
+    renderSpecsRows(rows, { runnerAvailable: true, targets, filter: { open: "aide/aa-spec" } }, Date.parse(NOW));
 
-  const phaseCell = (
-    html: string,
-    step: string,
-    col: "started" | "cost",
-  ): string =>
+  const phaseCell = (html: string, step: string, col: "started" | "cost"): string =>
     html
-      .match(
-        new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`),
-      )?.[0]
-      ?.match(new RegExp(`<td[^>]*data-col="${col}"[^>]*>(.*?)</td>`))?.[1] ??
-    "";
+      .match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0]
+      ?.match(new RegExp(`<td[^>]*data-col="${col}"[^>]*>(.*?)</td>`))?.[1] ?? "";
 
   /** The header's own Time cell, on the second of its two rows since
    *  2026-09-22: the title has the first to itself. */
@@ -121,14 +95,7 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
       [
         job("a1", {
           startedAt: "2026-08-16T09:00:00Z",
-          results: [
-            {
-              step: "analyze",
-              ok: true,
-              costUsd: 1,
-              at: "2026-08-16T09:05:00Z",
-            },
-          ],
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
         }),
       ],
       [target({ done: ["create", "analyze"] })],
@@ -142,14 +109,7 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
       [
         job("a1", {
           startedAt: "2026-08-16T09:00:00Z",
-          results: [
-            {
-              step: "analyze",
-              ok: true,
-              costUsd: 1,
-              at: "2026-08-16T09:05:00Z",
-            },
-          ],
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
         }),
       ],
       [target({ done: ["create", "analyze"] })],
@@ -160,9 +120,7 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
 
   test("a spec with zero queue jobs at all still totals its stamped create duration", () => {
     stampCreate("3m00s");
-    expect(computeSpecTotalDurationMs([], Date.parse(NOW), dir)?.ms).toBe(
-      3 * 60 * 1000,
-    );
+    expect(computeSpecTotalDurationMs([], Date.parse(NOW), dir)?.ms).toBe(3 * 60 * 1000);
   });
 
   test("the same spec's header row, drawn with no jobs at all, shows the fallback total too", () => {
@@ -177,14 +135,7 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
       [
         job("a1", {
           startedAt: "2026-08-16T09:00:00Z",
-          results: [
-            {
-              step: "analyze",
-              ok: true,
-              costUsd: 1,
-              at: "2026-08-16T09:05:00Z",
-            },
-          ],
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
         }),
       ],
       [target({ done: ["create", "analyze"] })],
@@ -199,14 +150,7 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
       [
         job("a1", {
           startedAt: "2026-08-16T09:00:00Z",
-          results: [
-            {
-              step: "analyze",
-              ok: true,
-              costUsd: 1,
-              at: "2026-08-16T09:05:00Z",
-            },
-          ],
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
         }),
       ],
       [target({ done: ["create", "analyze"] })],
@@ -227,14 +171,7 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
       [
         job("a1", {
           startedAt: "2026-08-16T09:00:00Z",
-          results: [
-            {
-              step: "analyze",
-              ok: true,
-              costUsd: 1,
-              at: "2026-08-16T09:05:00Z",
-            },
-          ],
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
         }),
       ],
       [target({ done: ["create", "analyze"] })],
@@ -252,14 +189,7 @@ describe("a phase's own file stamp fills the gap no queue job can", () => {
         job("a1", {
           steps: ["create"],
           startedAt: "2026-08-16T09:00:00Z",
-          results: [
-            {
-              step: "create",
-              ok: true,
-              costUsd: 0.5,
-              at: "2026-08-16T09:10:00Z",
-            },
-          ],
+          results: [{ step: "create", ok: true, costUsd: 0.5, at: "2026-08-16T09:10:00Z" }],
         }),
       ],
       [target({ done: ["create"] })],

@@ -12,12 +12,7 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GitRunner } from "../../git/branch-status.ts";
 import { TestServerStore } from "../test-servers/store.ts";
-import {
-  findFreePort,
-  type TestServersContext,
-  type PortProbe,
-  type Spawner,
-} from "../test-servers/lifecycle.ts";
+import { findFreePort, type TestServersContext, type PortProbe, type Spawner } from "../test-servers/lifecycle.ts";
 import { portHolder, testServerOnPort } from "../test-servers/port-owner.ts";
 import { portExposed } from "../test-servers/tailscale-exposure.ts";
 import { resolvePreviewCmd, resolvePreviewFrom } from "../../project/discover";
@@ -45,9 +40,7 @@ export interface TestServersSetupInputs {
   testServersPortProbe?: PortProbe;
   /** A test seam, like `testServersSpawn`: the real one reads the process
    *  table. */
-  testServersOnPort?: (
-    port: number,
-  ) => Promise<{ pid: number; workDir: string } | undefined>;
+  testServersOnPort?: (port: number) => Promise<{ pid: number; workDir: string } | undefined>;
   /** A test seam, like `testServersOnPort`: no test should shell out to a
    *  real `tailscale` binary. */
   testServersPortExposed?: (port: number) => Promise<boolean | undefined>;
@@ -64,24 +57,11 @@ export interface TestServersSetupInputs {
  *
  *  `undefined` is "this host cannot start a board for this project",
  *  which is the capability check the pages already gate on. */
-export function startCommandFor(
-  root: string,
-  branch: string,
-  port: number,
-): string[] | undefined {
+export function startCommandFor(root: string, branch: string, port: number): string[] | undefined {
   if (hasRoundScript(root)) return roundCommand(root, branch, port);
   const preview = resolvePreviewCmd(root).value;
   if (!preview) return undefined;
-  return [
-    PREVIEW_BIN,
-    root,
-    "--branch",
-    branch,
-    "--port",
-    String(port),
-    "--cmd",
-    preview,
-  ];
+  return [PREVIEW_BIN, root, "--branch", branch, "--port", String(port), "--cmd", preview];
 }
 
 /** Whether a test server is offered for the project at `root`: its
@@ -97,13 +77,8 @@ const hasRoundScript = (root: string): boolean =>
   existsSync(join(root, "dashboard", "src", "serve", "serve.ts"));
 
 const roundCommand = (root: string, branch: string, port: number): string[] => [
-  join(root, "dashboard", "test", "round", "run"),
-  root,
-  "--branch",
-  branch,
-  "--port",
-  String(port),
-  "--keep",
+  join(root, "dashboard", "test", "round", "run"), root,
+  "--branch", branch, "--port", String(port), "--keep",
 ];
 
 /** `aide-preview` is installed beside every other shared script. Named
@@ -113,10 +88,7 @@ const roundCommand = (root: string, branch: string, port: number): string[] => [
  *  the reader is looking at. */
 const PREVIEW_BIN = join(homedir(), ".local", "bin", "aide-preview");
 
-export function setupTestServers(
-  state: ServerState,
-  inputs: TestServersSetupInputs,
-) {
+export function setupTestServers(state: ServerState, inputs: TestServersSetupInputs) {
   const testServerStore = new TestServerStore({ path: inputs.testServersPath });
   const testServersCtx: TestServersContext = {
     store: testServerStore,
@@ -129,23 +101,15 @@ export function setupTestServers(
       // written against.
       return (
         startCommandFor(root, branch, port) ??
-        (inputs.testServersAvailable
-          ? roundCommand(root, branch, port)
-          : undefined)
+        (inputs.testServersAvailable ? roundCommand(root, branch, port) : undefined)
       );
     },
-    previewAvailable: (project) =>
-      inputs.testServersAvailable ??
-      testServerOffered(inputs.machineryProjectDir(project)),
+    previewAvailable: (project) => inputs.testServersAvailable ?? testServerOffered(inputs.machineryProjectDir(project)),
     gitRun: inputs.gitRun,
     spawn:
       inputs.testServersSpawn ??
       ((cmd, logPath) => {
-        const proc = Bun.spawn({
-          cmd: scriptArgv(cmd),
-          stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)],
-          detached: true,
-        });
+        const proc = Bun.spawn({ cmd: scriptArgv(cmd), stdio: ["ignore", Bun.file(logPath), Bun.file(logPath)], detached: true });
         proc.unref();
         return { pid: proc.pid };
       }),
@@ -166,17 +130,13 @@ export function setupTestServers(
     // board's port — a `failed` entry no longer holds anything.
     reservedPorts: () => [
       state.server?.port ?? inputs.port,
-      ...testServerStore
-        .all()
-        .filter((e) => e.status !== "failed")
-        .map((e) => e.port),
+      ...testServerStore.all().filter((e) => e.status !== "failed").map((e) => e.port),
     ],
     // The probe is the seam, not the search: `testServersPortProbe` lets a
     // test answer "can this port be bound" without binding anything, so
     // no test depends on which of 8801-8806 this machine happens to have
     // free. Unset in production, where the real probe binds.
-    findFreePort: (reserved: number[]) =>
-      findFreePort(reserved, inputs.testServersPortProbe),
+    findFreePort: (reserved: number[]) => findFreePort(reserved, inputs.testServersPortProbe),
     // Reads the process table, so a board still running after a
     // restart can be found again: what holds the port, and which
     // directory it was started with. `--root <work>/root` is the round's

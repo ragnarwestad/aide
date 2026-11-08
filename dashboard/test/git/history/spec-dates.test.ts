@@ -37,19 +37,11 @@ const DIR = "/specs/aide/96-merge-button-says-what-it-merges";
 // for.
 
 describe("lastCommitOf", () => {
-  const SPEC_FILES = [
-    "1-description.md",
-    "2-analysis.md",
-    "3-solution.md",
-    "4-status.md",
-  ];
+  const SPEC_FILES = ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"];
 
   test("answers with the commit and its time, per file", async () => {
     const git = fakeGit({
-      "log -1 --format=%H": {
-        code: 0,
-        stdout: "a3f9c21deadbeef\t2026-08-21T09:14:00+02:00\n",
-      },
+      "log -1 --format=%H": { code: 0, stdout: "a3f9c21deadbeef\t2026-08-21T09:14:00+02:00\n" },
     });
     expect(await lastCommitOf(git.run, DIR, "2-analysis.md")).toEqual({
       sha: "a3f9c21deadbeef",
@@ -59,10 +51,7 @@ describe("lastCommitOf", () => {
 
   test("each file is asked about on its own — a folder-wide log answers for the wrong one", async () => {
     const git = fakeGit({
-      "log -1 --format=%H": {
-        code: 0,
-        stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n",
-      },
+      "log -1 --format=%H": { code: 0, stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n" },
     });
     for (const name of SPEC_FILES) await lastCommitOf(git.run, DIR, name);
     expect(git.calls.map((c) => c.args[c.args.length - 1])).toEqual(SPEC_FILES);
@@ -82,14 +71,9 @@ describe("lastCommitOf", () => {
 
   test("lastCommitAt is the same answer with the sha dropped", async () => {
     const git = fakeGit({
-      "log -1 --format=%H": {
-        code: 0,
-        stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n",
-      },
+      "log -1 --format=%H": { code: 0, stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n" },
     });
-    expect(await lastCommitAt(git.run, DIR, "1-description.md")).toBe(
-      "2026-08-21T09:14:00+02:00",
-    );
+    expect(await lastCommitAt(git.run, DIR, "1-description.md")).toBe("2026-08-21T09:14:00+02:00");
   });
 });
 
@@ -110,31 +94,22 @@ describe("firstCommitAt", () => {
     const git = fakeGit({
       "log --format=%aI": {
         code: 0,
-        stdout:
-          "2026-08-22T10:00:00+02:00\n2026-08-19T14:30:00+02:00\n2026-08-17T09:00:00+02:00\n",
+        stdout: "2026-08-22T10:00:00+02:00\n2026-08-19T14:30:00+02:00\n2026-08-17T09:00:00+02:00\n",
       },
     });
-    expect(await firstCommitAt(git.run, DIR, ".")).toBe(
-      "2026-08-17T09:00:00+02:00",
-    );
+    expect(await firstCommitAt(git.run, DIR, ".")).toBe("2026-08-17T09:00:00+02:00");
   });
 
   test("the whole folder is the pathspec, and `--` guards it", async () => {
-    const git = fakeGit({
-      "log --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" },
-    });
+    const git = fakeGit({ "log --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" } });
     await firstCommitAt(git.run, DIR, ".");
     expect(git.calls[0]!.args).toEqual(["log", "--format=%aI", "--", "."]);
     expect(git.calls[0]!.dir).toBe(DIR);
   });
 
   test("one commit is both the first and the last", async () => {
-    const git = fakeGit({
-      "log --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" },
-    });
-    expect(await firstCommitAt(git.run, DIR, ".")).toBe(
-      "2026-08-17T09:00:00+02:00",
-    );
+    const git = fakeGit({ "log --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" } });
+    expect(await firstCommitAt(git.run, DIR, ".")).toBe("2026-08-17T09:00:00+02:00");
   });
 
   test("a folder git has never seen is null, not an invented date", async () => {
@@ -164,42 +139,27 @@ describe("firstCommitAtFollowingRenames", () => {
         stdout: "2026-08-22T10:00:00+02:00\n2026-08-17T09:00:00+02:00\n",
       },
     });
-    expect(
-      await firstCommitAtFollowingRenames(git.run, DIR, "0-README.md"),
-    ).toBe("2026-08-17T09:00:00+02:00");
+    expect(await firstCommitAtFollowingRenames(git.run, DIR, "0-README.md")).toBe(
+      "2026-08-17T09:00:00+02:00",
+    );
   });
 
   test("asks with --follow, on the one named file, guarded by --", async () => {
     const git = fakeGit({
-      "log --follow --format=%aI": {
-        code: 0,
-        stdout: "2026-08-17T09:00:00+02:00\n",
-      },
+      "log --follow --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" },
     });
     await firstCommitAtFollowingRenames(git.run, DIR, "0-README.md");
-    expect(git.calls[0]!.args).toEqual([
-      "log",
-      "--follow",
-      "--format=%aI",
-      "--",
-      "0-README.md",
-    ]);
+    expect(git.calls[0]!.args).toEqual(["log", "--follow", "--format=%aI", "--", "0-README.md"]);
     expect(git.calls[0]!.dir).toBe(DIR);
   });
 
   test("a file git has never seen is null, not an invented date", async () => {
-    const git = fakeGit({
-      "log --follow --format=%aI": { code: 0, stdout: "\n" },
-    });
-    expect(
-      await firstCommitAtFollowingRenames(git.run, DIR, "0-README.md"),
-    ).toBeNull();
+    const git = fakeGit({ "log --follow --format=%aI": { code: 0, stdout: "\n" } });
+    expect(await firstCommitAtFollowingRenames(git.run, DIR, "0-README.md")).toBeNull();
   });
 
   test("git failing at all is null — a spec outside git still renders", async () => {
-    expect(
-      await firstCommitAtFollowingRenames(fakeGit({}).run, DIR, "0-README.md"),
-    ).toBeNull();
+    expect(await firstCommitAtFollowingRenames(fakeGit({}).run, DIR, "0-README.md")).toBeNull();
   });
 
   // What a fake runner cannot prove: that `--follow` actually survives a
@@ -209,11 +169,7 @@ describe("firstCommitAtFollowingRenames", () => {
   // as the archive date instead of the spec's true beginning.
   test("survives a real `git mv` of the file's own directory", async () => {
     const gitIn = (dir: string, ...args: string[]) =>
-      Bun.spawnSync({
-        cmd: ["git", "-C", dir, ...args],
-        stdout: "pipe",
-        stderr: "pipe",
-      });
+      Bun.spawnSync({ cmd: ["git", "-C", dir, ...args], stdout: "pipe", stderr: "pipe" });
     const repo = mkdtempSync(join(tmpdir(), "aide-spec-dates-"));
     gitIn(repo, "init", "-q", "-b", "main");
     gitIn(repo, "config", "user.name", "Test");
@@ -234,24 +190,10 @@ describe("firstCommitAtFollowingRenames", () => {
     // simply the only one.
     writeFileSync(join(specDir, "2-analysis.md"), "# analysis\n");
     gitIn(repo, "add", "-A");
-    gitIn(
-      repo,
-      "commit",
-      "-q",
-      "-m",
-      "analyze",
-      "--date=2026-07-05T09:00:00+02:00",
-    );
+    gitIn(repo, "commit", "-q", "-m", "analyze", "--date=2026-07-05T09:00:00+02:00");
     mkdirSync(join(repo, "archive"));
     gitIn(repo, "mv", "91-old-name", "archive/91-old-name");
-    gitIn(
-      repo,
-      "commit",
-      "-q",
-      "-m",
-      "archive",
-      "--date=2026-08-01T09:00:00+02:00",
-    );
+    gitIn(repo, "commit", "-q", "-m", "archive", "--date=2026-08-01T09:00:00+02:00");
 
     const archivedDir = join(repo, "archive", "91-old-name");
     // The trap Approach A falls into, proven alongside the fix: a plain
@@ -260,11 +202,7 @@ describe("firstCommitAtFollowingRenames", () => {
       "2026-08-01T09:00:00+02:00",
     );
     expect(
-      await firstCommitAtFollowingRenames(
-        createGitRunner(),
-        archivedDir,
-        "0-README.md",
-      ),
+      await firstCommitAtFollowingRenames(createGitRunner(), archivedDir, "0-README.md"),
     ).toBe("2026-07-01T09:00:00+02:00");
   });
 
@@ -278,18 +216,13 @@ describe("firstCommitAtFollowingRenames", () => {
   // prove the underlying git behavior and this fix's effect on it.
   test("0-README.md's shared template content misattributes across specs; 1-description.md's does not", async () => {
     const gitIn = (dir: string, ...args: string[]) =>
-      Bun.spawnSync({
-        cmd: ["git", "-C", dir, ...args],
-        stdout: "pipe",
-        stderr: "pipe",
-      });
+      Bun.spawnSync({ cmd: ["git", "-C", dir, ...args], stdout: "pipe", stderr: "pipe" });
     const repo = mkdtempSync(join(tmpdir(), "aide-spec-dates-cross-"));
     gitIn(repo, "init", "-q", "-b", "main");
     gitIn(repo, "config", "user.name", "Test");
     gitIn(repo, "config", "user.email", "test@example.com");
 
-    const TEMPLATE =
-      "# spec\n\n## Table of contents\n\n- [Tracking info](#tracking-info)\n";
+    const TEMPLATE = "# spec\n\n## Table of contents\n\n- [Tracking info](#tracking-info)\n";
 
     // Commit 1 (oldest): the first spec is created with the shared template
     // README and a distinctive, paragraph-length description.
@@ -304,14 +237,7 @@ describe("firstCommitAtFollowingRenames", () => {
         "anything was left out.\n",
     );
     gitIn(repo, "add", "-A");
-    gitIn(
-      repo,
-      "commit",
-      "-q",
-      "-m",
-      "create 91",
-      "--date=2026-07-01T09:00:00+02:00",
-    );
+    gitIn(repo, "commit", "-q", "-m", "create 91", "--date=2026-07-01T09:00:00+02:00");
 
     // Commit 2 (same commit): the first spec's files are removed (simulating an
     // earlier, unrelated rename elsewhere) and the second spec is added with the
@@ -330,46 +256,24 @@ describe("firstCommitAtFollowingRenames", () => {
     );
     gitIn(repo, "rm", "-q", "-r", "91-first");
     gitIn(repo, "add", "-A");
-    gitIn(
-      repo,
-      "commit",
-      "-q",
-      "-m",
-      "replace 91 with 92",
-      "--date=2026-07-15T09:00:00+02:00",
-    );
+    gitIn(repo, "commit", "-q", "-m", "replace 91 with 92", "--date=2026-07-15T09:00:00+02:00");
 
     // Commit 3: the real archive step's own operation.
     mkdirSync(join(repo, "archive"));
     gitIn(repo, "mv", "92-second", "archive/92-second");
-    gitIn(
-      repo,
-      "commit",
-      "-q",
-      "-m",
-      "archive 92",
-      "--date=2026-08-01T09:00:00+02:00",
-    );
+    gitIn(repo, "commit", "-q", "-m", "archive 92", "--date=2026-08-01T09:00:00+02:00");
 
     const archivedDir = join(repo, "archive", "92-second");
     // The bug: the shared template pairs with the first spec's deleted README
     // and the date returned is the first spec's, not the second's own.
     expect(
-      await firstCommitAtFollowingRenames(
-        createGitRunner(),
-        archivedDir,
-        "0-README.md",
-      ),
+      await firstCommitAtFollowingRenames(createGitRunner(), archivedDir, "0-README.md"),
     ).toBe("2026-07-01T09:00:00+02:00");
     // The fix: the description is unique enough that no rename is found
     // across the unrelated deletion, and the date returned is the second spec's
     // own true creation commit.
     expect(
-      await firstCommitAtFollowingRenames(
-        createGitRunner(),
-        archivedDir,
-        "1-description.md",
-      ),
+      await firstCommitAtFollowingRenames(createGitRunner(), archivedDir, "1-description.md"),
     ).toBe("2026-07-15T09:00:00+02:00");
   });
 });

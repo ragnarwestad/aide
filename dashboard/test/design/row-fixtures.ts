@@ -32,10 +32,7 @@ export const target = (extra: Partial<SpecTarget> = {}): SpecTarget => ({
 // A row is collapsed unless the view names it, and the
 // controls this file is about come with opening it — so every render
 // here opens the one spec it draws.
-export const rows = (
-  list: QueueRowView[],
-  opts: Partial<SpecsPageOptions> = {},
-) =>
+export const rows = (list: QueueRowView[], opts: Partial<SpecsPageOptions> = {}) =>
   renderSpecsRows(
     list,
     {

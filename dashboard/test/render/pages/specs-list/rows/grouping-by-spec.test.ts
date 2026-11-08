@@ -1,17 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import {
-  phasePips,
-  phasesFor,
-  renderSpecsRows,
-  type QueueRowView,
-  type StepResultView,
-} from "../../../../../src/render";
+import { phasePips, phasesFor, renderSpecsRows, type QueueRowView, type StepResultView } from "../../../../../src/render";
 import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
 import { row, openKeys } from "../../fixtures.ts";
 
 // The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.
-const noFold = (html: string): string =>
-  html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
+const noFold = (html: string): string => html.replace(/<a class="fold[^>]*>[\s\S]*?<\/a>/, "");
 
 /** What a phase that has not run draws in the State column: a dash,
  *  the same one Created and Cost use for "nothing here" (2026-09-08).
@@ -27,19 +20,8 @@ const PHASE_NOT_RUN = "–";
 // every one. It is ONE spec, and how far it has got should read without
 // counting rows.
 describe("the queue list groups by spec", () => {
-  const job = (
-    id: string,
-    step: string,
-    extra: Partial<QueueRowView> = {},
-  ): QueueRowView =>
-    row({
-      id,
-      specFolder: "86-grouped",
-      steps: [step],
-      stepIndex: 0,
-      state: "done",
-      ...extra,
-    });
+  const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    row({ id, specFolder: "86-grouped", steps: [step], stepIndex: 0, state: "done", ...extra });
 
   // Every spec open: this block is about what an expanded row holds —
   // its phase lines, its action cell — which is what every row held
@@ -56,9 +38,7 @@ describe("the queue list groups by spec", () => {
   /** A phase's own line — an ordinary row of six cells,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    html.match(
-      new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`),
-    )?.[0] ?? "";
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
   test("two jobs for one spec make one header row, not two", () => {
     const html = rows([
@@ -77,14 +57,8 @@ describe("the queue list groups by spec", () => {
 
   test("a phase run twice shows the latest attempt and the count", () => {
     const html = rows([
-      job("older", "analyze", {
-        state: "failed",
-        startedAt: "2026-08-16T09:00:00Z",
-      }),
-      job("newer", "analyze", {
-        state: "done",
-        startedAt: "2026-08-16T11:00:00Z",
-      }),
+      job("older", "analyze", { state: "failed", startedAt: "2026-08-16T09:00:00Z" }),
+      job("newer", "analyze", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     const analyze = subRow(html, "analyze");
     // The name is plain text, not a link to either attempt's
@@ -99,47 +73,27 @@ describe("the queue list groups by spec", () => {
     // spec's own file still names none of them. The title repeats the
     // visible label too: a phone's fixed-width
     // state cell can ellipsis-clip the label itself.
-    expect(analyze).toMatch(
-      /title="Done \(2\) — 2 attempts" data-icon="check">Done \(2\)<\/span>/,
-    );
+    expect(analyze).toMatch(/title="Done \(2\) — 2 attempts" data-icon="check">Done \(2\)<\/span>/);
     expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
   });
 
   test("the header shows what is in flight, not what finished", () => {
     const html = rows([
-      job("j1", "analyze", {
-        state: "done",
-        startedAt: "2026-08-16T11:00:00Z",
-      }),
-      job("j2", "implement", {
-        state: "running",
-        startedAt: "2026-08-16T09:00:00Z",
-      }),
+      job("j1", "analyze", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
+      job("j2", "implement", { state: "running", startedAt: "2026-08-16T09:00:00Z" }),
     ]);
     expect(heads(html)[0]).toBeDefined();
-    const head = html.slice(
-      html.indexOf('<tr class="'),
-      html.indexOf('<tr class="subrow'),
-    );
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
     expect(head).toContain('class="badge b-running"');
     expect(head).not.toContain('class="badge b-done"');
   });
 
   test("with nothing in flight the header shows the latest outcome", () => {
     const html = rows([
-      job("j1", "analyze", {
-        state: "failed",
-        startedAt: "2026-08-16T09:00:00Z",
-      }),
-      job("j2", "implement", {
-        state: "done",
-        startedAt: "2026-08-16T11:00:00Z",
-      }),
+      job("j1", "analyze", { state: "failed", startedAt: "2026-08-16T09:00:00Z" }),
+      job("j2", "implement", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
-    const head = html.slice(
-      html.indexOf('<tr class="'),
-      html.indexOf('<tr class="subrow'),
-    );
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
     // A resting `done` badge reads the resting state and what
     // is next, so it wears `b-ready` here. What it must not read is the
     // OLDER job's outcome, which would still be the bare word "failed".
@@ -153,18 +107,12 @@ describe("the queue list groups by spec", () => {
       job("j1", "analyze", { spentUsd: 1.2 }),
       job("j2", "implement", { spentUsd: 0.8 }),
     ]);
-    const head = html.slice(
-      html.indexOf('<tr class="'),
-      html.indexOf('<tr class="subrow'),
-    );
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
     expect(head).toContain("$2.00");
   });
 
   test("two different specs keep their own header rows", () => {
-    const html = rows([
-      job("j1", "analyze"),
-      job("j2", "analyze", { specFolder: "87-other" }),
-    ]);
+    const html = rows([job("j1", "analyze"), job("j2", "analyze", { specFolder: "87-other" })]);
     expect(heads(html)).toHaveLength(2);
   });
 
@@ -188,23 +136,12 @@ describe("the queue list groups by spec", () => {
   }
 
   test("a spec with a job for each of them still draws the four, and a head row with four pips", () => {
-    const html = rows(
-      ["close", "explore", "manifest", "schedule", "reopen"].map((s, i) =>
-        job(`j${i}`, s),
-      ),
-    );
+    const html = rows(["close", "explore", "manifest", "schedule", "reopen"].map((s, i) => job(`j${i}`, s)));
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["create", "analyze", "implement", "archive"]);
-    const jobs = ["close", "explore", "manifest", "schedule", "reopen"].map(
-      (s, i) => job(`j${i}`, s),
-    );
+    const jobs = ["close", "explore", "manifest", "schedule", "reopen"].map((s, i) => job(`j${i}`, s));
     const phases = phasesFor(jobs, undefined);
-    expect(phases.map((p) => p.step)).toEqual([
-      "create",
-      "analyze",
-      "implement",
-      "archive",
-    ]);
+    expect(phases.map((p) => p.step)).toEqual(["create", "analyze", "implement", "archive"]);
     expect((phasePips(phases, []).match(/class="pip /g) ?? []).length).toBe(4);
   });
 
@@ -212,13 +149,9 @@ describe("the queue list groups by spec", () => {
   // above it stays the four.
   for (const step of ["reopen", "close"]) {
     test(`a failed ${step} keeps its sentence under the row, over four lines`, () => {
-      const html = rows([
-        job("j1", step, { state: "failed", error: "It did not go through." }),
-      ]);
+      const html = rows([job("j1", step, { state: "failed", error: "It did not go through." })]);
       expect(html).toContain("It did not go through.");
-      const order = [
-        ...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g),
-      ].map((m) => m[1]);
+      const order = [...html.matchAll(/<tr class="subrow" data-step="([^"]+)"/g)].map((m) => m[1]);
       expect(order).toEqual(["create", "analyze", "implement", "archive"]);
     });
   }
@@ -230,35 +163,15 @@ describe("the queue list groups by spec", () => {
 describe("Implement's own figure on a spec whose step ran a review and a verification", () => {
   const implemented = (result: Partial<StepResultView>): QueueRowView =>
     row({
-      id: "j1",
-      specFolder: "86-grouped",
-      steps: ["implement"],
-      stepIndex: 0,
-      state: "done",
-      spentUsd: 0.35,
-      spentTokens: 24160,
-      results: [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 0.35,
-          tokens: 24160,
-          ...result,
-        },
-      ],
+      id: "j1", specFolder: "86-grouped", steps: ["implement"], stepIndex: 0, state: "done",
+      spentUsd: 0.35, spentTokens: 24160,
+      results: [{ step: "implement", ok: true, costUsd: 0.35, tokens: 24160, ...result }],
     });
   const withSides = implemented({
-    review: {
-      outcome: "completed",
-      tool: "claude",
-      costUsd: 0.05,
-      tokens: 4930,
-    },
+    review: { outcome: "completed", tool: "claude", costUsd: 0.05, tokens: 4930 },
     verify: { outcome: "completed", tool: "codex", tokens: 9562 },
   });
-  const attemptOf = (job: QueueRowView) =>
-    phasesFor([job], undefined).find((p) => p.step === "implement")!
-      .attempts[0]!;
+  const attemptOf = (job: QueueRowView) => phasesFor([job], undefined).find((p) => p.step === "implement")!.attempts[0]!;
 
   test("the line takes the side sessions off the step's cost and tokens (AC-4)", () => {
     const attempt = attemptOf(withSides);
@@ -267,13 +180,7 @@ describe("Implement's own figure on a spec whose step ran a review and a verific
   });
 
   test("the spec's total is still the step's, the sum of the three (AC-5)", () => {
-    const [group] = groupBySpec(
-      [withSides],
-      [],
-      undefined,
-      [],
-      Date.parse("2026-08-17T12:00:00Z"),
-    );
+    const [group] = groupBySpec([withSides], [], undefined, [], Date.parse("2026-08-17T12:00:00Z"));
     expect(group!.spentUsd).toBeCloseTo(0.35, 6);
     expect(group!.spentTokens).toBe(24160);
   });

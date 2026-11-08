@@ -3,21 +3,12 @@
 // leaves the other cores to the specs running beside it.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 import { runProjectSuiteBeforePush } from "../../../../src/serve/land-branch/test-gate.ts";
 
-const RESOLVER = join(
-  import.meta.dir,
-  "../../../../../core/scripts/aide-resolve-test-cmd",
-);
+const RESOLVER = join(import.meta.dir, "../../../../../core/scripts/aide-resolve-test-cmd");
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -28,13 +19,8 @@ afterEach(() => {
 });
 
 function git(cwd: string, ...args: string[]): void {
-  const out = Bun.spawnSync({
-    cmd: ["git", "-C", cwd, ...args],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  if (out.exitCode !== 0)
-    throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
+  if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
 }
 
 describe("the landing's test run", () => {
@@ -42,10 +28,7 @@ describe("the landing's test run", () => {
     const root = mkdtempSync(join(tmpdir(), "aide-gate-workers-"));
     dirs.push(root);
     mkdirSync(join(root, ".aide"));
-    writeFileSync(
-      join(root, ".aide", "project.yaml"),
-      "name: demo\nAIDE_TEST_CMD: make it\n",
-    );
+    writeFileSync(join(root, ".aide", "project.yaml"), "name: demo\nAIDE_TEST_CMD: make it\n");
     writeFileSync(join(root, "app.py"), "print(0)\n");
     git(root, "init", "-q", "-b", "main");
     git(root, "config", "user.name", "Test");
@@ -70,20 +53,11 @@ describe("the landing's test run", () => {
 
     // The landing itself and one running job fewer than the host has cores:
     // every core is spoken for, so the run gets one worker.
-    const jobs = () =>
-      [
-        { state: "done", landing: true },
-        ...Array.from({ length: availableParallelism() - 1 }, () => ({
-          state: "running",
-          landing: false,
-        })),
-      ] as { state: "running" | "done"; landing: boolean }[];
-    const verdict = await runProjectSuiteBeforePush(
-      root,
-      { project: "demo", specFolder: "1-x" },
-      "aide/1-x",
-      { jobs },
-    );
+    const jobs = () => [
+      { state: "done", landing: true },
+      ...Array.from({ length: availableParallelism() - 1 }, () => ({ state: "running", landing: false })),
+    ] as { state: "running" | "done"; landing: boolean }[];
+    const verdict = await runProjectSuiteBeforePush(root, { project: "demo", specFolder: "1-x" }, "aide/1-x", { jobs });
     expect(verdict.ok).toBe(true);
     expect(readFileSync(seen, "utf-8").trim()).toBe("1");
   });

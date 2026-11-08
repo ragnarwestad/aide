@@ -20,7 +20,6 @@
 This directory contains the Claude Code implementation with configuration files, skills and agents.
 
 **References:**
-
 - Generic workflows: See `../../core/skills/workflows/SKILL.md`
 
 ---
@@ -28,7 +27,6 @@ This directory contains the Claude Code implementation with configuration files,
 ## Overview
 
 The skills let you:
-
 - Create structured documentation in the `specs/` directory
 - Analyze the codebase and generate solution proposals
 - Implement with a TDD workflow (RED → GREEN → VERIFY)
@@ -36,7 +34,6 @@ The skills let you:
 **📦 Installation:** See **[INSTALL.md](./INSTALL.md)** for the complete guide (5 min)
 
 **Available skills:**
-
 ```bash
 /aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
 # → specs/55-move-forms-off-redux-form/, say
@@ -49,19 +46,16 @@ The skills let you:
 ```
 
 **Result of /aide-create:**
-
 - ✅ Document structure created in specs/<NN>-slug/
 - ✅ 1-description.md filled in with the title and the description
 - ✅ Empty files: 2-analysis.md, 3-solution.md, 4-status.md
 
 **Result of /aide-analyze:**
-
 - ✅ Codebase analyzed
 - ✅ All 4 document files updated with analysis and solution proposals
 - ✅ Concrete files and line numbers identified
 
 **Architecture:**
-
 ```text
 /aide-create "<title>" <description> → Creates the spec
     ↓
@@ -85,7 +79,6 @@ The skills let you:
 #### AIDE_SPECS_PATH - Store specs outside the workspace
 
 **Use this if you want to:**
-
 - Store specs in your own private git repo
 - Use cloud storage (Dropbox, iCloud, etc.)
 - Separate workspace code from user-specific specs
@@ -107,13 +100,13 @@ cd aide/implementations/claude-code
 ```
 
 **The script installs globally:**
-
 - ✅ Every `core/scripts/aide-*` script and `upgrade-ai-tools` → `~/.local/bin/`, with `~/.local/bin` put on PATH
 - ✅ The shared tools (markdownlint-cli2, jq, gh, bun, pandoc, md-to-pdf) through mise
 - ✅ Skills, agents and rules → `~/.claude/`
 - ✅ LSP plugins (typescript, kotlin, jdtls)
 
 Run `./install.sh` again to update after changes.
+
 
 ---
 
@@ -124,11 +117,9 @@ Run `./install.sh` again to update after changes.
 1. **Start Claude Code** (in any project: my-app, Aide, my-api, etc.)
 
 2. **Create the spec** — a title and a description:
-
    ```bash
    /aide-create "Move the forms off Redux Form" The forms still use Redux Form, which is unmaintained. Move them to React Hook Form, one form at a time, keeping the validation rules.
    ```
-
    → Generates `specs/55-move-the-forms-off-redux-form/`, say.
 
    A title that begins with an issue key (`PROJ-7637 …`) keeps the key in
@@ -141,13 +132,11 @@ Run `./install.sh` again to update after changes.
    - Commit and push the new folder
 
 4. **Analyze the codebase:**
-
    ```bash
    /aide-analyze 55
    ```
 
 5. **Read the documentation:**
-
    ```bash
    cat specs/55-*/2-analysis.md
    cat specs/55-*/3-solution.md
@@ -167,7 +156,6 @@ Run `./install.sh` again to update after changes.
 **Cause:** Skill not loaded or misplaced
 
 **Solution:**
-
 1. Check that the directory exists: `~/.claude/skills/aide-create/SKILL.md`
 2. Restart Claude Code
 3. Try again
@@ -245,24 +233,20 @@ aide/specs/
 ### 1. Unified /aide-* skills
 
 **`/aide-create "<title>" <description>`**
-
 1. Creates the document structure (4 files)
 2. Fills in 1-description.md with the title and the description
 
 **`/aide-analyze <number>`**
-
 1. Analyzes the codebase
 2. Identifies affected files (with line numbers)
 3. Updates all 4 document files
 
 **`/aide-implement <number>`**
-
 1. Reads 2-analysis.md and 3-solution.md
 2. Implements with TDD (RED → GREEN → VERIFY)
 3. Updates 4-status.md along the way
 
 **`/aide-to-pdf <number>`**
-
 1. Combines all markdown files (1-4) into one document
 2. Adds a cover page with metadata
 3. Converts to PDF with header/footer
@@ -339,7 +323,7 @@ claude -p "Complex task" --output-format stream-json
 **Important flags:**
 
 | Flag                          | Description                                     |
-| ----------------------------- | ----------------------------------------------- |
+|-------------------------------|-------------------------------------------------|
 | `-p "prompt"`                 | Headless mode - runs without the interactive UI |
 | `--allowedTools`              | Grants permissions without user input           |
 | `--output-format json`        | JSON output for parsing                         |

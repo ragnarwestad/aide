@@ -23,21 +23,12 @@ import { dated, setupQueueRoutesHarness } from "../fixtures.ts";
 const withoutFold = (html: string): string =>
   html
     .replace(/<td class="foldcell"[\s\S]*?<\/td>/g, "")
-    .replace(
-      /(<tr class="specstate"[^>]*>)<td colspan="2">[\s\S]*?<\/td>/g,
-      "$1",
-    )
+    .replace(/(<tr class="specstate"[^>]*>)<td colspan="2">[\s\S]*?<\/td>/g, "$1")
     .replace(/<td[^>]*data-col="(started|cost)"[^>]*>[\s\S]*?<\/td>/g, "")
-    .replace(
-      /<td data-col="state"><span class="row">([\s\S]*?)<\/span><\/td>/g,
-      '<td data-col="state">$1</td>',
-    )
+    .replace(/<td data-col="state"><span class="row">([\s\S]*?)<\/span><\/td>/g, '<td data-col="state">$1</td>')
     .replace(/<(a|span) class="iconlink"[^>]*>[\s\S]*?<\/\1>/g, "")
     .replace(/colspan="\d+"/g, 'colspan=""')
-    .replace(
-      /<(a|span) class="specpart"[^>]*>(<span class="muted">:<\/span><span class="specname">[^<]*<\/span>)<\/\1>/g,
-      "$2",
-    );
+    .replace(/<(a|span) class="specpart"[^>]*>(<span class="muted">:<\/span><span class="specname">[^<]*<\/span>)<\/\1>/g, "$2");
 
 const { harness } = setupQueueRoutesHarness();
 const tmp: string[] = [];
@@ -70,65 +61,36 @@ function scheduleConfig(): string {
   const dir = mkdtempSync(join(tmpdir(), "aide-jobs-schedule-"));
   tmp.push(dir);
   const file = join(dir, "queue-config.json");
-  const entry = (name: string) => ({
-    name,
-    cron: "0 3 * * *",
-    prompt: `docs/${name}.md`,
-    enabled: false,
-  });
-  writeFileSync(
-    file,
-    JSON.stringify({
-      schedules: {
-        aide: [entry("nightly"), entry("report")],
-        other: [entry("report")],
-      },
-    }),
-  );
+  const entry = (name: string) => ({ name, cron: "0 3 * * *", prompt: `docs/${name}.md`, enabled: false });
+  writeFileSync(file, JSON.stringify({ schedules: { aide: [entry("nightly"), entry("report")], other: [entry("report")] } }));
   return file;
 }
 
-const board = (
-  jobs: Record<string, unknown>[] = [],
-  extra: Record<string, unknown> = {},
-) =>
+const board = (jobs: Record<string, unknown>[] = [], extra: Record<string, unknown> = {}) =>
   harness.start({
     extra: { queueProjects: ["aide"], ...extra },
     ...(jobs.length ? { queueMirror: JSON.stringify(jobs) } : {}),
   });
 
 /** A board whose schedule holds the entries `scheduleConfig` writes. */
-const scheduled = (jobs: Record<string, unknown>[]) =>
-  board(jobs, { queueConfigFile: scheduleConfig() });
+const scheduled = (jobs: Record<string, unknown>[]) => board(jobs, { queueConfigFile: scheduleConfig() });
 
 /** The Jobs tab's rows. Not followed through a redirect: the Specs list's rows are not the answer. */
 const rowsOf = async (base: string, query = ""): Promise<string> => {
-  const res = await fetch(`${base}/?rows=1${query ? `&${query}` : ""}`, {
-    redirect: "manual",
-  });
+  const res = await fetch(`${base}/?rows=1${query ? `&${query}` : ""}`, { redirect: "manual" });
   expect(res.status).toBe(200);
   return await res.text();
 };
 
 /** One row group: from its title line, as the page script finds it, to its gap row. */
 const group = (html: string, id: string): string =>
-  html.match(
-    new RegExp(
-      `<tr class="spechead\\b[^>]*?\\bid="${id}"[\\s\\S]*?<tr class="specgap"[^>]*>.*?</tr>`,
-    ),
-  )?.[0] ?? "";
+  html.match(new RegExp(`<tr class="spechead\\b[^>]*?\\bid="${id}"[\\s\\S]*?<tr class="specgap"[^>]*>.*?</tr>`))?.[0] ?? "";
 
 /** A row group's title line: everything before its state line, without the fold's cell. */
-const headOf = (g: string): string =>
-  (g.split('<tr class="specstate"')[0] ?? "").replace(
-    /<td class="foldcell"[\s\S]*?<\/td>/,
-    "",
-  );
-const hrefsOf = (html: string): string[] =>
-  [...html.matchAll(/<a\b[^>]*?href="([^"]*)"/g)].map((m) => m[1]);
+const headOf = (g: string): string => (g.split('<tr class="specstate"')[0] ?? "").replace(/<td class="foldcell"[\s\S]*?<\/td>/, "");
+const hrefsOf = (html: string): string[] => [...html.matchAll(/<a\b[^>]*?href="([^"]*)"/g)].map((m) => m[1]);
 /** The line under a row's state that says why the job ended. */
-const noticeOf = (g: string): string =>
-  g.match(/<tr class="specnotice">[\s\S]*?<\/tr>/)?.[0] ?? "";
+const noticeOf = (g: string): string => g.match(/<tr class="specnotice">[\s\S]*?<\/tr>/)?.[0] ?? "";
 
 describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
   test("the page holds its rows in #jobrows, the rows answer holds no page around them", async () => {
@@ -148,9 +110,7 @@ describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
   test("the tab for / reads Running and is current, and the document's title says Running", async () => {
     const { base } = board([job({})]);
     const html = await (await fetch(`${base}/`)).text();
-    expect(html).toContain(
-      '<a class="tab" data-nav data-goto href="/" aria-current="page">Running</a>',
-    );
+    expect(html).toContain('<a class="tab" data-nav data-goto href="/" aria-current="page">Running</a>');
     expect(html).toContain("<title>aide -board · Running</title>");
   });
 
@@ -169,56 +129,28 @@ describe("GET / answers the Jobs page, GET /?rows=1 its rows alone", () => {
   test("rows, only, open, checks and phases are the Jobs tab's own: it answers, it sends nothing on", async () => {
     const { base } = board([job({})]);
     for (const key of ["rows", "only", "open", "checks", "phases"]) {
-      const res = await fetch(`${base}/?${key}=aide/81-queue-and-runner`, {
-        redirect: "manual",
-      });
+      const res = await fetch(`${base}/?${key}=aide/81-queue-and-runner`, { redirect: "manual" });
       expect(res.status).toBe(200);
     }
-    const open = await (
-      await fetch(`${base}/?open=aide/81-queue-and-runner`)
-    ).text();
+    const open = await (await fetch(`${base}/?open=aide/81-queue-and-runner`)).text();
     expect(open).toContain('id="jobrows"');
   });
 });
 
 describe("which kind of row a job gets", () => {
-  const report = job({
-    id: "report1",
-    specFolder: "schedule-report",
-    steps: ["schedule"],
-    createdAt: "2026-10-08T10:01:00Z",
-  });
+  const report = job({ id: "report1", specFolder: "schedule-report", steps: ["schedule"], createdAt: "2026-10-08T10:01:00Z" });
   const sched = job({
-    id: "sched1",
-    specFolder: "schedule-nightly",
-    steps: ["schedule"],
-    state: "queued",
-    startedAt: undefined,
+    id: "sched1", specFolder: "schedule-nightly", steps: ["schedule"], state: "queued", startedAt: undefined,
     createdAt: "2026-10-08T10:02:00Z",
   });
   const failedReport = job({
-    id: "reportf",
-    specFolder: "schedule-report",
-    steps: ["schedule"],
-    state: "failed",
-    createdAt: "2026-10-08T10:01:00Z",
-    results: [
-      {
-        step: "schedule",
-        ok: false,
-        exitCode: 1,
-        costUsd: 0.1,
-        costMeasured: true,
-        terminalReason: "error",
-        repos: [],
-      },
-    ],
+    id: "reportf", specFolder: "schedule-report", steps: ["schedule"], state: "failed", createdAt: "2026-10-08T10:01:00Z",
+    results: [{ step: "schedule", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
   });
   const OPEN_BOTH = "open=aide/schedule-report,aide/schedule-nightly";
 
   const text = (html: string): string => html.replace(/<[^>]*>/g, "");
-  const titleLine = (g: string): string =>
-    text(g.match(/<div class="spec-name">[\s\S]*?<\/div>/)?.[0] ?? "");
+  const titleLine = (g: string): string => text(g.match(/<div class="spec-name">[\s\S]*?<\/div>/)?.[0] ?? "");
   const foldHref = (g: string): URL => {
     const href = g.match(/<a class="fold[^"]*"[^>]*?href="([^"]*)"/)?.[1] ?? "";
     return new URL(href.replaceAll("&amp;", "&"), "http://board");
@@ -230,10 +162,7 @@ describe("which kind of row a job gets", () => {
 
     expect(html).toContain('data-folder="81-queue-and-runner"');
 
-    for (const [id, title] of [
-      ["spec-aide/schedule-report", "report"],
-      ["spec-aide/schedule-nightly", "nightly"],
-    ] as const) {
+    for (const [id, title] of [["spec-aide/schedule-report", "report"], ["spec-aide/schedule-nightly", "nightly"]] as const) {
       const g = group(html, id);
       expect(titleLine(g)).toContain(title);
       expect(g).toContain("badgeslot");
@@ -246,14 +175,8 @@ describe("which kind of row a job gets", () => {
     const { base } = board([report, sched]);
     for (const query of ["", OPEN_BOTH]) {
       const html = await rowsOf(base, query);
-      for (const id of [
-        "spec-aide/schedule-report",
-        "spec-aide/schedule-nightly",
-      ]) {
-        const line =
-          group(html, id).match(
-            /<div class="spec-name">[\s\S]*?<\/div>/,
-          )?.[0] ?? "";
+      for (const id of ["spec-aide/schedule-report", "spec-aide/schedule-nightly"]) {
+        const line = group(html, id).match(/<div class="spec-name">[\s\S]*?<\/div>/)?.[0] ?? "";
         expect(line.match(/<a\b/g)).toHaveLength(1);
         expect(line).toContain('href="/projects/aide"');
       }
@@ -264,10 +187,7 @@ describe("which kind of row a job gets", () => {
     const { base } = board([report, sched]);
     for (const query of ["", "open=aide/81-queue-and-runner"]) {
       const html = await rowsOf(base, query);
-      for (const [id, jobId] of [
-        ["spec-aide/schedule-report", "report1"],
-        ["spec-aide/schedule-nightly", "sched1"],
-      ]) {
+      for (const [id, jobId] of [["spec-aide/schedule-report", "report1"], ["spec-aide/schedule-nightly", "sched1"]]) {
         const g = group(html, id);
         expect(g).not.toBe("");
         expect(g).not.toContain(`/jobs/${jobId}?tab=steps`);
@@ -282,10 +202,7 @@ describe("which kind of row a job gets", () => {
     const { base } = board([report, sched]);
     for (const query of ["", OPEN_BOTH]) {
       const html = await rowsOf(base, query);
-      for (const [id, jobId] of [
-        ["spec-aide/schedule-report", "report1"],
-        ["spec-aide/schedule-nightly", "sched1"],
-      ]) {
+      for (const [id, jobId] of [["spec-aide/schedule-report", "report1"], ["spec-aide/schedule-nightly", "sched1"]]) {
         const g = group(html, id);
         expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
         expect(g).not.toContain(`/jobs/${jobId}`);
@@ -298,9 +215,7 @@ describe("which kind of row a job gets", () => {
     expect(w).toContain('action="/api/queue/report1/cancel"');
     expect(w).toContain("actionform");
     expect(w).not.toContain("reloadform");
-    expect(group(html, "spec-aide/schedule-nightly")).toContain(
-      'action="/api/queue/sched1/cancel"',
-    );
+    expect(group(html, "spec-aide/schedule-nightly")).toContain('action="/api/queue/sched1/cancel"');
   });
 
   test("a failed scheduled job says how it ended under its state, shut and open, and the line ends with its Log link and Dismiss (AC-1, AC-5, AC-8)", async () => {
@@ -326,18 +241,10 @@ describe("which kind of row a job gets", () => {
       job({ id: "re", specFolder: "90-finished", steps: ["reopen"] }),
       job({ id: "dep", specFolder: "deploy", steps: ["deploy"] }),
     ]);
-    const keys = [
-      "aide/82-no-job:close",
-      "aide/90-finished:reopen",
-      "aide/deploy:deploy",
-    ];
+    const keys = ["aide/82-no-job:close", "aide/90-finished:reopen", "aide/deploy:deploy"];
     for (const query of ["", `open=${keys.join(",")}`]) {
       const html = await rowsOf(base, query);
-      for (const [key, id] of [
-        [keys[0], "cl"],
-        [keys[1], "re"],
-        [keys[2], "dep"],
-      ]) {
+      for (const [key, id] of [[keys[0], "cl"], [keys[1], "re"], [keys[2], "dep"]]) {
         const g = group(html, `spec-${key}`);
         expect(g).not.toBe("");
         expect(hrefsOf(headOf(g))).toEqual(["/projects/aide"]);
@@ -356,10 +263,7 @@ describe("which kind of row a job gets", () => {
     expect(opens.pathname).toBe("/");
     expect(opens.searchParams.get("open")).toBe("aide/schedule-report");
 
-    const open = group(
-      await rowsOf(base, "open=aide/schedule-report"),
-      "spec-aide/schedule-report",
-    );
+    const open = group(await rowsOf(base, "open=aide/schedule-report"), "spec-aide/schedule-report");
     const shuts = foldHref(open);
     expect(shuts.pathname).toBe("/");
     expect(shuts.searchParams.get("open")).toBeNull();
@@ -372,12 +276,8 @@ describe("which kind of row a job gets", () => {
   test("a row's title line leads with its project: aide:report and aide:nightly", async () => {
     const { base } = board([report, sched]);
     const html = await rowsOf(base);
-    expect(titleLine(group(html, "spec-aide/schedule-report"))).toBe(
-      "aide:report",
-    );
-    expect(titleLine(group(html, "spec-aide/schedule-nightly"))).toBe(
-      "aide:nightly",
-    );
+    expect(titleLine(group(html, "spec-aide/schedule-report"))).toBe("aide:report");
+    expect(titleLine(group(html, "spec-aide/schedule-nightly"))).toBe("aide:nightly");
   });
 
   test("a running job of a spec on the allowlist has the spec's row, not a job row", async () => {
@@ -389,17 +289,9 @@ describe("which kind of row a job gets", () => {
 });
 
 describe("a create that ended without a spec shows as the Specs list's message", () => {
-  const failed = job({
-    id: "cr",
-    state: "failed",
-    specFolder: "new-0a1b2c3d",
-    steps: ["create"],
-  });
+  const failed = job({ id: "cr", state: "failed", specFolder: "new-0a1b2c3d", steps: ["create"] });
   const record: FailedCreate = {
-    id: "cr",
-    project: "aide",
-    title: "A spec that never was",
-    description: "text",
+    id: "cr", project: "aide", title: "A spec that never was", description: "text",
     reason: { key: "runner.serverRestarted", values: { button: "Create" } },
     failedAt: "2026-10-08T10:05:00.000Z",
   };
@@ -443,23 +335,16 @@ describe("nothing running", () => {
   test("an empty tab with a saved search still reports nothing running", async () => {
     const { base } = board([], { queueProjects: [] });
     const first = await fetch(`${base}/?rows=1&q=missing`);
-    const cookie = first.headers
-      .getSetCookie()
-      .map((c) => c.split(";")[0]!)
-      .find((c) => c.startsWith("aide_jobs_view_"));
+    const cookie = first.headers.getSetCookie().map((c) => c.split(";")[0]!).find((c) => c.startsWith("aide_jobs_view_"));
     expect(cookie).toBeDefined();
-    const res = await fetch(`${base}/?rows=1`, {
-      headers: { cookie: cookie! },
-    });
+    const res = await fetch(`${base}/?rows=1`, { headers: { cookie: cookie! } });
     const html = await res.text();
     expect(html).toContain(t("en", "jobs.nothingRunning"));
     expect(html).not.toContain(t("en", "jobs.noRowMatchesFilter"));
   });
 
   test("the full page on an empty board is the Running tab, not a redirect to the Specs list", async () => {
-    const res = await fetch(`${board([], { queueProjects: [] }).base}/`, {
-      redirect: "manual",
-    });
+    const res = await fetch(`${board([], { queueProjects: [] }).base}/`, { redirect: "manual" });
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain(t("en", "jobs.nothingRunning"));
@@ -490,42 +375,22 @@ describe("New", () => {
 });
 
 const specKeys = (html: string): string[] =>
-  [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="spec-([^"]+)"/g)]
-    .map((m) => m[1]!)
-    .sort();
+  [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="spec-([^"]+)"/g)].map((m) => m[1]!).sort();
 
-const STATE_OF = (
-  done: string[],
-  criteria: { task: string; done: boolean }[] = [],
-): string =>
-  JSON.stringify({
-    completedPhases: done,
-    archived: null,
-    reopened: null,
-    phaseCounts: {},
-    acceptanceCriteria: criteria,
-  });
+const STATE_OF = (done: string[], criteria: { task: string; done: boolean }[] = []): string =>
+  JSON.stringify({ completedPhases: done, archived: null, reopened: null, phaseCounts: {}, acceptanceCriteria: criteria });
 
 describe("every spec the Specs list shows under Active has a row, job or not", () => {
   test("a spec implemented and waiting, one held back on an unticked criterion and one analyzed, with no job in the queue", async () => {
     const folders = ["82-implemented", "83-held-back", "84-analyzed"];
-    const { base, dir } = harness.start({
-      extra: { queueProjects: ["aide"] },
-      alsoSpecs: folders,
-    });
+    const { base, dir } = harness.start({ extra: { queueProjects: ["aide"] }, alsoSpecs: folders });
     const states: Record<string, string> = {
       "82-implemented": STATE_OF(["create", "analyze", "implement"]),
-      "83-held-back": STATE_OF(
-        ["create", "analyze", "implement"],
-        [{ task: "AC-1: it holds", done: false }],
-      ),
+      "83-held-back": STATE_OF(["create", "analyze", "implement"], [{ task: "AC-1: it holds", done: false }]),
       "84-analyzed": STATE_OF(["create", "analyze"]),
     };
     for (const folder of folders) {
-      writeFileSync(
-        join(dir, "root", "aide", "specs", folder, "4-status.json"),
-        states[folder]!,
-      );
+      writeFileSync(join(dir, "root", "aide", "specs", folder, "4-status.json"), states[folder]!);
     }
 
     const html = await rowsOf(base);
@@ -545,10 +410,8 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
     if (a.startsWith("ls-remote --heads") && dir.endsWith(specsRepo)) {
       return { code: 0, stdout: `sha\trefs/heads/aide/${UNMERGED}\n` };
     }
-    if (a.startsWith("merge-base --is-ancestor"))
-      return { code: 1, stdout: "" };
-    if (a.startsWith("symbolic-ref"))
-      return { code: 0, stdout: "refs/remotes/origin/master\n" };
+    if (a.startsWith("merge-base --is-ancestor")) return { code: 1, stdout: "" };
+    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
     return { code: 0, stdout: "" };
   };
   const closed = `${statusSaying(["create", "analyze", "close"])}\n- **Closed:** 2026-09-20 — did not hold\n`;
@@ -557,11 +420,7 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
     return harness.start({
       extra: { queueProjects: ["aide"], gitRun: gitRun as never },
       alsoSpecs: ["82-no-job"],
-      archivedSpecs: {
-        "90-finished": {},
-        "91-closed": { status: closed },
-        [UNMERGED]: {},
-      },
+      archivedSpecs: { "90-finished": {}, "91-closed": { status: closed }, [UNMERGED]: {} },
       queueMirror: JSON.stringify([
         job({ id: "run81" }),
         job({ id: "cr", specFolder: "new-0a1b2c3d", steps: ["create"] }),
@@ -575,14 +434,9 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
   async function activeList(base: string): Promise<string> {
     const deadline = Date.now() + 10_000;
     for (;;) {
-      const html = await (
-        await fetch(`${base}/specs?rows=1&state=not-archived`)
-      ).text();
+      const html = await (await fetch(`${base}/specs?rows=1&state=not-archived`)).text();
       if (html.includes(`id="spec-aide/${UNMERGED}"`)) return html;
-      if (Date.now() > deadline)
-        throw new Error(
-          "the unmerged archived spec never reached the Active list",
-        );
+      if (Date.now() > deadline) throw new Error("the unmerged archived spec never reached the Active list");
       await new Promise((r) => setTimeout(r, 25));
     }
   }
@@ -610,24 +464,12 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
     const asTab = list
       .replaceAll("&amp;state=not-archived", "")
       .replaceAll('href="/specs?', 'href="/?')
-      .replaceAll(
-        `href="/specs/aide/${UNMERGED}"`,
-        `href="/specs/aide/${UNMERGED}#spec-aide/${UNMERGED}"`,
-      );
-    expect(withoutFold(tab)).toBe(
-      withoutFold(asTab.replaceAll('href="/specs"', 'href="/"')),
-    );
+      .replaceAll(`href="/specs/aide/${UNMERGED}"`, `href="/specs/aide/${UNMERGED}#spec-aide/${UNMERGED}"`);
+    expect(withoutFold(tab)).toBe(withoutFold(asTab.replaceAll('href="/specs"', 'href="/"')));
   });
 
   test("a closed spec with a failed job has no row of any kind", async () => {
-    const { base } = everyKind([
-      job({
-        id: "bad",
-        specFolder: "91-closed",
-        steps: ["analyze"],
-        state: "failed",
-      }),
-    ]);
+    const { base } = everyKind([job({ id: "bad", specFolder: "91-closed", steps: ["analyze"], state: "failed" })]);
     await activeList(base);
     const html = await rowsOf(base);
     expect(html).not.toContain("91-closed");
@@ -637,18 +479,14 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
   // A Reopen or Close is a job of its own, as a scheduled job is: its own row,
   // never its spec's.
   test("a Reopen running on an archived spec is a row of its own, and the spec has none", async () => {
-    const { base } = everyKind([
-      job({ id: "reopen", specFolder: "90-finished", steps: ["reopen"] }),
-    ]);
+    const { base } = everyKind([job({ id: "reopen", specFolder: "90-finished", steps: ["reopen"] })]);
     const html = await rowsOf(base);
     expect(group(html, "spec-aide/90-finished:reopen")).toContain("b-running");
     expect(html).not.toContain('id="spec-aide/90-finished"');
   });
 
   test("a Close running on a live spec is a row of its own, and the spec's row is not the close's", async () => {
-    const { base } = everyKind([
-      job({ id: "close", specFolder: "82-no-job", steps: ["close"] }),
-    ]);
+    const { base } = everyKind([job({ id: "close", specFolder: "82-no-job", steps: ["close"] })]);
     const html = await rowsOf(base);
     expect(group(html, "spec-aide/82-no-job:close")).toContain("b-running");
     expect(group(html, "spec-aide/82-no-job")).not.toContain("b-running");
@@ -656,13 +494,9 @@ describe("the Jobs tab and the Specs list's Active entry show the same specs", (
 
   for (const step of ["reopen", "close"]) {
     test(`an open ${step} row has a line per step of the job, a shut one none, and neither offers Stop`, async () => {
-      const { base } = everyKind([
-        job({ id: step, specFolder: "90-finished", steps: [step] }),
-      ]);
-      const row = async (query = "") =>
-        group(await rowsOf(base, query), `spec-aide/90-finished:${step}`);
-      const lines = (html: string): number =>
-        (html.match(/<tr class="subrow" data-step=/g) ?? []).length;
+      const { base } = everyKind([job({ id: step, specFolder: "90-finished", steps: [step] })]);
+      const row = async (query = "") => group(await rowsOf(base, query), `spec-aide/90-finished:${step}`);
+      const lines = (html: string): number => (html.match(/<tr class="subrow" data-step=/g) ?? []).length;
       expect(lines(await row())).toBe(0);
       const open = await row(`open=aide/90-finished:${step}`);
       expect(lines(open)).toBeGreaterThan(0);
@@ -693,46 +527,21 @@ describe("the rows stand in the tab's order", () => {
   test("a running spec first, then the waiting scheduled jobs, the one that changed last first", async () => {
     const failedReport = (o: Record<string, unknown>) =>
       job({
-        state: "failed",
-        steps: ["schedule"],
-        specFolder: "schedule-report",
-        results: [
-          {
-            step: "schedule",
-            ok: false,
-            exitCode: 1,
-            costUsd: 0.1,
-            costMeasured: true,
-            terminalReason: "error",
-            repos: [],
-          },
-        ],
+        state: "failed", steps: ["schedule"], specFolder: "schedule-report",
+        results: [{ step: "schedule", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
         ...o,
       });
     // `other` was made later than `aide` but `aide` finished last.
     const { base } = scheduled([
-      failedReport({
-        id: "ra",
-        createdAt: "2026-10-08T10:01:00Z",
-        finishedAt: "2026-10-08T12:00:00Z",
-      }),
-      failedReport({
-        id: "ro",
-        project: "other",
-        createdAt: "2026-10-08T10:05:00Z",
-        finishedAt: "2026-10-08T10:06:00Z",
-      }),
+      failedReport({ id: "ra", createdAt: "2026-10-08T10:01:00Z", finishedAt: "2026-10-08T12:00:00Z" }),
+      failedReport({ id: "ro", project: "other", createdAt: "2026-10-08T10:05:00Z", finishedAt: "2026-10-08T10:06:00Z" }),
       job({ id: "run81" }),
     ]);
     const html = await rowsOf(base);
     const at = (id: string): number => html.indexOf(`id="spec-${id}"`);
     expect(at("aide/81-queue-and-runner")).toBeGreaterThan(-1);
-    expect(at("aide/81-queue-and-runner")).toBeLessThan(
-      at("aide/schedule-report"),
-    );
-    expect(at("aide/schedule-report")).toBeLessThan(
-      at("other/schedule-report"),
-    );
+    expect(at("aide/81-queue-and-runner")).toBeLessThan(at("aide/schedule-report"));
+    expect(at("aide/schedule-report")).toBeLessThan(at("other/schedule-report"));
   });
 });
 
@@ -740,75 +549,27 @@ describe("the rows stand in the tab's order", () => {
 // back on an unticked criterion. Both are shown on the Jobs tab, and both are
 // rows the Specs list draws.
 describe("a spec's shut row on the Jobs tab is the Specs list's row, and its open row adds the phase lines", () => {
-  const T = (m: number): string =>
-    `2026-10-08T10:${String(m).padStart(2, "0")}:00Z`;
+  const T = (m: number): string => `2026-10-08T10:${String(m).padStart(2, "0")}:00Z`;
   const step = (name: string, o: Record<string, unknown> = {}) => ({
-    step: name,
-    ok: true,
-    exitCode: 0,
-    costUsd: 0.1,
-    costMeasured: true,
-    terminalReason: "completed",
-    repos: [],
-    ...o,
+    step: name, ok: true, exitCode: 0, costUsd: 0.1, costMeasured: true, terminalReason: "completed", repos: [], ...o,
   });
   const jobs = [
+    job({ id: "a81", steps: ["analyze"], state: "done", createdAt: T(1), startedAt: T(1), results: [step("analyze")] }),
+    job({ id: "i81", steps: ["implement"], state: "failed", createdAt: T(2), startedAt: T(2), results: [step("implement", { ok: false, exitCode: 1, terminalReason: "error" })] }),
     job({
-      id: "a81",
-      steps: ["analyze"],
-      state: "done",
-      createdAt: T(1),
-      startedAt: T(1),
-      results: [step("analyze")],
+      id: "h82", specFolder: "82-held-back", steps: ["archive"], state: "done", createdAt: T(3), startedAt: T(3),
+      results: [step("archive", { terminalReason: "acceptance-criteria-unticked" })],
     }),
-    job({
-      id: "i81",
-      steps: ["implement"],
-      state: "failed",
-      createdAt: T(2),
-      startedAt: T(2),
-      results: [
-        step("implement", { ok: false, exitCode: 1, terminalReason: "error" }),
-      ],
-    }),
-    job({
-      id: "h82",
-      specFolder: "82-held-back",
-      steps: ["archive"],
-      state: "done",
-      createdAt: T(3),
-      startedAt: T(3),
-      results: [
-        step("archive", { terminalReason: "acceptance-criteria-unticked" }),
-      ],
-    }),
-    job({
-      id: "sched1",
-      specFolder: "schedule-nightly",
-      steps: ["schedule"],
-      createdAt: T(4),
-      startedAt: T(4),
-    }),
+    job({ id: "sched1", specFolder: "schedule-nightly", steps: ["schedule"], createdAt: T(4), startedAt: T(4) }),
   ];
   const STATUS = [
-    "# Status",
-    "",
-    "## Tracking info",
-    "",
-    "- **Workflow steps completed:** create, analyze, implement",
-    "",
-    "## Acceptance criteria",
-    "",
-    "| Task | Status | Notes |",
-    "|------|--------|-------|",
-    "| AC-1: it holds | ⬜ | |",
-    "",
+    "# Status", "", "## Tracking info", "",
+    "- **Workflow steps completed:** create, analyze, implement", "",
+    "## Acceptance criteria", "", "| Task | Status | Notes |", "|------|--------|-------|",
+    "| AC-1: it holds | ⬜ | |", "",
   ].join("\n");
   const STATE = JSON.stringify({
-    completedPhases: ["create", "analyze", "implement"],
-    archived: null,
-    reopened: null,
-    phaseCounts: {},
+    completedPhases: ["create", "analyze", "implement"], archived: null, reopened: null, phaseCounts: {},
     acceptanceCriteria: [{ task: "AC-1: it holds", done: false }],
   });
   const OPEN_82 = new URLSearchParams({
@@ -825,26 +586,16 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
       status: STATUS,
     });
     for (const folder of ["81-queue-and-runner", "82-held-back", "83-idle"]) {
-      writeFileSync(
-        join(dir, "root", "aide", "specs", folder, "4-status.json"),
-        STATE,
-      );
+      writeFileSync(join(dir, "root", "aide", "specs", folder, "4-status.json"), STATE);
       ran(dir, ["create", "analyze", "implement"], folder);
     }
     // A row reads git caches that fill on their own schedule: ask again until
     // the list's rows are settled, so the two answers below are of one state.
     const deadline = Date.now() + 10_000;
     for (;;) {
-      const html = await (
-        await fetch(`${base}/specs?rows=1&${OPEN_82}`)
-      ).text();
-      if (
-        dated(html) &&
-        group(html, "spec-aide/82-held-back").includes('class="checklist"')
-      )
-        break;
-      if (Date.now() > deadline)
-        throw new Error("the specs list never settled");
+      const html = await (await fetch(`${base}/specs?rows=1&${OPEN_82}`)).text();
+      if (dated(html) && group(html, "spec-aide/82-held-back").includes('class="checklist"')) break;
+      if (Date.now() > deadline) throw new Error("the specs list never settled");
       await new Promise((r) => setTimeout(r, 25));
     }
     return base;
@@ -853,17 +604,12 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
   // What one builder draws for both pages: the rows less the chevron, the open
   // spec's cell and the addresses, which are each page's own.
   const asJobs = (html: string): string =>
-    withoutFold(html)
-      .replace(/<tr class="specdetail"[\s\S]*?<\/tr>/g, "")
-      .replace(/href="[^"]*"/g, 'href=""');
+    withoutFold(html).replace(/<tr class="specdetail"[\s\S]*?<\/tr>/g, "").replace(/href="[^"]*"/g, 'href=""');
 
   test("the fixture spec's rows are the list's rows for it", async () => {
     const base = await settled();
     const jobsTab = group(await rowsOf(base), "spec-aide/81-queue-and-runner");
-    const list = group(
-      await (await fetch(`${base}/specs?rows=1`)).text(),
-      "spec-aide/81-queue-and-runner",
-    );
+    const list = group(await (await fetch(`${base}/specs?rows=1`)).text(), "spec-aide/81-queue-and-runner");
     expect(jobsTab).not.toBe("");
     expect(asJobs(jobsTab)).toBe(asJobs(list));
   });
@@ -874,16 +620,8 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
 
   test("a held-back spec opened on each: the Jobs tab's rows are the list's and the phase lines", async () => {
     const base = await settled();
-    const jobsTab = group(
-      await rowsOf(base, OPEN_82),
-      "spec-aide/82-held-back",
-    );
-    const list = group(
-      await (
-        await fetch(`${base}/specs/aide/82-held-back?rows=1&${OPEN_82}`)
-      ).text(),
-      "spec-aide/82-held-back",
-    );
+    const jobsTab = group(await rowsOf(base, OPEN_82), "spec-aide/82-held-back");
+    const list = group(await (await fetch(`${base}/specs/aide/82-held-back?rows=1&${OPEN_82}`)).text(), "spec-aide/82-held-back");
     expect(jobsTab).toContain('class="checklist"');
     expect(jobsTab).toContain("data-caption");
     expect(jobsTab).toContain("data-step=");
@@ -897,10 +635,7 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
     const base = await settled();
     const open = "open=aide/83-idle";
     const jobsTab = group(await rowsOf(base, open), "spec-aide/83-idle");
-    const list = group(
-      await (await fetch(`${base}/specs/aide/83-idle?rows=1&${open}`)).text(),
-      "spec-aide/83-idle",
-    );
+    const list = group(await (await fetch(`${base}/specs/aide/83-idle?rows=1&${open}`)).text(), "spec-aide/83-idle");
     expect(jobsTab).toContain('class="rowrun"');
     expect(list).not.toBe("");
     expect(list).not.toContain('class="rowrun"');
@@ -931,22 +666,8 @@ describe("a spec's shut row on the Jobs tab is the Specs list's row, and its ope
 // A running spec and a failed scheduled job of `aide`.
 describe("the Jobs tab's view: its address, its cookie and its sentence for no row", () => {
   const report = job({
-    id: "reportf",
-    specFolder: "schedule-report",
-    steps: ["schedule"],
-    state: "failed",
-    createdAt: "2026-10-08T10:01:00Z",
-    results: [
-      {
-        step: "schedule",
-        ok: false,
-        exitCode: 1,
-        costUsd: 0.1,
-        costMeasured: true,
-        terminalReason: "error",
-        repos: [],
-      },
-    ],
+    id: "reportf", specFolder: "schedule-report", steps: ["schedule"], state: "failed", createdAt: "2026-10-08T10:01:00Z",
+    results: [{ step: "schedule", ok: false, exitCode: 1, costUsd: 0.1, costMeasured: true, terminalReason: "error", repos: [] }],
   });
   const SPEC_ID = 'id="spec-aide/81-queue-and-runner"';
   const REPORT_ID = 'id="spec-aide/schedule-report"';
@@ -954,10 +675,7 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
 
   /** The `name=value` of the Jobs tab's cookie in an answer, as a request sends it back. */
   const jobsCookie = (res: Response): string | undefined =>
-    res.headers
-      .getSetCookie()
-      .map((c) => c.split(";")[0]!)
-      .find((c) => c.startsWith("aide_jobs_view_"));
+    res.headers.getSetCookie().map((c) => c.split(";")[0]!).find((c) => c.startsWith("aide_jobs_view_"));
 
   test("a view key narrows the rows and the answer is 200, not a redirect", async () => {
     const { base } = withBoth();
@@ -975,10 +693,7 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
 
   test("?only= follows the view: a row the view hides answers a table with none", async () => {
     const { base } = withBoth();
-    const html = await rowsOf(
-      base,
-      "only=aide/81-queue-and-runner&state=failed",
-    );
+    const html = await rowsOf(base, "only=aide/81-queue-and-runner&state=failed");
     expect(html).toContain("<table");
     expect(html).not.toContain("spechead");
   });
@@ -988,46 +703,25 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     const tabRes = await fetch(`${base}/?rows=1&state=stopped&sort=cost&q=x`);
     const names = tabRes.headers.getSetCookie().map((c) => c.split("=")[0]);
     expect(names.some((n) => n!.startsWith("aide_jobs_view_"))).toBe(true);
-    expect(
-      names.some(
-        (n) => n!.startsWith("aide_state_") || n!.startsWith("aide_sort_"),
-      ),
-    ).toBe(false);
+    expect(names.some((n) => n!.startsWith("aide_state_") || n!.startsWith("aide_sort_"))).toBe(false);
 
     const listRes = await fetch(`${base}/specs?rows=1&state=failed&sort=spec`);
-    expect(
-      listRes.headers
-        .getSetCookie()
-        .some((c) => c.startsWith("aide_jobs_view_")),
-    ).toBe(false);
+    expect(listRes.headers.getSetCookie().some((c) => c.startsWith("aide_jobs_view_"))).toBe(false);
   });
 
   test("the Jobs tab's second heading is Title and the Specs list's is unchanged", async () => {
     const { base } = withBoth();
-    const tabHead =
-      (await rowsOf(base)).match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
+    const tabHead = (await rowsOf(base)).match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
     expect(tabHead).toContain(t("en", "jobs.colTitle"));
     expect(tabHead).not.toContain(t("en", "list.colSpec"));
-    const listHead =
-      (await (await fetch(`${base}/specs?rows=1`)).text()).match(
-        /<thead>[\s\S]*?<\/thead>/,
-      )?.[0] ?? "";
+    const listHead = (await (await fetch(`${base}/specs?rows=1`)).text()).match(/<thead>[\s\S]*?<\/thead>/)?.[0] ?? "";
     expect(listHead).toContain(t("en", "list.colSpec"));
   });
 
   describe("a project key", () => {
-    const reportOther = job({
-      ...report,
-      id: "reporto",
-      project: "other",
-      createdAt: "2026-10-08T10:02:00Z",
-    });
-    const withOther = () =>
-      scheduled([job({ id: "run81" }), report, reportOther]);
-    const rowIds = (html: string): string[] =>
-      [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="([^"]+)"/g)].map(
-        (m) => m[1]!,
-      );
+    const reportOther = job({ ...report, id: "reporto", project: "other", createdAt: "2026-10-08T10:02:00Z" });
+    const withOther = () => scheduled([job({ id: "run81" }), report, reportOther]);
+    const rowIds = (html: string): string[] => [...html.matchAll(/<tr class="spechead\b[^>]*?\bid="([^"]+)"/g)].map((m) => m[1]!);
 
     test("the filter bar holds the state dropdown alone, whatever the address carries", async () => {
       const { base } = withOther();
@@ -1043,28 +737,18 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
       const { base } = withOther();
       const without = rowIds(await rowsOf(base, "state=all"));
       expect(without).toContain("spec-other/schedule-report");
-      expect(rowIds(await rowsOf(base, "state=all&project=other"))).toEqual(
-        without,
-      );
+      expect(rowIds(await rowsOf(base, "state=all&project=other"))).toEqual(without);
     });
 
     test("no link and no field the tab builds from its view carries one", async () => {
       const { base } = withOther();
-      const html = await rowsOf(
-        base,
-        "state=all&project=aide&sort=cost&q=report",
-      );
-      const form =
-        html.match(/<form class="specsearch"[\s\S]*?<\/form>/)?.[0] ?? "";
+      const html = await rowsOf(base, "state=all&project=aide&sort=cost&q=report");
+      const form = html.match(/<form class="specsearch"[\s\S]*?<\/form>/)?.[0] ?? "";
       expect(form).toContain('name="sort"');
       expect(form).not.toMatch(/name="project"/);
-      const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) =>
-        m[1]!.replaceAll("&amp;", "&"),
-      );
+      const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]!.replaceAll("&amp;", "&"));
       expect(hrefs.filter((h) => h.startsWith("/?"))).not.toHaveLength(0);
-      expect(
-        hrefs.filter((h) => new URL(h, "http://x").searchParams.has("project")),
-      ).toEqual([]);
+      expect(hrefs.filter((h) => new URL(h, "http://x").searchParams.has("project"))).toEqual([]);
     });
   });
 
@@ -1073,9 +757,7 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
     const first = await fetch(`${base}/?q=report`);
     const cookie = jobsCookie(first);
     expect(cookie).toBeDefined();
-    const res = await fetch(`${base}/?rows=1`, {
-      headers: { cookie: cookie! },
-    });
+    const res = await fetch(`${base}/?rows=1`, { headers: { cookie: cookie! } });
     const html = await res.text();
     expect(html).toContain(REPORT_ID);
     expect(html).not.toContain(SPEC_ID);
@@ -1084,15 +766,8 @@ describe("the Jobs tab's view: its address, its cookie and its sentence for no r
 
 describe("the spec a Create just queued is open on arrival, found by its job", () => {
   const create = (specFolder: string) =>
-    job({
-      id: "c1",
-      specFolder,
-      steps: ["create", "analyze"],
-      state: specFolder.startsWith("new-") ? "running" : "queued",
-      createTitle: "A new spec",
-    });
-  const opened = (g: string): boolean =>
-    /<a class="fold[^"]*"[^>]*aria-expanded="true"/.test(g);
+    job({ id: "c1", specFolder, steps: ["create", "analyze"], state: specFolder.startsWith("new-") ? "running" : "queued", createTitle: "A new spec" });
+  const opened = (g: string): boolean => /<a class="fold[^"]*"[^>]*aria-expanded="true"/.test(g);
 
   test("before the spec has its number, and after, `created` opens its row and no other", async () => {
     for (const folder of ["new-abc12345", "630-a-new-spec"]) {
@@ -1106,13 +781,6 @@ describe("the spec a Create just queued is open on arrival, found by its job", (
 
   test("a `created` that names no job opens nothing", async () => {
     const { base } = board([job({})]);
-    expect(
-      opened(
-        group(
-          await rowsOf(base, "created=gone"),
-          "spec-aide/81-queue-and-runner",
-        ),
-      ),
-    ).toBe(false);
+    expect(opened(group(await rowsOf(base, "created=gone"), "spec-aide/81-queue-and-runner"))).toBe(false);
   });
 });

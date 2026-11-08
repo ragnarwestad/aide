@@ -5,19 +5,9 @@
 
 import { t, type Language } from "../../../i18n";
 import { esc } from "../../ui/html.ts";
-import {
-  SORTS,
-  SORT_DEFAULT_DIR,
-  stateFilterLabel,
-  type SpecsFilter,
-} from "../specs-list/data-model";
+import { SORTS, SORT_DEFAULT_DIR, stateFilterLabel, type SpecsFilter } from "../specs-list/data-model";
 import type { SpecsPageOptions } from "../specs-list";
-import {
-  menuDropdown,
-  newSpecLink,
-  searchForm,
-  sortHead,
-} from "../specs-list/filter-bar.ts";
+import { menuDropdown, newSpecLink, searchForm, sortHead } from "../specs-list/filter-bar.ts";
 import {
   jobsSortPatch,
   jobsStateFilter,
@@ -50,10 +40,7 @@ export function jobsFilterBar(
   return searchForm(
     {
       action: "/",
-      hidden: [
-        ["state", jobsStateFilter(f.state).key],
-        ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!]),
-      ],
+      hidden: [["state", jobsStateFilter(f.state).key], ...KEPT.filter((k) => f[k]).map((k): [string, string] => [k, f[k]!])],
       q: f.q ?? "",
       clearHref: esc(jobsViewPath(f, { q: "" })),
       after: state + newSpecLink(opts, lang),
@@ -66,10 +53,7 @@ export function jobsFilterBar(
  *  its own order, and the second is headed Title. */
 export function jobsHead(f: SpecsFilter, lang: Language): string {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort : undefined;
-  const dir =
-    f.dir === "asc" || f.dir === "desc"
-      ? f.dir
-      : SORT_DEFAULT_DIR[sort ?? "created"]!;
+  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort ?? "created"]!;
   return sortHead(
     {
       now: { sort, dir },

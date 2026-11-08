@@ -43,11 +43,7 @@ describe("running a spec's phases from its own row", () => {
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
-      job: {
-        steps: string[];
-        gateAfter?: string[];
-        model: Record<string, string>;
-      };
+      job: { steps: string[]; gateAfter?: string[]; model: Record<string, string> };
     };
     expect(body.job.steps).toEqual(["implement"]);
     expect(body.job.model).toEqual({ implement: "fable" });
@@ -65,9 +61,7 @@ describe("running a spec's phases from its own row", () => {
       model: "",
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      job: { model: Record<string, string> };
-    };
+    const body = (await res.json()) as { job: { model: Record<string, string> } };
     expect(body.job.model).toEqual({ implement: "opus" });
   });
 
@@ -79,20 +73,11 @@ describe("running a spec's phases from its own row", () => {
     const { base } = start();
     const res = await fetch(`${base}/api/queue`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-      },
-      body: JSON.stringify({
-        project: "aide",
-        specFolder: "81-queue-and-runner",
-        steps: ["analyze", "implement", "archive"],
-      }),
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze", "implement", "archive"] }),
     });
     expect(res.status).toBe(200);
-    const { job } = (await res.json()) as {
-      job: { timeoutSec: Record<string, number> };
-    };
+    const { job } = (await res.json()) as { job: { timeoutSec: Record<string, number> } };
     expect(job.timeoutSec.analyze!).toBeGreaterThan(job.timeoutSec.archive!);
   });
 
@@ -100,10 +85,7 @@ describe("running a spec's phases from its own row", () => {
     const { base } = start();
     // A browser sends one `steps` value per ticked box, in the order the
     // boxes are drawn — never in the order they were clicked.
-    const body = new URLSearchParams({
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-    });
+    const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
     body.append("steps", "analyze");
     body.append("steps", "implement");
     const res = await fetch(`${base}/api/queue`, {
@@ -115,9 +97,7 @@ describe("running a spec's phases from its own row", () => {
       body: body.toString(),
     });
     expect(res.status).toBe(200);
-    const made = (await res.json()) as {
-      job: { steps: string[]; gateAfter?: string[] };
-    };
+    const made = (await res.json()) as { job: { steps: string[]; gateAfter?: string[] } };
     expect(made.job.steps).toEqual(["analyze", "implement"]);
     expect(made.job.gateAfter).toBeUndefined();
   });
@@ -127,10 +107,7 @@ describe("running a spec's phases from its own row", () => {
   // key, and the job runs straight through.
   test("a stray gate key is ignored", async () => {
     const { base } = start();
-    const body = new URLSearchParams({
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-    });
+    const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
     body.append("steps", "analyze");
     body.append("steps", "implement");
     body.append("gate", "on");
@@ -142,9 +119,7 @@ describe("running a spec's phases from its own row", () => {
       },
       body: body.toString(),
     });
-    const made = (await res.json()) as {
-      job: { gateAfter?: string[]; state: string };
-    };
+    const made = (await res.json()) as { job: { gateAfter?: string[]; state: string } };
     expect(made.job.gateAfter).toBeUndefined();
     expect(made.job.state).toBe("queued");
   });
@@ -157,10 +132,7 @@ describe("running a spec's phases from its own row", () => {
   test("a rerun of a done phase reaches the queue", async () => {
     const { base, dir } = start();
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(
-      join(spec, "4-status.md"),
-      statusSaying(["create", "analyze"]),
-    );
+    writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
     const res = await postRow(base, {
       project: "aide",
@@ -168,8 +140,7 @@ describe("running a spec's phases from its own row", () => {
       steps: "analyze",
     });
     expect(res.status).toBe(200);
-    expect(
-      ((await res.json()) as { job: { steps: string[] } }).job.steps,
-    ).toEqual(["analyze"]);
+    expect(((await res.json()) as { job: { steps: string[] } }).job.steps).toEqual(["analyze"]);
   });
+
 });

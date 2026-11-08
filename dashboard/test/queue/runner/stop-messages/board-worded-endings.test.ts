@@ -6,41 +6,25 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  store,
-  enqueue,
-  makeRunner,
-  okResult,
-  resetHarness,
-  cleanupHarness,
-} from "../runner-fixtures.ts";
+import { store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness } from "../runner-fixtures.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
-type Case = {
-  name: string;
-  step: string;
-  result: Record<string, unknown>;
-  boardWords: boolean;
-};
+type Case = { name: string; step: string; result: Record<string, unknown>; boardWords: boolean };
 const CASES = JSON.parse(
-  readFileSync(
-    join(
-      import.meta.dir,
-      "../../../../../core/tests/fixtures/board-worded-endings.json",
-    ),
-    "utf-8",
-  ),
+  readFileSync(join(import.meta.dir, "../../../../../core/tests/fixtures/board-worded-endings.json"), "utf-8"),
 ).cases as Case[];
 
 describe("a result with no sentence of the runner's own", () => {
   for (const c of CASES) {
     test(`${c.name}: ${c.boardWords ? "the board words it" : "the board has no sentence for it"} (AC-2)`, () => {
       const job = enqueue({ steps: [c.step] });
-      const runner = makeRunner({
-        readResult: () => ({ ...okResult(0.1), ok: false, ...c.result }),
-      });
+      if (c.result.terminalReason === "model-at-capacity")
+        store.update(job.id, {
+          retry: { action: job.steps[job.stepIndex]!, attempts: 2 },
+        });
+      const runner = makeRunner({ readResult: () => ({ ...okResult(0.1), ok: false, ...c.result }) });
       runner.tick();
       runner.poll();
       const error = store.get(job.id)?.error;

@@ -18,9 +18,7 @@ export interface AcTest {
  *  criteria. A record that does not parse reads as none. */
 export function readAcCoverage(dir: string): Record<string, AcTest[]> | null {
   try {
-    return parseAcCoverage(
-      readFileSync(join(dir, "ac-coverage.json"), "utf-8"),
-    );
+    return parseAcCoverage(readFileSync(join(dir, "ac-coverage.json"), "utf-8"));
   } catch {
     return null;
   }
@@ -33,12 +31,7 @@ export async function branchAcCoverage(
   target: { root: string; branch: string },
   statusRelPath: string,
 ): Promise<Record<string, AcTest[]> | null> {
-  const file = await readStatusFromBranch(
-    run,
-    target.root,
-    target.branch,
-    statusRelPath.replace(/4-status\.md$/, "ac-coverage.json"),
-  );
+  const file = await readStatusFromBranch(run, target.root, target.branch, statusRelPath.replace(/4-status\.md$/, "ac-coverage.json"));
   return file ? parseAcCoverage(file.text) : null;
 }
 
@@ -47,9 +40,7 @@ export async function branchAcCoverage(
 export function parseAcCoverage(text: string): Record<string, AcTest[]> | null {
   try {
     const parsed = JSON.parse(text);
-    return parsed && typeof parsed.acs === "object" && parsed.acs
-      ? parsed.acs
-      : null;
+    return parsed && typeof parsed.acs === "object" && parsed.acs ? parsed.acs : null;
   } catch {
     return null;
   }

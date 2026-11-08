@@ -8,17 +8,12 @@
 
 /** The dependency each held job waits on, by job id, and every job id
  *  the answer looked at. */
-export type DependencyHolds = Map<string, string> & {
-  checked?: ReadonlySet<string>;
-};
+export type DependencyHolds = Map<string, string> & { checked?: ReadonlySet<string> };
 
 /** The job waits a tick without a reason of its own: the answer did not look at it. */
 export const NOT_CHECKED = Symbol("not checked");
 
-export function dependencyHold(
-  holds: DependencyHolds | undefined,
-  jobId: string,
-): string | typeof NOT_CHECKED | undefined {
+export function dependencyHold(holds: DependencyHolds | undefined, jobId: string): string | typeof NOT_CHECKED | undefined {
   const dependency = holds?.get(jobId);
   if (dependency !== undefined) return dependency;
   return holds?.checked && !holds.checked.has(jobId) ? NOT_CHECKED : undefined;

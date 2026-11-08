@@ -5,14 +5,7 @@
 // by itself once the rows are ticked: a person presses Archive.
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import {
-  cleanupHarness,
-  enqueue,
-  makeRunner,
-  resetHarness,
-  spawns,
-  store,
-} from "./runner-fixtures.ts";
+import { cleanupHarness, enqueue, makeRunner, resetHarness, spawns, store } from "./runner-fixtures.ts";
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
@@ -26,18 +19,12 @@ describe("an archive whose acceptance rows are open", () => {
     expect(after.state).toBe("done");
     expect(after.errorReason).toBeUndefined();
     expect(after.results.at(-1)).toMatchObject({
-      step: "archive",
-      ok: true,
-      costUsd: 0,
-      terminalReason: "acceptance-criteria-unticked",
+      step: "archive", ok: true, costUsd: 0, terminalReason: "acceptance-criteria-unticked",
     });
   });
 
   test("is ended even while another archive runs in the project, so no hold is written", () => {
-    const other = enqueue({
-      specFolder: "91-parallel-spec-runs",
-      steps: ["archive"],
-    });
+    const other = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["archive"] });
     const runner = makeRunner({});
     runner.tick();
     expect(store.get(other.id)?.state).toBe("running");
@@ -51,15 +38,7 @@ describe("an archive whose acceptance rows are open", () => {
     const job = enqueue({ steps: ["implement", "archive"] });
     store.update(job.id, {
       stepIndex: 1,
-      results: [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 1,
-          costMeasured: true,
-          terminalReason: "completed",
-        },
-      ],
+      results: [{ step: "implement", ok: true, costUsd: 1, costMeasured: true, terminalReason: "completed" }],
     });
     makeRunner({}).tick(undefined, undefined, new Set([job.id]));
     const after = store.get(job.id)!;

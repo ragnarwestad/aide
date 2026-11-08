@@ -1,11 +1,5 @@
 import { resolve, dirname } from "node:path";
-import {
-  checkAllTools,
-  setConfiguredTools,
-  setModelChoices,
-  toolRechecker,
-  type CheckableTool,
-} from "./tool-check.ts";
+import { checkAllTools, setConfiguredTools, setModelChoices, toolRechecker, type CheckableTool } from "./tool-check.ts";
 import { runProjectSuiteBeforePush } from "./land-branch/test-gate.ts";
 import { assignSpecNumberAfterMerge } from "./land-branch/finalize-create.ts";
 import { translationMergeArgs } from "./land-branch/run-script.ts";
@@ -29,12 +23,7 @@ import { AideRunStore } from "../queue/aide-run-store.ts";
 import { Notifier } from "../integrations/notify.ts";
 import { QueueStore, type ProjectResolver } from "../queue/queue.ts";
 
-import {
-  QUEUE_DEFAULTS,
-  compressResponse,
-  checkRequest,
-  createHostAllowlist,
-} from "./serve-helpers";
+import { QUEUE_DEFAULTS, compressResponse, checkRequest, createHostAllowlist } from "./serve-helpers";
 export * from "./serve-helpers";
 export type { ServerOptions } from "./options.ts";
 import type { ServerOptions } from "./options.ts";
@@ -42,16 +31,8 @@ import { handleCore, type CoreRoutesContext } from "./core-routes.ts";
 import { handleRoutes, type RoutesContext } from "./routes";
 import { DEFAULT_PDF_CACHE_DIR } from "./routes/spec-pdf.ts";
 import { type SpecViewsContext } from "./spec-views";
-import {
-  DEFAULT_BIND_HOST,
-  isLoopbackBind,
-  isQueuePath,
-} from "./queue-guard.ts";
-import {
-  answerProjectChange,
-  persistAllowlist as persistAllowlistImpl,
-  type ProjectActionsContext,
-} from "./project-actions.ts";
+import { DEFAULT_BIND_HOST, isLoopbackBind, isQueuePath } from "./queue-guard.ts";
+import { answerProjectChange, persistAllowlist as persistAllowlistImpl, type ProjectActionsContext } from "./project-actions.ts";
 import { createServerState } from "./state.ts";
 import { setupWatch } from "./setup/watch.ts";
 import { makeSettle } from "./serve-helpers/settle.ts";
@@ -66,15 +47,8 @@ import { setupSpecViews } from "./setup/spec-views.ts";
 import { setupQueueContext } from "./setup/queue-context.ts";
 import { createLaunchdRestart } from "./land-branch";
 import { applyOverlapDependencies } from "./dependencies";
-import {
-  createQueueRunner,
-  resumeCutLandingsAtBoot,
-  type RunnerSetupContext,
-} from "./runner-setup.ts";
-import {
-  recoverTestServers,
-  sweepDeadTestServers,
-} from "./test-servers/recover.ts";
+import { createQueueRunner, resumeCutLandingsAtBoot, type RunnerSetupContext } from "./runner-setup.ts";
+import { recoverTestServers, sweepDeadTestServers } from "./test-servers/recover.ts";
 import { setBoardInfo } from "../render/ui/board-info.ts";
 import { clearCheckoutFaults } from "../render/ui/checkout-faults.ts";
 import { navEntries } from "../render";
@@ -117,12 +91,7 @@ export function createServer(opts: ServerOptions) {
   // Built before `setupProjectResolution`, which hands it to
   // `promptFileFor`; the tick, the pages and the schedule routes share it.
   const scheduleStore = createScheduleStore(opts.queueConfigFile);
-  const resolution = setupProjectResolution(
-    opts,
-    allowed,
-    state,
-    scheduleStore,
-  );
+  const resolution = setupProjectResolution(opts, allowed, state, scheduleStore);
   const { targets, gitRun, branchStatus, ensureCheckout } = resolution;
 
   // This process's own commit, read once — see state.ts's
@@ -144,27 +113,17 @@ export function createServer(opts: ServerOptions) {
     // rejection that takes the server down.
     .catch(() => {});
 
-  const resolveProject: ProjectResolver = createProjectResolver(
-    state,
-    allowed,
-    targets,
-  );
+  const resolveProject: ProjectResolver = createProjectResolver(state, allowed, targets);
 
   const watch = setupWatch(opts, allowed, state);
 
   // Built after `resolveProject`, which it takes. Nothing above it reads
   // it any more: `targets` used to ask the queue what it had run, and
   // the spec's own files are the only answer to that now.
-  const push = setupPush(opts, {
-    jobs: () => queue.list(),
-    notify: () => watch.notifyQueueChanged(),
-    scheduleStore,
-    served: allowed,
-  });
+  const push = setupPush(opts, { jobs: () => queue.list(), notify: () => watch.notifyQueueChanged(), scheduleStore, served: allowed });
   const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
-    pendingModelsPath: opts.pendingModelsPath,
-    modelIdsPath: opts.modelIdsPath,
+    pendingModelsPath: opts.pendingModelsPath, modelIdsPath: opts.modelIdsPath,
     pendingStepsPath: opts.pendingStepsPath,
     defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
     resolve: resolveProject,
@@ -185,11 +144,7 @@ export function createServer(opts: ServerOptions) {
   // The tools any model is configured for — read live, since Settings can
   // change them.
   const configuredTools = (): CheckableTool[] => [
-    ...new Set(
-      Object.values(queue.defaults.modelChoices ?? {}).map(
-        (choice) => (choice.tool ?? "claude") as CheckableTool,
-      ),
-    ),
+    ...new Set(Object.values(queue.defaults.modelChoices ?? {}).map((choice) => (choice.tool ?? "claude") as CheckableTool)),
   ];
   const schedules = setupSchedules(opts, state, {
     machineryProjectDir: resolution.machineryProjectDir,
@@ -206,14 +161,7 @@ export function createServer(opts: ServerOptions) {
     specsRoot: resolution.specsRoot,
     // Behind the same one flag as the check at start-up: a server nobody
     // asked to check anything never spawns a CLI to do it.
-    recheckTools: opts.checkToolsOnStart
-      ? toolRechecker({
-          providers: () => queue.defaults.providers,
-          scriptDir: opts.queueRunnerBin
-            ? dirname(opts.queueRunnerBin)
-            : undefined,
-        })
-      : undefined,
+    recheckTools: opts.checkToolsOnStart ? toolRechecker({ providers: () => queue.defaults.providers, scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined }) : undefined,
   });
   resolution.attachBranchFileSteps(schedules.branchFileSteps);
 
@@ -253,16 +201,12 @@ export function createServer(opts: ServerOptions) {
     restart: opts.restart ?? createLaunchdRestart(),
     restartPollMs: opts.restartPollMs,
     restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
-    dashboardRoot:
-      opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
+    dashboardRoot: opts.dashboardRoot ?? resolve(import.meta.dir, "..", "..", ".."),
     landingGate:
       opts.landingGate ??
       ((root, job, branch) =>
         runProjectSuiteBeforePush(root, job, branch, {
-          scriptDir: opts.queueRunnerBin
-            ? dirname(opts.queueRunnerBin)
-            : undefined,
-          jobs: () => queue.list(),
+          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined, jobs: () => queue.list(),
         })),
     // The script that numbers a landed create lives beside the runner
     // this server was started with, so a board serving a branch numbers
@@ -271,24 +215,14 @@ export function createServer(opts: ServerOptions) {
       opts.finalizeCreateSpec ??
       ((work, root, specs, folder) =>
         assignSpecNumberAfterMerge(work, root, specs, folder, {
-          scriptDir: opts.queueRunnerBin
-            ? dirname(opts.queueRunnerBin)
-            : undefined,
+          scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined,
         })),
-    translationMergeArgs: (root, work) =>
-      translationMergeArgs(root, work, {
-        scriptDir: opts.queueRunnerBin
-          ? dirname(opts.queueRunnerBin)
-          : undefined,
-      }),
+    translationMergeArgs: (root, work) => translationMergeArgs(root, work, { scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined }),
     testServers: testServersCtx,
   });
 
   const runnerSetupCtx: RunnerSetupContext = {
-    store: queue,
-    queueConfigFile: opts.queueConfigFile,
-    dashboardCheckoutRoot: opts.dashboardCheckoutRoot,
-    queueMirrorPath: opts.queueMirrorPath,
+    store: queue, queueConfigFile: opts.queueConfigFile, dashboardCheckoutRoot: opts.dashboardCheckoutRoot, queueMirrorPath: opts.queueMirrorPath,
     machineryProjectDir: resolution.machineryProjectDir,
     machinerySpecsRoot: resolution.machinerySpecsRoot,
     queueRunnerBin: opts.queueRunnerBin,
@@ -300,16 +234,14 @@ export function createServer(opts: ServerOptions) {
     codeLanding: resolution.codeLanding,
     queuePush: opts.queuePush,
     promptFileFor: resolution.promptFileFor,
-    chromeFor: resolution.chromeFor,
-    noSandboxFor: resolution.noSandboxFor,
+    chromeFor: resolution.chromeFor, noSandboxFor: resolution.noSandboxFor,
     notifier,
     landNewSpec: land.landNewSpec,
     landStepBranch: land.landStepBranch,
     landArchivedSpec: land.landArchivedSpec,
     landClosedSpec: land.landClosedSpec,
     landStoppedStepBranch: land.landStoppedStepBranch,
-    handleSharedFiles: (job, outcome) =>
-      applyOverlapDependencies(routesCtx, job, outcome),
+    handleSharedFiles: (job, outcome) => applyOverlapDependencies(routesCtx, job, outcome),
     landScheduleRun: land.landScheduleRun,
     startDeploy: land.deployJob.start,
     specDir: resolution.specDir,
@@ -322,13 +254,7 @@ export function createServer(opts: ServerOptions) {
     // after this is asked for, and a read stamped before that write
     // would never count as having seen the step.
     rereadSpecCaches: (dir, folder) => {
-      setTimeout(
-        () =>
-          void schedules
-            .rereadSpec(dir, folder, { askOrigin: true })
-            .catch(() => {}),
-        0,
-      );
+      setTimeout(() => void schedules.rereadSpec(dir, folder, { askOrigin: true }).catch(() => {}), 0);
     },
   };
   const runner = createQueueRunner(runnerSetupCtx);
@@ -353,15 +279,9 @@ export function createServer(opts: ServerOptions) {
   // `state.server` is not set yet — see state.ts's own doc comment, and
   // `runnerSetupCtx.readServerPort` above for the identical shape.
   const currentPort = () => state.server?.port ?? opts.port;
-  const hosts = createHostAllowlist({
-    extra: opts.allowedHosts ?? [],
-    lookup: opts.tailscaleName,
-  });
+  const hosts = createHostAllowlist({ extra: opts.allowedHosts ?? [], lookup: opts.tailscaleName });
 
-  const projectActionsCtx: ProjectActionsContext = {
-    queueConfigFile: opts.queueConfigFile,
-    allowed,
-  };
+  const projectActionsCtx: ProjectActionsContext = { queueConfigFile: opts.queueConfigFile, allowed };
   function persistAllowlist(what: string) {
     return persistAllowlistImpl(projectActionsCtx, what);
   }
@@ -391,8 +311,7 @@ export function createServer(opts: ServerOptions) {
     pdfToolAvailable,
     testServers: testServersCtx,
   };
-  const { archivedSpecRows, specPageView, jobDetailView } =
-    setupSpecViews(specViewsCtx);
+  const { archivedSpecRows, specPageView, jobDetailView } = setupSpecViews(specViewsCtx);
 
   // Built last, from every earlier stage's own pieces — see
   // `RoutesContext`'s own doc comment for why `scan` rides as a
@@ -441,8 +360,7 @@ export function createServer(opts: ServerOptions) {
   });
 
   const coreCtx: CoreRoutesContext = {
-    store,
-    notifyQueueChanged: watch.notifyQueueChanged,
+    store, notifyQueueChanged: watch.notifyQueueChanged,
     readServingSha: () => state.servingSha,
   };
 
@@ -495,18 +413,13 @@ export function createServer(opts: ServerOptions) {
   // start a second one on a branch git already has checked out.
   void recoverTestServers(testServersCtx, [...allowed])
     .then(async (found) => {
-      for (const e of found)
-        console.log(`boards: ${e.branch} is still running on :${e.port}`);
+      for (const e of found) console.log(`boards: ${e.branch} is still running on :${e.port}`);
       // And the other half: a test server that did NOT survive leaves
       // its worktree registered, and that registration refuses the next
       // checkout of its branch — which is the next click on that spec's
       // own link.
-      for (const path of await sweepDeadTestServers(testServersCtx, [
-        ...allowed,
-      ])) {
-        console.log(
-          `boards: removed the worktree of a test server that is gone — ${path}`,
-        );
+      for (const path of await sweepDeadTestServers(testServersCtx, [...allowed])) {
+        console.log(`boards: removed the worktree of a test server that is gone — ${path}`);
       }
     })
     .catch(() => {
@@ -527,10 +440,7 @@ export function createServer(opts: ServerOptions) {
   setModelChoices(() => queue.defaults.modelChoices);
   if (opts.checkToolsOnStart) {
     setConfiguredTools(configuredTools);
-    void checkAllTools({
-      providers: () => queue.defaults.providers,
-      scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined,
-    }).catch(() => {
+    void checkAllTools({ providers: () => queue.defaults.providers, scriptDir: opts.queueRunnerBin ? dirname(opts.queueRunnerBin) : undefined }).catch(() => {
       // Same best effort: a check that could not run leaves the tab
       // reading "not checked yet", which is true.
     });
@@ -583,8 +493,7 @@ export function createServer(opts: ServerOptions) {
 }
 
 if (import.meta.main) {
-  const { installTimestampedConsole } =
-    await import("./serve-helpers/timestamped-console.ts");
+  const { installTimestampedConsole } = await import("./serve-helpers/timestamped-console.ts");
   installTimestampedConsole();
   const { runCli } = await import("./cli.ts");
   runCli();

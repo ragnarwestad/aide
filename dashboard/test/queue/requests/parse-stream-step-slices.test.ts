@@ -17,20 +17,10 @@ describe("stepSlices", () => {
       { by: "ai", lines: [ONE, "moved it", ONE_DONE, TWO, "committed"] },
     ];
     const slices = stepSlices(logs);
-    expect([...slices.keys()]).toEqual([
-      "Step Aide: preparing",
-      "Step 1 of 2",
-      "Step 2 of 2",
-    ]);
-    expect(slices.get("Step Aide: preparing")).toEqual([
-      { by: "aide-before", lines: [PREP, "pulled main", PREP_DONE] },
-    ]);
-    expect(slices.get("Step 1 of 2")).toEqual([
-      { by: "ai", lines: [ONE, "moved it", ONE_DONE] },
-    ]);
-    expect(slices.get("Step 2 of 2")).toEqual([
-      { by: "ai", lines: [TWO, "committed"] },
-    ]);
+    expect([...slices.keys()]).toEqual(["Step Aide: preparing", "Step 1 of 2", "Step 2 of 2"]);
+    expect(slices.get("Step Aide: preparing")).toEqual([{ by: "aide-before", lines: [PREP, "pulled main", PREP_DONE] }]);
+    expect(slices.get("Step 1 of 2")).toEqual([{ by: "ai", lines: [ONE, "moved it", ONE_DONE] }]);
+    expect(slices.get("Step 2 of 2")).toEqual([{ by: "ai", lines: [TWO, "committed"] }]);
   });
 
   test("what came after a step ended belongs to the next step that starts", () => {
@@ -38,9 +28,7 @@ describe("stepSlices", () => {
       { by: "aide-before", lines: [PREP, PREP_DONE] },
       { by: "ai", lines: ["read the spec", ONE] },
     ]);
-    expect(slices.get("Step Aide: preparing")).toEqual([
-      { by: "aide-before", lines: [PREP, PREP_DONE] },
-    ]);
+    expect(slices.get("Step Aide: preparing")).toEqual([{ by: "aide-before", lines: [PREP, PREP_DONE] }]);
     expect(slices.get("Step 1 of 2")).toEqual([
       { by: "ai", lines: ["read the spec"] },
       { by: "ai", lines: [ONE] },
@@ -48,9 +36,7 @@ describe("stepSlices", () => {
   });
 
   test("what came after the last step ended belongs to that step", () => {
-    const slices = stepSlices([
-      { by: "ai", lines: [ONE, ONE_DONE, "all done"] },
-    ]);
+    const slices = stepSlices([{ by: "ai", lines: [ONE, ONE_DONE, "all done"] }]);
     expect(slices.get("Step 1 of 2")).toEqual([
       { by: "ai", lines: [ONE, ONE_DONE] },
       { by: "ai", lines: ["all done"] },
@@ -58,9 +44,7 @@ describe("stepSlices", () => {
   });
 
   test("what came before any mark belongs to the first step marked", () => {
-    const slices = stepSlices([
-      { by: "aide-before", lines: ["started the run", PREP, "pulled main"] },
-    ]);
+    const slices = stepSlices([{ by: "aide-before", lines: ["started the run", PREP, "pulled main"] }]);
     expect(slices.get("Step Aide: preparing")).toEqual([
       { by: "aide-before", lines: ["started the run"] },
       { by: "aide-before", lines: [PREP, "pulled main"] },
@@ -68,20 +52,9 @@ describe("stepSlices", () => {
   });
 
   test("a subagent's work stays whole, with the step it ran in", () => {
-    const helper: LogPart = {
-      by: "subagent",
-      name: "reviewer",
-      lines: ["read the diff"],
-    };
-    const slices = stepSlices([
-      { by: "ai", lines: [ONE] },
-      helper,
-      { by: "ai", lines: [TWO] },
-    ]);
-    expect(slices.get("Step 1 of 2")).toEqual([
-      { by: "ai", lines: [ONE] },
-      helper,
-    ]);
+    const helper: LogPart = { by: "subagent", name: "reviewer", lines: ["read the diff"] };
+    const slices = stepSlices([{ by: "ai", lines: [ONE] }, helper, { by: "ai", lines: [TWO] }]);
+    expect(slices.get("Step 1 of 2")).toEqual([{ by: "ai", lines: [ONE] }, helper]);
   });
 
   test("a log with no marks has no slices", () => {

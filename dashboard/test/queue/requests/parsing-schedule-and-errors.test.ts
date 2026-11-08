@@ -46,9 +46,7 @@ describe("PHASE_STEPS", () => {
 // `reopen`/`reset`, but never a phase a spec passes through.
 describe("WORKFLOW_STEPS — schedule", () => {
   test("is a workflow step but not a phase", () => {
-    expect((WORKFLOW_STEPS as readonly string[]).includes("schedule")).toBe(
-      true,
-    );
+    expect((WORKFLOW_STEPS as readonly string[]).includes("schedule")).toBe(true);
     expect((PHASE_STEPS as readonly string[]).includes("schedule")).toBe(false);
   });
 });
@@ -56,11 +54,7 @@ describe("WORKFLOW_STEPS — schedule", () => {
 describe("parseJobRequest — the schedule step", () => {
   test("a schedule-<name> tracking key needs no existing spec folder", () => {
     const r = parseJobRequest(
-      {
-        project: "aide",
-        specFolder: "schedule-nightly-report",
-        steps: ["schedule"],
-      },
+      { project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] },
       { resolve, defaults: DEFAULTS },
     );
     expect(r.ok).toBe(true);
@@ -71,11 +65,7 @@ describe("parseJobRequest — the schedule step", () => {
 
   test("a tracking key that does not start with schedule- is refused", () => {
     const r = parseJobRequest(
-      {
-        project: "aide",
-        specFolder: "not-a-schedule-key",
-        steps: ["schedule"],
-      },
+      { project: "aide", specFolder: "not-a-schedule-key", steps: ["schedule"] },
       { resolve, defaults: DEFAULTS },
     );
     expect(r.ok).toBe(false);
@@ -84,11 +74,7 @@ describe("parseJobRequest — the schedule step", () => {
 
   test("the exemption never widens another step: schedule combined with analyze still needs a real folder", () => {
     const r = parseJobRequest(
-      {
-        project: "aide",
-        specFolder: "schedule-nightly-report",
-        steps: ["schedule", "analyze"],
-      },
+      { project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule", "analyze"] },
       { resolve, defaults: DEFAULTS },
     );
     expect(r.ok).toBe(false);
@@ -97,11 +83,7 @@ describe("parseJobRequest — the schedule step", () => {
 
   test("a schedule job for an unallowed project is still refused", () => {
     const r = parseJobRequest(
-      {
-        project: "not-a-project",
-        specFolder: "schedule-nightly-report",
-        steps: ["schedule"],
-      },
+      { project: "not-a-project", specFolder: "schedule-nightly-report", steps: ["schedule"] },
       { resolve, defaults: DEFAULTS },
     );
     expect(r.ok).toBe(false);
@@ -121,10 +103,7 @@ describe("parseJobRequest — the schedule step", () => {
 describe("errorReason", () => {
   /** The members of the `errorReason?: ...` union in one source file. */
   const declaredIn = (file: string): string[] => {
-    const src = readFileSync(
-      join(import.meta.dir, "..", "..", "..", "src", file),
-      "utf-8",
-    );
+    const src = readFileSync(join(import.meta.dir, "..", "..", "..", "src", file), "utf-8");
     const line = src.match(/^\s*errorReason\?:([^;]*);/m);
     expect(line).not.toBeNull();
     return line![1]!
@@ -155,10 +134,7 @@ describe("errorReason", () => {
 // it at all.
 describe("stopReason", () => {
   const membersOf = (file: string, pattern: RegExp): string[] => {
-    const src = readFileSync(
-      join(import.meta.dir, "..", "..", "..", "src", file),
-      "utf-8",
-    );
+    const src = readFileSync(join(import.meta.dir, "..", "..", "..", "src", file), "utf-8");
     const line = src.match(pattern);
     expect(line).not.toBeNull();
     return line![1]!
@@ -169,13 +145,8 @@ describe("stopReason", () => {
   };
 
   test("names the same members on the job and on the row's view", () => {
-    const stored = membersOf(
-      "queue/steps.ts",
-      /^export type StopReason =([^;]*);/m,
-    );
-    expect(stored).toEqual(
-      membersOf("render/ui/job-state/types.ts", /^\s*stopReason\?:([^;]*);/m),
-    );
+    const stored = membersOf("queue/steps.ts", /^export type StopReason =([^;]*);/m);
+    expect(stored).toEqual(membersOf("render/ui/job-state/types.ts", /^\s*stopReason\?:([^;]*);/m));
     // Named, so widening the union without a reader is caught here
     // rather than at the page: `tests-red` is the landing's own suite
     // going red on the merged result, which pushes nothing and asks for
@@ -183,15 +154,7 @@ describe("stopReason", () => {
     // run itself being cut short. `model-at-capacity` is the provider
     // having no room for the chosen model right now. `sent-back` is an
     // implement that found its short analysis too small for the spec.
-    expect(stored).toEqual([
-      "acceptance-criteria",
-      "model-at-capacity",
-      "provider-limit",
-      "sent-back",
-      "shared-files",
-      "tests-red",
-      "timeout",
-    ]);
+    expect(stored).toEqual(["acceptance-criteria", "model-at-capacity", "provider-limit", "sent-back", "shared-files", "tests-red", "timeout"]);
   });
 });
 

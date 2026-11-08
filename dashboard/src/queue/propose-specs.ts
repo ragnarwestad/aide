@@ -43,10 +43,7 @@ export interface ProposeDeps {
 /** Every spec of the project — active, archived and closed — read the way the
  *  board's own lists read them. */
 function knownSpecs(root: string): KnownSpec[] {
-  const refs = [
-    ...specFolders(root, false),
-    ...specFolders(join(root, "archive"), true),
-  ];
+  const refs = [...specFolders(root, false), ...specFolders(join(root, "archive"), true)];
   return refs.map((s) => ({
     folder: s.folder,
     title: s.title,
@@ -69,24 +66,11 @@ export function proposeSpecs(deps: ProposeDeps, job: Job): void {
   const proposals: ProposalResult[] = [];
   let record: ProposalsRecord | null = null;
   try {
-    const text = proposalsFileText(
-      deps.outputRoot,
-      job.project,
-      job.specFolder,
-      job.id,
-    );
+    const text = proposalsFileText(deps.outputRoot, job.project, job.specFolder, job.id);
     if (text === null) return;
     // A second pass for the same run (the board restarted in between) has
     // nothing left to do.
-    if (
-      readProposalsRecord(
-        deps.outputRoot,
-        job.project,
-        job.specFolder,
-        job.id,
-      ) !== null
-    )
-      return;
+    if (readProposalsRecord(deps.outputRoot, job.project, job.specFolder, job.id) !== null) return;
 
     const root = deps.specsRoot(job.project);
     if (root === undefined || !isDirectory(root)) {
@@ -95,12 +79,7 @@ export function proposeSpecs(deps: ProposeDeps, job: Job): void {
     }
     const parsed = parseProposalsFile(text);
     if ("error" in parsed) {
-      record = {
-        at: deps.now(),
-        problem: "unreadable",
-        detail: parsed.error,
-        proposals,
-      };
+      record = { at: deps.now(), problem: "unreadable", detail: parsed.error, proposals };
       return;
     }
 
@@ -120,11 +99,7 @@ export function proposeSpecs(deps: ProposeDeps, job: Job): void {
       const jobs = deps.store.list().filter((j) => j.project === job.project);
       const checked = checkProposal(entry, room, known, jobs);
       if (!checked.ok) {
-        proposals.push({
-          title: checked.title,
-          result: "skipped",
-          why: checked.why,
-        });
+        proposals.push({ title: checked.title, result: "skipped", why: checked.why });
         continue;
       }
       const { title, description } = checked.proposal;
@@ -140,11 +115,7 @@ export function proposeSpecs(deps: ProposeDeps, job: Job): void {
       if (made.ok) {
         proposals.push({ title, result: "created", jobId: made.job.id });
       } else {
-        deps.log(
-          "proposed spec",
-          `${job.project}/${name}`,
-          `${title}: ${made.error}`,
-        );
+        deps.log("proposed spec", `${job.project}/${name}`, `${title}: ${made.error}`);
         proposals.push({ title, result: "skipped", why: { code: "refused" } });
       }
     }
@@ -155,13 +126,7 @@ export function proposeSpecs(deps: ProposeDeps, job: Job): void {
   } finally {
     if (record !== null) {
       try {
-        writeProposalsRecord(
-          deps.outputRoot,
-          job.project,
-          job.specFolder,
-          job.id,
-          record,
-        );
+        writeProposalsRecord(deps.outputRoot, job.project, job.specFolder, job.id, record);
       } catch (err) {
         deps.log(
           "proposed spec",

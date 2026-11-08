@@ -4,16 +4,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { QueueStore } from "../../../src/queue/queue.ts";
 import {
-  DEFAULTS,
-  dir,
-  spawns,
-  store,
-  enqueue,
-  makeRunner,
-  okResult,
-  resetHarness,
-  cleanupHarness,
-  setNow,
+  DEFAULTS, dir, spawns, store, enqueue, makeRunner, okResult, resetHarness, cleanupHarness, setNow,
 } from "./runner-fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
 import { AideRunStore } from "../../../src/queue/aide-run-store.ts";
@@ -28,38 +19,23 @@ function sentence(s: unknown): string {
   return renderSentence("en", s as Parameters<typeof renderSentence>[1]) ?? "";
 }
 
+
 const resolve = (project: string) =>
-  project === "aide"
-    ? { specFolders: ["81-queue-and-runner", "91-parallel-spec-runs"] }
-    : null;
+  project === "aide" ? { specFolders: ["81-queue-and-runner", "91-parallel-spec-runs"] } : null;
 
 beforeEach(resetHarness);
 afterEach(cleanupHarness);
 
 describe("the completion hook and the landing window", () => {
-  const outcome = (extra: Record<string, unknown> = {}) => ({
-    ...okResult(0.1),
-    ...extra,
-  });
+  const outcome = (extra: Record<string, unknown> = {}) => ({ ...okResult(0.1), ...extra });
 
   test("onStepDone fires exactly once per finished step, with the outcome", () => {
-    const seen: {
-      step?: string;
-      ok: boolean;
-      branch?: string;
-      specFolder?: string;
-    }[] = [];
+    const seen: { step?: string; ok: boolean; branch?: string; specFolder?: string }[] = [];
     const job = enqueue({ steps: ["create"] });
     const runner = makeRunner({
-      readResult: () =>
-        outcome({ branch: "aide/new-abc123de", specFolder: "94-a-new-spec" }),
+      readResult: () => outcome({ branch: "aide/new-abc123de", specFolder: "94-a-new-spec" }),
       onStepDone: (_job, step, o) => {
-        seen.push({
-          step,
-          ok: !!o.ok,
-          branch: o.branch,
-          specFolder: o.specFolder,
-        });
+        seen.push({ step, ok: !!o.ok, branch: o.branch, specFolder: o.specFolder });
       },
     });
     runner.tick();
@@ -67,12 +43,7 @@ describe("the completion hook and the landing window", () => {
     runner.poll(); // the job is finished: nothing is polled twice
     expect(store.get(job.id)?.state).toBe("done");
     expect(seen).toEqual([
-      {
-        step: "create",
-        ok: true,
-        branch: "aide/new-abc123de",
-        specFolder: "94-a-new-spec",
-      },
+      { step: "create", ok: true, branch: "aide/new-abc123de", specFolder: "94-a-new-spec" },
     ]);
   });
 
@@ -80,7 +51,7 @@ describe("the completion hook and the landing window", () => {
   // own JSON), which must survive into StepResult rather than being
   // silently narrowed to "claude" — the gap plan review found in the
   // two-way ternary this replaced.
-  test('a result carrying tool: "none" keeps it, rather than defaulting to claude', () => {
+  test("a result carrying tool: \"none\" keeps it, rather than defaulting to claude", () => {
     const job = enqueue({ steps: ["create"] });
     const runner = makeRunner({ readResult: () => outcome({ tool: "none" }) });
     runner.tick();
@@ -89,21 +60,13 @@ describe("the completion hook and the landing window", () => {
   });
 
   test("a result naming codex still keeps it, and one naming nothing still reads claude", () => {
-    const codexJob = enqueue({
-      specFolder: "81-queue-and-runner",
-      steps: ["analyze"],
-    });
-    const codexRunner = makeRunner({
-      readResult: () => outcome({ tool: "codex" }),
-    });
+    const codexJob = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    const codexRunner = makeRunner({ readResult: () => outcome({ tool: "codex" }) });
     codexRunner.tick();
     codexRunner.poll();
     expect(store.get(codexJob.id)?.results[0]?.tool).toBe("codex");
 
-    const bareJob = enqueue({
-      specFolder: "91-parallel-spec-runs",
-      steps: ["analyze"],
-    });
+    const bareJob = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const bareRunner = makeRunner({ readResult: () => outcome() });
     bareRunner.tick();
     bareRunner.poll();
@@ -111,32 +74,18 @@ describe("the completion hook and the landing window", () => {
   });
 
   test("a step records the provider it ran on by key, with the name it had then, and a step that ran no AI none (AC-10)", () => {
-    store.defaults.providers = {
-      "Claude-Capra": { name: "Claude-Capra", tool: "claude" },
-    };
-    const job = enqueue({
-      specFolder: "81-queue-and-runner",
-      steps: ["analyze"],
-    });
+    store.defaults.providers = { "Claude-Capra": { name: "Claude-Capra", tool: "claude" } };
+    const job = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
     store.update(job.id, { provider: { analyze: "Claude-Capra" } });
-    const noAi = enqueue({
-      specFolder: "91-parallel-spec-runs",
-      steps: ["create"],
-    });
+    const noAi = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["create"] });
     const runner = makeRunner({
-      readResult: (path) =>
-        outcome(path.includes(noAi.id) ? { tool: "none" } : {}),
+      readResult: (path) => outcome(path.includes(noAi.id) ? { tool: "none" } : {}),
     });
     runner.tick();
     runner.poll();
     // A rename afterwards leaves the finished step as it was named then.
-    store.defaults.providers = {
-      "Claude-Capra": { name: "Capra", tool: "claude" },
-    };
-    expect(store.get(job.id)?.results[0]?.provider).toEqual({
-      key: "Claude-Capra",
-      name: "Claude-Capra",
-    });
+    store.defaults.providers = { "Claude-Capra": { name: "Capra", tool: "claude" } };
+    expect(store.get(job.id)?.results[0]?.provider).toEqual({ key: "Claude-Capra", name: "Claude-Capra" });
     expect(store.get(noAi.id)?.results[0]?.provider).toBeUndefined();
   });
 
@@ -145,26 +94,16 @@ describe("the completion hook and the landing window", () => {
   // from the one list instead, and a tool the runner can start is a
   // tool the row can say it ran on.
   test("a result naming opencode keeps it", () => {
-    const job = enqueue({
-      specFolder: "81-queue-and-runner",
-      steps: ["analyze"],
-    });
-    const runner = makeRunner({
-      readResult: () => outcome({ tool: "opencode" }),
-    });
+    const job = enqueue({ specFolder: "81-queue-and-runner", steps: ["analyze"] });
+    const runner = makeRunner({ readResult: () => outcome({ tool: "opencode" }) });
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.results[0]?.tool).toBe("opencode");
   });
 
   test("a tool nobody can run falls to claude rather than being kept", () => {
-    const job = enqueue({
-      specFolder: "91-parallel-spec-runs",
-      steps: ["analyze"],
-    });
-    const runner = makeRunner({
-      readResult: () => outcome({ tool: "gemini" }),
-    });
+    const job = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    const runner = makeRunner({ readResult: () => outcome({ tool: "gemini" }) });
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.results[0]?.tool).toBe("claude");
@@ -176,11 +115,7 @@ describe("the completion hook and the landing window", () => {
       finish = resolve;
     });
     const landing = enqueue({ steps: ["create"] });
-    const runner = makeRunner({
-      readResult: () => outcome(),
-      onStepDone: () => work,
-      maxConcurrent: 2,
-    });
+    const runner = makeRunner({ readResult: () => outcome(), onStepDone: () => work, maxConcurrent: 2 });
     runner.tick();
     runner.poll();
     // The create job is `done` — its slot is free, and without the
@@ -215,10 +150,7 @@ describe("the completion hook and the landing window", () => {
       finish = resolve;
     });
     const job = enqueue({ steps: ["create"] });
-    const runner = makeRunner({
-      readResult: () => outcome(),
-      onStepDone: () => work,
-    });
+    const runner = makeRunner({ readResult: () => outcome(), onStepDone: () => work });
     runner.tick();
     runner.poll();
     expect(store.get(job.id)?.landing).toBe(true);
@@ -267,18 +199,12 @@ describe("the completion hook and the landing window", () => {
     const bash =
       "the step reported success but left no real progress — the spec folder was never moved to archive/. Press Run again for this step.";
     const job = enqueue({ steps: ["archive"] });
-    const runner = makeRunner({
-      readResult: () =>
-        outcome({ ok: false, terminalReason: "no-progress", error: bash }),
-    });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "no-progress", error: bash }) });
     runner.tick();
     runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({
-      key: "runner.noProgressArchive",
-      values: { button: "Archive" },
-    });
+    expect(after?.error).toEqual({ key: "runner.noProgressArchive", values: { button: "Archive" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -286,17 +212,11 @@ describe("the completion hook and the landing window", () => {
     const bash =
       "the step reported success but left no real progress — nothing changed in the project. Press Implement again for this step.";
     const job = enqueue({ steps: ["implement"] });
-    const runner = makeRunner({
-      readResult: () =>
-        outcome({ ok: false, terminalReason: "no-progress", error: bash }),
-    });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "no-progress", error: bash }) });
     runner.tick();
     runner.poll();
     const after = store.get(job.id);
-    expect(after?.error).toEqual({
-      key: "runner.noProgressImplement",
-      values: { button: "Implement" },
-    });
+    expect(after?.error).toEqual({ key: "runner.noProgressImplement", values: { button: "Implement" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -304,18 +224,12 @@ describe("the completion hook and the landing window", () => {
     const bash =
       "the step reported success, but the project's tests are red on its result — the run and its record are the runner's own, not the session's. Press Implement again for this step.\n(fail) the fact is on the list";
     const job = enqueue({ steps: ["implement"] });
-    const runner = makeRunner({
-      readResult: () =>
-        outcome({ ok: false, terminalReason: "tests-red", error: bash }),
-    });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "tests-red", error: bash }) });
     runner.tick();
     runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({
-      key: "runner.testsRedImplement",
-      values: { button: "Implement" },
-    });
+    expect(after?.error).toEqual({ key: "runner.testsRedImplement", values: { button: "Implement" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -330,11 +244,7 @@ describe("the completion hook and the landing window", () => {
           ok: false,
           terminalReason: "tests-not-started",
           error: bash,
-          testsNotStarted: {
-            kind: "port-in-use",
-            port: 8806,
-            holder: { pid: 4242, command: "node", spec: "58-sign-up" },
-          },
+          testsNotStarted: { kind: "port-in-use", port: 8806, holder: { pid: 4242, command: "node", spec: "58-sign-up" } },
         }),
     });
     runner.tick();
@@ -352,18 +262,12 @@ describe("the completion hook and the landing window", () => {
     const bash =
       "the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press Archive again for this step.";
     const job = enqueue({ steps: ["archive"] });
-    const runner = makeRunner({
-      readResult: () =>
-        outcome({ ok: false, terminalReason: "merge-unfinished", error: bash }),
-    });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "merge-unfinished", error: bash }) });
     runner.tick();
     runner.poll();
     const after = store.get(job.id);
     expect(after?.state).toBe("failed");
-    expect(after?.error).toEqual({
-      key: "runner.mergeUnfinishedArchive",
-      values: { button: "Archive" },
-    });
+    expect(after?.error).toEqual({ key: "runner.mergeUnfinishedArchive", values: { button: "Archive" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -371,17 +275,11 @@ describe("the completion hook and the landing window", () => {
     const bash =
       "the step reported success, but the merge with main it was handed open was dropped, and the branch is still behind main — the session has to finish that merge, not throw it away. Press Implement again for this step.";
     const job = enqueue({ steps: ["implement"] });
-    const runner = makeRunner({
-      readResult: () =>
-        outcome({ ok: false, terminalReason: "merge-unfinished", error: bash }),
-    });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "merge-unfinished", error: bash }) });
     runner.tick();
     runner.poll();
     const after = store.get(job.id);
-    expect(after?.error).toEqual({
-      key: "runner.mergeUnfinishedImplement",
-      values: { button: "Implement" },
-    });
+    expect(after?.error).toEqual({ key: "runner.mergeUnfinishedImplement", values: { button: "Implement" } });
     expect(after?.errorDetail).toBe(bash);
   });
 
@@ -391,10 +289,7 @@ describe("the completion hook and the landing window", () => {
   // words survive twice over: in the sentence, and as its hover detail.
   test("a CLI that failed names the AI and model it failed on", () => {
     const job = enqueue({ steps: ["archive"] });
-    const runner = makeRunner({
-      readResult: () =>
-        outcome({ ok: false, terminalReason: "cli-error", error: "no" }),
-    });
+    const runner = makeRunner({ readResult: () => outcome({ ok: false, terminalReason: "cli-error", error: "no" }) });
     runner.tick();
     runner.poll();
     const text = sentence(store.get(job.id)?.error);
@@ -410,8 +305,7 @@ describe("the completion hook and the landing window", () => {
   test("a failure that is not about the AI keeps the script's own sentence", () => {
     const job = enqueue({ steps: ["archive"] });
     const runner = makeRunner({
-      readResult: () =>
-        outcome({ ok: false, terminalReason: "scope-violation", error: "no" }),
+      readResult: () => outcome({ ok: false, terminalReason: "scope-violation", error: "no" }),
     });
     runner.tick();
     runner.poll();
@@ -423,8 +317,7 @@ describe("the completion hook and the landing window", () => {
     const seen: boolean[] = [];
     const job = enqueue({ steps: ["create"] });
     const runner = makeRunner({
-      readResult: () =>
-        outcome({ ok: false, terminalReason: "cli-error", error: "no" }),
+      readResult: () => outcome({ ok: false, terminalReason: "cli-error", error: "no" }),
       onStepDone: (_j, _s, o) => {
         seen.push(!!o.ok);
       },
@@ -455,9 +348,7 @@ describe("the completion hook and the landing window", () => {
     runner.poll();
     const row = store.get(job.id);
     expect(row?.state).toBe("failed");
-    expect(sentence(row?.error)).toBe(
-      "the step's own work did not reach origin: /path/to/project",
-    );
+    expect(sentence(row?.error)).toBe("the step's own work did not reach origin: /path/to/project");
   });
 
   test("a landing flag left behind by a restart never wedges the queue", () => {
@@ -466,11 +357,7 @@ describe("the completion hook and the landing window", () => {
     // survived would hold the whole queue shut with nothing to clear it.
     const job = enqueue({ steps: ["create"] });
     store.update(job.id, { landing: true, state: "done" });
-    const reloaded = new QueueStore({
-      mirrorPath: join(dir, "queue.json"),
-      defaults: DEFAULTS,
-      resolve,
-    });
+    const reloaded = new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });
     expect(reloaded.get(job.id)?.landing).toBeUndefined();
   });
 });
@@ -499,14 +386,9 @@ describe("parked on a dependency", () => {
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
     // Use this job's project to qualify the dependency number.
-    expect(stored?.error).toMatchObject({
-      values: { dependency: "other-project:80" },
-    });
+    expect(stored?.error).toMatchObject({ values: { dependency: "other-project:80" } });
     expect(stored?.errorReason).toBe("held-back");
-    const row = await jobRow(
-      { queue: store, store: new AideRunStore() },
-      stored!,
-    );
+    const row = await jobRow({ queue: store, store: new AideRunStore() }, stored!);
     expect(specStateChip(row, "en")).toContain("Held back");
   });
 
@@ -523,15 +405,10 @@ describe("parked on a dependency", () => {
     // is — a stale line under a running row is a lie.
     expect(stored?.error).toBeUndefined();
     expect(stored?.errorReason).toBeUndefined();
-    const row = await jobRow(
-      { queue: store, store: new AideRunStore() },
-      stored!,
-    );
+    const row = await jobRow({ queue: store, store: new AideRunStore() }, stored!);
     const chip = specStateChip(row, "en");
     expect(chip).toContain("Implementing");
-    expect(wordPhase(false, undefined, row, {}, "en").badge?.label).toBe(
-      "Running",
-    );
+    expect(wordPhase(false, undefined, row, {}, "en").badge?.label).toBe("Running");
   });
 
   test("a parked job takes no slot: a job behind it still starts", () => {
@@ -549,21 +426,14 @@ describe("parked on a dependency", () => {
   // and was refused by the script instead of waiting (575-577, 30 Sep).
   test("a job the answer did not look at waits for the next tick, with no reason written", () => {
     const earlier = enqueue({ steps: ["implement"] });
-    const late = enqueue({
-      specFolder: "91-parallel-spec-runs",
-      steps: ["analyze"],
-    });
+    const late = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
     const runner = makeRunner({ maxConcurrent: 2 });
-    const answer = Object.assign(new Map<string, string>(), {
-      checked: new Set([earlier.id]),
-    });
+    const answer = Object.assign(new Map<string, string>(), { checked: new Set([earlier.id]) });
     runner.tick(answer);
     expect(spawns.map((s) => s.jobId)).toEqual([earlier.id]);
     expect(store.get(late.id)?.state).toBe("queued");
     expect(store.get(late.id)?.error).toBeUndefined();
-    runner.tick(
-      Object.assign(new Map<string, string>(), { checked: new Set([late.id]) }),
-    );
+    runner.tick(Object.assign(new Map<string, string>(), { checked: new Set([late.id]) }));
     expect(spawns.map((s) => s.jobId)).toEqual([earlier.id, late.id]);
   });
 
@@ -590,10 +460,7 @@ describe("parked on a dependency", () => {
   // FRESH as `["implement"]` alone gets — `tick()` reads the map by job
   // id alone, never by how a job's current step became current.
   test("a chained job's held-back sentence reads identically to a fresh job's", () => {
-    const chained = enqueue({
-      specFolder: "91-parallel-spec-runs",
-      steps: ["analyze", "implement"],
-    });
+    const chained = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze", "implement"] });
     const runner = makeRunner({ readResult: () => okResult(1) });
     runner.tick(); // chained job's own analyze starts
     runner.poll(); // analyze finishes; the job returns to "queued" on implement
@@ -601,21 +468,12 @@ describe("parked on a dependency", () => {
 
     const fresh = enqueue({ steps: ["implement"] });
     const spawnsBefore = spawns.length;
-    runner.tick(
-      new Map([
-        [fresh.id, "80-dependency"],
-        [chained.id, "80-dependency"],
-      ]),
-    );
+    runner.tick(new Map([[fresh.id, "80-dependency"], [chained.id, "80-dependency"]]));
     expect(spawns.length).toBe(spawnsBefore); // neither started
     expect(store.get(fresh.id)?.state).toBe("queued");
     expect(store.get(chained.id)?.state).toBe("queued");
-    expect(sentence(store.get(chained.id)?.error)).toBe(
-      sentence(store.get(fresh.id)?.error),
-    );
-    expect(sentence(store.get(chained.id)?.error)).toContain(
-      "depends on aide:80,",
-    );
+    expect(sentence(store.get(chained.id)?.error)).toBe(sentence(store.get(fresh.id)?.error));
+    expect(sentence(store.get(chained.id)?.error)).toContain("depends on aide:80,");
   });
 });
 
@@ -632,9 +490,7 @@ describe("parked on its own missing analyze step", () => {
     expect(spawns.length).toBe(0);
     const stored = store.get(job.id);
     expect(stored?.state).toBe("queued");
-    expect(sentence(stored?.error)).toBe(
-      "Problem: Held back: not analyzed yet\nSolution: Press Analyze first",
-    );
+    expect(sentence(stored?.error)).toBe("Problem: Held back: not analyzed yet\nSolution: Press Analyze first");
   });
 
   test("the same job starts once the holds no longer name it", () => {
@@ -652,14 +508,9 @@ describe("parked on its own missing analyze step", () => {
   test("checked before the dependency map: a job in both is held back for the analyze reason", () => {
     const job = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
-    runner.tick(
-      new Map([[job.id, "80-dependency"]]),
-      new Map([[job.id, { key: "runner.notAnalyzed" }]]),
-    );
+    runner.tick(new Map([[job.id, "80-dependency"]]), new Map([[job.id, { key: "runner.notAnalyzed" }]]));
     expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toBe(
-      "Problem: Held back: not analyzed yet\nSolution: Press Analyze first",
-    );
+    expect(sentence(store.get(job.id)?.error)).toBe("Problem: Held back: not analyzed yet\nSolution: Press Analyze first");
   });
 
   test("no set at all is exactly today's behaviour", () => {
@@ -742,9 +593,7 @@ describe("an archive whose acceptance criteria are not all ticked", () => {
     const runner = makeRunner();
     runner.tick(new Map([[job.id, "80-dependency"]]));
     expect(spawns.length).toBe(0);
-    expect(sentence(store.get(job.id)?.error)).toContain(
-      "Held back: depends on aide:80,",
-    );
+    expect(sentence(store.get(job.id)?.error)).toContain("Held back: depends on aide:80,");
   });
 });
 
@@ -776,9 +625,7 @@ describe("the queue records when each STEP started", () => {
     runner.poll();
 
     const results = store.get(job.id)?.results ?? [];
-    expect(results[1]?.startedAt).toBe(
-      new Date(Date.parse("2026-08-16T12:00:00Z")).toISOString(),
-    );
+    expect(results[1]?.startedAt).toBe(new Date(Date.parse("2026-08-16T12:00:00Z")).toISOString());
     // Not the previous step's own end (10:05) — the boundary-based
     // figure today's formula would have used instead.
     expect(results[1]?.startedAt).not.toBe(results[0]?.at);
@@ -809,9 +656,7 @@ describe("the queue records when each STEP started", () => {
     runner.poll();
 
     const results = store.get(job.id)?.results ?? [];
-    expect(results[1]?.startedAt).toBe(
-      new Date(Date.parse("2026-08-16T12:00:00Z")).toISOString(),
-    );
+    expect(results[1]?.startedAt).toBe(new Date(Date.parse("2026-08-16T12:00:00Z")).toISOString());
     // Neither the hold-back check (11:00) nor the first step's own end
     // (10:05) leaked into the recorded start.
     expect(results[1]?.startedAt).not.toBe(results[0]?.at);
@@ -820,64 +665,29 @@ describe("the queue records when each STEP started", () => {
 
 // An implement whose own test run never started gets the board's sentence
 // for what stopped it, read from the result's `testsNotStarted`.
-const said = (testsNotStarted: unknown) =>
-  testsNotStartedMessage("implement", {
-    terminalReason: "tests-not-started",
-    testsNotStarted,
-  });
+const said = (testsNotStarted: unknown) => testsNotStartedMessage("implement", { terminalReason: "tests-not-started", testsNotStarted });
 
 describe("a test run that never started", () => {
   test("an unresolved test command names the manifest setting to fix", () => {
-    expect(said({ kind: "test-command-unresolved" })).toEqual({
-      key: "runner.testsNotStartedCommand",
-      values: { button: "Implement" },
-    });
+    expect(said({ kind: "test-command-unresolved" })).toEqual({ key: "runner.testsNotStartedCommand", values: { button: "Implement" } });
   });
 
   test("a server failure names the command that stopped and its line", () => {
-    expect(
-      said({
-        kind: "server-exited",
-        command: "make browser-test",
-        line: "webServer exited early",
-      }),
-    ).toEqual({
+    expect(said({ kind: "server-exited", command: "make browser-test", line: "webServer exited early" })).toEqual({
       key: "runner.testsNotStartedServer",
-      values: {
-        command: "make browser-test",
-        line: "webServer exited early",
-        button: "Implement",
-      },
+      values: { command: "make browser-test", line: "webServer exited early", button: "Implement" },
     });
   });
   test("a port another spec's test server holds names that spec by its number", () => {
     expect(
-      said({
-        kind: "port-in-use",
-        port: 8806,
-        holder: { pid: 4242, command: "node", spec: "58-sign-up-flow" },
-      }),
-    ).toEqual({
-      key: "runner.testsNotStartedPortSpec",
-      values: { port: "8806", spec: "58", button: "Implement" },
-    });
+      said({ kind: "port-in-use", port: 8806, holder: { pid: 4242, command: "node", spec: "58-sign-up-flow" } }),
+    ).toEqual({ key: "runner.testsNotStartedPortSpec", values: { port: "8806", spec: "58", button: "Implement" } });
   });
 
   test("a port another process holds names its command and pid", () => {
-    expect(
-      said({
-        kind: "port-in-use",
-        port: 5432,
-        holder: { pid: 777, command: "postgres" },
-      }),
-    ).toEqual({
+    expect(said({ kind: "port-in-use", port: 5432, holder: { pid: 777, command: "postgres" } })).toEqual({
       key: "runner.testsNotStartedPortProcess",
-      values: {
-        port: "5432",
-        command: "postgres",
-        pid: "777",
-        button: "Implement",
-      },
+      values: { port: "5432", command: "postgres", pid: "777", button: "Implement" },
     });
   });
 
@@ -896,10 +706,7 @@ describe("a test run that never started", () => {
   });
 
   test("a server that exited says so", () => {
-    expect(said({ kind: "server-exited" })).toEqual({
-      key: "runner.testsNotStartedExited",
-      values: { button: "Implement" },
-    });
+    expect(said({ kind: "server-exited" })).toEqual({ key: "runner.testsNotStartedExited", values: { button: "Implement" } });
   });
 
   test("a spec folder the recorder could not find says the tests were not run, for that reason", () => {
@@ -910,9 +717,7 @@ describe("a test run that never started", () => {
   });
 
   test("a recorder that failed says the tests were not run, with its own words", () => {
-    expect(
-      said({ kind: "recorder-failed", error: "missing --folder" }),
-    ).toEqual({
+    expect(said({ kind: "recorder-failed", error: "missing --folder" })).toEqual({
       key: "runner.testsNotStartedRecorder",
       values: { reason: "missing --folder", button: "Implement" },
     });
@@ -928,10 +733,7 @@ describe("a test run that never started", () => {
       { kind: "spec-folder-missing" },
       { kind: "recorder-failed", error: "" },
     ]) {
-      expect(said(raw)).toEqual({
-        key: "runner.testsNotStarted",
-        values: { button: "Implement" },
-      });
+      expect(said(raw)).toEqual({ key: "runner.testsNotStarted", values: { button: "Implement" } });
     }
   });
 });

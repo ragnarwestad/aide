@@ -15,18 +15,10 @@ import { fakeGit } from "../helpers/fake-git.ts";
 describe("diffStatBetween", () => {
   test("reads added/removed line counts per file from git diff --numstat", async () => {
     const { run } = fakeGit({
-      "diff --numstat": {
-        code: 0,
-        stdout: "12\t3\tsrc/queue/runner.ts\n0\t7\tsrc/old-file.ts\n",
-      },
+      "diff --numstat": { code: 0, stdout: "12\t3\tsrc/queue/runner.ts\n0\t7\tsrc/old-file.ts\n" },
     });
 
-    const entries = await diffStatBetween(
-      run,
-      "/repos/aide",
-      "abc111",
-      "abc222",
-    );
+    const entries = await diffStatBetween(run, "/repos/aide", "abc111", "abc222");
 
     expect(entries).toEqual([
       { path: "src/queue/runner.ts", added: 12, removed: 3, binary: false },
@@ -44,29 +36,15 @@ describe("diffStatBetween", () => {
       "diff --numstat": { code: 0, stdout: "-\t-\tassets/logo.png\n" },
     });
 
-    const entries = await diffStatBetween(
-      run,
-      "/repos/aide",
-      "abc111",
-      "abc222",
-    );
+    const entries = await diffStatBetween(run, "/repos/aide", "abc111", "abc222");
 
-    expect(entries).toEqual([
-      { path: "assets/logo.png", added: 0, removed: 0, binary: true },
-    ]);
+    expect(entries).toEqual([{ path: "assets/logo.png", added: 0, removed: 0, binary: true }]);
   });
 
   test("headBefore === headAfter is answered without asking git at all", async () => {
-    const { run, calls } = fakeGit({
-      "diff --numstat": { code: 0, stdout: "1\t1\tx.ts\n" },
-    });
+    const { run, calls } = fakeGit({ "diff --numstat": { code: 0, stdout: "1\t1\tx.ts\n" } });
 
-    const entries = await diffStatBetween(
-      run,
-      "/repos/aide",
-      "sameSha",
-      "sameSha",
-    );
+    const entries = await diffStatBetween(run, "/repos/aide", "sameSha", "sameSha");
 
     expect(entries).toEqual([]);
     expect(calls).toHaveLength(0);
@@ -75,8 +53,6 @@ describe("diffStatBetween", () => {
   test("a git failure answers with no changed files, not a throw", async () => {
     const { run } = fakeGit({ "diff --numstat": { code: 128, stdout: "" } });
 
-    expect(
-      await diffStatBetween(run, "/repos/aide", "abc111", "abc222"),
-    ).toEqual([]);
+    expect(await diffStatBetween(run, "/repos/aide", "abc111", "abc222")).toEqual([]);
   });
 });

@@ -4,14 +4,7 @@
 import { drawLimits } from "./limits";
 import { applyRefusal } from "./row-refusal";
 import { offerEachToItsTool } from "./ai-sync.ts";
-import {
-  AWAITING,
-  chosen,
-  chosenSteps,
-  checkboxKey,
-  press,
-  selectKey,
-} from "./state.ts";
+import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";
 import { syncApproachCancels } from "./approach-choice";
 import { syncDependsOnForms } from "./depends-on";
 import { openTestFiles, reopenTestFiles } from "./test-files";
@@ -54,16 +47,13 @@ export function relabelRunButton(body: Element, formId: string): void {
   // `querySelectorAll`, not `querySelector`: the harness's `#jobrows`
   // stub offers the plural and not the singular, and the two answer the
   // same question here — a form id names one button.
-  const button = body.querySelectorAll(`button${selector}`)[0] as
-    HTMLButtonElement | undefined;
+  const button = body.querySelectorAll(`button${selector}`)[0] as HTMLButtonElement | undefined;
   if (!button) return;
   // The BOXES and the BUTTON are tied by the form they name, not by the
   // row they sit in: a phase box is on a sub-row of its own and the
   // button is up in the head row's State cell, so no walk from one to
   // the other is as reliable as the id both already carry.
-  const boxes = Array.from(
-    body.querySelectorAll(`input[name="steps"]${selector}`),
-  ) as HTMLInputElement[];
+  const boxes = Array.from(body.querySelectorAll(`input[name="steps"]${selector}`)) as HTMLInputElement[];
   const first = boxes.find((b) => b.checked);
   // No box ticked: named for the earliest one instead of hiding the
   // button — `boxes[0]` because the boxes on a row are drawn
@@ -124,9 +114,7 @@ export function restoreChosen(body: Element): void {
       if (option.value === want) model.value = want;
     }
   }
-  for (const el of body.querySelectorAll(
-    'input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"]',
-  )) {
+  for (const el of body.querySelectorAll('input[name="steps"], input[name="tick"], input[name="unverified"], input[name="failed"], input[name="approach"]')) {
     const box = el as HTMLInputElement;
     const want = chosenSteps.get(checkboxKey(box));
     if (want === undefined) continue;
@@ -183,10 +171,7 @@ const SPEC_HEAD_CLASS = "spechead";
 
 /** Where each spec's rows begin. Built from the constant rather than
  *  written out, so the class vocabulary has one spelling here. */
-const SPEC_HEAD = new RegExp(
-  `<tr class="${SPEC_HEAD_CLASS}\\b[^>]*?\\bid="([^"]+)"`,
-  "g",
-);
+const SPEC_HEAD = new RegExp(`<tr class="${SPEC_HEAD_CLASS}\\b[^>]*?\\bid="([^"]+)"`, "g");
 
 const OPEN_TBODY = "<tbody>";
 const CLOSE_TBODY = "</tbody>";
@@ -222,10 +207,7 @@ function splitGroups(html: string, holdsSpec = false): RowSplit | null {
     const key = at[i]!.key;
     if (seen[key]) return null; // no unique anchor to reach it by
     seen[key] = true;
-    groups.push({
-      key,
-      html: content.slice(at[i]!.index, at[i + 1]?.index ?? content.length),
-    });
+    groups.push({ key, html: content.slice(at[i]!.index, at[i + 1]?.index ?? content.length) });
   }
   return { prefix: html.slice(0, start), groups, suffix: html.slice(close) };
 }
@@ -236,12 +218,7 @@ const isSpecHead = (el: Element): boolean =>
 /** A head row and every row after it up to the next spec's. */
 function rowsFrom(head: Element): Element[] {
   const range: Element[] = [head];
-  for (
-    let el = head.nextElementSibling;
-    el && !isSpecHead(el);
-    el = el.nextElementSibling
-  )
-    range.push(el);
+  for (let el = head.nextElementSibling; el && !isSpecHead(el); el = el.nextElementSibling) range.push(el);
   return range;
 }
 
@@ -260,12 +237,7 @@ function groupRange(key: string): Element[] | null {
  *  element on no spec's rows. */
 export function specRowsOf(el: Element): Element[] | null {
   let row = el.closest("tr");
-  for (
-    let up = row?.parentElement?.closest("tr");
-    up;
-    up = up.parentElement?.closest("tr")
-  )
-    row = up;
+  for (let up = row?.parentElement?.closest("tr"); up; up = up.parentElement?.closest("tr")) row = up;
   let head: Element | null = row;
   while (head && !isSpecHead(head)) head = head.previousElementSibling;
   return head ? rowsFrom(head) : null;
@@ -285,11 +257,7 @@ function replaceGroup(g: RowGroup): boolean {
 /** A spec that was not on the page a moment ago, put in its place:
  *  before whichever group now follows it, or at the end when none
  *  does. */
-function insertGroup(
-  groups: RowGroup[],
-  at: number,
-  held: Record<string, true>,
-): boolean {
+function insertGroup(groups: RowGroup[], at: number, held: Record<string, true>): boolean {
   for (let i = at + 1; i < groups.length; i++) {
     if (!held[groups[i]!.key]) continue;
     const next = groupRange(groups[i]!.key);
@@ -329,10 +297,7 @@ function applyGroupDiff(prev: RowSplit, next: RowSplit): boolean {
   const now: Record<string, true> = {};
   for (const g of next.groups) now[g.key] = true;
   const kept = (list: RowGroup[], other: Record<string, unknown>): string =>
-    list
-      .filter((g) => other[g.key] !== undefined)
-      .map((g) => g.key)
-      .join("\n");
+    list.filter((g) => other[g.key] !== undefined).map((g) => g.key).join("\n");
   if (kept(prev.groups, now) !== kept(next.groups, was)) return false;
   // The ones that are gone go first, so the anchors the inserts below
   // reach for are rows that are actually staying.
@@ -400,8 +365,7 @@ export function placeSpecRows(html: string, holdOpen: boolean): boolean {
   // not what the list's own answers carry, so no answer equals them and the
   // next diff draws this spec again.
   const at = lastRows?.groups.findIndex((g) => g.key === group.key) ?? -1;
-  if (at !== -1)
-    lastRows!.groups[at] = holdOpen ? group : { key: group.key, html: "" };
+  if (at !== -1) lastRows!.groups[at] = holdOpen ? group : { key: group.key, html: "" };
   redrawn(body, open);
   return true;
 }
@@ -420,9 +384,7 @@ export async function swapSpec(key: string): Promise<void> {
   params.set("rows", "1");
   params.set("only", key);
   try {
-    const res = await fetch(`${location.pathname}?${params}`, {
-      headers: { accept: "text/html" },
-    });
+    const res = await fetch(`${location.pathname}?${params}`, { headers: { accept: "text/html" } });
     const html = res.ok ? await res.text() : "";
     // The same rule as `swapRows`: a press that began meanwhile draws
     // its own answer.
@@ -444,9 +406,7 @@ export async function swapRows(): Promise<void> {
   const params = new URLSearchParams(location.search);
   params.set("rows", "1");
   try {
-    const res = await fetch(`${location.pathname}?${params}`, {
-      headers: { accept: "text/html" },
-    });
+    const res = await fetch(`${location.pathname}?${params}`, { headers: { accept: "text/html" } });
     if (!res.ok) return; // a blip is not worth a broken page
     const html = await res.text();
     // A press began while this was in the air, so this answer predates
@@ -473,8 +433,7 @@ export async function swapRows(): Promise<void> {
     // `applyGroupDiff` declines whenever anything outside the rows
     // differs — a chip's count changing when a job starts or finishes
     // is exactly that.
-    const scrolled =
-      (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
+    const scrolled = (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
     const open = openTestFiles(body);
     // The first paint has nothing to diff against, markup the
     // split cannot account for is redrawn the old way, and a diff that
@@ -482,8 +441,7 @@ export async function swapRows(): Promise<void> {
     const next = splitGroups(html);
     // The open spec is not in the answer: it is held across the replace.
     const restore = holdSpecDetail(body);
-    if (!next || !lastRows || !applyGroupDiff(lastRows, next))
-      body.innerHTML = html;
+    if (!next || !lastRows || !applyGroupDiff(lastRows, next)) body.innerHTML = html;
     restore();
     lastRows = next;
     const wrap = body.querySelector(".tablewrap") as HTMLElement | null;

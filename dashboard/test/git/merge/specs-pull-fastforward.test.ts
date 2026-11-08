@@ -23,9 +23,7 @@ const DIR = "/host/aide-specs/aide/150-one-page-shows-the-whole-spec";
 const TOP = "/host/aide-specs";
 
 /** A checkout that passes every check, standing one commit behind. */
-const behind = (
-  extra: Record<string, { code: number; stdout?: string }> = {},
-) =>
+const behind = (extra: Record<string, { code: number; stdout?: string }> = {}) =>
   fakeGit({
     "rev-parse --show-toplevel": { code: 0, stdout: `${TOP}\n` },
     "diff --quiet HEAD": { code: 0 },
@@ -42,9 +40,7 @@ const behind = (
 const movingHead = (before: string, after: string) => {
   let seen = 0;
   return (args: string[]): { code: number; stdout: string } | null =>
-    args.join(" ") === "rev-parse HEAD"
-      ? { code: 0, stdout: `${seen++ === 0 ? before : after}\n` }
-      : null;
+    args.join(" ") === "rev-parse HEAD" ? { code: 0, stdout: `${seen++ === 0 ? before : after}\n` } : null;
 };
 
 const base = async () => "main";
@@ -53,8 +49,7 @@ describe("pullFastForward", () => {
   test("a checkout behind origin is fast-forwarded, and says how far it moved", async () => {
     const heads = movingHead("a3f9c21aaaaaaa", "7b1e004bbbbbbb");
     const git = behind();
-    const run = async (dir: string, args: string[]) =>
-      heads(args) ?? (await git.run(dir, args));
+    const run = async (dir: string, args: string[]) => heads(args) ?? (await git.run(dir, args));
     const result = await pullFastForward(run, DIR, base);
     expect(result.ok).toBe(true);
     expect(result.moved).toBe(true);
@@ -65,8 +60,7 @@ describe("pullFastForward", () => {
   test("a checkout already up to date says so, and is not a failure", async () => {
     const heads = movingHead("a3f9c21aaaaaaa", "a3f9c21aaaaaaa");
     const git = behind();
-    const run = async (dir: string, args: string[]) =>
-      heads(args) ?? (await git.run(dir, args));
+    const run = async (dir: string, args: string[]) => heads(args) ?? (await git.run(dir, args));
     const result = await pullFastForward(run, DIR, base);
     expect(result.ok).toBe(true);
     expect(result.moved).toBe(false);
@@ -107,15 +101,11 @@ describe("pullFastForward", () => {
     const result = await pullFastForward(git.run, DIR, base);
     expect(result.ok).toBe(false);
     expect(result.note).toContain("uncommitted changes");
-    expect(git.calls.map((c) => c.args.join(" "))).not.toContain(
-      "merge -q --ff-only refs/remotes/origin/main",
-    );
+    expect(git.calls.map((c) => c.args.join(" "))).not.toContain("merge -q --ff-only refs/remotes/origin/main");
   });
 
   test("a checkout parked on a spec branch is left alone", async () => {
-    const git = behind({
-      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/150-one-page\n" },
-    });
+    const git = behind({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/150-one-page\n" } });
     const result = await pullFastForward(git.run, DIR, base);
     expect(result.ok).toBe(false);
     expect(result.note).toContain("aide/150-one-page");

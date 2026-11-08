@@ -30,12 +30,7 @@ export type ProgressStepState = "waiting" | "running" | "done" | "failed";
 export function progressDialog(lang: Language, parts: ProgressParts): string {
   const ask = parts.ask;
   const { question, answers } = ask
-    ? askParts(
-        lang,
-        ask,
-        `${parts.id ?? ""}-form`,
-        ask.queuesJob ? { progress: "" } : {},
-      )
+    ? askParts(lang, ask, `${parts.id ?? ""}-form`, ask.queuesJob ? { progress: "" } : {})
     : { question: "", answers: "" };
   return (
     `<dialog class="progressdialog"${parts.id ? ` id="${esc(parts.id)}"` : ""} data-progress-dialog` +

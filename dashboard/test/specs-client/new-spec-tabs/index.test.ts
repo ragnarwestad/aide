@@ -16,46 +16,27 @@ afterEach(async () => {
 function page(tab: "spec" | "options"): { doc: Document; win: Window } {
   const win = new Window();
   windows.push(win);
-  win.document.write(
-    renderNewSpecPage([], "2026-10-03T00:00:00Z", {
-      createProjects: ["aide"],
-      tab,
-    }),
-  );
+  win.document.write(renderNewSpecPage([], "2026-10-03T00:00:00Z", { createProjects: ["aide"], tab }));
   const doc = win.document as unknown as Document;
   bindNewSpecTabs(doc);
   return { doc, win };
 }
 
-const panel = (doc: Document, key: string) =>
-  doc.querySelector(`[data-tab-panel="${key}"]`) as HTMLElement;
+const panel = (doc: Document, key: string) => doc.querySelector(`[data-tab-panel="${key}"]`) as HTMLElement;
 const tabLink = (doc: Document, index: number) =>
-  doc.querySelectorAll("nav[data-new-spec-tabs] a.tab")[
-    index
-  ] as HTMLAnchorElement;
+  doc.querySelectorAll("nav[data-new-spec-tabs] a.tab")[index] as HTMLAnchorElement;
 const current = (doc: Document) =>
-  [...doc.querySelectorAll("nav[data-new-spec-tabs] a.tab")].findIndex(
-    (a) => a.getAttribute("aria-current") === "page",
-  );
+  [...doc.querySelectorAll("nav[data-new-spec-tabs] a.tab")].findIndex((a) => a.getAttribute("aria-current") === "page");
 
 /** An `invalid` event at `el`, as the browser fires it: no bubbling. */
 function invalid(win: Window, el: Element): void {
-  el.dispatchEvent(
-    new win.Event("invalid", {
-      bubbles: false,
-      cancelable: true,
-    }) as unknown as Event,
-  );
+  el.dispatchEvent(new win.Event("invalid", { bubbles: false, cancelable: true }) as unknown as Event);
 }
 
 describe("switching the New spec page's tabs in place", () => {
   test("a click on Options shows its panel, marks it current and loads no page", () => {
     const { doc, win } = page("spec");
-    const click = new win.MouseEvent("click", {
-      bubbles: true,
-      cancelable: true,
-      button: 0,
-    });
+    const click = new win.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
     tabLink(doc, 1).dispatchEvent(click as unknown as Event);
     expect(click.defaultPrevented).toBe(true);
     expect(panel(doc, "options").hidden).toBe(false);

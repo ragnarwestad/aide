@@ -7,10 +7,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  discoverProjects,
-  manifestInside,
-} from "../../../src/project/discover";
+import { discoverProjects, manifestInside } from "../../../src/project/discover";
 import { projectSettings } from "../../../src/project/project-settings.ts";
 
 const dirs: string[] = [];
@@ -27,10 +24,7 @@ function world() {
   const clone = join(root, "clone");
   mkdirSync(join(projects, "skjer"), { recursive: true });
   mkdirSync(join(clone, ".aide"), { recursive: true });
-  writeFileSync(
-    join(clone, ".aide", "project.yaml"),
-    "name: skjer\npreviewCmd: make check\n",
-  );
+  writeFileSync(join(clone, ".aide", "project.yaml"), "name: skjer\npreviewCmd: make check\n");
   return { projects, clone, fallback: manifestInside(() => clone) };
 }
 
@@ -46,12 +40,8 @@ describe("discovery reads the manifest from the dashboard's clone", () => {
   test("the settings page shows the preview command from the clone", () => {
     const w = world();
     const own = join(w.projects, "skjer");
-    const row = projectSettings(own, null, w.clone).rows.find(
-      (r) => r.key === "previewCmd",
-    );
+    const row = projectSettings(own, null, w.clone).rows.find((r) => r.key === "previewCmd");
     expect(row?.value).toBe("make check");
-    expect(
-      projectSettings(own).rows.find((r) => r.key === "previewCmd")?.origin,
-    ).not.toBe("configured");
+    expect(projectSettings(own).rows.find((r) => r.key === "previewCmd")?.origin).not.toBe("configured");
   });
 });

@@ -26,17 +26,8 @@ import { followMarker, followPart } from "./follow.ts";
 import { landingRefusal, stepResults, unitLabel } from "./steps-table.ts";
 import type { JobDetailView, SpecFileView } from "./types.ts";
 
-export type {
-  JobStepResultView,
-  SpecFileView,
-  JobDetailView,
-} from "./types.ts";
-export {
-  landingRefusal,
-  resolveOpenStep,
-  stepResults,
-  type LandingRefusal,
-} from "./steps-table.ts";
+export type { JobStepResultView, SpecFileView, JobDetailView } from "./types.ts";
+export { landingRefusal, resolveOpenStep, stepResults, type LandingRefusal } from "./steps-table.ts";
 export { pickTab, tabBar, tabbedBody } from "../../ui/tabs.ts";
 
 // The page's tabs. The choice lives in the URL, not in script: a page the
@@ -50,11 +41,7 @@ export type JobTab = (typeof JOB_TABS)[number];
  *  Markdown is deliberately not rendered: the description put
  *  that out of scope, and a reader checking WHICH VERSION is up wants
  *  the text as written. */
-export function specFilePanel(
-  file: SpecFileView,
-  now: number,
-  mark = "",
-): string {
+export function specFilePanel(file: SpecFileView, now: number, mark = ""): string {
   return (
     `<h2>${esc(file.label)}${fileStamp(file, now)}${mark}</h2>` +
     (file.text === null
@@ -95,8 +82,7 @@ const jobTab = (job: JobDetailView, raw: string | undefined): JobTab =>
 
 /** The index the running step has among the results once it finishes —
  *  what keys its row and what the follow marker names. */
-const runningIndexOf = (job: JobDetailView): number | undefined =>
-  job.runningStep ? job.results.length : undefined;
+const runningIndexOf = (job: JobDetailView): number | undefined => (job.runningStep ? job.results.length : undefined);
 
 /** State and title stay ABOVE the tabs: whichever tab is open, the
  *  reader still needs to know which job this is and how it is doing.
@@ -107,11 +93,7 @@ const runningIndexOf = (job: JobDetailView): number | undefined =>
 function jobBanner(job: JobDetailView, lang: Language, now: number): string {
   const progress = pips(
     job.steps.map((s, i) => ({
-      kind: (i < job.stepIndex
-        ? "past"
-        : i === job.stepIndex
-          ? "now"
-          : "todo") as PipKind,
+      kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
       title: stepLabel(s),
       // The same fill the spec list's row shows, off the
       // same field: this page and that row are two views of one job,
@@ -122,24 +104,17 @@ function jobBanner(job: JobDetailView, lang: Language, now: number): string {
   );
   // A used-up usage limit says what happens next, with the time; any
   // other job says what it was stored with.
-  const sentence =
-    usageLimitText(job, lang, now) ?? renderSentence(lang, job.error);
+  const sentence = usageLimitText(job, lang, now) ?? renderSentence(lang, job.error);
   return (
     `<p class="pagehead">${stateChip(job, lang)}` +
-    (sentence
-      ? ` <span class="muted small">${esc(capitalizeFirst(sentence))}</span>`
-      : "") +
+    (sentence ? ` <span class="muted small">${esc(capitalizeFirst(sentence))}</span>` : "") +
     `</p>` +
     progress +
     (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "")
   );
 }
 
-function jobStepsPanel(
-  job: JobDetailView,
-  opts: JobPageOpts,
-  lang: Language,
-): string {
+function jobStepsPanel(job: JobDetailView, opts: JobPageOpts, lang: Language): string {
   return stepResults(job.results, job.archiveHeldBack, {
     tabHref: `/jobs/${job.id}?tab=steps`,
     openStep: opts.step,
@@ -153,18 +128,11 @@ function jobStepsPanel(
 /** What `?follow=1` answers: the marker and the parts the page script swaps,
  *  drawn by the same functions as the page. Overview's parts are the banner
  *  alone: its facts are as of the page load. */
-export function renderJobFollowParts(
-  job: JobDetailView,
-  opts: JobPageOpts = {},
-): string {
+export function renderJobFollowParts(job: JobDetailView, opts: JobPageOpts = {}): string {
   const lang: Language = opts.lang ?? "en";
   const tab = jobTab(job, opts.tab);
   return (
-    followMarker(job, {
-      tab,
-      step: opts.step,
-      runningIndex: runningIndexOf(job),
-    }) +
+    followMarker(job, { tab, step: opts.step, runningIndex: runningIndexOf(job) }) +
     followPart("head", jobBanner(job, lang, opts.now ?? Date.now())) +
     (tab === "steps" ? followPart("panel", jobStepsPanel(job, opts, lang)) : "")
   );
@@ -195,10 +163,7 @@ export function renderJobDetailPage(
   // works.
   const head =
     facts([
-      {
-        label: t(lang, "job.started"),
-        value: relTime(job.startedAt ?? job.createdAt, now),
-      },
+      { label: t(lang, "job.started"), value: relTime(job.startedAt ?? job.createdAt, now) },
       // Marked when any step summed into it was over-charged, the same
       // way the Steps tab already marks that step. Not
       // `anyCostUnmeasured`: this page's own `JobStepResultView` is a
@@ -212,27 +177,19 @@ export function renderJobDetailPage(
             ? ' <span class="muted small">est.</span>'
             : ""),
       },
-      {
-        label: t(lang, "job.model"),
-        value: esc(withModelId(job.model, job.modelId) ?? "as configured"),
-      },
+      { label: t(lang, "job.model"), value: esc(withModelId(job.model, job.modelId) ?? "as configured") },
       // Beside Model, on the same terms — added during
       // plan review so this page does not show Model with no Effort
       // beside it for a step that ran with one.
       { label: t(lang, "job.effort"), value: esc(job.effort ?? "not set") },
-      ...(job.provider
-        ? [{ label: t(lang, "job.provider"), value: esc(job.provider) }]
-        : []),
+      ...(job.provider ? [{ label: t(lang, "job.provider"), value: esc(job.provider) }] : []),
     ]) +
     // And what this phase MADE. A reader opens a phase's page to find
     // out what that phase did, and it used to show the same
     // `## Description` prose every other page showed.
     (job.phase ? specFilePanel(job.phase, now) : "");
 
-  const panel =
-    tab === "steps"
-      ? followPart("panel", jobStepsPanel(job, opts, lang))
-      : head;
+  const panel = tab === "steps" ? followPart("panel", jobStepsPanel(job, opts, lang)) : head;
 
   const body = tabbedBody(
     followPart("head", banner),
@@ -250,11 +207,7 @@ export function renderJobDetailPage(
     job.specFolder,
     entries,
     "/",
-    followMarker(job, {
-      tab,
-      step: opts.step,
-      runningIndex: runningIndexOf(job),
-    }) + body,
+    followMarker(job, { tab, step: opts.step, runningIndex: runningIndexOf(job) }) + body,
     generatedAt,
     {
       hideHeading: true,

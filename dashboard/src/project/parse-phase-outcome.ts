@@ -69,8 +69,7 @@ const MODEL_RE = /^- \*\*Model:\*\*[ \t]*(.*)$/m;
 const MODEL_ID_RE = /^- \*\*Model id:\*\*[ \t]*(.*)$/m;
 const EFFORT_RE = /^- \*\*Effort:\*\*[ \t]*(.*)$/m;
 const TIME_SPENT_RE = /^- \*\*Time spent:\*\*[ \t]*(\d+)m(\d{2})s\s*$/m;
-const COST_RE =
-  /^- \*\*Cost:\*\*[ \t]*\$(\d+(?:\.\d+)?)( \(unmeasured\))?\s*$/m;
+const COST_RE = /^- \*\*Cost:\*\*[ \t]*\$(\d+(?:\.\d+)?)( \(unmeasured\))?\s*$/m;
 const TOKENS_RE = /^- \*\*Tokens:\*\*[ \t]*(\d+)\s*$/m;
 const ATTEMPTS_RE = /^- \*\*Attempts:\*\*[ \t]*(\d+)\s*$/m;
 /** `completed`, or `stopped (<reason>)` with an optional message after
@@ -83,8 +82,7 @@ const RESULT_RE = /^- \*\*Result:\*\*[ \t]*(completed|stopped)\b/m;
 const ANALYSIS_RE = /^- \*\*Analysis:\*\*[ \t]*(short|full)(?![A-Za-z0-9_])/m;
 /** The exact label, then a sentence (run-spec/record/sent-back-check.sh writes it;
  *  core/tests/fixtures/sent-back-line.json is the table both sides read). */
-const SENT_BACK_RE =
-  /^- \*\*Sent back to a full analysis:\*\*[ \t]*(\S.*?)[ \t]*$/m;
+const SENT_BACK_RE = /^- \*\*Sent back to a full analysis:\*\*[ \t]*(\S.*?)[ \t]*$/m;
 
 /** Scoped to `## Tracking info` only, same as the writer's own
  *  `in_tracking` awk guard — a `- **Cost:**`-shaped bullet in a
@@ -99,8 +97,7 @@ export function parsePhaseOutcome(content: string): PhaseOutcome {
   const effort = section.match(EFFORT_RE)?.[1]?.trim();
   if (effort) outcome.effort = effort;
   const time = section.match(TIME_SPENT_RE);
-  if (time)
-    outcome.timeSpentMs = (Number(time[1]) * 60 + Number(time[2])) * 1000;
+  if (time) outcome.timeSpentMs = (Number(time[1]) * 60 + Number(time[2])) * 1000;
   const cost = section.match(COST_RE);
   if (cost) {
     outcome.cost = Number(cost[1]);

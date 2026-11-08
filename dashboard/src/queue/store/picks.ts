@@ -4,12 +4,7 @@
 // configured choices, the provider against the configured providers, the
 // model against what the provider runs.
 
-import {
-  invalidRequest,
-  lookUpModel,
-  NAME_RE,
-  type ParseResult,
-} from "../parse-request.ts";
+import { invalidRequest, lookUpModel, NAME_RE, type ParseResult } from "../parse-request.ts";
 import { providerKeyFrom, providerModelError } from "../providers/parse.ts";
 import { runsModel } from "../providers/index.ts";
 import { WORKFLOW_STEPS } from "../steps.ts";
@@ -32,11 +27,7 @@ export interface PickContext {
 }
 
 /** The refusal for `provider` with `model`, or the key it names. */
-function checkedProvider(
-  defaults: QueueDefaults,
-  provider: string,
-  model: string,
-): { key: string } | { error: string } {
+function checkedProvider(defaults: QueueDefaults, provider: string, model: string): { key: string } | { error: string } {
   const found = providerKeyFrom(defaults, provider, "");
   if ("error" in found) return found;
   const refusal = providerModelError(defaults, found.key, model);
@@ -61,20 +52,13 @@ function checkedProvider(
  *  too late and silently. A provider that cannot run the model is refused;
  *  with no provider posted, the step's own pick is dropped when it cannot
  *  run the new model. */
-export function editTailModel(
-  ctx: PickContext,
-  id: string,
-  step: string,
-  model: string,
-  provider?: string,
-): ParseResult {
+export function editTailModel(ctx: PickContext, id: string, step: string, model: string, provider?: string): ParseResult {
   const job = ctx.jobs.get(id);
   if (!job) return { ok: false, error: invalidRequest("no such job") };
   const editable = tailEditStep(job, step);
   if ("error" in editable) return { ok: false, error: editable.error };
   const wanted = editable.step;
-  if (!NAME_RE.test(model))
-    return { ok: false, error: invalidRequest("invalid model") };
+  if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
   const found = lookUpModel(ctx.defaults, model);
   if ("error" in found) return { ok: false, error: found.error };
   let providers = job.provider;
@@ -89,11 +73,7 @@ export function editTailModel(
       providers = rest;
     }
   }
-  const next: Job = {
-    ...job,
-    model: { ...job.model, [wanted]: found.name },
-    ...(providers ? { provider: providers } : {}),
-  };
+  const next: Job = { ...job, model: { ...job.model, [wanted]: found.name }, ...(providers ? { provider: providers } : {}) };
   ctx.jobs.set(id, next);
   ctx.mirror();
   ctx.changed();
@@ -105,29 +85,15 @@ export function editTailModel(
  *  insert-and-seed operation it is, and `insert()` has already announced
  *  that. */
 export function writePendingModel(
-  ctx: PickContext,
-  project: string,
-  specFolder: string,
-  step: string,
-  model: string,
-  provider?: string,
+  ctx: PickContext, project: string, specFolder: string, step: string, model: string, provider?: string,
 ): void {
   const key = `${project}/${specFolder}`;
   ctx.pendingModels[key] = { ...ctx.pendingModels[key], [step]: model };
-  if (provider)
-    ctx.pendingProviders[key] = {
-      ...ctx.pendingProviders[key],
-      [step]: provider,
-    };
+  if (provider) ctx.pendingProviders[key] = { ...ctx.pendingProviders[key], [step]: provider };
   ctx.persist();
 }
 
-function clearPendingModel(
-  ctx: PickContext,
-  project: string,
-  specFolder: string,
-  step: string,
-): void {
+function clearPendingModel(ctx: PickContext, project: string, specFolder: string, step: string): void {
   const record = `${project}/${specFolder}`;
   for (const table of [ctx.pendingModels, ctx.pendingProviders]) {
     if (!table[record]) continue;
@@ -144,28 +110,16 @@ function clearPendingModel(
  *  allowlist, the provider against what it can run. There is no
  *  `job.state` to gate on, since there is no job at all. */
 export function setPendingModel(
-  ctx: PickContext,
-  project: string,
-  specFolder: string,
-  step: string,
-  model: string,
-  provider?: string,
+  ctx: PickContext, project: string, specFolder: string, step: string, model: string, provider?: string,
 ): PendingModelResult {
   const wanted = [...WORKFLOW_STEPS, ...SIDE_PARTS].find((s) => s === step);
-  if (!wanted)
-    return {
-      ok: false,
-      error: invalidRequest(
-        `${step || "that step"} is not a step a model can be chosen for`,
-      ),
-    };
+  if (!wanted) return { ok: false, error: invalidRequest(`${step || "that step"} is not a step a model can be chosen for`) };
   if ((SIDE_PARTS as readonly string[]).includes(wanted) && model === "") {
     clearPendingModel(ctx, project, specFolder, wanted);
     ctx.changed();
     return { ok: true };
   }
-  if (!NAME_RE.test(model))
-    return { ok: false, error: invalidRequest("invalid model") };
+  if (!NAME_RE.test(model)) return { ok: false, error: invalidRequest("invalid model") };
   const found = lookUpModel(ctx.defaults, model);
   if ("error" in found) return { ok: false, error: found.error };
   let key: string | undefined;
@@ -183,12 +137,7 @@ export function setPendingModel(
  *  real folder landing assigns it. A no-op when nothing is recorded under
  *  the provisional key, which is the common case: most picks are for a
  *  phase the create job DOES run and never touch these tables. */
-export function renamePendingModel(
-  ctx: PickContext,
-  project: string,
-  fromFolder: string,
-  toFolder: string,
-): void {
+export function renamePendingModel(ctx: PickContext, project: string, fromFolder: string, toFolder: string): void {
   const fromKey = `${project}/${fromFolder}`;
   const toKey = `${project}/${toFolder}`;
   const models = ctx.pendingModels[fromKey];

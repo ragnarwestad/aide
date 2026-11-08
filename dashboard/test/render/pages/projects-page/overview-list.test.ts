@@ -6,21 +6,10 @@ import { projectListBody } from "../../../../src/render/pages/projects-page/over
 import type { ProjectView } from "../../../../src/render";
 import { askButton } from "../../../../src/render/ui/components";
 
-const ok = (name: string): ProjectView => ({
-  name,
-  manifest: { ok: true, data: { name } },
-  specs: [],
-});
-const broken = (name: string): ProjectView => ({
-  name,
-  manifest: { ok: false, error: "bad yaml" },
-  specs: [],
-});
+const ok = (name: string): ProjectView => ({ name, manifest: { ok: true, data: { name } }, specs: [] });
+const broken = (name: string): ProjectView => ({ name, manifest: { ok: false, error: "bad yaml" }, specs: [] });
 
-const draw = (
-  projects: ProjectView[],
-  removable: (name: string) => boolean,
-): DomElement[] => {
+const draw = (projects: ProjectView[], removable: (name: string) => boolean): DomElement[] => {
   const window = new Window();
   window.document.body.innerHTML = projectListBody(projects, {
     pageHref: (name) => `/projects/${name}`,
@@ -37,12 +26,7 @@ describe("a project's row on the Projects list offers Remove", () => {
     expect(buttons.length).toBe(1);
     const button = buttons[0]!;
     expect(button.outerHTML).toBe(
-      askButton({
-        label: "Remove",
-        dialogId: button.getAttribute("data-ask")!,
-        variant: "danger",
-        ariaLabel: "Remove aide",
-      }),
+      askButton({ label: "Remove", dialogId: button.getAttribute("data-ask")!, variant: "danger", ariaLabel: "Remove aide" }),
     );
     expect(button.getAttribute("aria-label")).toBe("Remove aide");
   });
@@ -62,16 +46,12 @@ describe("a project's row on the Projects list offers Remove", () => {
 
   test("each row opens its own dialog, which posts to its own project's remove route ", () => {
     const rows = draw([ok("aide"), ok("other")], () => true);
-    const ids = rows.map((r) =>
-      r.querySelector("button[data-ask]")!.getAttribute("data-ask")!,
-    );
+    const ids = rows.map((r) => r.querySelector("button[data-ask]")!.getAttribute("data-ask")!);
     expect(new Set(ids).size).toBe(2);
     rows.forEach((r, i) => {
       const name = i === 0 ? "aide" : "other";
       const form = r.querySelector(`dialog[id="${ids[i]}"] form[action]`)!;
-      expect(form.getAttribute("action")).toBe(
-        `/api/queue/projects/${name}/remove`,
-      );
+      expect(form.getAttribute("action")).toBe(`/api/queue/projects/${name}/remove`);
     });
   });
 });

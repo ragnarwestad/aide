@@ -21,7 +21,6 @@ Implement the solution for a spec with TDD.
 Parse `$ARGUMENTS`:
 
 **The spec:** the first word is its number, its folder name, or an issue key its title began with
-
 - Example: `/aide-implement 55` or `/aide-implement 55-dark-mode`
 
 **Error handling:** If the argument is missing or has an invalid format, show:
@@ -88,6 +87,7 @@ branch afterwards, as it lands every step's work.
 
 First write `--- Step 1 of 4: Preparation — started`, and when this step ends, `--- Step 1 of 4: Preparation — done`.
 
+
 Working interactively, run `date +%s` before anything else and keep the
 number for the record at the end of Step 4.
 
@@ -99,14 +99,14 @@ number for the record at the end of Step 4.
    reads `- **Analysis:** short`, `3-solution.md` holds no plan and no plan
    review by design: build the change `1-description.md` asks for, in the
    files `### Files to change` names, with the tests at the places `###
-Where the tests sit` names. A short analysis is never a reason to stop
+   Where the tests sit` names. A short analysis is never a reason to stop
    for want of a plan; it is one only when the spec turned out not to be
    small. Before any test or code is written, check the change against the
    limits of a short analysis (the prompt states them: the files to change
    and the grade). When it is past one, a headless run writes one sentence
    saying what made the spec larger to the file the prompt names, changes
    nothing else and ends with `--- Step 1 of 4: Preparation — stopped: sent
-back to a full analysis`; the runner then sends the spec back to a full
+   back to a full analysis`; the runner then sends the spec back to a full
    analysis. Working interactively there is no such file: say what made the
    spec larger and suggest `/aide-analyze`. Never write that file on a full
    analysis
@@ -136,6 +136,7 @@ symbol — a message, a config key, a CSS class.
 
 First write `--- Step 2 of 4: RED — Write failing tests — started`, and when this step ends, `--- Step 2 of 4: RED — Write failing tests — done`.
 
+
 Skip this step entirely if item 5 of Step 1 found it already done;
 resume it at the first unticked task if it found it in progress.
 
@@ -143,7 +144,7 @@ resume it at the first unticked task if it found it in progress.
    criteria and the `### Where the tests sit` subsection from
    3-solution.md. A short analysis has no Task 0: write one failing test
    per `AC-n` of `1-description.md` at the places `### Where the tests
-sit` names
+   sit` names
 2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting RED, GREEN and VERIFY](#reporting-red-green-and-verify))
 3. Write the tests at the places `### Where the tests sit` names in
    `3-solution.md` — at least one failing test per acceptance criterion
@@ -169,8 +170,7 @@ sit` names
    it is. The runner reads these names after the step to show, on the
    row the user ticks, which test covers which requirement — a test
    without the id is a requirement shown as untested
-
-5. **Write a browser test for a _(browser)_ criterion,** where the
+5. **Write a browser test for a *(browser)* criterion,** where the
    project keeps its browser tests; a project with none names that
    criterion in `3-solution.md`'s Manual testing note instead
 6. **Check the list before running anything:** every AC-id the places
@@ -194,6 +194,7 @@ section leaves the places to this step, and every AC-id gets a test.
 
 First write `--- Step 3 of 4: GREEN — Implement until tests pass — started`, and when this step ends, `--- Step 3 of 4: GREEN — Implement until tests pass — done`.
 
+
 1. Run `aide-emit-run --phase green --spec <ID>`
 2. Implement each task from 3-solution.md's plan (on a short analysis the
    change itself is the one task) — before writing to a file,
@@ -213,6 +214,7 @@ First write `--- Step 3 of 4: GREEN — Implement until tests pass — started`,
 
 First write `--- Step 4 of 4: VERIFY — Full suite, types, lint, build — started`, and when this step ends, `--- Step 4 of 4: VERIFY — Full suite, types, lint, build — done`.
 
+
 **The whole suite is the runner's, not yours.** `aide-run-spec` runs the
 project's test command once on what you deliver, and that run is the one
 that decides: a green one ticks the "Run the full test suite" row, and a
@@ -228,12 +230,11 @@ decides nothing.
    fails and has nothing to do with the change is the machine's load, not
    a fault: name it in the step's summary and go on.
 
-   A browser test this step wrote for a _(browser)_ criterion is run
+   A browser test this step wrote for a *(browser)* criterion is run
    too, each file on its own and once — never the project's whole
    browser suite. Red is fixed back through Step 3 like any red test. A
    file that could not start at all (no browser on the machine) is named
    in the step's summary, never passed over in silence.
-
 3. **Look at the pages the change affects.** Only when the spec's branch,
    compared with the default branch, changes a file under
    `dashboard/src/render/` or a stylesheet, and the project has
@@ -385,7 +386,6 @@ See `references/tdd-phases.md` for the detailed workflow with commands
 and expected output per phase.
 
 IMPORTANT:
-
 - Run all four steps through WITHOUT stopping to ask for
   confirmation — report each step's result as you pass it. Stop only
   when genuinely blocked (a decision only the user can make, or a

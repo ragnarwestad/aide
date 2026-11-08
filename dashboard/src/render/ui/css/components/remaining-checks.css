@@ -5,258 +5,103 @@
    the open rows keep the full text colour and a button, the done ones
    go muted and struck through. Nothing here depends on the mark's
    colour alone. */
-.checks {
-  margin: var(--sp-4) 0 0;
-}
-.checklist {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-}
-.checklist .checkphase {
-  color: var(--muted);
-  font-size: var(--fs-s);
-  font-weight: 600;
-  margin-top: var(--sp-2);
-}
-.checklist .checkphase:first-child {
-  margin-top: 0;
-}
+.checks { margin: var(--sp-4) 0 0; }
+.checklist { list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--sp-1); }
+.checklist .checkphase { color: var(--muted); font-size: var(--fs-s); font-weight: 600;
+  margin-top: var(--sp-2); }
+.checklist .checkphase:first-child { margin-top: 0; }
 /* A row is a grid of the list's three columns: the criterion's text, then
    the two boxes. Row and heading take the list's columns with `subgrid`, so
    every box sits in the same place whatever words are in them. The grid is
    written under the two acceptance lists: `.checklist` is also the Settings
    page's per-AI list. Every child of a row is placed here, so the order in
    the markup does not matter. */
-.checks .checklist,
-.rowchecks .checklist {
-  display: grid;
-  margin: 0;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: var(--sp-1) var(--sp-3);
-}
-.checks .checklist > .checkphase,
-.rowchecks .checklist > .checkphase {
-  grid-column: 1 / -1;
-}
-.checklist > .check,
-.checklist > .checkcolumns {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: subgrid;
-  align-items: baseline;
-}
-.check {
-  row-gap: var(--sp-2);
-}
-.check .checktask {
-  grid-column: 1;
-  grid-row: 1;
-  min-width: 0;
-}
+.checks .checklist, .rowchecks .checklist { display: grid; margin: 0;
+  grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-1) var(--sp-3); }
+.checks .checklist > .checkphase, .rowchecks .checklist > .checkphase { grid-column: 1 / -1; }
+.checklist > .check, .checklist > .checkcolumns { grid-column: 1 / -1; display: grid;
+  grid-template-columns: subgrid; align-items: baseline; }
+.check { row-gap: var(--sp-2); }
+.check .checktask { grid-column: 1; grid-row: 1; min-width: 0; }
 /* The tick box's column, and a read-only ✅ or ☐ in the same one. */
-.check .checkbox {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: center;
-}
-.check.done .checktask {
-  color: var(--muted);
-  text-decoration: line-through;
-}
+.check .checkbox { grid-column: 2; grid-row: 1; justify-self: center; }
+.check.done .checktask { color: var(--muted); text-decoration: line-through; }
 /* The run's own note on the row, under the criterion rather than beside
    it: it is a sentence, not a label, and it must not squeeze the text
    the reader is judging. Its own line in the text's column — and outside
    `.checktask`, so a done row's strike-through does not run through the one
    thing on it that is still worth reading. */
-.check .checknote {
-  grid-column: 1;
-  color: var(--muted);
-  font-size: var(--fs-s);
-}
+.check .checknote { grid-column: 1; color: var(--muted); font-size: var(--fs-s); }
 /* The tests that prove the row, under its note; amber where none does. */
-.check .checktests {
-  grid-column: 1;
-  color: var(--muted);
-  font-size: var(--fs-s);
-}
+.check .checktests { grid-column: 1; color: var(--muted); font-size: var(--fs-s); }
 /* The link of a Failed row: a line under the text, not a stretched cell. */
-.check .btn {
-  grid-column: 1;
-  justify-self: start;
-}
-.check .checktests.untested {
-  color: var(--warn);
-}
+.check .btn { grid-column: 1; justify-self: start; }
+.check .checktests.untested { color: var(--warn); }
 /* One box-sized slot, whichever of the two things is in it: the mark a
    row on the spec page shows, and the real checkbox the Edit form draws
    for a row that is still open. Fixed width so every row
    lines up whether it is a mark or a control. */
-.checkbox {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0;
-  flex: none;
-  font-size: var(--fs-m);
-  line-height: 1;
-}
-label.checkbox {
-  cursor: pointer;
-}
-label.checkbox input {
-  margin: 0;
-  cursor: pointer;
-}
+.checkbox { display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; min-width: 18px; height: 18px; padding: 0; flex: none;
+  font-size: var(--fs-m); line-height: 1; }
+label.checkbox { cursor: pointer; }
+label.checkbox input { margin: 0; cursor: pointer; }
 
 /* The second box of a row, in the third column: "Not yet", a check that has
    to wait for something after the deploy (an archived row: Failed). Its words
    are in the heading, and a read-only mark keeps its own. A row marked so is
    not struck through like a done one, because nobody has checked it. */
-.check .unverified {
-  grid-column: 3;
-  grid-row: 1;
-  justify-self: center;
-  text-align: center;
-  color: var(--muted);
-  font-size: var(--fs-s);
-}
-.check .unverified.readonly {
-  color: var(--warn);
-}
-.check .unverified.readonly.failed {
-  color: var(--danger);
-}
+.check .unverified { grid-column: 3; grid-row: 1; justify-self: center; text-align: center;
+  color: var(--muted); font-size: var(--fs-s); }
+.check .unverified.readonly { color: var(--warn); }
+.check .unverified.readonly.failed { color: var(--danger); }
 /* The note of an archived row's Failed choice, under the criterion, only while
    Failed is ticked (it stays in the form when hidden). A text area of five lines
    that can be dragged to ten and no further — the cap is in the field's own line
    height, so a change of the tokens moves it with them. */
-.check .failcontrol {
-  grid-column: 1;
-  grid-row: 2;
-  display: none;
-  min-width: 0;
-}
-.check:has(input[name="failed"]:checked) .failcontrol {
-  display: block;
-}
-.check .failnote {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: var(--sp-1);
-  padding: var(--sp-1) var(--sp-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-s);
-  background: var(--surface);
-  color: var(--text);
-  font: var(--fs-s)/var(--lh) var(--sans);
-  resize: vertical;
-  max-height: calc(10 * var(--fs-s) * var(--lh) + 2 * var(--sp-1) + 2px);
-}
+.check .failcontrol { grid-column: 1; grid-row: 2; display: none; min-width: 0; }
+.check:has(input[name="failed"]:checked) .failcontrol { display: block; }
+.check .failnote { display: block; width: 100%; box-sizing: border-box; margin-top: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-s);
+  background: var(--surface); color: var(--text); font: var(--fs-s)/var(--lh) var(--sans);
+  resize: vertical; max-height: calc(10 * var(--fs-s) * var(--lh) + 2 * var(--sp-1) + 2px); }
 
 /* The heading over the two columns, on one line: "Verified?" at the right of
    the text's column, against the boxes, and each name over its own column. */
-.checkcolumns {
-  color: var(--muted);
-  font-size: var(--fs-s);
-  font-weight: 600;
-  text-align: center;
-}
-.checkcolumns .checkverified {
-  grid-column: 1;
-  grid-row: 1;
-  justify-self: end;
-  text-align: right;
-}
-.checkcolumns .checkyes {
-  grid-column: 2;
-  grid-row: 1;
-}
-.checkcolumns .checkother {
-  grid-column: 3;
-  grid-row: 1;
-}
+.checkcolumns { color: var(--muted); font-size: var(--fs-s); font-weight: 600; text-align: center; }
+.checkcolumns .checkverified { grid-column: 1; grid-row: 1; justify-self: end; text-align: right; }
+.checkcolumns .checkyes { grid-column: 2; grid-row: 1; }
+.checkcolumns .checkother { grid-column: 3; grid-row: 1; }
+
 
 /* The acceptance criteria unfolded on a spec's row: the spec
    page's own checklist, in the notice line. The text takes what room the
    box leaves and wraps inside it; nothing here states a width. */
-.rowchecks {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  min-width: 0;
-  margin: 0;
-  padding: var(--sp-1) 0 var(--sp-1) var(--sp-4);
-}
-.rowchecks .checklist {
-  min-width: 0;
-  align-self: stretch;
-}
-.rowchecks .check {
-  min-width: 0;
-}
-.checksunread {
-  margin: 0;
-  padding-left: var(--sp-4);
-  font-size: var(--fs-s);
-}
+.rowchecks { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2);
+  min-width: 0; margin: 0; padding: var(--sp-1) 0 var(--sp-1) var(--sp-4); }
+.rowchecks .checklist { min-width: 0; align-self: stretch; }
+.rowchecks .check { min-width: 0; }
+.checksunread { margin: 0; padding-left: var(--sp-4); font-size: var(--fs-s); }
 /* Unfolded inside the message it belongs to: the box wraps, and the list
    takes a line of its own under the words, in the page's own text
    colour rather than the message's. */
-.rowmsg:has(> .rowchecks, > .checksunread, > .approachform) {
-  flex-wrap: wrap;
-}
+.rowmsg:has(> .rowchecks, > .checksunread, > .approachform) { flex-wrap: wrap; }
 /* The words keep their place beside the icon and wrap there; only the
    list goes to a line of its own. */
-.rowmsg:has(> .rowchecks, > .checksunread, > .approachform) > span {
-  flex: 1 1 0;
-  min-width: 0;
-}
-.rowmsg > .rowchecks,
-.rowmsg > .checksunread,
-.rowmsg > .approachform {
-  flex: 1 0 100%;
-  color: var(--text);
-  padding-right: var(--sp-2);
-  box-sizing: border-box;
-}
+.rowmsg:has(> .rowchecks, > .checksunread, > .approachform) > span { flex: 1 1 0; min-width: 0; }
+.rowmsg > .rowchecks, .rowmsg > .checksunread, .rowmsg > .approachform { flex: 1 0 100%; color: var(--text); padding-right: var(--sp-2); box-sizing: border-box; }
 
 /* The approaches to choose between, under their waiting line on a row:
    one radio button per line, Save and Cancel under them. */
-.approachform {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  min-width: 0;
-  margin: 0;
-  padding: var(--sp-1) 0 var(--sp-1) var(--sp-4);
-}
-.approachlist {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+.approachform { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2);
+  min-width: 0; margin: 0; padding: var(--sp-1) 0 var(--sp-1) var(--sp-4); }
+.approachlist { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; }
 
 /* A phase's latest messages, unfolded under its line. A
    model's sentence is of any length: the list may shrink below its
    content and long words break. Nothing here states a width. */
-.phasemsgs td {
-  padding-top: var(--sp-1);
-  padding-right: var(--sp-4);
-  padding-bottom: var(--sp-3);
-}
+.phasemsgs td { padding-top: var(--sp-1); padding-right: var(--sp-4); padding-bottom: var(--sp-3); }
 /* The log's own left edge is the phase name's: the same
    --fold-w list.css's .phasecell reserves, so the two move together at
    every width that variable is redefined for. A bare `.phasemsgs td`
@@ -264,36 +109,15 @@ label.checkbox input {
    names one more class than it does; this repeats the selector with
    the row's own `tr` added, so `.phasemsgs` is no longer the only
    class it can be weighed against. */
-table.list tr.phasemsgs td {
-  padding-left: calc(var(--sp-3) + var(--fold-w));
-}
+table.list tr.phasemsgs td { padding-left: calc(var(--sp-3) + var(--fold-w)); }
 /* A Running phase step's own log shares its step line's extra fold level. */
 table.speclist[data-list="jobs"] tr.phasemsgs[data-phasesteplog] td {
-  padding-left: calc(var(--sp-3) + var(--fold-w) + 24px + var(--sp-1));
-}
-.phasemsglist {
-  min-width: 0;
-  margin: 0 0 var(--sp-2);
-  padding-left: 0;
-  list-style: none;
-  font-size: var(--fs-s);
-  overflow-wrap: anywhere;
-  white-space: pre-line;
-}
+  padding-left: calc(var(--sp-3) + var(--fold-w) + 24px + var(--sp-1)); }
+.phasemsglist { min-width: 0; margin: 0 0 var(--sp-2); padding-left: 0; list-style: none; font-size: var(--fs-s);
+  overflow-wrap: anywhere; white-space: pre-line; }
 /* The phase's log is a window on the step's whole Log, opening at its end:
    .logbox scrolls, and a phase's row keeps it to twenty lines. */
-.phasemsgs .logbox {
-  max-height: 20lh;
-  margin-bottom: var(--sp-2);
-}
-.phasemsgs .logbox > .phasemsglist {
-  flex: none;
-  margin-bottom: 0;
-}
-.phasemsgempty {
-  margin: 0 0 var(--sp-2);
-  font-size: var(--fs-s);
-}
-.phasemsgopen {
-  font-size: var(--fs-s);
-}
+.phasemsgs .logbox { max-height: 20lh; margin-bottom: var(--sp-2); }
+.phasemsgs .logbox > .phasemsglist { flex: none; margin-bottom: 0; }
+.phasemsgempty { margin: 0 0 var(--sp-2); font-size: var(--fs-s); }
+.phasemsgopen { font-size: var(--fs-s); }
