@@ -145,13 +145,8 @@ else
   git -C "$proj" add implemented.txt && git -C "$proj" commit -q -m "Implement $spec"
   git -C "$proj" checkout -q main
 fi
-if [ "$tool" = codex ]; then
-  for i in 1 2; do echo '{"type":"turn.completed","usage":{"input_tokens":100,"output_tokens":10,"reasoning_output_tokens":5,"cached_input_tokens":50}}'; done > "$stream"
-else
-  for i in 1 2; do echo '{"type":"result","modelUsage":{"m":{"inputTokens":100,"outputTokens":10,"cacheReadInputTokens":50,"cacheCreationInputTokens":5}}}'; done > "$stream"
-fi
 [ -f "$STANDIN_DIR/$cmd-log" ] && cat "$STANDIN_DIR/$cmd-log" >&2
-line='{"ok":true,"terminalReason":"completed","testedGreen":true,"costUsd":0.5,"durationSec":3}'
+line='{"ok":true,"terminalReason":"completed","testedGreen":true,"costUsd":0.5,"durationSec":3,"tokens":{"total":330}}'
 [ -f "$STANDIN_DIR/$cmd-result.json" ] && line="$(cat "$STANDIN_DIR/$cmd-result.json")"
 echo "$line" > "$result"
 echo "$line"

@@ -1,6 +1,5 @@
 """What a replayed spec is measured on: the plan review's counts, where each criterion is tested, the implement
-step's rounds and result, the original spec's tests run against the new code, and the tokens a step used."""
-import json
+step's rounds and result, the original spec's tests run against the new code, and the tokens a judge's answer reports."""
 import os
 import re
 import subprocess
@@ -264,29 +263,3 @@ def claude_event_tokens(event):
         return sum(flat.get(k) or 0 for k in ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
     return None
 
-
-def step_tokens(stream, tool):
-    """Every token a step used, summed over all its turns' closing events in its stream file; None when it has none.
-    The fields are the ones the runner reads (core/scripts/lib/run-spec/turn/model-turn.sh)."""
-    if tool == "opencode":
-        return None
-    try:
-        lines = Path(stream).read_text().splitlines()
-    except OSError:
-        return None
-    totals = []
-    for line in lines:
-        try:
-            event = json.loads(line)
-        except ValueError:
-            continue
-        if not isinstance(event, dict):
-            continue
-        if tool == "codex" and event.get("type") == "turn.completed" and isinstance(event.get("usage"), dict):
-            u = event["usage"]
-            # Codex's input holds its cached input and its output the reasoning, as its own total_tokens says.
-            totals.append(sum(u.get(k) or 0 for k in ("input_tokens", "output_tokens")))
-        elif tool != "codex" and event.get("type") == "result":
-            totals.append(claude_event_tokens(event))
-    totals = [t for t in totals if t is not None]
-    return sum(totals) if totals else None

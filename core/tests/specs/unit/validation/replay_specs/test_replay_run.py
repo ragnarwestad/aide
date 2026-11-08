@@ -198,15 +198,15 @@ def test_an_answer_with_no_json_object_is_recorded_as_no_score(world, replay_mai
 
 
 def test_a_steps_time_tokens_and_cost_fill_the_row_and_a_cost_the_runner_left_out_reads_not_measured(world, replay_main, standin):
-    write(standin / "analyze-result.json", '{"ok":true,"terminalReason":"completed","costUsd":1.5}')
-    write(standin / "implement-result.json", '{"ok":true,"terminalReason":"completed","testedGreen":true}')
+    write(standin / "analyze-result.json", '{"ok":true,"terminalReason":"completed","costUsd":1.5,"tokens":{"total":330}}')
+    write(standin / "implement-result.json", '{"ok":true,"terminalReason":"completed","testedGreen":true,"tokens":{"total":90}}')
 
     assert replay_main(world.argv("4-replayed")) == 0
 
     row = table(results_text(world))[0]
     analyze, implement, judge = (row[f"{step} time/tokens/cost"].split(" · ") for step in ("Analyze", "Implement", "Judge"))
     assert re.fullmatch(r"\d+(m\d*s?|s)", analyze[0]) and analyze[1:] == ["330", "$1.50"]
-    assert implement[1:] == ["330", "not measured"]
+    assert implement[1:] == ["90", "not measured"]
     assert judge == ["2s", "15", "$0.25"]
 
 

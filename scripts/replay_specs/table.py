@@ -2,12 +2,11 @@
 from dataclasses import dataclass
 from typing import NamedTuple, Optional
 
-# What a step used. A None is a figure that was not measured; `last_turn` marks tokens that are the last turn's alone.
+# What a step used. A None is a figure that was not measured.
 class Stats(NamedTuple):
     seconds: Optional[float]
     tokens: Optional[int]
     cost: Optional[float]
-    last_turn: bool
 
 COLUMNS = ("Spec", "Files found", "Must-fix", "Should-fix", "Every AC placed", "Green", "Rounds", "Original tests", "Judge",
            "Analyze time/tokens/cost", "Implement time/tokens/cost", "Judge time/tokens/cost", "Note")
@@ -52,7 +51,7 @@ def money(cost):
 def step_cell(stats):
     if stats is None:
         return "–"
-    tokens = "not measured" if stats.tokens is None else count(stats.tokens) + (" (last turn)" if stats.last_turn else "")
+    tokens = "not measured" if stats.tokens is None else count(stats.tokens)
     return f"{duration(stats.seconds)} · {tokens} · {money(stats.cost)}"
 
 
