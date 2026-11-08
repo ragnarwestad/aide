@@ -88,10 +88,12 @@ function boot(
   board: QueueStore;
   faults: (Sentence | null)[];
   git: ReturnType<typeof git>;
+  restarts: number[];
 } {
   const board = reread();
   const faults: (Sentence | null)[] = [];
   const g = git(head, contains);
+  const restarts: number[] = [];
   finishDeployAfterRestart({
     queue: board,
     dashboardRoot: ROOT,
@@ -99,14 +101,20 @@ function boot(
     setFault: (f) => void faults.push(f),
     now: () => NOW,
     restartWaitMs: 3 * MINUTE,
+    startedAt: "new",
+    restartWhenSettled: async () => {
+      restarts.push(1);
+      return true;
+    },
   });
-  makeRunner({
-    store: board,
-    alive: () => false,
-    readResult: (path) =>
-      existsSync(path) ? JSON.parse(readFileSync(path, "utf-8")) : null,
-  }).reconcile();
-  return { board, faults, git: g };
+  if (restarts.length === 0)
+    makeRunner({
+      store: board,
+      alive: () => false,
+      readResult: (path) =>
+        existsSync(path) ? JSON.parse(readFileSync(path, "utf-8")) : null,
+    }).reconcile();
+  return { board, faults, git: g, restarts };
 }
 
 const marks = (id: string): string[] => {
@@ -142,15 +150,26 @@ describe("the new process checks the commit it runs", () => {
 });
 
 describe("the new process fails a deploy that did not take", () => {
-  test("a commit that does not contain the fetched one ends the job failed with the served commit, and sets the header fault", () => {
+  test("requests one more restart before the served-commit check becomes final (AC-6)", () => {
     const id = restartedDeploy();
+    const { board, restarts } = boot(LATER, false);
+    expect(restarts).toHaveLength(1);
+    expect(board.get(id)?.state).toBe("running");
+    expect(board.get(id)?.pid).toBe(process.pid);
+    expect(board.get(id)?.deploy?.restartAttempts).toBe(2);
+  });
+
+  test("a commit that does not contain the fetched one ends the job failed with the served commit, and sets the header fault", () => {
+    const id = restartedDeploy(10_000, { restartAttempts: 2 });
     const { board, faults } = boot(LATER, false);
     expect(board.get(id)?.state).toBe("failed");
     expect(board.get(id)?.error).toEqual({
-      key: "landing.deployServiceOlder",
+      key: "landing.deployServiceOlderAfterTwoRestarts",
       values: { served: LATER.slice(0, 7), head: FETCHED.slice(0, 7) },
     });
-    expect(faults.at(-1)).toMatchObject({ key: "landing.deployServiceOlder" });
+    expect(faults.at(-1)).toMatchObject({
+      key: "landing.deployServiceOlderAfterTwoRestarts",
+    });
     expect(marks(id).at(-1)).toContain("stopped");
   });
 
@@ -183,6 +202,6 @@ describe("what the new process leaves alone", () => {
     });
     const { board, git: g } = boot(FETCHED);
     expect(g.calls).toEqual([]);
-    expect(board.get(job.id)?.state).toBe("interrupted");
+    expect(board.get(job.id)?.state).toBe("queued");
   });
 });

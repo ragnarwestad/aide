@@ -15,7 +15,9 @@ def prompt(workspace_root):
 class TestNewsCheckPromptIsAReport:
     def test_it_names_the_file_the_board_reads(self, prompt, workspace_root):
         source = (workspace_root / "dashboard/src/queue/schedule.ts").read_text()
-        name = re.search(r'scheduleRunOutputDir\([^)]*\), "([^"]+)"\)', source).group(1)
+        name = re.search(
+            r'scheduleRunOutputDir\([^)]*\),\s*"([^"]+)"\s*,?\s*\)', source
+        ).group(1)
         assert f"$AIDE_SCHEDULE_OUTPUT_DIR/{name}" in prompt
 
     def test_it_never_asks_for_the_file_the_board_creates_specs_from(self, prompt, workspace_root):

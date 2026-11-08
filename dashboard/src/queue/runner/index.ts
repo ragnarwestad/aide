@@ -62,6 +62,7 @@ import { projectHold } from "./project-holds.ts";
 import { clearStaleHolds, holdJob } from "./holds.ts";
 import { usageLimitWait } from "./usage-limit.ts";
 import { afterStep, stepResultEntry } from "./step-result.ts";
+import { outcomeRetryDecision, retryDecision } from "./retry.ts";
 
 export type {
   SpawnResult,
@@ -190,6 +191,8 @@ export class Runner {
     // Quick steps first, oldest first within each group; list() is newest-first.
     for (const job of queuePriorityOrder([...this.o.store.list()].reverse())) {
       if (job.state !== "queued") continue;
+      if (job.retry?.dueAt && Date.parse(job.retry.dueAt) > Date.parse(this.o.now()))
+        continue;
       if (usageLimitHeld?.has(job.id)) {
         hold(job, usageLimitHeld.get(job.id)!);
         continue;
@@ -304,7 +307,10 @@ export class Runner {
     // its own log still opens.
     // A step started again after a usage-limit stop is a later attempt of
     // the same step in this job, and keeps the earlier attempt's log.
-    const attempt = job.results.filter((r) => r.step === step).length + 1;
+    const attempt = Math.max(
+      job.results.filter((r) => r.step === step).length + 1,
+      job.retry?.action === step ? job.retry.attempts : 1,
+    );
     const streamFile = `${this.o.resultDir}/${job.id}.${step}${attempt > 1 ? `.${attempt}` : ""}.stream.jsonl`;
     const sessionId = (this.o.newSessionId ?? (() => crypto.randomUUID()))();
     this.o.clearResult?.(resultFile);
@@ -327,6 +333,7 @@ export class Runner {
       stepStartedAt: this.o.now(),
       error: undefined,
       errorReason: undefined,
+      retry: job.retry?.action === step ? job.retry : undefined,
     });
     return true;
   }
@@ -347,6 +354,7 @@ export class Runner {
       // No result yet. If the process is also gone, the run died without
       // leaving one — see reconcile().
       if (job.pid !== undefined && !this.o.isAlive(job.pid)) {
+        if (this.retry(job, "vanished")) continue;
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
@@ -368,6 +376,7 @@ export class Runner {
       if (raw) {
         this.complete(job, raw as Partial<StepOutcome>);
       } else {
+        if (this.retry(job, "vanished")) continue;
         this.o.store.transition(job.id, "process-gone", {
           finishedAt: this.o.now(),
           sessionId: undefined,
@@ -397,6 +406,38 @@ export class Runner {
       branchUrl: job.branchUrl,
       at: this.o.now(),
     });
+  }
+
+  private retry(job: Job, kind: "vanished", base: Partial<Job> = {}): boolean {
+    const step = job.steps[job.stepIndex];
+    if (!step || step === "deploy") return false;
+    const attempts = job.retry?.action === step ? job.retry.attempts : 1;
+    const decision = retryDecision({
+      kind,
+      attempts,
+      now: Date.parse(this.o.now()),
+    });
+    if (!decision) return false;
+    this.o.store.transition(job.id, "retry", {
+      ...base,
+      retry: {
+        action: step,
+        attempts: attempts + 1,
+        ...(decision.retryAt > Date.parse(this.o.now())
+          ? { dueAt: new Date(decision.retryAt).toISOString() }
+          : {}),
+      },
+      pid: undefined,
+      pgid: undefined,
+      resultFile: undefined,
+      sessionId: undefined,
+      streamFile: undefined,
+      stepStartedAt: undefined,
+      error: undefined,
+      errorReason: undefined,
+      finishedAt: undefined,
+    });
+    return true;
   }
 
   // `Partial`, and deliberately so: the outcome is whatever JSON another
@@ -470,6 +511,30 @@ export class Runner {
     }
     const base = afterStep(job, outcome, results, landing, measures);
 
+    const retryAttempts = job.retry?.action === step ? job.retry.attempts : 1;
+    const retry = outcomeRetryDecision(
+      outcome,
+      retryAttempts,
+      Date.parse(this.o.now()),
+    );
+    if (retry) {
+      this.o.store.transition(job.id, "retry", {
+        ...base,
+        retry: {
+          action: step,
+          attempts: retryAttempts + 1,
+          ...(retry.retryAt > Date.parse(this.o.now())
+            ? { dueAt: new Date(retry.retryAt).toISOString() }
+            : {}),
+        },
+        resultFile: undefined,
+        finishedAt: undefined,
+        error: undefined,
+        errorReason: undefined,
+      });
+      return;
+    }
+
     // The clock, a usage limit or the criteria checks ending a run is
     // `stopped` — never `failed`: a common, healthy outcome, and a reader
     // who cannot tell it from a broken agent will ignore both.
@@ -536,6 +601,7 @@ export class Runner {
     if (nextIndex >= job.steps.length) {
       const result = this.o.store.transition(job.id, "step-succeeded-last", {
         ...base,
+        retry: undefined,
         stepIndex: nextIndex - 1,
         finishedAt: this.o.now(),
       });
@@ -548,6 +614,7 @@ export class Runner {
     // to weigh, and the next step is simply queued.
     this.o.store.transition(job.id, "step-succeeded", {
       ...base,
+      retry: undefined,
       stepIndex: nextIndex,
     });
   }

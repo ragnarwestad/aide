@@ -153,7 +153,7 @@ describe("the board's own entries", () => {
         "en",
         m("runner.modelAtCapacity", { values: { button: "Analyze" } }),
       ).split("\n")[1],
-    ).toBe("Solution: Press Analyze again");
+    ).toBe("Solution: Choose another model for Analyze");
   });
 
   test("a wrapper takes the fix of the message inside it (AC-3)", () => {

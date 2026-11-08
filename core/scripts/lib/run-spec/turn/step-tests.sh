@@ -325,6 +325,7 @@ $step_tests_failing" "press $step_button again for this step"
           # isolated check of every red file.
           run_red_files_again "$step_tests_named" "$work_dir/red-again.json"
           tests_red_json="$(failing_tests_summary "$step_tests_named" "$work_dir/red-again.json")"
+          tests_red_json="$(jq -c --argjson attempts "$step_tests_runs" '. + {attempts:$attempts}' <<<"$tests_red_json")"
           break
         fi
         step_fix_round=$((step_fix_round + 1))

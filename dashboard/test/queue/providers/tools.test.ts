@@ -94,10 +94,7 @@ describe("the name maps are keyed by the tool type", () => {
 
   test("a runnable tool left out of SHORT_TOOL_NAMES is a type error (AC-3)", () => {
     // @ts-expect-error opencode and fake-claude are missing
-    const missing = {
-      claude: "x",
-      codex: "x",
-    } satisfies typeof SHORT_TOOL_NAMES;
+    const missing = { claude: "x", codex: "x" } satisfies typeof SHORT_TOOL_NAMES;
     expect(Object.keys(missing)).toHaveLength(2);
   });
 

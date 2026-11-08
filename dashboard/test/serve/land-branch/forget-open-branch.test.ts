@@ -41,6 +41,25 @@ async function land(over: Record<string, Answer> = {}) {
 }
 
 describe("a landing forgets the branch it deleted", () => {
+  test("does not repeat a merge after a push failure that needs access fixed (AC-9, AC-10)", async () => {
+    const git = landingGit({
+      push: {
+        code: 1,
+        stderr: "ERROR: Permission to org/aide.git denied to deploy-key.",
+      },
+    });
+    const { ctx } = landCtx(git.run);
+    await landBranch(
+      ctx as unknown as Parameters<typeof landBranch>[0],
+      JOB as unknown as Parameters<typeof landBranch>[1],
+      { branch: BRANCH },
+      LANDING as unknown as Parameters<typeof landBranch>[3],
+    );
+    expect(
+      git.calls.filter((call) => call.args[0] === "push"),
+    ).toHaveLength(1);
+  });
+
   test("names the root it merged and the branch it deleted", async () => {
     expect(await land()).toEqual({
       forgotten: [{ root: ROOT, branch: BRANCH }],

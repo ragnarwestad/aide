@@ -160,13 +160,21 @@ export function testsRedMessage(
     button,
     ...(counted ? { n, total: String(red.total) } : {}),
   };
+  const withAttempts = (message: BoardMessage): BoardMessage =>
+    red.attempts !== undefined
+      ? {
+          key: "runner.testsRedAfterAttempts",
+          values: { attempts: String(red.attempts) },
+          inner: [message],
+        }
+      : message;
   if (red.passedAloneCount === 0) {
-    return {
+    return withAttempts({
       key: counted
         ? "runner.testsRedFailing"
         : "runner.testsRedFailingUncounted",
       values,
-    };
+    });
   }
   const k = String(red.passedAloneCount);
   const passed = testList(
@@ -175,13 +183,13 @@ export function testsRedMessage(
     red.passedAloneCount,
   );
   if (red.failed === 0)
-    return { key: "runner.testsRedPassedAlone", values: { k, passed, button } };
-  return {
+    return withAttempts({ key: "runner.testsRedPassedAlone", values: { k, passed, button } });
+  return withAttempts({
     key: counted
       ? "runner.testsRedFailingPassedAlone"
       : "runner.testsRedFailingPassedAloneUncounted",
     values: { ...values, k, passed },
-  };
+  });
 }
 
 function testList(names: string[], errors: string[], count: number): string {

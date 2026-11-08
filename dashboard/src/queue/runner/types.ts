@@ -451,6 +451,7 @@ export function testsNotStarted(raw: unknown): TestsNotStarted | undefined {
 /** Tests that remain red and tests proven to pass when their files were
  *  run again alone (`run-spec/turn/failing-tests.sh`). */
 export interface TestsRed {
+  attempts?: number;
   tests: string[];
   errors: string[];
   failed: number;
@@ -496,6 +497,7 @@ export function testsRed(raw: unknown): TestsRed | undefined {
     return undefined;
   const total = num(r.total);
   return {
+    ...(num(r.attempts) !== undefined ? { attempts: num(r.attempts) } : {}),
     tests,
     errors,
     failed,

@@ -12,6 +12,7 @@ import {
   makeRunner,
   okResult,
   resetHarness,
+  setNow,
   cleanupHarness,
 } from "./runner-fixtures.ts";
 import { renderSentence } from "../../../src/i18n/message.ts";
@@ -31,16 +32,19 @@ describe("a step stopped because the model is at capacity", () => {
     });
     runner.tick();
     runner.poll();
+    setNow(Date.parse("2026-08-16T10:03:00Z"));
+    runner.tick();
+    runner.poll();
     return store.get(job.id);
   };
 
-  test("ends stopped with the reason, not failed", () => {
+  test("ends stopped with the reason after the automatic second attempt (AC-2)", () => {
     const after = atCapacity();
     expect(after?.state).toBe("stopped");
     expect(after?.stopReason).toBe("model-at-capacity");
   });
 
-  test("names the model, says it is at capacity right now, and says to press the button or choose another model", () => {
+  test("names the model and says to choose another model after two attempts (AC-2, AC-7)", () => {
     const text =
       renderSentence(
         "en",
@@ -48,7 +52,8 @@ describe("a step stopped because the model is at capacity", () => {
       ) ?? "";
     expect(text).toContain("sonnet");
     expect(text).toContain("at capacity right now");
-    expect(text).toContain("Solution: Press Analyze again");
+    expect(text).toContain("two attempts");
+    expect(text).toContain("Solution: Choose another model");
   });
 });
 
@@ -74,6 +79,9 @@ describe("a board whose defaults name no model", () => {
         modelId: "claude-sonnet-5",
       }),
     });
+    runner.tick();
+    runner.poll();
+    setNow(Date.parse("2026-08-16T10:03:00Z"));
     runner.tick();
     runner.poll();
     const text =

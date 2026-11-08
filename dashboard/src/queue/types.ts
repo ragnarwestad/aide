@@ -278,6 +278,7 @@ export interface Job {
     commit?: string;
     restartedAt?: string;
     leaving?: string;
+    restartAttempts?: number;
   };
   /** Set while a finished step's work is being landed on a default
    *  branch — a merge that runs AFTER the step reported success, in this
@@ -370,6 +371,13 @@ export interface Job {
   /** Queued by a person's press, not by the board itself. A press made
    *  after a usage-limit stop is not held by it. */
   pressed?: boolean;
+  /** The automatic second attempt for this action and press. Persisted
+   *  before it is queued so a board restart cannot grant a third one. */
+  retry?: {
+    action: WorkflowStep;
+    attempts: number;
+    dueAt?: string;
+  };
   error?: Sentence | Sentence[];
   /** The one machine-readable class of refusal: a merge that failed on a
    *  real conflict. Stored on the job rather

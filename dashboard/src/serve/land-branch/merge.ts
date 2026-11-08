@@ -168,6 +168,7 @@ export async function landBranch(
     // generic "not landed".
     const deleteErrors: Sentence[] = [];
     const leftBehindRoots = new Set<string>();
+    const retryUnlanded = new Map<string, () => Promise<RepoMergeResult>>();
     for (const repo of repos) {
       if (leaveOpen(repo.root)) {
         // Nothing merged, nothing deleted, nothing installed: the code
@@ -233,12 +234,21 @@ export async function landBranch(
                   handed.hooks,
                 ),
         );
+      retryUnlanded.set(repo.root, merge);
       let result = await merge();
       // A red suite is an answer: the gate already gave it its retry.
       const first = result;
+      const retryLimit =
+        !result.ok &&
+        result.error &&
+        !Array.isArray(result.error) &&
+        typeof result.error === "object" &&
+        result.error.key === "landing.createAssignNumberFailed"
+          ? 1
+          : 0;
       for (
         let retry = 0;
-        !result.ok && result.reason !== "tests-red" && retry < 2;
+        !result.ok && result.reason !== "tests-red" && retry < retryLimit;
         retry++
       ) {
         await new Promise((r) => setTimeout(r, 700 * (retry + 1)));
@@ -391,6 +401,18 @@ export async function landBranch(
       reason !== "tests-red" &&
       failures.length === 0
     ) {
+      const firstHolding = await ctx.rootsStillHolding(
+        job.project,
+        branch,
+        true,
+      );
+      for (const root of firstHolding) {
+        if (leaveOpen(root) || leftBehindRoots.has(root)) continue;
+        const retry = retryUnlanded.get(root);
+        if (!retry) continue;
+        const retried = await retry();
+        if (retried.ok) ctx.branchStatus.invalidate(root, branch);
+      }
       const holding: string[] = [];
       for (const root of await ctx.rootsStillHolding(
         job.project,

@@ -35,7 +35,7 @@ export type Wait = (ms: number) => Promise<void>;
  *  waiting longer between them than the lock retry above, since a
  *  network blip takes longer to clear than a lock held by a
  *  sibling git process on the same machine. */
-const PUSH_RETRY_WAITS_MS = [1000, 2000];
+const PUSH_RETRY_WAITS_MS = [1000];
 /** A push and the question to origin that follows a failed one get a
  *  minute, not the runner's four-second default: a push to GitHub over
  *  SSH takes longer than that, and a killed one says nothing at all. */
@@ -79,6 +79,13 @@ export async function pushWithRetry(
     run(root, ["push", "-q", "origin", refspec], PUSH_TIMEOUT_MS);
   let pushed = await push();
   if (pushed.code === 0) return { ok: true };
+  const firstCause = gitError(pushed.stderr ?? "");
+  if (["auth", "no-write", "https-auth"].includes(firstCause.kind))
+    return {
+      ok: false,
+      cause: firstCause,
+      error: gitErrorDetail(pushed.stderr ?? ""),
+    };
   // An SSH key GitHub does not take fails this question too, so git's own
   // words, not the failed answer, say why.
   const reachable = await run(root, ["ls-remote", "origin"], PUSH_TIMEOUT_MS);

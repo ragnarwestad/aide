@@ -213,7 +213,7 @@ describe("pushWithRetry: a push that cannot reach origin at all", () => {
     expect(result.ok).toBe(false);
     expect(sentence(result.error)).toContain(ROOT);
     expect(sentence(result.error)).toContain(BRANCH);
-    expect(waits).toEqual([1000, 2000]);
+    expect(waits).toEqual([1000]);
   });
 
   test("a later attempt that reaches origin succeeds, leaving no error", async () => {
@@ -221,7 +221,6 @@ describe("pushWithRetry: a push that cannot reach origin at all", () => {
       ...REACHES_STEP_6,
       "ls-remote origin": { code: 1 },
       push: [
-        { code: 1, stderr: "fatal: unable to access 'origin'" },
         { code: 1, stderr: "fatal: unable to access 'origin'" },
         { code: 0 },
       ],

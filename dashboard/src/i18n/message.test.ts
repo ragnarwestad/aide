@@ -66,7 +66,7 @@ describe("renderSentence", () => {
         values: { button: "Archive" },
       }),
     ).toBe(
-      "Problem: Kjøringen forsvant uten å etterlate et resultat\nLøsning: Trykk Archive igjen",
+      "Problem: Kjøringen forsvant uten å etterlate et resultat etter to forsøk\nLøsning: Sjekk dashboard-tjenesten på serveren",
     );
   });
 
@@ -76,7 +76,7 @@ describe("renderSentence", () => {
       { key: "runner.runVanished", values: { button: "Implement" } },
     ]);
     expect(result).toBe(
-      "Problem: Cannot fast-forward main\nProblem: The run vanished without leaving a result\nSolution: Press Implement again",
+      "Problem: Cannot fast-forward main\nProblem: The run vanished without leaving a result after two attempts\nSolution: Check the board service on the serving host",
     );
   });
 

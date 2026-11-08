@@ -313,6 +313,7 @@ export type TransitionEvent =
   | "step-failed" // running -> failed: the step reported failure
   | "run-stopped" // running -> stopped: timeout or provider limit
   | "process-gone" // running -> interrupted: the process died with no result
+  | "retry" // running -> queued: one eligible automatic second attempt
   | "landing-failed" // done -> failed: a landing did not finish
   | "landing-held" // done -> stopped: the landing's suite went red
   | "landing-cancelled" // done -> cancelled: Cancel pressed while it merged
@@ -336,6 +337,7 @@ export const TRANSITIONS: Readonly<
     "step-failed": "failed",
     "run-stopped": "stopped",
     "process-gone": "interrupted",
+    retry: "queued",
     cancel: "cancelled",
   },
   done: {
