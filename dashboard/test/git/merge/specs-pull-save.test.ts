@@ -15,12 +15,12 @@
 // behind in the ONE shared specs checkout breaks the next fast-forward
 // for every project in it — so a push that fails is reset away.
 
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { saveSpecFile, saveSpecFiles } from "../../../src/git/specs-pull.ts";
-import { fakeGit } from "../../helpers/fake-git.ts";
+import { fakeGit, type Answer } from "../../helpers/fake-git.ts";
 
 const base = async () => "main";
 
@@ -49,7 +49,7 @@ function checkout(): { root: string; dir: string } {
 /** The pull's answers, plus the ones only a save asks for: which commit
  *  last touched the file, where HEAD is, and whether the write staged
  *  anything. Everything succeeds unless a test says otherwise. */
-const savable = (root: string, extra: Record<string, { code: number; stdout?: string }> = {}) =>
+const savable = (root: string, extra: Record<string, Answer | Answer[]> = {}) =>
   fakeGit({
     "rev-parse --show-toplevel": { code: 0, stdout: `${root}\n` },
     "diff --cached --quiet HEAD": { code: 1 },
@@ -178,16 +178,66 @@ describe("saveSpecFile", () => {
     expect(git.calls.map((c) => c.args[0])).not.toContain("commit");
   });
 
-  test("a push that fails is rolled back to the commit before the write, and says so", async () => {
+  test("a refused push rebases onto origin and succeeds on its only retry (AC-1, AC-2, AC-6)", async () => {
     const { root, dir } = checkout();
-    const git = savable(root, { push: { code: 1 } });
+    const git = savable(root, {
+      push: [{ code: 1, stderr: "! [rejected] HEAD -> main (non-fast-forward)\n" }, { code: 0 }],
+      rebase: { code: 0 },
+    });
+    const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
+    expect(result).toEqual({ ok: true, note: `saved ${FILE}`, committed: true });
+    const commands = git.calls.map((c) => c.args.join(" "));
+    expect(commands).toContain("fetch --quiet origin main");
+    expect(commands).toContain("rebase refs/remotes/origin/main");
+    expect(commands.filter((line) => line.startsWith("push "))).toHaveLength(2);
+    expect(commands.some((line) => line.startsWith("reset "))).toBe(false);
+    expect(readFileSync(join(dir, FILE), "utf-8")).toBe(NEW_TEXT);
+  });
+
+  test("a second refusal is logged and rolls the save back without a third push (AC-3, AC-5, AC-6)", async () => {
+    const { root, dir } = checkout();
+    const log = spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const git = savable(root, {
+        push: [
+          { code: 1, stderr: "\n! [rejected] HEAD -> main (fetch first)\nhint: update first\n" },
+          { code: 1, stderr: "remote: protected branch hook declined\nerror: failed to push some refs\n" },
+        ],
+        rebase: { code: 0 },
+      });
+      const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
+      expect(result.ok).toBe(false);
+      expect(result.note).toContain("nothing was kept");
+      expect(git.calls.filter((c) => c.args[0] === "push")).toHaveLength(2);
+      const reset = git.calls.find((c) => c.args[0] === "reset")!;
+      expect(reset.args).toContain(HEAD_SHA);
+      expect(reset.args).toContain("--hard");
+      expect(log).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining("162-edit-a-spec-on-its-own-page"),
+      );
+      expect(log.mock.calls[0]?.[0]).toContain(FILE);
+      expect(log.mock.calls[0]?.[0]).toContain("! [rejected] HEAD -> main (fetch first)");
+      expect(log.mock.calls[1]?.[0]).toContain("remote: protected branch hook declined");
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  test("a rebase conflict names the file, aborts and restores the checkout without retrying push (AC-4, AC-6)", async () => {
+    const { root, dir } = checkout();
+    const git = savable(root, {
+      push: { code: 1, stderr: "! [rejected] HEAD -> main (non-fast-forward)\n" },
+      rebase: { code: 1 },
+      "diff --name-only --diff-filter=U": { code: 0, stdout: `${FILE}\n` },
+    });
     const result = await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
     expect(result.ok).toBe(false);
-    expect(result.note).toContain("push");
-    const reset = git.calls.find((c) => c.args[0] === "reset");
-    expect(reset).toBeDefined();
-    expect(reset!.args).toContain(HEAD_SHA);
-    expect(reset!.args).toContain("--hard");
+    expect(result.note).toContain(FILE);
+    const commands = git.calls.map((c) => c.args.join(" "));
+    expect(commands).toContain("rebase --abort");
+    expect(commands).toContain(`reset --hard ${HEAD_SHA}`);
+    expect(commands.filter((line) => line.startsWith("push "))).toHaveLength(1);
   });
 
   // Nothing half-done in the ONE shared checkout: a write that was
@@ -269,7 +319,7 @@ describe("saveSpecFiles", () => {
    *  last moved at the same commit, which is the ordinary case — a
    *  step's own run writes them together — so a stale test says so by
    *  posting the wrong sha, not by moving one file. */
-  const twoFileGit = (root: string, extra: Record<string, { code: number; stdout?: string }> = {}) =>
+  const twoFileGit = (root: string, extra: Record<string, Answer | Answer[]> = {}) =>
     savable(root, extra);
 
   const edits = (over: { text?: string; baseSha?: string | null; statusText?: string; statusBaseSha?: string | null } = {}) => [
@@ -348,9 +398,9 @@ describe("saveSpecFiles", () => {
     expect(readFileSync(join(dir, STATUS_FILE), "utf-8")).toBe(STATUS_ORIGINAL);
   });
 
-  test("a push that fails resets both writes away", async () => {
+  test("a retry that still fails resets both writes away (AC-3)", async () => {
     const { root, dir } = twoFileCheckout();
-    const git = twoFileGit(root, { push: { code: 1 } });
+    const git = twoFileGit(root, { push: { code: 1 }, rebase: { code: 0 } });
     const result = await saveSpecFiles(git.run, dir, base, edits(), OPTS);
     expect(result.ok).toBe(false);
     expect(result.note).toContain("push");
