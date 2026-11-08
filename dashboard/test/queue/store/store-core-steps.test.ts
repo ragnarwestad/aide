@@ -90,13 +90,14 @@ describe("reopen", () => {
   // A spec nobody has heard of still hears about the folder first: the
   // step check is second, so the error a reader gets is the one that
   // explains the most.
-  test("a folder in neither list is unknown, whatever the step", () => {
+  test("a folder in neither list is unknown by its concise reference, whatever the step (AC-1)", () => {
     const r = parseJobRequest(
       { ...REQ, specFolder: "99-never-existed", steps: ["reopen"] },
       { resolve: withArchived, defaults: DEFAULTS },
     );
     expect(r.ok).toBe(false);
-    expect(!r.ok && r.error).toContain("unknown specFolder");
+    expect(!r.ok && r.error).toContain("unknown specFolder: aide:99");
+    expect(!r.ok && r.error).not.toContain("99-never-existed");
   });
 
   // A resolver that names no archived folders at all — every caller

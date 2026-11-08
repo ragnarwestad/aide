@@ -350,13 +350,13 @@ export async function handleQueueAdminRoutes(
       return new Response("no such project\n", { status: 404 });
     }
     if (!ctx.testServers.previewAvailable(name)) {
-      return testServerFailedPage(MAIN_TEST_SERVER_KEY, "this project's own checkout does not carry the dashboard's source");
+      return testServerFailedPage(name, MAIN_TEST_SERVER_KEY, "this project's own checkout does not carry the dashboard's source");
     }
     const root = ctx.testServers.aideCheckout(name);
     const branch = await ctx.branchStatus.defaultBranch(root);
-    if (!branch) return testServerFailedPage(MAIN_TEST_SERVER_KEY, `cannot work out the default branch in ${root}`);
+    if (!branch) return testServerFailedPage(name, MAIN_TEST_SERVER_KEY, `cannot work out the default branch in ${root}`);
     const result = await restartMainTestServer(ctx.testServers, name, branch);
-    if (!result.ok) return testServerFailedPage(MAIN_TEST_SERVER_KEY, result.error);
+    if (!result.ok) return testServerFailedPage(name, MAIN_TEST_SERVER_KEY, result.error);
     return new Response(null, {
       status: 303,
       headers: { location: `/projects/${encodeURIComponent(name)}?startTestServer=1` },

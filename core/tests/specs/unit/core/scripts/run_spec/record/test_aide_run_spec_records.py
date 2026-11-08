@@ -638,6 +638,7 @@ def test_a_cancelled_analysis_keeps_the_ticks(runner, workspace, fake_claude, tm
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
+            "--project-name", "aide",
             "--command", "analyze",
             "--spec", workspace["folder"],
             "--timeout-sec", "120",

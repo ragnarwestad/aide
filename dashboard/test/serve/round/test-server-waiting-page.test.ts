@@ -11,7 +11,7 @@ describe("a test server that could not start", () => {
 
   // Arbitrary text off a log reaches this page.
   test("the round's words are escaped", async () => {
-    const html = await body(testServerFailedPage("415-x", "<script>alert(1)</script>"));
+    const html = await body(testServerFailedPage("aide", "415-x", "<script>alert(1)</script>"));
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;");
   });

@@ -13,6 +13,7 @@ import { NAME_RE } from "../parse-request.ts";
 export { providerKeyFrom } from "./key.ts";
 export { providerLoginCommand } from "./login-command.ts";
 import { listedModelName, resolveStepModel } from "../model-name.ts";
+import { specReference } from "../../project/spec-folder.ts";
 
 import { PROVIDER_TOOLS, type ProviderTool } from "./tools.ts";
 export { PROVIDER_TOOLS, type ProviderTool };
@@ -161,7 +162,7 @@ export function providerUses(
   for (const job of jobs) {
     if (!willRun(job)) continue;
     const step = Object.entries(job.provider ?? {}).find(([, chosen]) => chosen === key)?.[0];
-    if (step) uses.push(`the ${job.state === "stopped" ? "waiting" : job.state} ${capitalised(step)} of ${job.project}/${job.specFolder}`);
+    if (step) uses.push(`the ${job.state === "stopped" ? "waiting" : job.state} ${capitalised(step)} of ${specReference(job.project, job.specFolder)}`);
   }
   return uses;
 }

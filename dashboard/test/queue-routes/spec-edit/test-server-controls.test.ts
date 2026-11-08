@@ -476,7 +476,7 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
     });
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain(`Could not start a test server for "${folder}"`);
+    expect(html).toContain('Could not start a test server for "aide:81"');
     expect(html).toContain("Test servers");
     expect(html).not.toContain("data-reload-every=");
     // The outright-refusal shape — nothing was ever
@@ -570,7 +570,7 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
       });
       expect(failedRes.status).toBe(200);
       const failedHtml = await failedRes.text();
-      expect(failedHtml).toContain(`Could not start a test server for "${folder}"`);
+      expect(failedHtml).toContain('Could not start a test server for "aide:81"');
       expect(failedHtml).toContain('href="');
       expect(failedHtml).toContain("retryTestServer=1");
       expect(spawnCalls).toHaveLength(1);
@@ -724,7 +724,7 @@ describe("the spec page's own ?startTestServer=1 trigger", () => {
         });
         expect(res.status).toBe(200);
         const html = await res.text();
-        expect(html).toContain(`Could not start a test server for "${folder}"`);
+        expect(html).toContain('Could not start a test server for "aide:81"');
         expect(html).toContain("retryTestServer=1");
       }
       expect(spawnCalls).toHaveLength(2);

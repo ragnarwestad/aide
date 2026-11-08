@@ -216,9 +216,9 @@ export function sentBackMessage(step: WorkflowStep, outcome: Partial<StepOutcome
   return { key: "runner.sentBack", values: { button: stepButton(step), analyze: stepButton("analyze") } };
 }
 
-/** A step stopped at its own time limit, as the board's sentence naming the
- *  limit and where it ran out: in the session, or in the runner's own run
- *  of the tests. In whole minutes, the unit Settings sets it in, else in
+/** A step stopped at a time limit, as the board's sentence naming the
+ *  limit and which one ran out: the step's own, in the session, or one test
+ *  run's own, in the runner's run of the tests. In whole minutes, else in
  *  seconds. Undefined when the result names no limit: the runner's own
  *  sentence then stands. */
 export function timeLimitMessage(step: WorkflowStep, outcome: Partial<StepOutcome>): BoardMessage | undefined {

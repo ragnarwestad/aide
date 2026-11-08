@@ -58,6 +58,7 @@ def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, tmp
             [
                 str(runner),
                 "--project-dir", str(workspace["project"]),
+                    "--project-name", "aide",
                 "--command", "implement",
                 "--spec", folder,
                 "--timeout-sec", "60",
@@ -155,6 +156,7 @@ def test_two_runs_against_the_same_project_for_different_specs_do_not_race(
             [
                 str(runner),
                 "--project-dir", str(project),
+                    "--project-name", "aide",
                 "--command", "implement",
                 "--spec", folder,
                 "--timeout-sec", "60",
@@ -324,6 +326,7 @@ def test_a_run_killed_with_sigterm_while_holding_the_lock_releases_it(
         [
             str(runner),
             "--project-dir", str(project),
+            "--project-name", "aide",
             "--command", "analyze",
             "--spec", workspace["folder"],
             "--timeout-sec", "60",

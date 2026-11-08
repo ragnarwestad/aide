@@ -111,7 +111,7 @@ def test_the_other_gated_steps_still_refuse_an_unmerged_dependency(
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command=command)
     assert rc == 2
     assert out["terminalReason"] == "refused"
-    assert "80-dependency" in out["error"]
+    assert "aide:80" in out["error"]
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 @pytest.mark.usefixtures("local_origins")
@@ -151,7 +151,7 @@ def test_archive_reports_an_already_landed_spec_as_done_not_refused(
 ):
     """An archived spec with nothing left on origin is
     finished work, not a name that does not exist. It is reported as
-    success, and it names the folder so a reader can act on it."""
+    success, and it names the spec by project and number."""
     add_spec(workspace, "77-recovered", archived=True)
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
 
@@ -160,7 +160,7 @@ def test_archive_reports_an_already_landed_spec_as_done_not_refused(
     assert rc == 0, out
     assert out["ok"] is True, out
     assert out["terminalReason"] == "already-landed", out
-    assert "77-recovered" in out["note"], out
+    assert "aide:77" in out["note"], out
     assert not fake_claude.calls.exists(), "nothing to archive costs nothing"
 
 @pytest.mark.usefixtures("local_origins")
@@ -177,7 +177,7 @@ def test_an_already_landed_spec_resolves_by_its_number_too(
 
     assert rc == 0, out
     assert out["terminalReason"] == "already-landed", out
-    assert "77-recovered" in out["note"], out
+    assert "aide:77" in out["note"], out
 
 @pytest.mark.usefixtures("local_origins")
 def test_an_already_landed_spec_reports_the_same_outcome_to_the_result_file(
@@ -350,7 +350,7 @@ def test_runner_refuses_when_the_workflow_steps_file_is_missing(runner, workspac
     (tmp_path / "lib" / "git-error.sh").write_bytes(
         (pathlib.Path(runner).parent / "lib" / "git-error.sh").read_bytes()
     )
-    for name in ("tracking-info.sh", "status-progress.sh", "spec-state.sh", "spec-transitions.sh", "failing-tests.sh", "checkout-lock.sh"):
+    for name in ("spec-reference.sh", "tracking-info.sh", "status-progress.sh", "spec-state.sh", "spec-transitions.sh", "failing-tests.sh", "checkout-lock.sh"):
         (tmp_path / "lib" / name).write_bytes((pathlib.Path(runner).parent / "lib" / name).read_bytes())
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, runner_path=lone_copy)

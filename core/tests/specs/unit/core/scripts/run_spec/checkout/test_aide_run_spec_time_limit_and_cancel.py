@@ -1,8 +1,6 @@
-"""A step's time limit is the whole step's, the runner's own test run
-included, and Cancel keeps what the step wrote. 498's implement ran for
-over ninety minutes on a ninety-minute limit, its session done and the
-runner's own suite still going; stopping it would have deleted fifty
-files of finished work with the worktree (2026-09-19).
+"""A step's time limit counts the AI's turns, not the runner's own test
+runs, which have a limit of their own per run; and Cancel keeps what the
+step wrote.
 """
 
 import json
@@ -24,13 +22,14 @@ def _test_cmd(workspace, cmd):
     manifest.write_text(manifest.read_text().replace("AIDE_TEST_CMD: true", f"AIDE_TEST_CMD: {cmd}"))
 
 
-def test_the_runners_own_test_run_stops_at_the_steps_time_limit(runner, workspace, fake_claude):
+def test_the_runners_own_test_run_stops_at_its_own_limit(runner, workspace, fake_claude, monkeypatch):
     with_status(workspace, ["create", "analyze"])
     _test_cmd(workspace, "sleep 120")
+    monkeypatch.setenv("AIDE_TEST_RUN_LIMIT_SEC", "6")
     claude = fake_claude("cat > /dev/null\nprintf 'real work\\n' > implemented.txt\n" f"echo '{json.dumps(RESULT_OK)}'")
     began = time.monotonic()
-    rc, out, _ = run(runner, workspace, claude, command="implement", timeout_sec=6)
-    assert time.monotonic() - began < 60, "the suite ran on past the step's own limit"
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert time.monotonic() - began < 60, "the suite ran on past its own limit"
     assert out["terminalReason"] == "timeout", out
     assert out["error"] is None and "errorSolution" not in out, out
     assert_written_as_in_fixture("timeLimit", out["timeLimit"])
@@ -38,6 +37,24 @@ def test_the_runners_own_test_run_stops_at_the_steps_time_limit(runner, workspac
     # The work is on the branch, for the next press to test.
     assert git(workspace["project"], "show", f"{BRANCH}:implemented.txt") == "real work"
 
+
+def test_the_steps_time_limit_leaves_out_the_runners_own_test_runs(runner, workspace, fake_claude):
+    """A red run that alone outlasts the step's limit still gets its fix
+    turn and a second run: the time went to the tests, not to the AI."""
+    with_status(workspace, ["create", "analyze"])
+    _test_cmd(workspace, "sleep 8; test -f green.txt")
+    claude = fake_claude(
+        "prompt=\"$(cat)\"\n"
+        "if printf '%s' \"$prompt\" | grep -q 'test suite is red'; then\n"
+        "  printf 'green\\n' > green.txt && git add -A && git commit -q -m 'the test fix'\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        "fi\n"
+        f"echo '{json.dumps(RESULT_OK)}'\n"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement", timeout_sec=6)
+    assert out["terminalReason"] == "completed", out
+    assert len(fake_claude.calls.read_text().splitlines()) == 2
 
 
 def test_cancel_commits_what_the_step_wrote_before_the_worktree_goes(runner, workspace, fake_claude, tmp_path):
@@ -54,6 +71,7 @@ def test_cancel_commits_what_the_step_wrote_before_the_worktree_goes(runner, wor
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
+                "--project-name", "aide",
             "--command", "implement",
             "--spec", workspace["folder"],
             "--timeout-sec", "120",
@@ -115,6 +133,7 @@ def test_a_cancelled_steps_commit_waits_for_the_checkout_lock(runner, workspace,
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
+                "--project-name", "aide",
             "--command", "implement",
             "--spec", workspace["folder"],
             "--timeout-sec", "120",
@@ -158,6 +177,7 @@ def test_a_cancel_while_the_merge_is_still_open_commits_no_conflict_markers(runn
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
+                "--project-name", "aide",
             "--command", "implement",
             "--spec", workspace["folder"],
             "--timeout-sec", "120",

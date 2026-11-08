@@ -252,6 +252,7 @@ def test_the_stream_is_readable_while_the_run_is_still_going(
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
+            "--project-name", "aide",
             "--command", "analyze",
             "--spec", workspace["folder"],
             "--timeout-sec", "30",

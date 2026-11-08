@@ -74,10 +74,11 @@ def _on_branch(workspace, name):
 
 def test_a_spec_sharing_a_file_ends_the_analysis_stopped_ac_1_ac_2_ac_6(runner, workspace, fake_claude):
     _open_spec(workspace, OTHER, ["shared.ts", "theirs.ts"])
-    out, _ = _analyze(runner, workspace, fake_claude, ["shared.ts", "mine.ts"])
+    out, err = _analyze(runner, workspace, fake_claude, ["shared.ts", "mine.ts"])
     assert out["ok"] is False, out
     assert out["terminalReason"] == "shared-files", out
     assert out["error"] is None and "errorSolution" not in out and "errorLog" not in out, out
+    assert f"aide:{OTHER.split('-', 1)[0]}: shared.ts" in err, err
     assert out["sharedFiles"] == [{"spec": OTHER, "files": ["shared.ts"]}], out
     subject = git(workspace["specs"], "log", "-1", "--pretty=%s", BRANCH)
     assert subject.endswith("(stopped: shared-files)"), subject

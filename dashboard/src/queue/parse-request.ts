@@ -15,6 +15,7 @@ import { listedModelName } from "./model-name.ts";
 import { parseProviderPick } from "./providers/parse.ts";
 import { ARCHIVE_ONLY_STEP, CLEANUP_KEY, DEPLOY_KEY, EFFORT_LEVELS, PHASE_STEPS, WORKFLOW_STEPS, type WorkflowStep } from "./steps.ts";
 import type { CreateProjectAllower, Job, ProjectResolver, QueueDefaults } from "./types.ts";
+import { specReference } from "../project/spec-folder.ts";
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
 
@@ -101,7 +102,7 @@ export function parseJobRequest(
     !resolved.specFolders.includes(r.specFolder) &&
     (resolved.archivedFolders ?? []).includes(r.specFolder);
   if (!isScheduleJob && !isDeploy && !isCleanup && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
-    return { ok: false, error: invalidRequest(`unknown specFolder: ${r.specFolder}`) };
+    return { ok: false, error: invalidRequest(`unknown specFolder: ${specReference(r.project, r.specFolder)}`) };
   }
 
   if (!Array.isArray(r.steps) || r.steps.length === 0 || r.steps.length > 8) {
@@ -135,7 +136,7 @@ export function parseJobRequest(
     return {
       ok: false,
       error: invalidRequest(
-        `${r.specFolder} is ${closed ? "closed" : "archived"} — only ${ARCHIVE_ONLY_STEP} can be asked for it`,
+        `${specReference(r.project, r.specFolder)} is ${closed ? "closed" : "archived"} — only ${ARCHIVE_ONLY_STEP} can be asked for it`,
       ),
     };
   }
@@ -149,7 +150,7 @@ export function parseJobRequest(
   if (steps.includes(ARCHIVE_ONLY_STEP) && resolved.specFolders.includes(r.specFolder)) {
     return {
       ok: false,
-      error: invalidRequest(`${r.specFolder} is already active — nothing to ${ARCHIVE_ONLY_STEP}`),
+      error: invalidRequest(`${specReference(r.project, r.specFolder)} is already active — nothing to ${ARCHIVE_ONLY_STEP}`),
     };
   }
 

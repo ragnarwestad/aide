@@ -279,7 +279,7 @@ describe("the same work is not queued twice", () => {
     expect(again.ok).toBe(false);
     if (again.ok) return;
     expect(again.error).toContain("analyze");
-    expect(again.error).toContain("81-queue-and-runner");
+    expect(again.error).toContain("aide:81");
   });
 
   test("a job that has been started still blocks — it is not finished", () => {
