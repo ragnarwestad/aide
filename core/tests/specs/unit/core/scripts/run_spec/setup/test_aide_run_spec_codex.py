@@ -36,15 +36,13 @@ def test_a_codex_run_records_tool_and_tokens_but_no_cost(runner, workspace, fake
     assert out["sessionId"] == CODEX_THREAD_ID
     tokens = out["tokens"]
     u = CODEX_USAGE
-    assert tokens["input"] == u["input_tokens"]
-    # Codex bills reasoning tokens as output; both halves count.
-    assert tokens["output"] == u["output_tokens"] + u["reasoning_output_tokens"]
+    # Codex's input holds its cached and cache-written input, and its output
+    # the reasoning: the parts are taken apart, and the total is Codex's own.
+    assert tokens["input"] == u["input_tokens"] - u["cached_input_tokens"] - u["cache_write_input_tokens"]
+    assert tokens["output"] == u["output_tokens"]
     assert tokens["cacheRead"] == u["cached_input_tokens"]
-    # Codex exposes no separate cache-WRITE count at all.
-    assert tokens["cacheCreation"] == 0
-    assert tokens["total"] == (
-        u["input_tokens"] + u["output_tokens"] + u["reasoning_output_tokens"] + u["cached_input_tokens"]
-    )
+    assert tokens["cacheCreation"] == u["cache_write_input_tokens"]
+    assert tokens["total"] == u["input_tokens"] + u["output_tokens"]
 
 def test_a_claude_run_still_says_which_tool_ran_it(runner, workspace, fake_claude):
     """The field is on every result, not only Codex's: the dashboard

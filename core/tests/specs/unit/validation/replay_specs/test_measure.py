@@ -144,7 +144,7 @@ def test_step_tokens_sum_every_turn_in_the_stream_not_the_last(tmp_path):
     ]))
 
     assert measure.step_tokens(str(claude), "claude") == 167 + 19 + 1000
-    assert measure.step_tokens(str(codex), "codex") == 165 + 2
+    assert measure.step_tokens(str(codex), "codex") == 110 + 2
     assert measure.step_tokens(str(tmp_path / "missing.jsonl"), "claude") is None
 
 

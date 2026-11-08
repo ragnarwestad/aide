@@ -4,7 +4,8 @@
 //   Claude    one `assistant` event per content block, the events of one message sharing its `message.id`
 //             and its `message.usage`: counted once per id, wherever its events stand.
 //   opencode  one `step_finish` per model step, from its `step_start`.
-//   Codex     one `turn.completed` per turn, so a step is given a turn only when the step was open
+//   Codex     one `turn.completed` per turn, carrying its thread's usage so far: a turn counts what it
+//             grew by since the thread's last turn. A step is given a turn only when the step was open
 //             through the whole of it; a turn that holds the step's marks gives it nothing.
 //
 // A step ends where the time line ends it (`stepMarks`): at its own ending mark and at the mark of any other step.
@@ -40,11 +41,12 @@ function opencodeUsage(part: Record<string, unknown> | undefined): number | unde
   return num(t.input) + num(t.output) + num(t.reasoning) + num(cache?.read) + num(cache?.write);
 }
 
-/** Codex's `turn.completed` usage: input, output with reasoning, cached input. */
+/** Codex's `turn.completed` usage: its thread's so far, every turn of it. The input holds the cached input
+ *  and the output the reasoning, so the whole is input plus output, as Codex's own `total_tokens` is. */
 function codexUsage(usage: unknown): number | undefined {
   const u = obj(usage);
   if (!u) return undefined;
-  return num(u.input_tokens) + num(u.output_tokens) + num(u.reasoning_output_tokens) + num(u.cached_input_tokens);
+  return num(u.input_tokens) + num(u.output_tokens);
 }
 
 export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<string, number> {
@@ -96,6 +98,9 @@ export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<s
   const counted = new Map<string, { usage: number; key?: string }>();
   let session: string | undefined;
   let turnOpen: string | undefined;
+  // Each Codex thread's usage at its last turn, and the thread the transcript is in now.
+  const threadSoFar = new Map<string, number>();
+  let thread = "";
 
   for (const line of text.split("\n")) {
     if (!line.trim()) continue;
@@ -148,9 +153,13 @@ export function stepTokens(text: string, tool?: SummarizeOptions["tool"]): Map<s
         note(lone, line);
         apply(lone);
       }
-    } else if (type === "turn.started") turnOpen = open;
+    } else if (type === "thread.started") thread = typeof event.thread_id === "string" ? event.thread_id : "";
+    else if (type === "turn.started") turnOpen = open;
     else if (type === "turn.completed") {
-      if (turnOpen !== undefined && open === turnOpen) add(codexUsage(event.usage), turnOpen);
+      const soFar = codexUsage(event.usage);
+      const grew = soFar === undefined ? undefined : Math.max(soFar - (threadSoFar.get(thread) ?? 0), 0);
+      if (soFar !== undefined) threadSoFar.set(thread, soFar);
+      if (turnOpen !== undefined && open === turnOpen) add(grew, turnOpen);
       turnOpen = undefined;
     } else if (type === "item.completed") {
       const lone: Call = { marks: [] };

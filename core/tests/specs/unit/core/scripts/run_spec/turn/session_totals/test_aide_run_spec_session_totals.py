@@ -108,7 +108,8 @@ def test_an_implement_that_starts_afresh_counts_its_own_session_whole(runner, wo
 
 def _cumulative_codex(fake_codex, counters):
     """A stand-in `codex` that reports what a real one does: `turn.completed`
-    carries the thread's usage so far, every turn of it. The thread is the one
+    carries the thread's usage so far, every turn of it, its input holding
+    the cached input. The thread is the one
     `exec resume` names, else a new one."""
     counters.mkdir(exist_ok=True)
     return fake_codex(
@@ -122,7 +123,8 @@ def _cumulative_codex(fake_codex, counters):
         "printf '{\"type\":\"item.completed\",\"item\":{\"id\":\"i\",\"item_type\":\"agent_message\",\"text\":\"done\"}}\\n'\n"
         "printf '{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":%d,\"cached_input_tokens\":%d,"
         "\"output_tokens\":%d,\"reasoning_output_tokens\":0}}\\n' "
-        f"$((n * {TURN_TOKENS['input']})) $((n * {TURN_TOKENS['cacheRead']})) $((n * {TURN_TOKENS['output']}))\n"
+        f"$((n * {TURN_TOKENS['input'] + TURN_TOKENS['cacheRead']})) $((n * {TURN_TOKENS['cacheRead']})) "
+        f"$((n * {TURN_TOKENS['output']}))\n"
     )
 
 
