@@ -64,7 +64,7 @@ def test_the_forms_options_are_passed_on_AC_3(machine, board):
 
     result = machine.run(
         "create", "demo", "A title", "--file", "/dev/null",
-        "--depends-on", "721", "--then", "analyze,implement",
+        "--depends-on", "721", "--autostart",
         "--criteria-checks", "warn", "--choose-approach",
     )
 
@@ -72,7 +72,8 @@ def test_the_forms_options_are_passed_on_AC_3(machine, board):
     [post] = create_posts(board)
     body = post["body"]
     assert body["dependsOn"] == ["721-x"]
-    assert body["steps"] == ["analyze", "implement"]
+    # Started, a new spec runs every phase, as Analyze on its row does.
+    assert body["steps"] == ["analyze", "implement", "archive"]
     assert body["criteriaChecks"] == "warn"
     assert body["chooseApproach"] == "1"
     # The form opens with both boxes ticked, and the board reads an absent
@@ -97,11 +98,12 @@ def test_a_model_names_every_step_the_create_runs_and_a_provider_is_one_string_A
     board.accepts(CREATE_JOB, "/api/queue/create")
 
     result = machine.run("create", "demo", "A title", "--file", "/dev/null",
-                         "--then", "analyze", "--model", "Sonnet", "--provider", "Codex")
+                         "--autostart", "--model", "Sonnet", "--provider", "Codex")
 
     assert result.returncode == 0, result.stderr
     [post] = create_posts(board)
-    assert post["body"]["model"] == {"create": "Sonnet", "analyze": "Sonnet"}
+    assert post["body"]["model"] == {"create": "Sonnet", "analyze": "Sonnet",
+                                     "implement": "Sonnet", "archive": "Sonnet"}
     assert post["body"]["provider"] == "Codex"
 
 
@@ -112,7 +114,7 @@ def test_the_sentence_names_the_title_the_steps_and_each_model_AC_9(machine, boa
     board.accepts(job, "/api/queue/create")
 
     result = machine.run("create", "demo", "A title", "--file", "/dev/null",
-                         "--then", "analyze", "--provider", "Codex")
+                         "--autostart", "--provider", "Codex")
 
     assert result.returncode == 0, result.stderr
     [line] = result.stdout.splitlines()

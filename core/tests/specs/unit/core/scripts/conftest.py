@@ -317,6 +317,8 @@ def run(runner, ws, claude=None, codex=None, opencode=None, return_stderr=False,
         if value is not None:
             args.append(value)
     env = dict(os.environ)
+    # Never $HOME/.aide in a test: the sessions a test makes up are not the machine's.
+    env.setdefault("AIDE_SESSION_TOTALS_DIR", str(ws["project"].parent / "session-totals"))
     if claude:
         env["AIDE_CLAUDE_BIN"] = str(claude)
     if codex:
