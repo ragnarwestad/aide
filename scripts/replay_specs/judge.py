@@ -69,7 +69,7 @@ def ask(model, description, original, new, scratch):
         answer = json.loads(ran.stdout)
         text = answer.get("result") or ""
     except (ValueError, AttributeError):
-        return JudgeResult(None, f"the judge answered no JSON: {(ran.stdout or ran.stderr).strip()[:200]}", Stats(wall, None, None, False))
+        return JudgeResult(None, f"the judge answered no JSON: {(ran.stdout or ran.stderr).strip()[:200]}", Stats(wall, None, None))
     score, reasons = read_answer(text)
     seconds = answer["duration_ms"] / 1000 if isinstance(answer.get("duration_ms"), (int, float)) else wall
-    return JudgeResult(score, reasons, Stats(seconds, claude_event_tokens(answer), answer.get("total_cost_usd"), False))
+    return JudgeResult(score, reasons, Stats(seconds, claude_event_tokens(answer), answer.get("total_cost_usd")))

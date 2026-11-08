@@ -27,6 +27,7 @@ import { join } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
 import { lastCommitOf } from "./description-freshness.ts";
 import { errorSentence } from "../format/error-sentence.ts";
+import { conflictFiles } from "../format/git-error.ts";
 
 /** The remedy every refusal below shares, once the specific fact has
  *  been said: none of these is a press on the board —
@@ -53,6 +54,12 @@ const refuse = (said: string | ReturnType<typeof errorSentence>): SpecsPullResul
     : { ok: false, note: said.text, problem: said.problem, solution: said.solution, moved: false };
 
 const short = (sha: string | null): string => (sha ?? "").slice(0, 7) || "unknown";
+
+const firstGitLine = (said?: string): string =>
+  (said ?? "")
+    .split(/\r\n|\r|\n/)
+    .map((line) => line.trim())
+    .find(Boolean) ?? "git gave no reason";
 
 /** Fast-forward the working tree `dir` sits in, or say why not.
  *
@@ -350,6 +357,41 @@ export async function saveSpecFiles(
 
     const pushed = await run(root, ["push", "-q", "origin", "HEAD"]);
     if (pushed.code !== 0) {
+      console.error(`Save push refused for ${opts.specLabel}, ${subject}: ${firstGitLine(pushed.stderr)}`);
+      const base = await resolveBase(root);
+      if (!base) {
+        await run(root, ["reset", "--hard", before.stdout.trim()]);
+        return {
+          ok: false,
+          note: `${subject} was committed but the default branch could not be found — nothing was kept.`,
+          committed: false,
+        };
+      }
+      const fetched = await run(root, ["fetch", "--quiet", "origin", base]);
+      const rebased =
+        fetched.code === 0 ? await run(root, ["rebase", `refs/remotes/origin/${base}`]) : { code: fetched.code, stdout: "" };
+      if (rebased.code === 0) {
+        const retried = await run(root, ["push", "-q", "origin", "HEAD"]);
+        if (retried.code === 0) return { ok: true, note: `saved ${subject}`, committed: true };
+        console.error(`Save push refused for ${opts.specLabel}, ${subject}: ${firstGitLine(retried.stderr)}`);
+      } else if (fetched.code === 0) {
+        const unmerged = await run(root, ["diff", "--name-only", "--diff-filter=U"]);
+        const conflicts = unmerged.code === 0 ? unmerged.stdout.split("\n").filter(Boolean) : [];
+        await run(root, ["rebase", "--abort"]);
+        await run(root, ["reset", "--hard", before.stdout.trim()]);
+        if (conflicts.length > 0) {
+          return {
+            ok: false,
+            note: `${subject} conflicts with origin in ${conflictFiles(conflicts.slice(0, 5), conflicts.length - 5)} — nothing was kept.`,
+            committed: false,
+          };
+        }
+        return {
+          ok: false,
+          note: `${subject} could not be put on top of origin — nothing was kept.`,
+          committed: false,
+        };
+      }
       await run(root, ["reset", "--hard", before.stdout.trim()]);
       return {
         ok: false,

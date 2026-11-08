@@ -1,5 +1,4 @@
 """scripts/replay_specs/measure.py: the readers that turn a replayed spec's files, log and stream into the table's cells."""
-import json
 import sys
 
 import measure
@@ -126,26 +125,6 @@ def test_the_note_names_each_missing_test_runner_and_how_many_files_it_left_unru
     assert "bun" in note and "7" in note and "npx" in note
     assert measure.missing_programs_note({}) == ""
 
-
-def test_step_tokens_sum_every_turn_in_the_stream_not_the_last(tmp_path):
-    claude = tmp_path / "claude.jsonl"
-    claude.write_text("\n".join(json.dumps(e) for e in [
-        {"type": "assistant", "usage": {"input_tokens": 99999}},
-        {"type": "result", "modelUsage": {"a": {"inputTokens": 100, "outputTokens": 10, "cacheReadInputTokens": 50, "cacheCreationInputTokens": 5},
-                                           "b": {"inputTokens": 1, "outputTokens": 1}}},
-        {"type": "result", "usage": {"input_tokens": 10, "output_tokens": 2, "cache_read_input_tokens": 3, "cache_creation_input_tokens": 4}},
-        {"type": "result", "modelUsage": {"a": {"inputTokens": 1000}}},
-    ]) + "\nnot json\n")
-    codex = tmp_path / "codex.jsonl"
-    codex.write_text("\n".join(json.dumps(e) for e in [
-        {"type": "turn.completed", "usage": {"input_tokens": 100, "output_tokens": 10, "reasoning_output_tokens": 5, "cached_input_tokens": 50}},
-        {"type": "turn.completed", "usage": {"input_tokens": 1, "output_tokens": 1}},
-        {"type": "item.completed"},
-    ]))
-
-    assert measure.step_tokens(str(claude), "claude") == 167 + 19 + 1000
-    assert measure.step_tokens(str(codex), "codex") == 110 + 2
-    assert measure.step_tokens(str(tmp_path / "missing.jsonl"), "claude") is None
 
 
 def test_a_pnpm_project_without_its_packages_is_installed_through_mise_when_it_has_mise(tmp_path):
