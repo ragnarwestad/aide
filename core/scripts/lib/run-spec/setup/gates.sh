@@ -142,11 +142,11 @@ case " $DEPENDENCY_GATED_STEPS " in
     for dep_id in $(aide_spec_dependencies "$specs_root" "$spec_folder"); do
       resolve_dependency_folder "$dep_id"
       [ -n "$dep_folder" ] \
-        || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
+        || refuse "spec $spec_reference depends on an unknown spec: $(aide_spec_reference "$project_name" "$dep_id") (not under $specs_root)"
       [ "$dep_folder" = "$spec_folder" ] \
-        && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
+        && refuse "spec $spec_reference cannot depend on itself ($(aide_spec_reference "$project_name" "$dep_id"))"
       dependency_archived_on_origin "$dep_folder" \
-        || refuse "spec $spec_folder depends on $dep_folder, which is not archived yet"
+        || refuse "spec $spec_reference depends on $(aide_spec_reference "$project_name" "$dep_folder"), which is not archived yet"
     done
     ;;
 esac

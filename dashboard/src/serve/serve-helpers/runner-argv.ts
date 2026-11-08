@@ -212,6 +212,7 @@ export function runnerArgv(
   return [
     o.runnerBin,
     "--project-dir", o.projectDir,
+    "--project-name", job.project,
     ...(o.specsRoot ? ["--specs-root", o.specsRoot] : []),
     "--command", step,
     "--spec", job.specFolder,

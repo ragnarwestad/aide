@@ -116,6 +116,7 @@ def test_a_cancelled_job_that_has_committed_keeps_it_on_the_branch(runner, works
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
+            "--project-name", "aide",
             "--command", "schedule",
             "--spec", SCHEDULE_KEY,
             "--prompt-file", "docs/nightly-report.md",

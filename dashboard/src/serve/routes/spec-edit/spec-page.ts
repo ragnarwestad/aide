@@ -100,7 +100,7 @@ export async function specPageRoutes(
       // front of a reader who can do nothing about it is worse than
       // naming what happened and leaving the tab to them.
       if (already?.status === "failed" && !retry) {
-        return testServerFailedPage(specFolder!, already.error, retryHref, already.detail);
+        return testServerFailedPage(project!, specFolder!, already.error, retryHref, already.detail);
       }
       // Otherwise it has to be started, and that takes minutes — so the
       // tab the reader opened WAITS here rather than being sent back to
@@ -112,7 +112,7 @@ export async function specPageRoutes(
       }
       if (!already || (already.status === "failed" && retry)) {
         const result = await startTestServer(ctx.testServers, project!, specFolder!);
-        if (!result.ok) return testServerFailedPage(specFolder!, result.error, retryHref);
+        if (!result.ok) return testServerFailedPage(project!, specFolder!, result.error, retryHref);
       }
       // Never at a URL still carrying `retryTestServer=1` — the
       // waiting page's own 5-second self-refresh reloads exactly the

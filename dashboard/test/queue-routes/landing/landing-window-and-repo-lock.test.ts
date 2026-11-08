@@ -144,7 +144,7 @@ describe("a step reads busy for the whole landing window", () => {
     });
     expect(refused.status).toBe(400);
     const body = (await refused.json()) as { error?: string };
-    expect(String(body.error ?? "")).toContain(SPEC);
+    expect(String(body.error ?? "")).toContain("aide:81");
 
     git.release();
     await settle(base, job.id, (j) => !j.landing);

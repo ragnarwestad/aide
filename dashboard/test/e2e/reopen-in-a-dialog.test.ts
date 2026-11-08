@@ -65,11 +65,11 @@ async function ask(page: Page): Promise<void> {
 }
 
 describe("Reopen asks in a dialog from the spec in its row", () => {
-  test("Reopen opens a modal headed with the spec's folder, and the address stays", async () => {
+  test("Reopen opens a modal headed with the spec's concise reference, and the address stays (AC-1)", async () => {
     const { page } = await open(SPEC);
     await ask(page);
     expect(await modal(page)).toBe(true);
-    expect(await dialog(page).getByRole("heading", { name: `Reopen ${STAMPED}?` }).isVisible()).toBe(true);
+    expect(await dialog(page).getByRole("heading", { name: "Reopen aide:150?" }).isVisible()).toBe(true);
     expect(await dialog(page).locator("input[name=resetFiles]").isChecked()).toBe(false);
     expect(new URL(page.url()).pathname).toBe(SPEC);
   });

@@ -9,6 +9,7 @@ import { t, type Language } from "../../../i18n";
 import { CLOSE_REASON_MAX } from "../../../queue/parse-request.ts";
 import { field, labelledCheckbox, progressDialog } from "../../ui/components";
 import { specPagePath } from "./tabs.ts";
+import { specReference } from "../../../project/spec-folder.ts";
 
 /** The one sentence stated wherever a reader meets Close: in this
  *  dialog's own body text, and again — via `overview.ts`'s `actionsHelp` —
@@ -41,7 +42,7 @@ export function closeAskDialog(project: string, specFolder: string, lang: Langua
     id: CLOSE_ASK_ID,
     title: t(lang, "dialog.closing"),
     ask: {
-      title: `Close ${specFolder}?`,
+      title: `Close ${specReference(project, specFolder)}?`,
       sentence: CLOSE_WORDING,
       control: (formId) =>
         field(
@@ -74,7 +75,7 @@ export function reopenAskDialog(project: string, specFolder: string, lang: Langu
     id,
     title: t(lang, "list.reopening"),
     ask: {
-      title: `Reopen ${specFolder}?`,
+      title: `Reopen ${specReference(project, specFolder)}?`,
       sentence: REOPEN_SENTENCE,
       control: () => resetBox(`${id}-form`),
       ok: { variant: "primary", pending: t(lang, "list.reopening") },

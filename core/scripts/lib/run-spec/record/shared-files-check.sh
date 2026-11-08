@@ -25,7 +25,16 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "analyze" ] && [ 
     stage "shared files: no unresolved or required ordering — the step completes"
   else
     shared_files_json="$shared_new"
-    shared_files_said="$(jq -r 'map(.spec + ": " + (.files | join(", "))) | join("; ")' <<<"$shared_new")"
+    shared_files_said=""
+    shared_index=0
+    shared_count="$(jq 'length' <<<"$shared_new")"
+    while [ "$shared_index" -lt "$shared_count" ]; do
+      shared_spec="$(jq -r ".[${shared_index}].spec" <<<"$shared_new")"
+      shared_files="$(jq -r ".[${shared_index}].files | join(\", \")" <<<"$shared_new")"
+      [ -z "$shared_files_said" ] || shared_files_said="$shared_files_said; "
+      shared_files_said="$shared_files_said$(aide_spec_reference "$project_name" "$shared_spec"): $shared_files"
+      shared_index=$((shared_index + 1))
+    done
     stage "shared files: $shared_files_said — Analyze ends stopped"
     stop_step shared-files "$step_button stopped: other open specs plan to change the same files as this spec — $shared_files_said" \
       "add them to this spec's Depends on"

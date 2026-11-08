@@ -185,6 +185,7 @@ describe("the runner invocation", () => {
     expect(argv).toContain("--permission-mode bypassPermissions");
     expect(argv).toContain("--model opus");
     expect(argv).toContain("--command implement");
+    expect(argv).toContain("--project-name aide");
   });
 
   // `aide-emit-run` reports each TDD phase, and does nothing

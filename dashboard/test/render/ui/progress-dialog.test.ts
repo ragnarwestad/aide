@@ -30,8 +30,10 @@ const projectPage = (opts: Partial<ProjectPageOptions>): string =>
   });
 
 describe("every running step is drawn by the progress dialog", () => {
-  test("Close's dialog is a progress dialog", () => {
-    expectProgress(dialogWith(closeAskDialog("aide", "150-x", "en"), `id="closeask"`));
+  test("Close's dialog names its spec by project and number (AC-1)", () => {
+    const box = dialogWith(closeAskDialog("aide", "150-a-very-long-folder-name", "en"), `id="closeask"`);
+    expectProgress(box);
+    expect(box).toContain("Close aide:150?");
   });
 
   test("Reopen's dialog on the spec page is a progress dialog", () => {

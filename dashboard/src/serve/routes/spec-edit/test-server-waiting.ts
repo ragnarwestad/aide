@@ -13,6 +13,7 @@
 
 import { esc } from "../../../render/ui/html.ts";
 import { btnLink } from "../../../render/ui/components";
+import { specReference } from "../../../project/spec-folder.ts";
 
 /** The board's address as the READER can reach it. The round only ever
  *  knows loopback — it started the board on this machine and says
@@ -59,9 +60,9 @@ const RELOAD_SCRIPT =
  *
  *  No way back to the spec on either: this tab was opened from the spec
  *  page, which is still standing in the one behind it. */
-export function testServerFailedPage(specFolder: string, why?: string, retryHref?: string, detail?: string): Response {
+export function testServerFailedPage(project: string, specFolder: string, why?: string, retryHref?: string, detail?: string): Response {
   return htmlPage(
-    `Could not start a test server for "${esc(specFolder)}"`,
+    `Could not start a test server for "${esc(specReference(project, specFolder))}"`,
     (why ? `<p>${esc(why)}</p>` : "<p>The round did not report an address.</p>") +
       (detail ? `<pre>${esc(detail)}</pre>` : "") +
       (retryHref ? `<p>${btnLink({ href: retryHref, label: "Try again" })}</p>` : ""),
@@ -69,11 +70,11 @@ export function testServerFailedPage(specFolder: string, why?: string, retryHref
   );
 }
 
-export function waitingForTestServerPage(_project: string, specFolder: string): Response {
+export function waitingForTestServerPage(project: string, specFolder: string): Response {
   return htmlPage(
     // The folder name on its own line: it is long, and it reads apart
     // from the sentence rather than wrapping somewhere inside it.
-    `Starting a test server for<br>"${esc(specFolder)}"`,
+    `Starting a test server for<br>"${esc(specReference(project, specFolder))}"`,
     `<p>It runs this branch's own code, and takes a few minutes. This page
         goes there by itself when it is up — leave it open.</p>`,
     { refresh: true },

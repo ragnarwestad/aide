@@ -130,7 +130,7 @@ describe("what uses a provider", () => {
     expect(uses).toHaveLength(3);
     expect(uses.join(" | ")).toContain("Implement default");
     expect(uses.join(" | ")).toContain("schedule nightly in aide");
-    expect(uses.join(" | ")).toContain("aide/703-x");
+    expect(uses.join(" | ")).toContain("aide:703");
   });
 
   test("a job stopped waiting for a usage-limit reset counts; a finished one does not (AC-6)", () => {

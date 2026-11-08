@@ -8,6 +8,7 @@ import { bodyToObject, json, logRefusal, readBounded } from "../../serve-helpers
 
 import { landingInProject } from "../../../queue/queue.ts";
 import type { RoutesContext } from "..";
+import { specReference } from "../../../project/spec-folder.ts";
 
 export async function closeControlRoutes(
   ctx: RoutesContext,
@@ -33,7 +34,7 @@ export async function closeControlRoutes(
     if (!reason) return refuseClose("type a reason to close this spec");
     const ref = ctx.specRef(project!, specFolder!);
     if (!ref) return new Response("not found", { status: 404 });
-    if (ref.archived) return refuseClose(`${specFolder} is archived — Close is only for active specs`);
+    if (ref.archived) return refuseClose(`${specReference(project!, specFolder!)} is archived — Close is only for active specs`);
     // The same job-in-flight check Reset's own POST makes.
     if (landingInProject(ctx.queue.list(), project!)) return refuseClose("a landing is in progress");
     if (ctx.queue.list().some((job) =>

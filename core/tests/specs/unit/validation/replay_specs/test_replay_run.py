@@ -50,6 +50,7 @@ def test_analyze_then_implement_run_in_a_copy_at_the_commit_before_the_landing(w
     assert [implement[k] for k in ("--command", "--tool", "--model")] == ["implement", "codex", "gpt-6.1-sol"]
     assert "--effort" not in implement
     for step in ("analyze", "implement"):
+        assert args_of(world, step)["--project-name"] == "proj"
         assert args_of(world, step)["--project-dir"] != str(world.code)
         assert world.record(step, "project-head").strip() == world.before["4-replayed"]
     assert "NEW-PLAN-MARKER" in world.record("implement", "solution")

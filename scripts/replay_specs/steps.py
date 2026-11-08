@@ -81,7 +81,8 @@ def read_result(path, stdout):
 def run_step(run, command, step, folder, project_dir, specs_root, out):
     """One runner call in its own process group, timed around the whole call. Nothing is pushed anywhere."""
     result_file, stream = out / f"{command}-result.json", out / f"{command}.stream"
-    argv = ["bash", str(run.core / "scripts" / "aide-run-spec"), "--project-dir", project_dir, "--specs-root", specs_root,
+    argv = ["bash", str(run.core / "scripts" / "aide-run-spec"), "--project-dir", project_dir, "--project-name", run.project,
+            "--specs-root", specs_root,
             "--command", command, "--spec", folder, "--tool", step.tool, "--model", step.model,
             *(["--effort", step.effort] if step.effort else []),
             "--permission-mode", PERMISSION_MODE, "--timeout-sec", str(TIME_LIMITS[command]), "--push", "none",

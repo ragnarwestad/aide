@@ -71,6 +71,7 @@ def test_cancel_commits_what_the_step_wrote_before_the_worktree_goes(runner, wor
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
+                "--project-name", "aide",
             "--command", "implement",
             "--spec", workspace["folder"],
             "--timeout-sec", "120",
@@ -132,6 +133,7 @@ def test_a_cancelled_steps_commit_waits_for_the_checkout_lock(runner, workspace,
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
+                "--project-name", "aide",
             "--command", "implement",
             "--spec", workspace["folder"],
             "--timeout-sec", "120",
@@ -175,6 +177,7 @@ def test_a_cancel_while_the_merge_is_still_open_commits_no_conflict_markers(runn
         [
             str(runner),
             "--project-dir", str(workspace["project"]),
+                "--project-name", "aide",
             "--command", "implement",
             "--spec", workspace["folder"],
             "--timeout-sec", "120",
