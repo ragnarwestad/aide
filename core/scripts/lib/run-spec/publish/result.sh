@@ -240,6 +240,8 @@ line="$(jq -cn \
   --arg pullError "$pull_error" --arg specFolder "$created_spec_folder" \
   --arg worktreeLinksSource "$links_source" \
   --argjson tokens "${tokens_json:-null}" \
+  --argjson review "${review_json:-null}" \
+  --argjson verify "${verify_json:-null}" \
   --argjson context "${context_json:-null}" \
   --arg modelId "${model_id_out:-}" \
   --argjson providerLimit "${provider_limit_out:-null}" \
@@ -278,6 +280,11 @@ line="$(jq -cn \
    # used nothing", which is a claim, and the page shows a dash for a
    # field that is absent.
    + (if $tokens == null then {} else {tokens:$tokens} end)
+   # And for the review and the verification of an implement step, each a
+   # session of its own (run-spec/turn/side-turn.sh `side_json`): present only
+   # when that session ran.
+   + (if $review == null then {} else {review:$review} end)
+   + (if $verify == null then {} else {verify:$verify} end)
    # And for how full the context window got (run-spec/turn/context-use.sh):
    # present only when a call was stated, each part only when the tool said it.
    + (if $context == null then {} else {context:$context} end)

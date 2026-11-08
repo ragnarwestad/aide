@@ -6,7 +6,8 @@
 
 import { queuePriorityOrder, tailEdits, type Job, type QueueStore } from "../queue/queue.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
-import type { QueueRowView } from "../render";
+import type { QueueRowView, SideRunView } from "../render";
+import type { SideRun } from "../queue/runner/side-run.ts";
 import { resolveStepProvider } from "../queue/providers/index.ts";
 import { resolveStepEffort, resolveStepModel, resolveTimeoutSec } from "./serve-helpers";
 
@@ -95,11 +96,19 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
       // build out of these results have no other way to know a figure
       // they are summing was over-charged.
       costMeasured: r.costMeasured,
+      // The review and the verification, each on its own, with tokens as the total.
+      review: sideView(r.review), verify: sideView(r.verify),
       // Why `gh` opened no pull request: the step's own answer, said in
       // that phase's log.
       prError: r.prError,
     })),
   };
+}
+
+/** A stored review or verification as the list draws it. */
+function sideView(run: SideRun | undefined): SideRunView | undefined {
+  if (!run) return undefined;
+  return { outcome: run.outcome, tool: run.tool, durationSec: run.durationSec, costUsd: run.costUsd, tokens: run.tokens?.total };
 }
 
 /** The same `queuePriorityOrder()` `Runner.tick()` calls,

@@ -143,6 +143,59 @@
         "written": { "phaseRows": true, "workflowSteps": true },
         "read": "Phase-table rows; Workflow steps completed"
       }
+    ],
+    "review": [
+      {
+        "name": "a review that ran on Claude, with its figures and its bytes of the transcript",
+        "written": {
+          "outcome": "completed", "tool": "claude", "durationSec": 41, "costUsd": 0.05,
+          "tokens": { "input": 30, "output": 700, "cacheRead": 4000, "cacheCreation": 200, "total": 4930 },
+          "transcript": { "from": 18234, "to": 24410 }
+        },
+        "read": {
+          "outcome": "completed", "tool": "claude", "durationSec": 41, "costUsd": 0.05,
+          "tokens": { "input": 30, "output": 700, "cacheRead": 4000, "cacheCreation": 200, "total": 4930 },
+          "transcript": { "from": 18234, "to": 24410 }
+        }
+      },
+      {
+        "name": "a review on a tool with no dollar figure has tokens and no cost",
+        "written": {
+          "outcome": "completed", "tool": "codex", "durationSec": 22,
+          "tokens": { "input": 4210, "output": 1452, "cacheRead": 3900, "cacheCreation": 0, "total": 9562 },
+          "transcript": { "from": 24410, "to": 27980 }
+        },
+        "read": {
+          "outcome": "completed", "tool": "codex", "durationSec": 22,
+          "tokens": { "input": 4210, "output": 1452, "cacheRead": 3900, "cacheCreation": 0, "total": 9562 },
+          "transcript": { "from": 24410, "to": 27980 }
+        }
+      },
+      {
+        "name": "a review that did not complete keeps the way it ended",
+        "written": { "outcome": "cli-error", "tool": "claude", "durationSec": 3, "transcript": { "from": 100, "to": 160 } },
+        "read": { "outcome": "cli-error", "tool": "claude", "durationSec": 3, "transcript": { "from": 100, "to": 160 } }
+      }
+    ],
+    "verify": [
+      {
+        "name": "a verification that ran on Claude, with its figures and its bytes of the transcript",
+        "written": {
+          "outcome": "completed", "tool": "claude", "durationSec": 18, "costUsd": 0.08,
+          "tokens": { "input": 12, "output": 400, "cacheRead": 2500, "cacheCreation": 90, "total": 3002 },
+          "transcript": { "from": 24410, "to": 26200 }
+        },
+        "read": {
+          "outcome": "completed", "tool": "claude", "durationSec": 18, "costUsd": 0.08,
+          "tokens": { "input": 12, "output": 400, "cacheRead": 2500, "cacheCreation": 90, "total": 3002 },
+          "transcript": { "from": 24410, "to": 26200 }
+        }
+      },
+      {
+        "name": "a verification that did not complete keeps the way it ended",
+        "written": { "outcome": "timeout", "tool": "codex", "durationSec": 600 },
+        "read": { "outcome": "timeout", "tool": "codex", "durationSec": 600 }
+      }
     ]
   }
 }

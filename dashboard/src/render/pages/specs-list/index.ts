@@ -38,6 +38,7 @@ import type { ProgressStepState } from "../../ui/components";
 import { t, type Language } from "../../../i18n";
 import type { FailedCreate } from "../../../push/failed-creates.ts";
 import type { RunnableTool } from "../../../queue/providers/tools.ts";
+import type { SidePart } from "../../../queue/providers/side-tools.ts";
 import type { OpenOverlap } from "../../../project/overlapping-specs.ts";
 import { renderFailedCreateNotices } from "./failed-create-notices.ts";
 // Re-exported for the pages that pick a model outside a row of this
@@ -198,6 +199,9 @@ export interface SpecsPageOptions {
    *  run it (newest first) — called only for a phase the address names
    *  in `phases`. Undefined: nothing is kept to read. */
   phaseMessages?: (attemptIds: string[], step: string) => PhaseMessages | undefined;
+  /** One side session's own part of the implement step's transcript, by the
+   *  attempts' ids (newest first) and the session (`review` or `verify`). */
+  sideMessages?: (attemptIds: string[], part: SidePart) => PhaseMessages | undefined;
   /** How the list is cut and ordered, straight from the query string.
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */

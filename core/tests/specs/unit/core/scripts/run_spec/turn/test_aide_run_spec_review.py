@@ -11,6 +11,7 @@ import json
 import re
 
 from ...conftest import git, run
+from ..run_spec_result_fields import assert_written_as_in_fixture
 from ..run_spec_results import CODEX_STREAM_OK, CODEX_THREAD_ID, CODEX_USAGE, emits
 from ..run_spec_status_files import with_status
 
@@ -423,3 +424,110 @@ def test_the_review_is_told_where_the_branch_left_main_and_finds_the_changes_its
     assert f"git diff {fork}" in prompt, prompt
     assert "real work" not in prompt, prompt
     assert str(workspace["folder"]) + "/1-description.md" in prompt, prompt
+
+
+VERIFY_MARKER = "A review of this spec's branch reported the defects below"
+IMPLEMENT_USAGE = (10, 100, 1000, 50)
+REVIEW_USAGE = (30, 700, 4000, 200)
+VERIFY_USAGE = (12, 400, 2500, 90)
+FIX_USAGE = (7, 300, 2000, 100)
+
+
+def _session_so_far(*usages):
+    """A resumed session reports its whole usage so far, not the turn's own."""
+    return tuple(map(sum, zip(*usages)))
+
+
+def _metered(session_id, text, cost, usage):
+    """A result that also carries what its turn metered, as `modelUsage`."""
+    result = _result(session_id, text, cost)
+    result["modelUsage"] = {"claude-sonnet-4": dict(zip(
+        ("inputTokens", "outputTokens", "cacheReadInputTokens", "cacheCreationInputTokens"), usage))}
+    return result
+
+
+def _every_session_claude(fake_claude):
+    """An implement, a review that finds one defect, a verification that
+    keeps it and the fix turn — each reporting its own cost and tokens and
+    saying something no other turn says."""
+    def reply(session, text, cost, usage):
+        return f"echo '{json.dumps(_metered(session, text, cost, usage))}'"
+    return fake_claude(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{VERIFY_MARKER}\"; then\n"
+        f"  {reply('verify-session', 'keep 1 VERIFY-SAYS-THIS', 0.08, VERIFY_USAGE)}\n"
+        f"elif printf '%s' \"$prompt\" | grep -q \"{REVIEW_MARKER}\"; then\n"
+        f"  {reply(REVIEW_SESSION, 'review: 1 defect(s) found' + chr(10) + '1. REVIEW-SAYS-THIS', 0.05, REVIEW_USAGE)}\n"
+        f"elif printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
+        "  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'\n"
+        f"  {reply(IMPLEMENT_SESSION, 'FIX-SAYS-THIS', 0.20, _session_so_far(IMPLEMENT_USAGE, FIX_USAGE))}\n"
+        "else\n"
+        "  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'\n"
+        f"  {reply(IMPLEMENT_SESSION, 'IMPLEMENT-SAYS-THIS', 0.10, IMPLEMENT_USAGE)}\n"
+        "fi\n"
+    )
+
+
+def _run_every_session(runner, workspace, fake_claude, tmp_path):
+    with_status(workspace, ["create", "analyze"])
+    stream = tmp_path / "job.stream.jsonl"
+    rc, out, _ = run(runner, workspace, _every_session_claude(fake_claude), command="implement",
+                     review_model="claude-sonnet-4", verify_model="claude-opus-4", stream_file=str(stream))
+    assert rc == 0 and out["terminalReason"] == "completed", out
+    return out, stream.read_bytes()
+
+
+def test_the_result_carries_the_review_and_the_verification_each_with_its_own_figures_ac_1_ac_2_ac_7(
+    runner, workspace, fake_claude, tmp_path
+):
+    out, _ = _run_every_session(runner, workspace, fake_claude, tmp_path)
+    for field, cost, usage in (("review", 0.05, REVIEW_USAGE), ("verify", 0.08, VERIFY_USAGE)):
+        side = out[field]
+        assert side["outcome"] == "completed" and side["tool"] == "claude", side
+        assert abs(side["costUsd"] - cost) < 1e-6, side
+        assert side["tokens"]["total"] == sum(usage), side
+        assert side["durationSec"] >= 0, side
+        assert_written_as_in_fixture(field, side)
+
+
+def test_the_steps_tokens_count_every_turn_once_and_its_cost_stays_the_sum_of_them_ac_5(
+    runner, workspace, fake_claude, tmp_path
+):
+    """The implement turn, the review, the verification and the review's fix
+    turn each metered their own tokens; the step's figure is all four."""
+    out, _ = _run_every_session(runner, workspace, fake_claude, tmp_path)
+    every_turn = (IMPLEMENT_USAGE, REVIEW_USAGE, VERIFY_USAGE, FIX_USAGE)
+    assert out["tokens"]["input"] == sum(u[0] for u in every_turn), out["tokens"]
+    assert out["tokens"]["total"] == sum(sum(u) for u in every_turn), out["tokens"]
+    assert abs(out["costUsd"] - 0.43) < 1e-6, out
+
+
+def test_each_side_sessions_byte_range_holds_its_own_reply_and_no_other_turns_ac_3(
+    runner, workspace, fake_claude, tmp_path
+):
+    out, transcript = _run_every_session(runner, workspace, fake_claude, tmp_path)
+    ranges = {}
+    for field, own in (("review", b"REVIEW-SAYS-THIS"), ("verify", b"VERIFY-SAYS-THIS")):
+        span = out[field]["transcript"]
+        ranges[field] = span
+        part = transcript[span["from"]:span["to"]]
+        assert own in part, part
+        assert b"IMPLEMENT-SAYS-THIS" not in part and b"FIX-SAYS-THIS" not in part, part
+    assert ranges["review"]["to"] <= ranges["verify"]["from"], ranges
+
+
+def test_a_run_with_no_review_model_leaves_both_fields_out_ac_6(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    claude = _reviewing_claude(fake_claude, "review: no defects found")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "completed", out
+    assert "review" not in out and "verify" not in out, out
+
+
+def test_a_review_that_found_nothing_leaves_the_verification_field_out_ac_6(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    claude = _reviewing_claude(fake_claude, "review: no defects found")
+    rc, out, _ = run(runner, workspace, claude, command="implement",
+                     review_model="claude-sonnet-4", verify_model="claude-opus-4")
+    assert out["review"]["outcome"] == "completed", out
+    assert "verify" not in out, out

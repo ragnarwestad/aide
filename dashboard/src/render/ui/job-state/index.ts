@@ -8,8 +8,8 @@
 // Kept as a barrel at this path because most of the render layer
 // imports from it.
 
-export type { QueueRowView, StepResultView } from "./types.ts";
-export { anyCostUnmeasured } from "./types.ts";
+export type { QueueRowView, SideRunView, StepResultView } from "./types.ts";
+export { anyCostUnmeasured, sidesSpent } from "./types.ts";
 
 export { stateWord, durationLabel, BADGE_VARIANT, stateChip, IN_FLIGHT, inFlight, currentStep } from "./format.ts";
 

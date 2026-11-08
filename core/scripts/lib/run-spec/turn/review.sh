@@ -116,6 +116,29 @@ side_failure() {  # <Review|Verify> <tool> <model>
   stage_error "$error_msg"
 }
 
+# Counts the side turn that just ran into the step's figures: its tokens join
+# the step's, and a dollar figure of its own makes the step's cost known when
+# the step's own tool reports none (a Codex step beside a Claude review).
+side_counted() {
+  tokens_json="$(turn_tokens_add "${tokens_json:-}" "${side_tokens:-}")"
+  if [ "$side_cost_known" = "true" ] && [ "$side_measured" = "true" ] && [ "$cost_known" != "true" ]; then
+    cost_known="true"; cost_measured="true"; sides_priced="true"
+  fi
+}
+
+# A later turn of the step resets what its tool reports; a dollar figure a
+# side session gave the step stays known.
+sides_priced_again() {
+  if [ "${sides_priced:-}" = "true" ]; then cost_known="true"; cost_measured="true"; fi
+}
+
+# The review's and the verification's records for the result, when they ran.
+review_json=""; verify_json=""; sides_priced=""
+# The implement session's own usage so far: Claude and Codex report a resumed
+# session's whole usage, and the turns that resume it (this file's fix turn,
+# run-spec/turn/step-tests.sh's) add only the difference.
+session_tokens="${tokens_json:-}"
+
 if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] \
   && { [ -n "$review_model" ] || [ -n "$review_tool" ]; }; then
   implement_session="$session_out"
@@ -142,6 +165,8 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] \
   if side_argv_for "$review_on" "$review_model" "${session_project:-} ${spec_id:-} review" "$review_bin"; then
     side_turn "$review_on" "$work_dir/prompt-review" "${review_claude_config_dir:-$claude_config_dir}" "${review_codex_home:-$codex_home_arg}"
     running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
+    review_json="$(side_json "$review_on")"
+    side_counted
   fi
   cost="$running_cost"
 
@@ -179,6 +204,8 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] \
         side_turn "$verify_on" "$work_dir/prompt-verify" "${verify_claude_config_dir:-$claude_config_dir}" "${verify_codex_home:-$codex_home_arg}"
         running_cost="$(jq -n --arg a "$running_cost" --arg b "$side_cost" '(($a|tonumber) + ($b|tonumber))')"
         cost="$running_cost"
+        verify_json="$(side_json "$verify_on")"
+        side_counted
       fi
       if [ "$side_reason" = "completed" ]; then
         verify_decided="$(verified_defects "$review_defects" "$side_message")"
@@ -220,8 +247,13 @@ if [ "$terminal_reason" = "completed" ] && [ "$command_name" = "implement" ] \
       # review's own throwaway session.
       resume_argv "$implement_session"
       argv=("${resumed_argv[@]}")
+      running_tokens="${tokens_json:-}"
       run_model_turn "$work_dir/prompt-review-fix"
       cost="$(jq -n --arg a "$running_cost" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
+      sides_priced_again
+      fix_tokens="$(turn_tokens_own "$session_tokens" "${tokens_json:-}")"
+      session_tokens="${tokens_json:-}"
+      tokens_json="$(turn_tokens_add "$running_tokens" "$fix_tokens")"
       while IFS= read -r review_rejected; do
         stage "the implement session found it ${review_rejected}"
       done < <(printf '%s\n' "$turn_message" | grep -iE '^not a defect: ')

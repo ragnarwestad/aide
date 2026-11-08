@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import { specPageView, type SpecViewsContext } from "../../../src/serve/spec-views";
-import { phaseMessagesFor } from "../../../src/serve/spec-views/phase-messages.ts";
+import { phaseMessagesFor, sideMessagesFor } from "../../../src/serve/spec-views/phase-messages.ts";
 import type { Job } from "../../../src/queue/queue.ts";
 import { fakeGit } from "../../helpers/fake-git.ts";
 import { feasibility, ran as codexRan, said as codexSaid, S, started, T, writeSessions } from "../../helpers/codex-fixtures.ts";
@@ -272,5 +272,67 @@ describe("a Codex phase's row reads the session files", () => {
     const got = withHome(() => phaseMessagesFor(queueOf([j]), ["r"], "analyze"));
 
     expect(got?.logs.map((part) => part.by)).toEqual(["ai", "subagent", "ai"]);
+  });
+});
+
+// A side session's part of the step's one transcript: the bytes its range
+// names, parsed with the tool the side session ran on.
+describe("sideMessagesFor", () => {
+  const segment = (events: unknown[]): string => events.map((e) => JSON.stringify(e)).join("\n") + "\n";
+  const kept = (parts: string[]): string => {
+    const file = join(dir, `side${n++}.stream.jsonl`);
+    writeFileSync(file, parts.join(""));
+    return file;
+  };
+  const range = (before: string[], own: string) => {
+    const from = Buffer.byteLength(before.join(""));
+    return { from, to: from + Buffer.byteLength(own) };
+  };
+  const finishedWith = (streamFile: string, side: Record<string, unknown>, tool = "claude") =>
+    job("a", {
+      steps: ["implement"],
+      results: [{ step: "implement", ok: true, costUsd: 0, costMeasured: true, terminalReason: "completed", tool, streamFile, ...side }] as never,
+    });
+
+  test("the review's range holds its reply, and neither the implement turn's nor the fix turn's (AC-3)", () => {
+    const implement = segment([said("IMPLEMENT-TEXT"), result("done")]);
+    const review = segment([said("REVIEW-TEXT"), result("review: no defects found")]);
+    const fix = segment([said("FIX-TEXT"), result("fixed")]);
+    const j = finishedWith(kept([implement, review, fix]), {
+      review: { outcome: "completed", tool: "claude", transcript: range([implement], review) },
+    });
+    const got = sideMessagesFor(queueOf([j]), ["a"], "review");
+    expect(lines(got)).toEqual(expect.arrayContaining(["REVIEW-TEXT"]));
+    const text = lines(got).join("\n");
+    expect(text).not.toContain("IMPLEMENT-TEXT");
+    expect(text).not.toContain("FIX-TEXT");
+    expect(got?.running).toBe(false);
+  });
+
+  test("a Codex review beside a Claude step is read with Codex's parser (AC-3)", () => {
+    const implement = segment([said("IMPLEMENT-TEXT"), result("done")]);
+    const review = segment([started(T), codexSaid("CODEX-REVIEW-TEXT")]);
+    const j = finishedWith(kept([implement, review]), {
+      review: { outcome: "completed", tool: "codex", transcript: range([implement], review) },
+    });
+    const got = lines(sideMessagesFor(queueOf([j]), ["a"], "review"));
+    expect(got).toEqual(["CODEX-REVIEW-TEXT"]);
+  });
+
+  test("the verification reads its own range (AC-3)", () => {
+    const implement = segment([said("IMPLEMENT-TEXT")]);
+    const review = segment([said("REVIEW-TEXT")]);
+    const verify = segment([said("VERIFY-TEXT")]);
+    const j = finishedWith(kept([implement, review, verify]), {
+      review: { outcome: "completed", tool: "claude", transcript: range([implement], review) },
+      verify: { outcome: "completed", tool: "claude", transcript: range([implement, review], verify) },
+    });
+    expect(lines(sideMessagesFor(queueOf([j]), ["a"], "verify"))).toEqual(["VERIFY-TEXT"]);
+  });
+
+  test("no range, or no such session, gives nothing (AC-6)", () => {
+    const file = kept([segment([said("IMPLEMENT-TEXT")])]);
+    expect(sideMessagesFor(queueOf([finishedWith(file, { review: { outcome: "completed", tool: "claude" } })]), ["a"], "review")).toBeUndefined();
+    expect(sideMessagesFor(queueOf([finishedWith(file, {})]), ["a"], "verify")).toBeUndefined();
   });
 });

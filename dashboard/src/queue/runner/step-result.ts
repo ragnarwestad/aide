@@ -6,6 +6,7 @@
 import { mergeBranchRefs, type Job, type QueueDefaults, type StepResult, type TokenUsage, type WorkflowStep } from "../queue.ts";
 import { asResultTool } from "../steps.ts";
 import { resolveStepProvider } from "../providers/index.ts";
+import { sideRun } from "./side-run.ts";
 import { contextUse, providerLimit, sharedFiles, stepRepoRanges, testedGreen, type StepOutcome } from "./types.ts";
 
 export interface StepMeasures {
@@ -51,7 +52,7 @@ export function stepResultEntry(
     // rather than a copy of it.
     tool,
     provider: providerOfResult(job, step, tool, defaults),
-    tokens: m.tokens, modelId: m.modelId, context: contextUse(outcome.context), providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
+    tokens: m.tokens, modelId: m.modelId, context: contextUse(outcome.context), review: sideRun(outcome.review), verify: sideRun(outcome.verify), providerLimit: providerLimit(outcome.providerLimit), testedGreen: testedGreen(outcome.testedGreen),
     costMeasured: outcome.costMeasured !== false,
     terminalReason: outcome.terminalReason ?? "no reason recorded",
     subtype: outcome.subtype, sharedFiles: sharedFiles(outcome.sharedFiles),

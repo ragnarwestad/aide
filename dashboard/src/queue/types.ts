@@ -6,6 +6,7 @@ import type { JobState, StopReason, WorkflowStep } from "./steps.ts";
 import type { CriteriaChecks } from "../project/discover";
 import type { Provider } from "./providers/index.ts";
 import type { ResultTool, RunnableTool } from "./providers/tools.ts";
+import type { SideRun } from "./runner/side-run.ts";
 
 /** What one step actually metered, as `aide-run-spec` read it out of
  *  claude's own result event. `total` is the sum of the other
@@ -91,6 +92,11 @@ export interface StepResult {
   tokens?: TokenUsage;
   /** The result line's `context`; absent when the tool stated no call. */
   context?: ContextUse;
+  /** An implement step's review and verification, each reported on its own;
+   *  absent when that session did not run. The step's `costUsd` and `tokens`
+   *  are the total over the implement session and both. */
+  review?: SideRun;
+  verify?: SideRun;
   /** The model id the run's own log named — Claude Code's `init` event,
    *  e.g. `claude-opus-5-5` for the `opus` alias. Absent when the log
    *  named none (never a guess), and for every other tool. */

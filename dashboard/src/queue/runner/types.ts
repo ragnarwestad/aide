@@ -78,6 +78,9 @@ export interface StepOutcome {
    *  is for cost, so absent is the only other answer. */
   tokens?: TokenUsage;
   context?: unknown;
+  /** The review and the verification of an implement step; read by `sideRun`. */
+  review?: unknown;
+  verify?: unknown;
   /** The model id the run's log named; absent when it named none. */
   modelId?: string;
   providerLimit?: unknown;

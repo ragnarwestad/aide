@@ -5,7 +5,7 @@
 
 import { specPhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import { archiveHeldBackApplies } from "../../../../project/parse-status";
-import { currentStep, inFlight, type QueueRowView } from "../../../ui/job-state";
+import { currentStep, inFlight, sidesSpent, type QueueRowView, type StepResultView } from "../../../ui/job-state";
 import { landingStep } from "../../../ui/job-state/resting.ts";
 import { PHASE_LINES, type Phase, type SpecTarget } from "./types.ts";
 
@@ -34,8 +34,10 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
     return {
       ...r,
       state: landingFell ? r.state : res.ok ? "done" : r.state === "done" ? "failed" : r.state,
-      spentUsd: res.costUsd,
-      spentTokens: res.tokens,
+      // The step's figures are the total over its session and its review and
+      // verification; this line is the session's own.
+      spentUsd: Math.max(0, res.costUsd - sidesSpent(res).usd),
+      spentTokens: res.tokens === undefined ? undefined : Math.max(0, res.tokens - sidesSpent(res).tokens),
       // THIS step's model, not the row's: the row speaks for the running
       // or last step, and spread whole it named the last step's model on
       // every line of a multi-step job (2026-09-15).
@@ -67,6 +69,17 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
     modelId: undefined,
     spentUsd: Math.max(0, r.spentUsd - counted),
     spentTokens: r.spentTokens === undefined ? undefined : Math.max(0, r.spentTokens - countedTokens),
+  };
+}
+
+/** What the review and the verification of the runs the queue holds for a
+ *  step spent, summed: the part of a phase file's figure that is not the
+ *  step's own session. */
+export function attemptsSidesSpent(attempts: QueueRowView[], step: string): { usd: number; tokens: number } {
+  const results = attempts.map((a) => (a.results ?? []).find((x) => x.step === step)).filter((x): x is StepResultView => !!x);
+  return {
+    usd: results.reduce((sum, x) => sum + sidesSpent(x).usd, 0),
+    tokens: results.reduce((sum, x) => sum + sidesSpent(x).tokens, 0),
   };
 }
 

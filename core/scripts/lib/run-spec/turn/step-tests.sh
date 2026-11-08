@@ -235,6 +235,7 @@ EOF_CMDS
       step_fix_rounds="${AIDE_TEST_FIX_ROUNDS:-2}"
       step_fix_round=0
       step_cost_total="$cost"
+      step_tokens_total="${tokens_json:-}"
       # The tests each red run named (lib/failing-tests.sh).
       step_tests_runs=0
       # The lines of each task a monorepo runner's summary names as failed
@@ -371,6 +372,11 @@ $step_tests_failing"
         run_model_turn "$work_dir/prompt-fix-$step_fix_round"
         step_cost_total="$(jq -n --arg a "$step_cost_total" --arg b "$cost" '(($a|tonumber) + ($b|tonumber))')"
         cost="$step_cost_total"
+        sides_priced_again
+        step_fix_tokens="$(turn_tokens_own "$session_tokens" "${tokens_json:-}")"
+        session_tokens="${tokens_json:-}"
+        step_tokens_total="$(turn_tokens_add "$step_tokens_total" "$step_fix_tokens")"
+        tokens_json="$step_tokens_total"
         # A turn that did not end cleanly keeps its own verdict (timeout,
         # cli-error): nothing to test.
         [ "$terminal_reason" = "completed" ] || break

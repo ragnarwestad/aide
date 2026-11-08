@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { phasePips, phasesFor, renderSpecsRows, type QueueRowView } from "../../../../../src/render";
+import { phasePips, phasesFor, renderSpecsRows, type QueueRowView, type StepResultView } from "../../../../../src/render";
+import { groupBySpec } from "../../../../../src/render/pages/specs-list/data-model";
 import { row, openKeys } from "../../fixtures.ts";
 
 // The › that opens a phase's messages is a link in the cell; the name beside it is still plain text.
@@ -154,4 +155,39 @@ describe("the queue list groups by spec", () => {
       expect(order).toEqual(["create", "analyze", "implement", "archive"]);
     });
   }
+});
+
+// An implement step's review and verification are sessions of their own: the
+// step's figures are the total over all three, and Implement's own line is
+// what is left of it.
+describe("Implement's own figure on a spec whose step ran a review and a verification", () => {
+  const implemented = (result: Partial<StepResultView>): QueueRowView =>
+    row({
+      id: "j1", specFolder: "86-grouped", steps: ["implement"], stepIndex: 0, state: "done",
+      spentUsd: 0.35, spentTokens: 24160,
+      results: [{ step: "implement", ok: true, costUsd: 0.35, tokens: 24160, ...result }],
+    });
+  const withSides = implemented({
+    review: { outcome: "completed", tool: "claude", costUsd: 0.05, tokens: 4930 },
+    verify: { outcome: "completed", tool: "codex", tokens: 9562 },
+  });
+  const attemptOf = (job: QueueRowView) => phasesFor([job], undefined).find((p) => p.step === "implement")!.attempts[0]!;
+
+  test("the line takes the side sessions off the step's cost and tokens (AC-4)", () => {
+    const attempt = attemptOf(withSides);
+    expect(attempt.spentUsd).toBeCloseTo(0.3, 6);
+    expect(attempt.spentTokens).toBe(9668);
+  });
+
+  test("the spec's total is still the step's, the sum of the three (AC-5)", () => {
+    const [group] = groupBySpec([withSides], [], undefined, [], Date.parse("2026-08-17T12:00:00Z"));
+    expect(group!.spentUsd).toBeCloseTo(0.35, 6);
+    expect(group!.spentTokens).toBe(24160);
+  });
+
+  test("a result from before the side sessions were reported reads as it did (AC-6)", () => {
+    const attempt = attemptOf(implemented({}));
+    expect(attempt.spentUsd).toBe(0.35);
+    expect(attempt.spentTokens).toBe(24160);
+  });
 });

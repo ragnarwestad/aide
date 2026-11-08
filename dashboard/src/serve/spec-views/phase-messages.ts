@@ -9,6 +9,7 @@
 import type { QueueStore } from "../../queue/queue.ts";
 import { stepLog, stepMarks, stepTokens } from "../../queue/parse-stream";
 import type { PhaseMessages } from "../../render";
+import type { SidePart } from "../../queue/providers/side-tools.ts";
 import { tailFileAt } from "../serve-helpers";
 import { codexSessionReader } from "./codex-sessions.ts";
 import { resolveStepProvider } from "../../queue/providers/index.ts";
@@ -46,6 +47,32 @@ export function phaseMessagesFor(
       step: stepKey(workRoundJobs(queue, job.project, job.specFolder), job, step),
       running,
     };
+  }
+  return undefined;
+}
+
+/** One side session's own part of the implement step's transcript: the
+ *  bytes its range names, drawn as the tool that session ran on writes them.
+ *  `attemptIds` is newest first; the first attempt whose implement result has
+ *  that session with a range is the one read. */
+export function sideMessagesFor(
+  queue: Pick<QueueStore, "get">,
+  attemptIds: string[],
+  part: SidePart,
+): PhaseMessages | undefined {
+  for (const id of attemptIds) {
+    const result = queue.get(id)?.results.find((r) => r.step === "implement");
+    const side = result?.[part];
+    if (!result?.streamFile || !side?.transcript) continue;
+    const whole = tailFileAt(result.streamFile, Infinity);
+    // Bytes, not characters: the range is an offset in the file.
+    const bytes = Buffer.from(whole.text);
+    const from = Math.max(side.transcript.from, whole.start) - whole.start;
+    const to = Math.min(side.transcript.to - whole.start, bytes.length);
+    if (to <= 0) continue;
+    const text = bytes.subarray(from, Math.max(from, to)).toString("utf-8");
+    const { logs } = stepLog({ text, start: 0 }, undefined, { tool: side.tool ?? result.tool, final: true });
+    return { logs, steps: [], running: false };
   }
   return undefined;
 }

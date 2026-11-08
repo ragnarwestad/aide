@@ -13,6 +13,7 @@ import { aiPicker, ALREADY_RUN_REASON, compactModelLabel, compactModelLabelFull,
 import { chosenSteps, runFormId, specBusy } from "./row-state.ts";
 import { stateAction } from "./row-controls.ts";
 import { phaseHasRun, phaseMessagesFold, phaseMessagesRow } from "./phase-messages";
+import { sideLines } from "./phase-messages/side-lines.ts";
 import { dependsOnLine } from "./depends-on";
 import { SIDE_PARTS } from "../../../queue/providers/side-tools.ts";
 
@@ -304,13 +305,7 @@ export function phaseSubRows(g: SpecGroup, opts: SpecsPageOptions, now: number):
       lines.push(...phaseMessagesRow(g, p, opts, ran, now));
       if (p.step === "implement" && (opts.modelChoices ?? []).length) {
         for (const part of SIDE_PARTS) {
-          const label = t(opts.lang ?? "en", `settings.side.${part}`);
-          lines.push({
-            tag: `<tr class="subrow" data-side="${part}">`,
-            cells: `<td class="phasecell" colspan="2"><span class="phasefold">${esc(label)}</span></td>` +
-              `<td class="modelcell"><span class="row">${sidePickers(g, opts, part, locked || (busy && !editable.has("implement")))}</span></td>` +
-              `<td data-col="state"></td><td data-col="started"></td><td class="num" data-col="cost"></td>`,
-          });
+          lines.push(...sideLines(g, p, opts, part, sidePickers(g, opts, part, locked || (busy && !editable.has("implement")))));
         }
       }
     });

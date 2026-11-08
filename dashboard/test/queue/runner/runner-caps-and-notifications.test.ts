@@ -85,6 +85,47 @@ describe("a step's context use", () => {
   });
 });
 
+// The review and the verification of an implement step, each reported on its
+// own. Another process's JSON: a part that is malformed is dropped alone.
+describe("a step's review and verification", () => {
+  const review = {
+    outcome: "completed", tool: "claude" as const, durationSec: 41, costUsd: 0.05,
+    tokens: { input: 30, output: 700, cacheRead: 4000, cacheCreation: 200, total: 4930 },
+    transcript: { from: 18234, to: 24410 },
+  };
+  const stored = (extra: Record<string, unknown>) => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => ({ ...okResult(1), ...extra }) });
+    runner.tick();
+    runner.poll();
+    return store.get(job.id)?.results[0];
+  };
+
+  test("a result carrying both records each on the step (AC-7)", () => {
+    const verify = { ...review, outcome: "timeout" };
+    const result = stored({ review, verify });
+    expect(result?.review).toEqual(review);
+    expect(result?.verify).toEqual(verify);
+  });
+
+  test("a part that is malformed is dropped, the rest kept (AC-7)", () => {
+    const result = stored({
+      review: { ...review, tokens: { input: 1 }, transcript: { from: 90, to: 10 }, durationSec: -3 },
+    });
+    expect(result?.review).toEqual({ outcome: "completed", tool: "claude", costUsd: 0.05 });
+  });
+
+  test("a review with no outcome is dropped whole (AC-7)", () => {
+    expect(stored({ review: { ...review, outcome: undefined } })?.review).toBeUndefined();
+  });
+
+  test("a result with neither stores neither (AC-6)", () => {
+    const result = stored({});
+    expect(result?.review).toBeUndefined();
+    expect(result?.verify).toBeUndefined();
+  });
+});
+
 // What the run's own log said it ran on. Another process's JSON, so it is
 // read as a question: a usable id is kept, anything else is nothing.
 describe("a step's model id", () => {

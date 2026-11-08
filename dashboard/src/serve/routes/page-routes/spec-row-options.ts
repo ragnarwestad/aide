@@ -10,8 +10,9 @@ import type { JobLike } from "../../../render/pages/jobs-page/rows.ts";
 import { openOverlappingSpecs } from "../../../project/overlapping-specs.ts";
 import { modelChoiceOptions } from "../../serve-helpers";
 import { closeOrReopenSteps, deploySteps, scheduleSteps } from "../../spec-views/job-marks.ts";
-import { phaseMessagesFor } from "../../spec-views/phase-messages.ts";
+import { phaseMessagesFor, sideMessagesFor } from "../../spec-views/phase-messages.ts";
 import { codeBranchOnOrigin } from "../../test-servers/branch-on-origin.ts";
+import type { SidePart } from "../../../queue/providers/side-tools.ts";
 import type { RoutesContext } from "..";
 
 export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): SpecsPageOptions {
@@ -55,6 +56,8 @@ export function specRowOptions(ctx: RoutesContext, url: URL, lang: Language): Sp
     // The messages of a phase the address unfolded. Called only for those, so
     // a redraw reads no transcript for a phase nobody opened.
     phaseMessages: (attemptIds: string[], step: string) => phaseMessagesFor(ctx.queue, attemptIds, step),
+    // The same for a side session's line (Review, Verify) under Implement.
+    sideMessages: (attemptIds: string[], part: SidePart) => sideMessagesFor(ctx.queue, attemptIds, part),
     // How a row is folded lives in the address, so it survives a reload.
     filter: {
       open: url.searchParams.get("open") ?? undefined,

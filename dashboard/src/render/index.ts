@@ -114,7 +114,7 @@ export type {
   ArchivedSpecView, Phase, PhaseMessages, SpecsFilter, SpecsPageOptions, SpecTarget,
 } from "./pages/specs-list";
 
-export type { QueueRowView } from "./ui/job-state";
+export type { QueueRowView, SideRunView, StepResultView } from "./ui/job-state";
 
 export { renderJobDetailPage, renderJobFollowParts } from "./pages/job-page";
 export { jobsShown, jobsTabHasRows, renderJobsPage, renderJobsRows, renderJobsSpecRows, scheduleStreamKey } from "./pages/jobs-page";

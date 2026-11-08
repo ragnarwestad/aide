@@ -8,7 +8,8 @@ import json
 import re
 
 from ...conftest import run
-from ..run_spec_results import CODEX_USAGE, OPENCODE_STREAM_OK, emits
+from ..run_spec_result_fields import assert_written_as_in_fixture
+from ..run_spec_results import CODEX_STREAM_OK, CODEX_USAGE, OPENCODE_STREAM_OK, emits
 from ..run_spec_status_files import with_status
 
 REVIEW_MARKER = "Read this spec's own description"
@@ -232,3 +233,64 @@ def test_a_codex_review_that_finds_nothing_keeps_the_claude_steps_cost(
                      review_tool="codex", review_model="gpt-6.1-sol")
     assert out["terminalReason"] == "completed", out
     assert out.get("costUsd") == 0.5, out
+
+
+def test_a_codex_review_reports_its_tokens_and_no_dollar_figure_ac_1(runner, workspace, fake_claude, fake_codex):
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, "review: no defects found")
+    codex = fake_codex(emits(_codex_says("review: no defects found")))
+    rc, out, _ = run(runner, workspace, claude, codex=codex, command="implement",
+                     review_tool="codex", review_model="gpt-6.1-sol")
+    review = out["review"]
+    assert review["tool"] == "codex" and review["outcome"] == "completed", review
+    assert "costUsd" not in review, review
+    # Codex bills reasoning tokens as output: 4210 + (812 + 640) + 3900.
+    assert review["tokens"]["total"] == 9562, review
+    assert_written_as_in_fixture("review", review)
+
+
+def test_a_codex_step_beside_a_claude_review_reports_the_reviews_dollars_ac_5(
+    runner, workspace, fake_claude, fake_codex
+):
+    """The step's own tool reports no dollar figure and the review's does:
+    the step's cost is then the review's, so a total over the step's
+    sessions is the sum of what the board can add up."""
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, "review: no defects found")
+    codex = fake_codex(
+        "printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'; "
+        + emits(CODEX_STREAM_OK)
+    )
+    rc, out, _ = run(runner, workspace, claude, codex=codex, tool="codex", command="implement",
+                     review_tool="claude", review_model="claude-sonnet-4")
+    assert out["terminalReason"] == "completed", out
+    assert out["review"]["costUsd"] == 0.5, out["review"]
+    assert out["costUsd"] == 0.5, out
+
+
+def test_a_verification_that_ran_is_reported_beside_the_review_ac_2(runner, workspace, fake_claude):
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, TWO_DEFECTS, "keep 1\ndrop 2. handled at y.ts:4")
+    rc, out, _ = run(runner, workspace, claude, command="implement",
+                     review_model="claude-sonnet-4", verify_model="claude-opus-4")
+    assert out["verify"]["outcome"] == "completed" and out["verify"]["tool"] == "claude", out
+    assert out["verify"]["costUsd"] == 0.5, out["verify"]
+    assert_written_as_in_fixture("verify", out["verify"])
+
+
+def test_a_codex_step_keeps_the_reviews_dollars_through_the_fix_turn_ac_5(runner, workspace, fake_claude, fake_codex):
+    with_status(workspace, ["create", "analyze"])
+    claude = _claude(fake_claude, TWO_DEFECTS)
+    ok = emits(CODEX_STREAM_OK).replace("cat > /dev/null; ", "")
+    codex = fake_codex(
+        "prompt=\"$(cat)\"\n"
+        f"if printf '%s' \"$prompt\" | grep -q \"{FIX_MARKER}\"; then\n"
+        f"  printf 'fixed\\n' > fixed.txt && git add -A && git commit -q -m 'the fix'; {ok}\n"
+        "else\n"
+        f"  printf 'real work\\n' > implemented.txt && git add -A && git commit -q -m 'the step'; {ok}\n"
+        "fi\n"
+    )
+    rc, out, _ = run(runner, workspace, claude, codex=codex, tool="codex", command="implement",
+                     review_tool="claude", review_model="claude-sonnet-4")
+    assert out["terminalReason"] == "completed", out
+    assert out["costUsd"] == 0.5, out

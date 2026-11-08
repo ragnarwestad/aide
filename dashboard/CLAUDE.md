@@ -75,8 +75,12 @@ get them, and reads them by hand.
   Defects go back to the ORIGINAL session as one follow-up turn, which
   may turn one down on a `not a defect:` line, logged; the
   review itself is best-effort, so a verdict it cannot parse counts as
-  "found nothing". The step's cost sums every turn, and its `sessionId`
-  stays the implement session's.
+  "found nothing". The step's cost and tokens sum every turn, the
+  review and the verification included, and its `sessionId` stays the
+  implement session's. The result carries the review and the
+  verification each on its own (`review`, `verify`: outcome, tool,
+  duration, tokens, cost and the byte range they wrote in the
+  transcript), which the Review and Verify lines on the specs list draw.
 - **An `implement` ends only on a green test run the runner made itself**
   (`run-spec/turn/step-tests.sh`), never on the session's own record.
   Red goes back to the same session, at most `AIDE_TEST_FIX_ROUNDS` (2)
