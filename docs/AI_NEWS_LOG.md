@@ -7,6 +7,7 @@
   - [Watched pages](#watched-pages)
 - [Notation](#notation)
 - [News log](#news-log)
+  - [2026-11-08](#2026-11-08)
   - [2026-11-07](#2026-11-07)
   - [2026-11-06](#2026-11-06)
   - [2026-11-05](#2026-11-05)
@@ -122,6 +123,62 @@ Relevance markers in each review's `Relevance for aide` section:
 ---
 
 ## News log
+
+### 2026-11-08
+
+Nov 7 – Nov 8. Not read: the OpenAI developer blog (newest post Oct 14), Artificial Analysis (no figures for the
+harnesses). Of the watched pages, `agents.md` changed in star counts only; `code.claude.com/docs/en/hooks-guide`
+changed in what it advises (see relevance). The X list digest of Nov 8 was read; its posts from Nov 7 were already
+in the previous review.
+
+**Claude Code (v2.1.319):**
+
+| Date | Version | News                                                                                                                                            | Source                                 |
+|------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
+| —    | —       | No release since Nov 7 (latest v2.1.319). Anthropic news dates Opus 5.5, Sonnet 5.5 and Haiku 5.5 as Nov 8 (the Nov 7 review had them as Nov 7) | [News](https://www.anthropic.com/news) |
+
+**GitHub Copilot CLI (v1.0.107 stable; v1.0.108-1 the newest pre-release):**
+
+| Date | Version | News                                                                                              | Source                                                     |
+|------|---------|---------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| —    | —       | Nothing newer than v1.0.108-1 (Nov 7, pre-release); the Copilot changelog's newest entry is Nov 6 | [Releases](https://github.com/github/copilot-cli/releases) |
+
+**OpenAI Codex CLI (v0.167.0 stable; v0.169.0-alpha.3 pre-release):**
+
+| Date  | Version          | News                                             | Source                                               |
+|-------|------------------|--------------------------------------------------|------------------------------------------------------|
+| Nov 7 | v0.169.0-alpha.3 | Pre-release with no notes; stable stays v0.167.0 | [Releases](https://github.com/openai/codex/releases) |
+
+**OpenCode (v2.2.6):**
+
+| Date | Version | News                                   | Source                                                     |
+|------|---------|----------------------------------------|------------------------------------------------------------|
+| —    | —       | No release since Nov 7 (latest v2.2.6) | [Releases](https://github.com/anomalyco/opencode/releases) |
+
+**Relevance for aide:**
+
+- ⚠️ Claude Code hooks guide changed: a `PermissionRequest` hook that returns `"behavior": "allow"` for a tool that
+  needs user interaction, such as `ExitPlanMode`, now also needs `updatedInput` (the tool's own input), or Claude Code
+  ignores the allow and still shows the prompt. The examples now use `jq` to echo `.tool_input` back. Aide installs
+  no `PermissionRequest` hook, so nothing breaks; use this form if one is added.
+  [Page](https://code.claude.com/docs/en/hooks-guide)
+- ⚠️ X list, @PawelHuryn, Nov 8: claims Claude Code does not always gitignore `.claude/settings.local.json` as
+  Anthropic says. Aide keeps `AIDE_BOARD_HOST` in that file; Aide's own `.gitignore` already lists it, but the
+  projects Aide installs into are not checked. [Post](https://x.com/PawelHuryn/status/2119190587609841809)
+- ⚠️ X list, @shanemelaugh, Nov 8: claims Opus 5.5 reasoning changed sharply from Nov 3 with the model name unchanged;
+  @somi_ai and @theo point out the chart counts how thinking text is worded, not pass rates. Unverified; compare
+  Aide's step outcomes before and after Nov 3 before acting.
+  [Post](https://x.com/shanemelaugh/status/2119192075505893695)
+- ✅ X list, @AdamHoltererer, Nov 8: Max-effort Claude Code turns are stopped more and error more; xhigh works well.
+  Bears on the effort a step sets. [Post](https://x.com/AdamHoltererer/status/2119067327106871694)
+- ✅ X list, @Voxyz_ai, Nov 8: claims `claude --model sonnet --advisor opus` runs the main session on Sonnet 5.5 with
+  Opus on call; not seen in the changelog, verify with `claude --help`.
+  [Post](https://x.com/Voxyz_ai/status/2119082454120337491)
+- ✅ X list, @_khrus, Nov 8: "deepen modules and simplify interfaces" as the best anti-slop prompt; compare with the
+  `aide-untangle` skill. [Post](https://x.com/_khrus/status/2118971805885239777)
+- ℹ X list: @AdamHoltererer measured GPT-6.1 Terra slower in Codex since Nov 1; @mattpocockuk notes the Thoughtworks
+  Technology Radar now covers markdown files as a technique; MCPHallu benchmark: MCP agents rarely say a task is
+  impossible (@dair_ai).
 
 ### 2026-11-07
 
